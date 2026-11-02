@@ -10,8 +10,8 @@ import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
-import {loadInstalledSalesforceSource} from
-  '../host/installed-salesforce-source.mjs';
+import {installedFailureCode} from
+  '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {checkInstalledSalesforceEffectProfile} from
   '../host/installed-salesforce-effect.mjs';
 
@@ -130,7 +130,7 @@ test('a published generation is restored only as it was published',
     // Another write set is another generation.
     await assert.rejects(installation.load({writes: [{...update,
       fields: ['Name', 'External_Key__c']}]}),
-    {code: 'SalesforceEffectPublicationMismatch'});
+    installedFailureCode('SalesforceEffectPublicationMismatch'));
     // A tampered Mapping list is not this generation.
     const path = installation.profile.publicationPath;
     const text = await readFile(path, 'utf8');
@@ -138,13 +138,13 @@ test('a published generation is restored only as it was published',
     record.mappings[0].mapping_cid = `sha256:${'9'.repeat(64)}`;
     await writeFile(path, JSON.stringify(record));
     await assert.rejects(installation.load(),
-      {code: 'SalesforceEffectPublicationMismatch'});
+      installedFailureCode('SalesforceEffectPublicationMismatch'));
     await writeFile(path, text);
     // Another Site generation must publish again first.
     await installation.writeSite({...installation.siteDocument,
       siteGeneration: 2});
     await assert.rejects(installation.load(),
-      {code: 'ForeignSalesforceDeclaration'});
+      installedFailureCode('ForeignSalesforceDeclaration'));
     // Nothing was read to restore any of them.
     assert.equal(writesOf(installation.org).length, 0);
     // An unknown profile is refused before anything is installed; a checked
@@ -429,15 +429,15 @@ test('a failed Salesforce loader keeps its cause and hands over the Site release
       fields: ['Name', 'External_Key__c']}]},
     {openCredentialJournal: effectJournal.open}).then(() => undefined,
       error => error);
-    assert.equal(effectFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.ok(installedFailureCode('SalesforceEffectPublicationMismatch')(effectFailure));
     assert.equal(effectFailure.cleanupPending, true);
-    assert.deepEqual(effectFailure.cleanupErrors.map(error => error.code),
+    assert.deepEqual(effectFailure.cleanupErrors.map(({error}) => error.code),
       ['InjectedJournalCloseFailure']);
     assert.equal((await effectFailure.cleanupHandle.retry()).pending, false);
     assert.equal(effectJournal.calls.close, 2);
     // Source load: its publication is missing.
     const sourceJournal = closeFailingJournal(1);
-    const sourceFailure = await loadInstalledSalesforceSource({
+    const sourceFailure = await installation.loadSource({
       version: 'actql-installed-salesforce-source/0.1',
       siteProfilePath: installation.profile.siteProfilePath,
       publicationPath: join(installation.root, 'missing-source.json'),
@@ -447,7 +447,7 @@ test('a failed Salesforce loader keeps its cause and hands over the Site release
       providerMoon: installation.options.salesforceMoon,
       openCredentialJournal: sourceJournal.open})
       .then(() => undefined, error => error);
-    assert.equal(sourceFailure.code, 'SalesforcePublicationMissing');
+    assert.ok(installedFailureCode('SalesforcePublicationMissing')(sourceFailure));
     assert.equal(sourceFailure.cleanupPending, true);
     assert.equal((await sourceFailure.cleanupHandle.retry()).pending, false);
     assert.equal(sourceJournal.calls.close, 2);
@@ -660,7 +660,7 @@ test('an Effect runtime missing a required entry is refused before provider I/O'
       const before = installation.org.seen.length;
       const {[entry]: _omitted, ...runtime} = salesforceMoon;
       await assert.rejects(installation.load({}, {salesforceMoon: runtime}),
-        {code: 'InvalidSalesforceEffectRuntime'}, entry);
+        installedFailureCode('InvalidSalesforceEffectRuntime'), entry);
       assert.equal(installation.org.seen.length, before, entry);
     }
   });

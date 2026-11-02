@@ -64,6 +64,8 @@ export async function effectHost(t, installation, state, {effect,
   ]);
   const values = JSON.stringify(
     JSON.parse(contract).execution_contracts['REL.values']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, undefined, undefined));
   const now = () => new Date().toISOString();
   const outcomes = [];
   const executions = [];
@@ -81,7 +83,7 @@ export async function effectHost(t, installation, state, {effect,
         namespaceId: 'namespace-a', storeAuthorityCid: store.storeAuthorityCid,
         now});
       const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
-        facts.owner, registry, values, 1n, 0n, 0n, 0n);
+        facts.owner, installedContracts, values, 1n, 0n, 0n, 0n);
       assert.ok(owned);
       const execution = await runCapturedEffectComputation(owned);
       executions.push(execution);
