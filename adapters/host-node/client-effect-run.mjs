@@ -272,7 +272,9 @@ export function installNodeClientEffectRun({moon,
           // do not retain a second serialized copy. Other requested stops need
           // the same original materials before acceptance, not current config
           // reconstruction when their first Effect is resumed after restart.
-          const effectOriginalRunWire = !requestedStop || updateTargetRunOriginal !== undefined
+          // Ordinary approval also resumes in another process without an
+          // explicit commit stop. Its original must survive that same boundary.
+          const effectOriginalRunWire = updateTargetRunOriginal !== undefined
             ? undefined : updateTargetOriginals?.captureEffectMaterials({allowed, definition, identity});
           if (requestedStop && updateTargetRunOriginal === undefined && effectOriginalRunWire === undefined) {
             throw Object.assign(new Error('RequestedEffectStopOriginalUnavailable'),

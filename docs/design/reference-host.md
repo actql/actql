@@ -2976,6 +2976,13 @@ managed Plan is selected from the Host's existing Run bag using its original
 Request relation and Definition. A matching partial failure stays sticky; there
 is no second Run cache, allocator or replacement admission.
 
+Initial installed acceptance retains the full original Run materials for an
+ordinary approval as well as an explicitly requested commit stop. The approval
+can be answered from another process in either case. Selected target custody
+already includes that same codec and keeps one copy. The stop option selects
+execution behavior; it does not decide whether original identity and recovery
+materials survive the process boundary.
+
 A cold process reconstructs the checked compiler once under new physical
 custody for that already admitted logical Request. The existing Host pending
 call and Source producer retain the input before construction. The Request

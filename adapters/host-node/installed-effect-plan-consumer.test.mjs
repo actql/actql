@@ -841,6 +841,59 @@ test('retained Host reuses its live Plan without cold material and refuses missi
   assert.deepEqual(cold.calls, []);
 });
 
+function ordinaryEffectDefinitionFixture({target = false, stop = false} = {}) {
+  const prepared = {}, identity = {}, compilation = {}, allowed = {}, definition = {}, targetOriginal = {};
+  const calls = [], runDefinition = {identity: 'original-definition'}, wire = 'original-full-materials';
+  const moon = {
+    clientProgramIssueAllowedEffectRun(c) {assert.strictEqual(c, compilation); return ok(allowed);},
+    clientProgramIssueEffectRunDefinition(a) {assert.strictEqual(a, allowed); return ok(definition);},
+    clientProgramEffectRunStartCurrent(a, d) {assert.strictEqual(a, allowed); assert.strictEqual(d, definition); return true;},
+    strategyPublicationContractJson: d => {assert.strictEqual(d, definition); return 'original-definition-wire';},
+    clientProgramEffectCompilationResultNames: c => {assert.strictEqual(c, compilation); return ['answer'];},
+    clientProgramAllowedEffectRunPrepared: a => {assert.strictEqual(a, allowed); return 'prepared-evidence';},
+    clientProgramAllowedEffectRunAuthorization: a => {assert.strictEqual(a, allowed); return 'authorization-evidence';},
+    strategyRunEvidenceJson: value => value,
+  };
+  const ports = {moon, checked, prepared, identity, limits: {}, requiresQueryTime: false, requestedStop: stop,
+    assertRequestedStopAvailable() {calls.push('requested-stop');},
+    policy: {createdAt: 'original-time', expiresAt: 'original-expiry'}, namespaceId: 'original-scope',
+    randomUUID: () => 'original-run', now: () => 'current-time', expired: () => new Error('expired'),
+    compiled: () => compilation, contentPolicies: new WeakMap(), resultPolicyOriginalFor: undefined,
+    inferPlanFor: undefined, control: {admit(kind, original) {
+      assert.equal(kind, 'run_definition'); assert.equal(original, 'original-definition-wire'); return runDefinition;
+    }}, updateTargetOriginals: {captureRun(facts) {
+      assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.allowed, allowed);
+      assert.strictEqual(facts.definition, definition); assert.strictEqual(facts.identity, identity);
+      calls.push('capture-target'); return target ? targetOriginal : undefined;
+    }, captureEffectMaterials(facts) {
+      assert.strictEqual(facts.allowed, allowed); assert.strictEqual(facts.definition, definition);
+      assert.strictEqual(facts.identity, identity); calls.push('capture-full-original'); return wire;
+    }}, prepareDefinition(facts) {
+      assert.strictEqual(facts.prepared, prepared); assert.strictEqual(facts.compilation, compilation);
+      assert.strictEqual(facts.identity, identity); calls.push('same-parent-constructor');
+    }};
+  const body = retainedRequestSourceMember('./client-effect-run.mjs', 'issueDefinition');
+  const owner = new Function(...Object.keys(ports), 'return ({' + body + '});')(...Object.values(ports));
+  return {issue: () => owner.issueDefinition(), wire, targetOriginal, runDefinition, calls};
+}
+
+test('ordinary Effect approval retains full original materials without an explicit commit stop', async () => {
+  const f = ordinaryEffectDefinitionFixture(), issued = await f.issue();
+  assert.strictEqual(issued.runDefinition, f.runDefinition);
+  assert.equal(issued.runAdmissionEvidence.effectOriginalRunWire, f.wire);
+  assert.deepEqual(f.calls, ['capture-target', 'capture-full-original', 'same-parent-constructor']);
+});
+
+test('ordinary Effect target custody keeps its one original codec and requested stop still retains its materials', async () => {
+  const target = ordinaryEffectDefinitionFixture({target: true}), targeted = await target.issue();
+  assert.strictEqual(targeted.runAdmissionEvidence.updateTargetRunOriginal, target.targetOriginal);
+  assert.equal(Object.hasOwn(targeted.runAdmissionEvidence, 'effectOriginalRunWire'), false);
+  assert.deepEqual(target.calls, ['capture-target', 'same-parent-constructor']);
+  const stop = ordinaryEffectDefinitionFixture({stop: true}), stopped = await stop.issue();
+  assert.equal(stopped.runAdmissionEvidence.effectOriginalRunWire, stop.wire);
+  assert.deepEqual(stop.calls, ['requested-stop', 'capture-target', 'capture-full-original', 'same-parent-constructor']);
+});
+
 test('existing whole Effect resume forwards the same restored Plan before recovering its capture', async () => {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
