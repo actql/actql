@@ -367,6 +367,12 @@ Resource byte-vector arithmetic is shared with byte-only preparation; attempts,
 transfer, quantities, slots and consumed history are unchanged. No new Ledger,
 Root, issuer or cleanup owner is constructed.
 
+The same response borrow supports checked-query and whole-input selections.
+Each keeps its original acquisition and the corresponding owner's complete
+capacity projection; a whole input is never converted to a Query requirement.
+Whole-input growth retains its full peak through existing final cleanup rather
+than selecting the query-only early workspace-return path.
+
 Capacity refusal does not decode, consume the response ticket, return bytes or
 proceed to another child. A successful growth remains charged even if a later
 callback closes the Run. The same reader/Row cleanup still owns pending, failed

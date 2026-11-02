@@ -111,7 +111,7 @@ test('shared reader typed page stop retains the pending original consumption unt
   assert.deepEqual(f.counts(), {sends: 1, charges: 1, consumes: 1, closes: 1});
 });
 
-function fixture({pendingRead, pendingBinding = false, responseGrowth = false, growthFailure} = {}) {
+function fixture({pendingRead, pendingBinding = false, responseGrowth = false, growthFailure, wholeInput = false} = {}) {
   const events = [], raw = {grant: {}, scope: {operation: 'read'}}, credential = {}, capacity = {}, charge = {}, began = deferred();
   const response = Object.freeze({body: Buffer.from('same received bytes')});
   let current = true, bindingCanClose = !pendingBinding, providerRetired = false, requestSignal;
@@ -161,7 +161,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
       return {authorization:{...raw,useId:'child'},originalAuthorization:raw};
     }, consumePage(rows) {assert.deepEqual(rows,[{id:1}]);},consumeObservation() {},
     chargePage(bytes) {assert.equal(bytes,response.body);events.push('charge');began.resolve();return charge;}});
-  const run = {}, source = {}, ledger = {}, responseBorrow = {};
+  const run = {}, source = {}, ledger = {}, responseBorrow = {}, originalRead = {};
   const moon = {
     clientProgramRowSourceStartProviderAccounted() {events.push('reserve'); return ok(run);},
     clientProgramRowSourceBorrowResponses() {events.push('borrow'); return ok(responseBorrow);},
@@ -181,6 +181,20 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
     clientProgramRowSourceCaptureCleanup() {return ok(true);},
   };
   const captured = {}, capturedSource = {}, identity = {}, logicalInput = {}, attempt = {};
+  Object.assign(moon, {
+    clientProgramInstalledSourceReadCheckLedger(original, actual) {
+      assert.equal(original,originalRead);assert.equal(actual,ledger);return ok(undefined);
+    },
+    clientProgramInstalledWholeSourceReadStartRows(original, actual) {
+      assert.equal(original,originalRead);assert.equal(actual,source);events.push('whole-reserve');return ok(run);
+    },
+    clientProgramWholeSourceBorrowResponses(actual, selected) {
+      assert.equal(actual,run);assert.equal(selected,source);events.push('whole-borrow');return ok(responseBorrow);
+    },
+    clientProgramInstalledSourceReadRetire(original) {
+      assert.equal(original,originalRead);events.push('whole-retire');return ok(undefined);
+    },
+  });
   const evidence = {}, checkedOwner = {}, requirement = {};
   Object.assign(moon, {
     clientProgramRowSourceFinish: () => ok(undefined),
@@ -201,6 +215,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
     clientProgramRowSourceCaptureCleanupAdvance() {return ok(captureCleanupReady);},
   });
   const session = startInstalledRowRun({moon, acquisition: source, nonce: 'one', ledger,
+    ...(wholeInput ? {wholeInput:true,originalRead} : {}),
     capacity: {provider: capacity, transferBytes: 100n, executionBytes: 100n}});
   return {factory, options, events, session, response, readBegan: began.promise,
     // Observe the exact returned original; read/stop/observe are never wrapped
@@ -234,6 +249,16 @@ test('native response constructor preserves original capacity refusal without de
   assert.equal(f.events.includes('project-response'),false);
   assert.equal(f.inspect().coreRetired,false);
   f.session.close();assert.equal(f.inspect().coreRetired,true);
+});
+
+test('native whole-input response uses the SAME original input borrow for growth and retirement', async () => {
+  const f=fixture({responseGrowth:true,wholeInput:true});
+  assert.deepEqual(await f.read(),{pages:1,rowCount:1});
+  assert(f.events.includes('whole-reserve'));assert(f.events.includes('whole-borrow'));
+  assert.equal(f.events.includes('reserve'),false);assert.equal(f.events.includes('borrow'),false);
+  assert(f.events.indexOf('grow-response')<f.events.indexOf('project-response'));
+  f.session.close();assert.equal(f.inspect().coreRetired,true);
+  assert.equal(f.events.filter(value=>value==='whole-retire').length,1);
 });
 
 test('same original Source reader retains grant response and binding until actual original retirement', async () => {

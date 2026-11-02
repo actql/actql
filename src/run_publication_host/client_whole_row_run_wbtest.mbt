@@ -126,9 +126,14 @@ fn whole_row_run(
   selected : @row_host.RowInputAcquisition,
   settled : Ref[Bool],
   stopped : Ref[Bool],
-) -> (@row_host.RowRun, @resources.Ledger) {
+  available_provider? : @execution.ExecutionCapacity? = None,
+) -> (@row_host.RowRun, @resources.Ledger, @row_host.RowRunResponseBorrow) {
   let provider = @execution.execution_capacity(1024L, 2048L)
-  let capacity = @row_host.row_input_acquisition_capacity(selected, provider).unwrap()
+  let available = match available_provider {
+    Some(value) => Some(value)
+    None => provider
+  }
+  let capacity = @row_host.row_input_acquisition_capacity(selected, available).unwrap()
   let ledger = @resources.create_ledger({
     planning_work: 100,
     attempts: 1,
@@ -154,7 +159,61 @@ fn whole_row_run(
   ).unwrap()
   let borrow = @row_host.borrow_row_input_run_responses(run, selected).unwrap()
   @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
-  (run, ledger)
+  (run, ledger, borrow)
+}
+
+///|
+test "whole Source response growth retains original input reservation charge and cleanup" {
+  let (_, _, selected) = whole_row_selection()
+  let grown = @execution.execution_capacity(1040L, 2080L).unwrap()
+  let settled = Ref(false)
+  let stopped = Ref(false)
+  let (run, ledger, borrow) = whole_row_run(
+    selected,
+    settled,
+    stopped,
+    available_provider=Some(grown),
+  )
+  assert_true(
+    @row_host.grow_row_run_response_capacity(borrow, grown) is Err(InvalidState),
+  )
+  let charge = @row_host.charge_row_run_page(run, @utf8.encode("[]")).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  @row_host.grow_row_run_response_capacity(borrow, grown).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after, {
+    ..before,
+    reserved_retention_bytes: before.reserved_retention_bytes + 16L,
+    reserved_execution_bytes: before.reserved_execution_bytes + 32L,
+    peak_retention_bytes: before.peak_retention_bytes + 16L,
+  })
+  @row_host.grow_row_run_response_capacity(borrow, grown).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), after)
+  assert_true(
+    @row_host.grow_row_run_response_capacity(
+      borrow,
+      @execution.execution_capacity(1000000000L, 1000000000L).unwrap(),
+    )
+    is Err(Physical(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), after)
+  @row_host.consume_row_run_response_charge(run, charge).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_capacity(borrow, grown) is Err(InvalidState),
+  )
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    after.reserved_execution_bytes,
+  )
+  settled.val = true
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 2L)
 }
 
 ///|
@@ -185,7 +244,7 @@ test "whole Source RowRun retains 101 original input rows before Select Sort and
   let (_, original, selected) = whole_row_selection()
   let settled = Ref(false)
   let stopped = Ref(false)
-  let (run, ledger) = whole_row_run(selected, settled, stopped)
+  let (run, ledger, _) = whole_row_run(selected, settled, stopped)
   let values = []
   for index in 0..<101 {
     values.push("{\"id\":" + (101 - index).to_string() + "}")
@@ -239,7 +298,7 @@ test "whole Source RowRun retains 101 original input rows before Select Sort and
 test "whole Source validates original input keys and retains cancelled validation until cleanup" {
   let (_, _, selected) = whole_row_selection()
   for cancel in [false, true] {
-    let (run, ledger) = whole_row_run(selected, Ref(true), Ref(true))
+    let (run, ledger, _) = whole_row_run(selected, Ref(true), Ref(true))
     let body = @utf8.encode("[{\"id\":7},{\"id\":7}]")
     let charge = @row_host.charge_row_run_page(run, body).unwrap()
     @row_host.accept_charged_row_run_page(run, charge, body).unwrap() |> ignore
@@ -267,7 +326,7 @@ test "whole Source validates original input keys and retains cancelled validatio
 ///|
 test "whole Source evidence and Compute root keep original input distinct from task completion" {
   let (prepared, original, selected) = whole_row_selection()
-  let (run, ledger) = whole_row_run(selected, Ref(true), Ref(true))
+  let (run, ledger, _) = whole_row_run(selected, Ref(true), Ref(true))
   let body = @utf8.encode("[{\"id\":2},{\"id\":1}]")
   let charge = @row_host.charge_row_run_page(run, body).unwrap()
   @row_host.accept_charged_row_run_page(run, charge, body).unwrap() |> ignore

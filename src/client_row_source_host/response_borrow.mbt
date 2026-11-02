@@ -146,8 +146,7 @@ pub fn grow_row_run_response_capacity(
     value.run.page_charge is Some(charge) &&
     !charge.consumed &&
     value.run.physical is Some(physical) &&
-    physical.provider_capacity is Some(previous) &&
-    value.selection is QueryResponse(acquisition) else {
+    physical.provider_capacity is Some(previous) else {
     return Err(InvalidState)
   }
   if @execution.execution_capacity_retained_bytes(capacity) <
@@ -162,16 +161,22 @@ pub fn grow_row_run_response_capacity(
   if physical_equal(capacity, previous) {
     return Ok(())
   }
-  let (retained, execution) = match
-    row_provider_capacity_sum(
-      row_acquisition_retained_capacity(acquisition),
-      row_acquisition_execution_capacity(acquisition),
-      physical.execution_scratch,
-      Some(capacity),
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
+  // Each existing selection owns its original input/row representation.
+  // Reuse that owner's complete provider composition, never coerce a whole
+  // input to a checked Query or rebuild either selected acquisition.
+  let total = match value.selection {
+    QueryResponse(acquisition) =>
+      row_acquisition_provider_capacity(acquisition, Some(capacity))
+    InputResponse(acquisition) =>
+      row_input_acquisition_capacity(acquisition, Some(capacity))
   }
+  guard total is Some(total) else { return Err(Physical(InvalidLimits)) }
+  let retained = @execution.execution_capacity_retained_bytes(total)
+  let executing = @execution.execution_capacity_execution_bytes(total)
+  if physical.execution_scratch > 9223372036854775807L - executing {
+    return Err(Physical(InvalidLimits))
+  }
+  let execution = executing + physical.execution_scratch
   // Resource current may synchronously close/reenter this RowRun. Fence the
   // original borrow before that callback and retain any successful new debit
   // even when its post-callback Row state is no longer usable.

@@ -165,7 +165,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
     const grow = moon.clientProgramRowSourceGrowResponseCapacity;
-    const reserveResponseCapacity = typeof grow !== 'function' || wholeInput ? undefined
+    const reserveResponseCapacity = typeof grow !== 'function' ? undefined
       : capacity => {
         if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
         signal?.throwIfAborted();
