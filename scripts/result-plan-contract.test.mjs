@@ -147,7 +147,8 @@ test('original UPDATE selection is optional in both closed Plan schemas', () => 
   const currentPins = {
   "executable_plan": "sha256:661fb7d6ff04024797f7733effa16ee82cbc9cb31533425270677906017cd487",
   "plan_document": "sha256:8faa3038775b916b1446c42b8ef3a2349bed1fb9f4341a96025f668a6d199232",
-  "artifact_registry": "sha256:e0f6390643f9e296112180f4ac29e886d1ddce79a85e8950fabeb6ca3efe6f0b"
+  // The whole registry also includes current Reason, outcome and receipt schemas.
+  "artifact_registry": "sha256:41af233cbf261bcb7692d83401f19ca414df82bf1ee99a427330fcc575060ada"
 };
   for (const [key, pins] of Object.entries(selections.schema_pins)) {
     // Keep the earlier UPDATE corpus and its original whole-schema identities.
