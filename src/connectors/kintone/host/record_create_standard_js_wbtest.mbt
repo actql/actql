@@ -282,7 +282,7 @@ extern "js" fn standard_create_declaration(
   #| const own=loader('../../../../../../../adapters/host-common/http-exchange.mjs'),invocation=loader('../../../../../../../adapters/host-common/owned-invocation-context.mjs');
   #| const local=loader('../../../../../../../adapters/host-node/local-values-plan.mjs');
   #| const source=fs.readFileSync(loader.resolve('../../../../../../../adapters/host-node/installed-row-effect.mjs'),'utf8');
-  #| const start=source.indexOf('function deriveInstalledRowWrite('),end=source.indexOf('\nfunction checkDriver(',start);
+  #| const start=source.indexOf('function deriveInstalledRowWrite('),end=source.indexOf('\nfunction prepareInstalledCreateRows(',start);
   #| assert(start>=0&&end>start);
   #| const derive=Function('createHash','nodeTypes','ownHttpRequest','ownRequestHeaders','ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits','return ('+source.slice(start,end)+');')(crypto.createHash,types,own.ownHttpRequest,own.ownRequestHeaders,own.ownResponseHeaderNames,invocation.invokeScopedCredentialOperation,local.localContractLimits);
   #| let prepares=0,restores=0;
@@ -295,12 +295,12 @@ extern "js" fn standard_create_declaration(
   #| clientProgramKintoneCreateEffectOutcomeWire:wire,clientProgramKintoneCreateEffectOutcomeResponseSha256:digest,clientProgramKintoneCreateEffectOutcomeMatchesRequest:matches};
   #| const limits={maxInputBytes:8192,maxRequestBytes:8192,maxResponseBytes:8192,maxNodes:1000,maxDepth:16,maxFields:16,maxNameUnits:512,maxRows:1,maxIdentityBytes:1000,maxComparisonWork:10000};
   #| const args={moon,mapping,declaration,resource:'inquiries',formResource:'forms',origin:'https://tenant.example.test',boundaryCid:'sha256:'+'b'.repeat(64),limits};
-  #| const write=site.createMappedKintoneCreateWrite(args),driver=derive(write,'kintone');
+  #| const write=site.createMappedKintoneCreateWrite(args),driver=derive(write,'kintone').driver;
   #| const proposalWire='{"state":"present","value":{"Subject":"next 東京","Tags":["red","red"]}}',value=JSON.parse(proposalWire).value;
   #| const member=Object.freeze({kind:'create',resource:'inquiries'}),prepared=driver.prepareRequest({member,value,proposalWire});
   #| assert.equal(prepared.request.body,'{"app":"12","records":[{"Subject":{"value":"next 東京"},"Tags":{"value":["red","red"]}}]}');
   #| assert.equal(prepared.request.proposalWire,proposalWire);assert.equal(driver.requestFacts(prepared.request).value,value);assert.equal(prepares,1);
-  #| const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]}),coldWrite=site.createMappedKintoneCreateWrite(args),cold=derive(coldWrite,'kintone');
+  #| const saved=driver.recoveryEntry({member,entries:[{...prepared,value}]}),coldWrite=site.createMappedKintoneCreateWrite(args),cold=derive(coldWrite,'kintone').driver;
   #| moon.clientProgramKintonePrepareCreateExecutionProposal=()=>{throw new Error('later export replacement');};
   #| const restored=cold.recoverRequests({members:[member],durable:{connectorRecovery:[{...saved,memberIndex:0}]}}).requests[0][0];
   #| assert.equal(cold.requestCid(restored),prepared.requestCid);assert.equal(restored.body,prepared.request.body);assert.equal(prepares,1);assert.equal(restores,0);
