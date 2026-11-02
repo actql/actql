@@ -833,6 +833,82 @@ jobs:
       package-result: ${{ needs.client-packages.result }}
       package-run-id: ${{ github.run_id }}
       package-artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+  # Reuse the normal producer; this small trend lane is not the release matrix.
+  main-performance:
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [preflight, client-packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/main-performance/packages
+      - name: Bind normal artifacts and install the existing benchmark consumer
+        env:
+          PACKAGE_ARTIFACT_ID: ${{ needs.client-packages.outputs.artifact-id }}
+        run: |
+          root="$RUNNER_TEMP/main-performance"
+          node --input-type=module -e '
+            import {writeFileSync} from "node:fs";
+            writeFileSync(process.env.RUNNER_TEMP + "/main-performance/producer.json", JSON.stringify({
+              sourceSha: process.env.GITHUB_SHA, repository: process.env.GITHUB_REPOSITORY,
+              runId: process.env.GITHUB_RUN_ID, attempt: process.env.GITHUB_RUN_ATTEMPT,
+              packageArtifactId: process.env.PACKAGE_ARTIFACT_ID,
+              runnerImage: process.env.ImageOS, runnerImageVersion: process.env.ImageVersion,
+              qualification: "Same-run normal client-packages artifact; no rebuilt or substituted inputs."
+            }, null, 2));'
+          node scripts/ordinary-operation-packages.mjs prepare "$root/packages" "$GITHUB_SHA" "$root/prepared" --mode record-only
+      - name: Record existing warm and actual-process operation measurements
+        run: |
+          root="$RUNNER_TEMP/main-performance"
+          common=(--manifest "$root/packages/ordinary-operation-packages.json" --consumer "$root/prepared/consumer" --controls "$root/prepared/controls.json" --mode record-only)
+          node scripts/benchmark-node-operations.mjs "${common[@]}" --output "$root/warm"
+          for operation in first-init cold-existing; do
+            node scripts/benchmark-node-process-operations.mjs "${common[@]}" --operation "$operation" --output "$root/$operation"
+          done
+      - name: Summarize recorded observations without a speed gate
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync, appendFileSync} from 'node:fs';
+          const root = process.env.RUNNER_TEMP + '/main-performance';
+          const lines = ['## Main performance observations', '',
+            'Three verified repetitions per family; median/max only, not an acceptance p95 or a regression verdict.',
+            'Warm Result rereads the original Saved Run. Cross-process Saved is not measured here.',
+            'Cold means a new process, not an evicted OS cache. Hosted runner variation requires matched environments.', '',
+            '| Operation | Samples | Median ms | Max ms | Process high-water RSS MiB |',
+            '| --- | ---: | ---: | ---: | ---: |'];
+          for (const family of ['warm', 'first-init', 'cold-existing']) {
+            const report = JSON.parse(readFileSync(`${root}/${family}/measurements.json`));
+            if (report.mode !== 'record-only' || report.firstFailure || !report.measurements?.length) throw Error('Incomplete measurements');
+            for (const row of report.measurements) lines.push(`| ${row.operation} | ${row.count} | ${row.medianMs.toFixed(3)} | ${row.maxMs.toFixed(3)} | ${(row.resources.rss.maximumBytes / 1048576).toFixed(2)} |`);
+          }
+          lines.push('', 'Warm RSS includes setup and all earlier operations in that process. Child RSS excludes other workers/processes; neither measures per-operation allocation.',
+            'Raw samples, public spans, query/protocol hashes, source/package identities and observed environment are retained in the artifact.');
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+          NODE
+      - name: Preserve measurements and failure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: main-performance-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/main-performance/producer.json
+            ${{ runner.temp }}/main-performance/packages/*packages.json
+            ${{ runner.temp }}/main-performance/prepared/controls.json
+            ${{ runner.temp }}/main-performance/*/measurements.json
+            ${{ runner.temp }}/main-performance/*/samples.jsonl
+            ${{ runner.temp }}/main-performance/*/sample-*.json
+            ${{ runner.temp }}/main-performance/*/*.stdout
+            ${{ runner.temp }}/main-performance/*/*.stderr
+          if-no-files-found: error
+          retention-days: 90
   client-distribution:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     needs: [select-targets, preflight, client-packages]

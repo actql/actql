@@ -7,7 +7,7 @@ import {appendFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/pr
 import {arch, cpus, platform, release, totalmem} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {assessLatency, operationTargets} from './operation-performance.mjs';
+import {assessLatency, recordOperationMeasurements, operationTargets} from './operation-performance.mjs';
 import {nodeBenchmarkInstrumentation, nodeOperationProtocol, verifyNodeBenchmarkPackages} from './benchmark-node-operations.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -140,7 +140,7 @@ async function runChild(config, output, name) {
 export async function runNodeProcessBenchmark({manifestPath, consumer, output, controlsPath,
   operation, mode = 'diagnostic'}) {
   assert(['cold-existing', 'first-init'].includes(operation));
-  assert(['diagnostic', 'final'].includes(mode));
+  assert(['diagnostic', 'final', 'record-only'].includes(mode));
   consumer = resolve(consumer); output = resolve(output);
   const manifestBytes = await readFile(manifestPath), manifest = JSON.parse(manifestBytes);
   const controls = JSON.parse(await readFile(controlsPath));
@@ -189,7 +189,7 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
       series.samples.push(row);
       await appendFile(join(output, 'samples.jsonl'), JSON.stringify({operation, ...row}) + '\n', {mode: 0o600});
       await save();
-      if (!result.verified || result.wallNs > operationTargets[operation].p95Ms * 1e6 * 10) {
+      if (!result.verified || (mode !== 'record-only' && result.wallNs > operationTargets[operation].p95Ms * 1e6 * 10)) {
         series.stoppedEarly = true;
         series.stopReason = result.verified ? 'Slow diagnostic; final distribution not measured' : 'Public functional failure';
         if (!result.verified) report.firstFailure = {operation, message: result.error};
@@ -208,7 +208,8 @@ export async function runNodeProcessBenchmark({manifestPath, consumer, output, c
       series.samples.every(row => row.childObservation?.cleanup?.closed === true);
     try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
     catch (error) { primary ??= error; report.packageFailure = error.message; }
-    report.assessments = [assessLatency(series)];
+    report.assessments = mode === 'record-only' ? [] : [assessLatency(series)];
+    if (mode === 'record-only' && !report.firstFailure && !primary) report.measurements = [recordOperationMeasurements(series)];
     await save();
   }
   if (primary) throw primary;

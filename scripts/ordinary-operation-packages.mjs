@@ -137,10 +137,10 @@ export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, o
   install = (args, cwd) => execFileSync('npm', args, {cwd, stdio: 'inherit', timeout: 120_000})}) {
   let protocol;
   if (selection === undefined) {
-    assert.equal(mode, undefined, 'A mode requires the explicit priority selection');
+    assert(mode === undefined || mode === 'record-only', 'Only record-only mode is allowed without a priority selection');
     assert.equal(resourceObservations, undefined, 'Resource observations require the explicit priority selection');
     assert.equal(rowObservations, undefined, 'Row observations require the explicit priority selection');
-    protocol = nodeOperationProtocol('final');
+    protocol = nodeOperationProtocol(mode ?? 'final');
   } else {
     assert.equal(selection, 'priority-transition', 'Unknown performance selection');
     assert.equal(comparisonPath, undefined, 'Priority controls do not use the full-release comparator');

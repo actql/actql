@@ -613,3 +613,34 @@ test('priority selected rows CLI is explicit and cannot turn partial rows into p
   assert.equal(report.priorityAssessment.gates.node.status, 'incomplete');
   assert.throws(() => nodePriorityProtocol('diagnostic', undefined, 'all-reads'));
 });
+
+test('record-only warm collection keeps all slow repetitions and original result reads', async t => {
+  const options = await fixture(t, false, true); options.mode = 'record-only';
+  const controls = JSON.parse(await readFile(options.controlsPath));
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodeWarmProtocol(options.mode))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  const report = await runNodeWarmBenchmark(options);
+  assert.equal(report.latency.length, 8);
+  assert(report.latency.every(row => row.samples.length === 3 && !row.stoppedEarly));
+  assert.deepEqual(report.assessments, []);
+  assert(report.measurements.every(row => row.p95Ms === null && row.acceptanceAssessed === false));
+  assert.equal(report.cleanup.closed, true);
+});
+
+test('record-only CLI succeeds for slow correct observations and fails on Unknown', async t => {
+  for (const fail of [false, true]) {
+    const options = await fixture(t, fail, true); options.mode = 'record-only';
+    const controls = JSON.parse(await readFile(options.controlsPath));
+    controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodeWarmProtocol(options.mode))));
+    await writeFile(options.controlsPath, JSON.stringify(controls));
+    const result = spawnSync(process.execPath, ['scripts/benchmark-node-operations.mjs',
+      '--manifest', options.manifestPath, '--consumer', options.consumer, '--output', options.output,
+      '--controls', options.controlsPath, '--mode', options.mode], {encoding: 'utf8', timeout: 20_000});
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, fail ? 1 : 0, result.stderr);
+    const report = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+    assert.equal(report.cleanup.closed, true);
+    if (fail) {assert(report.firstFailure); assert.equal(report.measurements, undefined);}
+    else assert.equal(report.measurements.length, 8);
+  }
+});

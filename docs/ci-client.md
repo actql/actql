@@ -219,3 +219,30 @@ only 26–35s. Different source/runner/load and failed/incomplete runs are not
 controlled successful comparisons. Independent retry scope and reduced per-job
 timeout exposure are the immediate goals. Pipeline evidence remains a separate,
 longer critical path; this split does not establish a whole-workflow speedup.
+
+## Main performance observations
+
+Every public `main` push runs `main-performance` on Linux with the normal
+`client-packages` artifact from that same run. It does not rebuild packages or
+start the heavy performance matrix. The existing ordinary consumer preparer,
+`benchmark-node-operations.mjs`, and `benchmark-node-process-operations.mjs`
+run in explicit `record-only` mode. Diagnostic/final acceptance modes and their
+thresholds are unchanged.
+
+The fixed small SQL fixtures collect three repetitions of warm query/Run,
+original Saved Result reread and status, plus actual new-process first-init and
+cold-existing operations. Cold-existing submits a new Run; it is **not** a
+cross-process Saved benchmark, and no OS cache eviction is performed. These
+small fixtures do not establish large-data throughput. Correctness, protocol,
+package-integrity and cleanup failures fail the job; elapsed time alone does not.
+
+The job summary shows median/max and process high-water RSS. Three samples do
+not establish a meaningful p95; that field remains null. Warm RSS includes
+setup and earlier operations in the same process. Child RSS covers only that
+actual process, not other workers or subprocesses, and is not per-operation
+allocation. Raw wall/CPU samples, child public spans, fixed fixture and protocol
+hashes, source/tarball/installed-payload identities, producer artifact/run IDs,
+Node/OS/CPU configuration and runner image are retained for 90 days. Compare
+like protocols and environments; hosted-runner variance is not a regression
+verdict. Full acceptance and larger campaigns remain separate, manually selected
+existing performance tooling.

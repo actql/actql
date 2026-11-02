@@ -6,7 +6,7 @@ import {appendFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/pr
 import {arch, platform, release, cpus, totalmem} from 'node:os';
 import {dirname, join, relative, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {assessLatency, calibratedLatencyTarget, collectOperationSamples,
+import {assessLatency, recordOperationMeasurements, calibratedLatencyTarget, collectOperationSamples,
   assessPriorityTransition, priorityTransitionTarget} from './operation-performance.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -95,7 +95,7 @@ export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
   return {profiled: /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof|trace-events-enabled|trace-event-categories)(?:[=\s-]|$)/u.test(flags) || Boolean(coverage)};
 }
 export function nodeWarmProtocol(mode) {
-  assert(['diagnostic', 'final'].includes(mode));
+  assert(['diagnostic', 'final', 'record-only'].includes(mode));
   return {entry: 'ordinary open/stateDir', mode, priorState: 'new empty directory',
     seed: {source: 'SELECT 1 AS id', format: 'sql', expected: [{id: 1}], successfulRuns: 1},
     operationOrder: ['warm-select', 'warm-result', 'warm-status', ...nodeWarmSmallQueryFixtures.map(row => row.operation)],
@@ -157,7 +157,7 @@ export async function verifyNodeBenchmarkPackages(manifest, manifestPath, consum
   return observations;
 }
 export async function runNodeWarmBenchmark({manifestPath, consumer, output, controlsPath, mode = 'diagnostic'}) {
-  assert(['diagnostic', 'final'].includes(mode));
+  assert(['diagnostic', 'final', 'record-only'].includes(mode));
   consumer = resolve(consumer); output = resolve(output);
   const manifestBytes = await readFile(manifestPath), manifest = JSON.parse(manifestBytes);
   const controls = JSON.parse(await readFile(controlsPath));
@@ -282,7 +282,10 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     }
     try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
     catch (error) { primary ??= error; report.packageFailure = error.message; }
-    report.assessments = report.latency.map(row => assessLatency(row, controls.comparison));
+    report.assessments = mode === 'record-only' ? [] : report.latency.map(row => assessLatency(row, controls.comparison));
+    if (mode === 'record-only' && !report.firstFailure && !primary) {
+      report.measurements = report.latency.map(recordOperationMeasurements);
+    }
     report.fullAcceptance = false;
     await save();
   }
@@ -642,7 +645,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const report = await runNodeWarmBenchmark(options);
       console.log(JSON.stringify({sourceSha: report.sourceSha, stoppedAt: report.stoppedAt ?? null,
         assessments: report.assessments, fullAcceptance: false}));
-      process.exitCode = report.initialLatencyExceeded || report.stoppedAt || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
+      process.exitCode = report.firstFailure || report.stoppedAt || (options.mode !== 'record-only' &&
+        (report.initialLatencyExceeded || report.assessments.some(row => row.status !== 'passed'))) ? 1 : 0;
     }
   } catch (error) { console.error(error.message); process.exitCode = 2; }
 }

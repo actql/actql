@@ -32,7 +32,7 @@ export async function open({stateDir}) {
   ${fail === 'exit' ? "if(options.requestId!=='benchmark-seed')process.exit(7);" : ''}
   await writeFile(stateDir+'/rows','[{"id":1}]');return run;},
   attach:async()=>assert.fail('cold-existing must execute a NEW query, never Saved-only'),
-  sql:(text,options)=>({all:async()=>text==='SELECT @id AS id'?(assert.deepEqual(options,{parameters:{id:7},parameterDeclarations:{id:{type:'number'}}}),[{id:7}])
+  sql:(text,parameters,options)=>({all:async()=>text==='SELECT @id AS id'?(assert.deepEqual(parameters,{id:7}),assert.deepEqual(options,{parameterDeclarations:{id:{type:'number'}}}),[{id:7}])
     :text==="SELECT 'é😀' AS label"?[{label:'é😀'}]:text.includes('JOIN rhs')?[{id:1,label:'joined'}]
     :text.includes('SUM(amount)')?[{total:'4.00'}]
     :text.includes('UNION ALL')?[{id:1},{id:2}]:[{id:1}]}),
@@ -146,4 +146,22 @@ test('foreign environment/protocol and changed installed bytes refuse before any
   await writeFile(options.controlsPath, JSON.stringify(controls));
   await writeFile(join(options.consumer, 'node_modules/@actql/node/index.mjs'), 'changed');
   await assert.rejects(runNodeProcessBenchmark(options));
+});
+
+for (const operation of ['cold-existing', 'first-init']) {
+  test(`record-only ${operation} retains three actual child observations`, async t => {
+    const options = await fixture(t, {mode: 'record-only', operation});
+    const report = await runNodeProcessBenchmark(options);
+    assert.equal(report.latency[0].samples.length, 3);
+    assert.deepEqual(report.assessments, []);
+    assert.equal(report.measurements[0].p95Ms, null);
+    assert.equal(report.measurements[0].resources.rss.available, true);
+    assert.equal(report.cleanup.allOriginalClientsClosed, true);
+  });
+}
+test('record-only process failure remains failed and is never replayed', async t => {
+  const options = await fixture(t, {mode: 'record-only', fail: 'unknown'});
+  const report = await runNodeProcessBenchmark(options);
+  assert(report.firstFailure); assert.equal(report.latency[0].samples.length, 1);
+  assert.equal(report.measurements, undefined);
 });
