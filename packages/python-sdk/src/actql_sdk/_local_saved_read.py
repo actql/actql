@@ -264,8 +264,7 @@ class OriginalSavedResultRead:
         self._request = request
         self._evidence.persist(request, source.handle)
         self._delivery.persist(request, source.handle)
-        self._delivery.prepare_original_codecs(request, clock)
-        if self._delivery.selected_original_payload(request, clock) is not fact:
+        if self._delivery.prepare_original_payload(request, clock) is not fact:
             raise ValueError('Foreign original saved payload selection')
         try:
             payload = OriginalSDKPayloadReader(self._delivery, request, clock, fact)

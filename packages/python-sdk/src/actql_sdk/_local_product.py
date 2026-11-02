@@ -736,8 +736,7 @@ class InstalledLocalHost:
         try:
             self._persist_original_sdk_read_evidence(run, projection, request)
             delivery.persist(request, run.handle)
-            delivery.prepare_original_codecs(request, clock)
-            fact = delivery.selected_original_payload(request, clock)
+            fact = delivery.prepare_original_payload(request, clock)
             try:
                 reader = OriginalSDKPayloadReader(delivery, request, clock, fact)
             except SDKPayloadReaderCleanupPending as failure:
