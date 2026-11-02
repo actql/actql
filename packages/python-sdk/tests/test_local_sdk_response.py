@@ -1,9 +1,13 @@
 """Actual File-backed stream with scalar Core/sink/terminal doubles; public0."""
 import copy
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from actql_sdk._local_files import LocalFileRoot, LocalFileError
+from actql_sdk._local_saved_read import OriginalSavedResultRead
 from actql_sdk._local_sdk_payload_reader import OriginalSDKPayloadReader
 from actql_sdk._local_sdk_response import OriginalLocalSDKResponseStream
 from actql_sdk._local_storage import LocalStorageCommitUnknown
@@ -90,3 +94,39 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(commit.call_count, 0)
             self.assertTrue(holder.close())
             with self.assertRaises(ValueError): copy.copy(stream).__aiter__()
+
+
+    async def test_saved_response_close_releases_same_area_before_next_saved_read(self):
+        # Actual directory custody and stream/payload close; scalar Core ports
+        # isolate this lifetime edge, not a complete installed Saved admission.
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final), TemporaryDirectory() as directory:
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            results = LocalFileRoot(Path(directory), max_files=2, max_chunk_bytes=4)
+            area = results.create_area('saved-original-area')
+            results.open_area(area)
+            identity = results.observe_area(area)
+            saved = OriginalSavedResultRead(host)
+            saved._area = area
+            host._installation = SimpleNamespace(_results=results)
+            host._saved_result_reads = [saved]
+            try:
+                with self.assertRaises(LocalFileError):
+                    results.restore_area(area.name, identity)
+                # The production saved caller must bind this SAME carrier.
+                # No new area, copied holder or cleanup callback is supplied.
+                host._response_streams.discard(stream)
+                stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+                await stream.aclose()
+                self.assertTrue(saved._closed)
+                self.assertIsNone(saved._area)
+                self.assertNotIn(saved, host._saved_result_reads)
+                self.assertNotIn(stream, host._response_streams)
+                restored = results.restore_area(area.name, identity)
+                self.assertEqual(results.observe_area(restored), identity)
+                self.assertTrue(results.close_area(restored))
+            finally:
+                await stream.aclose()
+                self.assertTrue(saved.close())
+                self.assertTrue(holder.close())
+                self.assertTrue(results.close())
