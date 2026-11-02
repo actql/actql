@@ -26,7 +26,9 @@ test "collection construction selects only original names for NFC backing" {
     reference_slots: 67L,
     scalar_words: 48L,
   })
-  assert_eq(q.returned_utf16_units, 32L)
+  // Three returned normalized names contain 4 input UTF16 units in total;
+  // the pinned canonical decomposition bounds the returned backing by 4 * 4.
+  assert_eq(q.returned_utf16_units, 16L)
   let inputs = collect(large, caps()).unwrap()
   assert_true(physical_equal(source(inputs), large))
   assert_eq(at(inputs, 0).unwrap().connector, "é")
