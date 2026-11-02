@@ -2905,12 +2905,13 @@ their existing owners.
 ### Request-owned acquired Effect cleanup
 
 An acquired Effect first closes its physical execution, output and Source
-owners, then refreshes the original captured DAG. Pending Ledger usage comes
-from Core's complete shared projection, including zero-byte live tokens and
-uncertainty, rather than a separate five-field byte table. A nonempty aggregate
-may still contain this same Request's retained preparation. The fixed caller
-uses the existing typed original Run/Request/DAG correspondence to distinguish
-that preparation from unrelated reservations; it never subtracts numeric
-allowances or acknowledges physical stop from accounting. Missing/foreign
-originals and unresolved children stay pending. The dispatch owner subsequently
-retires the original preparation through its existing completion path.
+owners, then refreshes the original captured DAG. Its existing typed task
+retirement predicate retains running executions, output resources and pins;
+a stop request alone is insufficient. The shared Ledger still legitimately
+holds the Request's preparation and spent operation-coordinate controls at
+this point. The original Run owner settles those controls only after its
+actual operation children retire, then retires the preparation and verifies
+remaining accounting. DAG cleanup must not require that shared Ledger to be
+empty before allowing the Run owner to perform that separate retirement.
+Neither step treats unrelated/unknown resources as released, refunds consumed
+work, or creates another Run/resource owner.

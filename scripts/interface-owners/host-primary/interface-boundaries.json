@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "4fbb22a804fdebd3075b0b265edbb751a1c20732efe283c7b391fb9d994e871b",
+      "sha256": "f789f443f1b66c02e2020a301f09b08eb403383d1e8674600945e3d0b6d9d884",
       "exports": [
         "openAcquiredEffectComputation"
       ],

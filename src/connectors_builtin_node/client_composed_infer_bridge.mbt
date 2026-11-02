@@ -803,8 +803,10 @@ pub fn client_program_open_source_free_infer_effect_host(
 
 ///|
 /// Refresh the original acquired Effect DAG after installed output cleanup
-/// and both Source issuers have closed. This observes their release facts;
-/// revocation alone cannot return the ledger's retained bytes or scratch.
+/// and Source issuers have closed. Inspect this DAG's tracked task obligations;
+/// its shared Ledger may still contain the SAME Run's preparation and spent
+/// operation controls. Their original Run owner retires them separately after
+/// this physical/task boundary; no ledger reservation is forgiven here.
 #export_name("clientProgramRefreshAcquiredEffectCleanup")
 pub fn client_program_refresh_acquired_effect_cleanup(
   value : ClientLocalEffectHost,
@@ -816,6 +818,5 @@ pub fn client_program_refresh_acquired_effect_cleanup(
     @strategy.close_captured_task_output(run, task)
   }
   @strategy.refresh_captured_retention(run)
-  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  !@resources.ledger_usage_has_pending_resources(usage)
+  !@strategy.captured_task_retirement_pending(run)
 }

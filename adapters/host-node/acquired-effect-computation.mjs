@@ -156,16 +156,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       }
       if (checkedHost !== undefined &&
           !moon.clientProgramRefreshAcquiredEffectCleanup(checkedHost)) {
-        // The stopped DAG can share its Ledger with this SAME Request's
-        // retained preparation. Only Core's original-parent correspondence
-        // may distinguish that debt from still-live execution resources.
-        // Physical/output/Source cleanup above remains a separate prerequisite.
-        const captured = moon.strategyHostRun(moon.clientProgramLocalEffectHostRuntime(checkedHost));
-        if (typeof moon.clientProgramInstalledPreparationUsageIsolated !== 'function' ||
-            moon.clientProgramInstalledPreparationUsageIsolated(managedRun, requestOriginal, captured) !== true) {
-          observeUsage('effect_computation_cleanup_pending');
-          return false;
-        }
+        observeUsage('effect_computation_cleanup_pending');
+        return false;
       }
       execution = undefined;
       recovery = undefined;
