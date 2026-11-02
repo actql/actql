@@ -11,11 +11,14 @@ function files(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory()
     ? files(join(path, e.name)) : e.isFile() ? [join(path, e.name)] : []);
 }
-export function snapshot(root) {
-  const paths = snapshotDirectories
-    .flatMap(p => files(join(root, p)))
-    .concat(snapshotFiles.map(p => join(root, p)))
+function snapshotPaths(root, allowMissing = false) {
+  const present = path => !allowMissing || lstatSync(path, {throwIfNoEntry: false}) !== undefined;
+  return snapshotDirectories.map(p => join(root, p)).filter(present).flatMap(files)
+    .concat(snapshotFiles.map(p => join(root, p)).filter(present))
     .filter(p => relative(root, p) !== 'src/query_integration/relation_pipeline_batch_wbtest.mbt').sort();
+}
+export function snapshot(root) {
+  const paths = snapshotPaths(root);
   const sources = Object.fromEntries(paths.map(p => [relative(root, p), hash(readFileSync(p))]));
   return { sources, digest: hash(JSON.stringify(sources)) };
 }
@@ -38,6 +41,7 @@ export function checkCurrentSource(root) {
   const tree = git(['ls-tree', '-rtz', head.stdout.trim()]);
   assert.equal(tree.status, 0, 'Cannot inspect current source tree');
   const selected = [...snapshotDirectories, ...snapshotFiles];
+  const checkedFiles = new Set();
   for (const entry of tree.stdout.split('\0').filter(Boolean)) {
     const match = /^(\d+) (\S+) ([0-9a-f]+)\t([\s\S]+)$/.exec(entry);
     assert(match, 'Invalid current source tree entry');
@@ -62,7 +66,10 @@ export function checkCurrentSource(root) {
     const actual = createHash(object.length === 40 ? 'sha1' : 'sha256')
       .update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
     assert.equal(actual, object, `Current proof inputs differ from tested HEAD: ${path}`);
+    checkedFiles.add(path);
   }
+  for (const path of snapshotPaths(root, true)) assert(checkedFiles.has(relative(root, path)),
+    `Untracked current proof inputs: ${relative(root, path)}`);
   return head.stdout.trim();
 }
 export function checkBaseline(root, {read = path => readFileSync(join(root, path))} = {}) {
