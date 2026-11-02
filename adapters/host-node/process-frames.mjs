@@ -17,7 +17,7 @@ export function validateFrameLimits(limits) {
   return Object.freeze(copy);
 }
 
-function snapshot(value, limits) {
+function snapshot(value, limits, plainObjects = false) {
   let nodes = 0;
   let bytes = 0;
   const parents = new Set();
@@ -35,7 +35,7 @@ function snapshot(value, limits) {
     if (typeof item === 'boolean') { charge(item ? 4 : 5); return item; }
     if (typeof item === 'string') { charge(textSize(item)); return item; }
     if (typeof item === 'number' && Number.isFinite(item)) {
-      charge(JSON.stringify(item).length); return item;
+      charge(JSON.stringify(item).length); return plainObjects && item === 0 ? 0 : item;
     }
     if (typeof item !== 'object' || parents.has(item)) fail('InvalidFrameValue');
     const array = Array.isArray(item);
@@ -43,7 +43,7 @@ function snapshot(value, limits) {
     if (!array && proto !== Object.prototype && proto !== null) fail('InvalidFrameValue');
     parents.add(item);
     charge(2);
-    const result = array ? [] : Object.create(null);
+    const result = array ? [] : plainObjects ? {} : Object.create(null);
     if (array) {
       if (item.length > limits.maxNodes - nodes) fail('FrameShapeLimit');
       for (let index = 0; index < item.length; index++) {
@@ -60,13 +60,22 @@ function snapshot(value, limits) {
         charge(textSize(key) + 1);
         const property = Object.getOwnPropertyDescriptor(item, key);
         if (!property || !Object.hasOwn(property, 'value')) fail('InvalidFrameValue');
-        result[key] = read(property.value, depth + 1);
+        const child = read(property.value, depth + 1);
+        if (plainObjects) Object.defineProperty(result, key,
+          {value: child, enumerable: true, writable: true, configurable: true});
+        else result[key] = child;
       }
     }
     parents.delete(item);
     return result;
   };
   return read(value, 0);
+}
+
+// Pure configuration validation can retain the same bounded JSON snapshot
+// without manufacturing a transport frame that will never be sent.
+export function snapshotProcessValue(value, inputLimits) {
+  return snapshot(value, validateFrameLimits(inputLimits), true);
 }
 
 export function encodeProcessFrame(value, inputLimits) {

@@ -1,5 +1,7 @@
-// Actual registered initialization uses Common/Resource/Site and real file IO.
-// The separate Job-driver case keeps explicit component ports; no business read.
+// Registered initialization cases use Common/Resource/Site and real file I/O.
+// The provider-domain case uses explicit facade ports to inspect Job/request
+// originals; it is not lifecycle evidence. Genuine bound-owner controls live in
+// installed-bound-construction.actual.test.mjs and its failure companion.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp,writeFile,readFile,readdir,rm,realpath} from 'node:fs/promises';
@@ -57,7 +59,7 @@ function sourceLoader(ports){
   for(const node of ast.body){if(node.type==='ImportDeclaration')continue;
     parts.push(source.slice(node.type==='ExportNamedDeclaration'?node.declaration.start:node.start,node.end));}
   const names=['createHash','isAbsolute','nodeTypes','canonicalJson','checked','readSourceProfileJson','readBoundedConfigurationText',
-    'retainInstalledHostInitializationFailure','createInstalledRowSource','captureConfigurationReaders','readBigQuerySqlApi','BIGQUERY_SQL_READ_OPERATION'];
+    'captureConfigurationReaders','readBigQuerySqlApi','BIGQUERY_SQL_READ_OPERATION'];
   const bindings={createHash,isAbsolute,nodeTypes,canonicalJson,checked,readSourceProfileJson,readBoundedConfigurationText,captureConfigurationReaders,
     BIGQUERY_SQL_READ_OPERATION:'bigquery:sql:read',...ports};
   // Only import/export syntax is removed. The complete actual module body is
@@ -85,11 +87,14 @@ test('BigQuery source identity binds exact table metadata location and public TL
   assert.notEqual((await installedBigQuerySourceIdentityParts(f.profile,f.profile))[2].caSha256,old);
   await writeFile(f.metadataPath,JSON.stringify({...f.metadata,dataset:'foreign'}));
   await assert.rejects(installedBigQuerySourceIdentityParts(f.profile,f.profile),{code:'InvalidInstalledBigQueryMetadata'});
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,body:f.metadata.body+'\n'}));
+  await assert.rejects(installedBigQuerySourceIdentityParts(f.profile,f.profile),{code:'InvalidInstalledBigQueryMetadata'});
   await writeFile(f.metadataPath,JSON.stringify(f.metadata));
-  // Identity is DATA, not native schema admission. A loader without its same
-  // initial owner refuses before reading it or entering the old raw route.
+  // Identity DATA does not supply the same bound construction owner. Refuse
+  // the missing owner before opening the deliberately absent metadata input.
   await assert.rejects(loadInstalledBigQuerySource({...f.profile,metadataPath:join(f.path,'UNOPENED')},{moon:{}}),
-    {code:'InstalledBigQueryInitializationUnavailable'});
+    {code:'BigQuerySourceConstructionUnavailable'});
+  await assert.rejects(loadInstalledBigQuerySource(f.profile,{moon:{}}),{code:'BigQuerySourceConstructionUnavailable'});
   for(const change of [{...f.site,apiOrigin:f.site.apiOrigin+'/other'},{...f.site,extra:true}]){
     assert.throws(()=>checkInstalledBigQuerySiteProfile(change),{code:'InvalidInstalledBigQuerySite'});
   }
@@ -168,16 +173,17 @@ test('registered BigQuery native schema refusal retires the same initial materia
   assert.equal(secrets(),0);assert.deepEqual(api.seen(),[]);
 });
 
-test('BigQuery loader retains original acquisition Job callback current and same cleanup owner',async t=>{
+test('BigQuery domain facade preserves original acquisition Job and request callbacks',async t=>{
   const f=await fixture(t),description=Object.freeze({}),declaration=Object.freeze({}),prepared=Object.freeze({}),acquisition=Object.freeze({});
-  const names=['DescriptionLimits','DeclarationLimits','DescribeTable','GenerateReadDeclaration','PrepareRead','ReadAcquisition','OriginalJob',
+  const names=['ReadDeclarationConstructionCapacity','DescriptionLimits','DeclarationLimits','DescribeTable','GenerateReadDeclaration','PrepareRead','ReadAcquisition','OriginalJob',
     'BorrowRead','QueryLimits','PrepareJob','NextRequest','RequestMaterial','AttemptRequest','ChargeResponse','AcceptResponse','RecordDecoderRefusal',
     'RecordResponseLoss','JobComplete','JobRemoteDone','JobOriginal','ReadUsage','InterruptRead','RetireReadBorrow','BindReadTransport',
     'JobRecordLimits','JobOriginalRecord','JobOriginalRecordWire','JobOriginalRecordMatchesRequest','JobReadMatchesRowRun'];
   const moon=Object.fromEntries(names.map(n=>['clientProgramBigQuery'+n,()=>assert.fail('unexpected runtime use '+n)]));
-  const calls={job:0,read:0,site:0,retained:0};let hooks,jobName,throwInitialization=false;
+  const calls={job:0,read:0,site:0};let hooks,jobName,throwInitialization=false;
   const declared={catalog_cid:digest('a'),views:[{resource:'usage',fields:['ACCOUNT_ID']}],contracts:[]};
   Object.assign(moon,{
+    clientProgramBigQueryReadDeclarationConstructionCapacity:()=>Object.freeze({domainQuote:true}),
     clientProgramBigQueryDescriptionLimits:(...args)=>Object.freeze(args),clientProgramBigQueryDeclarationLimits:(...args)=>Object.freeze(args),
     clientProgramBigQueryDescribeTable(project,dataset,table,bytes){assert.deepEqual([project,dataset,table],['acme-project','product','usage']);assert.deepEqual(bytes,f.body);return ok(description);},
     clientProgramBigQueryGenerateReadDeclaration(d,r,c,rev){assert.equal(d,description);assert.deepEqual([r,c,rev],['usage','bigquery','bigquery/0.1']);return ok(declaration);},
@@ -190,30 +196,38 @@ test('BigQuery loader retains original acquisition Job callback current and same
   });
   const requirement=Object.freeze({}),job=Object.freeze({}),site=Object.freeze({credential:Object.freeze({}),callResource(){assert.fail('no HTTP');}}),
     authorization=Object.freeze({context:Object.freeze({contextCid:digest('b')})}),source=Object.freeze({source:true});
-  const initializeFailure=Object.freeze({}),retainedFailure=Object.freeze({});
-  const sourceInitialization=Object.freeze({
-    prepareInputConstruction(projection){projection.capacity();return projection.project();},
-    prepareNativeDeclaration(projection){projection.capacity();const original=projection.project();
-      assert.equal(original.declaration,declaration);
-      return {...original,declared,environment:{wire:'complete environment'}};},
-  });
-  const installationServices=Object.freeze({openRowSite(options){
-      calls.site++;assert.equal(options.sourceInitialization,sourceInitialization);assert.equal(options.accountConfiguration,'{}');
+  const initializeFailure=Object.freeze({});
+  const construction = Object.freeze({
+    configurationReader: Object.freeze({readJson: readSourceProfileJson, readText: readBoundedConfigurationText}),
+    prepareNativeDeclaration(producer) {
+      producer.capacity();
+      const projected = producer.project();
+      assert.strictEqual(projected.declaration,declaration);
+      assert.strictEqual(projected.material.description,description);
+      assert.equal(projected.material.metadataCid,cid(f.metadata));
+      return Object.freeze({...projected, declared});
+    },
+    async openRowSite(options) {
+      calls.site++;
+      assert.equal(options.accountConfiguration, '{}');
       const target={version:'actql-installed-bigquery-target/0.1',apiOrigin:f.site.apiOrigin,project:'acme-project',dataset:'product',table:'usage',location:'EU',
         resource:'usage',metadataCid:cid(f.metadata),catalogCid:declared.catalog_cid,fields:['ACCOUNT_ID']};
       assert(options.admitsApprovalTarget(target,'usage'));assert(!options.admitsApprovalTarget({...target,location:'US'},'usage'));
-      return Promise.resolve({site,authorization});}});
+      return {site,authorization};
+    },
+    async createRowSource(options) {
+      assert(calls.site > 0,'the bound original Site must precede its Source');
+      hooks=options;if(throwInitialization)throw initializeFailure;return source;
+    },
+  });
   const load=sourceLoader({
-    createInstalledRowSource:async options=>{hooks=options;assert.equal(options.sourceInitialization,sourceInitialization);if(throwInitialization)throw initializeFailure;return source;},
-    retainInstalledHostInitializationFailure:async(cause,owners)=>{calls.retained++;assert.equal(cause,initializeFailure);assert.equal(owners.sourceProfile,site);return retainedFailure;},
     readBigQuerySqlApi:async options=>{calls.read++;assert.equal(options.prepared,prepared);assert.equal(options.rowRun,rowRun);assert.equal(options.withOriginalJob,originalPort);
       assert.equal(options.verifyRead,current);assert.equal(options.authorizationFor,authorize);assert.equal(options.job,job);
       assert.equal(options.credential,site.credential);assert.equal(options.callResource,site.callResource);
       assert.equal(options.limits.maximumBytesBilled,9223372036854775807n);assert.equal(options.limits.maxTotalRows,4n);},
   });
-  const options={root:f.path,principalId:'operator',moon,runtimeBundleCid:digest('c'),baseEnvironmentWire:'base environment',
-    sourceInitialization,installationServices,configurationReader:{readJson:readSourceProfileJson,readText:readBoundedConfigurationText}};
-  assert.equal(await load(f.profile,options),source);assert.equal(hooks.declaration,declaration);assert.equal(hooks.site,site);
+  const options={root:f.path,principalId:'operator',moon,runtimeBundleCid:digest('c'),baseEnvironmentWire:'base environment',construction};
+  assert.equal(await load(f.profile,options),source);assert.equal(calls.site,1);
   assert.equal(hooks.prepareAcquisition({declaration,requirement,queryContract:'query body',evidenceContract:'evidence body'}),acquisition);
   const rowRun=Object.freeze({acquisition,run:Object.freeze({}),requestId:'original-source-attempt',runInvocationCid:digest('d'),dispatchRequestCid:digest('e')}),
     current=()=>{},authorize=()=>{},originalPort=()=>assert.fail('driver port must not issue an operation');
@@ -221,5 +235,5 @@ test('BigQuery loader retains original acquisition Job callback current and same
   await hooks.readPages({rowRun,verifyRead:current,authorizationFor:authorize,withOriginalJob:originalPort});assert.equal(calls.read,1);
   assert.equal(jobName,'actql_'+createHash('sha256').update(JSON.stringify([rowRun.runInvocationCid,rowRun.dispatchRequestCid,rowRun.requestId])).digest('hex'));
   await assert.rejects(hooks.readPages({rowRun:{...rowRun,acquisition:{}},withOriginalJob:originalPort}),{code:'ForeignBigQueryReadPreparation'});assert.equal(calls.read,1);
-  throwInitialization=true;await assert.rejects(load(f.profile,options),e=>e===retainedFailure);assert.equal(calls.retained,1);
+  throwInitialization=true;await assert.rejects(load(f.profile,options),e=>e===initializeFailure);
 });

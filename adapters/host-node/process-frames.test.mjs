@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { encodeProcessFrame, createProcessFrameReader } from './process-frames.mjs';
+import { encodeProcessFrame, createProcessFrameReader, snapshotProcessValue } from './process-frames.mjs';
 const limits = Object.freeze({ maxBytes: 128, maxNodes: 20, maxDepth: 4 });
 
 test('private IPC frames survive every byte split and preserve control payloads', () => {
@@ -47,4 +47,34 @@ test('truncated invalid UTF8 and reentrant frames never count as complete messag
   let recursive;
   recursive = createProcessFrameReader(limits, () => recursive.feed(frame));
   assert.throws(() => recursive.feed(frame), { code: 'FrameReaderClosed' });
+});
+
+
+test('pure configuration snapshots preserve framed JSON values without transport copies', () => {
+  const inputs = [JSON.parse('{"__proto__":{"safe":true},"constructor":"data"}'),
+    {zero: -0, values: [0, -0, null, true, 'é😀']}, Object.assign(Object.create(null), {a: 1})];
+  for (const input of inputs) {
+    const framed = JSON.parse(encodeProcessFrame(input, limits).subarray(4).toString('utf8'));
+    const pure = snapshotProcessValue(input, limits);
+    assert.deepStrictEqual(pure, framed);
+    assert.equal(Object.getPrototypeOf(pure), Object.prototype);
+    if (Object.hasOwn(input, '__proto__')) {
+      assert.equal(Object.hasOwn(pure, '__proto__'), true);
+      assert.equal(pure.safe, undefined);
+    }
+  }
+});
+
+test('pure configuration snapshots preserve frame refusal boundaries', () => {
+  const accessor = Object.defineProperty({}, 'x', {enumerable: true,
+    get() {assert.fail('configuration getter must not run');}});
+  const cycle = {}; cycle.self = cycle;
+  const inputs = [Array(1), [undefined], {a: undefined}, NaN, Infinity,
+    Object.create({inherited: true}), new Date(0), accessor, cycle,
+    'x'.repeat(129), Array(21).fill(null), [[[[[null]]]]]];
+  for (const input of inputs) {
+    let expected;
+    assert.throws(() => encodeProcessFrame(input, limits), error => {expected = error.code; return true;});
+    assert.throws(() => snapshotProcessValue(input, limits), {code: expected});
+  }
 });

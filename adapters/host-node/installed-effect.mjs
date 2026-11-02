@@ -22,7 +22,8 @@ import {composeInstalledEffects, installedUpdateTargets, validPluralEffectPaths}
 import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
   reserveInstalledSourceRuntimeIdentity, withInstalledSourceLoading,
-  beginInstalledSourceInitialization, finishInstalledSourceInitialization} from './installed-host-services.mjs';
+  beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  bindInstalledSourceConstruction, retainBoundInstalledSourceFailure} from './installed-host-services.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -121,12 +122,15 @@ async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installe
 // Only installation references and published, immutable declarations enter
 // this identity. The referenced Site profile contains credential references,
 // never an access token; no profile contents are returned to the caller.
-export async function installedEffectIdentity(path, {connectorTable} = {}) {
-  const profile = await readProfile(path);
+export async function installedEffectIdentity(path, {connectorTable, configurationReader} = {}) {
+  const readers = captureConfigurationReaders(configurationReader, undefined,
+    () => refuse('InstalledConfigurationReaderUnavailable'));
+  const read = (path, options) => readProfileJson(path, options, readers.readJson);
+  const profile = await readProfile(path, read);
   const {providerProfile, queryUpdateTargets} = splitUpdateTargetProfile(profile);
   const {entry, module} = await selectInstallation(profile, connectorTable);
   module.check(providerProfile);
-  const parts = await module.identityParts(providerProfile, readProfileJson, entry);
+  const parts = await module.identityParts(providerProfile, read, entry, {configurationReader});
   if (!Array.isArray(parts) || parts.length === 0) {
     refuse('InvalidInstalledEffectProfile');
   }
@@ -194,7 +198,8 @@ async function loadEffect(path, {root, principalId, moon,
         principalId, moon, baseEnvironmentWire, resolveSecret, installation: entry,
         ledgerRoot: join(root, 'state', 'effects', 'ledger'),
         ...(installationServices === undefined ? {} : {installationServices}),
-        ...(sourceInitialization === undefined ? {} : {sourceInitialization}),
+        ...(sourceInitialization === undefined ? {} : {sourceInitialization,
+          construction: bindInstalledSourceConstruction(installationServices, sourceInitialization, checked)}),
         ...(configurationReader === undefined ? {} : {configurationReader}), ...runtime});
       own(installed);
       verifyInstalledConnectorRegistration(entry, installed);
@@ -220,8 +225,10 @@ async function loadEffect(path, {root, principalId, moon,
       finishInstalledSourceInitialization(sourceInitialization, installed);
       return adapter;
     } catch (cause) {
-      finishInstalledSourceInitialization(sourceInitialization, installed, cause, true);
-      throw cause;
+      const failure = await retainBoundInstalledSourceFailure(sourceInitialization, cause, installed);
+      finishInstalledSourceInitialization(sourceInitialization, installed, failure, true);
+      own(undefined);
+      throw failure;
     }
   });
 }

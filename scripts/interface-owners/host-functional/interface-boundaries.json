@@ -27902,7 +27902,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28065,7 +28065,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28697,7 +28697,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -64788,7 +64788,7 @@
     {
       "module": "adapters/host-node/installed-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5da17c113051f92ae7b347cc80f47f25d0750359559fa1ad05ad840f1d9cdb01",
+      "sha256": "395812a98563f0e0d874af18536cfeb1e6838714f27a3833750be892f42961ad",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -64804,7 +64804,8 @@
           "name": "installedEffectIdentity",
           "parameters": [
             "path",
-            "connectorTable"
+            "connectorTable",
+            "configurationReader"
           ],
           "async": true
         },
@@ -64813,6 +64814,19 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "installedEffectIdentity/read/read",
+          "parameters": [
+            "path",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectIdentity/readers/readers",
+          "parameters": [],
           "async": false
         },
         {
@@ -64963,6 +64977,8 @@
           "operations": [
             "installedEffectIdentity",
             "installedEffectIdentity/exact/exact",
+            "installedEffectIdentity/read/read",
+            "installedEffectIdentity/readers/readers",
             "installedEffectPaths",
             "loadEffect",
             "loadEffect/loadEffect",
@@ -65537,7 +65553,7 @@
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2be2ca59d9df54d5a08a5226df485ad3e8df17ae589c7a4cd2b925f0c4a575dc",
+      "sha256": "e03d1aeed7818d2af1008cac5de3e90c4bb33795ba925718dcf37eaea7c0acbb",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -65705,6 +65721,7 @@
             "sourceReader",
             "sourceProfile",
             "authorization",
+            "secretMaterial",
             "installedEffect",
             "observation",
             "ownerViews",
@@ -65782,6 +65799,11 @@
         },
         {
           "name": "retainInstalledHostInitializationFailure/drain/drain#12",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainInstalledHostInitializationFailure/drain/drain#13",
           "parameters": [
             "name"
           ],
@@ -65917,6 +65939,7 @@
             "retainInstalledHostInitializationFailure/drain/drain",
             "retainInstalledHostInitializationFailure/drain/drain#10",
             "retainInstalledHostInitializationFailure/drain/drain#11",
+            "retainInstalledHostInitializationFailure/drain/drain#13",
             "retainInstalledHostInitializationFailure/drain/drain#2",
             "retainInstalledHostInitializationFailure/drain/drain#3",
             "retainInstalledHostInitializationFailure/drain/drain#4",
@@ -73724,7 +73747,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9323348fc55eee98a2fdf54142101d770f92594cb05c38dba3c2c71039501f96",
+      "sha256": "758a572a628587d302001ee8dad1b8a465fc217601cfd136c8fe7b7dc8e9fba2",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -74156,10 +74179,10 @@
             "loadInstalledSources",
             "loadInstalledSources/close/close",
             "loadInstalledSources/loadInstalledSources",
+            "loadInstalledSources/loadInstalledSources/loadInstalledSources",
             "loadInstalledSources/loadInstalledSources#2",
             "loadInstalledSources/loadInstalledSources#3",
             "loadInstalledSources/loadInstalledSources#4",
-            "loadInstalledSources/loadInstalledSources/loadInstalledSources",
             "providerRuntime",
             "publishInstalledSourceProfile",
             "readProfile",
@@ -74774,11 +74797,12 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2771bf21365e4188297eb7efa3c6c09c4d6120327bc553c607d5e463f580c0d5",
+      "sha256": "6cb9d8c75ef278c366cf26cec4129b922e66bfa8a4684150dbea9630f7d625ca",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
-        "createInstalledTableSource"
+        "createInstalledTableSource",
+        "installedTableReadSite"
       ],
       "operations": [
         {
@@ -74801,7 +74825,12 @@
             "authorization",
             "bridge",
             "targets",
-            "limits"
+            "limits",
+            "sourceInitialization",
+            "originalDeclaration",
+            "originalDeclared",
+            "originalEnvironment",
+            "publicationBindingCid"
           ],
           "async": true
         },
@@ -74932,6 +74961,67 @@
           "async": false
         },
         {
+          "name": "installedTableReadSite",
+          "parameters": [
+            "connection",
+            "authorization",
+            "principalId",
+            "targets",
+            "ownAuthorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/ensureOpen/ensureOpen",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/target/target",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "keys/keys",
           "parameters": [
             "value",
@@ -74955,9 +75045,9 @@
             "createInstalledTableSource/bindingCid/bindingCid",
             "createInstalledTableSource/byResource/byResource",
             "createInstalledTableSource/createInstalledTableSource",
+            "createInstalledTableSource/createInstalledTableSource/createInstalledTableSource",
             "createInstalledTableSource/createInstalledTableSource#2",
             "createInstalledTableSource/createInstalledTableSource#3",
-            "createInstalledTableSource/createInstalledTableSource/createInstalledTableSource",
             "createInstalledTableSource/installed/installed",
             "createInstalledTableSource/physicalTarget/physicalTarget",
             "createInstalledTableSource/physicalTarget/physicalTarget/physicalTarget",
@@ -74969,11 +75059,20 @@
             "dataCid/dataCid",
             "fail/fail",
             "identifier/identifier",
+            "installedTableReadSite",
+            "installedTableReadSite/ensureOpen/ensureOpen",
+            "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+            "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+            "installedTableReadSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval/target/target",
+            "installedTableReadSite/init:close/init:close",
+            "installedTableReadSite/init:issueReadGrant/init:issueReadGrant",
+            "installedTableReadSite/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
             "keys/keys",
             "text/text"
           ],
           "exports": [
-            "createInstalledTableSource"
+            "createInstalledTableSource",
+            "installedTableReadSite"
           ],
           "attributes": {
             "responsibility": [
@@ -75262,6 +75361,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "../host-common/checkpoint-approval.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-row-source.mjs",
         "node:crypto"
@@ -87870,7 +87970,7 @@
     {
       "module": "adapters/host-node/process-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17b8eed3f2939d8ab2c2588a872323535c6c53c1c982b6bdc3b9eb99bf055a05",
+      "sha256": "a885a1e002182efdfc764bb24d2a0872e789776016fcb243e0aa5683b80210b2",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -87878,6 +87978,7 @@
         "createProcessFrameReader",
         "encodeProcessFrame",
         "executionProtocol",
+        "snapshotProcessValue",
         "validateFrameLimits"
       ],
       "operations": [
@@ -87927,7 +88028,8 @@
           "name": "snapshot",
           "parameters": [
             "value",
-            "limits"
+            "limits",
+            "plainObjects"
           ],
           "async": false
         },
@@ -87954,6 +88056,14 @@
           "async": false
         },
         {
+          "name": "snapshotProcessValue",
+          "parameters": [
+            "value",
+            "inputLimits"
+          ],
+          "async": false
+        },
+        {
           "name": "validateFrameLimits",
           "parameters": [
             "limits"
@@ -87964,16 +88074,17 @@
       "contracts": [
         {
           "operations": [
-            "ProcessProtocolError/constructor:constructor/constructor:constructor",
             "createProcessFrameReader",
             "createProcessFrameReader/feed/feed",
             "createProcessFrameReader/init:end/init:end",
             "encodeProcessFrame",
             "fail/fail",
+            "ProcessProtocolError/constructor:constructor/constructor:constructor",
             "snapshot",
             "snapshot/charge/charge",
             "snapshot/read/read",
             "snapshot/textSize/textSize",
+            "snapshotProcessValue",
             "validateFrameLimits"
           ],
           "exports": [
@@ -87981,6 +88092,7 @@
             "createProcessFrameReader",
             "encodeProcessFrame",
             "executionProtocol",
+            "snapshotProcessValue",
             "validateFrameLimits"
           ],
           "attributes": {
@@ -91135,7 +91247,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "89ec6b2796e840c5b0f208b956bb8933dd2ae3cedaec4e898117445222aef7b0",
+      "sha256": "57247d07337847f2b57ea2943b90de57ac2fc05ebc12a973062166a52ff792bb",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -91183,6 +91295,13 @@
         },
         {
           "name": "captureConfigurationReaders/captureConfigurationReaders#4",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureConfigurationReaders/captureConfigurationReaders#5",
           "parameters": [
             "args"
           ],
@@ -91870,6 +91989,7 @@
             "captureConfigurationReaders/captureConfigurationReaders#2",
             "captureConfigurationReaders/captureConfigurationReaders#3",
             "captureConfigurationReaders/captureConfigurationReaders#4",
+            "captureConfigurationReaders/captureConfigurationReaders#5",
             "captureConfigurationReaders/refuse/refuse"
           ],
           "exports": [
@@ -121104,7 +121224,7 @@
       "sha256": "5d457d7a60d36441fc1d32019d1a6dc189e3de2f659b4ba87a5d18b0a7c89489",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -121876,7 +121996,7 @@
       "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -122562,13 +122682,14 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "7f7bb37d5f7dedf4ff365afb7501176dd574a9aa4bd371d3cdacfe743f51aebd",
+      "sha256": "47bb602957115eb07a1b899e90994c0180448353961f4fb37e1ec3789e197d94",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
+        "bindInstalledSourceConstruction",
         "borrowInstalledSourceInitialization",
         "captureInstalledSourceServices",
         "closeInstalledSourceConstruction",
@@ -122580,6 +122701,7 @@
         "readInstalledSourceAcquisitionContract",
         "reserveInstalledSourceEnvironment",
         "reserveInstalledSourceRuntimeIdentity",
+        "retainBoundInstalledSourceFailure",
         "retainInstalledHostServiceInstallation",
         "retainInstalledSourceConstruction",
         "retireInstalledSourceInitialization",
@@ -122614,6 +122736,13 @@
             "connectorId",
             "baseEnvironmentWire",
             "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/captureDeclarationViews",
+          "parameters": [
+            "views"
           ],
           "async": false
         },
@@ -122685,6 +122814,29 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
+          "parameters": [
+            "initialViews",
+            "derivation",
+            "projection",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
+          "parameters": [
+            "declaration",
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
           "parameters": [
             "projection"
@@ -122750,7 +122902,58 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "site",
+            "provider",
+            "mappingOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
           "parameters": [
             "projection"
           ],
@@ -122780,7 +122983,169 @@
           "name": "beginInstalledSourceInitialization/prepareProviderConstruction",
           "parameters": [
             "projection",
-            "role"
+            "role",
+            "withMappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/prepareSourceEnvironment",
+          "parameters": [
+            "declared",
+            "mappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction",
+          "parameters": [
+            "services",
+            "context",
+            "checkedProfile"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/bound",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/bound#2",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/bound#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createSourceReader/init:createSourceReader",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableEffect/init:createTableEffect",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/prepared/prepared",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:openRowSite/init:openRowSite",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:openSpecializedSite/init:openSpecializedSite",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "provider",
+            "mappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:sourceReaderImplementation/init:sourceReaderImplementation",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/construct",
+          "parameters": [
+            "options",
+            "role",
+            "factory"
+          ],
+          "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/construct/construct",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/domain/domain",
+          "parameters": [
+            "options",
+            "reserved"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/domain/domain/domain",
+          "parameters": [
+            "name",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/identity/identity",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/prepare/prepare",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/prepare/prepare/prepare",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -123055,6 +123420,13 @@
           "async": false
         },
         {
+          "name": "installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
           "name": "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
           "parameters": [
             "path",
@@ -123201,6 +123573,15 @@
           "async": true
         },
         {
+          "name": "reserveInstalledTableConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "profile"
+          ],
+          "async": false
+        },
+        {
           "name": "reserveSource",
           "parameters": [
             "original",
@@ -123208,9 +123589,19 @@
             "nodes",
             "text",
             "wire",
-            "workspace"
+            "workspace",
+            "retained"
           ],
           "async": false
+        },
+        {
+          "name": "retainBoundInstalledSourceFailure",
+          "parameters": [
+            "context",
+            "cause",
+            "adapter"
+          ],
+          "async": true
         },
         {
           "name": "retainInstalledHostServiceInstallation",
@@ -123357,7 +123748,12 @@
         "../host-common/runtime-result.mjs",
         "./installed-check-environment.mjs",
         "./installed-credential-source-reader.mjs",
+        "./installed-host-cleanup.mjs",
+        "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
+        "./installed-source-construction-geometry.mjs",
+        "./installed-table-effect.mjs",
+        "./installed-table-source.mjs",
         "./source-profile-json.mjs",
         "node:util"
       ],
@@ -123389,13 +123785,13 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#3",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
             "fail/fail",
-            "retainInstalledHostServiceInstallation",
-            "readInstalledSourceAcquisitionContract"
+            "readInstalledSourceAcquisitionContract",
+            "retainInstalledHostServiceInstallation"
           ],
           "exports": [
             "createInstalledHostServices",
-            "retainInstalledHostServiceInstallation",
-            "readInstalledSourceAcquisitionContract"
+            "readInstalledSourceAcquisitionContract",
+            "retainInstalledHostServiceInstallation"
           ],
           "attributes": {
             "responsibility": [
@@ -123496,6 +123892,396 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertInstalledSourceConstruction",
+            "assertInstalledSourceConstruction/empty/empty",
+            "beginInstalledSourceInitialization",
+            "beginInstalledSourceInitialization/captureDeclarationViews",
+            "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
+            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+            "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
+            "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
+            "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
+            "beginInstalledSourceInitialization/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/environment/environment",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/field/field",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
+            "beginInstalledSourceInitialization/context/init:prepareNativeInput/init:prepareNativeInput",
+            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect",
+            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
+            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
+            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
+            "beginInstalledSourceInitialization/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+            "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
+            "beginInstalledSourceInitialization/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
+            "beginInstalledSourceInitialization/prepareOriginalDeclaration",
+            "beginInstalledSourceInitialization/prepareProviderConstruction",
+            "beginInstalledSourceInitialization/prepareSourceEnvironment",
+            "bindInstalledSourceConstruction",
+            "bindInstalledSourceConstruction/bound/bound",
+            "bindInstalledSourceConstruction/bound/bound#2",
+            "bindInstalledSourceConstruction/bound/bound#3",
+            "bindInstalledSourceConstruction/bound/init:createSourceReader/init:createSourceReader",
+            "bindInstalledSourceConstruction/bound/init:createTableEffect/init:createTableEffect",
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource",
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/prepared/prepared",
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/site/site",
+            "bindInstalledSourceConstruction/bound/init:openRowSite/init:openRowSite",
+            "bindInstalledSourceConstruction/bound/init:openSpecializedSite/init:openSpecializedSite",
+            "bindInstalledSourceConstruction/bound/init:prepareProviderEffect/init:prepareProviderEffect",
+            "bindInstalledSourceConstruction/bound/init:sourceReaderImplementation/init:sourceReaderImplementation",
+            "bindInstalledSourceConstruction/bound/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
+            "bindInstalledSourceConstruction/construct",
+            "bindInstalledSourceConstruction/construct/construct",
+            "bindInstalledSourceConstruction/current/current",
+            "bindInstalledSourceConstruction/domain/domain",
+            "bindInstalledSourceConstruction/domain/domain/domain",
+            "bindInstalledSourceConstruction/identity/identity",
+            "bindInstalledSourceConstruction/prepare/prepare",
+            "bindInstalledSourceConstruction/prepare/prepare/prepare",
+            "borrowInstalledSourceInitialization",
+            "borrowInstalledSourceInitialization/view/init:environment/init:environment",
+            "borrowInstalledSourceInitialization/view/init:release/init:release",
+            "closeInstalledSourceConstruction",
+            "completeInstalledSourceInitialization",
+            "finishInstalledSourceInitialization",
+            "freezeSourceProjection",
+            "installedSourceConfigurationReader",
+            "installedSourceConfigurationReader/read",
+            "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
+            "installedSourceConfigurationReader/read/read",
+            "installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
+            "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
+            "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
+            "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
+            "installedSourceConfigurationReader/reader/init:readText/init:readText",
+            "installedSourceConfigurationReader/readOriginal",
+            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
+            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
+            "prepareInstalledSourceAcquisitionContracts",
+            "reconcileSource",
+            "releaseFinishedSourceWorkspaces",
+            "requireSourceConstructor",
+            "requireSynchronousSourceConstruction",
+            "requireSynchronousSourceConstruction/joined/joined",
+            "requireSynchronousSourceConstruction/joined/joined#2",
+            "requireSynchronousSourceConstruction/settle/settle",
+            "reserveInstalledSourceEnvironment",
+            "reserveInstalledSourceRuntimeIdentity",
+            "reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
+            "reserveInstalledTableConstruction",
+            "reserveSource",
+            "retainBoundInstalledSourceFailure",
+            "retainInstalledSourceConstruction",
+            "retainSourceFailure",
+            "retireInstalledSourceInitialization",
+            "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
+            "sourceCall",
+            "sourceCapacityQuote",
+            "sourceIo",
+            "sourceIo/io/init:begin/init:begin",
+            "sourceIo/io/init:charge/init:charge",
+            "sourceIo/io/init:finish/init:finish",
+            "sourceIo/io/init:uncertain/init:uncertain",
+            "sourceMaterial",
+            "sourceProjectionMethods",
+            "sourceProjectionMethods/sourceProjectionMethods",
+            "sourceQuote",
+            "withInstalledSourceLoading"
+          ],
+          "exports": [
+            "assertInstalledSourceConstruction",
+            "beginInstalledSourceInitialization",
+            "bindInstalledSourceConstruction",
+            "borrowInstalledSourceInitialization",
+            "closeInstalledSourceConstruction",
+            "completeInstalledSourceInitialization",
+            "finishInstalledSourceInitialization",
+            "installedSourceConfigurationReader",
+            "prepareInstalledSourceAcquisitionContracts",
+            "reserveInstalledSourceEnvironment",
+            "reserveInstalledSourceRuntimeIdentity",
+            "retainBoundInstalledSourceFailure",
+            "retainInstalledSourceConstruction",
+            "retireInstalledSourceInitialization",
+            "withInstalledSourceLoading"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
+            "beginInstalledSourceInitialization/prepareInitialNativeConstruction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
+                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Initial Source configuration and original bytes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
+                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
+              },
+              {
+                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
+                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
+              },
+              {
+                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
+                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
               },
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
@@ -123626,163 +124412,6 @@
         },
         {
           "operations": [
-            "assertInstalledSourceConstruction",
-            "beginInstalledSourceInitialization",
-            "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/environment/environment",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/field/field",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-            "beginInstalledSourceInitialization/prepareOriginalDeclaration",
-            "borrowInstalledSourceInitialization",
-            "borrowInstalledSourceInitialization/view/init:environment/init:environment",
-            "borrowInstalledSourceInitialization/view/init:release/init:release",
-            "closeInstalledSourceConstruction",
-            "completeInstalledSourceInitialization",
-            "finishInstalledSourceInitialization",
-            "freezeSourceProjection",
-            "installedSourceConfigurationReader",
-            "installedSourceConfigurationReader/read",
-            "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
-            "installedSourceConfigurationReader/read/read",
-            "installedSourceConfigurationReader/readOriginal",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
-            "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
-            "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
-            "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
-            "installedSourceConfigurationReader/reader/init:readText/init:readText",
-            "prepareInstalledSourceAcquisitionContracts",
-            "reconcileSource",
-            "releaseFinishedSourceWorkspaces",
-            "requireSourceConstructor",
-            "reserveInstalledSourceEnvironment",
-            "reserveInstalledSourceRuntimeIdentity",
-            "reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
-            "reserveSource",
-            "retainInstalledSourceConstruction",
-            "retainSourceFailure",
-            "retireInstalledSourceInitialization",
-            "retireInstalledSourceInitialization/retireInstalledSourceInitialization",
-            "sourceCall",
-            "sourceIo",
-            "sourceIo/io/init:begin/init:begin",
-            "sourceIo/io/init:charge/init:charge",
-            "sourceIo/io/init:finish/init:finish",
-            "sourceIo/io/init:uncertain/init:uncertain",
-            "sourceMaterial",
-            "sourceQuote",
-            "withInstalledSourceLoading",
-            "assertInstalledSourceConstruction/empty/empty",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
-            "requireSynchronousSourceConstruction",
-            "requireSynchronousSourceConstruction/joined/joined",
-            "requireSynchronousSourceConstruction/joined/joined#2",
-            "requireSynchronousSourceConstruction/settle/settle",
-            "sourceCapacityQuote",
-            "beginInstalledSourceInitialization/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
-            "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
-            "beginInstalledSourceInitialization/prepareProviderConstruction",
-            "sourceProjectionMethods",
-            "sourceProjectionMethods/sourceProjectionMethods",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope"
-          ],
-          "exports": [
-            "assertInstalledSourceConstruction",
-            "beginInstalledSourceInitialization",
-            "borrowInstalledSourceInitialization",
-            "closeInstalledSourceConstruction",
-            "completeInstalledSourceInitialization",
-            "finishInstalledSourceInitialization",
-            "installedSourceConfigurationReader",
-            "prepareInstalledSourceAcquisitionContracts",
-            "reserveInstalledSourceEnvironment",
-            "reserveInstalledSourceRuntimeIdentity",
-            "retainInstalledSourceConstruction",
-            "retireInstalledSourceInitialization",
-            "withInstalledSourceLoading"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Initial Source configuration and original bytes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/embedded-source-identity-initialization.test.mjs",
-                "anchor": "identity and Host loader reuse one actual service and parent with the original Project and current fences"
-              },
-              {
-                "path": "adapters/host-node/rest-source-initial-material.test.mjs",
-                "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#7"
           ],
           "exports": [],
@@ -123845,81 +124474,6 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Source-owned complete read sequences"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
-            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-            "beginInstalledSourceInitialization/prepareInitialNativeConstruction"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "Native Source input and declaration completion"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
-                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
-                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
               }
             ]
           }
@@ -127136,6 +127690,149 @@
       ],
       "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
       "sha256": "ad0183807b617627f9942145233dffdcbf4e9ea3c61b721f25d32aef2361acf6"
+    },
+    {
+      "module": "adapters/host-node/installed-source-construction-geometry.mjs",
+      "sha256": "1446b0a957c10451c0ef97e84a71c1cd7da706873e4b41ad46306bc9d0403ad5",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Host constructor input geometry; quantities confer no admission or lifecycle authority",
+      "exports": [
+        "sourceAuthoredViewConstructionGeometry",
+        "sourceEnvironmentConstructionGeometry",
+        "sourceEnvironmentRetainedGeometry",
+        "sourceJsonWireGeometry"
+      ],
+      "operations": [
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceAuthoredViewConstructionGeometry",
+          "parameters": [
+            "views"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceEnvironmentConstructionGeometry",
+          "parameters": [
+            "baseWire",
+            "declared",
+            "mappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceEnvironmentConstructionGeometry/add/add",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceEnvironmentRetainedGeometry",
+          "parameters": [
+            "environment"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceJsonWireGeometry",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "invalid/invalid",
+            "sourceAuthoredViewConstructionGeometry",
+            "sourceEnvironmentConstructionGeometry",
+            "sourceEnvironmentConstructionGeometry/add/add",
+            "sourceEnvironmentRetainedGeometry",
+            "sourceJsonWireGeometry"
+          ],
+          "exports": [
+            "sourceAuthoredViewConstructionGeometry",
+            "sourceEnvironmentConstructionGeometry",
+            "sourceEnvironmentRetainedGeometry",
+            "sourceJsonWireGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -127148,10 +127845,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 188,
-    "operations": 4882,
-    "exports": 1134,
-    "explicitContractGroups": 506
+    "modules": 189,
+    "operations": 4960,
+    "exports": 1144,
+    "explicitContractGroups": 517
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

@@ -7,6 +7,7 @@ import {checkInstalledSalesforceEffectProfile, loadInstalledSalesforceEffect,
 import {retainInstalledRowEffectAdapter} from
   '../../../host-node/installed-row-effect.mjs';
 import {readPublicationFile} from './salesforce-publication.mjs';
+import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 
 export function checkInstalledSalesforceEffectInstallation(profile) {
   return checkInstalledSalesforceEffectProfile(profile);
@@ -15,13 +16,16 @@ export function checkInstalledSalesforceEffectInstallation(profile) {
 // The parts of this installation's identity: the Host profile with its
 // account configuration as a document, the installed Site profile and the
 // published generation, exactly as before the table existed.
-export async function installedSalesforceEffectIdentityParts(profile, read) {
+export async function installedSalesforceEffectIdentityParts(profile, read, _entry, {configurationReader} = {}) {
   const checked = checkInstalledSalesforceEffectProfile(profile);
+  const readers = captureConfigurationReaders(configurationReader, read,
+    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
+  const publication = await readPublicationFile(checked.publicationPath, readers.readText);
   return [
     {...profile, accountConfigurationWire: JSON.parse(
       profile.accountConfigurationWire)},
     await read(checked.siteProfilePath, {maxBytes: 8 * 1024 * 1024}),
-    JSON.parse((await readPublicationFile(checked.publicationPath)).body),
+    (readers.parseJsonText ?? JSON.parse)(publication.body),
   ];
 }
 
@@ -50,5 +54,5 @@ export async function loadInstalledSalesforceEffectInstallation(checked,
       prepareManagedPlan: effect.prepareManagedPlan,
       prepareCaptured: effect.prepareCaptured,
       prepareRecovered: effect.prepareRecovered,
-      close: () => effect.close()}));
+      close: effect.close}));
 }

@@ -124,6 +124,126 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/salesforce/catalog/initialization_construction.mbt",
+      "sha256": "f92a22bed56daaa957cd8099cfea75d59f213fa801c2f08ddcf06fa8c43ee58e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "execution_mapping_construction_capacity",
+          "declaration": "execution_mapping_construction_capacity ( field_count : Int , field_units : Int , source_count : Int , source_units : Int , key_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , describe_bytes : Int , max_fields : Int , limits : DeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "initialization_construction_capacity",
+          "declaration": "initialization_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , observation_units : Int , name_lengths : Array [ Int ] , binding_units : Int , connector_units : Int , revision_units : Int , describe : DescribeLimits , max_observation_bytes : Int , limits : DeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "sf_initialization_capacity",
+          "declaration": "sf_initialization_capacity ( parts : Array [ @ execution . PreparationRepresentationUnits ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "sf_initialization_collection_units",
+          "declaration": "sf_initialization_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "sf_initialization_decoded_construction",
+          "declaration": "sf_initialization_decoded_construction ( bytes : Int , nodes : Int , depth : Int , normalize_keys : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "sf_initialization_emit",
+          "declaration": "sf_initialization_emit ( bytes : Int64 , nodes : Int64 , limits : DeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "sf_initialization_forest",
+          "declaration": "sf_initialization_forest ( nodes : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "sf_initialization_writer_units",
+          "declaration": "sf_initialization_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Salesforce observation/static declaration and execution Mapping producer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "execution_mapping_construction_capacity",
+            "initialization_construction_capacity",
+            "sf_initialization_capacity",
+            "sf_initialization_collection_units",
+            "sf_initialization_decoded_construction",
+            "sf_initialization_emit",
+            "sf_initialization_forest",
+            "sf_initialization_writer_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

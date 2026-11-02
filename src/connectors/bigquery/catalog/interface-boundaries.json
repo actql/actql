@@ -317,7 +317,7 @@
     },
     {
       "module": "src/connectors/bigquery/catalog/pkg.generated.mbti",
-      "sha256": "548abba7b79299992785aaf9b62b98ee4edd3027f0b7815aab1443d40ab6bac8",
+      "sha256": "d764acadec8994bd20398cb60f111f8eef3001a9c24082be92c897ca3a20d81a",
       "exports": [
         "pub fn column_children(ColumnDescription) -> Array[ColumnDescription]",
         "pub fn column_constraints(ColumnDescription) -> (Int64?, Int64?, Int64?, String?)",
@@ -347,6 +347,7 @@
         "pub fn query_page_response_sha256(QueryPage) -> String",
         "pub fn query_page_row_count(QueryPage) -> Int",
         "pub fn query_page_total_rows(QueryPage) -> Int64",
+        "pub fn read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
         "pub fn read_projection_fields(ReadProjection) -> Array[String]",
         "pub fn read_projection_matches_description(ReadProjection, TableDescription) -> Bool",
         "pub fn read_projection_schema(ReadProjection) -> (String, String)",
@@ -473,6 +474,10 @@
         {
           "name": "query_page_total_rows",
           "declaration": "pub fn query_page_total_rows(QueryPage) -> Int64"
+        },
+        {
+          "name": "read_declaration_construction_capacity",
+          "declaration": "pub fn read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "read_projection_fields",
@@ -637,6 +642,80 @@
             "verification": [
               {
                 "path": "src/connectors/bigquery/catalog/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "read_declaration_construction_capacity"
+          ],
+          "exports": [
+            "pub fn read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors/bigquery/catalog/pkg.generated.mbti",
+                "anchor": "read_declaration_construction_capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
                 "anchor": "- Verification:"
               }
             ]
@@ -992,6 +1071,106 @@
       ],
       "role": "connector-semantics",
       "owner": "BigQuery vendor response; existing Common value-contract and row admission Owners"
+    },
+    {
+      "module": "src/connectors/bigquery/catalog/read_construction.mbt",
+      "sha256": "980fd29091865295a643d21c66a21777baf8cb6f0fe538eb03d2d6d016db24ce",
+      "exports": [],
+      "operations": [
+        {
+          "name": "read_collection_units",
+          "declaration": "read_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "read_declaration_construction_capacity",
+          "declaration": "read_declaration_construction_capacity ( body_bytes : Int , encoded_units : Int , target_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , description : DescriptionLimits , declaration : @ rows . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "read_decoded_construction",
+          "declaration": "read_decoded_construction ( bytes : Int , nodes : Int , depth : Int , normalize_keys : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "read_writer_units",
+          "declaration": "read_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing BigQuery original table metadata and schema producer",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "read_collection_units",
+            "read_declaration_construction_capacity",
+            "read_decoded_construction",
+            "read_writer_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "source": "fa2bf7e48da40a6a984a761491d030fc11f57247"

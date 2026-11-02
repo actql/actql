@@ -153,8 +153,8 @@
                 "anchor": "closing = true"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Bound connector construction"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
@@ -4477,7 +4477,7 @@
     {
       "module": "src/connectors/gcs/catalog/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "ccf7632ac3099793982e5368e33836d0146a86fbd354fe99b8be334ae53bb6c1",
+      "sha256": "95946a81e88517aa7effec38f523d26052c8e2f29a8241ca33de9a2862e8b180",
       "role": "connector-semantics",
       "owner": "Existing GCS Connector metadata/request semantics; common Source, Effect, credential and physical custody Owners remain authoritative",
       "exports": [
@@ -4494,6 +4494,7 @@
         "pub fn content_metadata_json(Bytes, String, String, String, Int64, ObjectMetadataLimits) -> Result[String, ContentMetadataIssue]",
         "pub fn object_collection_identity_cid(ObjectCollectionBinding) -> String",
         "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String",
+        "pub fn object_collection_mapping_construction_capacity(String, Int, Int, Int, Int, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
         "pub fn object_collection_resource_json(ObjectCollectionBinding) -> String",
         "pub fn object_compose_body_for(ObjectComposeBinding, ObjectComposeRequest) -> Result[String, ObjectUploadIssue]",
         "pub fn object_compose_cid(ObjectComposeRequest) -> String",
@@ -4531,6 +4532,7 @@
         "pub fn object_source_timestamp(String) -> String?",
         "pub fn object_upload_body_for(ObjectUploadBinding, ObjectUploadRequest) -> Result[Bytes, ObjectUploadIssue]",
         "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String",
+        "pub fn object_upload_catalog_construction_capacity(String, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
         "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
         "pub fn object_upload_cid(ObjectUploadRequest) -> String",
         "pub fn object_upload_command_json(String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]",
@@ -4554,6 +4556,7 @@
         "pub fn recheck_object_mutation(ObjectMutationBinding, ObjectMutationRequest, ObjectMetadata) -> Result[Unit, ObjectRequestIssue]",
         "pub fn recheck_object_upload(ObjectUploadBinding, ObjectUploadRequest, ObjectUploadObservation) -> Result[Unit, ObjectUploadIssue]",
         "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]",
+        "pub fn source_facts_construction_capacity(Int, String, String, String, String, Array[Int64]) -> @execution_relation.ExecutionCapacity?",
         "pub struct ObjectCollectionBinding {",
         "pub struct ObjectComposeBinding {",
         "pub struct ObjectComposeRequest {",
@@ -4617,6 +4620,10 @@
         {
           "name": "object_collection_identity_json",
           "declaration": "pub fn object_collection_identity_json(ObjectCollectionBinding) -> String"
+        },
+        {
+          "name": "object_collection_mapping_construction_capacity",
+          "declaration": "pub fn object_collection_mapping_construction_capacity(String, Int, Int, Int, Int, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "object_collection_resource_json",
@@ -4767,6 +4774,10 @@
           "declaration": "pub fn object_upload_body_media_type(ObjectUploadRequest) -> String"
         },
         {
+          "name": "object_upload_catalog_construction_capacity",
+          "declaration": "pub fn object_upload_catalog_construction_capacity(String, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
           "name": "object_upload_catalog_json",
           "declaration": "pub fn object_upload_catalog_json(String, String, ObjectUploadDeclarationLimits) -> Result[String, ObjectUploadDeclarationIssue]"
         },
@@ -4857,6 +4868,10 @@
         {
           "name": "restore_object_mutation_value_wire",
           "declaration": "pub fn restore_object_mutation_value_wire(ObjectMutationBinding, String, Int, Array[(String, String)], Bytes, String, Bytes, String, String) -> Result[ObjectMutationRequest, ObjectRequestIssue]"
+        },
+        {
+          "name": "source_facts_construction_capacity",
+          "declaration": "pub fn source_facts_construction_capacity(Int, String, String, String, String, Array[Int64]) -> @execution_relation.ExecutionCapacity?"
         }
       ],
       "contracts": [
@@ -6179,6 +6194,84 @@
               {
                 "path": "src/connectors/gcs/catalog/object_exact_updated_wbtest.mbt",
                 "anchor": "assert_eq(object_source_timestamp(invalid), None)"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "object_collection_mapping_construction_capacity",
+            "object_upload_catalog_construction_capacity",
+            "source_facts_construction_capacity"
+          ],
+          "exports": [
+            "pub fn object_collection_mapping_construction_capacity(String, Int, Int, Int, Int, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
+            "pub fn object_upload_catalog_construction_capacity(String, Int, ObjectUploadDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
+            "pub fn source_facts_construction_capacity(Int, String, String, String, String, Array[Int64]) -> @execution_relation.ExecutionCapacity?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
+                "anchor": "object_collection_mapping_construction_capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -10796,6 +10889,231 @@
         }
       ],
       "exports": []
+    },
+    {
+      "module": "src/connectors/gcs/catalog/upload_construction.mbt",
+      "sha256": "b93dabb5f95af327f3d6d231fdb3dfc8877e77a8fd5a29892ebe4aa7cbd487fe",
+      "exports": [],
+      "operations": [
+        {
+          "name": "object_collection_mapping_construction_capacity",
+          "declaration": "object_collection_mapping_construction_capacity ( declared_wire : String , project_units : Int , bucket_units : Int , prefix_units : Int , target_ref_units : Int , connector_units : Int , limits : ObjectUploadDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "object_upload_catalog_construction_capacity",
+          "declaration": "object_upload_catalog_construction_capacity ( declared_wire : String , connector_units : Int , limits : ObjectUploadDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "upload_bundle_bytes",
+          "declaration": "upload_bundle_bytes ( connector_units : Int ) - > Int64"
+        },
+        {
+          "name": "upload_catalog_bounds",
+          "declaration": "upload_catalog_bounds ( declared_wire : String , connector_units : Int , limits : ObjectUploadDeclarationLimits , ) - > ( Int , Int , Int , Int , Int64 , Int64 , Int64 ) ?"
+        },
+        {
+          "name": "upload_catalog_peak_inventory",
+          "declaration": "upload_catalog_peak_inventory ( declared_wire : String , connector_units : Int , limits : ObjectUploadDeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "upload_collection_units",
+          "declaration": "upload_collection_units ( value : @ shape . CollectionConstructionExtent , text : Int64 , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "upload_construction_inventory",
+          "declaration": "upload_construction_inventory ( parser_bytes : Int , parser_nodes : Int , raw_nodes : Int64 , writer_bytes : Int , writer_nodes : Int , retained_text : Int64 , retained_wire : Int64 , limits : ObjectUploadDeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "upload_freeze_workspace",
+          "declaration": "upload_freeze_workspace ( nodes : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "upload_output_capacity",
+          "declaration": "upload_output_capacity ( retained : @ execution . PreparationRepresentationUnits , workspace : @ execution . PreparationRepresentationUnits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "upload_peak_capacity",
+          "declaration": "upload_peak_capacity ( peak : @ execution . PreparationRepresentationUnits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "upload_structural_node_bound",
+          "declaration": "upload_structural_node_bound ( wire : String ) - > Int64"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS upload catalog/collection Mapping and authored source facts producers",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "object_collection_mapping_construction_capacity",
+            "object_upload_catalog_construction_capacity",
+            "upload_bundle_bytes",
+            "upload_catalog_bounds",
+            "upload_catalog_peak_inventory",
+            "upload_collection_units",
+            "upload_construction_inventory",
+            "upload_freeze_workspace",
+            "upload_output_capacity",
+            "upload_peak_capacity",
+            "upload_structural_node_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/gcs/catalog/source_facts_construction.mbt",
+      "sha256": "317afceb7455a95c1e4370cdea2fdfffaae7d42ca5eec4b5dcbfee46660456ec",
+      "exports": [],
+      "operations": [
+        {
+          "name": "source_facts_construction_capacity",
+          "declaration": "source_facts_construction_capacity ( view_count : Int , scope_cid : String , version_cid : String , listing_schema_cid : String , content_schema_cid : String , limits : Array [ Int64 ] , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "source_facts_decimal_digits",
+          "declaration": "source_facts_decimal_digits ( value : Int64 ) - > Int64"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing GCS upload catalog/collection Mapping and authored source facts producers",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "source_facts_construction_capacity",
+            "source_facts_decimal_digits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

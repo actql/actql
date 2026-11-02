@@ -25,6 +25,8 @@ import {prepareCapturedTableCommit, prepareRecoveredTableCommit,
 import {reconcileOriginalTableCommit} from './table-commit-reconciliation.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
+import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction}
+  from './installed-host-services.mjs';
 
 const wire = value => canonicalJson(value, {dataKeys: true});
 const hash = value => `sha256:${createHash('sha256').update(wire(value)).digest('hex')}`;
@@ -79,10 +81,14 @@ export function checkInstalledTableEffectLimits(supplied = {}) {
 // for an arbitrary Catalog/name. Each binding fixes create or an approved
 // replacement generation. Publication/republication of those bindings belongs
 // to the installation loader, separately from these runtime hooks.
-export async function createInstalledTableEffect({moon, environmentWire,
+export async function createInstalledTableEffect({moon, environmentWire, sourceInitialization, environment,
   connectorId, connectorRegistration, connectorRevision, connection,
   runtimeBundleCid, bindingCid, catalogCid, targets, bridge, authorization,
   ledgerRoot, limits: suppliedLimits = {}}) {
+  if (sourceInitialization !== undefined) {
+    assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
+    if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
+  }
   checkInstalledTableEffectLimits(suppliedLimits);
   const limits = Object.freeze(Object.fromEntries(Object.entries(defaults)
     .map(([key,value]) => [key, typeof value === 'object'
@@ -515,7 +521,11 @@ export async function createInstalledTableEffect({moon, environmentWire,
     }
   }
 
-  return Object.freeze({environmentWire, connectorRegistration, connectorRevision,
+  if (sourceInitialization !== undefined) {
+    assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
+  }
+  let constructionClosed = false;
+  const adapter = Object.freeze({environmentWire, connectorRegistration, connectorRevision,
     connectorBindings: Object.freeze([{connectorId, bindingCid}]),
     queryTableBindings: Object.freeze(installed.filter(target => target.queryName !== undefined).map(target => Object.freeze({
       name: target.queryName, targetRef: target.targetRef, mappingRef: target.mappingRef,
@@ -529,5 +539,14 @@ export async function createInstalledTableEffect({moon, environmentWire,
     effectSelectors: Object.freeze(installed.map(target => Object.freeze({
       kind: 'store', target: target.targetRef, mappingRef: target.mappingRef,
       mappingCid: target.mappingCid, effectId: target.effectId, capabilityCid: target.capabilityCid}))),
-    prepareCaptured, prepareRecovered, close() {}});
+    prepareCaptured, prepareRecovered, close() {
+      if (sourceInitialization === undefined || constructionClosed) return;
+      if (authorization.close() !== true) fail('InstalledTableAuthorizationCleanupPending');
+      closeInstalledSourceConstruction(sourceInitialization, adapter);
+      constructionClosed = true;
+    }});
+  if (sourceInitialization !== undefined) {
+    retainInstalledSourceConstruction(sourceInitialization, adapter, undefined, undefined, environment);
+  }
+  return adapter;
 }

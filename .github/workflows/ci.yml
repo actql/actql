@@ -794,6 +794,9 @@ jobs:
         run: npm run check:run-host-core && node --test adapters/host-node/local-result-authorization.test.mjs
       - name: Build runtime packages without prebuilt bundles
         run: node scripts/test-runtime-package-build.mjs
+      - name: Test actual bound connector initialization and cleanup
+        # Reuse the ordinary Local build above; external provider I/O is loopback-only.
+        run: node --test adapters/host-node/installed-bound-construction.actual.test.mjs adapters/host-node/installed-bound-construction-failures.actual.test.mjs adapters/host-node/installed-source-construction-geometry.test.mjs
       - name: Test packed Local runtime assets
         run: npm run check:local-node-assets
   # Share only clean-checkout tarballs and their source/digest manifest.

@@ -4,6 +4,7 @@ package "actql/actql/connectors/snowflake/description"
 import {
   "actql/actql/client_row_source_host",
   "actql/actql/connectors/snowflake/catalog",
+  "actql/actql/execution_relation",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -37,6 +38,8 @@ pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimit
 pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]
 
 pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]
+
+pub fn read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @catalog.ResponseLimits, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn read_projection_fields(ReadProjection) -> Array[String]
 

@@ -4,7 +4,7 @@
 // Credential grants are issued only for a protected decision that installed
 // gate returned as dispatch.
 import {createHash} from 'node:crypto';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {isAbsolute} from 'node:path';
@@ -173,7 +173,7 @@ export async function installSalesforceAuthorization({accountConfiguration,
 export async function loadInstalledSalesforceSite(path, {commonMoon,
   salesforceMoon, authorization, runtimeBundleCid, resolveSecret,
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
-  openCredentialJournal, runAcquisitionLimits} = {}) {
+  openCredentialJournal, runAcquisitionLimits, configurationReader, ownAuthorization = false} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidInstalledSalesforceSiteProfilePath');
   }
@@ -187,12 +187,14 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       (openCredentialJournal !== undefined && typeof openCredentialJournal !== 'function')) {
     fail('InvalidInstalledSalesforceSiteOptions');
   }
+  const readers = captureConfigurationReaders(configurationReader, undefined,
+    () => fail('InvalidInstalledSalesforceSiteOptions'));
   const principalId = authorization.context.principal;
   const context = authorization.context;
   let profile;
   // Match the existing Host identity/configuration ceiling; Salesforce's
   // publication uses its separate original 16,000,000-byte text boundary.
-  try { profile = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
+  try { profile = await readers.readJson(path, {maxBytes: 8 * 1024 * 1024}); }
   catch (error) { fail('InvalidInstalledSalesforceSiteProfile', error); }
   if (!validProfile(profile)) fail('InvalidInstalledSalesforceSiteProfile');
   const connection = `salesforce:${profile.orgId}`;
@@ -202,7 +204,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     profile: Object.freeze({...profile, resourceOrigin: profile.instanceOrigin}),
     principalId, connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', runtimeBundleCid, commonMoon,
-    now, grantLifetimeMs,
+    now, grantLifetimeMs, configurationReader,
     openCredentialJournal, runAcquisitionLimits,
     credentialFacts: Object.freeze({orgId: profile.orgId}),
     closedCode: 'SalesforceSiteClosed',
@@ -215,6 +217,22 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       environment: profile.environment, siteKey: profile.siteKey,
       siteGeneration: profile.siteGeneration,
     })});
+  let authorizationClosed = !ownAuthorization;
+  const closeAuthorization = authorization.close;
+  function closeSite() {
+    custody.closeOnce();
+    if (!authorizationClosed) {
+      if (typeof closeAuthorization !== 'function' ||
+          Reflect.apply(closeAuthorization, authorization, []) !== true) {
+        fail('SalesforceAuthorizationCleanupUnconfirmed');
+      }
+      authorizationClosed = true;
+    }
+    return true;
+  }
+  // Physical custody is retained immediately, including any failure while the
+  // remaining Site methods and private correspondences are being assembled.
+  try {
   const {credential, ensureOpen, sign} = custody;
   const liveDeclarations = new WeakMap();
   const liveDescribes = new WeakMap();
@@ -921,7 +939,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     ownsDeclaration: declaration => declarations.has(declaration),
     // Stop new operations, then release the credential journal. Returns
     // once released; a failed release throws and stays retryable.
-    close: custody.closeOnce,
+    close: closeSite,
     // Whether this Site was closed but its journal is not yet released.
     cleanupPending: custody.cleanupPending,
   });
@@ -963,6 +981,12 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     },
   }));
   return site;
+  } catch (primary) {
+    // Authorization transfers only with a returned Site. The common caller
+    // still owns it and waits for this physical custody carrier first.
+    throw retainInstalledCredentialSiteCleanup(Object.freeze({close: custody.closeOnce,
+      cleanupPending: custody.cleanupPending}), primary, 'SalesforceSiteOwnerFailed');
+  }
 }
 
 // Compatibility entries delegate the same Site and primary failure to the

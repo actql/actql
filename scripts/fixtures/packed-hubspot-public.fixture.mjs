@@ -15,6 +15,10 @@ import {fixtureCertificates} from '../../adapters/site-node/https-exchange-fixtu
 const local = new URL('./', import.meta.resolve('@actql/local-node'));
 const {loadInstalledSource} = await import(new URL('adapters/host-node/installed-source.mjs', local));
 const {canonicalJson} = await import(new URL('adapters/host-node/local-account-config.mjs', local));
+const {openHostInitializationPreparation, closeHostInitializationPreparation} =
+  await import(new URL('adapters/local-node/request-preparation-adapter.mjs', local));
+const {createInstalledHostServices, retireInstalledSourceInitialization} =
+  await import(new URL('adapters/host-node/installed-host-services.mjs', local));
 const runtimeUrl = new URL('_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', local);
 const baseEnvironmentWire = await readFile(new URL('spec/local-check-environment.json', local), 'utf8');
 export const expected = {id: '9007199254740993', amount: '9007199254740993.0100000000', tags: ['a', 'b']};
@@ -48,6 +52,20 @@ export async function fixture(t, entrance) {
   });
   let client, host, server, priorCa, declared;
   const pendingInitialization = [];
+  // Bootstrap uses the same installed package/runtime's real initial owner.
+  // Retain its state before opening; never pass a checkout-owned private brand.
+  const bootstrapState = {};
+  let bootstrapServices, bootstrapPending = false, bootstrapClosed = false;
+  const closeBootstrap = () => {
+    if (bootstrapClosed) return;
+    if (bootstrapServices !== undefined) {
+      assert.equal(retireInstalledSourceInitialization(bootstrapServices), true,
+        'Bootstrap Source children must retire before their original parent');
+    }
+    bootstrapPending = false;
+    if (bootstrapState.runtime !== undefined) closeHostInitializationPreparation(bootstrapState);
+    bootstrapClosed = true;
+  };
   const acquire = async action => {
     try {return await action();}
     catch (error) {
@@ -66,6 +84,7 @@ export async function fixture(t, entrance) {
         assert.equal(handle.status().pending, false, 'Original initialization cleanup remains owned');
       }),
       () => declared?.close(),
+      closeBootstrap,
       async () => {if (provider.listening) {provider.closeAllConnections(); await new Promise((resolve, reject) => provider.close(e => e ? reject(e) : resolve()));}},
     ]) try {await close();} catch (error) {failures.push(error);}
     if (priorCa !== undefined) setDefaultCACertificates(priorCa);
@@ -104,12 +123,21 @@ export async function fixture(t, entrance) {
   const sourceProfilePath = join(root, 'installed-source.json');
   await writeFile(sourceProfilePath, JSON.stringify(profile));
   const resolveSourceSecret = async () => {state.resolutions++; return 'provider-secret';};
+  const assertBootstrapCurrent = () => assert.equal(bootstrapClosed, false);
+  const initialPreparation = openHostInitializationPreparation(bootstrapState, common,
+    Object.freeze({root, purpose: 'packed Source schema bootstrap'}),
+    assertBootstrapCurrent, () => bootstrapPending);
+  bootstrapServices = createInstalledHostServices({root, principalId: 'operator', moon: common,
+    initialPreparation, assertCurrent: assertBootstrapCurrent});
+  bootstrapPending = true;
   declared = await acquire(() => loadInstalledSource(sourceProfilePath, {root, principalId: 'operator', moon: common,
-    runtimeUrl, baseEnvironmentWire, resolveSecret: resolveSourceSecret}));
+    runtimeUrl, baseEnvironmentWire, resolveSecret: resolveSourceSecret,
+    installationServices: bootstrapServices}));
   const environment = JSON.parse(declared.environmentWire);
   const view = environment.schema_snapshots.find(value => value.source_ref === declared.sourceReadAccesses[0].sourceRef);
   assert.ok(view);
   await declared.close(); declared = undefined;
+  closeBootstrap();
   await writeFile(sourceProfilePath, JSON.stringify({...profile, queryAliases: [{
     name: 'hubspot.companies', sourceRef: view.source_ref,
     sourceViewContractCid: view.source_view_contract_cid, schemaContractCid: view.carrier_schema_contract_cid}]}));

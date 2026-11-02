@@ -1,0 +1,211 @@
+{
+  "qualification": "Existing initialization producer source correspondence only; not physical backing, runtime or artifact acceptance",
+  "declarations": [
+    {
+      "module": "adapters/connectors/salesforce/host/salesforce-initialization-construction.mjs",
+      "sha256": "ffc5d5277235ea2be207dc9a5347968166acf05db0a1de6f69b27bfa269ab181",
+      "exports": [
+        "salesforceExecutionMappingConstructionCapacity",
+        "salesforceInitializationConstructionCapacity"
+      ],
+      "operations": [
+        {
+          "name": "add/add",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "array/array",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bodyBytes",
+          "parameters": [
+            "encoded",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "evidenceGeometry",
+          "parameters": [
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value",
+            "minimum"
+          ],
+          "async": false
+        },
+        {
+          "name": "limits/limits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "object/object",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "key",
+            "optional"
+          ],
+          "async": false
+        },
+        {
+          "name": "quote",
+          "parameters": [
+            "common",
+            "exportName",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "salesforceExecutionMappingConstructionCapacity",
+          "parameters": [
+            "common",
+            "generation",
+            "write",
+            "mappingLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "salesforceInitializationConstructionCapacity",
+          "parameters": [
+            "common",
+            "generation",
+            "siteBinding",
+            "declarationLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "string/string",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Salesforce original initialization and execution-Mapping geometry adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "add/add",
+            "array/array",
+            "bodyBytes",
+            "evidenceGeometry",
+            "fail/fail",
+            "integer/integer",
+            "limits/limits",
+            "object/object",
+            "own/own",
+            "quote",
+            "salesforceExecutionMappingConstructionCapacity",
+            "salesforceInitializationConstructionCapacity",
+            "string/string"
+          ],
+          "exports": [
+            "salesforceExecutionMappingConstructionCapacity",
+            "salesforceInitializationConstructionCapacity"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

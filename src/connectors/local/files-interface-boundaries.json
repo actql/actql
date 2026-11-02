@@ -2859,6 +2859,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "cid/cid",
             "closed/closed",
             "createLocalFileStoreDriver",
@@ -2928,118 +2929,6 @@
             "createLocalFileStoreDriver",
             "installPreparedProjectLocalFileEffects"
           ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "export async function installPreparedProjectLocalFileEffects("
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "export function createLocalFileStoreDriver("
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "const bindingCid=cid({scope:entry.scopeCid,declaration:entry.wire,"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "original.writeChild=write;"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "retained.push(contentChild);"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "LocalFileWriteAlreadyAttempted"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "stopping=true;"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "maxFileBytes:entry.limits.maxFileBytes"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
-                "anchor": "commands:[{resource:'files'"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
-                "anchor": "test('Local STORE recovered request connects"
-              },
-              {
-                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
-                "anchor": "test('actual Local STORE selection reaches its same command Owner without UPDATE substitution'"
-              },
-              {
-                "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
-                "anchor": "test('Local STORE projects a Command outcome admitted by actual Common without a provider action'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [],
           "attributes": {
             "responsibility": [
               {

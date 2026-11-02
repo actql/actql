@@ -56,8 +56,7 @@ function view(resource, schema, request, acquisition) {
     ...(acquisition === undefined ? {} : {acquisition_wire: canonical(acquisition)})};
 }
 
-export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
-  {includeObjects = false} = {}) {
+export function prepareGcsSourceDeclarationInputs(profile, {includeObjects = false} = {}) {
   const installed = checkInstalledGcsSourceProfile(profile);
   const {limits} = installed;
   const resource = {type: 'resource_ref', resource_kind: 'file', nullable: false};
@@ -91,16 +90,18 @@ export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
       md5: optionalText, crc32c: optionalText, metadata: {type: 'json', nullable: true}},
     request({prefix: {type: 'string', nullable: true}}), {kind: 'scan', authority: 'read_metadata'}));
   }
-  const restore = expected => checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
-    installed.connectorId, GCS_REGISTRATION, GCS_REVISION, JSON.stringify({views}), expected));
-  const initial = JSON.parse(moon.clientProgramRowSourceDeclarationJson(restore(undefined)));
   const scopeCid = cid({version: 'actql-gcs-resource-scope/0.1',
     project: installed.project, bucket: installed.bucket, prefix: installed.prefix});
   const versionCid = cid({version: 'actql-gcs-exact-version/0.1',
     representation: 'exact_stored_bytes', generation: 'opaque_decimal_string',
     metadata_preconditions: ['generation', 'ifGenerationMatch'],
     media_preconditions: ['generation', 'ifGenerationMatch', 'ifMetagenerationMatch']});
-  views[0].facts_wire = canonical({file_listing: {
+  const initialViews = Object.freeze(views.map(value => Object.freeze(value)));
+  const deriveFinalViews = initial => {
+    // The actual preliminary declaration supplies these carrier identities.
+    // Never mutate its privately retained inputs or invent matching hashes.
+    const finalViews = initialViews.map(value => ({...value}));
+    finalViews[0].facts_wire = canonical({file_listing: {
     version: 'actql-file-list/0.1', kind: 'file_listing', selectable: ['paths', 'glob'],
     allow_unfiltered_listing: true, admitted_scope_contract_cid: scopeCid,
     listing_schema_contract_cid: initial.views.find(value => value.resource === 'files').carrier_schema_cid,
@@ -110,7 +111,7 @@ export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
     max_listing_bytes: limits.maxListingBytes, max_listing_duration_ms: limits.maxDurationMs,
     maximum_path_length: limits.maxPathBytes,
   }});
-  views[1].facts_wire = canonical({file_content: {
+    finalViews[1].facts_wire = canonical({file_content: {
     version: 'actql-file-content/0.1', kind: 'file_content',
     admitted_scope_contract_cid: scopeCid,
     content_schema_contract_cid: initial.views.find(value => value.resource === 'contents').carrier_schema_cid,
@@ -119,7 +120,21 @@ export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
   }, lookup_capacity: {version: 'actql-lookup-capacity/0.1',
     completeness: 'complete_per_requested_key', max_rows_per_key: 1,
     max_pages_per_request: 2, max_response_bytes_per_page: limits.maxPageBytes}});
-  const declaration = restore(expectedCatalogCid);
+    return Object.freeze(finalViews.map(value => Object.freeze(value)));
+  };
+  return Object.freeze({connectorId: installed.connectorId, initialViews, deriveFinalViews, scopeCid, versionCid});
+}
+
+// Standalone declaration compatibility preserves the same TWO Common
+// restores. Installed load uses the bound common owner to fund/retain each.
+export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
+  {includeObjects = false} = {}) {
+  const inputs = prepareGcsSourceDeclarationInputs(profile, {includeObjects});
+  const restore = (views, expected) => checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+    inputs.connectorId, GCS_REGISTRATION, GCS_REVISION, JSON.stringify({views}), expected));
+  const preliminary = restore(inputs.initialViews, undefined);
+  const initial = JSON.parse(moon.clientProgramRowSourceDeclarationJson(preliminary));
+  const declaration = restore(inputs.deriveFinalViews(initial), expectedCatalogCid);
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  return Object.freeze({declaration, declared, scopeCid, versionCid});
+  return Object.freeze({declaration, declared, scopeCid: inputs.scopeCid, versionCid: inputs.versionCid});
 }

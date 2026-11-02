@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "a4779a330e8c32e8e0a2005654700a797bedb360361ff0deb859723c28943aaa",
+      "sha256": "ee4098a68c3a1eef39af49b1f318a3fd80ca5b6377cd2ea2edbfedc07726f459",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -312,6 +312,7 @@
         "pub fn row_source_typed_json_page_has_next_cursor(RowSourceProjectedJsonPage) -> Bool",
         "pub fn row_source_typed_json_page_next_cursor(RowSourceProjectedJsonPage) -> Result[String, RowSourceJsonPageIssue]",
         "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int",
+        "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_listing_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
         "pub fn start_accounted_provider_row_acquisition(RowAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
@@ -869,6 +870,10 @@
           "declaration": "pub fn row_source_typed_json_page_row_count(RowSourceProjectedJsonPage) -> Int"
         },
         {
+          "name": "single_relation_declaration_construction_inventory",
+          "declaration": "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
           "name": "start_accounted_keyed_row_acquisition",
           "declaration": "pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
         },
@@ -965,6 +970,7 @@
             "prepare_keyed_row_acquisition",
             "prepare_keyed_row_capacity",
             "prepare_row_acquisition",
+            "prepare_row_delete_mapping",
             "prepare_row_mapping",
             "prepare_row_source",
             "project_row_declaration",
@@ -976,9 +982,11 @@
             "retain_row_capture_task",
             "row_acquisition_column_contract",
             "row_acquisition_columns",
+            "row_acquisition_contracts_construction_capacity",
             "row_acquisition_execution_capacity",
             "row_acquisition_is_listing",
             "row_acquisition_listing_report_bounds",
+            "row_acquisition_provider_capacity",
             "row_acquisition_request_wire",
             "row_acquisition_requirement",
             "row_acquisition_retained_capacity",
@@ -998,14 +1006,11 @@
             "row_source_target",
             "start_accounted_keyed_row_acquisition",
             "start_accounted_listing_row_acquisition",
+            "start_accounted_provider_row_acquisition",
             "start_accounted_row_acquisition",
             "start_keyed_row_acquisition",
             "start_original_accounted_keyed_row_acquisition",
-            "start_row_acquisition",
-            "row_acquisition_provider_capacity",
-            "start_accounted_provider_row_acquisition",
-            "prepare_row_delete_mapping",
-            "row_acquisition_contracts_construction_capacity"
+            "start_row_acquisition"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1073,8 +1078,10 @@
             "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
             "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
             "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
+            "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
             "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
             "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
+            "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?",
             "pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64",
             "pub fn row_acquisition_is_listing(RowAcquisition) -> Bool",
             "pub fn row_acquisition_listing_report_bounds(RowAcquisition) -> Result[(Int64, Int64), RowSourceIssue]",
@@ -1108,9 +1115,7 @@
             "pub enum RowKeyedPagePoll {",
             "pub enum RowListingPagePoll {",
             "pub struct RowMapping {",
-            "pub struct RowRunResponseBorrow {",
-            "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
-            "pub fn row_acquisition_contracts_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?"
+            "pub struct RowRunResponseBorrow {"
           ],
           "attributes": {
             "responsibility": [
@@ -1297,188 +1302,21 @@
         },
         {
           "operations": [
-            "prepare_mock_churn_risk_catalogue",
-            "mock_churn_risk_source_count",
-            "mock_churn_risk_source_at",
-            "mock_churn_risk_query_alias_count",
-            "mock_churn_risk_query_alias_at",
-            "mock_churn_risk_update_alias_count",
-            "mock_churn_risk_update_alias_at"
-          ],
-          "exports": [
-            "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-            "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
-            "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-            "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int",
-            "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
-            "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
-            "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
-            "pub struct MockChurnRiskCatalogue {"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
-                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
-              },
-              {
-                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
-                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "accept_charged_mock_churn_risk_document",
-            "prepare_churn_risk_mock_update_mapping",
             "admit_mock_churn_risk_target_document",
             "mock_churn_risk_target_before",
             "mock_churn_risk_target_version",
             "observe_mock_churn_risk_target",
+            "prepare_churn_risk_mock_update_mapping",
             "prepare_mock_churn_risk_target_update"
           ],
           "exports": [
             "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
-            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
             "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
             "pub fn mock_churn_risk_target_before(MockTargetRow) -> String?",
             "pub fn mock_churn_risk_target_version(MockTargetRow) -> String?",
             "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
+            "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
             "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
             "pub struct MockTargetDocument {",
             "pub struct MockTargetRow {"
@@ -1650,1650 +1488,6 @@
               {
                 "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
                 "anchor": "test \"Mock target refuses malformed whole documents and non-Mapping updates before output\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepare_relation_row_write_mapping",
-            "row_mapping_target_fields"
-          ],
-          "exports": [
-            "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
-            "pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "### Bundled mock catalogue declarations"
-              },
-              {
-                "path": "src/client_row_source_host/relation_write_mapping.mbt",
-                "anchor": "pub fn prepare_relation_row_write_mapping("
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_row_source_host/relation_write_mapping_wbtest.mbt",
-                "anchor": "test \"Relation write Mapping preserves full Array Decimal and original target fields\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "begin_row_run_with_page_limits"
-          ],
-          "exports": [
-            "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "## Interface responsibilities"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "pub fn begin_row_run_with_page_limits("
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
-              },
-              {
-                "path": "adapters/host-node/mock-churn-risk-charged-receiver.actual.test.mjs",
-                "anchor": "test('same original RowRun enforces the selected small node ceiling before capture'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "admit_row_acquisition_contracts"
-          ],
-          "exports": [
-            "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "borrow_row_input_run_responses"
-          ],
-          "exports": [
-            "pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "check_row_input_acquisition_original"
-          ],
-          "exports": [
-            "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "check_row_input_capture_run"
-          ],
-          "exports": [
-            "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Whole-input publication binds the same adopted Run"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "typed Source evidence and the same native capture"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact Run association"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same retained inventory and admitted row bound"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "before issuance and again before retaining the completed invocation"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "one-shot invocation slot remains consumed on semantic failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "before capacity construction, so Result-publication reservation reuses that"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "the Query issuer keeps its original QueryRequirement array"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
-                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
-              },
-              {
-                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
-                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "check_row_input_compute_binding"
-          ],
-          "exports": [
-            "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "issue_row_input_source_evidence"
-          ],
-          "exports": [
-            "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepare_declared_row_acquisition_with_contracts"
-          ],
-          "exports": [
-            "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "prepare_row_input_acquisition"
-          ],
-          "exports": [
-            "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_capacity"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_columns"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_facts"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_matches_source"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_max_rows"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_request_wire"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "row_input_acquisition_target"
-          ],
-          "exports": [
-            "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "start_accounted_row_input_acquisition"
-          ],
-          "exports": [
-            "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "start_row_input_acquisition"
-          ],
-          "exports": [
-            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "The existing RowRun has a complete-input alternative"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same acquisition, request wire and provider"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "exact supplied-read"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "same original Request supplies the Run ledger"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Current callbacks may reenter close"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "validation failure or cancellation retains them"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "Retirement invalidates new reads"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "existing capacity functions and units"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "native file listings require their different Resource"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/source-input-acquisition.md",
-                "anchor": "focused Core and explicit-port Node cases"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "project_row_source_json_page",
-            "row_source_json_page_has_next_cursor",
-            "row_source_json_page_next_cursor",
-            "row_source_json_page_row_count",
-            "row_source_json_page_rows_wire"
-          ],
-          "exports": [
-            "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
-            "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
-            "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
-            "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int",
-            "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_row_source_host/README.md",
-                "anchor": "Original JSON page envelopes"
-              },
-              {
-                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
-                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "retire_row_run_response_workspace"
-          ],
-          "exports": [
-            "pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Provider response workspace retirement keeps the original captured Source"
               }
             ]
           }
@@ -3578,6 +1772,871 @@
               {
                 "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
                 "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "admit_row_acquisition_contracts",
+            "borrow_row_input_run_responses",
+            "check_row_input_acquisition_original",
+            "check_row_input_compute_binding",
+            "issue_row_input_source_evidence",
+            "prepare_declared_row_acquisition_with_contracts",
+            "prepare_row_input_acquisition",
+            "row_input_acquisition_capacity",
+            "row_input_acquisition_columns",
+            "row_input_acquisition_facts",
+            "row_input_acquisition_matches_source",
+            "row_input_acquisition_max_rows",
+            "row_input_acquisition_request_wire",
+            "row_input_acquisition_target",
+            "start_accounted_row_input_acquisition",
+            "start_row_input_acquisition"
+          ],
+          "exports": [
+            "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
+            "pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
+            "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
+            "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+            "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
+            "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
+            "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]",
+            "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
+            "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]",
+            "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts",
+            "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool",
+            "pub fn row_input_acquisition_max_rows(RowInputAcquisition) -> Int",
+            "pub fn row_input_acquisition_request_wire(RowInputAcquisition) -> Result[String, RowHostIssue]",
+            "pub fn row_input_acquisition_target(RowInputAcquisition) -> (String, Array[String])",
+            "pub fn start_accounted_row_input_acquisition(RowInputAcquisition, @execution_relation.ExecutionCapacity?, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]",
+            "pub fn start_row_input_acquisition(RowInputAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing RowRun has a complete-input alternative"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same acquisition, request wire and provider"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact supplied-read"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same original Request supplies the Run ledger"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Current callbacks may reenter close"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "validation failure or cancellation retains them"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Retirement invalidates new reads"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "existing capacity functions and units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "native file listings require their different Resource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "focused Core and explicit-port Node cases"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "begin_row_run_with_page_limits"
+          ],
+          "exports": [
+            "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn begin_row_run_with_page_limits("
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed Source may narrow that page envelope on the same pending RowRun"
+              },
+              {
+                "path": "adapters/host-node/mock-churn-risk-charged-receiver.actual.test.mjs",
+                "anchor": "test('same original RowRun enforces the selected small node ceiling before capture'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "check_row_input_capture_run"
+          ],
+          "exports": [
+            "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Whole-input publication binds the same adopted Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "typed Source evidence and the same native capture"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "exact Run association"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "same retained inventory and admitted row bound"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before issuance and again before retaining the completed invocation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one-shot invocation slot remains consumed on semantic failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "original provider/RowRun retirement confirms and the body borrow is returned"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before capacity construction, so Result-publication reservation reuses that"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "the Query issuer keeps its original QueryRequirement array"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_whole_source_publication_js_wbtest.mbt",
+                "anchor": "whole input publication binds the same RowRun originals and one adopted invocation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "whole Source publication forwards the same native capture and never a Query requirement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "mock_churn_risk_query_alias_at",
+            "mock_churn_risk_query_alias_count",
+            "mock_churn_risk_source_at",
+            "mock_churn_risk_source_count",
+            "mock_churn_risk_update_alias_at",
+            "mock_churn_risk_update_alias_count",
+            "prepare_mock_churn_risk_catalogue"
+          ],
+          "exports": [
+            "pub fn mock_churn_risk_query_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
+            "pub fn mock_churn_risk_query_alias_count(MockChurnRiskCatalogue) -> Int",
+            "pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
+            "pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int",
+            "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
+            "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
+            "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
+            "pub struct MockChurnRiskCatalogue {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_catalogue_wbtest.mbt",
+                "anchor": "test \"portable Mock catalogue keeps original declarations and exact alias membership\""
+              },
+              {
+                "path": "scripts/mock-churn-risk-catalogue.test.mjs",
+                "anchor": "test('portable catalogue retains the complete previously authored Node DATA vector'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_relation_row_write_mapping",
+            "row_mapping_target_fields"
+          ],
+          "exports": [
+            "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+            "pub fn row_mapping_target_fields(RowMapping, RowDeclarationLimits) -> Result[Array[String], RowMappingIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "## Interface responsibilities"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Bundled mock catalogue declarations"
+              },
+              {
+                "path": "src/client_row_source_host/relation_write_mapping.mbt",
+                "anchor": "pub fn prepare_relation_row_write_mapping("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation_write_mapping_wbtest.mbt",
+                "anchor": "test \"Relation write Mapping preserves full Array Decimal and original target fields\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "project_row_source_json_page",
+            "row_source_json_page_has_next_cursor",
+            "row_source_json_page_next_cursor",
+            "row_source_json_page_row_count",
+            "row_source_json_page_rows_wire"
+          ],
+          "exports": [
+            "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
+            "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
+            "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
+            "pub fn row_source_json_page_row_count(RowSourceJsonPage) -> Int",
+            "pub fn row_source_json_page_rows_wire(RowSourceJsonPage) -> String"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Original JSON page envelopes"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_projection_wbtest.mbt",
+                "anchor": "original JSON page array enters existing full row admission without dropping fields or rounding"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retire_row_run_response_workspace"
+          ],
+          "exports": [
+            "pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Provider response workspace retirement keeps the original captured Source"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "single_relation_declaration_construction_inventory"
+          ],
+          "exports": [
+            "pub fn single_relation_declaration_construction_inventory(Int, Int, Int, Int, Int, Int, Int, Int, RowDeclarationLimits) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/pkg.generated.mbti",
+                "anchor": "single_relation_declaration_construction_inventory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -5094,6 +4153,116 @@
               {
                 "path": "src/client_row_source_host/acquisition_contract_construction_wbtest.mbt",
                 "anchor": "test \"Source protocol constructor replaces the measured escaped-node duplication without changing the original quota\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/relation_declaration_construction.mbt",
+      "sha256": "5bc3154e76e3607039e995ccaef041ce84f3a38ed56284eb9ff14816e74081dc",
+      "exports": [],
+      "operations": [
+        {
+          "name": "relation_construction_collection_units",
+          "declaration": "relation_construction_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "relation_construction_contract_units",
+          "declaration": "relation_construction_contract_units ( nodes : Int , text_units : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_construction_decoded_construction",
+          "declaration": "relation_construction_decoded_construction ( bytes : Int , nodes : Int , depth : Int , normalize_keys : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_construction_json_forest",
+          "declaration": "relation_construction_json_forest ( nodes : Int64 , ) - > @ shape . CollectionConstructionExtent ?"
+        },
+        {
+          "name": "relation_construction_writer_units",
+          "declaration": "relation_construction_writer_units ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "single_relation_declaration_construction_inventory",
+          "declaration": "single_relation_declaration_construction_inventory ( schema_bytes : Int , schema_nodes : Int , field_count : Int , facts_bytes : Int , facts_nodes : Int , resource_units : Int , connector_units : Int , revision_units : Int , limits : RowDeclarationLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common relation declaration producer and execution representation owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "relation_construction_collection_units",
+            "relation_construction_contract_units",
+            "relation_construction_decoded_construction",
+            "relation_construction_json_forest",
+            "relation_construction_writer_units",
+            "single_relation_declaration_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }

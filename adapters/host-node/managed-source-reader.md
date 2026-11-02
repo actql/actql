@@ -81,17 +81,22 @@ retained-output approximation or physical cleanup acknowledgement at this
 entrance. Provider recipes must cover their own complete native serializer,
 failed-prefix and coexisting outputs before calling it.
 
-BigQuery uses these entrances for its original base64 Buffer, metadata parser,
-table description and one-view declaration. Its quantity follows the admitted
-metadata input and original schema/name bounds through the existing conservative
-Source envelope; it does not allocate `maxDeclarationBytes` as an invented
-output or change a parser limit. Initial identity hashes the original metadata
-DATA separately from native schema admission. The actual loader uses the same
-managed configuration readers and `openRowSite`, and passes its original
-Environment and context into RowSource. Custom acquisition preparers also read
-protocol assets through that same physical file owner, while retaining their
-original native protocol admission. Job selection, original-operation CAS,
-read permission and cancellation remain with their existing owners.
+BigQuery uses the bound `prepareNativeDeclaration` entrance with one actual
+`ReadDeclarationConstructionCapacity` quote for the canonical base64 Buffer,
+metadata parser, table description, nominal declaration and exported declaration
+wire, including their coexisting outputs and failed-prefix peak. It does not
+also invoke the raw input entrance or add a generic declaration envelope for the
+same construction. The original description and limit records feed its later
+`PrepareRead`; no nominal Query is reconstructed from detached schema DATA.
+Host parsing and Environment merging receive their own existing same-parent
+backing before construction. Initial identity hashes the original metadata DATA
+separately from native schema admission. The actual loader uses the bound
+configuration reader, `openRowSite` and `createRowSource` owner to retain the
+original Site, authorization and Source children before current checks or awaits.
+Custom acquisition preparers also read protocol assets through the same physical
+file owner, while retaining their original native protocol admission. Job
+selection, original-operation CAS, read permission and cancellation remain with
+their existing owners.
 
 The registered BigQuery component exercises real Core/Resource/Source/Site and
 file cleanup with I/O-only TLS fixtures. Failure cases retain the original
@@ -99,6 +104,45 @@ metadata/native refusal inside the existing cleanup carrier and require no
 pending cleanup and scoped state FDs. The Job callback case remains a separate
 explicit-port component. Neither establishes current-source normal packaging,
 business execution, real-service credentials or cold Job recovery.
+
+## Bound connector construction
+
+The installed loader binds construction to the same checked profile, initial
+Resource, configuration reader and current selection. Connector loaders supply
+only domain configuration and producer operations. The common boundary reserves
+before calling each constructor, retains returned Site, Reader and authorization
+children before another callback or await, and registers the final adapter once.
+A provider projection cannot replace close, publish an unregistered copy, or
+transfer a sibling adapter into this scope. Specialized Site domain projections
+receive the original Site's close from the common boundary.
+
+The bound reader captures the original method and receiver. A mutable domain
+Site profile is captured as a private frozen own-data snapshot; accessors and
+proxies are refused without invoking them. This does not cache external
+currentness: the required final identity observation still reads current inputs.
+Provider-native declarations remain in their issuing runtime. A provider Effect
+uses its actual Site-owned declaration and mappings, never a fabricated common
+RowDeclaration. Existing private Effect correspondence resolves only a projection
+with the same owner, methods, Environment, selectors and close.
+
+`installed-source-construction-geometry.mjs` supplies pure structural upper bounds
+for the existing JSON and Environment constructors. It neither parses inputs nor
+issues admission, identity, cancellation or cleanup authority. The caller retains
+the original wires and obtains actual Resource backing before construction.
+Successful synchronous Source Environment construction retains its actual output
+strings and record; unreachable parser and canonicalization workspace can then
+leave the peak. A throw after admission keeps that admitted peak as failure debt
+on the same material, including during sibling reconciliation. A refused reserve
+adds no ungranted debt. Pure failed workspace does not invent pending physical
+work or prevent eventual retirement after all real children acknowledge close.
+Effect and Table phases retain their peaks until their later consumers have their
+own backing. Native producers separately describe actual escaped outputs and
+construction workspace; connector authors do not manage release or retention.
+
+The actual installed-bound-construction tests compose generated selection,
+Resource, common constructors and physical cleanup. External provider I/O alone
+is substituted. These initializer tests do not establish normal packaged
+Run/Result/Saved acceptance or the coverage of every external provider operation.
 
 ## Original binding retirement acknowledgement
 

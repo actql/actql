@@ -15,6 +15,16 @@ import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {loadInstalledGitHubEffect, INSTALLED_GITHUB_EFFECT_VERSION} from '../connectors/github/host/installed-github-effect.mjs';
 
+// The mandatory common carrier preserves the exact thrown value, including
+// undefined. These domain fixtures must not require bypassing that carrier.
+const sameInitializationFailure = original => failure => {
+  assert.equal(failure.code, 'InstalledHostInitializationFailed');
+  assert.equal(Object.hasOwn(failure, 'primaryFailure'), true);
+  assert.equal(failure.primaryFailure, original);
+  assert.equal(failure.cause, original);
+  return true;
+};
+
 // Exercise the actual bounded reader with real files. Only the physical close
 // call is faulted on the actual imported reader; no parser or Owner is replaced.
 async function readerFixture(t, contents, falseClose = false) {
@@ -83,13 +93,13 @@ test('Effect load forwards the same registered Host service before the original 
     assert.throws(() => retainInstalledHostServiceInstallation(f.services, options.installation,
       `sha256:${'f'.repeat(64)}`), {code: 'InstalledHostServiceRuntimeChanged'});
   }});
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.stop);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), sameInitializationFailure(f.stop));
   assert.equal(f.calls(), 1);
 });
 
 test('Effect load pins one original runtime and refuses replacement before installer reentry', async t => {
   const f = await serviceFixture(t);
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.stop);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), sameInitializationFailure(f.stop));
   const changed = join(f.root, 'other-runtime-identity.mjs');
   await fs.writeFile(changed, 'export const fixtureIdentityOnly = false;\n');
   await assert.rejects(loader.loadInstalledEffect(f.profilePath,
@@ -118,7 +128,7 @@ test('Effect load keeps the absent-service installer envelope unchanged', async 
     assert.equal(Object.hasOwn(options, 'configurationReader'), false);
   }});
   const {installationServices: _unused, ...options} = f.options;
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), error => error === f.stop);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, options), sameInitializationFailure(f.stop));
   assert.equal(f.calls(), 1);
 });
 
@@ -197,7 +207,7 @@ async function initialEffectFixture(t, {refuseReservation = false, suspended = f
 
 test('Effect initial material owns profile runtime and installer metadata reads before native Site construction', async t => {
   const f = await initialEffectFixture(t);
-  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), error => error === f.installerFailure);
+  await assert.rejects(loader.loadInstalledEffect(f.profilePath, f.options), sameInitializationFailure(f.installerFailure));
   assert.deepEqual(f.events.slice(0, 3), ['take', 'continue', 'reserve']);
   // Each small original file has one FD lease, one body read and one EOF
   // read. Read completions do not substitute for the original FD close.
@@ -224,7 +234,9 @@ test('Effect initial material remains live through installer await and thrown un
     assert.equal(retireInstalledSourceInitialization(f.services), false, 'same original load remains pending after its FD reads finish');
     assert.equal(f.events.includes('retire'), false);
   } finally {f.release();}
-  assert.deepEqual(await observed, {ok: false, error: undefined});assert.equal(f.counts().loaded, 1);assert.equal(f.live.size, 0);
+  const result = await observed;
+  assert.equal(result.ok, false);sameInitializationFailure(undefined)(result.error);
+  assert.equal(f.counts().loaded, 1);assert.equal(f.live.size, 0);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
 });
 
@@ -390,7 +402,7 @@ test('Effect construction retains original Mapping Environment and adapter until
 
 test('Effect construction refuses Mapping backing before the native Mapping or Site constructor', async t => {
   const f = await constructionFixture(t, {refuseMapping: true});
-  await assert.rejects(f.run(), error => error === f.refusal);
+  await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
   assert.equal(f.events.includes('mapping'), false);assert.equal(f.options(), undefined);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
 });
@@ -415,7 +427,7 @@ test('Effect construction false Site close retains the same original initial bod
 
 test('Effect construction failed Mapping reservation is sticky on the same original context', async t => {
   const f = await constructionFixture(t, {refuseMapping: true});
-  await assert.rejects(f.run(), error => error === f.refusal);
+  await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
   assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
     {code: 'ForeignInstalledSourceInitialization'});
   assert.equal(f.events.includes('mapping'), false);
@@ -924,4 +936,23 @@ test('invalid async native Source construction remains held until original settl
     settle(Object.freeze({unexpected:'never admitted'}));await Promise.resolve();await Promise.resolve();
     assert.equal(f.retire(),true);
   }
+});
+
+// Domain descriptor validation only; this fixture is not lifecycle evidence.
+test('Source Command optional definition must be own DATA when supplied', () => {
+  const f = commandConstructionFixture({role: 'source'});
+  let getterCalls = 0;
+  const projection = Object.freeze({capacity: f.projection.capacity,
+    project(wire) {
+      const original = f.projection.project(wire);
+      const {definition: ignored, ...data} = original;
+      void ignored;
+      return Object.freeze(Object.defineProperty(data, 'definition', {
+        enumerable: true, get() {getterCalls++; return undefined;}}));
+    }});
+  assert.throws(() => f.context.prepareDeclaredCommands('{"views":[]}', projection),
+    {code: 'InvalidInstalledSourceCommandProjection'});
+  assert.equal(getterCalls, 0);
+  assert.equal(f.completions.length, 0, 'invalid output never selects a retained-only quantity');
+  f.finish(); assert.equal(f.retire(), true);
 });

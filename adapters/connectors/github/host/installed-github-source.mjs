@@ -23,8 +23,8 @@ import {retainInstalledHostInitializationFailure} from
 import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
-import {createInstalledRowSource, installRowSourceAuthorization,
-  openRowSourceCredentialSite, rowSourceCheckEnvironment} from
+import {installRowSourceAuthorization,
+  openRowSourceCredentialSite} from
   '../../../host-node/installed-row-source.mjs';
 import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
@@ -299,16 +299,33 @@ export async function publishGitHubRepository(checkedProfile, {root,
 // binding without provider I/O.
 export async function loadInstalledGitHubSource(profile, {root, principalId,
   moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
-  installation}) {
+  installation, construction}) {
+  if (typeof construction?.prepareDeclaration !== 'function' ||
+      typeof construction.openRowSite !== 'function' ||
+      typeof construction.createRowSource !== 'function' ||
+      typeof construction.configurationReader?.readOriginalText !== 'function') {
+    fail('InstalledGitHubConstructionUnavailable');
+  }
+  const readers = construction.configurationReader;
   const checkedProfile = checkInstalledGitHubSourceProfile(profile);
-  const site = await readSite(checkedProfile.siteProfilePath);
-  const publication = await readGitHubPublication(checkedProfile, site);
-  const {declaration, declared} = await restore(moon,
-    checkedProfile.connectorId, publication.catalogCid);
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
-  const opened = await openSite(checkedProfile, site, {root, principalId,
-    moon, runtimeBundleCid, resolveSecret, publication, installation});
-  try {
+  const site = await readSite(checkedProfile.siteProfilePath, readers);
+  const publication = await readGitHubPublication(checkedProfile, site, readers.readJson);
+  construction.prepareDeclaration(await readers.readOriginalText(viewsUrl), publication.catalogCid);
+  const connection = `github:${new URL(site.apiOrigin).host}/${site.owner}/${site.repo}`;
+  const opened = await construction.openRowSite({
+    accountConfiguration: checkedProfile.accountConfigurationWire, connection,
+    profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
+    resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
+    ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
+    admitsApprovalTarget: (binding, resource) =>
+      binding?.version === TARGET_VERSION &&
+      binding.api_origin === site.apiOrigin &&
+      binding.repository_id === publication.repository.id &&
+      binding.repository_node_id === publication.repository.node_id &&
+      binding.owner === site.owner && binding.repo === site.repo &&
+      binding.catalog_cid === publication.catalogCid &&
+      binding.resource === resource && Array.isArray(binding.fields)});
+  {
     const physicalTarget = (resource, fields) => Object.freeze({
       version: TARGET_VERSION, api_origin: site.apiOrigin,
       repository_id: publication.repository.id,
@@ -316,11 +333,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       owner: site.owner, repo: site.repo,
       catalog_cid: publication.catalogCid, resource,
       fields: Object.freeze([...fields])});
-    return await createInstalledRowSource({moon, declaration, declared,
-      environmentWire: environment.wire,
-      connectorId: checkedProfile.connectorId,
-      connectorRegistration: registration, connectorRevision: revision,
-      site: opened.site, authorization: opened.authorization,
+    return await construction.createRowSource({
       readOperation: GITHUB_GRAPHQL_READ_OPERATION, physicalTarget,
       bindingCid: contentCid({version: 'actql-installed-github-binding/0.1',
         contextCid: opened.authorization.context.contextCid,
@@ -348,8 +361,5 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
           consumePage: (rows, _page, admission) => consumePage(rows, admission),
           signal});
       }});
-  } catch (cause) {
-    throw await retainInstalledHostInitializationFailure(cause,
-      {sourceProfile: opened.site});
   }
 }

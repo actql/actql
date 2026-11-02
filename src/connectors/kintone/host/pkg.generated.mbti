@@ -125,6 +125,8 @@ pub fn record_read_acquisition(PreparedRecordRead) -> @client_row_source_host.Ro
 
 pub fn record_read_app_id(PreparedRecordRead) -> String
 
+pub fn record_read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, @catalog.FormFieldLimits, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn record_read_fields(PreparedRecordRead) -> Array[String]
 
 pub fn record_read_observed_form(RecordRead) -> @catalog.FormFieldCatalog?

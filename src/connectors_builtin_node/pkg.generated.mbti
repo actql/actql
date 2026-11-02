@@ -472,6 +472,8 @@ pub fn client_program_bigquery_query_limits(@actql/actql/connectors/bigquery/cat
 
 pub fn client_program_bigquery_read_acquisition(@actql/actql/connectors/bigquery/read.PreparedRead) -> @client_row_source_host.RowAcquisition
 
+pub fn client_program_bigquery_read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, @actql/actql/connectors/bigquery/catalog.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_bigquery_read_job_original_record(Bytes, @actql/actql/connectors/bigquery/read.JobRecordLimits) -> Result[@actql/actql/connectors/bigquery/read.JobOriginalRecord, @actql/actql/connectors/bigquery/read.JobRecordIssue]
 
 pub fn client_program_bigquery_read_usage(@actql/actql/connectors/bigquery/read.Read) -> (Int, Int64)
@@ -1260,6 +1262,12 @@ pub fn client_program_finish_snapshot(@client_local_host.ClientProgramSnapshot) 
 
 pub fn client_program_finish_validation(@client_local_host.ClientProgramValidation) -> Result[Unit, @client_local_host.ClientProgramValidationIssue]
 
+pub fn client_program_gcs_collection_mapping_construction_capacity(String, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_gcs_source_facts_construction_capacity(Int, String, String, String, String, Array[Int64]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_gcs_upload_catalog_construction_capacity(String, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_generated_content_candidate(@run_publication.ContentByteEncoder, String, Int, Int, Int, Int) -> Result[@run_publication.GeneratedContentReference, @run_publication.GeneratedContentReferenceIssue]
 
 pub fn client_program_generated_content_candidate_cid(@run_publication.GeneratedContentReference) -> String
@@ -1269,6 +1277,10 @@ pub fn client_program_generated_content_candidate_wire(@run_publication.Generate
 pub fn client_program_generated_content_storage(@run_publication.GeneratedContentReference) -> (String, String, String, Int)
 
 pub fn client_program_generated_infer_local_provider(@run_publication_host.ClientInferOccurrence, (Array[@local.ManagedProviderInput]) -> @client_infer_host.Execution?, (@client_infer_host.Issue) -> Unit, (@client_infer_host.Execution) -> Bool, (@client_infer_host.Execution) -> Bool) -> @local.ManagedProvider
+
+pub fn client_program_hubspot_account_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_hubspot_object_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
@@ -2257,6 +2269,8 @@ pub fn client_program_kintone_project_record_page(Bytes, @actql/actql/connectors
 pub fn client_program_kintone_read_acquisition(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> @client_row_source_host.RowAcquisition
 
 pub fn client_program_kintone_read_app(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> String
+
+pub fn client_program_kintone_read_declaration_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_read_fields(@actql/actql/connectors/kintone/host.PreparedRecordRead) -> Array[String]
 
@@ -3254,6 +3268,10 @@ pub fn client_program_run_wait_decision(String, Bool, Int64) -> String
 
 pub fn client_program_salesforce_begin_query_read(@actql/actql/connectors/salesforce/catalog.ReadProjection, String, Int, Int, Int, Int, Int, Int, Int64) -> Result[@actql/actql/connectors/salesforce/catalog.QueryRead, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
 
+pub fn client_program_salesforce_execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_salesforce_initialization_construction_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_salesforce_query_page_response_sha256(@actql/actql/connectors/salesforce/catalog.QueryPage) -> String
 
 pub fn client_program_salesforce_query_page_row_count(@actql/actql/connectors/salesforce/catalog.QueryPage) -> Int
@@ -3435,6 +3453,8 @@ pub fn client_program_snowflake_prepare_read(@description.TableDescription, @cli
 pub fn client_program_snowflake_prepare_statement(@actql/actql/connectors/snowflake/read.Read, String, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementIssue]
 
 pub fn client_program_snowflake_read_acquisition(@actql/actql/connectors/snowflake/read.PreparedRead) -> @client_row_source_host.RowAcquisition
+
+pub fn client_program_snowflake_read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_snowflake_read_usage(@actql/actql/connectors/snowflake/read.Read) -> (Int, Int64)
 

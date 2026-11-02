@@ -1010,6 +1010,22 @@ export function composeInstalledRowEffectOwners(effects, descriptors, environmen
 
 // The installed loader retains the original private port while exposing its
 // normal adapter projection. No descriptor or structural marker admits a port.
+// Initialization may expose only an already-retained private projection.
+// Canonicalize to the exact registered raw adapter, never structural copies
+// or equal owner DATA. The original common close remains mandatory here.
+export function resolveInstalledRowEffectConstruction(original, projection) {
+  if (original === projection) return original;
+  const owner = rowInstallations.get(original);
+  if (owner === undefined || rowInstallations.get(projection) !== owner ||
+      !projection || nodeTypes.isProxy(projection)) return undefined;
+  const fields = Object.getOwnPropertyDescriptors(projection);
+  for (const key of ['prepareManagedPlan','prepareCaptured','prepareRecovered',
+    'environmentWire','effectSelectors','close']) {
+    if (!Object.hasOwn(fields[key] ?? {}, 'value') || fields[key].value !== original[key]) return undefined;
+  }
+  return original;
+}
+
 export function retainInstalledRowEffectAdapter(original, projection) {
   const owner = rowInstallations.get(original);
   if (owner === undefined) return projection;

@@ -2,6 +2,7 @@
 // The caller installs the same current authorization/Site as other Sources;
 // this adapter issues no grant, runs no task scheduler and owns no capture.
 import {createHash} from 'node:crypto';
+import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
@@ -20,12 +21,62 @@ const closedReply = (value, resultKeys) => {
   return value.result;
 };
 
+// No external credential is needed for local Catalog I/O. This Site only
+// admits decisions issued by the installed gate or the existing Checkpoint
+// owner for this exact physical binding. It is not an approval/Run owner.
+export function installedTableReadSite({connection, authorization, principalId, targets, ownAuthorization = false}) {
+  let closed = false;
+  const approvals = new WeakMap();
+  const ensureOpen = () => { if (closed) fail('InstalledTableSiteClosed'); };
+  return Object.freeze({connection,
+    admitCheckpointReadApproval(decision) {
+      ensureOpen();
+      const facts = checkpointApprovalFacts(decision);
+      const binding = facts?.physicalBinding;
+      const target = targets().find(target => target.resource === decision?.tuple?.resource);
+      if (!facts || !target || decision.action !== 'dispatch' || decision.basis !== 'resumed_approval' ||
+          decision.boundary !== 'acquisition' || facts.principalId !== principalId ||
+          facts.readTuple?.connection !== connection || facts.readTuple?.operation !== 'read' ||
+          facts.readTuple?.resource !== target.resource || decision.tuple?.connection !== connection ||
+          decision.tuple?.operation !== 'read' ||
+          !keys(binding, ['version', 'catalog_cid', 'selector', 'selector_cid', 'resource', 'fields']) ||
+          binding.version !== target.version || binding.catalog_cid !== target.catalog_cid ||
+          binding.selector_cid !== target.selector_cid || canonicalJson(binding.selector, {dataKeys: true}) !== canonicalJson(target.selector, {dataKeys: true}) ||
+          binding.resource !== target.resource || !Array.isArray(binding.fields) ||
+          binding.fields.length === 0 ||
+          new Set(binding.fields).size !== binding.fields.length ||
+          binding.fields.some(field => !target.fields.includes(field))) fail('TableSourceReadApprovalNotAdmitted');
+      approvals.set(decision, target.resource);
+      return decision;
+    },
+    issueReadGrant({operation, decision, resource, runInvocationCid, dispatchRequestCid, maxUses}) {
+      ensureOpen();
+      if (operation !== 'table.read' || !identifier(runInvocationCid) || !identifier(dispatchRequestCid) ||
+          !Number.isSafeInteger(maxUses) || maxUses < 1 ||
+          !targets().some(target => target.resource === resource) ||
+          decision?.action !== 'dispatch' || decision.boundary !== 'acquisition' ||
+          decision.tuple?.connection !== connection || decision.tuple?.resource !== resource ||
+          decision.tuple?.operation !== 'read' ||
+          (approvals.get(decision) !== resource &&
+            (!authorization.issued(decision) || decision.contextCid !== authorization.context.contextCid))) {
+        fail('TableSourceReadGrantNotAuthorized');
+      }
+      return Object.freeze({runInvocationCid, dispatchRequestCid});
+    },
+    close() {
+      if (ownAuthorization && authorization.close() !== true) fail('InstalledSourceAuthorizationCleanupPending');
+      closed = true;
+    },
+  });
+}
+
 // Installation binds saved schema and Table UUID/name. It never reads provider
 // metadata during Check or uses observed rows to issue a declaration. A new
 // acquisition resolves one immutable generation under current read authority.
 export async function createInstalledTableSource({moon, baseEnvironmentWire,
   connectorId, connectorRegistration, connectorRevision,
-  site, authorization, bridge, targets, limits}) {
+  site, authorization, bridge, targets, limits, sourceInitialization,
+  declaration: originalDeclaration, declared: originalDeclared, environment: originalEnvironment, publicationBindingCid}) {
   if (!moon || !text(baseEnvironmentWire) || !text(connectorId) ||
       !text(connectorRegistration) || !text(connectorRevision) ||
       !text(site?.connection) || typeof site?.issueReadGrant !== 'function' ||
@@ -43,14 +94,14 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
   if (new Set(installed.map(target => target.resource)).size !== installed.length) {
     fail('DuplicateInstalledTableReadTarget');
   }
-  const specification = JSON.stringify({views: installed.map(target => ({
+  const specification = originalDeclaration === undefined ? JSON.stringify({views: installed.map(target => ({
     resource: target.resource, resource_kind: 'table',
     schema_wire: target.schemaWire, schema_cid: target.selector.schema_cid,
-  }))});
-  const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+  }))}) : undefined;
+  const declaration = originalDeclaration ?? checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     connectorId, connectorRegistration, connectorRevision, specification, undefined));
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared);
+  const declared = originalDeclared ?? JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const environment = originalEnvironment ?? rowSourceCheckEnvironment(baseEnvironmentWire, declared);
   const byResource = new Map(installed.map(target => [target.resource, target]));
   const physicalTarget = (resource, fields) => {
     const target = byResource.get(resource);
@@ -103,14 +154,10 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     const charge = chargePage(bytes);
     consumePage(rows, {charge});
   };
-  const adapter = await createInstalledRowSource({moon, declaration, declared,
+  return createInstalledRowSource({moon, declaration, declared, environment, sourceInitialization,
     environmentWire: environment.wire, connectorId, connectorRegistration,
     connectorRevision, site, authorization, readOperation: 'table.read',
-    physicalTarget, readPages, bindingCid, limits});
-  return Object.freeze({...adapter,
-    // Read-only metadata for the existing Host installation/approval boundary.
-    declarationCatalogCid: declared.catalog_cid,
+    physicalTarget, readPages, bindingCid, publicationBindingCid, limits,
     tableReadTargets: Object.freeze(installed.map(target => physicalTarget(target.resource,
-      declared.views.find(view => view.resource === target.resource).fields))),
-  });
+      declared.views.find(view => view.resource === target.resource).fields)))});
 }

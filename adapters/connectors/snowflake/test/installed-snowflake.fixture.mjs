@@ -4,13 +4,28 @@ import {generateKeyPairSync} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {snowflakeFixture, metadataBody, readLimits} from './snowflake-read.fixture.mjs';
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
-const baseEnvironmentWire = await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
+const baseEnvironmentWire = (await readFile(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 
 export async function installedSnowflakeFixture(t) {
-  const f = await snowflakeFixture(t);
+  let transportClose, parent;
+  const captures = [];
+  t.after(async () => {
+    const failures = [];
+    try {
+      for (const captured of captures) await captured.close();
+      await parent?.close();
+    } catch (error) {failures.push(error);}
+    try {await transportClose?.();} catch (error) {failures.push(error);}
+    if (failures.length) throw new AggregateError(failures, 'InstalledSnowflakeFixtureCleanupPending');
+  });
+  const f = await snowflakeFixture({diagnostic: (...args) => t.diagnostic(...args),
+    after(close) {assert.equal(transportClose, undefined); transportClose = close;}});
+  parent = createInstalledLoaderParent({root: f.root, principalId: 'operator', moon: f.moon});
+  parent.open();
   const keys = generateKeyPairSync('ed25519');
   const keyPath = join(f.root, 'installed-credential.key');
   await writeFile(keyPath, keys.privateKey.export({type: 'pkcs8', format: 'pem'}), {mode: 0o600});
@@ -41,20 +56,12 @@ export async function installedSnowflakeFixture(t) {
       maxDescriptionBytes: 4096, maxDeclarationBytes: 200000, maxDeclarationNodes: 20000}};
   const path = join(f.root, 'installed-source.json');
   await writeFile(path, JSON.stringify(profile));
-  const sources = [], captures = [];
-  t.after(async () => {
-    for (const captured of captures) await captured.close();
-    for (const source of sources) await source.close();
-  });
-  const load = async () => {
-    const source = await loadInstalledSource(path, {root: f.root, principalId: 'operator',
-      moon: f.moon, runtimeUrl, baseEnvironmentWire,
-      resolveSecret: f.options.credential.resolveSecret});
-    sources.push(source); return source;
-  };
+  const load = (overrides = {}) => parent.load(loadInstalledSource, path,
+    {root: f.root, principalId: 'operator', moon: f.moon, runtimeUrl, baseEnvironmentWire,
+      resolveSecret: f.options.credential.resolveSecret, ...overrides});
   const preparation = {preparedProgram: f.row.originals.program,
     ...Object.fromEntries(['registry', 'values', 'fragment', 'ordered'].map(k => [k, f.row.originals[k]]))};
   const prepare = source => source.prepare(preparation);
   return {...f, site, siteProfilePath, metadata, metadataPath, account, profile, path,
-    load, prepare, preparation, captures};
+    load, prepare, preparation, captures, installationServices: parent.services};
 }

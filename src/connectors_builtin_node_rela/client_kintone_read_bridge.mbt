@@ -231,3 +231,24 @@ pub fn client_program_kintone_page_next_cursor(
     }
   })
 }
+
+///|
+#export_name("clientProgramKintoneReadDeclarationConstructionCapacity")
+pub fn client_program_kintone_read_declaration_construction_capacity(
+  body_bytes : Int,
+  encoded_units : Int,
+  selected_count : Int,
+  selected_units : Int,
+  app_units : Int,
+  resource_units : Int,
+  connector_units : Int,
+  revision_units : Int,
+  form : @kintone_catalog.FormFieldLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  declaration : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_read_declaration_construction_capacity(
+    body_bytes, encoded_units, selected_count, selected_units, app_units, resource_units,
+    connector_units, revision_units, form, values, declaration,
+  )
+}

@@ -49,17 +49,38 @@ export function admitIcebergStorageMapping({control, mappingWire, limits}) {
   return control.admitLocalTableStorageMapping(mappingWire, limits);
 }
 
+// Pure shape checks for an already-owned JSON profile. These do not snapshot,
+// retain a physical bridge, prepare a process, or issue read authority. The
+// actual bridge below still snapshots before checking and retaining its data.
+export function validateIcebergPhysicalConfiguration({python, catalog}) {
+  if (!(python instanceof URL) || python.protocol !== 'file:' ||
+      !keys(catalog, ['database', 'warehouse', 'catalogCid', 'limits']) ||
+      !['database', 'warehouse'].every(key => typeof catalog[key] === 'string' && isAbsolute(catalog[key])) ||
+      !cid(catalog.catalogCid) || !keys(catalog.limits, ['bytes', 'files', 'operations']) ||
+      Object.values(catalog.limits).some(value => !Number.isSafeInteger(value) || value < 1)) {
+    fail('InvalidTablePhysicalConfiguration');
+  }
+}
+
+export function validateIcebergReadSelector(selector, catalogCid) {
+  if (!keys(selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
+      selector.catalog_identity_cid !== catalogCid || !cid(selector.schema_cid) ||
+      !Array.isArray(selector.namespace) || selector.namespace.length < 1 ||
+      selector.namespace.length > 32 || selector.namespace.some(part =>
+        typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
+      typeof selector.table_name !== 'string' || selector.table_name.length < 1 ||
+      selector.table_name.length > 256 || /[\0\r\n]/u.test(selector.table_name) ||
+      typeof selector.table_uuid !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(selector.table_uuid)) {
+    fail('InvalidTableReadSelector');
+  }
+}
+
 export function createIcebergPhysicalBridge({python, run, catalog,
   implementation,
   entry = new URL('../iceberg/process_worker.py', import.meta.url)}) {
   const config = snapshot(catalog);
-  if (!(python instanceof URL) || python.protocol !== 'file:' ||
-      !keys(config, ['database', 'warehouse', 'catalogCid', 'limits']) ||
-      !['database', 'warehouse'].every(key => typeof config[key] === 'string' && isAbsolute(config[key])) ||
-      !cid(config.catalogCid) || !keys(config.limits, ['bytes', 'files', 'operations']) ||
-      Object.values(config.limits).some(value => !Number.isSafeInteger(value) || value < 1)) {
-    fail('InvalidTablePhysicalConfiguration');
-  }
+  validateIcebergPhysicalConfiguration({python, catalog: config});
   if (implementation !== undefined && (!cid(implementation.identity) ||
       typeof implementation.assertCurrent !== 'function')) fail('InvalidTableImplementationBinding');
   const assertImplementation = () => {
@@ -120,17 +141,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     // grant or a generation; only the authorized resolver freezes a head.
     checkReadSelector(selector) {
       const payload = snapshot({selector});
-      if (!keys(payload.selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
-          payload.selector.catalog_identity_cid !== config.catalogCid || !cid(payload.selector.schema_cid) ||
-          !Array.isArray(payload.selector.namespace) || payload.selector.namespace.length < 1 ||
-          payload.selector.namespace.length > 32 || payload.selector.namespace.some(part =>
-            typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
-          typeof payload.selector.table_name !== 'string' || payload.selector.table_name.length < 1 ||
-          payload.selector.table_name.length > 256 || /[\0\r\n]/u.test(payload.selector.table_name) ||
-          typeof payload.selector.table_uuid !== 'string' ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(payload.selector.table_uuid)) {
-        fail('InvalidTableReadSelector');
-      }
+      validateIcebergReadSelector(payload.selector, config.catalogCid);
       Object.freeze(payload.selector.namespace);
       return Object.freeze(payload.selector);
     },

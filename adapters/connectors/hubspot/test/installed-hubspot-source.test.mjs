@@ -5,7 +5,6 @@ import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
 import {installedHubSpotFixture as fixture, properties, expected, objectBody} from './installed-hubspot.fixture.mjs';
 
 test('installed HubSpot restores every observed property without a credential read', async t => {
@@ -75,14 +74,14 @@ test('foreign original account metadata and incomplete property metadata refuse 
 });
 
 test('installed identity binds original metadata, Site generation and declared authority resources', async t => {
-  const f = await fixture(t), original = await installedSourceIdentity(f.path);
+  const f = await fixture(t), original = await f.identity();
   await writeFile(f.siteProfilePath, JSON.stringify({...f.site, siteGeneration: 2}));
-  assert.notEqual(await installedSourceIdentity(f.path), original);
+  assert.notEqual(await f.identity(), original);
   await writeFile(f.siteProfilePath, JSON.stringify(f.site));
-  assert.equal(await installedSourceIdentity(f.path), original);
+  assert.equal(await f.identity(), original);
   await writeFile(f.path, JSON.stringify({...f.profile,
     metadataResources: {...f.profile.metadataResources, properties: 'different-permission'}}));
-  assert.notEqual(await installedSourceIdentity(f.path), original);
+  assert.notEqual(await f.identity(), original);
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });
 

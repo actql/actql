@@ -205,7 +205,7 @@
     },
     {
       "module": "adapters/connectors/bigquery/host/installed-bigquery-source.mjs",
-      "sha256": "ee8ab331cfbab6f1da3b876fade80294f0b2f3e20e3a31f0492086522794c4bb",
+      "sha256": "f984f2365fd6ee762f12cea11d51140519dea217628d87fb30da9962ade30600",
       "exports": [
         "INSTALLED_BIGQUERY_SITE_VERSION",
         "INSTALLED_BIGQUERY_SOURCE_VERSION",
@@ -279,6 +279,14 @@
           "async": false
         },
         {
+          "name": "decodeMetadataBody",
+          "parameters": [
+            "encoded",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code"
@@ -290,7 +298,7 @@
           "parameters": [
             "profile",
             "providerProfile",
-            "read",
+            "readJson",
             "_entry",
             "configurationReader"
           ],
@@ -308,13 +316,10 @@
             "root",
             "principalId",
             "moon",
-            "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
             "installation",
-            "sourceInitialization",
-            "configurationReader",
-            "installationServices"
+            "construction"
           ],
           "async": true
         },
@@ -334,20 +339,7 @@
           "async": false
         },
         {
-          "name": "loadInstalledBigQuerySource/inputReaders/init:decodeBody/init:decodeBody",
-          "parameters": [
-            "encoded",
-            "maximum"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledBigQuerySource/inputReaders/init:decodeBody/init:decodeBody/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledBigQuerySource/inputReaders/init:decodeBody/init:decodeBody/init:project/init:project",
+          "name": "loadInstalledBigQuerySource/init:project/init:project",
           "parameters": [],
           "async": false
         },
@@ -361,17 +353,22 @@
         {
           "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#2",
           "parameters": [],
-          "async": true
+          "async": false
         },
         {
           "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#4",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#4",
+          "name": "loadInstalledBigQuerySource/loadInstalledBigQuerySource#5",
           "parameters": [
             "options"
           ],
@@ -401,25 +398,18 @@
           "async": false
         },
         {
-          "name": "loadInstalledBigQuerySource/prepared/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledBigQuerySource/prepared/init:project/init:project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledBigQuerySource/readers/readers",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "loadInstalledBigQuerySource/target/target",
           "parameters": [
             "resource",
             "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "metadataBodyBytes",
+          "parameters": [
+            "encoded",
+            "maxBytes"
           ],
           "async": false
         },
@@ -460,7 +450,7 @@
             "value",
             "readJson",
             "readText",
-            "decodeBody"
+            "decode"
           ],
           "async": true
         },
@@ -482,8 +472,6 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
-        "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/bigquery-sql-read.mjs",
         "node:crypto",
@@ -508,33 +496,31 @@
             "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#2",
             "checkInstalledBigQuerySourceProfile/checkInstalledBigQuerySourceProfile#3",
             "cid/cid",
+            "decodeMetadataBody",
             "fail/fail",
             "installedBigQuerySourceIdentityParts",
+            "installedBigQuerySourceIdentityParts/readers/readers",
             "loadInstalledBigQuerySource",
             "loadInstalledBigQuerySource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledBigQuerySource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledBigQuerySource/init:project/init:project",
             "loadInstalledBigQuerySource/loadInstalledBigQuerySource",
             "loadInstalledBigQuerySource/loadInstalledBigQuerySource#2",
             "loadInstalledBigQuerySource/loadInstalledBigQuerySource#3",
+            "loadInstalledBigQuerySource/loadInstalledBigQuerySource#4",
+            "loadInstalledBigQuerySource/loadInstalledBigQuerySource#5",
+            "loadInstalledBigQuerySource/method/method",
+            "loadInstalledBigQuerySource/originals/originals",
+            "loadInstalledBigQuerySource/originals/originals/originals",
             "loadInstalledBigQuerySource/target/target",
+            "metadataBodyBytes",
             "own/own",
             "own/own/own",
             "own/own/own#2",
             "own/own/own#3",
             "readInputs",
             "readInputs/readInputs",
-            "text/text",
-            "installedBigQuerySourceIdentityParts/readers/readers",
-            "loadInstalledBigQuerySource/inputReaders/init:decodeBody/init:decodeBody",
-            "loadInstalledBigQuerySource/inputReaders/init:decodeBody/init:decodeBody/init:capacity/init:capacity",
-            "loadInstalledBigQuerySource/inputReaders/init:decodeBody/init:decodeBody/init:project/init:project",
-            "loadInstalledBigQuerySource/loadInstalledBigQuerySource#4",
-            "loadInstalledBigQuerySource/method/method",
-            "loadInstalledBigQuerySource/originals/originals",
-            "loadInstalledBigQuerySource/originals/originals/originals",
-            "loadInstalledBigQuerySource/prepared/init:capacity/init:capacity",
-            "loadInstalledBigQuerySource/prepared/init:project/init:project",
-            "loadInstalledBigQuerySource/readers/readers"
+            "text/text"
           ],
           "exports": [
             "INSTALLED_BIGQUERY_SITE_VERSION",
