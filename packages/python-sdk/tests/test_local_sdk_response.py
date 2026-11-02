@@ -21,7 +21,7 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
         helper.addCleanup = self.addCleanup
         holder, store, core, request, first, fact, initial_clock, state, calls = helper.bridge(root, final)
         reader = OriginalSDKPayloadReader(holder, request, initial_clock, fact)
-        host = SimpleNamespace(_core=core, _inputs=[initial_clock], _response_streams=set(), _nominal=lambda: None)
+        host = SimpleNamespace(_core=core, _inputs=[initial_clock], _response_streams=set(), _nominal=lambda: None, _active=lambda: None)
         def clock():
             tick = core.reserve_input(b'{"observed_at":"2026-10-13T00:00:06.000Z"}',
                 cleanup=lambda: True, stopped=lambda _: True)
