@@ -3871,6 +3871,7 @@ test('portable control validates Receipt and Captured Run references',
       const attemptCid = JSON.parse(attempted[0]).delivery_attempt_cid;
       const latest = () => deliveryStore.latestDeliveryRecord(attemptCid);
       assert.equal((await latest()).state, 'streaming');
+      assert.deepEqual(failure.cleanupErrors, [terminalFailure]);
       const first = failure.cleanupHandle.retry();
       await arrived;
       const second = failure.cleanupHandle.retry();
@@ -3880,6 +3881,7 @@ test('portable control validates Receipt and Captured Run references',
       assert.equal(first, second);
       assert.equal(firstStatus, secondStatus);
       assert.equal(firstStatus.pending, true);
+      assert.deepEqual(firstStatus.errors, [terminalFailure, terminalFailure]);
       assert.equal(retries, 1);
       assert.equal((await latest()).state, 'streaming');
       terminalAvailable = true;
@@ -3890,7 +3892,8 @@ test('portable control validates Receipt and Captured Run references',
       assert.equal(failure.cleanupPending, false);
       assert.equal(failure.cause, original);
       assert.equal(failure.primaryFailure, original);
-      assert.deepEqual(failure.cleanupErrors, [terminalFailure, terminalFailure, terminalReplyLost]);
+      assert.deepEqual(failure.cleanupErrors, [terminalFailure, terminalReplyLost],
+        'bounded diagnostics retain the first and latest original failures');
       assert.equal(attempted.length, 4);
       for (const wire of attempted) assert.equal(wire, attempted[0]);
       assert.equal((await latest()).delivery_record_cid,
