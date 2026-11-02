@@ -109,7 +109,7 @@ test('operation evidence consistency is mandatory admission without changing the
   assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
   assert.equal(selection.macos, true);
   const results = Object.fromEntries(gateJobs.map(name =>
-    [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));
+    [name, {result: ['focused-tests', 'main-performance'].includes(name) ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
@@ -120,7 +120,7 @@ test('operation evidence consistency is mandatory admission without changing the
 });
 test('failed, skipped, cancelled or missing preflight cannot become a passing final gate', () => {
   const selection = selectTargets(['.github/workflows/ci.yml']);
-  const results = Object.fromEntries(gateJobs.map(name => [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));
+  const results = Object.fromEntries(gateJobs.map(name => [name, {result: ['focused-tests', 'main-performance'].includes(name) ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
@@ -138,7 +138,7 @@ function mainFixture(event = 'push') {
     repository: {id: 12, full_name: 'actql/actql', visibility: 'public', private: false}}};
 }
 test('authenticated fixed main push and dispatch finish despite later main advancement', async () => {
-  for (const event of ['push', 'workflow_dispatch']) {
+  for (const event of ['push', 'workflow_dispatch', 'schedule']) {
     const {context, body} = mainFixture(event);
     let lookups = 0;
     assert.deepEqual(await assertCurrentRevision(context, body, async () => { lookups++; return newer; },
@@ -181,4 +181,18 @@ test('PR admission requires the tested merge checkout while retaining its distin
     return head;
   }, {checkoutRevision: merge});
   assert.equal(checked.revision, head);
+});
+
+test('scheduled deep validation is pinned to authenticated main and cannot admit a working branch', async () => {
+  const f = mainFixture('schedule');
+  await assertCurrentRevision(f.context, f.body, () => { throw Error('must not query moving main'); }, {checkoutRevision: merge});
+  for (const mutate of [
+    f => { f.context.GITHUB_REF = 'refs/heads/feature'; },
+    f => { f.context.GITHUB_WORKFLOW_SHA = newer; },
+    f => { f.body.repository.id = 13; },
+    f => { f.body.repository.private = true; },
+  ]) {
+    const f = mainFixture('schedule'); mutate(f);
+    await assert.rejects(assertCurrentRevision(f.context, f.body, async () => merge, {checkoutRevision: merge}));
+  }
 });

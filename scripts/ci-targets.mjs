@@ -2,6 +2,7 @@
 // An exact maintenance inventory may omit whole unrelated job families.
 // Selected evidence campaigns retain their complete three-target contract.
 import assert from 'node:assert/strict';
+import {snapshotDirectories, snapshotFiles} from '../proofs/relation-pipeline/inventory.mjs';
 import {focusedPattern, eligibleFocusedChanges, readFocusedTests, validateFocusedTests} from './ci-focused-tests.mjs';
 import {appendFileSync, readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
@@ -28,8 +29,8 @@ export const maintenanceFiles = Object.freeze([
 ]);
 const maintenance = new Set(maintenanceFiles);
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
-  'native', 'spec', 'session-evidence', 'pipeline-evidence', 'native-macos', 'python-wheels',
-  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests']);
+  'native', 'spec', 'session-evidence', 'pipeline-evidence', 'pipeline-validation', 'native-macos', 'python-wheels',
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests', 'main-performance']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
@@ -45,6 +46,32 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
+// Deep campaigns use their real source snapshot plus orchestration and safety
+// boundaries. The snapshot currently includes ALL Core source and vendor code;
+// narrowing that closure requires a separate proof-input review. Unknown roots
+// remain deep. This is scheduling, not evidence reuse or a passed proof claim.
+export function deepProofRequired(selection) {
+  validateSelection(selection);
+  if (selection.profile !== 'full') return false;
+  if (['workflow_dispatch', 'schedule'].includes(selection.event) || !selection.paths.length) return true;
+  return selection.paths.some(path => {
+    if (snapshotFiles.includes(path) || snapshotDirectories.some(root => path === root || path.startsWith(`${root}/`))) return true;
+    if (sensitive.test(path) || /^(?:scripts|proofs|spec|portability|\.github)\//u.test(path)) return true;
+    // These JS/Python integration trees are outside the proof source snapshot.
+    // Ownership, resource, platform and build edits were already caught above.
+    if (/^(?:adapters|packages)\//u.test(path)) return false;
+    return !reviewedPortableFiles.has(path) && !maintenance.has(path);
+  });
+}
+export function gateJobRequired(selection, name) {
+  if (['select-targets', 'preflight', 'lint', 'spec'].includes(name)) return true;
+  if (name === 'main-performance') return selection.event === 'push';
+  if (name === 'focused-tests') return ['focused-tests', 'draft-focused'].includes(selection.profile);
+  if (name === 'python-wheels') return pythonWheelAcceptanceRequired(selection);
+  if (['session-evidence', 'pipeline-evidence'].includes(name)) return deepProofRequired(selection);
+  return selection.profile === 'full' && (name !== 'native-macos' || selection.macos);
+}
+
 // A targeted Draft acceptance lane, not a claim of complete Draft product coverage.
 // Shared core changes still receive full applicable verification when Ready/main.
 const pythonWheelInputs = new Set([
@@ -83,12 +110,12 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null} = {}) {
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
-    profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null});
-  // Automatic main integration always executes the existing full profile.
-  // No historical run or cumulative diff is needed for an unconditional full run.
+    profile: 'full', event, paths: validPaths && !failure ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null});
+  // Main runtime integration is unconditional; only deep campaigns use the
+  // current push diff. No previous-success lookup or ancestry search is used.
   if (mainIntegration) {
     assert(['push', 'workflow_dispatch'].includes(event), 'Invalid main integration event');
-    const result = full('Main integration requires every full runtime and proof family');
+    const result = full('Main integration requires every runtime family; deep campaigns follow their inputs');
     if (event === 'workflow_dispatch') result.macos = nativeMacos;
     return result;
   }
@@ -178,10 +205,7 @@ export function verifyGate(plan, needs, {event, sourceRevision, draft = null}) {
   assert.deepEqual(Object.keys(needs ?? {}).sort(), [...gateJobs].sort(), 'Incomplete gate dependency inventory');
   const lines = [];
   for (const name of gateJobs) {
-    const required = ['select-targets', 'preflight', 'lint', 'spec'].includes(name)
-      || ['focused-tests', 'draft-focused'].includes(selection.profile) && name === 'focused-tests'
-      || name === 'python-wheels' && pythonWheelAcceptanceRequired(selection)
-      || selection.profile === 'full' && name !== 'focused-tests' && (name !== 'native-macos' || selection.macos);
+    const required = gateJobRequired(selection, name);
     const expected = required ? 'success' : 'skipped';
     assert.equal(needs[name]?.result, expected, `${name}: expected ${expected}`);
     lines.push(`${required ? 'PASS' : 'NOT APPLICABLE'} ${name}: ${required ? 'required job completed' : selection.reason}`);
@@ -242,6 +266,22 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   }
   return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head};
 }
+// Exactly the event's endpoints, never a previous successful run or ancestor.
+// --no-renames retains both sides of renames and deletions. Failure is handled
+// by the caller as an unknown diff, which requires the complete deep campaign.
+export function readPushChanges(payload, testedRevision, git = args => execFileSync('git', args,
+  {encoding: 'utf8', maxBuffer: 32 * 1024 * 1024})) {
+  assert.equal(payload.ref, 'refs/heads/main', 'Not a main push');
+  assert(sha.test(testedRevision), 'Missing tested revision');
+  assert.equal(payload.after, testedRevision, 'Different pushed revision');
+  assert(sha.test(payload.before ?? '') && !/^0+$/u.test(payload.before), 'Unavailable push base');
+  assert.equal(git(['rev-parse', 'HEAD']).trim(), testedRevision, 'Different tested checkout');
+  const output = git(['diff', '--no-renames', '--name-only', '-z', payload.before, testedRevision, '--']);
+  assert(output === '' || output.endsWith('\0'), 'Truncated push change inventory');
+  const paths = output.split('\0').filter(Boolean);
+  assert(paths.every(validPath), 'Malformed push change inventory');
+  return {paths};
+}
 async function main() {
   if (process.argv[2] === 'gate') {
     const lines = verifyGate(JSON.parse(process.env.CI_PLAN), JSON.parse(process.env.RESULTS),
@@ -266,6 +306,8 @@ async function main() {
     const payload = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
     assert.equal(payload.ref, 'refs/heads/main', 'Not a main push');
     assert.equal(payload.after, process.env.GITHUB_SHA, 'Different pushed revision');
+    try { changes = readPushChanges(payload, process.env.GITHUB_SHA); }
+    catch (error) { failure = error.message; changes = {paths: []}; }
   }
   const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME, draft,
     mainIntegration: process.env.GITHUB_EVENT_NAME === 'push' ||
@@ -276,9 +318,9 @@ async function main() {
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\ndeep_proofs=${deepProofRequired(selected)}\npython_wheels=${pythonWheelAcceptanceRequired(selected)}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
+    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nNative macOS diagnostic: ${selected.macos ? 'required' : 'not applicable for this run'}\n\nPython wheel acceptance: ${pythonWheelAcceptanceRequired(selected) ? "required" : "not selected"}\n\n${selected.reason}\n\nDeep proof campaigns: ${deepProofRequired(selected) ? "required" : "not applicable to changed inputs"}.\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();

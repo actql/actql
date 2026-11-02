@@ -14,7 +14,8 @@ export function revisionToCheck(env, payload) {
     assert(sha.test(payload?.pull_request?.head?.sha), 'Missing PR head revision');
     return {ref: `pull/${payload.number}/head`, expected: payload.pull_request.head.sha};
   }
-  assert(['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME), 'Unsupported admission event');
+  assert(['push', 'workflow_dispatch', 'schedule'].includes(env.GITHUB_EVENT_NAME), 'Unsupported admission event');
+  if (env.GITHUB_EVENT_NAME === 'schedule') assert.equal(env.GITHUB_REF, 'refs/heads/main', 'Scheduled verification requires main');
   assert(/^refs\/(?:heads|tags)\/.+/u.test(env.GITHUB_REF ?? ''), 'Missing source ref');
   return {ref: env.GITHUB_REF.slice(5), expected: env.GITHUB_SHA};
 }
@@ -23,7 +24,7 @@ export function revisionToCheck(env, payload) {
 // main must not starve it. This exception is unavailable to PRs/working branches,
 // and is tied to the real repository, event and checked-out commit, not a flag.
 export function assertFixedMainRevision(env, payload, checkoutRevision) {
-  assert(['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME), 'Not a main integration event');
+  assert(['push', 'workflow_dispatch', 'schedule'].includes(env.GITHUB_EVENT_NAME), 'Not a main integration event');
   assert.equal(env.GITHUB_REF, 'refs/heads/main', 'Not the main branch');
   assert(sha.test(env.GITHUB_SHA), 'Missing tested revision');
   assert.equal(checkoutRevision, env.GITHUB_SHA, 'Main checkout differs from event revision');
@@ -48,7 +49,7 @@ export function assertFixedMainRevision(env, payload, checkoutRevision) {
 export async function assertCurrentRevision(env, payload, fetchRef, {checkoutRevision = null} = {}) {
   const {ref, expected} = revisionToCheck(env, payload);
   assert.equal(checkoutRevision, env.GITHUB_SHA, 'Checkout differs from the tested event revision');
-  if (['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) && env.GITHUB_REF === 'refs/heads/main') {
+  if (['push', 'workflow_dispatch', 'schedule'].includes(env.GITHUB_EVENT_NAME) && env.GITHUB_REF === 'refs/heads/main') {
     return assertFixedMainRevision(env, payload, checkoutRevision);
   }
   const current = await fetchRef(env.GITHUB_REPOSITORY, ref);

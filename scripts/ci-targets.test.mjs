@@ -6,7 +6,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired} from './ci-targets.mjs';
+import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -121,11 +121,11 @@ test('ordinary filename cannot hide target-specific syntax changes', () => {
   }
 });
 test('read-only PR lifecycle, main pushes and explicit dispatch trigger CI', () => {
-  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'push', 'workflow_dispatch']);
+  assert.deepEqual(Object.keys(workflow.on).sort(), ['pull_request', 'push', 'schedule', 'workflow_dispatch']);
   assert.deepEqual(workflow.on.push.branches, ['main']);
   assert.deepEqual(workflow.on.pull_request.types, ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft']);
   assert.equal(workflow.on.pull_request_target, undefined);
-  assert.equal(workflow.on.schedule, undefined);
+  assert.deepEqual(workflow.on.schedule, [{cron: '23 3 * * 1'}]);
   assert.equal(workflow.on.workflow_run, undefined);
   assert.equal(workflow.on.merge_group, undefined);
   assert.equal(workflow.concurrency['cancel-in-progress'], "${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}");
@@ -139,6 +139,7 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   assert.deepEqual(selection.targets, all);
   assert.equal(Object.hasOwn(selection, 'mainBaseline'), false);
   const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
+  results['main-performance'] = {result: 'skipped'};
   results['focused-tests'] = {result: 'skipped'};
   results['native-macos'] = {result: 'skipped'};
   verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
@@ -181,8 +182,7 @@ const head = 'b'.repeat(40);
 const plan = selection => ({sourceRevision: head, selection});
 const context = {event: 'pull_request', sourceRevision: head};
 const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || name === 'python-wheels' && pythonWheelAcceptanceRequired(selection) || selection.profile === 'full' && name !== 'focused-tests' &&
-    (name !== 'native-macos' || selection.macos) ? 'success' : 'skipped'}]));
+  gateJobRequired(selection, name) ? 'success' : 'skipped'}]));
 const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
   after: {mode: '100644', object: 'd'.repeat(40)}}));
 const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
@@ -190,7 +190,7 @@ const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: 
 test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
   const selection = selectTargets(['src/unregistered/engine.mbt']);
   assert.equal(verifyGate(plan(selection), results(selection), context).length, gateJobs.length);
-  for (const name of gateJobs.filter(name => name !== 'focused-tests')) {
+  for (const name of gateJobs.filter(name => gateJobRequired(selection, name))) {
     for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
       const candidate = results(selection); candidate[name] = {result};
       assert.throws(() => verifyGate(plan(selection), candidate, context), undefined, `${name}: ${result}`);
@@ -392,7 +392,7 @@ test('aggregate workflow expressions run on mixed failures and skip only wholly 
     assert.match(jobs[name].if, /always\(\)/u);
     const skipped = Object.fromEntries(groups.map(group => [group, {result: 'skipped'}]));
     assert.equal(scheduled(name, skipped), false);
-    for (const group of groups) for (const result of ['success', 'failure', 'cancelled', undefined]) {
+    for (const group of groups.filter(group => group !== 'pipeline-validation')) for (const result of ['success', 'failure', 'cancelled', undefined]) {
       assert.equal(scheduled(name, {...skipped, [group]: {result}}), true, `${name}/${group}/${result}`);
     }
     assert.equal(scheduled(name, Object.fromEntries(groups.map(group => [group, {result: 'success'}]))), true);
@@ -412,7 +412,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
   for (const name of heavy) {
     assert(jobs[name].needs.includes('select-targets'));
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', macos: 'false'}}}), false);
-    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'true'}}}), true);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', deep_proofs: 'true', macos: 'true'}}}), true);
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
@@ -751,4 +751,68 @@ test('deleted or renamed Python inputs remain in the tested merge diff and selec
     assert.deepEqual(changed.paths, paths);
     assert.equal(pythonWheelAcceptanceRequired(selectTargets(changed.paths, {draft: true})), true);
   }
+});
+
+test('deep proof scheduling covers its complete snapshot and safety inputs without narrowing runtime', async () => {
+  const {snapshotDirectories, snapshotFiles} = await import('../proofs/relation-pipeline/inventory.mjs');
+  for (const path of [...snapshotFiles, ...snapshotDirectories.map(root => `${root}/new-input`),
+    'adapters/store-local/new-owner.mjs', 'packages/sdk/resource-control.mjs',
+    'proofs/ci-evidence/receipts.mjs', 'scripts/new-tool.mjs', 'unknown/config']) {
+    assert.equal(deepProofRequired(selectTargets([path])), true, path);
+  }
+  for (const path of ['README.md', 'packages/sdk/format.mjs', 'adapters/connectors/rest/format.test.mjs']) {
+    const selection = selectTargets([path], {event: 'push'});
+    assert.equal(selection.profile, 'full'); assert.deepEqual(selection.targets, all);
+    assert.equal(deepProofRequired(selection), false, path);
+    assert.equal(gateJobRequired(selection, 'pipeline-validation'), true);
+    assert.equal(gateJobRequired(selection, 'main-performance'), true);
+  }
+  for (const options of [{failure: 'unavailable'}, {event: 'schedule'}, {event: 'workflow_dispatch'}])
+    assert.equal(deepProofRequired(selectTargets(['README.md'], options)), true);
+  assert.equal(deepProofRequired(selectTargets([])), true);
+});
+
+test('shallow and deep aggregate expectations reject every wrong status, including cheap validation', () => {
+  for (const event of ['pull_request', 'push', 'schedule', 'workflow_dispatch']) {
+    for (const paths of [['README.md'], ['src/bounded_execution/session.mbt'], []]) {
+      const selection = selectTargets(paths, {event});
+      const env = {...context, event};
+      assert.doesNotThrow(() => verifyGate(plan(selection), results(selection), env));
+      for (const name of gateJobs) {
+        const correct = gateJobRequired(selection, name) ? 'success' : 'skipped';
+        for (const wrong of ['success', 'skipped', 'failure', 'cancelled', undefined].filter(value => value !== correct)) {
+          const candidate = results(selection); candidate[name] = {result: wrong};
+          assert.throws(() => verifyGate(plan(selection), candidate, env), undefined, `${event}/${name}/${wrong}`);
+        }
+      }
+    }
+  }
+  const needs = Object.fromEntries(jobs['pipeline-evidence'].needs.map(name => [name, {result: 'skipped'}]));
+  needs['pipeline-validation'].result = 'success';
+  assert.equal(scheduled('pipeline-evidence', needs), false, 'cheap checks alone do not start deep assembly');
+});
+
+test('push applicability reads only exact authenticated endpoints and keeps deleted/renamed paths', () => {
+  const before = 'c'.repeat(40), payload = {ref: 'refs/heads/main', before, after: head};
+  const calls = [];
+  const git = args => { calls.push(args); return args[0] === 'rev-parse' ? head : 'src/deleted.mbt\0packages/sdk/renamed.mjs\0'; };
+  assert.deepEqual(readPushChanges(payload, head, git).paths, ['src/deleted.mbt', 'packages/sdk/renamed.mjs']);
+  assert.deepEqual(calls, [['rev-parse', 'HEAD'], ['diff', '--no-renames', '--name-only', '-z', before, head, '--']]);
+  for (const patch of [{before: null}, {before: '0'.repeat(40)}, {before: 'bad'}, {after: before}, {ref: 'refs/heads/other'}])
+    assert.throws(() => readPushChanges({...payload, ...patch}, head, git));
+  assert.throws(() => readPushChanges(payload, head, args => args[0] === 'rev-parse' ? head : 'truncated'));
+  assert.throws(() => readPushChanges(payload, head, () => { throw Error('missing base object'); }));
+});
+
+test('same-environment duplicate checks retain one explicit owner without weakening platform evidence', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert(pkg.scripts['check:retained-boundary'].includes('adapters/store-local/publication-commit-owner.test.mjs'));
+  assert(!jobs.host.steps.some(step => step.run?.startsWith('node --test adapters/store-local/publication-commit-owner.test.mjs')));
+  assert(pkg.scripts['check:distribution-client'].includes('scripts/owned-scratch.test.mjs'));
+  const scratch = jobs.lint.steps.find(step => step.run === 'node --test scripts/owned-scratch.test.mjs');
+  assert.match(scratch.if, /profile != 'full'/u);
+  assert(jobs.lint.steps.some(step => step.run === 'node --test scripts/dependency-isolation-scratch.test.mjs'));
+  // Operation inventory remains fail-fast before fan-out: deleting that safety
+  // admission is not justified merely because spec also checks the inventory.
+  assert(jobs.preflight.steps.some(step => step.run === 'node --test scripts/pure-operation-inventory.test.mjs' && !step.if));
 });

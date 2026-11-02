@@ -7,6 +7,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   push:
     branches: [main]
+  schedule:
+    - cron: '23 3 * * 1'
   workflow_dispatch:
     inputs:
       packed_query_evidence_probe:
@@ -82,6 +84,7 @@ jobs:
       targets: ${{ steps.select.outputs.targets }}
       macos: ${{ steps.select.outputs.macos }}
       profile: ${{ steps.select.outputs.profile }}
+      deep_proofs: ${{ steps.select.outputs.deep_proofs }}
       plan: ${{ steps.select.outputs.plan }}
       python_wheels: ${{ steps.select.outputs.python_wheels }}
     steps:
@@ -231,7 +234,11 @@ jobs:
         run: node --test scripts/portable-core.test.mjs
       - name: Test dependency isolation scratch ownership
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/owned-scratch.test.mjs scripts/dependency-isolation-scratch.test.mjs
+        run: node --test scripts/dependency-isolation-scratch.test.mjs
+      # Full Client distribution owns this exact test in the same Linux/Node environment.
+      - name: Test owned scratch when Client distribution is not selected
+        if: ${{ needs.select-targets.outputs.profile != 'full' && !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/owned-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node scripts/check-node-without-duckdb.mjs
@@ -316,7 +323,7 @@ jobs:
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
     needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -396,7 +403,7 @@ jobs:
   # Fixed four-part plan: no matrix, shared mutable root or result reuse.
   pipeline-mutations:
     needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -450,7 +457,7 @@ jobs:
           if-no-files-found: warn
   pipeline-mutations-rest:
     needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -504,7 +511,7 @@ jobs:
           if-no-files-found: warn
   pipeline-capacity:
     needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -558,7 +565,7 @@ jobs:
           if-no-files-found: warn
   pipeline-capacity-mutants:
     needs: [select-targets, preflight]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -638,8 +645,7 @@ jobs:
   pipeline-evidence:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
       !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-mutations-rest.result == 'skipped' &&
-        needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped' &&
-        needs.pipeline-validation.result == 'skipped') }}
+        needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped') }}
     needs: [pipeline-mutations, pipeline-mutations-rest, pipeline-capacity, pipeline-capacity-mutants, pipeline-validation]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -763,7 +769,7 @@ jobs:
       - name: Test retired metadata cleanup owner
         run: node --test adapters/store-local/metadata-deletion-owner.test.mjs
       - name: Test publication commit custody owner
-        run: node --test adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/delivery-attempt-index.test.mjs adapters/store-local/delivery-attempt-schema-statements.test.mjs adapters/store-local/semantic-publication-commit.test.mjs adapters/store-local/prepared-custody-atomic-record.test.mjs adapters/store-local/prepared-custody-pending-admission.test.mjs
+        run: node --test adapters/store-local/delivery-attempt-index.test.mjs adapters/store-local/delivery-attempt-schema-statements.test.mjs adapters/store-local/semantic-publication-commit.test.mjs adapters/store-local/prepared-custody-atomic-record.test.mjs adapters/store-local/prepared-custody-pending-admission.test.mjs
       - name: Test portable publication control with the durable Store
         run: npm run check:publication-runtime
       - name: Test retained experiment fixtures and timing assessment
@@ -1127,8 +1133,8 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [select-targets, preflight, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos, python-wheels,
-      native-separated-network, workers, connector-addition, duckdb-node, focused-tests]
+    needs: [select-targets, preflight, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
+      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

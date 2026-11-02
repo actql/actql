@@ -233,3 +233,12 @@ test('the workflow binds the small original to the required consumer without cha
   assert.equal(retained.with['if-no-files-found'], 'error');
   assert.deepEqual(gate.permissions, {contents: 'read', actions: 'read'});
 });
+
+test('scheduled mutation originals retain main-only provenance and the complete action certificate', () => {
+  const args = {origin: {...base.original.origin, event: 'schedule'}, source: base.original.source,
+    decision: base.original.decision, admission: base.original.admission};
+  const scheduled = sealMutationActionOriginal(args);
+  assert.equal(scheduled.origin.event, 'schedule');
+  assert.deepEqual(scheduled.admission, base.original.admission);
+  assert.throws(() => sealMutationActionOriginal({...args, origin: {...args.origin, branch: 'feature'}}));
+});

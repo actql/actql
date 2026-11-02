@@ -34,7 +34,8 @@ function validateOriginalOwner(origin) {
   assert(['repositoryId', 'runId', 'runAttempt'].every(key => Number.isSafeInteger(origin[key]) && origin[key] > 0));
   assert(['testedRevision', 'runHeadRevision'].every(key => /^[a-f0-9]{40}$/u.test(origin[key])));
   assert.equal(origin.workflowPath, '.github/workflows/ci.yml');
-  assert(['push', 'pull_request', 'workflow_dispatch'].includes(origin.event));
+  assert(['push', 'pull_request', 'workflow_dispatch', 'schedule'].includes(origin.event));
+  if (origin.event === 'schedule') assert.equal(origin.branch, 'main', 'Scheduled evidence requires main');
   assert(typeof origin.branch === 'string' && origin.branch.length > 0);
 }
 
