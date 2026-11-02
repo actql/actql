@@ -7,9 +7,10 @@ test "JSON Source reader inventory uses shared tariff and separate retained work
   // The reader retains its original sequence retirement method/state plus
   // two native callbacks (2H/4R=64B). The complete simultaneous native
   // handoff/typed-call controls are 7H/14R/11W=312B, never another payload.
-  // The one selected-native flag adds one retained word.
+  // The selected-native flag adds one retained word. The SAME RowRun growth
+  // callback also captures its original pre-allocation method (one reference).
   let capacity = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
-  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3488L)
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3496L)
   // Independent Host vector: 27 headers, 99 references, 23 words,
   // 51 UTF16 units and 14 wire bytes. The 20 checked-value slots are
   // separate from the original Source parser/key workspace. Consume that
@@ -27,7 +28,7 @@ test "JSON Source reader inventory uses shared tariff and separate retained work
   ).unwrap()
   assert_eq(
     @execution.execution_capacity_execution_bytes(capacity),
-    3488L + host + 20L * @execution.execution_capacity_node_bytes() + response,
+    3496L + host + 20L * @execution.execution_capacity_node_bytes() + response,
   )
   assert_true(installed_json_source_reader_capacity([], 2, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 0, 3) is None)
@@ -197,7 +198,7 @@ test "native typed Source composes only shared Reader controls with its original
     3,
     Some(codec),
   ).unwrap()
-  // The independent generic retained vector3488 includes row-id/cursor
+  // The independent generic retained vector3496 includes row-id/cursor
   // tracking: (3+2)*(2R+1W) + (3*7+2*5)U = 182B. This native Reader
   // never constructs that generic tracking state; its codec owns its cursor.
   // The remaining shared retained vector is3306. Native shared controls are

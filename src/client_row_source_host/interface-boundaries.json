@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "ee4098a68c3a1eef39af49b1f318a3fd80ca5b6377cd2ea2edbfedc07726f459",
+      "sha256": "f72d31e835538687da93729b51943fb5c7eba735e6777a5f559a2ad0fb703e6d",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -227,6 +227,8 @@
         "pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits, classifications? : Array[@check_environment.DataClassification]?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]",
+        "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+        "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
         "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_listing_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
@@ -528,6 +530,14 @@
         {
           "name": "generate_row_declaration",
           "declaration": "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]"
+        },
+        {
+          "name": "grow_row_run_response_capacity",
+          "declaration": "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "grow_row_run_response_construction_capacity",
+          "declaration": "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "issue_row_input_source_evidence",
@@ -1010,7 +1020,9 @@
             "start_accounted_row_acquisition",
             "start_keyed_row_acquisition",
             "start_original_accounted_keyed_row_acquisition",
-            "start_row_acquisition"
+            "start_row_acquisition",
+            "grow_row_run_response_capacity",
+            "grow_row_run_response_construction_capacity"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1115,7 +1127,9 @@
             "pub enum RowKeyedPagePoll {",
             "pub enum RowListingPagePoll {",
             "pub struct RowMapping {",
-            "pub struct RowRunResponseBorrow {"
+            "pub struct RowRunResponseBorrow {",
+            "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+            "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -1130,6 +1144,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Responsibility: existing RowDeclaration/Mapping and vendor Catalog Owners"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "inputsOutputs": [
@@ -1144,6 +1162,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Inputs and outputs: original declaration, selected resource/primary field,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "identity": [
@@ -1158,6 +1180,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Identity: original View output reference, carrier-schema CID and manifest"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "ownership": [
@@ -1176,6 +1202,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Ownership: `RecordDeleteMapping` retains its original declaration/Form and"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "synchronization": [
@@ -1194,6 +1224,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Synchronization: this synchronous projection and nominal matching confer no"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "failure": [
@@ -1212,6 +1246,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Failure: foreign/mutated original members, absent/nullable primary fields,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "cancellation": [
@@ -1230,6 +1268,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Cancellation: metadata completion is not transport stop or cleanup ACK;"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "resources": [
@@ -1248,6 +1290,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Resources: original declaration strings, selected View, retained Form/page,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "extension": [
@@ -1262,6 +1308,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Extension: the existing typed Node/RelA bridge forwards the same opaque"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "verification": [
@@ -1296,6 +1346,10 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-delete-mapping.test.mjs",
                 "anchor": "actual original matching rejects equal foreign declaration, Catalog and incomplete page"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ]
           }
@@ -2648,7 +2702,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "29095c36784d03832e0022863a74040a02c58b745d50af4a268d6af3a8837cb9",
+      "sha256": "c176d04cc449f1428daf5bce37f15076aac178c84b9cbfe27a240276fdcc31c3",
       "exports": [],
       "operations": [
         {
@@ -2674,6 +2728,14 @@
         {
           "name": "grow_row_run_response_capacity",
           "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_capacity_at_phase",
+          "declaration": "grow_row_run_response_capacity_at_phase ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , phase : RowResponseCapacityPhase , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_construction_capacity",
+          "declaration": "grow_row_run_response_construction_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "retire_row_run_response_workspace",
@@ -2909,7 +2971,9 @@
         },
         {
           "operations": [
-            "grow_row_run_response_capacity"
+            "grow_row_run_response_capacity",
+            "grow_row_run_response_capacity_at_phase",
+            "grow_row_run_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -2917,6 +2981,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "inputsOutputs": [
@@ -2927,48 +2995,80 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "verification": [
@@ -2979,6 +3079,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ]
           }

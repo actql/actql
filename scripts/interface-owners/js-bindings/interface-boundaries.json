@@ -79033,7 +79033,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "387cf6d5838402594c464df18ab5154609f4d545b0636e8a84b27be9c5837833",
+      "sha256": "05d9c9d4aecba8eacf71c226b6d7bfef8585ddbad1dcac3089a9f402745cd667",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -79214,7 +79214,8 @@
         {
           "name": "startInstalledRowRun/readProvider/reserveResponseCapacity/reserveResponseCapacity",
           "parameters": [
-            "capacity"
+            "capacity",
+            "phase"
           ],
           "async": false
         },
@@ -79497,6 +79498,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "inputsOutputs": [
@@ -79515,6 +79520,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "identity": [
@@ -79537,6 +79546,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "ownership": [
@@ -79563,6 +79576,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "synchronization": [
@@ -79589,6 +79606,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "failure": [
@@ -79611,6 +79632,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "cancellation": [
@@ -79633,6 +79658,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "resources": [
@@ -79659,6 +79688,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "extension": [
@@ -79677,6 +79710,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "verification": [
@@ -79707,6 +79744,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ]
           }

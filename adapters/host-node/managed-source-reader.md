@@ -387,3 +387,31 @@ The Salesforce publication surface retains the common Row Source's original
 existing descriptor projection preserves their functions and receiver contract;
 it creates no additional capture, recovery owner or permission. All original
 prepared-input, currentness and retirement checks remain in the common methods.
+
+## Announced IPC body construction
+
+A local process announces a checked frame length before the body Buffer,
+UTF8 String, native JSON tree or bounded snapshot exists. That announcement
+is not a received page or transfer evidence. The original RowRun's private
+`reserveResponseCapacity(capacity, 'announced-body')` call enters
+`grow_row_run_response_construction_capacity` on the same response borrow.
+It requires an already started provider reader, its original bound cleanup
+observer, and no outstanding page charge. The existing one-argument call
+continues to require and preserve the original unconsumed page charge. Both
+entrances use the same monotone reservation grow, original acquisition and
+Resource current callback; neither begins another attempt or refunds work.
+
+The JS session captures both original Core methods once. A missing constructor
+method or an unknown private phase refuses before the body allocation. Current
+callback reentry, cancellation or a requested stop prevents subsequent use of
+that reader. A successful grow remains charged if later construction fails;
+only original reader retirement and the existing RowRun cleanup can release
+it. The extra captured method contributes one retained reference in the shared
+reader inventory. Equal reusable opaque capacity objects avoid another Resource
+callback after the same original state and page-phase guards.
+
+This entry does not itself quote a Table process, fund its preparer or provide
+a managed Table Plan. The Table caller must supply its actual simultaneous
+body, decoder, output and failed-child inventory before the corresponding
+constructor. It cannot fabricate a received-byte ticket, use a guessed amount,
+or substitute process exit for Resource, Catalog or publication cleanup.

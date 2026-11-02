@@ -255,3 +255,76 @@ test "provider envelope survives capture callback completion and repeated pendin
     is Err(InvalidState),
   )
 }
+
+///|
+test "IPC body construction grows the same original before a page without fabricating transfer or cleanup" {
+  let (_, acquisition) = row_page_acquisition()
+  let ledger = provider_capacity_ledger(
+    acquisition,
+    retained_short=-20L,
+    execution_short=-20L,
+  )
+  let run = provider_capacity_start(
+    acquisition, ledger, "announced-body-growth",
+  )
+  @row_host.begin_row_run(run, 128, 10, 10).unwrap()
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
+  let capacity = @execution.execution_capacity(11L, 23L).unwrap()
+  let original = @resources.ledger_usage(ledger)
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  assert_eq(@resources.ledger_usage(ledger), original)
+  let stopped = Ref(false)
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
+  @row_host.grow_row_run_response_construction_capacity(borrow, capacity).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(grown, {
+    ..original,
+    reserved_retention_bytes: original.reserved_retention_bytes + 4L,
+    reserved_execution_bytes: original.reserved_execution_bytes + 14L,
+    peak_retention_bytes: original.peak_retention_bytes + 4L,
+  })
+  @row_host.grow_row_run_response_construction_capacity(borrow, capacity).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  assert_true(
+    @row_host.grow_row_run_response_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(
+      borrow,
+      @execution.execution_capacity(100L, 200L).unwrap(),
+    )
+    is Err(Physical(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  let body = row_page_body(2)
+  let charge = @row_host.charge_row_run_page(run, body).unwrap()
+  let charged = @resources.ledger_usage(ledger)
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  assert_eq(@resources.ledger_usage(ledger), charged)
+  @row_host.grow_row_run_response_capacity(borrow, capacity).unwrap()
+  @row_host.consume_row_run_response_charge(run, charge).unwrap()
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    grown.reserved_execution_bytes,
+  )
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  let closed = @resources.ledger_usage(ledger)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+  assert_eq(closed.transferred_bytes, body.length().to_int64())
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+}

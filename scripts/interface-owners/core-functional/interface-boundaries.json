@@ -34041,7 +34041,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "6fc91112b1d945b2d41ba827a1ba778aff69954d9479128637c74d0a04c20a97",
+      "sha256": "6e24d4c150f24dac4d3efde0295b1baca9837e5841b293cb6559842ef72d1ffd",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -44447,7 +44447,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "29095c36784d03832e0022863a74040a02c58b745d50af4a268d6af3a8837cb9",
+      "sha256": "c176d04cc449f1428daf5bce37f15076aac178c84b9cbfe27a240276fdcc31c3",
       "exports": [],
       "operations": [
         {
@@ -44473,6 +44473,14 @@
         {
           "name": "grow_row_run_response_capacity",
           "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_capacity_at_phase",
+          "declaration": "grow_row_run_response_capacity_at_phase ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , phase : RowResponseCapacityPhase , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_construction_capacity",
+          "declaration": "grow_row_run_response_construction_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "retire_row_run_response_workspace",
@@ -44671,7 +44679,9 @@
         },
         {
           "operations": [
-            "grow_row_run_response_capacity"
+            "grow_row_run_response_capacity",
+            "grow_row_run_response_capacity_at_phase",
+            "grow_row_run_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -44679,6 +44689,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "inputsOutputs": [
@@ -44689,48 +44703,80 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ],
             "verification": [
@@ -44741,6 +44787,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
               }
             ]
           }

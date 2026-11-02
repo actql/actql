@@ -1899,6 +1899,8 @@ pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Resul
 
 pub fn client_program_row_source_grow_response_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_grow_response_construction_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisition) -> Bool
 
 pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.RowAcquisition, @client_row_source_host.RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[String, @client_row_source_host.RowHostIssue]

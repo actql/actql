@@ -165,11 +165,18 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
     const grow = moon.clientProgramRowSourceGrowResponseCapacity;
+    const growConstruction = moon.clientProgramRowSourceGrowResponseConstructionCapacity;
     const reserveResponseCapacity = typeof grow !== 'function' ? undefined
-      : capacity => {
+      : (capacity, phase) => {
         if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
         signal?.throwIfAborted();
-        checked(Reflect.apply(grow, moon, [borrow, capacity]));
+        // IPC announces bytes before a received page exists. It must reserve
+        // against this SAME original before Buffer/JSON construction; only the
+        // existing one-argument path consumes a live page's charged entrance.
+        const selected = phase === undefined ? grow
+          : phase === 'announced-body' ? growConstruction : undefined;
+        if (typeof selected !== 'function') fail('InstalledSourceResponseConstructionUnavailable');
+        checked(Reflect.apply(selected, moon, [borrow, capacity]));
         // The original Resource callback already checked currentness. Reentry
         // still cannot use a closed reader after that same checked mutation.
         if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');

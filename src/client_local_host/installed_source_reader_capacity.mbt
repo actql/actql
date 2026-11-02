@@ -180,7 +180,10 @@ fn installed_source_reader_retained_inventory(
   // RowRun's existing preparation flag now retains its SAME original response
   // borrow through workspace return and final cleanup. The reference replaces
   // that flag in the SAME resident slot; they never coexist in that frame.
-  let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
+  // The SAME growth callback captures one additional original constructor
+  // method. Its private phase argument is a call-local scalar, not another
+  // reader, callback environment or received-page ticket.
+  let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L + 1L
   let provider_fields = 5L + 5L + 6L + 3L + 18L + 16L + 5L + 6L + 8L + 4L
   let closures = 13L
   // One resolver-close carrier (six fields), its original binding field and

@@ -102,3 +102,14 @@ pub fn client_program_row_source_grow_response_capacity(
 ) -> Result[Unit, @client_row_source_host.RowHostIssue] {
   @client_row_source_host.grow_row_run_response_capacity(value, capacity)
 }
+
+///|
+#export_name("clientProgramRowSourceGrowResponseConstructionCapacity")
+pub fn client_program_row_source_grow_response_construction_capacity(
+  value : @client_row_source_host.RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.grow_row_run_response_construction_capacity(
+    value, capacity,
+  )
+}
