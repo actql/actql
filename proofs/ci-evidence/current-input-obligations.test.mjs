@@ -80,8 +80,10 @@ test('reviewed current inventory and runner extension preserve eager Session iso
     .replace("import { spawnSync } from 'node:child_process';\n", '')
     .replace("import assert from 'node:assert/strict';\n", '')
     .replace("import {checkProofRunnerExtension} from './proof-runner-extension.mjs';\n", ''), prefix(old));
+  // This reviewed source adds the existing CJS runtime to snapshotFiles.
+  // Keep the earlier import-isolation and lazy baseline checks above/below.
   const reviewed = execFileSync('git', ['--no-replace-objects', 'show',
-    `523ada3259bf9e8147f746727fbfd56065036fd5:${path}`], {cwd: root});
+    `287b18cc33050d480b9d7b7911593ef197a53527:${path}`], {cwd: root});
   assert.equal(hash(reviewed), hash(current), 'Unreviewed function or top-level change');
   const baseline = text => text.slice(text.indexOf('export function checkBaseline('));
   assert.equal(baseline(current), baseline(introduced), 'Changed separately invoked model checker');
