@@ -318,4 +318,3 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                     self.assertTrue(partial.close())
                 self.assertTrue(core.close_input(clock))
                 self.assertTrue(holder.close())
-
