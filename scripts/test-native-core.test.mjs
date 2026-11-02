@@ -83,8 +83,9 @@ test('common Core stack prerequisite is confined to Linux Native children', t =>
     assert.equal(result.signal, null);
     const observed = result.stdout.trim().split('\n');
     const expected = target === 'native' && process.platform === 'linux' ? 65536 : 8192;
-    // Wasm also builds the exported-counter fixture and runs its entrance harness.
-    const invocations = {js: 1, wasm: 3, native: 2}[target];
+    // Wasm builds the exported-counter fixture and runs both saved-lookup
+    // and original-Source restoration entrance harnesses.
+    const invocations = {js: 1, wasm: 4, native: 2}[target];
     assert.deepEqual(observed, Array(invocations)
       .fill(`${expected}:${hardLimit.stdout.trim()}`));
   }
