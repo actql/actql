@@ -140,6 +140,7 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   assert.equal(Object.hasOwn(selection, 'mainBaseline'), false);
   const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
   results['main-performance'] = {result: 'skipped'};
+  results['health-quick'] = {result: 'skipped'};
   results['focused-tests'] = {result: 'skipped'};
   results['native-macos'] = {result: 'skipped'};
   verifyGate({sourceRevision: 'a'.repeat(40), selection}, results, {event: 'workflow_dispatch', sourceRevision: 'a'.repeat(40)});
@@ -790,6 +791,30 @@ test('shallow and deep aggregate expectations reject every wrong status, includi
   const needs = Object.fromEntries(jobs['pipeline-evidence'].needs.map(name => [name, {result: 'skipped'}]));
   needs['pipeline-validation'].result = 'success';
   assert.equal(scheduled('pipeline-evidence', needs), false, 'cheap checks alone do not start deep assembly');
+});
+
+test('existing push-only health result is required by the same aggregate that schedules it', () => {
+  assert(jobs.check.needs.includes('health-quick'));
+  assert(gateJobs.includes('health-quick'));
+  assert.equal(jobs['health-quick'].uses, './.github/workflows/health-monitor.yml');
+  const runs = (event, ref = 'refs/heads/main', inputs = {}) => runInNewContext(
+    jobs['health-quick'].if.slice(3, -3), {inputs, always: () => true, toJSON: JSON.stringify,
+      github: {event_name: event, ref, event: {repository: {visibility: 'public', private: false}}}});
+  for (const event of ['push', 'pull_request', 'schedule', 'workflow_dispatch']) {
+    const selection = selectTargets(['README.md'], {event});
+    const required = event === 'push';
+    assert.equal(runs(event), required, event);
+    assert.equal(gateJobRequired(selection, 'health-quick'), required, event);
+    const env = {...context, event};
+    verifyGate(plan(selection), results(selection), env);
+    for (const result of required ? ['failure', 'cancelled', 'skipped', undefined] : ['success']) {
+      assert.throws(() => verifyGate(plan(selection),
+        {...results(selection), 'health-quick': {result}}, env), /health-quick/);
+    }
+  }
+  assert.equal(runs('push', 'refs/heads/feature'), false);
+  for (const mode of ['performance_matrix', 'packed_query_evidence_probe'])
+    assert.equal(runs('push', 'refs/heads/main', {[mode]: true}), false);
 });
 
 test('push applicability reads only exact authenticated endpoints and keeps deleted/renamed paths', () => {
