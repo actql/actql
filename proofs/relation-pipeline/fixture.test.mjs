@@ -41,3 +41,23 @@ test('target-bound audit fixtures stay byte-identical across all three builds', 
   assert.equal(evidence('js').fixture, evidence('native').fixture);
   assert.notEqual(evidence('js').run.buildIdentity, evidence('native').run.buildIdentity);
 });
+
+test('an explicit compiler job cap is bound into the diagnostic command and cannot pass the default audit', () => {
+  const e = evidence('js');
+  assert.deepEqual(executionCommand('js'), ['moon', 'test',
+    'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', 'js', '--deny-warn']);
+  const command = executionCommand('js', 1);
+  assert.deepEqual(command.slice(-3), ['--jobs', '1', '--deny-warn']);
+  const boundary = {...e.run.boundary, command};
+  const identity = hash(JSON.stringify(boundary));
+  const fixture = boundFixture(boundary, {jobs: 1});
+  assert.match(fixture, new RegExp(`ACTQL_PIPELINE_BUILD:${identity}`));
+  assert.notEqual(fixture, e.fixture);
+  const run = {...e.run, boundary, command, buildIdentity: identity, fixtureDigest: hash(fixture)};
+  assert.throws(() => auditFixture(run, fixture, `ACTQL_PIPELINE_BUILD:${identity}\nTotal tests: 1, passed: 1, failed: 0\n`, 'js'),
+    /Unreviewed execution command/);
+  for (const jobs of [0, -1, 1.5, Infinity, NaN, '1', null]) {
+    assert.throws(() => executionCommand('js', jobs), /Invalid execution jobs/);
+    assert.throws(() => boundFixture(boundary, {jobs}), /Invalid execution jobs/);
+  }
+});

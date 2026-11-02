@@ -28,10 +28,11 @@ assert(part === '' || ['L-C0', 'L-C1', 'L-M0', 'L-M1'].includes(part), 'Unknown 
 const invocation = invocationIdentity(part);
 export const executions = [];
 // All contexts share only receipt storage and serial IDs, never source/build trees.
-export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {targets = ['js', 'wasm', 'native']} = {}) {
+export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {targets = ['js', 'wasm', 'native'], jobs} = {}) {
   assert(Array.isArray(targets) && targets.length > 0 && new Set(targets).size === targets.length &&
     targets.every(target => ['js', 'wasm', 'native'].includes(target)), 'Invalid execution target scope');
   const allowedTargets = new Set(targets);
+  executionCommand(targets[0], jobs);
   const workspaceRoot = workspace.root;
   const built = new Map();
   let ownedFixture = null;
@@ -50,17 +51,36 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     const inputs = [...['moon', 'moonc', 'moonrun'].map(name => join(home, 'bin', name)),
       ...[...new Set(['node', ...(allowedTargets.has('native')
         ? ['cc', 'c++', 'ar', environment.CC ?? 'cc', environment.CXX ?? 'c++', environment.AR ?? 'ar'] : [])])].map(resolveTool)];
-    const files = directory => readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
-      .flatMap(entry => { const path = join(directory, entry.name);
-        if (entry.isSymbolicLink()) {
-          assert(realpathSync(path).startsWith(realpathSync(home) + '/') && statSync(path).isFile(),
-            'External or directory-linked Moon toolchain input');
-          return [path];
-        }
-        return entry.isDirectory() ? files(path) : entry.isFile() ? [path] : [];
-      });
+    const directoryAliases = [], completed = new Set();
+    const files = (directory, ancestors = new Set()) => {
+      const actual = realpathSync(directory);
+      assert(!ancestors.has(actual), 'Cyclic Moon toolchain directory input');
+      if (completed.has(actual)) return [];
+      const next = new Set(ancestors).add(actual);
+      const selected = readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
+        .flatMap(entry => { const path = join(directory, entry.name);
+          if (entry.isSymbolicLink()) {
+            const target = statSync(path), canonical = realpathSync(path);
+            assert(canonical.startsWith(realpathSync(home) + '/') &&
+              (target.isFile() || target.isDirectory()), 'External or directory-linked Moon toolchain input');
+            if (!target.isDirectory()) return [path];
+            // Retain even empty aliases; deduplicate only completed directory
+            // traversals, after their actual regular inputs have been selected.
+            directoryAliases.push([path, canonical]);
+            const members = files(path, next);
+            assert.equal(realpathSync(path), canonical, 'Replaced Moon toolchain directory alias');
+            assert(lstatSync(path).isSymbolicLink() && statSync(path).isDirectory(),
+              'Replaced Moon toolchain directory alias');
+            return members;
+          }
+          return entry.isDirectory() ? files(path, next) : entry.isFile() ? [path] : [];
+        });
+      completed.add(actual);
+      return selected;
+    };
     for (const directory of ['lib/core', 'lib/runtime', 'include']) inputs.push(...files(join(home, directory)));
-    return digest(JSON.stringify(inputs.map(path => [path, realpathSync(path), digest(readFileSync(path))])));
+    const identities = inputs.map(path => [path, realpathSync(path), digest(readFileSync(path))]);
+    return digest(JSON.stringify(directoryAliases.length ? {files: identities, directoryAliases} : identities));
   };
   const expectedTools = toolIdentity();
   const environmentDigest = digest(JSON.stringify(Object.entries(environment).sort(([a], [b]) => a.localeCompare(b))));
@@ -88,13 +108,14 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     assert(!closed, 'Execution workspace is closed');
     if (!allowedTargets.has(target) || !cases.length) throw new Error('Bad execution request or target outside owner scope');
     const prefix = receiptBasename(invocation, serial, label, target);
+    const command = executionCommand(target, jobs).slice(1);
     const source = workspace.check();
     assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
     const boundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: workspace.id,
       root: workspaceRoot, role: workspace.role, sourceDigest: source.digest,
-      toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: executionCommand(target) };
+      toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: ['moon', ...command] };
     const buildIdentity = digest(JSON.stringify(boundary));
-    const fixtureBody = boundFixture(boundary);
+    const fixtureBody = boundFixture(boundary, {jobs});
     if (ownedFixture !== null) assertOwnedFixture();
     else {
       assert(!existsSync(path), 'Another pipeline batch owns the temporary fixture');
@@ -116,7 +137,6 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     mkdirSync(join(directory, 'sources'), { recursive: true });
     if (!existsSync(join(root, sourcePath))) writeFileSync(join(root, sourcePath), JSON.stringify(source, null, 2) + '\n');
     serial++;
-    const command = executionCommand(target).slice(1);
     writeFileSync(join(directory, `${prefix}.fixture.mbt`), fixtureBody);
     writeFileSync(join(directory, `${prefix}.inputs.json`), inputs);
     const result = spawnProofCommand(moon, command, target, { cwd: workspaceRoot,
