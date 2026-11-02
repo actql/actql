@@ -399,6 +399,8 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       }
       let before = if original.run_admission is Some(_) {
         "ready"
+      } else if original.preparation_problem is Some(_) {
+        "preparation_failed"
       } else {
         "preparing"
       }
