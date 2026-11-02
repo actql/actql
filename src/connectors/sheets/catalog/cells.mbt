@@ -73,30 +73,30 @@ pub fn check_target(
   if append_sheet_id < 0 {
     return Err(InvalidRange)
   }
-  let root = match admit(body, limits) {
+  let root = match parse_response_body(body, limits) {
     Ok(root) => root
     Err(issue) => return Err(issue)
   }
-  guard @decode.open_object(root) is Ok(object) &&
-    @decode.lookup(object, "spreadsheetId") is Some(id) &&
-    @decode.text(id) == Ok(spreadsheet_id) &&
-    @decode.lookup(object, "sheets") is Some(sheets) &&
-    @decode.elements(sheets) is Ok(sheets) else {
+  guard acknowledgement_object(root) is Some(object) &&
+    object.get("spreadsheetId") is Some(id) &&
+    acknowledgement_text(id) == Some(spreadsheet_id) &&
+    object.get("sheets") is Some(sheets) &&
+    acknowledgement_array(sheets) is Some(sheets) else {
     return Err(ForeignSpreadsheet)
   }
   let ids = []
   let mut read_found = false
   let mut append_found = false
   for sheet in sheets {
-    guard @decode.open_object(sheet) is Ok(sheet) &&
-      @decode.lookup(sheet, "properties") is Some(properties) &&
-      @decode.open_object(properties) is Ok(properties) else {
+    guard acknowledgement_object(sheet) is Some(sheet) &&
+      sheet.get("properties") is Some(properties) &&
+      acknowledgement_object(properties) is Some(properties) else {
       return Err(InvalidResponse)
     }
-    let id = match @decode.lookup(properties, "sheetId") {
+    let id = match properties.get("sheetId") {
       Some(value) =>
-        match @decode.int32(value) {
-          Ok(id) if id >= 0 => id
+        match acknowledgement_int32(value) {
+          Some(id) if id >= 0 => id
           _ => return Err(InvalidResponse)
         }
       None => 0
@@ -109,18 +109,18 @@ pub fn check_target(
       continue
     }
     // The API defines an omitted sheetType as GRID.
-    match @decode.field(properties, "sheetType") {
-      Missing => ()
-      Present(kind) if @decode.text(kind) == Ok("GRID") => ()
+    match properties.get("sheetType") {
+      None => ()
+      Some(kind) if acknowledgement_text(kind) == Some("GRID") => ()
       _ => return Err(InvalidResponse)
     }
-    guard @decode.lookup(properties, "gridProperties") is Some(grid) &&
-      @decode.open_object(grid) is Ok(grid) &&
-      @decode.lookup(grid, "rowCount") is Some(rows) &&
-      @decode.int32(rows) is Ok(rows) &&
+    guard properties.get("gridProperties") is Some(grid) &&
+      acknowledgement_object(grid) is Some(grid) &&
+      grid.get("rowCount") is Some(rows) &&
+      acknowledgement_int32(rows) is Some(rows) &&
       rows >= 0 &&
-      @decode.lookup(grid, "columnCount") is Some(width) &&
-      @decode.int32(width) is Ok(width) &&
+      grid.get("columnCount") is Some(width) &&
+      acknowledgement_int32(width) is Some(width) &&
       width >= 0 else {
       return Err(InvalidResponse)
     }
@@ -267,7 +267,7 @@ fn admit(body : Bytes, limits : Limits) -> Result[@decode.Cursor, Issue] {
 }
 
 ///|
-// Only fresh, private parser results reach these acknowledgement projections.
+// Only fresh, private parser results reach these target/acknowledgement projections.
 // The Source owner already checked the entire tree, exact duplicate keys,
 // Unicode, nodes/depth and byte spelling. Decoded key/value UTF8 totals cannot
 // exceed that same original JSON input, so no second full index is needed.

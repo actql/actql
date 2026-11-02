@@ -79,6 +79,35 @@ fn sheets_constructor_capacity(
 }
 
 ///|
+// These synchronous String exports leave no native parser, schema, tree or
+// writer reachable by the caller. Keep their complete simultaneous inventory
+// until return, with only the bounded result String retained afterwards.
+// Other Source constructors use sheets_constructor_capacity because their
+// native material can escape; this distinction does not change their limits.
+fn sheets_string_constructor_capacity(
+  parts : Array[@execution.PreparationRepresentationUnits],
+  output_units : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @execution.compose_preparation_representation(parts) is Some(workspace) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      record_headers: 1L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: output_units.to_int64(),
+      owned_wire_bytes: 0L,
+    },
+    workspace,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 // columns_of owns the parsed schema, all element Cursors, Column/name arrays,
 // and each three-field closed view. The immutable schema has already passed
 // the SAME original configuration codec; its actual byte/count metadata is
@@ -129,44 +158,40 @@ fn sheets_column_construction(
 }
 
 ///|
-// check_target's full supplied sheets Array, Cursor wrappers and IDs survive
-// beside its input tree. Every open_object Map borrows original fields. The
+// check_target borrows the full supplied sheets Array and keeps its IDs
+// beside the private parser tree. Every object Map borrows original fields. The
 // TOTAL nodes bound covers all entries, including invalid response width;
 // root/sheet/properties/grid are at most four live maps. Earlier loop maps do
 // not escape. No permitted-field count replaces arbitrary input fields. Lookup
 // and one failure path are sequential fixed controls, not N copied paths.
 fn sheets_target_projection_construction(
   nodes : Int,
-  depth : Int,
+  _depth : Int,
 ) -> @execution.PreparationRepresentationUnits? {
-  let cursor = @decode.cursor_construction_extent()
-  let child = @decode.indexed_child_construction_extent()
   let n = nodes.to_int64()
   guard @shape.collection_construction_extent({
-      records: n * cursor.record_headers,
-      record_references: n * cursor.reference_slots,
-      record_words: n * cursor.scalar_words,
-      reference_arrays: 1L,
-      reference_items: n,
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 0L,
+      reference_items: 0L,
       scalar_arrays: 1L,
       scalar_items: n,
       maps: 4L,
       map_entries: n,
     })
-    is Some(collections) &&
-    @decode.issue_construction_extent(depth + 1) is Some(issue) else {
+    is Some(collections) else {
     return None
   }
   @execution.compose_preparation_representation([
     sheets_collection_units(collections),
-    sheets_collection_units(issue),
-    // At most root/sheets/sheet/properties/grid and their scalar lookups are
-    // live in this synchronous projection. Count all sixteen original child
-    // carriers together instead of treating callback retirement as release.
+    // Root/sheets/sheet/properties/grid views and scalar lookups keep at most
+    // sixteen Option/result/control carriers. Parser error paths are already
+    // in the complete parsing inventory; no second Cursor/path forest exists.
     {
-      record_headers: 16L * child.record_headers,
-      reference_slots: 16L * child.reference_slots,
-      scalar_words: 16L * child.scalar_words,
+      record_headers: 16L,
+      reference_slots: 16L,
+      scalar_words: 16L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     },
@@ -192,10 +217,35 @@ pub fn sheets_append_construction_profile(
 ) -> Array[
   (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
 ]? {
+  sheets_append_request_construction_profile(
+    schema_bytes, columns, input_wire_bytes, nodes, depth, request_bytes, response_bytes,
+    nodes, depth,
+  )
+}
+
+///|
+// Actual same-Request proposal bounds were enforced before the provider call.
+// Keep those inputs separate from arbitrary physical response geometry.
+#export_name("sheetsAppendRequestConstructionProfile")
+pub fn sheets_append_request_construction_profile(
+  schema_bytes : Int,
+  columns : Int,
+  input_wire_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+]? {
   if schema_bytes < 1 ||
     columns < 1 ||
     columns > 64 ||
     input_wire_bytes < 1 ||
+    input_nodes < 1 ||
+    input_depth < 1 ||
     request_bytes < 1 ||
     response_bytes < 1 ||
     nodes < 1 ||
@@ -215,36 +265,44 @@ pub fn sheets_append_construction_profile(
     .stringify()
     .length()
   let fixed_units = fixed.to_int64() + c * (cell.to_int64() + 26L)
-  // Six units per original UTF16 unit cover an inner escape; the outer
-  // String adds only one more slash to a control escape (7), not 6*6.
+  // The input allowance is already UTF8 bytes. Six output bytes per input
+  // byte cover any inner JSON escape; the outer String adds only one more
+  // slash to a control escape (7), not 6*6. Unescaped UTF8 is at most its
+  // original byte count, so neither bound needs another UTF16-to-UTF8 factor.
   // The extra26 per scalar covers a comma and full native number spelling.
   let inner = fixed_units + 6L * input_wire_bytes.to_int64()
   let outer = "{\"body\":\"\"}".length().to_int64() +
     2L * fixed_units +
     7L * input_wire_bytes.to_int64()
-  if 3L * outer > 2147483647L || 3L * inner > 2147483647L {
+  if outer > 2147483647L || inner > 2147483647L {
     return None
   }
   let body_nodes = 9 + 3 * columns
-  let child = @decode.indexed_child_construction_extent()
-  // A parsed Object field needs at least five original wire bytes including
-  // its separator (5F+1 total). Use supplied-input syntax, never allowed C,
-  // to bound even an invalid root's complete closed_object map.
+  // Only an exact closed scalar-row width reaches the borrowed field Map.
+  // Full arbitrary malformed input remains funded by its private parser.
   // Outgoing validation instead consumes the SAME closed literal forest:
   // exactly9+3C nodes, depth<=9, and only after its byte check succeeded.
   guard sheets_column_construction(schema_bytes, columns, depth) is Some(schema) &&
-    @decode.closed_object_field_construction_extent(
-      Some(Int::min(nodes - 1, (request_bytes - 1) / 5)),
-      columns,
-      0L,
-    )
+    @shape.collection_construction_extent({
+      records: 0L,
+      record_references: 0L,
+      record_words: 0L,
+      reference_arrays: 0L,
+      reference_items: 0L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 1L,
+      map_entries: c,
+    })
     is Some(row_view) &&
     @shape.collection_construction_extent({
-      records: c * (1L + child.record_headers),
-      record_references: c * (1L + child.reference_slots),
-      record_words: c * (1L + child.scalar_words),
-      reference_arrays: 2L,
-      reference_items: 2L * c,
+      // Native Json scalar variants and lookup/branch result carriers.
+      // The values Array owns references; no decoded Cursor is copied here.
+      records: 2L * c,
+      record_references: 2L * c,
+      record_words: 2L * c,
+      reference_arrays: 1L,
+      reference_items: c,
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 0L,
@@ -259,43 +317,46 @@ pub fn sheets_append_construction_profile(
       0L,
     )
     is Some(forest) &&
-    sheets_writer_units((3L * inner).to_int(), body_nodes, 9)
-    is Some(inner_writer) &&
-    sheets_writer_units((3L * outer).to_int(), 4, 2) is Some(outer_writer) &&
+    sheets_writer_units(inner.to_int(), body_nodes, 9) is Some(inner_writer) &&
+    sheets_writer_units(outer.to_int(), 4, 2) is Some(outer_writer) &&
     sheets_decoded_construction(
-      Int::min(request_bytes, (3L * inner).to_int()),
+      Int::min(request_bytes, inner.to_int()),
       body_nodes,
       9,
     )
     is Some(outgoing) &&
-    sheets_decoded_construction(request_bytes, nodes, depth) is Some(row_input) &&
-    sheets_decoded_construction(response_bytes, nodes, depth)
+    sheets_range_parsed_construction(request_bytes, nodes, depth)
+    is Some(row_input) &&
+    sheets_range_parsed_construction(response_bytes, nodes, depth)
     is Some(response_input) &&
-    sheets_constructor_capacity([
-      schema,
-      sheets_collection_units(row_view),
-      sheets_collection_units(values),
-      {
-        record_headers: forest.record_headers,
-        reference_slots: forest.reference_slots,
-        scalar_words: forest.scalar_words,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      },
-      inner_writer,
-      outer_writer,
-      outgoing,
-      row_input,
-      // Original row encode and BOTH body encodes precede complete outgoing
-      // admission. A body exceeding the later HTTP quota is still funded.
-      {
-        record_headers: 3L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 3L * input_wire_bytes.to_int64() + 6L * inner,
-      },
-    ])
+    sheets_string_constructor_capacity(
+      [
+        schema,
+        sheets_collection_units(row_view),
+        sheets_collection_units(values),
+        {
+          record_headers: forest.record_headers,
+          reference_slots: forest.reference_slots,
+          scalar_words: forest.scalar_words,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 0L,
+        },
+        inner_writer,
+        outer_writer,
+        outgoing,
+        row_input,
+        // Original row encode and BOTH body encodes precede complete outgoing
+        // admission. A body exceeding the later HTTP quota is still funded.
+        {
+          record_headers: 3L,
+          reference_slots: 0L,
+          scalar_words: 0L,
+          owned_utf16_units: 0L,
+          owned_wire_bytes: 3L * input_wire_bytes.to_int64() + 6L * inner,
+        },
+      ],
+      outer.to_int(),
+    )
     is Some(write) &&
     sheets_target_projection_construction(nodes, depth) is Some(target) else {
     return None
@@ -315,9 +376,12 @@ pub fn sheets_append_construction_profile(
   }
   guard sheets_writer_units(refusal, 5, 2) is Some(reply_writer) &&
     // Append shares the same private fresh-Source acknowledgement classifier.
-    // Metadata still uses its original full indexed projection below.
+    // Metadata borrows its same complete private parse below.
     sheets_range_response_capacity(response_bytes, nodes, depth) is Some(reply) &&
-    sheets_constructor_capacity([schema, response_input, target, reply_writer])
+    sheets_string_constructor_capacity(
+      [schema, response_input, target, reply_writer],
+      refusal,
+    )
     is Some(metadata) else {
     return None
   }
@@ -328,11 +392,7 @@ pub fn sheets_append_construction_profile(
     (
       write,
       None,
-      Some({
-        max_input_bytes: (3L * outer).to_int(),
-        max_nodes: 5,
-        max_depth: 2,
-      }),
+      Some({ max_input_bytes: outer.to_int(), max_nodes: 5, max_depth: 2, }),
     ),
     (@execution.execution_capacity(0L, 0L).unwrap(), None, None),
     (reply, None, Some(response_export)),

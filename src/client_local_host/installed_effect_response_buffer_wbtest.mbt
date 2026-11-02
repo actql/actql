@@ -55,6 +55,57 @@ test "automatic standard recipe retains original body header secret and stored r
 }
 
 ///|
+test "metadata projector uses the control frame while its physical response backing stays unchanged" {
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  let metadata = @execution.execution_capacity(17L, 10000017L).unwrap()
+  let capacities = fn(projector) {
+    installed_standard_create_recipe_capacities(
+      Some([
+        (empty, None, None),
+        (empty, None, None),
+        (empty, None, None),
+        (projector, None, None),
+      ]),
+      512,
+      32,
+      8,
+      128,
+      64,
+      64,
+      32,
+      false,
+      16,
+      7,
+      32,
+      1024,
+      64,
+      4,
+      40L,
+    ).unwrap()
+  }
+  let before = capacities(empty)
+  let after = capacities(metadata)
+  // HTTP receive, secret and request construction are the same original
+  // physical child, irrespective of the pure projector's scratch geometry.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(before[5]),
+    @execution.execution_capacity_retained_bytes(after[5]),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(before[5]),
+    @execution.execution_capacity_execution_bytes(after[5]),
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(after[4]) -
+    @execution.execution_capacity_retained_bytes(before[4]),
+    17L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(after[4]) >= 10000017L,
+  )
+}
+
+///|
 test "automatic standard recipe preserves absent checks and refuses incomplete native or logical constructor bounds" {
   let native = @execution.execution_capacity(0L, 0L).unwrap()
   let wire : @source.ParseLimits = {

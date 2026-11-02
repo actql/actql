@@ -301,6 +301,58 @@ pub fn installed_standard_create_recipe_capacities(
 }
 
 ///|
+// The same composer receives the actual earlier proposal admission bounds.
+// Preview-wide storage remains separate; no bound or admission is weakened.
+pub fn installed_standard_create_request_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  check_request_bytes : Int,
+  check_response_bytes : Int,
+  before_send : Bool,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+  response_read_quantum? : Int = 1,
+) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
+  installed_standard_recipe_capacities(
+    original,
+    None,
+    input_bytes,
+    input_nodes,
+    input_depth,
+    row_input_bytes,
+    row_input_nodes,
+    row_input_depth,
+    request_bytes,
+    response_bytes,
+    check_request_bytes,
+    check_response_bytes,
+    before_send,
+    secret_bytes,
+    secret_prefix_units,
+    header_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    metadata_units,
+    response_read_quantum~,
+  )
+}
+
+///|
 pub fn installed_standard_driver_recipe_capacities(
   original : Array[
     (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
@@ -518,6 +570,17 @@ fn installed_standard_recipe_capacities(
     return Err(Unsupported)
   }
   let mut controls = recovery
+  if checks {
+    // The metadata HTTP child retains its own response and secret. Its pure
+    // projector runs afterwards through the SAME controlConstruction frame,
+    // just like the claimed-write and stored-response projectors above.
+    // Sum every returned holder and reuse only completed synchronous scratch.
+    guard standard_create_sequence_pair_capacity(controls, constructors[3])
+      is Some(next) else {
+      return Err(Unsupported)
+    }
+    controls = next
+  }
   // Capture/read, apply/read, optional resume/read and the write have distinct
   // slots. Preserve the existing declared resume occurrence even when this
   // process has not restored anything; do not alias it to an earlier call.
@@ -574,12 +637,7 @@ fn installed_standard_recipe_capacities(
         response_read_quantum~,
       )
       is Some(read_receive) &&
-      standard_create_sum_capacities([
-        read_receive,
-        secret,
-        constructors[1],
-        constructors[3],
-      ])
+      standard_create_sum_capacities([read_receive, secret, constructors[1]])
       is Some(read_body) else {
       return Err(Unsupported)
     }

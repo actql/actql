@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "0e6dc55269d8f8bda82d8c8c5fbcf5f605749e58c48dc043c12f1ad62306fb93",
+    "sha256": "08e2ab203c1a3ccbf26dd86b9ce5006eafeded8a67d0f4f9594ca3c8120296f9",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -42,7 +42,9 @@
       {
         "name": "bindSheetsAppendConstructionProfile/init:installedStandardCreateConstructionProfile/init:installedStandardCreateConstructionProfile",
         "parameters": [
-          "inputWireBytes"
+          "inputWireBytes",
+          "inputNodes",
+          "inputDepth"
         ],
         "async": false
       },
@@ -2418,7 +2420,7 @@
   {
     "module": "src/connectors/sheets/catalog/cells.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "70c76f335882c6be0d2d8714d816da3178929e0a8779de97a06d822bef7d67d8",
+    "sha256": "c6c118fcf8fa0188cad7b1e2f60ba80253f0dd980f7903f680f7d83e8ba480e6",
     "operations": [
       {
         "name": "acknowledgement_array",
@@ -4295,7 +4297,7 @@
   {
     "module": "src/connectors/sheets/host_node/bridge.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "969da9053d5f269d7718a0a39f0b8ab9be2ed1f5b99c910462cac2f6d69f0512",
+    "sha256": "4e75fa0ce988744c704dbb5a7ef2d95d9f8d93bc0e31d9d99841ee6d418d4e3a",
     "operations": [
       {
         "name": "columns_of",
@@ -4463,10 +4465,11 @@
   {
     "module": "src/connectors/sheets/host_node/pkg.generated.mbti",
     "responsibilityFacet": "primary",
-    "sha256": "7e2d25bd63682b141af091d3c7370fb678085935dd568d8260927c2c5a1c7f3e",
+    "sha256": "5bb92dbbaa80c89ea6702f8052688f15c1e99caa68d899df5e6c8e790f00720d",
     "exports": [
       "pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String",
+      "pub fn sheets_append_request_construction_profile(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?",
       "pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]",
       "pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String",
       "pub fn sheets_clear_binding(String, String, String, String, Int, Int, Int, Int) -> Result[@catalog.ClearRangeBinding, @catalog.RangeFailure]",
@@ -4518,6 +4521,10 @@
       {
         "name": "sheets_append_outcome_json",
         "declaration": "pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String"
+      },
+      {
+        "name": "sheets_append_request_construction_profile",
+        "declaration": "pub fn sheets_append_request_construction_profile(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?"
       },
       {
         "name": "sheets_append_request_identity",
@@ -5238,6 +5245,76 @@
             {
               "path": "docs/design/reference-host.md",
               "anchor": "Request-owned execution preparation"
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_append_request_construction_profile"
+        ],
+        "exports": [
+          "pub fn sheets_append_request_construction_profile(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
             }
           ]
         }
@@ -7381,11 +7458,15 @@
   {
     "module": "src/connectors/sheets/host_node/append_construction.mbt",
     "responsibilityFacet": "primary",
-    "sha256": "64edaa91399e379882a40f06b6cb24150f65a57fd2222f470fa8bca6906fdadc",
+    "sha256": "ab0e20252cfc7574801a18507dc93f3023c94cb39e2cd3eb9e1821fa4b50495d",
     "operations": [
       {
         "name": "sheets_append_construction_profile",
         "declaration": "sheets_append_construction_profile ( schema_bytes : Int , columns : Int , input_wire_bytes : Int , request_bytes : Int , response_bytes : Int , nodes : Int , depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+      },
+      {
+        "name": "sheets_append_request_construction_profile",
+        "declaration": "sheets_append_request_construction_profile ( schema_bytes : Int , columns : Int , input_wire_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , nodes : Int , depth : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
       },
       {
         "name": "sheets_collection_units",
@@ -7420,8 +7501,12 @@
         "declaration": "sheets_range_reference_construction_capacity ( origin_bytes : Int , spreadsheet_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
       },
       {
+        "name": "sheets_string_constructor_capacity",
+        "declaration": "sheets_string_constructor_capacity ( parts : Array [ @ execution . PreparationRepresentationUnits ] , output_units : Int , ) - > @ execution . ExecutionCapacity ?"
+      },
+      {
         "name": "sheets_target_projection_construction",
-        "declaration": "sheets_target_projection_construction ( nodes : Int , depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        "declaration": "sheets_target_projection_construction ( nodes : Int , _depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
       },
       {
         "name": "sheets_writer_units",
@@ -7701,6 +7786,75 @@
             {
               "path": "src/connectors/sheets/host_node/declaration_construction_wbtest.mbt",
               "anchor": "test \"range and clear native constructor quote composes onto original Source without issuing a declaration\""
+            }
+          ]
+        }
+      },
+      {
+        "operations": [
+          "sheets_append_request_construction_profile",
+          "sheets_string_constructor_capacity"
+        ],
+        "exports": [],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/reference-host.md",
+              "anchor": "Sheets append codec lifetime"
             }
           ]
         }

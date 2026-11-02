@@ -383,11 +383,12 @@ test('actual claimed managed write enters its separate occurrence only inside th
 
 test('actual claimed CREATE runs its separately authorized original Form check before the write occurrence',async()=>{
   const events=[],selected={kind:'create',resource:'rows',memberIndex:2},request={},description={};
+  const controlConstruction=(receiver,method,args)=>Reflect.apply(method,receiver,args);
   const claim={scope:'scope',locator:'locator',key:'key',basis:'basis',intentFingerprintCid:'row',canonicalRequestCid:cid('e')};
   const writeGrant=Object.freeze({grant:{write:true},scope:{}}),readGrant=Object.freeze({grant:{read:true},scope:{}}),decision={};
   let checked=false;
   const owned={describe:()=>description,writeOperation:()=> 'create',
-    checkRequest(context){assert.equal(this,owned);assert.equal(context.request,request);assert.equal(context.authorization.grant,readGrant.grant);
+    checkRequest(context){assert.equal(this,owned);assert.equal(context.request,request);assert.equal(context.authorization.grant,readGrant.grant);assert.equal(context.controlConstruction,controlConstruction);
       events.push('form');checked=true;},
     send(context){assert(checked);assert.equal(context.authorization.grant,writeGrant.grant);events.push('send');
       return {observation:{useCid:'write-use',statusCode:200,body:Buffer.from('{}')}};},
@@ -405,7 +406,7 @@ test('actual claimed CREATE runs its separately authorized original Form check b
     admitRow:()=>claim,captureClaimedEffectResponse,settle:()=>undefined,
     readDecision:async(member,resource,subject)=>{assert.equal(member,selected);assert.equal(resource,'forms');assert.equal(subject,'subject');events.push('authorize-read');return decision;}})({
       members:[selected],entries:[[{request,requestCid:claim.canonicalRequestCid}]],previewRows:[[]],dispatches:['dispatch'],dispatchIndexes:[[0]],
-      subjectCid:'subject',runInvocationCid:'run',applyPreview:{},ledger,assertCurrent(){},
+      subjectCid:'subject',runInvocationCid:'run',applyPreview:{},ledger,assertCurrent(){},controlConstruction,
       physicalOperations(facts){
         assert.equal(facts.member,selected);assert.equal(facts.rowIndex,0);
         if(facts.phase==='write-check'){
@@ -617,7 +618,7 @@ function sameControlFrame() {
 test('actual CREATE read grant uses its original control frame and returns workspace before physical dispatch', async () => {
   const f=sameControlFrame(),selected={kind:'create',resource:'rows'},entry={request:{}},decision={},grant={grant:{},scope:{}};
   const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};
-  const owned={check:{operation:'read',resource:'form'},checkRequest(context){assert.equal(context.authorization,grant);f.events.push('physical');}};
+  const owned={check:{operation:'read',resource:'form'},checkRequest(context){assert.equal(context.authorization,grant);assert.equal(context.controlConstruction,f.work);f.events.push('physical');}};
   const check=expression('checkRows',{ownerOf:()=>({owned,site,managedPlanRecipe:{credentialOperations:[]}}),
     readDecision:async()=>decision,fail});
   await check({members:[selected],entries:[[entry]],runInvocationCid:'run',dispatches:['dispatch'],subjectOf:()=> 'subject',

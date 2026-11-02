@@ -65,7 +65,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   const captureProfile = captureField === undefined ? undefined
     : originalMethod(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
   const capacitiesFor = originalMethod(moon, captureProfile === undefined
-    ? 'clientProgramInstalledStandardCreateRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
+    ? 'clientProgramInstalledStandardCreateRequestRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const captureFor = originalMethod(moon, captureProfile === undefined
     ? 'clientProgramInstalledEffectCaptureExtentPrepare' : 'clientProgramInstalledEffectCaptureRecipeExtentPrepare');
@@ -86,7 +86,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   const capacities = checked(capacitiesFor(profile(requestInput.maxWireBytes, requestInput.maxNodes, requestInput.maxDepth),
     ...(captureProfile === undefined ? [] : [captureProfile(limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
       requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth)]), limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-    ...(captureProfile === undefined ? [] : [requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth]),
+    requestInput.maxWireBytes,requestInput.maxNodes,requestInput.maxDepth,
     write.maxRequestBytes, write.maxResponseBytes, check?.maxRequestBytes ?? 0, check?.maxResponseBytes ?? 0,
     check?.beforeSend === true, secret.limits.maxSecretBytes, httpsCredentialAuthorizationPrefix.length,
     httpsCredentialResponseHeaderByteLimit,

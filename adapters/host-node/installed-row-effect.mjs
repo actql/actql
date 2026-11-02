@@ -504,7 +504,7 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
       for (const [name, value] of readHeaders) metadataTextUnits += name.length + value.length;
       for (const name of readResponseHeaders) metadataTextUnits += name.length;
       checkOptions = {check: description,
-        async checkRequest({request, authorization, credential, callResource, signal}) {
+        async checkRequest({request, authorization, credential, callResource, signal, controlConstruction}) {
           const {value: mappedValue} = original(request);
           if (authorization?.scope?.resourceOrigin !== checkOrigin) fail();
           signal?.throwIfAborted();
@@ -525,10 +525,15 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
             ...(absentBody ? {} : {body: value}),
             responseHeaders: readResponseHeaders, maxRequestBytes: requestBytes, maxResponseBytes: responseBytes, signal});
           signal?.throwIfAborted();
-          const projected = Reflect.apply(project, check, [Object.freeze({resource, value: mappedValue, request,
+          const projection = Object.freeze({resource, value: mappedValue, request,
             accepted: observed.accepted,
             observation: Object.freeze({useCid: observed.useCid, statusCode: observed.statusCode, body: observed.body}),
-            ...(Object.hasOwn(observed, 'headers') ? {headers: observed.headers} : {})})]);
+            ...(Object.hasOwn(observed, 'headers') ? {headers: observed.headers} : {})});
+          // The HTTP child keeps its physical holdings. The synchronous native
+          // projector uses the same Run's separately retained control frame;
+          // an invalid async result stays joined by that original owner.
+          const projected = controlConstruction === undefined ? Reflect.apply(project, check, [projection])
+            : controlConstruction(check, project, [projection]);
           if (projected !== undefined) {await projected; fail();}
         }};
     }
@@ -946,8 +951,8 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
   const planRecipe = automatic ? prepareInstalledStandardCreatePlanRecipe({moon, providerMoon,
     construction, credentialSite: installedRowCredentialOperationSite(site.credential),
     limits: limits.preview, resourceTextUnits,
-    ...(managedPlanConstruction === undefined ? {} : {requestInput:Object.freeze({
-      maxWireBytes:limits.body.maxBytes,maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})})}) : suppliedRecipe;
+    requestInput:Object.freeze({maxWireBytes:limits.body.maxBytes,
+      maxNodes:limits.body.maxNodes,maxDepth:limits.body.maxDepth})}) : suppliedRecipe;
   const beforeSendCheck = automatic ? captureBeforeSendCheck(owned, planRecipe) : suppliedBeforeSendCheck;
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   if (sourceInitialization !== undefined) {
@@ -1384,11 +1389,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             resource: owned.check.resource, purpose: 'read',
             runInvocationCid, dispatchRequestCid: dispatches[index], assertCurrent, signal,
             invoke: ({authorization, credential, callResource}) =>
-              owned.checkRequest({member, request: entry.request, authorization, credential, callResource, signal})});
+              owned.checkRequest({member, request: entry.request, authorization, credential, callResource, signal, controlConstruction})});
         } else {
           await owned.checkRequest({member, request: entry.request,
             authorization: {...grant, useId},
-            credential: site.credential, callResource: site.callResource, signal});
+            credential: site.credential, callResource: site.callResource, signal, controlConstruction});
         }
         assertCurrent?.();
       }
@@ -1712,7 +1717,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
                     resource: beforeSendCheck.resource, purpose: 'read', runInvocationCid,
                     dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
                     invoke: context => Reflect.apply(beforeSendCheck.request, beforeSendCheck.receiver,
-                      [{member, request: entry.request, ...context, signal}])});
+                      [{member, request: entry.request, ...context, signal, controlConstruction}])});
                   assertClaimedCurrent();
                   return send();
                 })();

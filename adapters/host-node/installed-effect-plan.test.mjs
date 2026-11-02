@@ -20,12 +20,12 @@ test('automatic standard recipe forwards original constructor capacities and kee
       scope:Object.freeze({principal:'original',siteGeneration:1}),
       issuer:Object.freeze({authority:'issuer',keyId:'key'}),
       limits:Object.freeze({maxBindings:91,maxSecretBytes:23})})});
-    const providerMoon={installedStandardCreateConstructionProfile(...geometry){assert.equal(this,providerMoon);assert.deepEqual(geometry,[512,32,8]);calls.push('profile');return profile;}};
+    const providerMoon={installedStandardCreateConstructionProfile(...geometry){assert.equal(this,providerMoon);assert.deepEqual(geometry,[128,16,4]);calls.push('profile');return profile;}};
     const extents=[];
     const moon={
-      clientProgramInstalledStandardCreateRecipeCapacities(...args){
+      clientProgramInstalledStandardCreateRequestRecipeCapacities(...args){
         assert.equal(this,moon);calls.push('capacities');
-        assert.deepEqual(args,[profile,512,32,8,128,64,32,16,beforeSend,23,httpsCredentialAuthorizationPrefix.length,
+        assert.deepEqual(args,[profile,512,32,8,128,16,4,128,64,32,16,beforeSend,23,httpsCredentialAuthorizationPrefix.length,
           httpsCredentialResponseHeaderByteLimit,
           Math.max(effectLedgerImplementationBounds.maxEntryBytes,effectLedgerImplementationBounds.maxResponseBytes),
           effectLedgerImplementationBounds.maxOutcomeNodes,effectLedgerImplementationBounds.maxOutcomeDepth,41n,16384]);
@@ -40,7 +40,7 @@ test('automatic standard recipe forwards original constructor capacities and kee
       },
     };
     const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,credentialSite,
-      limits:{maxWireBytes:512,maxNodes:32,maxDepth:8},resourceTextUnits:7});
+      limits:{maxWireBytes:512,maxNodes:32,maxDepth:8},requestInput:{maxWireBytes:128,maxNodes:16,maxDepth:4},resourceTextUnits:7});
     assert.deepEqual(calls,['profile','capacities']);
     assert.equal(recipe.memberOperations.length,1);
     assert.equal(recipe.rowOperations.length,beforeSend?6:5);

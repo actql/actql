@@ -12,6 +12,8 @@ pub fn sheets_append_construction_profile(Int, Int, Int, Int, Int, Int, Int) -> 
 
 pub fn sheets_append_outcome_json(Int, Bytes, String, Int, Int, Int, Int) -> String
 
+pub fn sheets_append_request_construction_profile(Int, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
 pub fn sheets_append_request_identity(String, String, String) -> Result[String, @catalog.RangeFailure]
 
 pub fn sheets_append_request_json(String, String, Int, Int, Int, Int, Int) -> String

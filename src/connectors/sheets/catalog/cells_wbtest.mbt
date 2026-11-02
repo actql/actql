@@ -90,6 +90,32 @@ test "publication binds numeric grid identities rather than mutable titles" {
 }
 
 ///|
+test "target private parse retains duplicate key numeric type and full syntax refusals" {
+  for
+    body in [
+      "{\"spreadsheetId\":\"book\",\"sheets\":[],\"unused\":{\"x\":0,\"x\":1}}",
+      "{\"spreadsheetId\":\"book\",\"sheets\":[]} trailing",
+    ] {
+    assert_true(
+      check_target(@utf8.encode(body), "book", range(), 7, columns(), limits())
+      is Err(InvalidResponse),
+    )
+  }
+  for
+    property in [
+      "\"sheetId\":null", "\"sheetId\":7.5", "\"sheetId\":2147483648", "\"sheetId\":7,\"sheetType\":null",
+    ] {
+    let body = "{\"spreadsheetId\":\"book\",\"sheets\":[{\"properties\":{" +
+      property +
+      "}}]}"
+    assert_true(
+      check_target(@utf8.encode(body), "book", range(), 7, columns(), limits())
+      is Err(InvalidResponse),
+    )
+  }
+}
+
+///|
 fn grid(rows : Array[Json]) -> Bytes {
   @utf8.encode(
     (

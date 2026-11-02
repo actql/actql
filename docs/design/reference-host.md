@@ -2709,7 +2709,7 @@ calling the original provider projector in the same control-construction
 frame. The standard recipe therefore assigns the Native response constructor
 once to that existing frame, for both warm and stored responses. Its physical
 write extent keeps the full HTTP receiver, header and secret construction;
-metadata/read occurrences keep their separately selected Native work. All
+metadata/read occurrences keep their full HTTP receiver and physical work. All
 projector outputs and invalid/failed synchronous prefixes retain the original
 control backing. No native response callback executes without that frame on
 the managed route, and no Promise, byte result or this quantity relocation
@@ -2723,6 +2723,49 @@ frame still retains a failed complete prefix until existing cleanup. Physical
 response work and other simultaneous constructor compositions keep their full
 allowances; this rule is neither a wider recovery grant nor a capacity-policy
 change. Checked retained and combined execution overflow still refuses.
+
+### Sheets append codec lifetime
+
+For the standard CREATE metadata check, the original read child completes its
+HTTP receive before its captured synchronous projector enters that same
+control-construction frame. Capture, apply, resume and before-send checks pass
+the original frame through unchanged. The recipe therefore retains all native
+metadata outputs on that frame and shares only nonescaping synchronous scratch
+with the existing Ledger and write projectors. It keeps every distinct physical
+read occurrence, response buffer, Credential, attempt and transfer allowance.
+Failed or asynchronous projection remains attached to the original frame; its
+failure cannot complete the control workspace or acknowledge the HTTP child.
+
+Sheets append request and metadata codecs return only JSON Strings. Their full
+native schema/parser/tree/writer inventory remains backed during each call;
+only the bounded returned String survives in the retained quantity. Source
+constructors whose native material escapes keep their existing retained model.
+The constructor's six/seven-fold inner/outer escape bounds are UTF-8 byte
+bounds because their input allowance is already measured in UTF-8 bytes.
+Applying a further UTF-16-to-UTF-8 factor would count that conversion twice.
+The fixed document syntax is ASCII; unescaped text uses at most its original
+UTF-8 byte count, and the nested control escape adds one slash. The derived
+export byte bound retains those complete escapes and the refusal prefix.
+Business input, codec admission and HTTP limits remain unchanged.
+This lifetime split neither raises
+the Local preparation ceiling nor changes acceptance or deduplicates rows.
+
+The installed CREATE recipe receives the original per-proposal body bounds
+separately from whole Preview bounds. The existing pinned-source exporter
+already admits each proposal with those same body bytes/nodes/depth before
+the provider constructor. The new thin Request recipe entry forwards them
+to the existing composer; it introduces no alternative arithmetic or limits.
+The Sheets native profile uses that same earlier input bound while keeping
+arbitrary physical metadata response bounds separate. No response is treated
+as a checked proposal merely because both are JSON.
+
+Append rows and target metadata borrow the complete private preserving-parser
+result directly. They reuse the existing scalar and target rules without
+building a second generic decode index. Full input syntax, duplicate keys,
+Unicode, decoded text totals and refusal precedence remain with the original
+parser; decoded text cannot exceed the original admitted wire. Foreign caller
+Nodes do not enter these private views. The schema decoder and unrelated grid
+or Source constructors retain their original admission paths.
 
 
 The optional checked value-node proof preserves closed Object fields and
