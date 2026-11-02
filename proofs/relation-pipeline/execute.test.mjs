@@ -27,6 +27,22 @@ executor.close();
 `));
 });
 
+test('an empty internal toolchain directory alias retains its canonical target', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const core = join(root, '.fake-moon/lib/core');
+for (const name of ['empty', 'other-empty']) mkdirSync(join(core, name));
+const alias = join(core, 'empty-alias');
+symlinkSync('empty', alias);
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+unlinkSync(alias);
+symlinkSync('other-empty', alias);
+assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Execution toolchain changed/);
+assert.equal(calls().length, 1);
+executor.close();
+`));
+});
+
 for (const [name, target, expected] of [
   ['external directory', '../../../vendor/native/include', /External or directory-linked Moon toolchain input/],
   ['ancestor cycle', '..', /Cyclic Moon toolchain directory input/],
