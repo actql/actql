@@ -1641,7 +1641,9 @@ test('public submit rejects checker failures before Run admission', async t => {
   const {environment} = await checkedFixture();
   const document = await readFile(new URL('parameter-values.json', fixture),
     'utf8');
-  const prepareSubmit = await fundedClientPreparation(t, {moon, environment});
+  const preparation = await fundedClientPreparation(t, {moon, environment, http: true});
+  assert.equal(typeof preparation.prepareRequest, 'function');
+  const prepareSubmit = preparation.prepareSubmit;
   let admissions = 0;
   let admittedIdentity, admittedRequestId;
   await mkdir(scratch, {recursive: true});
@@ -1664,6 +1666,7 @@ test('public submit rejects checker failures before Run admission', async t => {
     return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
   };
   const submission = installNodeClientSubmission({journal, moon, prepareSubmit,
+    ...preparation.submission,
     submit: submitProgram, lookupRequest, authorizedScope: ({principalId}) =>
       principalId === 'principal-a' ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
   const server = createServer(createClientHttpHandler({
@@ -1679,6 +1682,7 @@ test('public submit rejects checker failures before Run admission', async t => {
         maxRows: 100, maxBatchRows: 10,
         maxBatchRetainedValueBytes: 2048},
     }),
+    prepareRequest: preparation.prepareRequest,
     prepareSubmit, lookupRequest, submit: submitProgram,
     submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
     maxRequestBytes: 100000,
@@ -1734,10 +1738,10 @@ test('public submit rejects checker failures before Run admission', async t => {
     } finally {
       client.close();
     }
-    const prepared = await prepareSubmit({kind: 'aql',
+    const prepared = await preparation.prepare({kind: 'aql',
       input: {text: document, format: 'json'}, parameters: {n: 2}});
     assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
-    const objectPrepared = await prepareSubmit({kind: 'program',
+    const objectPrepared = await preparation.prepare({kind: 'program',
       input: JSON.parse(document), parameters: {n: 2}});
     assert.equal(moon.clientProgramSemanticsCid(objectPrepared),
       moon.clientProgramSemanticsCid(prepared));
@@ -1754,6 +1758,32 @@ test('public submit rejects checker failures before Run admission', async t => {
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
+});
+
+test('funded HTTP fixture shares its original Request across aliases and retires it once', async t => {
+  const {environment} = await checkedFixture();
+  const document = await readFile(new URL('parameter-values.json', fixture), 'utf8');
+  const preparation = await fundedClientPreparation(t, {moon, environment, http: true});
+  const request = Object.freeze({kind: 'aql', input: {text: document, format: 'json'},
+    parameters: {n: 2}, principalId: 'principal-a',
+    connection: Object.freeze({mode: 'local', owner: 'local',
+      consentRefs: Object.freeze([]), runners: Object.freeze([])})});
+  const lifetime = preparation.prepareRequest('submit-intent', request);
+  const derived = Object.freeze({...lifetime.body, requestId: 'same-original-request'});
+  lifetime.bindRequest(derived);
+  const intent = preparation.submission.submittedIntentOriginal(derived);
+  assert.ok(intent);
+  const prepared = await preparation.prepareSubmit(derived);
+  assert.equal(moon.clientProgramResultName(prepared, 0), 'answer');
+  assert.strictEqual(preparation.submission.submittedIntentOriginal(derived), intent);
+  assert.throws(() => preparation.prepareSubmit({...derived}),
+    {code: 'InstalledHostPreparationChanged'});
+  lifetime.beforeReply();
+  lifetime.finish('returned');
+  lifetime.finish('returned');
+  await Promise.resolve();
+  assert.throws(() => preparation.prepareSubmit(derived),
+    {code: 'InstalledHostPreparationChanged'});
 });
 
 test('Node publication admission rejects evidence from another checked Program',

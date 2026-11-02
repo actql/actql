@@ -264,7 +264,9 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
       environmentDocument.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(environment);
     const unsupported = {document: JSON.stringify(program), environment};
-    const prepare = await fundedClientPreparation(t, {moon, environment, allowEffects: true});
+    const preparation = await fundedClientPreparation(t, {moon, environment, allowEffects: true, http: true});
+    assert.equal(typeof preparation.prepareRequest, 'function');
+    const prepare = preparation.prepare;
     const prepared = await prepare({kind: 'aql',
       input: {text: unsupported.document, format: 'json'},
       parameters: null});
@@ -298,7 +300,8 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
           maxRows: 100, maxBatchRows: 10,
           maxBatchRetainedValueBytes: 2048},
       }),
-      prepareSubmit: prepare,
+      prepareRequest: preparation.prepareRequest,
+      prepareSubmit: preparation.prepareSubmit,
       submit: async ({preparedProgram, requestId, principalId,
         connection, submission}) => {
         const accepted = await runs.accept({prepared: preparedProgram,
@@ -317,6 +320,7 @@ test('public Effect submit rejects an unsupported checked acquisition shape befo
     const lookupRequest = installNodeClientRequestLookup({journal,
       control: moon, authorizedScope});
     const submissions = installNodeClientSubmission({journal, moon,
+      ...preparation.submission,
       authorizedScope, prepareSubmit: services.prepareSubmit,
       submit: services.submit, lookupRequest});
     const server = createServer(createClientHttpHandler({...services, lookupRequest,
