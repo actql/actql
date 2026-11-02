@@ -4,17 +4,18 @@ test "original known fields retain same contracts with separate schema and knowl
   assert_eq(q.retained, {
     record_headers: 28L,
     reference_slots: 85L,
-    scalar_words: 18L,
+    // Knowledge and projected-field Presence/contract tags stay retained.
+    scalar_words: 25L,
   })
   assert_eq(q.scratch, {
     record_headers: 242L,
     reference_slots: 449L,
-    scalar_words: 779L,
+    scalar_words: 772L,
   })
-  assert_eq(q.scratch_utf16_units, 42L)
+  assert_eq(q.scratch_utf16_units, 22L)
   assert_eq(
     unqualified_rows_retained_extent(2, 2),
-    Some({ record_headers: 44L, reference_slots: 132L, scalar_words: 32L, }),
+    Some({ record_headers: 44L, reference_slots: 132L, scalar_words: 42L, }),
   )
   let original = @value.primitive(NumberType, nullable=false)
   let knowledge = rows(
