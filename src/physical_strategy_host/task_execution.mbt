@@ -12,6 +12,7 @@ struct TaskExecution {
   mut hooks : @connector.ExecutionLifecycleOperations[RunIssue]?
   mut execution_settled : Bool
   mut disposed : Bool
+  mut cleanup_observation : CleanupObservation
   mut failed_holding : @resources.Holding?
   mut resident : ResidentExecution?
   attempt : @execution.ManagedExecutionAttempt
@@ -331,6 +332,7 @@ pub fn[I, T] start_captured_managed_execution(
         hooks: Some(hooks),
         execution_settled: false,
         disposed: false,
+        cleanup_observation: CleanupReady,
         failed_holding: None,
         resident: None,
         attempt: @execution.issue_managed_execution_attempt(),
@@ -496,6 +498,7 @@ fn[T] start_task_execution(
         hooks: Some(hooks),
         execution_settled: false,
         disposed: false,
+        cleanup_observation: CleanupReady,
         failed_holding: None,
         resident,
         attempt: @execution.issue_managed_execution_attempt(),
@@ -844,7 +847,7 @@ pub fn settle_task_execution(
       }
       task_execution_settled(execution)
       if execution.disposed {
-        release_task_execution(run, execution)
+        release_task_execution(run, execution) |> ignore
       }
       Ok(())
     }
@@ -1018,43 +1021,121 @@ pub fn close_task_execution(
   task_execution_dispose(execution)
   close_captured_task_output(run, execution.task)
   if execution.execution_settled {
-    release_task_execution(run, execution)
+    release_task_execution(run, execution) |> ignore
   }
 }
 
 ///|
 /// Private finalization only after disposal AND actual execution settlement.
 /// Completed descendant holdings and already consumed transfer stay intact.
-fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit {
+// Keep an accounting refusal with its existing owner even when the initiating
+// close/settled API returns Unit. Checking fences only synchronous reentry;
+// successful holding stages remain recorded by their consumed original fields.
+priv enum CleanupObservation {
+  CleanupReady
+  CleanupChecking
+  CleanupRefused(@resources.LedgerIssue)
+}
+
+///|
+fn release_task_execution(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Result[Bool, @resources.LedgerIssue] {
+  let previous = execution.cleanup_observation
+  match previous {
+    CleanupChecking => return Ok(false)
+    CleanupReady | CleanupRefused(_) => ()
+  }
+  execution.cleanup_observation = CleanupChecking
+  let observed = release_task_execution_owned(run, execution)
+  // Preserve the last accounting refusal until this original actually retires;
+  // a later physical-pending observation does not erase that diagnosis.
+  let result = match (observed, previous) {
+    (Ok(false), CleanupRefused(issue)) => Err(issue)
+    _ => observed
+  }
+  execution.cleanup_observation = match result {
+    Err(issue) => CleanupRefused(issue)
+    Ok(true) => CleanupReady
+    Ok(false) => previous
+  }
+  result
+}
+
+///|
+fn release_task_execution_owned(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Result[Bool, @resources.LedgerIssue] {
   if !execution.disposed ||
     !execution.execution_settled ||
     !task_execution_matches(run, execution) {
-    return
+    return Ok(false)
   }
   let scratch_released = task_execution_scratch_released(execution)
-  if !scratch_released || !task_execution_retention_released(execution) {
-    // Keep the existing task reservation while installed scratch cleanup is
-    // pending. External retention can independently outlive scratch release.
+  // Installed predicates and Common currentness may reenter cleanup. Never
+  // read retired hooks or clear a successor slot after one of those calls.
+  if !task_execution_matches(run, execution) {
+    return Ok(execution.hooks is None)
+  }
+  let retention_released = if scratch_released {
+    task_execution_retention_released(execution)
+  } else {
+    false
+  }
+  if !task_execution_matches(run, execution) {
+    return Ok(execution.hooks is None)
+  }
+  if !scratch_released || !retention_released {
+    // A partial scratch settlement is still fallible accounting, not a
+    // physical acknowledgement. Keep the same task for the next observation.
     if @resources.reservation_open(execution.reservation) {
-      @resources.settle_execution_reservation(
-        run.ledger,
-        execution.reservation,
-        remaining_execution=if scratch_released {
-          0L
-        } else {
-          execution.scratch
-        },
-      )
-      |> ignore
+      match
+        @resources.settle_execution_reservation(
+          run.ledger,
+          execution.reservation,
+          remaining_execution=if scratch_released {
+            0L
+          } else {
+            execution.scratch
+          },
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
     }
-    return
+    return Ok(false)
   }
   if execution.failed_holding is Some(holding) {
-    @resources.release_allocation(run.ledger, holding) |> ignore
-    execution.failed_holding = None
+    let released = @resources.release_allocation(run.ledger, holding)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    match released {
+      Err(issue) => return Err(issue)
+      Ok(_) => execution.failed_holding = None
+    }
   }
   if @resources.reservation_open(execution.reservation) {
-    @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+    let settled = @resources.settle_reservation(
+      run.ledger,
+      execution.reservation,
+    )
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    match settled {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  // Our revoked output may own another holding. Legitimate descendant pins
+  // remain with the retention owner; a refused release owed now is not ACK.
+  match release_captured_task_retention(run, execution.task) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(false)
+    Ok(true) => ()
   }
   captured_cleanup_confirmed(run, execution)
   run.executions[execution.task] = None
@@ -1064,6 +1145,7 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
   execution.admitted_managed_inputs = None
   task_execution_released(hooks)
   collect_captured_retention(run)
+  Ok(true)
 }
 
 ///|
@@ -1086,5 +1168,4 @@ pub fn refresh_task_execution_cleanup(
     return Err(InvalidCharge)
   }
   release_task_execution(run, execution)
-  Ok(!task_execution_matches(run, execution))
 }

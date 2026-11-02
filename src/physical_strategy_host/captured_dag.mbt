@@ -745,6 +745,7 @@ fn open_checked_dag(
     resources[task] = Some({
       holding: None,
       release_confirmed: fn() { true },
+      cleanup_observation: CleanupReady,
       parents: [],
     })
   }
