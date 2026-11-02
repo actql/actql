@@ -6,7 +6,7 @@ import {checkDriverRetirementSource, driverPath, scratchRetirementPath, inputSto
 import {retirementOverlay,retirementExecutable,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 import {snapshot,hash} from '../../inventory.mjs';
-import {omitUnselectedTests,helperCompilation,helperImports} from './driver-retirement-compilation.mjs';
+import {omitUnselectedTests,helperCompilation,helperImports,retirementCompilation,retirementPackageTargets,retirementJsOnlyFixture} from './driver-retirement-compilation.mjs';
 const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
 const changed = (path, from, to, anchor) => {
@@ -60,6 +60,42 @@ test('selected Host helper retains transitive declarations and enum variants wit
   assert(!imports.text.includes('x/unused'));assert(imports.text.includes('options(link: {})'));
   assert.deepEqual(imports.omitted,[{path:'x/unused',alias:'unused'}]);
   assert.throws(()=>helperImports(pkg.replace('"x/used" @used,','dynamic_import()'),r.referencedText));
+});
+
+test('Native fixture projection retains the original JS-only target and native link metadata',()=>{
+  const original=read('src/query_integration/moon.pkg').toString();
+  const clause='  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },';
+  const added='  targets: {\n    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],\n'+
+    '    "driver_retirement_native_wbtest.mbt": [ "native" ],\n  },';
+  const projected=retirementPackageTargets(original);
+  assert.equal(projected.split(added).length,2);
+  assert.equal(projected.replace(added,clause),original);
+  for(const changed of [original.replace('strategy_cleanup_current_js_wbtest.mbt','unknown_wbtest.mbt'),
+    original.replace('[ "js" ]','[ "native" ]'),original.replace(clause,clause+'\n'+clause)]) {
+    assert.throws(()=>retirementPackageTargets(changed),/Changed reviewed query fixture targets/);
+  }
+});
+
+test('Native fixture projection keeps compiler-excluded JS bytes and refuses unreviewed foreign declarations',()=>{
+  const pkg='src/query_integration/moon.pkg',fixture='src/query_integration/driver_retirement_native_wbtest.mbt';
+  const host='src/query_integration/host_wbtest.mbt',unknown='src/query_integration/unreviewed_wbtest.mbt';
+  const js='#external\npriv type Loader\nextern "js" fn load() -> Loader = "load"\n';
+  const sources={[host]:'fn run_current_host_graph_relation_path() {}\n',[retirementJsOnlyFixture]:js};
+  const originalPkg=read(pkg).toString();
+  const source={sources:Object.fromEntries(Object.entries(sources).map(([path,text])=>[path,hash(text)]))};
+  const overlay={[pkg]:retirementPackageTargets(originalPkg),[fixture]:'test { run_current_host_graph_relation_path() }'};
+  const reader=path=>path===pkg?originalPkg:sources[path];
+  const result=retirementCompilation(reader,source,overlay);
+  assert.equal(overlay[retirementJsOnlyFixture],js);
+  assert.equal(result.inputs[retirementJsOnlyFixture].preservedOriginalBytes,true);
+  assert.deepEqual(result.inputs[retirementJsOnlyFixture].omittedTests,[]);
+  const extra={...sources,[unknown]:js};
+  const extraSource={sources:{...source.sources,[unknown]:hash(js)}};
+  assert.throws(()=>retirementCompilation(path=>path===pkg?originalPkg:extra[path],extraSource,
+    {[pkg]:retirementPackageTargets(originalPkg),[fixture]:overlay[fixture]}),/Unsupported helper declaration #/);
+  assert.throws(()=>retirementCompilation(reader,source,
+    {[pkg]:retirementPackageTargets(originalPkg),[fixture]:overlay[fixture],[retirementJsOnlyFixture]:''}),
+    /Changed compiler-excluded JS fixture/);
 });
 
 test('projection keeps complete immutable raw String constants and omits unreferenced literal ranges',()=>{
@@ -157,7 +193,15 @@ for (const [name,path,from,to,anchor] of [
   ['retirement bulk-clears issuers',scratchRetirementPath,'issuers.pop() |> ignore','issuers.clear()'],
   ['late import writes reopen settled roots',scratchRetirementPath,'live && !settled && !disposed','live && !disposed'],
   ['reservation returned before scratch',strategyPath,'remaining_execution=if scratch_released { 0L } else { execution.scratch }','remaining_execution=0L'],
-  ['ignore retention release',strategyPath,'if !scratch_released || !task_execution_retention_released(execution) {','if !scratch_released {'],
+  ['ignore retention release',strategyPath,'if !scratch_released || !retention_released {','if !scratch_released {','fn release_task_execution_owned('],
+  ['cleanup observation allows synchronous reentry',strategyPath,'CleanupChecking => return Ok(false)','CleanupChecking => ()','fn release_task_execution('],
+  ['cleanup observation erases prior accounting refusal',strategyPath,'(Ok(false), CleanupRefused(issue)) => Err(issue)','(Ok(false), CleanupRefused(_)) => Ok(false)','fn release_task_execution('],
+  ['cleanup observation marks refused accounting ready',strategyPath,'Err(issue) => CleanupRefused(issue)','Err(_) => CleanupReady','fn release_task_execution('],
+  ['cleanup drops original observation while pending',strategyPath,'Ok(false) => previous','Ok(false) => CleanupReady','fn release_task_execution('],
+  ['owned cleanup swallows failed holding release',strategyPath,'Err(issue) => return Err(issue)','Err(_) => ()','if execution.failed_holding is Some(holding)'],
+  ['owned cleanup clears holding on refused release',strategyPath,'Err(issue) => return Err(issue)','Err(_) => execution.failed_holding = None','if execution.failed_holding is Some(holding)'],
+  ['owned cleanup skips revoked output holding',strategyPath,'match release_captured_task_retention(run, execution.task)','match Ok(true)','fn release_task_execution_owned('],
+  ['owned cleanup reports pending retention as success',strategyPath,'Ok(false) => return Ok(false)','Ok(false) => ()','match release_captured_task_retention(run, execution.task)'],
 ]) test('source rejects '+name,()=>{
   // A missing mutation target is a failed fixture, not a rejected mutation.
   const mutated = changed(path,from,to,anchor);

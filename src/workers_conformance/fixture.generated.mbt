@@ -79,6 +79,7 @@ fn captured_graph_fixture(
   rows? : Array[String]? = None,
   retention? : @mock.MockRetentionLimits = query_retention_limits(),
   ledger_limits? : @resources.LedgerLimits? = None,
+  original_ledger? : @resources.Ledger? = None,
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
   supplied_local_rows? : Array[(Int, Int, Array[String])] = [],
@@ -196,16 +197,18 @@ fn captured_graph_fixture(
     query_capture_limits(),
   ).unwrap()
   let source = @mock.mock_captured_source(issuer, attempt, observation).unwrap()
-  let ledger = @resources.create_ledger(
-    ledger_limits.unwrap_or({
-      planning_work: 10000,
-      attempts: 10,
-      holdings: 10,
-      transfer_bytes: 300000L,
-      retained_bytes: 32000000L,
-      execution_bytes: 134217728L,
-    }),
-  ).unwrap()
+  let ledger = original_ledger.unwrap_or_else(() => {
+    @resources.create_ledger(
+      ledger_limits.unwrap_or({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 32000000L,
+        execution_bytes: 134217728L,
+      }),
+    ).unwrap()
+  })
   let supplied = supplied_local_rows.map(entry => {
     let (stage, input, rows) = entry
     @execution.capture_input(

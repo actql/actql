@@ -96,25 +96,78 @@ const rootSlice=`{
   }
   cursor.phase == Retired
 }`.replaceAll(';','');
+// The same owner retains accounting refusal across later physical-pending
+// observations and fences synchronous reentry before touching the owned task.
+const retirementObservation=`{
+  let previous = execution.cleanup_observation
+  match previous {
+    CleanupChecking => return Ok(false)
+    CleanupReady | CleanupRefused(_) => ()
+  }
+  execution.cleanup_observation = CleanupChecking
+  let observed = release_task_execution_owned(run, execution)
+  let result = match (observed, previous) {
+    (Ok(false), CleanupRefused(issue)) => Err(issue)
+    _ => observed
+  }
+  execution.cleanup_observation = match result {
+    Err(issue) => CleanupRefused(issue)
+    Ok(true) => CleanupReady
+    Ok(false) => previous
+  }
+  result
+}`;
 const retirement=`{
   if !execution.disposed || !execution.execution_settled || !task_execution_matches(run, execution) {
-    return
+    return Ok(false)
   }
   let scratch_released = task_execution_scratch_released(execution)
-  if !scratch_released || !task_execution_retention_released(execution) {
+  if !task_execution_matches(run, execution) {
+    return Ok(execution.hooks is None)
+  }
+  let retention_released = if scratch_released {
+    task_execution_retention_released(execution)
+  } else {
+    false
+  }
+  if !task_execution_matches(run, execution) {
+    return Ok(execution.hooks is None)
+  }
+  if !scratch_released || !retention_released {
     if @resources.reservation_open(execution.reservation) {
-      @resources.settle_execution_reservation(run.ledger, execution.reservation,
+      match @resources.settle_execution_reservation(run.ledger, execution.reservation,
         remaining_execution=if scratch_released { 0L } else { execution.scratch },)
-      |> ignore
+      {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
     }
-    return
+    return Ok(false)
   }
   if execution.failed_holding is Some(holding) {
-    @resources.release_allocation(run.ledger, holding) |> ignore
-    execution.failed_holding = None
+    let released = @resources.release_allocation(run.ledger, holding)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    match released {
+      Err(issue) => return Err(issue)
+      Ok(_) => execution.failed_holding = None
+    }
   }
   if @resources.reservation_open(execution.reservation) {
-    @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+    let settled = @resources.settle_reservation(run.ledger, execution.reservation,)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    match settled {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  match release_captured_task_retention(run, execution.task) {
+    Err(issue) => return Err(issue)
+    Ok(false) => return Ok(false)
+    Ok(true) => ()
   }
   captured_cleanup_confirmed(run, execution)
   run.executions[execution.task] = None
@@ -124,6 +177,7 @@ const retirement=`{
   execution.admitted_managed_inputs = None
   task_execution_released(hooks)
   collect_captured_retention(run)
+  Ok(true)
 }`;
 const stopInputs=`{
   if live.val { return true }
@@ -300,12 +354,15 @@ export function checkDriverRetirementSource(read) {
   assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
   assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');
   assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,5,'Changed import/bridge write guards');
-  assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirement),'Changed common reservation retirement boundary');
+  assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirementObservation),'Changed common cleanup reentry/refusal observation boundary');
+  assert.equal(clean(blockAfter(strategy,'fn release_task_execution_owned(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);
   assert.deepEqual([...driver.matchAll(/provider_execution\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),['None','Some(started)'],'Unreviewed provider root replacement');
   return {scope:'exact reviewed driver scratch-root and common reservation retirement boundaries',
     retainsProviderUntilStoppedAndCleanupSuccess:true,clearsProviderAfterCleanupSuccess:true,
     cachesFinalProviderWorkBeforeDroppingRoot:true,incrementalScratchRootRetirement:true,
+    retainsAccountingRefusalAcrossPending:true,fencesSynchronousCleanupReentry:true,
+    settlesOwnedHoldingsBeforeClearingTask:true,
     incrementalInputRevocation:true,incrementalPrivateImportRows:true,
     snapshotCustody:{pendingCancelRetainsCallback:true,retirementRequiresCallbackAbsent:true,
       cleanupRetryBeforeRootRetirement:true,successfulFinishRequiresReleasedStorage:true,

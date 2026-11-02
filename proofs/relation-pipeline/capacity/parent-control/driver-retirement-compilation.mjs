@@ -3,6 +3,18 @@
 import assert from 'node:assert/strict';
 import {hash} from '../../inventory.mjs';
 
+export const retirementJsOnlyFixture='src/query_integration/strategy_cleanup_current_js_wbtest.mbt';
+const originalTargetClause='  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },';
+export function retirementPackageTargets(pkg) {
+  // Preserve this existing compiler-owned JS selection and native link block.
+  // This diagnostic adds only its one Native fixture to the same target map;
+  // it does not interpret target expressions or admit foreign declarations.
+  assert.equal(pkg.split(originalTargetClause).length,2,'Changed reviewed query fixture targets');
+  return pkg.replace(originalTargetClause,
+    '  targets: {\n    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],\n' +
+    '    "driver_retirement_native_wbtest.mbt": [ "native" ],\n  },');
+}
+
 function tokens(source) {
   const result = [];
   let i = 0;
@@ -201,14 +213,29 @@ export function retirementCompilation(read, source, overlay) {
   assert(source.sources, 'Compilation requires the original directory inventory');
   const paths = Object.keys(source.sources).filter(p => /^src\/query_integration\/[^/]+_wbtest\.mbt$/.test(p)).sort();
   assert(paths.length > 0, 'Missing existing Host whitebox input inventory');
-  const observedSources = {};
+  const pkg='src/query_integration/moon.pkg';
+  assert.equal(overlay[pkg],retirementPackageTargets(read(pkg).toString()),
+    'Changed Native projection target or link metadata');
+  const observedSources = {}, compilerExcludedInputs = {};
   for (const path of paths) {
     const original = read(path).toString();
     assert.equal(hash(original), source.sources[path], 'Changed compilation source '+path);
+    if (path===retirementJsOnlyFixture) {
+      // Keep the complete original file, including its foreign declarations.
+      // The original compiler target excludes it from this Native build; the
+      // helper projection must neither parse it as Native nor erase its bytes.
+      assert.equal(overlay[path]??original,original,'Changed compiler-excluded JS fixture');
+      compilerExcludedInputs[path]={originalDigest:hash(original),projectedDigest:hash(original),
+        compilerTarget:'js',selectedTarget:'native',preservedOriginalBytes:true,
+        omittedTests:[],keptDeclarations:[],omittedDeclarations:[]};
+      overlay[path]=original;
+      continue;
+    }
     observedSources[path] = overlay[path] ?? original;
   }
-  const fixture='src/query_integration/driver_retirement_native_wbtest.mbt',pkg='src/query_integration/moon.pkg';
+  const fixture='src/query_integration/driver_retirement_native_wbtest.mbt';
   const {overlay:projected,inputs,referencedText}=helperCompilation(observedSources,overlay[fixture]);
+  Object.assign(inputs,compilerExcludedInputs);
   const imports=helperImports(overlay[pkg],referencedText);
   Object.assign(overlay,projected);overlay[pkg]=imports.text;
   for(const path of paths)inputs[path].sourceDigest=source.sources[path];

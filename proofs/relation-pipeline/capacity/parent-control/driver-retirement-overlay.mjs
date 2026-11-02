@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {hash} from '../../inventory.mjs';
 import {blockAfter,checkDriverRetirementSource,driverPath} from './driver-retirement-source.mjs';
-import {retirementCompilation} from './driver-retirement-compilation.mjs';
+import {retirementCompilation,retirementPackageTargets} from './driver-retirement-compilation.mjs';
 import {holdingCustodyOverlay} from './holding-custody-overlay.mjs';
 export const retirementHelper='src/connectors/local/driver/driver_retirement_native.mbt';
 export const retirementStub='src/connectors/local/driver/driver_retirement_stub.c';
@@ -41,7 +41,7 @@ export function retirementOverlay(read,source,{holdingCustody=false}={}) {
     [retirementFixture]:readFileSync(new URL('./driver-retirement-fixture.mbt',import.meta.url),'utf8')};
   // The generated fixture is selected only on Native; no other backend gains
   // a declaration referencing the Native-only borrowed observer.
-  overlay['src/query_integration/moon.pkg']=once(read('src/query_integration/moon.pkg').toString(), 'options(\n', 'options(\n  targets: {"driver_retirement_native_wbtest.mbt": ["native"]},\n');
+  overlay['src/query_integration/moon.pkg']=retirementPackageTargets(read('src/query_integration/moon.pkg').toString());
   if (holdingCustody) holdingCustodyOverlay(read,overlay);
   const compilation = retirementCompilation(read,source,overlay);
   const boundary={sourceDigest:source.digest,target:'native',command:['moon','test','--target','native',retirementFixture,'--deny-warn'],

@@ -41,10 +41,12 @@ for (const name of [...selected].sort()) {
   source += '\n///|\n/// Fixture owner: query_integration/' + item.file + '\n' + item.block.trim() + '\n';
 }
 const aliases = new Set([...source.matchAll(/@(\w+)/g)].map(x => x[1]));
-// The query package's native link options are not fixture imports. Only the
-// exact audited block is removed; any other directive still fails closed.
+// The query package's native link and this JS-only test metadata are not
+// fixture imports. Only the exact audited block is removed; any other
+// directive still fails closed.
 const queryManifest = readFileSync(join(directory, 'moon.pkg'), 'utf8');
 const nativeOptions = `\noptions(
+  targets: { "strategy_cleanup_current_js_wbtest.mbt": [ "js" ] },
   link: {
     "native": {
       "cc": "./scripts/native-cxx-link-driver.sh",
