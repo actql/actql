@@ -2377,7 +2377,6 @@
     {
       "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d4302cacf10d378d197c5cc9f1cdb7cfa7f24c4ccb598d710f0414572cf3ca1c",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
       "exports": [
@@ -3163,7 +3162,8 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "sha256": "bf30f1b276045879473ff0e67caceb9cac7d617951cba2f8e71bdeb8d65a2bb6"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
