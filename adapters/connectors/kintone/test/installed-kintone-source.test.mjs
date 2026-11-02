@@ -6,6 +6,7 @@ import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {loadInstalledKintoneSource} from '../host/installed-kintone-source.mjs';
 import {installedKintoneFixture as fixture, originalForm, record} from './installed-kintone.fixture.mjs';
 
 const assertReleased = ledger => assert.deepEqual(
@@ -134,4 +135,24 @@ test('canceling an awaited kintone page retains its original reservation until t
   await rejected;
   assert.equal(f.tls.seen().length, 2);assert.equal(f.state.resolutions, 2);
   assertReleased(ledger);
+});
+
+test('kintone loader without its original initializer never enters raw configuration fallback',async()=>{
+  await assert.rejects(loadInstalledKintoneSource({metadataPath:'/UNOPENED-original-metadata'},{}),
+    {code:'KintoneSourceConstructionUnavailable'});
+});
+
+test('registered kintone native Form refusal retains the original typed cause and initial cleanup',async t=>{
+  const f=await fixture(t);
+  const bytes=Buffer.from('{}');
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,formBody:bytes.toString('base64')}));
+  const limits=f.profile.limits;
+  const expected=common.clientProgramKintoneProjectForm(bytes,f.profile.appId,
+    common.clientProgramKintoneFormLimits(limits.maxResponseBytes,limits.maxNodes,limits.maxDepth,limits.maxFields,limits.maxNameUnits));
+  assert.equal(expected.$tag,0);
+  await assert.rejects(f.load(),cause=>{
+    assert.deepEqual(cause.primaryFailure?.cause,expected._0);assert.equal(cause.cleanupPending,false);
+    assert.deepEqual(cause.cleanupErrors,[]);return true;
+  });
+  assert.equal(f.tls.seen().length,0);assert.equal(f.state.resolutions,0);
 });
