@@ -69,10 +69,23 @@ const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
   sign: bytes => sign(null, bytes, reviewerKeys.privateKey)};
 const tokens = new Map([['owner-token', owner],
   ['reviewer-token', 'reviewer-principal']]);
+// Source reads do not authorize inspection of the Host's Run or Named Result.
+// These fixture permissions belong to the installed Host's explicit Account.
+const hostReadEntry = {entry_id: 'host-results', outcome: 'allow',
+  principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+  resource: {any_of: ['result/records', 'run']},
+  operation: {any_of: ['read']}, exclusions: []};
+const sourceHostAuthorization = {accountConfiguration: canonicalJson({
+  version: 'actql-execution-account-config/0.1', account_id: 'salesforce-configured-normal',
+  entries: [{entry_id: 'host-requests', outcome: 'allow',
+    principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['salesforce-acquired']},
+    operation: {any_of: ['write']}, exclusions: []}, hostReadEntry],
+})};
 const checkpointAuthorization = extra => ({
   accountConfiguration: canonicalJson({
     version: 'actql-execution-account-config/0.1',
-    account_id: 'host-account', entries: [{entry_id: 'host-run',
+    account_id: 'host-account', entries: [hostReadEntry, {entry_id: 'host-run',
       outcome: 'allow', principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {any_of: ['write']},
       exclusions: []}]}),
@@ -204,7 +217,8 @@ async function installation(t, {readable = ['Test_Record__c'],
     return first;
   };
   const open = async ({authenticate = header =>
-    tokens.get(header?.replace(/^Bearer /u, '')), authorization} = {}) => {
+    tokens.get(header?.replace(/^Bearer /u, '')),
+  authorization = sourceHostAuthorization} = {}) => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate,
       ...(secondInstallation ? {sourceProfilePaths: [profilePath,
