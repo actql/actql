@@ -37,9 +37,11 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         if saved_read is not None:
             from ._local_saved_read import OriginalSavedResultRead
             if (type(saved_read) is not OriginalSavedResultRead or saved_read._host is not host
+                    or saved_read._original is not saved_read
                     or not any(original is saved_read for original in host._saved_result_reads)):
                 raise ValueError('Foreign original Saved response custody')
-            saved_read._ensure_active()
+            # Partial construction may already be closing. Retaining the SAME
+            # cleanup carrier requires nominal custody, never active permission.
         self._original = self
         self._host, self._reader = host, reader
         self._saved_read = saved_read
