@@ -57773,6 +57773,14 @@
               {
                 "path": "scripts/test_python_local_host_fuel.py",
                 "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_saved_parent_retires_after_reader_ack_and_allows_sequential_area_restore("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
               }
             ]
           }
@@ -72752,6 +72760,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_saved_parent_retires_after_reader_ack_and_allows_sequential_area_restore("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
               }
             ]
           }

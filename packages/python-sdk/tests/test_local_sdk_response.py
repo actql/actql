@@ -185,3 +185,83 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(reader._closed)
             await stream.aclose()
             self.assertTrue(holder.close())
+
+    async def test_saved_parent_retires_after_reader_ack_and_allows_sequential_area_restore(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]', slots=4) as (_, root, _, final):
+            created = root.create_area('saved-area')
+            identity = created.identity
+            self.assertTrue(root.close_area(created))
+            area = root.restore_area('saved-area', identity)
+            stream, host, reader, holder, _, _, request, _, state, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            saved._area = area
+            host._installation = SimpleNamespace(_results=root)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            close_original = saved.close
+            closed = []
+            def close_parent():
+                self.assertTrue(reader._closed)
+                self.assertNotIn(request.ticket, holder._payload_reader_borrows)
+                acknowledged = close_original()
+                if acknowledged:
+                    closed.append(area)
+                return acknowledged
+            try:
+                with patch.object(saved, 'close', side_effect=close_parent):
+                    iterator = stream.__aiter__()
+                    self.assertEqual(await anext(iterator), b'')
+                    with self.assertRaises(LocalFileError):
+                        root.restore_area('saved-area', identity)
+                    state['cleanup'] = False
+                    with self.assertRaises(RuntimeError):
+                        await stream.aclose()
+                    self.assertEqual(closed, [])
+                    self.assertIn(stream, host._response_streams)
+                    self.assertIs(root._areas[id(area)], area)
+                    state['cleanup'] = True
+                    await stream.aclose()
+                    await stream.aclose()
+                self.assertEqual(closed, [area])
+                self.assertNotIn(saved, host._saved_result_reads)
+                self.assertNotIn(stream, host._response_streams)
+                restored = root.restore_area('saved-area', identity)
+                self.assertIsNot(restored, area)
+                self.assertEqual(restored.identity, identity)
+                self.assertTrue(root.close_area(restored))
+            finally:
+                state['cleanup'] = True
+                await stream.aclose()
+                self.assertTrue(saved.close())
+                self.assertTrue(holder.close())
+
+    async def test_partial_parent_close_does_not_reuse_retired_transport_inputs(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, _, _, _, _, _ = self.bridge(root, final)
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads = [saved]
+            host._response_streams.discard(stream)
+            stream = OriginalLocalSDKResponseStream(host, reader, saved_read=saved)
+            close_original = saved.close
+            calls = []
+            def close_parent():
+                self.assertTrue(reader._closed)
+                calls.append(reader)
+                return False if len(calls) == 1 else close_original()
+            with patch.object(saved, 'close', side_effect=close_parent), patch.object(
+                    holder, 'close_original_first', wraps=holder.close_original_first) as close_first:
+                with self.assertRaises(RuntimeError):
+                    await stream.aclose()
+                self.assertIn(stream, host._response_streams)
+                self.assertTrue(stream._payload_closed)
+                self.assertIs(stream._saved_read, saved)
+                await stream.aclose()
+                await stream.aclose()
+                close_first.assert_called_once()
+            self.assertEqual(calls, [reader, reader])
+            self.assertNotIn(saved, host._saved_result_reads)
+            self.assertNotIn(stream, host._response_streams)
+            self.assertTrue(holder.close())
