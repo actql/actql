@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { hash } from './inventory.mjs';
@@ -8,10 +7,10 @@ import { retainedProviderConstructionBound as providerConstructionBound, inspect
 import {constructionSourceReview, reviewedFunction, selectedFactoryOutsideAccepts,
   managedBeforePausePolls, selectedBeforeInputOnly, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup,
   selectedBeforeBoundaryDispatch, generatedBeforeBoundaryExclusions} from './capacity/parent-control/provider-construction-source-review.mjs';
-import {retainedConstructionRead} from './capacity/parent-control/provider-construction-adopted-review.mjs';
+import {retainedConstructionFixtureRead} from './fixtures/retained-construction-source.mjs';
 // These retained historical laws validate their exact reconstructed source, not
 // current Native records. Current source admission is tested independently.
-const reconstructedRead = retainedConstructionRead(path => readFileSync(new URL(`../../${path}`, import.meta.url)));
+const reconstructedRead = retainedConstructionFixtureRead;
 // Boundary-specific laws below refer to the independently pinned final Graph
 // variant, not the older generated premise in the Calendar reverse-delta proof.
 const read = path => path === 'src/execution_relation/generated_sequence.mbt'
