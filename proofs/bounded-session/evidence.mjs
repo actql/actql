@@ -85,6 +85,7 @@ export function snapshot(root) {
     .concat(['toolchain.json', 'moon.mod',
       'docs/reviews/2026-09-23-local-resource-production-routes.json',
       'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
+      'adapters/host-node/ordinary-node-resource-runtime.cjs',
     ].map(path => join(root, path))).sort();
   const sources = Object.fromEntries(paths.map(path => [relative(root, path), hash(readFileSync(path))]));
   return { digest: hash(JSON.stringify(sources)), sources };

@@ -25,6 +25,7 @@ export const mutationSnapshotExtras = Object.freeze([
   'toolchain.json', 'moon.mod',
   'docs/reviews/2026-09-23-local-resource-production-routes.json',
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
+  'adapters/host-node/ordinary-node-resource-runtime.cjs',
 ]);
 const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(value);
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&

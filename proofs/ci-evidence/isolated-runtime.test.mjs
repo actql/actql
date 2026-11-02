@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -14,6 +14,57 @@ import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult
 import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
+
+test('actual staged Session dependencies load and bind the ordinary CJS through restoration', t => {
+  const repository = fileURLToPath(new URL('../../',import.meta.url));
+  const revision = execFileSync('git',['rev-parse','HEAD'],{cwd:repository,encoding:'utf8'}).trim();
+  const tree = gitTree(repository,revision);
+  const destination = mkdtempSync(join(tmpdir(),'actql-session-dependency-'));
+  t.after(() => rmSync(destination,{recursive:true,force:true}));
+  const staged = stageMutationSource({tree,destination});
+  const sourceRoot = join(destination,'source');
+  const output = execFileSync(process.execPath,['--input-type=module','-e',`
+    import assert from 'node:assert/strict';
+    import {join} from 'node:path';
+    import {pathToFileURL} from 'node:url';
+    import {createRequire} from 'node:module';
+    const root = process.argv[1];
+    const runtime = await import(pathToFileURL(join(root,'proofs/ci-evidence/isolated-runtime.mjs')).href);
+    assert.equal(typeof runtime.checkMutationCheckout,'function');
+    const load = createRequire(join(root,'_build/js/debug/test/query_integration/query_integration.whitebox_test.js'));
+    const ordinary = load('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs');
+    assert(Object.isFrozen(ordinary));
+    assert.equal(typeof ordinary.prepareOriginalManagedRunPorts,'function');
+    console.log('PASS actual staged Session declarations; no operations invoked');
+  `,sourceRoot],{cwd:sourceRoot,encoding:'utf8',timeout:30000,maxBuffer:1024*1024});
+  assert.match(output,/^PASS actual staged Session declarations; no operations invoked/u);
+  const action = readCatalog().actions.find(value => value.id === 'mutations-js');
+  const inputs = actionInputs({tree,revision,action,runtime:{profile:'source-correspondence-only',unresolved:['runtime not executed']}});
+  const bridge = 'adapters/host-node/ordinary-node-resource-runtime.cjs';
+  for (const path of [bridge,'proofs/relation-pipeline/proof-runner-extension.mjs']) {
+    assert(staged.files.some(entry => entry.path === 'source/'+path && entry.digest === hash(tree.read(path))));
+    assert(inputs.inputs.files.some(entry => entry.path === path && entry.digest === hash(tree.read(path))));
+  }
+  const expected = snapshotFromGit(tree);
+  assert.deepEqual(snapshot(sourceRoot),expected);
+  assert.equal(expected.sources[bridge],hash(tree.read(bridge)));
+  const file = join(sourceRoot,bridge),original = readFileSync(file);
+  try {
+    writeFileSync(file,Buffer.concat([original,Buffer.from('\n// changed copied dependency\n')]));
+    assert.notEqual(snapshot(sourceRoot).digest,expected.digest);
+    assert.throws(() => checkMutationCheckout({root:sourceRoot,tree}),/Mutation checkout bytes differ from Git/u);
+  } finally { writeFileSync(file,original); }
+  assert.deepEqual(checkMutationCheckout({root:sourceRoot,tree}),expected);
+});
+
+test('changed dependency restoration bytes cannot inherit the historical isolated experiment contract', () => {
+  const repository = fileURLToPath(new URL('../../',import.meta.url));
+  const revision = execFileSync('git',['rev-parse','HEAD'],{cwd:repository,encoding:'utf8'}).trim();
+  const digest = isolatedExperimentDigest(gitTree(repository,revision));
+  assert.notEqual(digest,isolatedContract.experimentDigest);
+  assert.equal(matchesIsolatedContract({experimentDigest:digest,toolchainDigest:isolatedContract.toolchainDigest,
+    hostImage:isolatedContract.hostImage,platformInputs:{kernelRelease:isolatedContract.kernelRelease}}),false);
+});
 
 test('actual Git sources have the same keyed cohort, staged bytes/modes and original restoration snapshot', t => {
   const repository = fileURLToPath(new URL('../../', import.meta.url));
