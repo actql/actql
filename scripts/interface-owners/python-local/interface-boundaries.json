@@ -51116,7 +51116,7 @@
           ]
         }
       ],
-      "sha256": "9d4dc17ce5b672c3ac52e4cab9ee2fdb950712a863e72ce1437010cdca0f0c89",
+      "sha256": "d6bf9c52cf4bc41a947fe2f9b987b7220b4aea24b8e6e9b2f8504bcf8068586d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -55399,6 +55399,15 @@
         },
         {
           "async": false,
+          "name": "OriginalSDKDeliveryStore/_selected_original_payload",
+          "parameters": [
+            "self",
+            "first",
+            "configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalSDKDeliveryStore/bind_original_payload",
           "parameters": [
             "self",
@@ -55570,6 +55579,23 @@
         },
         {
           "async": false,
+          "name": "OriginalSDKDeliveryStore/prepare_original_payload",
+          "parameters": [
+            "self",
+            "request",
+            "clock"
+          ]
+        },
+        {
+          "async": false,
+          "name": "OriginalSDKDeliveryStore/prepare_original_payload/prepare",
+          "parameters": [
+            "first",
+            "configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalSDKDeliveryStore/produce_original_chunk",
           "parameters": [
             "self",
@@ -55635,14 +55661,6 @@
         },
         {
           "async": false,
-          "name": "OriginalSDKDeliveryStore/selected_original_payload/select",
-          "parameters": [
-            "first",
-            "configuration"
-          ]
-        },
-        {
-          "async": false,
           "name": "SDKDeliveryStorageCleanupPending",
           "parameters": []
         },
@@ -55685,7 +55703,7 @@
           ]
         }
       ],
-      "sha256": "f7b8c59ea9a3c2bce324d7f04c598d61fc2e37e12419df407192052a481cdcc6",
+      "sha256": "8e0cde69340b5acd69de4403f328c46b7d418dab3a8789adfb7b962397651efe",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -55729,7 +55747,7 @@
             "OriginalSDKDeliveryStore/read_original_chunk",
             "OriginalSDKDeliveryStore/read_original_chunk/read",
             "OriginalSDKDeliveryStore/selected_original_payload",
-            "OriginalSDKDeliveryStore/selected_original_payload/select"
+            "OriginalSDKDeliveryStore/_selected_original_payload"
           ],
           "exports": [
             "OriginalSDKDeliveryStore"
@@ -56503,6 +56521,155 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
                 "anchor": "\"\"\"Original Core delivery CAS to physical SQLite; not a Read/Run Owner.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "OriginalSDKDeliveryStore/prepare_original_payload",
+            "OriginalSDKDeliveryStore/prepare_original_payload/prepare"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_changed_file_or_foreign_input_cannot_escape_the_final_original_fence("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_changed_file_or_foreign_input_cannot_escape_the_final_original_fence("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def _payload_observation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Adjacent payload preparation observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
+                "anchor": "def prepare_original_payload("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_payload_selection.py",
+                "anchor": "def test_original_codec_and_ordinals_share_one_existing_read_snapshot("
               }
             ]
           }
@@ -72953,7 +73120,7 @@
           ]
         }
       ],
-      "sha256": "f4475ff5235ef7201fc8a7702d3ca880c05ac93bff575343e8eb00cf6c0e3ebb",
+      "sha256": "e94a218ec74a794219d2a4f9185e5cdab64110afbcc6046bf2aa9c80c3462a31",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",

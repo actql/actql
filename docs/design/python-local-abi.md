@@ -3354,3 +3354,20 @@ preparing it again. A distinct submission continues through normal admission.
 The optional physical problem fields are absent from older preparing/ready
 rows, whose canonical bytes remain unchanged. Native readers retain the same
 failure as terminal DATA and refuse fresh execution from that reference.
+
+### Adjacent payload preparation observations
+
+After original read evidence and first delivery are durably acknowledged, the
+normal live and Saved callers prepare the existing payload codecs and read the
+same Core-issued Result/binding ordinals within one existing Store read frame.
+The selected reader must remain the same nominal fact from that complete
+inventory. No descriptor opens inside this fixed preparation, and neither a
+write nor a read grant is combined with it.
+
+The original frame still performs its complete File/current/Account and fact
+checks around all three Core calls. Failure, changed originals or the final
+physical fence returns no selected fact; the same original input/output loans
+remain available for cleanup. No currentness or Allow result is cached. The
+standalone codec and ordinal methods retain their original independent frames
+for callers that deliberately select them separately. Payload binding and
+physical snapshot validation continue through their two original Core methods.
