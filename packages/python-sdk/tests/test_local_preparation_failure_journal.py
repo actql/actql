@@ -124,6 +124,47 @@ class PreparationFailureJournalTests(unittest.TestCase):
                                  for family, name, _ in calls))
             self.assertTrue(host.close())
 
+    def test_public_first_attempt_reports_recorded_terminal_without_scheduling_work(self):
+        with TemporaryDirectory(prefix='actql-failure-public-') as directory:
+            host, _, _, counts, reference, identity = self.fixture(directory)
+            body = {'connection': {'mode': 'local', 'owner': 'local', 'durability': 'durable',
+                'consentRefs': [], 'runners': []}, **json.loads(original_append.INTENT),
+                'submissionRef': reference, 'intentCid': identity,
+                'attemptRef': {'operation': 'submit', 'attemptId': 'first-original'}}
+            async def submit():
+                response = await host.open('submit-intent', wire_bytes(body))
+                try:
+                    return json.loads(await response.aread())
+                finally:
+                    await response.aclose()
+            response = asyncio.run(submit())
+            self.assertEqual(response['kind'], 'recorded')
+            self.assertEqual(response['attemptRef'], body['attemptRef'])
+            self.assertEqual(response['outcome']['kind'], 'preparation_failed')
+            self.assertEqual(counts['prepare'], 1)
+            self.assertFalse(host._physical_work)
+            self.assertFalse(host._public_run_references)
+            self.assertTrue(host.close())
+
+    def test_current_failure_after_typed_parser_result_prevents_terminal_write(self):
+        with TemporaryDirectory(prefix='actql-failure-post-current-') as directory:
+            host, _, _, counts, reference, _ = self.fixture(directory)
+            binding = host._installation.binding
+            original = binding.inspect
+            def refuse_after(action):
+                result = original(action)
+                if host._preparation._failures:
+                    raise LocalCoreError('original_post_prepare_current', -32)
+                return result
+            with patch.object(binding, 'inspect', side_effect=refuse_after):
+                with self.assertRaises(LocalCoreError):
+                    host._accept_original(reference, original_append.INTENT, run_id='must-not-issue')
+            self.assertEqual(counts['prepare'], 1)
+            self.assertEqual(counts['failure'], 0)
+            self.assertEqual(counts['lookup'], 0)
+            self.assertTrue(host._prepared_inputs)
+            self.assertTrue(host.close())
+
     def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries(self):
         with TemporaryDirectory(prefix='actql-failure-lost-') as directory:
             host, core, _, counts, reference, _ = self.fixture(directory)

@@ -154,7 +154,8 @@ class PreparationCustodyTests(unittest.TestCase):
         loan = adapter.reserve(environment, document, format='program')
         codes.update(prepared_results=0, prepared_tasks=0)
         self.assertEqual(adapter.prepare(loan), PreparedShape(0, 0))
-        self.assertEqual(calls[-3:], [('prepare', (loan.handle,)),
+        self.assertEqual(calls[-4:], [('prepare', (loan.handle,)),
+                                     ('prepared_outcome', (loan.handle,)),
                                      ('prepared_results', (loan.handle,)),
                                      ('prepared_tasks', (loan.handle,))])
 

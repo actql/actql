@@ -3333,3 +3333,24 @@ full checks. This supplies no active custody transport or lifetime optimization,
 capacity, permission, current-row proof or physical acknowledgment. ABI78 and
 its full public Core validators remain unchanged; no private combined-export,
 ABI82 behavior or runtime timing equivalence is implied.
+
+### Accepted preparation failure
+
+Local submission retains the unchecked original intent in `preparing` before
+invoking its original parser and Checker. The preparation handle retains its
+typed outcome separately from plan counts. A known preparation failure does not
+turn a negative count, trap, failed current check or uncertain transaction into
+a semantic refusal. It also cannot undo the earlier submission acceptance.
+
+The same failed preparation and accepted intent select a bounded canonical
+`preparation_failed` row candidate. The Host revalidates that original candidate
+inside the existing fenced Store CAS, then independently reads the same
+submission reference before returning `SubmissionPreparationFailed`. No Run or
+dispatch is issued. COMMIT uncertainty preserves the original loans and remains
+Unknown; this path never retries the write, parser or Checker. Repeated lookup
+or submission of the same retained terminal observes that outcome rather than
+preparing it again. A distinct submission continues through normal admission.
+
+The optional physical problem fields are absent from older preparing/ready
+rows, whose canonical bytes remain unchanged. Native readers retain the same
+failure as terminal DATA and refuse fresh execution from that reference.
