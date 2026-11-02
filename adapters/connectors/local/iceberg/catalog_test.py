@@ -2,10 +2,15 @@ import tempfile
 import unittest
 import sqlite3
 import hashlib
+import math
+import re
+import pyarrow as pa
 from contextlib import closing
+from unittest.mock import patch
+import pyarrow.parquet as pq
 from pathlib import Path
 
-from catalog import CatalogRefusal, TableCatalog
+from catalog import CatalogRefusal, TableCatalog, _parquet_thrift_limits
 from physical import seal, PhysicalRefusal
 from physical_test import mapping, schema_wire
 
@@ -41,6 +46,112 @@ class CatalogTests(unittest.TestCase):
     def write(self, catalog, operation, rows, reservation=None):
         return catalog.write_claimed(operation, mapping(), rows,
                                      reservation or {"bytes": 1048576, "files": 16}, schema_wire())
+
+    def test_same_read_observes_parquet_and_row_material_before_original_constructors(self):
+        # Fresh authored physical fixture, retained even on an assertion failure.
+        # This supplies no Program, authorization, Run or parent reservation.
+        root = tempfile.mkdtemp(prefix="actql-table-construction-")
+        print("Retained physical constructor fixture:", root)
+        catalog = self.open(root)
+        observed = []
+        before = lambda geometry: observed.append(dict(geometry))
+        catalog.before_materialization = before
+        rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2}, {"id": 3, "p": None}]
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "constructor_rows", "c"), rows)
+            # Select only the read's original material, separately from setup.
+            observed.clear()
+            read_table = pq.read_table
+            read_file = pq.ParquetFile.read
+            entries = []
+            def check_before_data():
+                self.assertIn("parquet-read", [value["phase"] for value in observed],
+                              "the original Arrow constructor ran without its before-call geometry")
+                entries.append(True)
+            def original_table(*args, **kwargs):
+                check_before_data()
+                return read_table(*args, **kwargs)
+            def original_file(owner, *args, **kwargs):
+                check_before_data()
+                return read_file(owner, *args, **kwargs)
+            with patch.object(pq, "read_table", original_table), patch.object(pq.ParquetFile, "read", original_file):
+                actual = catalog.read_generation(receipt, mapping())
+            self.assertEqual(actual, rows)
+            self.assertTrue(entries)
+            phases = [value["phase"] for value in observed]
+            self.assertLess(phases.index("parquet-footer"), phases.index("parquet-read"))
+            self.assertLess(phases.index("parquet-read"), phases.index("arrow-rows"))
+            material = next(value for value in observed if value["phase"] == "arrow-rows")
+            self.assertEqual((material["rows"], material["columns"]), (3, 3))
+            self.assertGreater(material["bytes"], 0)
+        finally:
+            catalog.engine.dispose()
+
+    def test_original_constructor_refusal_precedes_data_read_and_preserves_cause(self):
+        for phase in ("parquet-footer", "parquet-read"):
+            with self.subTest(phase=phase):
+                root = tempfile.mkdtemp(prefix="actql-table-constructor-refusal-")
+                print("Retained physical refusal fixture:", root)
+                writer = self.open(root)
+                try:
+                    writer.create_namespace("test")
+                    receipt = self.write(writer, request("create", "rows", "d"), [{"id": 1}])
+                finally:
+                    writer.engine.dispose()
+                primary = RuntimeError("OriginalConstructorRefusal")
+                observed = []
+                def before(geometry):
+                    observed.append(dict(geometry))
+                    if geometry["phase"] == phase:
+                        raise primary
+                reader = TableCatalog(Path(root) / "catalog.db", Path(root) / "warehouse",
+                                      "sha256:" + "3" * 64,
+                                      {"bytes": 16777216, "files": 256, "operations": 32},
+                                      before_materialization=before)
+                try:
+                    with patch.object(pq.ParquetFile, "read", side_effect=AssertionError("unfunded data read")):
+                        with self.assertRaises(RuntimeError) as failed:
+                            reader.read_generation(receipt, mapping())
+                    self.assertIs(failed.exception, primary)
+                    self.assertEqual(observed[-1]["phase"], phase)
+                finally:
+                    reader.engine.dispose()
+
+    def test_observed_original_parquet_read_preserves_binary64_bits_and_omission(self):
+        root = tempfile.mkdtemp(prefix="actql-table-observed-bits-")
+        print("Retained observed numeric fixture:", root)
+        seen = []
+        catalog = TableCatalog(Path(root) / "catalog.db", Path(root) / "warehouse",
+                               "sha256:" + "3" * 64,
+                               {"bytes": 16777216, "files": 256, "operations": 32},
+                               before_materialization=lambda value: seen.append(dict(value)))
+        rows = [{"id": -0.0, "p": "e\u0301\r\n"}, {"id": 9007199254740992}, {"id": -2.5, "p": None}]
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "e"), rows)
+            self.assertEqual(seen, [], "test publication supplies no observed read or backing evidence")
+            actual = catalog.read_generation(receipt, mapping())
+            self.assertEqual(actual, rows)
+            self.assertEqual(math.copysign(1, actual[0]["id"]), -1)
+            self.assertEqual(actual[1]["id"], 9007199254740992)
+            self.assertNotIn("p", actual[1])
+            self.assertIsNone(actual[2]["p"])
+            self.assertEqual([value["phase"] for value in seen],
+                             ["parquet-footer", "parquet-read", "arrow-rows"])
+        finally:
+            catalog.engine.dispose()
+
+    def test_observed_footer_keeps_original_pinned_native_parser_defaults(self):
+        source = (Path(pa.get_include()) / "parquet/properties.h").read_text()
+        original = []
+        for name in ("String", "Container"):
+            expression = re.search(r"kDefaultThrift" + name + r"SizeLimit = ([0-9 *]+);", source)
+            self.assertIsNotNone(expression)
+            original.append(math.prod(int(part.strip()) for part in expression.group(1).split("*")))
+        self.assertEqual(_parquet_thrift_limits(2147483647), tuple(original))
+        for footer in (1, 512, 2_000_000):
+            self.assertEqual(_parquet_thrift_limits(footer), tuple(min(footer, value) for value in original))
 
     def test_unsupported_carrier_refuses_before_any_staging_or_reservation(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-kind-") as root:

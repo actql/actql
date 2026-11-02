@@ -7966,7 +7966,7 @@
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
       "responsibilityFacet": "primary",
-      "sha256": "5d8ea6e74e0d3775a6730f5a946925d2e6d480e5cb4463342759ebb529bbdb6d",
+      "sha256": "d54dfb45de3f5ba66c1cb2d5ac4632a30528557739ce378d7ce87addd8013957",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
       "exports": [
@@ -8023,7 +8023,8 @@
             "database",
             "warehouse",
             "catalog_cid",
-            "limits"
+            "limits",
+            "before_materialization"
           ]
         },
         {
@@ -8033,6 +8034,25 @@
             "self",
             "properties",
             "location"
+          ]
+        },
+        {
+          "async": false,
+          "name": "TableCatalog/_observe_material",
+          "parameters": [
+            "self",
+            "phase",
+            "size",
+            "rows",
+            "columns"
+          ]
+        },
+        {
+          "async": false,
+          "name": "TableCatalog/_read_generation_file",
+          "parameters": [
+            "self",
+            "task"
           ]
         },
         {
@@ -8185,6 +8205,13 @@
         },
         {
           "async": false,
+          "name": "_parquet_thrift_limits",
+          "parameters": [
+            "footer_bytes"
+          ]
+        },
+        {
+          "async": false,
           "name": "check_logical_schema",
           "parameters": [
             "mapping",
@@ -8256,48 +8283,80 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "## Operation and publication identity"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def write_claimed"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def check_expected"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def reconcile"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def commit_table"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "CatalogRefusal"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def cleanup_after_stop"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/local/iceberg/custody.py",
                 "anchor": "def reserve"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "extension": [
@@ -8308,6 +8367,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/requirements.lock",
                 "anchor": "pyiceberg=="
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "verification": [
@@ -8318,6 +8381,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "test_record_failure_rolls_back_catalog_head_not_only_receipt"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ]
           }
@@ -8326,7 +8393,10 @@
           "operations": [
             "TableCatalog/generation_table",
             "TableCatalog/read_generation",
-            "TableCatalog/resolve_generation"
+            "TableCatalog/resolve_generation",
+            "TableCatalog/_observe_material",
+            "TableCatalog/_read_generation_file",
+            "_parquet_thrift_limits"
           ],
           "exports": [],
           "attributes": {
@@ -8334,57 +8404,100 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "## Operation and publication identity"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Parquet and flat-row constructor geometry"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def read_generation"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog.py",
+                "anchor": "{\"phase\": phase, \"bytes\": size, \"rows\": rows, \"columns\": columns}"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def resolve_generation"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog.py",
+                "anchor": "metadata.num_rows != task.file.record_count"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "def generation_table"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog.py",
+                "anchor": "with path.open(\"rb\") as original:"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "metadata_location"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/physical.py",
+                "anchor": "before_materialization({\"phase\": \"arrow-rows\""
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "CatalogRefusal"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "self.assertIs(failed.exception, primary)"
               }
             ],
-            "cancellation": {
-              "notApplicable": "Synchronous frozen-generation reader, not a writer stop observation or publication/cleanup authority. The managed process owner handles actual interruption."
-            },
+            "cancellation": [
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "Synchronous frozen-generation reader, not a writer stop observation or publication/cleanup authority. The managed process owner handles actual interruption."
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "physical cleanup acknowledgement."
+              }
+            ],
             "resources": [
               {
                 "path": "adapters/connectors/local/iceberg/README.md",
                 "anchor": "original captured"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "def test_observed_footer_keeps_original_pinned_native_parser_defaults"
               }
             ],
             "extension": [
               {
                 "path": "adapters/connectors/local/iceberg/README.md",
                 "anchor": "No ordering is promised"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "Explicit physical diagnostics may omit the observer"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "test_new_read_resolves_one_generation_and_preserves_presence_after_replace"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "def test_same_read_observes_parquet_and_row_material_before_original_constructors"
               }
             ]
           }

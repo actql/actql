@@ -68,7 +68,8 @@
         "name": "decode_physical",
         "parameters": [
           "mapping",
-          "table"
+          "table",
+          "before_materialization"
         ]
       },
       {
@@ -117,7 +118,7 @@
         ]
       }
     ],
-    "sha256": "61bd71bbcf372995f55601db31a941b3bee8eb5cb926086118cef3283372ea93",
+    "sha256": "df54cb1e9711f22b17614db31158aae367f9a21adcd74acd6079bb55ce5a8159",
     "role": "physical-io",
     "owner": "Local Table physical data and managed-process adapter",
     "contracts": [
@@ -169,6 +170,10 @@
             {
               "path": "spec/contracts/actql-local-table-iceberg.json",
               "anchor": "\"operations\""
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original Parquet and flat-row constructor geometry"
             }
           ],
           "inputsOutputs": [
@@ -179,6 +184,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Only flat Boolean"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/catalog.py",
+              "anchor": "{\"phase\": phase, \"bytes\": size, \"rows\": rows, \"columns\": columns}"
             }
           ],
           "identity": [
@@ -193,6 +202,10 @@
             {
               "path": "adapters/connectors/local/iceberg/physical.py",
               "anchor": "StorageMappingIdentity"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/catalog.py",
+              "anchor": "metadata.num_rows != task.file.record_count"
             }
           ],
           "ownership": [
@@ -207,6 +220,10 @@
             {
               "path": "adapters/connectors/local/host/iceberg-process.mjs",
               "anchor": "const preparations = new WeakMap"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/catalog.py",
+              "anchor": "with path.open(\"rb\") as original:"
             }
           ],
           "synchronization": [
@@ -217,6 +234,10 @@
             {
               "path": "adapters/connectors/local/host/iceberg-process.mjs",
               "anchor": "owned.attempted"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/physical.py",
+              "anchor": "before_materialization({\"phase\": \"arrow-rows\""
             }
           ],
           "failure": [
@@ -231,6 +252,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Missing, malformed, foreign or unconfirmed responses"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/catalog_test.py",
+              "anchor": "self.assertIs(failed.exception, primary)"
             }
           ],
           "cancellation": [
@@ -241,6 +266,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Cancellation and channel closure"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "physical cleanup acknowledgement."
             }
           ],
           "resources": [
@@ -259,6 +288,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "No new capacity coefficients"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/catalog_test.py",
+              "anchor": "def test_observed_footer_keeps_original_pinned_native_parser_defaults"
             }
           ],
           "extension": [
@@ -273,6 +306,10 @@
             {
               "path": "adapters/connectors/local/iceberg/README.md",
               "anchor": "Unsupported types"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "Explicit physical diagnostics may omit the observer"
             }
           ],
           "verification": [
@@ -287,6 +324,10 @@
             {
               "path": "adapters/connectors/local/iceberg/process_worker_test.py",
               "anchor": "class ProcessTests"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/catalog_test.py",
+              "anchor": "def test_same_read_observes_parquet_and_row_material_before_original_constructors"
             }
           ]
         }

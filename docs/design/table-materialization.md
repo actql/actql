@@ -544,3 +544,35 @@ value refuses admission and remains on the same process cleanup record until
 its original settlement. Host stop while waiting for continuation returns no
 worker success or material acknowledgement. Only the existing process/capture
 retirement path can discharge the corresponding cleanup responsibility.
+
+
+### Original Parquet and flat-row constructor geometry
+
+For an observed read, the Catalog retains the same open data-file descriptor
+through footer, native metadata and Arrow data construction. It observes the
+actual footer bytes before `ParquetFile`, preserves both pinned PyArrow native
+parser defaults, and additionally bounds each valid string/container by that
+same footer wire. The installed upstream header is the independent source for
+those two existing dependency defaults; they are not ActQL capacity policy.
+
+The original footer's uncompressed chunk sizes, row count and physical column
+count are observed before the Arrow read. Compressed file size cannot stand in
+for dictionary-expanded data. The data-file row count must still match its
+original Iceberg task; this adds no logical key, ordering or conversion rule.
+After the existing field-ID/type/presence checks, the actual flat Arrow Table's
+bytes and dimensions are observed before `to_pylist` and the mapped output
+row dictionaries. The same values preserve negative zero, exact binary64,
+original text and NULL/omission. Typed empty material has zero bytes/rows and
+keeps its original physical schema.
+
+These observations are constructor DATA, not a reservation or grant. The Host
+must map each one to its same-parent simultaneous input/output/failed-prefix
+backing before allowing that call to continue. Earlier Catalog/bootstrap,
+metadata and compressed manifest decoding retain their separate before-call
+obligations; the later Arrow observation cannot retrospectively fund them.
+Explicit physical diagnostics may omit the observer, without establishing
+managed preparation or a normal fallback. Invalid physical correspondence
+continues through the existing failed-I/O path; it supplies no business
+noncommit, success or physical cleanup acknowledgement.
+
+Synchronous frozen-generation reader, not a writer stop observation or publication/cleanup authority. The managed process owner handles actual interruption.

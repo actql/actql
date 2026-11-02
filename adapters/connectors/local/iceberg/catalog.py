@@ -24,6 +24,18 @@ from physical import (PhysicalRefusal, canonical_envelope, check_mapping, decode
 from custody import CustodyIO, install_custody, reserve, claim_file, charge_file, cleanup_after_stop
 
 
+# Original pinned PyArrow21 ReaderProperties defaults, not Run capacities.
+# The focused test binds these two dependency facts to its installed upstream
+# parquet/properties.h. Never widen either existing parser bound for a footer.
+_PARQUET_THRIFT_STRING_DEFAULT = 100_000_000
+_PARQUET_THRIFT_CONTAINER_DEFAULT = 1_000_000
+
+
+def _parquet_thrift_limits(footer_bytes):
+    return (min(footer_bytes, _PARQUET_THRIFT_STRING_DEFAULT),
+            min(footer_bytes, _PARQUET_THRIFT_CONTAINER_DEFAULT))
+
+
 class CatalogRefusal(PhysicalRefusal):
     pass
 
@@ -75,9 +87,12 @@ class TableCatalog(SqlCatalog):
     existing Host process owner confirms stop and a durable publication fence.
     """
 
-    def __init__(self, database, warehouse, catalog_cid, limits):
+    def __init__(self, database, warehouse, catalog_cid, limits, before_materialization=None):
         # Resolve the operator-configured root once (macOS /var is an alias).
         # Data-file paths must thereafter stay within this canonical root.
+        if before_materialization is not None and not callable(before_materialization):
+            raise ValueError("InvalidTableConstructorObserver")
+        self.before_materialization = before_materialization
         self.database = str(Path(database).resolve())
         self.warehouse = Path(warehouse).resolve()
         self.catalog_cid = catalog_cid
@@ -494,14 +509,65 @@ class TableCatalog(SqlCatalog):
         check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
         return Table(("immutable", "read"), metadata, receipt["metadata_location"], io, self)
 
+    def _observe_material(self, phase, size, rows=0, columns=0):
+        if self.before_materialization is None:
+            return
+        # Exact primitive geometry only, never an amount, permission, source
+        # identity or physical return. Keep JSON's exact integer domain.
+        if any(type(value) is not int or not 0 <= value <= 9007199254740991
+               for value in (size, rows, columns)):
+            raise ValueError("InvalidTableConstructorGeometry")
+        result = self.before_materialization(
+            {"phase": phase, "bytes": size, "rows": rows, "columns": columns})
+        if result is not None:
+            raise ValueError("InvalidTableConstructorContinuation")
+
+    def _read_generation_file(self, task):
+        path = self.local_path(task.file.file_path)
+        # Keep the SAME open descriptor for footer, native metadata and data.
+        # Footer parsing is funded before ParquetFile's native constructor;
+        # its declared container/string bounds cannot exceed that actual wire.
+        with path.open("rb") as original:
+            length = os.fstat(original.fileno()).st_size
+            if length < 8:
+                raise ValueError("InvalidTableParquetFooter")
+            original.seek(-8, os.SEEK_END)
+            tail = original.read(8)
+            footer = int.from_bytes(tail[:4], "little")
+            if tail[4:] != b"PAR1" or not 1 <= footer <= length - 8:
+                raise ValueError("InvalidTableParquetFooter")
+            self._observe_material("parquet-footer", footer + 8)
+            original.seek(0)
+            string_limit, container_limit = _parquet_thrift_limits(footer)
+            parquet = pq.ParquetFile(original, thrift_string_size_limit=string_limit,
+                                     thrift_container_size_limit=container_limit)
+            try:
+                metadata = parquet.metadata
+                if metadata.num_rows != task.file.record_count:
+                    raise ValueError("TableParquetRowCount")
+                size = sum(metadata.row_group(group).column(column).total_uncompressed_size
+                           for group in range(metadata.num_row_groups)
+                           for column in range(metadata.num_columns))
+                # Encoded file size cannot bound dictionary-expanded Arrow
+                # material. The original footer supplies uncompressed sizes,
+                # actual rows and physical columns BEFORE the data constructor.
+                self._observe_material("parquet-read", size, metadata.num_rows, metadata.num_columns)
+                return parquet.read()
+            finally:
+                parquet.close()
+
     def read_generation(self, receipt, mapping):
         table = self.generation_table(receipt, mapping)
         output = []
         for task in table.scan().plan_files():
             if task.delete_files:
                 raise CatalogRefusal("ExternalDeleteFilesUnsupported")
-            raw = pq.read_table(self.local_path(task.file.file_path))
-            output.extend(decode_physical(mapping, raw))
+            if self.before_materialization is None:
+                raw = pq.read_table(self.local_path(task.file.file_path))
+            else:
+                raw = self._read_generation_file(task)
+            output.extend(decode_physical(
+                mapping, raw, before_materialization=self.before_materialization))
         if len(output) != receipt["row_count"]:
             raise CatalogRefusal("ReadRowCount")
         return output

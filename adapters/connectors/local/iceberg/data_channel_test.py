@@ -21,6 +21,40 @@ def mapping():
 
 
 class DataChannelTests(unittest.TestCase):
+    def test_original_flat_arrow_rows_are_observed_before_native_list_constructor(self):
+        contract = mapping()
+        original = encode_rows(contract, [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2}])
+        entered = []
+        class OriginalRowCall:
+            # Explicit call-count port around the SAME real Arrow Table. No
+            # replacement rows, schema inference or resource proof is supplied.
+            schema = original.schema
+            nbytes = original.nbytes
+            num_rows = original.num_rows
+            num_columns = original.num_columns
+            def to_pylist(self):
+                entered.append(True)
+                return original.to_pylist()
+        primary = RuntimeError("OriginalRowMaterialRefusal")
+        observed = []
+        def refuse(geometry):
+            observed.append(dict(geometry))
+            raise primary
+        with self.assertRaises(RuntimeError) as failed:
+            decode_physical(contract, OriginalRowCall(), before_materialization=refuse)
+        self.assertIs(failed.exception, primary)
+        self.assertEqual(entered, [])
+        self.assertEqual(observed, [{"phase": "arrow-rows", "bytes": original.nbytes,
+                                    "rows": 2, "columns": 3}])
+
+    def test_original_typed_empty_arrow_has_zero_geometry_without_fake_eos(self):
+        original = encode_rows(mapping(), [])
+        seen = []
+        self.assertEqual(decode_physical(mapping(), original,
+                                        before_materialization=lambda value: seen.append(dict(value))), [])
+        self.assertEqual(seen, [{"phase": "arrow-rows", "bytes": 0, "rows": 0, "columns": 3}])
+        self.assertEqual(original.schema, arrow_schema(mapping()))
+
     def test_binary64_negative_zero_and_exact_integer_boundary(self):
         contract = mapping()
         rows = [{"id": -0.0}, {"id": 9007199254740992}, {"id": -2.5}]

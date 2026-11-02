@@ -184,7 +184,7 @@ def encode_rows(mapping, rows):
     return pa.Table.from_pylist(encoded, schema=schema)
 
 
-def decode_physical(mapping, table):
+def decode_physical(mapping, table, before_materialization=None):
     """Read an actual file, never a default-filled Iceberg projection."""
     expected = {field_id: (name, typ) for name, field_id, typ, _, _ in physical_fields(mapping)}
     actual = {}
@@ -202,6 +202,14 @@ def decode_physical(mapping, table):
         actual[field_id] = field.name
     if set(actual) != set(expected):
         raise PhysicalRefusal("PhysicalFieldMissing")
+    if before_materialization is not None:
+        # The original physical schema above excludes dictionary/nested
+        # carriers. Its actual flat Arrow bytes and dimensions precede BOTH
+        # the full native row list and the mapped output dictionaries.
+        result = before_materialization({"phase": "arrow-rows", "bytes": table.nbytes,
+                                         "rows": table.num_rows, "columns": table.num_columns})
+        if result is not None:
+            raise ValueError("InvalidTableConstructorContinuation")
     output = []
     for physical in table.to_pylist():
         row = {}
