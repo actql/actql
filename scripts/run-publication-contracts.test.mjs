@@ -60,8 +60,9 @@ test('Run Definition optional selection projection preserves the old shape', () 
   assert.equal(createHash('sha1').update(Buffer.concat([
     Buffer.from(`blob ${successorBytes.length}\0`), successorBytes,
   ])).digest('hex'), '288bdc228f7749ad3f0f3f1ba3c4536a92c17969');
+  // Two local-receipt and three Command inverses precede the recorded transition.
   assert.deepEqual(restoreHistoricalSchemas(registry.artifact_schemas,
-    history.changes.slice(0, 3 + history.inverse_source_transitions[0].change_count)),
+    history.changes.slice(0, 5 + history.inverse_source_transitions[0].change_count)),
   JSON.parse(successorBytes).artifact_schemas);
   const historical = restoreHistoricalSchemas(registry.artifact_schemas, history.changes);
   assert.equal(history.artifact_registry_cid, vectors.artifact_registry_pins.after);
