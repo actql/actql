@@ -214,17 +214,18 @@ test('composition: missing read tuples and failed read owners preserve checking'
 // and hmac/sha256, the fixture's 32 bytes of 0x07, and literal context fields.
 // No product canonicalizer or returned context is used to build expectations.
 // The preimages include both registered reason and outcome schema CIDs.
-// These vectors use the current #2456 schema pins, not the preceding report.
+// These vectors use the current registered schema pins and independently fixed
+// preimages in scripts/fixtures/check-domain-carrier-identities.json.
 test('composition: exact Unicode source and received-input fallback have fixed references',
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:65a505df6462a8aa9271f3f2e6fa344d9b7355f201cd29ba85e0e269b7a3a39c',
-      'ctx:64ee3b7833aef20c5cfce2742a4ea62e618bb5367a9f19c58802dfdb1038b784',
+      'ctx:84f734d365804815536694a710364a6d031b748195919aeb59f603a05581b548',
+      'ctx:148eebd1d89f957f2792049246d36e9fe802a097d9a62bc7921e1342b99f5999',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:d809853b1dc6d72cea1f73d5a776a563311e979e003c16eef95c7cfc7da42149',
-        'ctx:71ffc8c1afa89af239d87c14710b0eec280824db4c021c24218da2e6e816bda2',
+        'ctx:fe0e5876da2f7b0ac4ba2e78706655ff88839141f3bb91aa192e3009471111d3',
+        'ctx:90963d53a300769cf2dd2ff786fcfa3e439c7768695fe1bddc94b81efdc40577',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {
