@@ -182,3 +182,33 @@ Focused native completion/facade controls are in
 Common Environment admission, nominal collection references and SQLite cleanup
 are separate from those explicit-port controls. Neither scope establishes a
 new normal distribution, measured heap bound or live provider acceptance.
+
+
+## Native returned material and ended Environment scratch
+
+A closed native completion may supply an original `retainedCapacity` beside its
+already returned wire/graph/Mapping bundle. It is an existing shared quantity
+from that same domain/count owner, not a grant, success flag or Resource. The
+initializer replaces only this constructor's selected peak after its output is
+retained and its synchronous callback has ended. A missing field keeps the
+original recipe's retained part. Invalid or asynchronous quantities cannot
+select a smaller holding: the original peak and pending child stay until the
+existing cleanup can retire them. Thrown values, including `undefined`, retain
+their original identity; no failed constructor is restarted.
+
+When the native domain already retains the supplied original parsed declaration,
+Host Environment completion owns only its returned `{wire,evidenceCid}` record.
+Its parsed merge, canonical and hash scratch is gone after synchronous return.
+The retained inventory therefore has the record/two String slots and their
+bounded UTF8 text, and no escaping Buffer. Construction still reserves the whole
+input-proportional peak before any merge callback. The older completion which
+also creates a parsed declaration keeps its original parsed-graph envelope.
+Native output ownership is never inferred from a CID or equal wire.
+
+The GCS domain counts its returned original relation declaration, parsed complete
+Catalog, collection identity/resource text, Mapping and binding strings from the
+original closed outputs. Complete wire lengths bound value occurrences without
+another parse, serialization, semantic check or provider call. The shared owner
+alone converts these counts to allowances. The two-scope original-initializer
+case exercises independent nominal collections and physical closes on the same
+initial parent; it is distinct from the independent-parent foreign-pair case.

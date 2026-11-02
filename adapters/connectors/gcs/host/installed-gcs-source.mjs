@@ -135,7 +135,21 @@ export async function loadInstalledGcsSource(profile,{root,principalId,moon,
         {project:installed.project,bucket:installed.bucket,prefix:installed.prefix,targetRef,resourceKind:'file_collection',
           catalogCid:declared.catalog_cid,installationCid:bindingCid,...declarationLimits});
       const mapping=collection===undefined?undefined:gcsCollectionUploadMapping(collection,wire,installed.connectorId,declarationLimits);
-      return Object.freeze({declaration:original.declaration,wire,declared,mappings:Object.freeze(mapping===undefined?[]:[mapping]),
+      // Returned nominal declaration and parsed full Catalog are two owned
+      // representations. Each complete wire bounds its original tree's value
+      // occurrences. Native collection fields/JS frame borrow the returned
+      // identity/resource strings; keep both views conservatively. No parse,
+      // serializer, semantic check or provider callback is repeated to count.
+      const relationUnits=BigInt(original.wire.length),catalogUnits=BigInt(wire.length);
+      const collectionUnits=collection===undefined?0n:BigInt(collection.identityWire.length+
+        collection.identityCid.length+collection.resourceWire.length);
+      const mappingUnits=BigInt(mapping?.length??0);
+      const retainedCapacity=checked(Reflect.apply(quote,moon,[
+        2n*(relationUnits+catalogUnits)+2n*collectionUnits+mappingUnits,
+        6n*(relationUnits+catalogUnits+collectionUnits+mappingUnits)+BigInt(original.scopeCid.length+bindingCid.length),
+        0n,0n,0n,0n]));
+      return Object.freeze({declaration:original.declaration,wire,declared,retainedCapacity,
+        mappings:Object.freeze(mapping===undefined?[]:[mapping]),
         material:Object.freeze({scopeCid:original.scopeCid,bindingCid,collection,declaredWire:providerMoon===undefined?undefined:wire})});
     },
   })]);

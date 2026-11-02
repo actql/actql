@@ -506,7 +506,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
             !Object.isFrozen(projected)) fail('InvalidInstalledSourceNativeDeclaration');
         const fields = Object.getOwnPropertyDescriptors(projected);
         const keys=Reflect.ownKeys(fields);
-        if(keys.some(name=>!['declaration','material','wire','declared','mappings'].includes(name)||
+        if(keys.some(name=>!['declaration','material','wire','declared','mappings','retainedCapacity'].includes(name)||
             !Object.hasOwn(fields[name],'value'))||['declaration','material'].some(name=>
             !Object.hasOwn(fields[name]??{},'value')))fail('InvalidInstalledSourceNativeDeclaration');
         declaration=fields.declaration.value;nativeMaterial=fields.material.value;
@@ -530,7 +530,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
           }
           material.inputs.push(declaredOriginal,mappingBodies);
         }else{
-          if(fields.declared!==undefined||fields.mappings!==undefined)fail('InvalidInstalledSourceNativeDeclaration');
+          if(fields.declared!==undefined||fields.mappings!==undefined||fields.retainedCapacity!==undefined)fail('InvalidInstalledSourceNativeDeclaration');
           declaredWire=requireSynchronousSourceConstruction(material,Reflect.apply(original.declarationJson,original.moon,[declaration]));
         }
         material.inputs.push(declaredWire);
@@ -544,8 +544,18 @@ export function beginInstalledSourceInitialization(services, installation, conne
           if(typeof material.methods.InstalledSourceRetainedConstructionCapacity!=='function'){
             fail('InstalledSourceInitializationRuntimeUnavailable');
           }
+          // This closed constructor can measure its returned native bundle
+          // using the SAME original domain/count owner after its scratch ends.
+          // It replaces this one constructor entry, never issues a new owner.
+          // Older native callers retain their selected recipe's original R.
+          const returnedQuantity=fields.retainedCapacity===undefined?quantity:
+            requireSynchronousSourceConstruction(material,fields.retainedCapacity.value);
+          if(!returnedQuantity||typeof returnedQuantity!=='object'||nodeTypes.isProxy(returnedQuantity)){
+            fail('InvalidInstalledSourceNativeDeclaration');
+          }
+          material.inputs.push(returnedQuantity);
           const retained=checked(requireSynchronousSourceConstruction(material,
-            Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,original.moon,[quantity])));
+            Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,original.moon,[returnedQuantity])));
           if(!scope.active||material.phase!=='working'||material.providers[providerIndex]!==quantity||
               !retained||typeof retained!=='object'||nodeTypes.isProxy(retained))fail('ForeignInstalledSourceInitialization');
           material.inputs.push(quantity,retained);material.providers[providerIndex]=retained;
@@ -570,7 +580,18 @@ export function beginInstalledSourceInitialization(services, installation, conne
           ...(mappingBodies===undefined?{}:{mappings:mappingBodies})});
         scope.prepared = prepared;scope.declarationBasis = basis;
         material.inputs.push(declared, environment, prepared);
-        material.nodes += basis;material.text += basis;material.wire += basis;
+        if(declaredOriginal===undefined){
+          // The legacy native completion also creates/retains its parsed graph.
+          material.nodes+=basis;material.text+=basis;material.wire+=basis;
+        }else{
+          // The native domain already owns this SAME parsed declaration graph.
+          // The completed Host Environment retains only its returned wire and
+          // evidence CID. Its parsed merge/canonical/hash scratch has ended;
+          // do not turn that temporary worst-case envelope into retained nodes.
+          // Three UTF8 bytes per UTF16 unit covers the actual retained text.
+          material.nodes+=3n;
+          material.text+=3n*(BigInt(environment.wire.length)+BigInt(environment.evidenceCid.length));
+        }
       } finally {material.busy = false;}
       reconcileSource(original, material);
       return prepared;

@@ -935,13 +935,18 @@ initial parent reserves native relation, Command Catalog, collection and Mapping
 construction before their callbacks. The closed native bundle contains at most
 three fixed views (eight, five and twelve columns), one fixed upload Command and
 one four-field Mapping; it accepts no supplied schema array. Its existing
-4,000,000-byte/400,000-node representation envelope retains the output bundle;
-two additional envelopes cover synchronous parser, identity and writer overlap.
+4,000,000-byte/400,000-node representation bounds supply the full original peak,
+including synchronous parser, identity and writer overlap. After closed return,
+the domain quotes the actual original output representations from their complete
+wire lengths and retained collection/Mapping strings, through the same shared
+quantity owner.
 These are logical quantities passed through the shared unit tariff once, not
 new limits, an RSS measurement or a numerical permission. Failure retains the
-full original peak; successful closed return keeps the original retained part
-before Environment construction. Generic Host Environment/input quantities are
-still charged separately on that same parent.
+full original peak; successful closed return keeps its actual output quantity
+before Environment construction. The Host also reserves its merge/canonical
+peak before construction, then retains only the returned Environment strings;
+the native domain already owns that same original parsed declaration. Generic
+Host input quantities remain charged separately on that same parent.
 
 The two original relation phases remain distinct: the first supplies carrier
 schema CIDs, and the second binds the unchanged listing/Content facts. Their

@@ -474,7 +474,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false,returnedNative} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -498,7 +498,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity(...values) {return ok(Object.freeze({values}));},
-    clientProgramInstalledSourceRetainedConstructionCapacity(value) {assert.equal(value,native);if(failRetainedProjection==='undefined')throw undefined;const retained=retainedNative??value;completions.push({original:value,retained});return ok(retained);},
+    clientProgramInstalledSourceRetainedConstructionCapacity(value) {assert(value===native||returnedNative!==undefined&&value===returnedNative);if(failRetainedProjection==='undefined')throw undefined;const retained=retainedNative??value;completions.push({original:value,retained});return ok(retained);},
     clientProgramComposeInstalledSourceConstructionCapacity(original, selected) {
       assert(selected[0]===native||retainedNative!==undefined&&selected[0]===retainedNative);if(repeatedNative)assert(selected.every(value=>value===native||value===retainedNative));else assert.deepEqual(selected.slice(1), selected.length === 1 ? [] : additionalNative);quotes.push({original, selected: [...selected]});return ok(Object.freeze({original, selected: Object.freeze([...selected])}));
     },
@@ -991,4 +991,62 @@ test('Source facade association refuses foreign context changed Environment and 
   }
   assert.throws(()=>retainInstalledSourceAdapter({},source,Object.freeze({...source})),{code:'ForeignInstalledSourceAdapter'});
   closeInstalledSourceConstruction(f.context,source);f.finish();assert.equal(f.retire(),true);
+});
+
+
+test('closed native Source quantity replaces only its own peak and keeps just the returned Host Environment',()=>{
+  const output=Object.freeze({original:'actual-retained'}),returned=Object.freeze({original:'closed-native-output'});
+  const f=commandConstructionFixture({role:'source',retainedNative:output,returnedNative:returned});
+  const graph={catalog_cid:'sha256:'+'a'.repeat(64),catalog:'{}',contracts:[],view_bodies:[],
+    evidence_schemas:[],evidence_capabilities:[],manifest_entry:'{}',command_bodies:['{}']};
+  const prepared=f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material:Object.freeze({}),declared:graph,
+      wire:JSON.stringify(graph),retainedCapacity:returned});}}));
+  assert.deepEqual(f.completions,[{original:returned,retained:output}]);
+  assert.equal(f.reservedQuotes[0].selected[0],f.native,'Reserve full native peak before entering constructor');
+  assert.equal(f.reservedQuotes[1].selected[0],output,'Returned native original is retained before Host merge');
+  assert.equal(f.quotes.at(-1).selected[0],output);
+  const retained=f.quotes.at(-1).original.values;
+  assert.equal(retained[0],3n,'Only the Environment record and its two returned strings, not temporary parsed trees');
+  assert.equal(retained[1],3n*BigInt(prepared.environment.wire.length+prepared.environment.evidenceCid.length));
+  assert.equal(retained[2],0n,'No native Buffer escapes Environment completion');
+  assert.deepEqual(retained.slice(3),[0n,0n,0n],'Closed Host scratch is no longer retained');
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('invalid asynchronous retained native Source quantity keeps full original peak until settlement',async()=>{
+  const f=commandConstructionFixture({role:'source'});let settle;
+  assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material:Object.freeze({}),wire:'{}',
+      retainedCapacity:new Promise(resolve=>{settle=resolve;})});}})),{code:'InstalledSourceConstructorNotSynchronous'});
+  assert.equal(f.completions.length,0);assert.equal(f.quotes.at(-1).selected[0],f.native);
+  f.finish();assert.equal(f.retire(),false);
+  settle(f.native);await Promise.resolve();await Promise.resolve();
+  assert.equal(f.completions.length,0);assert.equal(f.retire(),true);
+});
+
+test('failed native retained projection preserves thrown undefined and full constructor debt',()=>{
+  const f=commandConstructionFixture({role:'source',failRetainedProjection:'undefined'});
+  let caught=false;
+  try{f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material:Object.freeze({}),wire:'{}',retainedCapacity:f.native});}}));}
+  catch(error){caught=true;assert.equal(error,undefined);}
+  assert.equal(caught,true);assert.equal(f.completions.length,0);assert.equal(f.quotes.at(-1).selected[0],f.native);
+  f.finish();assert.equal(f.retire(),true);
+});
+
+
+test('native retained quantity must be original own DATA on a complete wire result',()=>{
+  for(const variant of ['getter','undefined','proxy','without-wire']){
+    const f=commandConstructionFixture({role:'source'});let getters=0;
+    const value={declaration:f.declaration,material:Object.freeze({}),wire:'{}'};
+    if(variant==='getter')Object.defineProperty(value,'retainedCapacity',{get(){getters++;assert.fail('No getter');}});
+    else value.retainedCapacity=variant==='proxy'?new Proxy({},{}):variant==='undefined'?undefined:f.native;
+    if(variant==='without-wire')delete value.wire;
+    Object.freeze(value);
+    assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},project(){return value;}})),
+      {code:'InvalidInstalledSourceNativeDeclaration'});
+    assert.equal(getters,0);assert.equal(f.completions.length,0);assert.equal(f.quotes.at(-1).selected[0],f.native);
+    f.finish();assert.equal(f.retire(),true);
+  }
 });

@@ -4426,7 +4426,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "caa6f17415cde948ed88edbcec5816352f178b437b8263c242d986b492859afd",
+      "sha256": "5e8caac338460f180768bdc444aed26cecd353636ea2ac8aa2b35b121137bc2f",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4754,6 +4754,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "inputsOutputs": [
@@ -4780,6 +4784,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "identity": [
@@ -4806,6 +4814,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "ownership": [
@@ -4832,6 +4844,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "synchronization": [
@@ -4858,6 +4874,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "failure": [
@@ -4888,6 +4908,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "cancellation": [
@@ -4914,6 +4938,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "resources": [
@@ -4952,6 +4980,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "extension": [
@@ -4982,6 +5014,10 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
               }
             ],
             "verification": [
@@ -5016,6 +5052,14 @@
               {
                 "path": "docs/design/file-listing-report-custody.md",
                 "anchor": "## Physical timestamps and logical listing values"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native returned material and ended Environment scratch"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "test('two GCS scopes on the same original initializer retain their own collection and close independently'"
               }
             ]
           }
