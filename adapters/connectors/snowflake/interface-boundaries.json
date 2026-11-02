@@ -178,7 +178,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
-      "sha256": "2bf21424bb0656d33d523650ef1f37cc0226aa72d374860e36e1fbf44b42b329",
+      "sha256": "af0e3d9f1d7c7377381c9eba1ab361aff6cad074389b9b7a2362a2930f48a77a",
       "exports": [
         "INSTALLED_SNOWFLAKE_SITE_VERSION",
         "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
@@ -271,9 +271,16 @@
           "parameters": [
             "profile",
             "providerProfile",
-            "read"
+            "read",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedSnowflakeSourceIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource",
@@ -285,7 +292,10 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "installation"
+            "installation",
+            "sourceInitialization",
+            "configurationReader",
+            "installationServices"
           ],
           "async": true
         },
@@ -301,6 +311,31 @@
           "name": "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
           "parameters": [
             "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies",
+          "parameters": [
+            "encoded",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies/init:project/init:project/init:project",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -324,6 +359,44 @@
           "async": true
         },
         {
+          "name": "loadInstalledSnowflakeSource/method/method",
+          "parameters": [
+            "receiver",
+            "name",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/originals/originals",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/originals/originals/originals",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/prepared/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/prepared/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSnowflakeSource/readers/readers",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSnowflakeSource/site/init:close/init:close",
           "parameters": [],
           "async": false
@@ -339,16 +412,11 @@
         {
           "name": "readInputs",
           "parameters": [
-            "profile"
+            "profile",
+            "readJson",
+            "constructBodies"
           ],
           "async": true
-        },
-        {
-          "name": "readInputs/bodies/bodies",
-          "parameters": [
-            "body"
-          ],
-          "async": false
         },
         {
           "name": "readInputs/readInputs",
@@ -390,9 +458,19 @@
             "loadInstalledSnowflakeSource/site/init:close/init:close",
             "loadInstalledSnowflakeSource/target/target",
             "readInputs",
-            "readInputs/bodies/bodies",
             "readInputs/readInputs",
-            "text/text"
+            "text/text",
+            "installedSnowflakeSourceIdentityParts/readers/readers",
+            "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies",
+            "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies/init:capacity/init:capacity",
+            "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies/init:project/init:project",
+            "loadInstalledSnowflakeSource/init:constructBodies/init:constructBodies/init:project/init:project/init:project",
+            "loadInstalledSnowflakeSource/method/method",
+            "loadInstalledSnowflakeSource/originals/originals",
+            "loadInstalledSnowflakeSource/originals/originals/originals",
+            "loadInstalledSnowflakeSource/prepared/init:capacity/init:capacity",
+            "loadInstalledSnowflakeSource/prepared/init:project/init:project",
+            "loadInstalledSnowflakeSource/readers/readers"
           ],
           "exports": [
             "INSTALLED_SNOWFLAKE_SITE_VERSION",
@@ -464,7 +542,22 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
+        "../site/snowflake-key-pair.mjs",
+        "../site/snowflake-sql-read.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/snowflake/site/snowflake-key-pair.mjs",

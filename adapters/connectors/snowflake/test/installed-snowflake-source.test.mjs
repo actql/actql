@@ -5,6 +5,7 @@ import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import {gzipSync} from 'node:zlib';
 import {installedSourceIdentity} from '../../../host-node/installed-source.mjs';
+import {loadInstalledSnowflakeSource} from '../host/installed-snowflake-source.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {metadataBody, pending, resultBody, decimal38} from './snowflake-read.fixture.mjs';
 import {installedSnowflakeFixture as fixture} from './installed-snowflake.fixture.mjs';
@@ -53,7 +54,7 @@ test('standard installed Host drives the original 202, gzip status and partition
 test('installed metadata is scope-bound and cannot silently select another original table', async t => {
   const f = await fixture(t);
   await writeFile(f.metadataPath, JSON.stringify({...f.metadata, table: 'OTHER'}));
-  await assert.rejects(f.load(), {code: 'InvalidInstalledSnowflakeMetadata'});
+  await assert.rejects(f.load(),cause=>{assert.equal(cause.primaryFailure?.code,'InvalidInstalledSnowflakeMetadata');assert.equal(cause.cleanupPending,false);return true;});
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });
 
@@ -61,7 +62,7 @@ test('unknown Site fields and ambient-origin substitutions refuse before secret 
   const f = await fixture(t);
   for (const changed of [{...f.site, ignored: true}, {...f.site, apiOrigin: `${f.site.apiOrigin}/other`}]) {
     await writeFile(f.siteProfilePath, JSON.stringify(changed));
-    await assert.rejects(f.load(), {code: 'InvalidInstalledSnowflakeSite'});
+    await assert.rejects(f.load(),cause=>{assert.equal(cause.primaryFailure?.code,'InvalidInstalledSnowflakeSite');assert.equal(cause.cleanupPending,false);return true;});
   }
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });
@@ -97,7 +98,12 @@ test('same-shaped metadata from a foreign table is rejected by the actual Common
   const f = await fixture(t);
   const bytes = Buffer.from(metadataBody().toString().replaceAll('USAGE_30D', 'OTHER_TABLE'));
   await writeFile(f.metadataPath, JSON.stringify({...f.metadata, bodies: [bytes.toString('base64')]}));
-  await assert.rejects(f.load(), {code: 'MoonBitHostFailure'});
+  const l=f.profile.limits;
+  const expected=f.moon.clientProgramSnowflakeDescribeTable(f.profile.database,f.profile.schema,f.profile.table,[bytes],
+    f.moon.clientProgramSnowflakeResponseLimits(l.maxBytes,l.maxNodes,l.maxDepth,l.maxColumns,l.maxNameUnits,l.maxHandleUnits,l.maxPartitions,l.maxRows,BigInt(l.maxTotalRows)),
+    f.moon.clientProgramSnowflakeDescriptionLimits(l.maxColumns,l.maxNameUnits,l.maxDescriptionBytes,l.maxNodes,l.maxDepth));
+  assert.equal(expected.$tag,0);
+  await assert.rejects(f.load(),cause=>{assert.deepEqual(cause.primaryFailure?.cause,expected._0);assert.equal(cause.cleanupPending,false);return true;});
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });
 
@@ -105,7 +111,7 @@ test('noncanonical or oversized stored metadata refuses before any Site opens', 
   const f = await fixture(t);
   for (const body of [`${f.metadata.bodies[0]}\n`, Buffer.alloc(4097).toString('base64')]) {
     await writeFile(f.metadataPath, JSON.stringify({...f.metadata, bodies: [body]}));
-    await assert.rejects(f.load(), {code: 'InvalidInstalledSnowflakeMetadata'});
+    await assert.rejects(f.load(),cause=>{assert.equal(cause.primaryFailure?.code,'InvalidInstalledSnowflakeMetadata');assert.equal(cause.cleanupPending,false);return true;});
   }
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });
@@ -120,4 +126,21 @@ test('installed generation, metadata and target identity change without any Prov
     bodies: [metadataBody().toString('base64'), metadataBody().toString('base64')]}));
   assert.notEqual(await installedSourceIdentity(f.path), original);
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
+});
+
+
+test('Snowflake loader without original initialization refuses before raw metadata or credential entry',async()=>{
+  await assert.rejects(loadInstalledSnowflakeSource({metadataPath:'/UNOPENED-original-metadata'},{}),
+    {code:'InstalledSnowflakeInitializationUnavailable'});
+});
+
+test('registered Snowflake retains original metadata partition bytes on the same initial parent',async t=>{
+  const f=await fixture(t),original=JSON.parse(metadataBody());
+  const first={...original,resultSetMetaData:{...original.resultSetMetaData,partitionInfo:[{rowCount:2},{rowCount:1}]},
+    data:original.data.slice(0,2)};
+  const second={data:original.data.slice(2)};
+  await writeFile(f.metadataPath,JSON.stringify({...f.metadata,bodies:[
+    Buffer.from(JSON.stringify(first)).toString('base64'),Buffer.from(JSON.stringify(second)).toString('base64')]}));
+  const source=await f.load();assert.equal(source.sourceReadAccesses[0].resource,'usage_30d');
+  assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);
 });

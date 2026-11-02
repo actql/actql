@@ -28,10 +28,7 @@ async function keyPairFixture(t) {
   const profile = {...f.profile, limits: {...f.profile.limits, maxSecretBytes: 4096}};
   await writeFile(f.siteProfilePath, JSON.stringify(site)); await writeFile(f.path, JSON.stringify(profile));
   let current = rsa;
-  const source = await loadInstalledSource(f.path, {root: f.root, principalId: 'operator', moon: f.moon,
-    runtimeUrl, baseEnvironmentWire,
-    resolveSecret: async value => {lookups.push(value); return pem(current);}});
-  t.after(() => source.close());
+  const source=await f.load({resolveSecret:async value=>{lookups.push(value);return pem(current);}});
   return {...f, source, site, profile, lookups, rotate: () => {current = rotated;}};
 }
 function acceptJwt(entry) {
@@ -89,10 +86,12 @@ test('actual key rotation after 202 cannot replace original token or resend the 
 
 test('key-pair/token ambiguity and OAuth key-pair substitution refuse before material or Provider use', async t => {
   const f = await fixture(t);
-  for (const site of [{...f.site, keyPair: {accountIdentifier: 'org-acct', user: 'user', privateKeyEnvironment: 'KEY'}},
-    {...f.site, tokenEnvironment: undefined, authenticationType: 'KEYPAIR_JWT', keyPair: null}]) {
-    await writeFile(f.siteProfilePath, JSON.stringify(site));
-    await assert.rejects(f.load(), error => /^(InvalidInstalledSnowflakeSite|InvalidSnowflakeKeyPairProfile)$/u.test(error.code));
+  for(const [site,expected]of [
+    [{...f.site,keyPair:{accountIdentifier:'org-acct',user:'user',privateKeyEnvironment:'KEY'}},'InvalidInstalledSnowflakeSite'],
+    [{...f.site,tokenEnvironment:undefined,authenticationType:'KEYPAIR_JWT',keyPair:null},'InvalidSnowflakeKeyPairProfile'],
+  ]){
+    await writeFile(f.siteProfilePath,JSON.stringify(site));
+    await assert.rejects(f.load(),error=>{assert.equal(error.primaryFailure?.code,expected);assert.equal(error.cleanupPending,false);return true;});
   }
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
 });

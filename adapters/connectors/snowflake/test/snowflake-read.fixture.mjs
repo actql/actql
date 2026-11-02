@@ -49,15 +49,16 @@ async function originalRowOwner(descriptionBody) {
   const program = moon.clientProgramPreparationReady(outcome);
   assert.ok(program, `ordinary SQL must prepare the original declared input: ${
     moon.clientProgramPreparationIssueCode(outcome)}`);
-  const [registry, aoa, query, evidence] = await Promise.all([
+  const [registryWire, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'),
     read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'),
     read('spec/contracts/actql-query-process-evidence.json')]);
-  const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-    program, 0, 0, registry, JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const values=JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const registry=checked(moon.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
+  const requirement=checked(moon.clientProgramPrepareLocalQueryRequirement(program,0,0,registry,values,fragment,ordered));
   const prepared = checked(moon.clientProgramSnowflakePrepareRead(description,
     declaration, requirement, query, evidence, descriptionLimits, declarationLimits));
   const acquisition = moon.clientProgramSnowflakeReadAcquisition(prepared);

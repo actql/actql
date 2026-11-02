@@ -14,8 +14,8 @@ bounded metadata snapshot; it does not refresh that snapshot or contact Snowflak
   configuration and explicit limits. It returns the normal source adapter.
 - Identity: exact target spelling, metadata bytes, warehouse/role, Site generation,
   CA bytes, runtime bundle and installed profile contribute to the existing Host
-  installation identity. Opaque preparations remain in the same Core instance.
-- Ownership: the existing Host alone starts and funds the RowRun and finishes,
+  installation identity. Managed CA reads retain the exact observed-FD bytes sent to Site; standalone identity remains DATA hashing only. Opaque preparations remain in the same Core instance.
+- Ownership: the registered loader requires the same Source initialization, managed configuration reader and Host service before native construction. Its original Buffer array, description/declaration, Environment and optional KeyPair material stay on that initial parent through Source registration/finish and retirement. The existing Host alone starts and funds the RowRun and finishes,
   captures and closes it. A private WeakMap binds that original acquisition to
   the Snowflake preparation; it issues no replacement Run, permission or quota.
 - Synchronization: load/check/identity perform local reads only. Every physical
@@ -28,7 +28,7 @@ bounded metadata snapshot; it does not refresh that snapshot or contact Snowflak
 - Cancellation: cancellation/close does not invent remote termination. The driver
   confirms its own transport/use retirement; the existing Host carries pending
   cleanup and cannot turn it into a Provider, Store or Run cancellation ACK.
-- Resources: the profile explicitly selects request/response/row/decoder bounds;
+- Resources: all original metadata Buffers are constructed together inside the same pre-reserved input projection. Node counts and decoded-text/wire bounds then compose the existing conservative Source envelope before native description/declaration construction; the full peak remains retained through original Source retirement. Original KeyPair material is created under that envelope, remains lazy, and its close follows the original Site close result. The profile explicitly selects request/response/row/decoder bounds;
   the Host reserves these through the original RowRun before I/O. Metadata is
   bounded by the existing profile reader and exact canonical base64 response
   bodies before Common parsing. No normal numeric profile is supplied here.
@@ -37,7 +37,7 @@ bounded metadata snapshot; it does not refresh that snapshot or contact Snowflak
   SQL admission are not duplicated in this installation or a new validator.
 - Verification: real standard installation selection, Common SQL/decimal38/NULL,
   Account, SQLite credential journal, loopback TLS, original Host capture and
-  cleanup are exercised. Public Client Local/HTTPS fixtures also check SQL to
+  cleanup are exercised. Registered initialization components use actual initial Resource/Source registration/retirement and scoped state-FD checks; their explicit RowRun/Ledger cases do not certify ordinary Request/Plan/provider output/failed-child funding or a pristine current-source normal artifact. Public Client Local/HTTPS fixtures also check SQL to
   Named Result, repeated reads, attach and same-submission lookup without a
   second Provider request. They use the same preplanned acquisition/Compute
   Ledger and confirm its original reservations retire after client close.
