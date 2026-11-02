@@ -385,6 +385,24 @@ test('outer Effect commit continuation preserves target and provider data', asyn
   assert.deepEqual(saved.provider, f.provider);
 });
 
+test('ordinary recovered CREATE checks its same original continuation and resume claim before provider work', async () => {
+  const moon={},store={},preview={},computation={},storedResults={},claim={};
+  const control={effectComputationPreviewSemanticCid:()=>cid('a')};
+  const recovered={computation:{computation,storedResults,preview}};
+  const stop=new Error('StopAfterOriginalResumeCurrent');let current=0,admitted=0,prepared=0;
+  const site=createInstalledEffectSite({environmentWire:'{}',prepareCaptured(){assert.fail('no new Compute');},
+    prepareRecovered(facts){prepared++;assert.equal(typeof facts.assertContinuationCurrent,'function');facts.assertContinuationCurrent();throw stop;}});
+  const facts=Object.freeze({moon,store,control,retainExecution(){},ref:{runDefinitionCid:cid('b')},
+    view:{runId:'run-a',checkpointCid:'checkpoint',subject:{kind:'run_unit',unit_id:'effect'}},
+    continuation:{version:'actql-installed-effect-continuation/0.1',unit_id:'effect',run_definition_cid:cid('b'),preview_cid:cid('a'),provider:{provider:'bound'}},
+    recoverCapture:async()=>recovered,
+    assertContinuationCurrent(){assert.equal(this,facts);current++;},
+    checkpointJournal:{claimResume:()=>({action:'claimed',claim}),admitResume(original,{checkpointCid}){
+      assert.equal(original,claim);assert.equal(checkpointCid,'checkpoint');admitted++;}}});
+  await assert.rejects(site.resume(facts),cause=>cause===stop);
+  assert.deepEqual([prepared,current,admitted],[1,1,1]);
+});
+
 for (const retained of [false, true]) {
   test(`Effect authorization forwards its same original Run lifetime subject: retained=${retained}`, async () => {
     const f = continuationFixture();

@@ -626,6 +626,58 @@ test('actual CREATE read grant uses its original control frame and returns works
   assert.deepEqual(f.events,['begin','grant','complete','physical']);assert.equal(f.work.retire(),true);
 });
 
+test('ordinary CREATE retains the original Run continuation current fence without a Mapping selection', () => {
+  const selected={kind:'create',effectId:'append'},owner={resources:undefined};let reads=0;
+  const facts={prepared:{},assertContinuationCurrent(){assert.equal(this,facts);reads++;}};
+  const select=expression('selectionFence',{owners:[],validateOwnerSelections:()=>undefined,ownerOf:member=>{
+    assert.equal(member,selected);return owner;},resourceFields:()=>assert.fail('no legacy Resource original'),
+    selectionChanged:()=>assert.fail('no Mapping selection is being supplied'),
+    assertUpdateTargetSelectionMembersCurrent:()=>assert.fail('no Mapping proof from Run current'),
+    requireSynchronousEffectResource:value=>value,fail});
+  const current=select(facts,[selected],0);
+  assert.equal(typeof current,'function');assert.equal(reads,1);
+  current();assert.equal(reads,2);
+});
+
+test('Run continuation current cannot replace an original Mapping selection current assertion', () => {
+  const prepared={},selection={},selections=[selection];let asserted=0;
+  const member={kind:'update',stageIndex:0,effectId:'edit',mapping:{target:'target',mappingRef:'mapping',mappingCid:'cid'}};
+  const facts={prepared,updateTargetSelections:selections,assertContinuationCurrent(){assert.fail('Run current is not Mapping current');},
+    assertUpdateSelectionCurrent(){assert.equal(this,facts);asserted++;}};
+  const select=expression('selectionFence',{owners:[],validateOwnerSelections:(_owners,original,p)=>{
+    assert.equal(original,selections);assert.equal(p,prepared);return original;},ownerOf:()=>({resources:undefined}),
+    resourceFields:()=>assert.fail('no legacy Resource original'),requireSynchronousEffectResource:value=>value,
+    assertUpdateTargetSelectionMembersCurrent:(original,members,p)=>{assert.equal(original,selections);assert.equal(p,prepared);
+      assert.deepEqual(members,[{stage_index:0,effect_id:'edit',target_ref:'target',mapping_ref:'mapping',mapping_cid:'cid'}]);},
+    selectionChanged:()=>fail('MissingOriginalMappingCurrent'),fail});
+  const current=select(facts,[member],0);current();assert.equal(asserted,2);
+  assert.throws(()=>select({...facts,assertUpdateSelectionCurrent:undefined},[member],0),{code:'MissingOriginalMappingCurrent'});
+});
+
+test('actual Effect execution retains its original cancellation read and avoids a duplicate resumed read', async () => {
+  const text=await readFile(new URL('./embedded-local.mjs',import.meta.url),'utf8');
+  const found=[];
+  const walk=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&node.id.name==='executeEffectComputation')found.push(node.init);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(walk);else walk(value);};
+  walk(parse(text,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(found.length,1);
+  const body=found[0].body,cut=body.body.find(n=>n.type==='VariableDeclaration'&&n.declarations.some(d=>d.id.name==='readResume'));
+  assert(cut);
+  const prepare=Function('journal','moon','control','clientOperationError','facts','sourceResume','targetResume','modelResume',
+    text.slice(body.start+1,cut.start)+'return {facts,assertContinuationCurrent};');
+  const ref={},moon={},control={};let captures=0,reads=0,cancelled=false;
+  const journal={observeRunCancellation(r,m,c){assert.equal(this,journal);assert.deepEqual([r,m,c],[ref,moon,control]);captures++;
+    return ()=>{reads++;return {cancellationRequested:cancelled};};}};
+  const error=code=>Object.assign(new Error(code),{code});
+  const warm=prepare(journal,moon,control,error,{ref});assert.equal(captures,1);
+  warm.assertContinuationCurrent();assert.equal(reads,1);
+  cancelled=true;assert.throws(()=>warm.assertContinuationCurrent(),{code:'ClientRunCancellationRequested'});
+  assert.equal(reads,2);
+  let resumed=0;const originalResume={assertCurrent(){assert.equal(this,originalResume);resumed++;}};
+  const active=prepare(journal,moon,control,error,{ref},originalResume);
+  active.assertContinuationCurrent();assert.equal(resumed,1);assert.equal(reads,2);
+});
+
 test('actual target authorization retains same original grant receiver in its selected control frame', async () => {
   const f=sameControlFrame(),member={resource:'rows'},decision={action:'dispatch'},grant={grant:{},scope:{}};
   const site={issueReadGrant(facts){assert.equal(this,site);assert(f.active());assert.equal(facts.decision,decision);f.events.push('grant');return grant;}};

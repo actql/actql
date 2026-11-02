@@ -3785,20 +3785,30 @@ async function openInstalledHost(originalInstallation, preparation) {
     // This original continuation shares only immutable row admission. Every
     // probe still selects current storage; target and resume gates stay live.
     const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);
+    const assertRunNotCancelled = () => {
+      if (observeCancellation()?.cancellationRequested !== false) {
+        throw clientOperationError('ClientRunCancellationRequested');
+      }
+    };
     let assertOriginalUpdateSelectionCurrent;
     if (facts.updateTargetSelections !== undefined) {
       const original = facts.assertUpdateSelectionCurrent;
       assertOriginalUpdateSelectionCurrent = () => {
         original();
-        if (observeCancellation()?.cancellationRequested !== false) {
-          throw clientOperationError('ClientRunCancellationRequested');
-        }
+        assertRunNotCancelled();
       };
       facts = Object.freeze({...facts, assertUpdateSelectionCurrent() {
         assertOriginalUpdateSelectionCurrent();
         activeResume?.assertCurrent();
       }});
     }
+    // CREATE has no Mapping selection, but still consumes this SAME captured
+    // Run/Journal continuation. A resumed original already checks cancellation
+    // and its own claim; do not query the same state again at that boundary.
+    const assertContinuationCurrent = () => {
+      if (activeResume === undefined) assertRunNotCancelled();
+      else activeResume.assertCurrent();
+    };
     const readResume = sourceResume ?? targetResume;
     const parentResume = readResume?.active === true
       ? {claim: readResume.claim, checkpointCid: readResume.view.checkpointCid}
@@ -3833,7 +3843,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           return effectInstallation.execute(
           Object.freeze({...facts, signal, retainExecution, targetReads, observation, managedEffect,
             beginPhysicalWork, observePreEffectFailure, moon, control,
-            assertContinuationCurrent: activeResume?.assertCurrent,
+            assertContinuationCurrent,
             publicationPlan: facts.preparedExecution,
             store, storeAuthorityCid, authorityScopeCid,
             observeRun: ({ref}) => observeRun({ref, principalId}),

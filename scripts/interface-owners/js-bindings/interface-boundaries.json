@@ -43230,6 +43230,16 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/assertContinuationCurrent/assertContinuationCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/assertRunNotCancelled/assertRunNotCancelled",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
           "parameters": [],
           "async": false
@@ -57093,6 +57103,75 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/assertContinuationCurrent/assertContinuationCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/assertRunNotCancelled/assertRunNotCancelled"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -57209,7 +57288,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "b44c40568ba9e4e6c7ca3299e72bd28e69e9e0b01d98b2d51d82f38f696d0db3"
+      "sha256": "31fe68f9a1c3bdb74673cb2164421f4fc489800cd1efd1b6f173801df700999f"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -69824,7 +69903,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f3ffadd223849a8528a1819e90b4199be837bce8a6f9f9ffc2bf67303ccf4789",
+      "sha256": "cded4c133b7af588d04e400ef0726f388f6e84a8233c0fde8c54824bbd4c69c3",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

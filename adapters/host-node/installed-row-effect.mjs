@@ -1083,8 +1083,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const owner = ownerOf(member);
       return owner.resources === undefined ? [] : [[owner, resourceFields(member).runOriginal]];
     })).entries()];
-    if (selections === undefined && resourceOwners.length === 0) return undefined;
-    const liveAssertion = facts.assertUpdateSelectionCurrent;
+    const liveAssertion = selections === undefined
+      ? facts.assertContinuationCurrent : facts.assertUpdateSelectionCurrent;
+    if (selections === undefined && resourceOwners.length === 0 && liveAssertion === undefined) return undefined;
     if (selections !== undefined && typeof liveAssertion !== 'function') selectionChanged();
     const selectedMembers = members.flatMap(member => {
       const stage = member.stageIndex ?? stageIndex;
@@ -1117,12 +1118,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           fail('InstalledEffectResourcesUnavailable');
         }
       }
-      if (selections === undefined) return;
-      validateOwnerSelections(owners, selections, facts.prepared);
-      try {
-        assertUpdateTargetSelectionMembersCurrent(selections, selectedMembers, facts.prepared);
-      } catch (cause) { selectionChanged(cause); }
-      const result = liveAssertion();
+      if (selections !== undefined) {
+        validateOwnerSelections(owners, selections, facts.prepared);
+        try {
+          assertUpdateTargetSelectionMembersCurrent(selections, selectedMembers, facts.prepared);
+        } catch (cause) { selectionChanged(cause); }
+      }
+      if (liveAssertion === undefined) return;
+      const result = Reflect.apply(liveAssertion, facts, []);
       // A live-owner assertion must finish before the physical operation.
       if (typeof result?.then === 'function') {
         void Promise.resolve(result).catch(() => {});

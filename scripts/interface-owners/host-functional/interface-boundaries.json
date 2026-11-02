@@ -63479,7 +63479,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "328f27d7f65f709f18432598842ff04f7c6d8af56aa84a8d6d208307b5195ed6",
+      "sha256": "1e37f7bb4a2d0c6def4dc0c380e000891694e8ce91823cfbc2afff0ccf95f472",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -63694,6 +63694,11 @@
             "facts"
           ],
           "async": true
+        },
+        {
+          "name": "createInstalledEffectSite/init:resume/init:resume/assertResumeCurrent/assertResumeCurrent",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createInstalledEffectSite/init:resume/init:resume/gate/gate",
@@ -64403,6 +64408,74 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledEffectSite/init:resume/init:resume/assertResumeCurrent/assertResumeCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Ordinary CREATE Run current"
               }
             ]
           }

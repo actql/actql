@@ -2767,6 +2767,25 @@ parser; decoded text cannot exceed the original admitted wire. Foreign caller
 Nodes do not enter these private views. The schema decoder and unrelated grid
 or Source constructors retain their original admission paths.
 
+### Ordinary CREATE Run current
+
+A CREATE member has no Mapping-selection original, but its physical child
+still needs the same Run continuation's current assertion. The existing
+continuation-current field carries the original Journal cancellation read on
+warm execution. An active Source/Model continuation uses its own original
+resume assertion instead of reading the same cancellation state again.
+The row adapter captures that original method and receiver. UPDATE/DELETE
+selection current remains distinct and cannot be replaced by Run current.
+
+Cold Effect continuation supplies the existing operation signal and exact
+checkpoint claim assertion through that same continuation-current field before
+the original provider callback. The checkpoint Owner still admits the original
+claim; observing or settlement cleanup retains its existing exclusions from
+new resume admission. Site/credential/current, native Plan/borrow, consumed
+attempts and physical cleanup duties remain with their existing owners.
+No new Root, empty current assertion, cached Allow, constructor or capacity
+dimension is introduced by forwarding this existing lifetime boundary.
+
 
 The optional checked value-node proof preserves closed Object fields and
 original Array max_items through the same prepared schema inventory. A row
