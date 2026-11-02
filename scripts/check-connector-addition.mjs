@@ -11,6 +11,8 @@ import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {assertClientWireDependency} from
   './connector-addition-wire-dependency.mjs';
+import {copyConnectorAdditionHostSource, assertConnectorAdditionHostSource} from
+  './connector-addition-source.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const git = args => {
@@ -112,18 +114,11 @@ for (const name of readdirSync(join(root, 'src'))) {
     cpSync(join(root, 'src', name), join(isolated, 'src', name), {recursive: true});
   }
 }
-// Rebuild generated composition packages in isolation while retaining their
-// handwritten common Carrier and execution-authorization adapters. Omitting
-// the whole package silently changes managed execution semantics instead of
-// testing connector addition.
-for (const path of [
-  'src/connectors_builtin/local_carrier_dispatch.mbt',
-  'src/connectors_builtin_node/local_carrier_bridge.mbt',
-  'src/connectors_builtin_node/authorization_bridge.mbt',
-]) {
-  mkdirSync(dirname(join(isolated, path)), {recursive: true});
-  cpSync(join(root, path), join(isolated, path));
-}
+// Rebuild only composition-owned outputs while retaining the common Carrier,
+// authorization and complete production Client declaration package. Its
+// existing dependency manifests supply the same aliases. A partial bridge
+// silently changes common consumers instead of testing connector addition.
+const commonHostInputs = copyConnectorAdditionHostSource(root,isolated);
 
 const hash = data => createHash('sha256').update(data).digest('hex');
 function inventory(directory, prefix = '') {
@@ -157,6 +152,7 @@ function run(label, args, executable = 'moon') {
 
 if (checkComputeAssembly(isolated, true) !== 2) throw new Error('Expected the declared two-implementation baseline');
 checkNodeAssembly(isolated, true);
+assertConnectorAdditionHostSource(isolated,commonHostInputs);
 if (existsSync(join(isolated, 'src/connectors/reference_compute'))) throw new Error('Third implementation leaked into baseline');
 const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'),
@@ -177,6 +173,7 @@ for (const path of ['src/connectors/reference_compute', 'src/query_integration',
 }
 if (checkComputeAssembly(isolated, true) !== 3) throw new Error('Third declaration was not assembled');
 checkNodeAssembly(isolated, true);
+assertConnectorAdditionHostSource(isolated,commonHostInputs);
 const after = snapshot();
 const changed = [...new Set([...before.keys(), ...after.keys()])].filter(path => before.get(path) !== after.get(path)).sort();
 for (const path of changed) if (!allowed(path)) throw new Error(`Common implementation changed: ${path}`);
