@@ -828,6 +828,7 @@ jobs:
             ${{ runner.temp }}/actql-client-packages/actql-node-0.0.0-development.tgz
           if-no-files-found: error
           retention-days: 7
+  # Require the existing push-only monitor result; its timing warnings remain nonblocking.
   health-quick:
     needs: [client-packages]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -1134,7 +1135,7 @@ jobs:
   check:
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     needs: [select-targets, preflight, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
-      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance]
+      native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

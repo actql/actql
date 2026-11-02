@@ -61,6 +61,16 @@ test('real gate inventory accepts complete full main with skipped focused-only j
   assert.equal((await resolveMainBaseline(options)).baseSha, base);
   assert.deepEqual(options.requiredJobs, fullWorkflowJobs);
 });
+test('manual proof checkpoint needs no push-only monitor and schedule cannot supply reuse', async () => {
+  const f = fullWorkflowFixture();
+  f.state.run.event = 'workflow_dispatch';
+  for (const name of ['main-performance', 'health-quick']) f.state.jobs.jobs.push({name,
+    run_id: 101, run_attempt: 1, head_sha: base, status: 'completed', conclusion: 'skipped'});
+  f.state.jobs.total_count = f.state.jobs.jobs.length;
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, base);
+  f.state.run.event = 'schedule';
+  assert.equal((await resolveMainBaseline(f.options)).baseSha, null);
+});
 test('manual main checkpoint accepts the approved optional macOS skip and retains all primary targets', async () => {
   const {options, state, calls} = fullWorkflowFixture();
   state.run.event = 'workflow_dispatch';
