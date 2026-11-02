@@ -817,9 +817,5 @@ pub fn client_program_refresh_acquired_effect_cleanup(
   }
   @strategy.refresh_captured_retention(run)
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  usage.held_bytes == 0L &&
-  usage.reserved_transfer_bytes == 0L &&
-  usage.reserved_retention_bytes == 0L &&
-  usage.reserved_execution_bytes == 0L &&
-  usage.uncertain_transfer_bytes == 0L
+  !@resources.ledger_usage_has_pending_resources(usage)
 }

@@ -2900,3 +2900,17 @@ cannot select an independent checker. Later retained lookup keeps its separate
 current-audience disclosure boundary and never re-prepares or executes input.
 All original Request, physical cleanup and uncertain-failure duties remain with
 their existing owners.
+
+
+### Request-owned acquired Effect cleanup
+
+An acquired Effect first closes its physical execution, output and Source
+owners, then refreshes the original captured DAG. Pending Ledger usage comes
+from Core's complete shared projection, including zero-byte live tokens and
+uncertainty, rather than a separate five-field byte table. A nonempty aggregate
+may still contain this same Request's retained preparation. The fixed caller
+uses the existing typed original Run/Request/DAG correspondence to distinguish
+that preparation from unrelated reservations; it never subtracts numeric
+allowances or acknowledges physical stop from accounting. Missing/foreign
+originals and unresolved children stay pending. The dispatch owner subsequently
+retires the original preparation through its existing completion path.

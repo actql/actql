@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
 import {acquisitionEndHandoff, acquisitionFailure} from
   '../host-common/acquisition-outcome.mjs';
@@ -451,4 +453,64 @@ test('three Effect acquisitions remain unsupported with three installed Sources'
     sourceProfile: {sources: [{}, {}, {}]},
     retainComputationOwner() { assert.fail('UnsupportedAcquisitionCount'); },
   }), {message: 'InvalidAcquiredEffectComputationPort'});
+});
+
+
+// Execute the actual retained custody declaration with explicit original Core
+// ports. No callbacks, Program, Ledger or physical stop are manufactured here;
+// the fixed fixtures represent an already closed/settled child at this seam.
+function acquiredCleanupFixture({isolated = true, rawEmpty = false, physicalReady = true,
+  isolationAvailable = true} = {}) {
+  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = ast.body.map(node => node.declaration ?? node)
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openAcquiredEffectComputation');
+  const custody = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(item => item.id.name === 'custody'));
+  assert.ok(custody);
+  const events = [], checkedHost = {}, managedRun = {}, request = {}, runtime = {}, dag = {};
+  const moon = {
+    clientProgramRefreshAcquiredEffectCleanup(value) {
+      assert.strictEqual(value, checkedHost); events.push('refresh'); return rawEmpty;
+    },
+    clientProgramLocalEffectHostRuntime(value) {
+      assert.strictEqual(value, checkedHost); events.push('runtime'); return runtime;
+    },
+    strategyHostRun(value) {
+      assert.strictEqual(value, runtime); events.push('dag'); return dag;
+    },
+    ...(isolationAvailable ? {clientProgramInstalledPreparationUsageIsolated(run, originalRequest, captured) {
+      assert.strictEqual(run, managedRun); assert.strictEqual(originalRequest, request);
+      assert.strictEqual(captured, dag); events.push('same-parent'); return isolated;
+    }} : {}),
+  };
+  const physical = {async cleanup() {events.push('physical'); return physicalReady;},
+    cleanupPending() {events.push('physical-pending'); return !physicalReady;}};
+  const value = new Function('moon', 'checkedHost', 'managedRun', 'requestOriginal', 'execution', `
+    let pending=true,closed=true,settled=true,unresolved=false;
+    let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken;
+    const captures=[]; let originalPreparationRetained=false;
+    const cleanupInfer=async()=>true; const observeUsage=()=>{};
+    ${source.slice(custody.start, custody.end)}
+    return custody;
+  `)(moon, checkedHost, managedRun, request, physical);
+  return {value, events};
+}
+
+test('acquired Effect cleanup accepts only its same original preparation after physical cleanup', async () => {
+  const fixture = acquiredCleanupFixture();
+  assert.equal(await fixture.value.cleanup(), true);
+  assert.equal(fixture.value.cleanupPending(), false);
+  assert.deepEqual(fixture.events, ['physical', 'physical-pending', 'refresh', 'runtime', 'dag', 'same-parent']);
+});
+
+for (const [name, options] of [
+  ['foreign or unresolved ledger', {isolated: false}],
+  ['missing original isolation port', {isolationAvailable: false}],
+  ['physical child still pending', {physicalReady: false}],
+]) test(`acquired Effect cleanup keeps ${name} pending`, async () => {
+  const fixture = acquiredCleanupFixture(options);
+  assert.equal(await fixture.value.cleanup(), false);
+  assert.equal(fixture.value.cleanupPending(), true);
+  if (options.physicalReady === false) assert.deepEqual(fixture.events, ['physical']);
 });
