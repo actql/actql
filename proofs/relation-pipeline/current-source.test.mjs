@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
@@ -48,4 +48,36 @@ test('current source rejects ignored untracked files that enter the source snaps
   writeFileSync(join(root, '.git/info/exclude'), 'src/ignored.mbt\n');
   writeFileSync(join(root, 'src/ignored.mbt'), 'ignored but snapshotted\n');
   assert.throws(() => checkCurrentSource(root), /Untracked current proof inputs/);
+});
+
+for (const flag of ['--assume-unchanged', '--skip-worktree']) {
+  test(`current source rejects bytes hidden by ${flag}`, t => {
+    const root = fixture(t);
+    git(root, 'update-index', flag, 'src/current.mbt');
+    writeFileSync(join(root, 'src/current.mbt'), 'different physical input\n');
+    git(root, 'diff', '--quiet', 'HEAD', '--', 'src');
+    assert.throws(() => checkCurrentSource(root), /differ from tested HEAD/);
+  });
+}
+
+test('current source rejects a tracked input symlink with an unbound target', t => {
+  const root = fixture(t);
+  rmSync(join(root, 'src/current.mbt'));
+  writeFileSync(join(root, 'outside.mbt'), 'outside source\n');
+  symlinkSync('../outside.mbt', join(root, 'src/current.mbt'));
+  git(root, 'add', 'src/current.mbt');
+  git(root, 'commit', '-qm', 'Tracked symbolic link');
+  git(root, 'diff', '--quiet', 'HEAD', '--', 'src');
+  assert.throws(() => checkCurrentSource(root), /Non-regular current proof input/);
+  writeFileSync(join(root, 'outside.mbt'), 'changed outside source\n');
+  git(root, 'diff', '--quiet', 'HEAD', '--', 'src');
+  assert.throws(() => checkCurrentSource(root), /Non-regular current proof input/);
+});
+
+test('current source rejects physical executable mode hidden by Git configuration', t => {
+  const root = fixture(t);
+  git(root, 'config', 'core.filemode', 'false');
+  chmodSync(join(root, 'src/current.mbt'), 0o755);
+  git(root, 'diff', '--quiet', 'HEAD', '--', 'src');
+  assert.throws(() => checkCurrentSource(root), /Current proof input mode/);
 });
