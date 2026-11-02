@@ -18860,6 +18860,7 @@
         "./installed-project-configuration.mjs",
         "./installed-project-model-tasks.mjs",
         "./installed-project-profile.mjs",
+        "./installed-publication-root.mjs",
         "./installed-row-effect.mjs",
         "./installed-source.mjs",
         "./installed-update-originals.mjs",
@@ -18896,7 +18897,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e1d149ff1c0508a19d63a7b5a6a8d1f6b4203cf230db6383b24e0979c5e984cf"
+      "sha256": "dd2ee62ba3f949de9f86cc06e724eb4a4b9538e27e4512faaeff7e7a43f5de88"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -19825,6 +19826,108 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-publication-root.mjs",
+      "sha256": "2bcc047f2ef3b2151232c6f768e643aaedf24ce6b2053e230193e3147d2f5d4b",
+      "exports": [
+        "prepareInstalledPublicationRoot"
+      ],
+      "operations": [
+        {
+          "name": "prepareInstalledPublicationRoot",
+          "parameters": [
+            "root",
+            "principal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledPublicationRoot/publicationOwnership/init:close/init:close",
+          "parameters": [],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../store-local/publication-store.mjs",
+        "./host-root-format.mjs",
+        "./installed-host-cleanup.mjs",
+        "./ordinary-local-account.mjs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Host first-initialization and publication Store exclusion owners",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareInstalledPublicationRoot",
+            "prepareInstalledPublicationRoot/publicationOwnership/init:close/init:close"
+          ],
+          "exports": [
+            "prepareInstalledPublicationRoot"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Standard Local Account initialization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "export async function prepareInstalledPublicationRoot(root, principal)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "if (rootCreation !== 'new') return;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "const original = await prepareLocalPublicationStoreOwnership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "await publicationOwnership.close();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-publication-root.mjs",
+                "anchor": "throw await retainInstalledHostInitializationFailure(cause, {publicationOwnership});"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This private pre-publication initializer creates no Run, provider request, or cancellation authority. Original initialization failure cleanup and exclusion acknowledgement remain mandatory before provider continuation."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const maximum = 1_000_000;"
+              }
+            ],
+            "extension": {
+              "notApplicable": "Fixed existing fresh-Host initialization handoff only. No public authorization option, missing-file inference, existing-root backfill, or new bootstrap policy."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-publication-root.test.mjs",
+                "anchor": "test('pending intent writer retains exclusion and original primary failure until actual close'"
+              }
+            ]
+          }
+        }
+      ]
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",

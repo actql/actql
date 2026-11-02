@@ -56939,6 +56939,7 @@
         "./installed-project-configuration.mjs",
         "./installed-project-model-tasks.mjs",
         "./installed-project-profile.mjs",
+        "./installed-publication-root.mjs",
         "./installed-row-effect.mjs",
         "./installed-source.mjs",
         "./installed-update-originals.mjs",
@@ -56975,7 +56976,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e1d149ff1c0508a19d63a7b5a6a8d1f6b4203cf230db6383b24e0979c5e984cf"
+      "sha256": "dd2ee62ba3f949de9f86cc06e724eb4a4b9538e27e4512faaeff7e7a43f5de88"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

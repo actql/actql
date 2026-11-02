@@ -2379,7 +2379,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "49b76202833a82c68d8dbffcf652a87ecede796f9f0aa717776ac6f3f3ea3a73",
+      "sha256": "a3862a7c7f68ad1376b9e2baa04421032aad8f2fe8f2872c5c6de0e9c6cb80eb",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
       "exports": [
