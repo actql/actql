@@ -80,6 +80,8 @@ pub fn[I, P] begin_preparation_phase_work_continuation64(PreparationCapacity[I, 
 
 pub fn[P, E] begin_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
+pub fn bind_platform_vm_capacity(Int64, Ledger, SharedCapacity) -> Result[PlatformVMCapacity, ImportedChildLedgerIssue]
+
 pub fn[P, C] borrow_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionReadUse[P, C], BackedExecutionIssue]
 
 pub fn[T] borrow_original_read_workspace_claim(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> FundedReadClaim[T]?
@@ -447,6 +449,8 @@ pub fn[P] report_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Resul
 pub fn[P, C] require_backed_execution_read_use_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
 
 pub fn require_imported_child_vm_capacity(ImportedChildLedger, Ledger, SharedCapacity) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn require_platform_vm_capacity(PlatformVMCapacity, Ledger, SharedCapacity) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn reservation_capacity_amounts(Ledger, Reservation) -> Result[(Int64, Int64), LedgerIssue]
 
@@ -1007,6 +1011,8 @@ pub(all) enum OriginalStateWritePoll {
   StateWriteComplete(work~ : Int)
   StateWriteFailed(OriginalStateWriteIssue, work~ : Int)
 } derive(Eq, @debug.Debug)
+
+type PlatformVMCapacity
 
 type PreparationBodyBorrow[P]
 

@@ -25,6 +25,7 @@ assert.ok([physicalBoundary,dispatchBoundary,submissionBoundary,sourcePublicatio
 const fixtureModes = Object.freeze({
   'contract': 'actual artifact shape; synthetic entry refusal only',
   'buffer': 'unmetered transfer/cleanup custody',
+  'platform-vm': 'raw same-VM Root/input-pool/current/borrower; no installed image or Request/Run',
   'buffer-packed': 'unmetered raw Wasmtime i64 transport; no Run or physical ACK',
   'original-bulk': 'unmetered raw original-memory block ABI; no funded Host/Run or physical ACK',
   'preparation': 'unmetered positive; separate metered5k interruption',
@@ -229,6 +230,10 @@ if(process.argv.includes('--build-and-consume')){
         'Do not replace an existing fixed-source dispatch receipt');
     }
   }else if(physicalBoundary){
+    const platformVm=JSON.parse(run(python,['scripts/fixtures/python-local-platform-vm-abi.py',module]));
+    assert.equal(platformVm.success,true);
+    assert.equal(platformVm.cases.length,3);
+    assert.equal(platformVm.module_sha256,digest);
     const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
     assert.equal(physical.success,true);
     assert.equal(physical.module_sha256,digest);

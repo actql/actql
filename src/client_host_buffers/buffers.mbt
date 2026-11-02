@@ -4,6 +4,7 @@
 enum PoolBacking {
   OwnedCapacity
   ImportedVmCapacity
+  PlatformVmCapacity(@resources.PlatformVMCapacity)
 }
 
 ///|
@@ -141,6 +142,7 @@ fn open_pool_on_vm_capacity(
   total_bytes : Int64,
   max_slots : Int,
   max_wire_bytes : Int,
+  platform_vm? : @resources.PlatformVMCapacity? = None,
 ) -> Result[BufferPool, BufferIssue] {
   if total_bytes <= 0L ||
     max_slots < 1 ||
@@ -154,7 +156,10 @@ fn open_pool_on_vm_capacity(
   Ok({
     ledger,
     capacity,
-    backing: ImportedVmCapacity,
+    backing: match platform_vm {
+      None => ImportedVmCapacity
+      Some(original) => PlatformVmCapacity(original)
+    },
     total_bytes,
     allocated_bytes: 0L,
     copy_reserved_bytes: 0L,
@@ -192,6 +197,41 @@ pub fn open_pool_on_imported_vm_capacity(
 }
 
 ///|
+/// Same original platform VM reservation. Copy leases remain independently
+/// charged on the existing Root; this view supplies no native arena or child.
+pub fn open_pool_on_platform_vm_capacity(
+  original : @resources.PlatformVMCapacity,
+  ledger : @resources.Ledger,
+  capacity : @resources.SharedCapacity,
+  total_bytes : Int64,
+  max_slots : Int,
+  max_wire_bytes : Int,
+) -> Result[BufferPool, BufferIssue] {
+  match @resources.require_platform_vm_capacity(original, ledger, capacity) {
+    Ok(_) => ()
+    Err(@resources.ForeignOriginal) => return Err(ForeignOwner)
+    Err(@resources.Resource(issue)) => return Err(Resource(issue))
+    Err(_) => return Err(Resource(@resources.ChildFundingUnavailable))
+  }
+  open_pool_on_vm_capacity(
+    ledger,
+    capacity,
+    total_bytes,
+    max_slots,
+    max_wire_bytes,
+    platform_vm=Some(original),
+  )
+}
+
+///|
+fn pool_uses_vm_capacity(pool : BufferPool) -> Bool {
+  match pool.backing {
+    OwnedCapacity => false
+    ImportedVmCapacity | PlatformVmCapacity(_) => true
+  }
+}
+
+///|
 /// Physical adapters supply measured copy capacity before allocating it.
 /// Mutable and immutable wire payloads inside Wasm are charged separately,
 /// including their overlap during sealing, without treating equal
@@ -205,6 +245,19 @@ pub fn reserve_buffer(
   if pool.closing {
     return Err(Closed)
   }
+  if pool.backing is PlatformVmCapacity(original) {
+    match
+      @resources.require_platform_vm_capacity(
+        original,
+        pool.ledger,
+        pool.capacity,
+      ) {
+      Ok(_) => ()
+      Err(@resources.ForeignOriginal) => return Err(ForeignOwner)
+      Err(@resources.Resource(issue)) => return Err(Resource(issue))
+      Err(_) => return Err(Resource(@resources.ChildFundingUnavailable))
+    }
+  }
   if wire_bytes < 0 ||
     wire_bytes > pool.max_wire_bytes ||
     physical_copy_bytes < 0L ||
@@ -216,14 +269,14 @@ pub fn reserve_buffer(
     return Err(Capacity)
   }
   let charge = physical_copy_bytes + 2L * wire_bytes.to_int64()
-  if pool.backing is ImportedVmCapacity &&
+  if pool_uses_vm_capacity(pool) &&
     charge > pool.total_bytes - pool.allocated_bytes {
     return Err(Resource(@resources.RetentionLimit))
   }
   let allocation = match
     @resources.allocate_shared_capacity(
       pool.capacity,
-      if pool.backing is ImportedVmCapacity {
+      if pool_uses_vm_capacity(pool) {
         2L * wire_bytes.to_int64()
       } else {
         charge
@@ -255,7 +308,7 @@ pub fn reserve_buffer(
   pool.next_serial += 1
   pool.allocated_bytes += charge
   pool.slots.push(slot)
-  if pool.backing is ImportedVmCapacity && physical_copy_bytes > 0L {
+  if pool_uses_vm_capacity(pool) && physical_copy_bytes > 0L {
     match @resources.reserve_shared_capacity(pool.ledger, physical_copy_bytes) {
       Ok(capacity) => {
         slot.copy_capacity = Some(capacity)
@@ -638,7 +691,7 @@ pub fn close_pool(pool : BufferPool) -> Result[Unit, BufferIssue] {
 pub fn buffer_pool_reserved(pool : BufferPool) -> Int64 {
   if pool.settled {
     0L
-  } else if pool.backing is ImportedVmCapacity {
+  } else if pool_uses_vm_capacity(pool) {
     pool.copy_reserved_bytes
   } else {
     @resources.shared_capacity_usage(pool.capacity).capacity

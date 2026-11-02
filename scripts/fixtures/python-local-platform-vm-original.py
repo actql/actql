@@ -116,6 +116,56 @@ class PlatformVMOriginalTests(unittest.TestCase):
         self.assertTrue(core._closing)
 
 
+class PlatformVMPortTests(unittest.TestCase):
+    core = PlatformVMOriginalTests.core
+    # Only these new methods are selected locally; inherited earlier cases
+    # retain their original executed source qualifications.
+    def test_fixed_port_reports_actual_original_memory_not_child_authority(self):
+        observed = []
+        def invoke(core, caller, nonce, *arguments):
+            for ordinal in (0, 1, 2, 3):
+                observed.append(core._platform_vm_observation(caller, nonce, ordinal))
+            return -42
+        with patch.object(LocalCore, '_unavailable_execution_child', invoke):
+            core = self.core()
+        self.assertEqual(core._call('buffer', 'probe'), -42)
+        self.assertEqual(observed, [0, 16777216, 65536, -42])
+        self.assertEqual(core._call('buffer', 'grow'), 0)
+        observed.clear()
+        self.assertEqual(core._call('buffer', 'probe'), -42)
+        self.assertEqual(observed, [0, 16777216, 131072, -42])
+
+    def test_fixed_port_rejects_foreign_real_caller_even_with_original_nonce(self):
+        original = self.core()
+        checked = []
+        def invoke(core, caller, nonce, *arguments):
+            with self.assertRaises(ValueError):
+                original._platform_vm_observation(caller, original._nonce, 0)
+            checked.append(nonce)
+            return -42
+        with patch.object(LocalCore, '_unavailable_execution_child', invoke):
+            other = self.core()
+        self.assertEqual(other._call('buffer', 'probe'), -42)
+        self.assertEqual(checked, [other._nonce])
+        self.assertFalse(original._closing)
+
+    def test_fixed_port_observes_closing_without_acknowledging_store_retirement(self):
+        observed = []
+        def invoke(core, caller, nonce, *arguments):
+            observed.append(core._platform_vm_observation(caller, nonce, 0))
+            return -42
+        with patch.object(LocalCore, '_unavailable_execution_child', invoke):
+            core = self.core()
+        original = core._platform_vm_original
+        store = core._store
+        core._closing = True
+        self.assertEqual(core._call('buffer', 'probe'), -42)
+        self.assertEqual(observed, [1])
+        self.assertIs(core._store, store)
+        self.assertIs(core._platform_vm_original, original)
+        self.assertFalse(core._closed)
+
+
 def foreign_method(original, calls):
     def invoke(core, caller, nonce, *arguments):
         calls.append(nonce)

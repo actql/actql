@@ -51,6 +51,7 @@ options(
         "report_live:actql_buffer_report_live",
         "stop_live:actql_buffer_stop_live",
         "open:actql_buffer_open",
+        "open_platform:actql_buffer_open_platform",
         "reserve:actql_buffer_reserve",
         "fill:actql_buffer_fill",
         "fill_block:actql_buffer_fill_block",

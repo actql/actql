@@ -562,6 +562,10 @@ class LocalCore:
                         getattr(self._physical_child_control, name.removeprefix('execution_child_')))
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [result_type]), child_callback, access_caller=True)
+                self._linker.define_func('actql_host', 'platform_vm_observation',
+                    wasmtime.FuncType([wasmtime.ValType.i64(), wasmtime.ValType.i32()],
+                                      [wasmtime.ValType.i64()]),
+                    self._platform_vm_observation, access_caller=True)
                 instance = self._linker.instantiate(self._store, self._module)
                 self._instance = instance
                 self._exports = instance.exports(self._store)
@@ -583,7 +587,8 @@ class LocalCore:
                     self._check('open_live', self._call('buffer', 'open_live',
                                                        transfer_capacity, slots, 1_048_576))
                 else:
-                    self._check('open', self._call('buffer', 'open', transfer_capacity,
+                    entry = 'open_platform' if self._platform_vm_original is not None else 'open'
+                    self._check(entry, self._call('buffer', entry, transfer_capacity,
                                                 slots, 1_048_576, resources.planning_work,
                                                 resources.attempts, resources.holdings,
                                                 resources.transfer_bytes, resources.retained_bytes,
@@ -597,6 +602,27 @@ class LocalCore:
             except Exception:
                 raise LocalCoreInitializationError(self) from error
             raise
+
+    def _platform_vm_observation(self, caller: Any, nonce: int, ordinal: int) -> int:
+        """Fixed original platform port, never execution-child permission.
+
+        A live Caller and the already selected Memory type qualify membership.
+        Only the Resource Owner binds/allocates its original VM reservation;
+        these returned scalar observations cannot be adopted as a fresh Root.
+        """
+        if self._platform_vm_original is None:
+            return -42
+        size = self._require_platform_vm_current(caller=caller, nonce=nonce)
+        if type(ordinal) is not int:
+            return -42
+        if ordinal == 0:
+            return 1 if self._closing or self._retired else 0
+        if ordinal == 1:
+            # Capture validated the SAME Memory's immutable selected max.
+            return _MEMORY_LIMIT
+        if ordinal == 2:
+            return size
+        return -42
 
     def _observe_platform_vm(self, runtime: Any) -> None:
         """Bind the actual platform Store/Instance/Memory, never quota DATA.

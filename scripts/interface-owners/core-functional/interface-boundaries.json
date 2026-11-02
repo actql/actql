@@ -69929,6 +69929,936 @@
         }
       ],
       "exports": []
+    },
+    {
+      "module": "src/physical_resources/platform_vm_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core, platform VM Resource and transfer-buffer owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_platform_vm_capacity",
+            "bind_platform_vm_capacity_original",
+            "require_platform_vm_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity.mbt",
+                "anchor": "pub fn bind_platform_vm_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "3808ad0679332f0c89a457a7d47ed1032ab46fde6273fff3d0037394850d0c84",
+      "operations": [
+        {
+          "name": "bind_platform_vm_capacity",
+          "declaration": "bind_platform_vm_capacity ( nonce : Int64 , ledger : Ledger , capacity : SharedCapacity , ) - > Result [ PlatformVMCapacity , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "bind_platform_vm_capacity_original",
+          "declaration": "bind_platform_vm_capacity_original ( nonce : Int64 , ledger : Ledger , capacity : SharedCapacity , observe : ( Int64 , Int ) - > Int64 , ) - > Result [ PlatformVMCapacity , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "require_platform_vm_capacity",
+          "declaration": "require_platform_vm_capacity ( original : PlatformVMCapacity , ledger : Ledger , capacity : SharedCapacity , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core, platform VM Resource and transfer-buffer owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "platform_vm_observation",
+            "platform_vm_port"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wasm.mbt",
+                "anchor": "fn platform_vm_observation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "a2a535a878f4ddef4c047905141c83abe94c0e05a94cb8a043080f17b92a7e62",
+      "operations": [
+        {
+          "name": "platform_vm_observation",
+          "declaration": "platform_vm_observation ( nonce : Int64 , ordinal : Int ) - > Int64"
+        },
+        {
+          "name": "platform_vm_port",
+          "declaration": "platform_vm_port ( ) - > Result [ ( Int64 , Int ) - > Int64 , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core, platform VM Resource and transfer-buffer owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "platform_vm_port"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_unsupported.mbt",
+                "anchor": "fn platform_vm_port("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "c6e62117e881f2517171a36719fa66c9592697c853db66b46d8205eca13d4e68",
+      "operations": [
+        {
+          "name": "platform_vm_port",
+          "declaration": "platform_vm_port ( ) - > Result [ ( Int64 , Int ) - > Int64 , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/client_host_buffers/buffers.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core, platform VM Resource and transfer-buffer owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "borrow_buffer",
+            "buffer_byte",
+            "buffer_length",
+            "buffer_output_limit",
+            "buffer_pool_ledger_usage",
+            "buffer_pool_reserved",
+            "buffer_pool_usage",
+            "buffer_serial",
+            "buffer_source",
+            "buffer_wire",
+            "close_buffer",
+            "close_pool",
+            "fill_buffer",
+            "lookup_buffer",
+            "open_pool",
+            "open_pool_on_imported_vm_capacity",
+            "open_pool_on_ledger",
+            "open_pool_on_platform_vm_capacity",
+            "open_pool_on_vm_capacity",
+            "pool_uses_vm_capacity",
+            "reserve_buffer",
+            "reserve_output_buffer",
+            "return_buffer_borrow",
+            "seal_buffer",
+            "supply_buffer_output"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_buffers/buffers.mbt",
+                "anchor": "pub fn open_pool_on_platform_vm_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "23fc3bb977ecc3a6628c85974aa92fe67ecb41d20b0a4afda8faeb83bc0a49a1",
+      "operations": [
+        {
+          "name": "borrow_buffer",
+          "declaration": "borrow_buffer ( pool : BufferPool , slot : BufferSlot , physical_stop : ( ) - > Bool , ) - > Result [ BufferBorrow , BufferIssue ]"
+        },
+        {
+          "name": "buffer_byte",
+          "declaration": "buffer_byte ( pool : BufferPool , slot : BufferSlot , index : Int ) - > Byte ?"
+        },
+        {
+          "name": "buffer_length",
+          "declaration": "buffer_length ( pool : BufferPool , slot : BufferSlot ) - > Int ?"
+        },
+        {
+          "name": "buffer_output_limit",
+          "declaration": "buffer_output_limit ( pool : BufferPool , slot : BufferSlot ) - > Int ?"
+        },
+        {
+          "name": "buffer_pool_ledger_usage",
+          "declaration": "buffer_pool_ledger_usage ( pool : BufferPool ) - > @ resources . LedgerUsage"
+        },
+        {
+          "name": "buffer_pool_reserved",
+          "declaration": "buffer_pool_reserved ( pool : BufferPool ) - > Int64"
+        },
+        {
+          "name": "buffer_pool_usage",
+          "declaration": "buffer_pool_usage ( pool : BufferPool ) - > @ resources . SharedCapacityUsage"
+        },
+        {
+          "name": "buffer_serial",
+          "declaration": "buffer_serial ( slot : BufferSlot ) - > Int"
+        },
+        {
+          "name": "buffer_source",
+          "declaration": "buffer_source ( pool : BufferPool , slot : BufferSlot ) - > @ source . Node ?"
+        },
+        {
+          "name": "buffer_wire",
+          "declaration": "buffer_wire ( pool : BufferPool , slot : BufferSlot ) - > Bytes ?"
+        },
+        {
+          "name": "close_buffer",
+          "declaration": "close_buffer ( pool : BufferPool , slot : BufferSlot , ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "close_pool",
+          "declaration": "close_pool ( pool : BufferPool ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "fill_buffer",
+          "declaration": "fill_buffer ( pool : BufferPool , slot : BufferSlot , start : Int , count : Int , read_byte : ( Int ) - > Byte ? , ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "lookup_buffer",
+          "declaration": "lookup_buffer ( pool : BufferPool , serial : Int ) - > BufferSlot ?"
+        },
+        {
+          "name": "open_pool",
+          "declaration": "open_pool ( total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , ) - > Result [ BufferPool , BufferIssue ]"
+        },
+        {
+          "name": "open_pool_on_imported_vm_capacity",
+          "declaration": "open_pool_on_imported_vm_capacity ( original : @ resources . ImportedChildLedger , ledger : @ resources . Ledger , capacity : @ resources . SharedCapacity , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , ) - > Result [ BufferPool , BufferIssue ]"
+        },
+        {
+          "name": "open_pool_on_ledger",
+          "declaration": "open_pool_on_ledger ( ledger : @ resources . Ledger , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , ) - > Result [ BufferPool , BufferIssue ]"
+        },
+        {
+          "name": "open_pool_on_platform_vm_capacity",
+          "declaration": "open_pool_on_platform_vm_capacity ( original : @ resources . PlatformVMCapacity , ledger : @ resources . Ledger , capacity : @ resources . SharedCapacity , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , ) - > Result [ BufferPool , BufferIssue ]"
+        },
+        {
+          "name": "open_pool_on_vm_capacity",
+          "declaration": "open_pool_on_vm_capacity ( ledger : @ resources . Ledger , capacity : @ resources . SharedCapacity , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , platform_vm ? : @ resources . PlatformVMCapacity ?"
+        },
+        {
+          "name": "pool_uses_vm_capacity",
+          "declaration": "pool_uses_vm_capacity ( pool : BufferPool ) - > Bool"
+        },
+        {
+          "name": "reserve_buffer",
+          "declaration": "reserve_buffer ( pool : BufferPool , wire_bytes : Int , physical_copy_bytes : Int64 , cleanup : ( ) - > Bool , ) - > Result [ BufferSlot , BufferIssue ]"
+        },
+        {
+          "name": "reserve_output_buffer",
+          "declaration": "reserve_output_buffer ( pool : BufferPool , max_wire_bytes : Int , physical_copy_bytes : Int64 , cleanup : ( ) - > Bool , ) - > Result [ BufferSlot , BufferIssue ]"
+        },
+        {
+          "name": "return_buffer_borrow",
+          "declaration": "return_buffer_borrow ( pool : BufferPool , borrow : BufferBorrow , ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "seal_buffer",
+          "declaration": "seal_buffer ( pool : BufferPool , slot : BufferSlot , max_nodes : Int , max_depth : Int , ) - > Result [ Unit , BufferIssue ]"
+        },
+        {
+          "name": "supply_buffer_output",
+          "declaration": "supply_buffer_output ( pool : BufferPool , slot : BufferSlot , wire : Bytes , ) - > Result [ Unit , BufferIssue ]"
+        }
+      ],
+      "exports": []
+    },
+    {
+      "module": "src/client_host_wasm/buffers.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core, platform VM Resource and transfer-buffer owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "allocated",
+            "borrow",
+            "byte",
+            "close",
+            "close_pool",
+            "fill",
+            "fill_block",
+            "imported_child_issue_code",
+            "install_buffer_instance",
+            "issue_code",
+            "open",
+            "open_buffer_instance",
+            "open_live",
+            "open_platform",
+            "physical_input_byte",
+            "physical_input_cleanup",
+            "physical_input_copy",
+            "physical_native_cleaned",
+            "physical_native_settled",
+            "physical_native_stopped",
+            "physical_reader_stop",
+            "prepare_product_sequence_contracts",
+            "read_block",
+            "read_packed",
+            "report_live",
+            "reserve",
+            "reserve_input_admission",
+            "reserved",
+            "retain_live_issue",
+            "return_reader",
+            "seal",
+            "selected",
+            "status",
+            "stop_live"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/buffers.mbt",
+                "anchor": "pub fn open_platform("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "e7e958fd0a54bf3b70883a69cd1ec9913cb514641a28dd79561e40213ce62cb7",
+      "operations": [
+        {
+          "name": "allocated",
+          "declaration": "allocated ( nonce : Int64 ) - > Int64"
+        },
+        {
+          "name": "borrow",
+          "declaration": "borrow ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "byte",
+          "declaration": "byte ( nonce : Int64 , handle : Int , index : Int ) - > Int"
+        },
+        {
+          "name": "close",
+          "declaration": "close ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "close_pool",
+          "declaration": "close_pool ( nonce : Int64 ) - > Int"
+        },
+        {
+          "name": "fill",
+          "declaration": "fill ( nonce : Int64 , handle : Int , start : Int , count : Int ) - > Int"
+        },
+        {
+          "name": "fill_block",
+          "declaration": "fill_block ( nonce : Int64 , handle : Int , start : Int , count : Int ) - > Int"
+        },
+        {
+          "name": "imported_child_issue_code",
+          "declaration": "imported_child_issue_code ( issue : @ resources . ImportedChildLedgerIssue , ) - > Int"
+        },
+        {
+          "name": "install_buffer_instance",
+          "declaration": "install_buffer_instance ( nonce : Int64 , root : @ resources . Ledger , wasm_capacity : @ resources . SharedCapacity , host_capacity : @ resources . SharedCapacity ? , pool : @ buffers . BufferPool , max_slots : Int , installed_sequences : InstalledSequenceContracts , platform_vm ? : @ resources . PlatformVMCapacity ?"
+        },
+        {
+          "name": "issue_code",
+          "declaration": "issue_code ( issue : @ buffers . BufferIssue ) - > Int"
+        },
+        {
+          "name": "open",
+          "declaration": "open ( nonce : Int64 , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , planning_work : Int , attempts : Int , holdings : Int , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , host_capacity_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "open_buffer_instance",
+          "declaration": "open_buffer_instance ( nonce : Int64 , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , planning_work : Int , attempts : Int , holdings : Int , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , host_capacity_bytes : Int64 , initialization : BufferInitialization , ) - > Int"
+        },
+        {
+          "name": "open_live",
+          "declaration": "open_live ( nonce : Int64 , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , ) - > Int"
+        },
+        {
+          "name": "open_platform",
+          "declaration": "open_platform ( nonce : Int64 , total_bytes : Int64 , max_slots : Int , max_wire_bytes : Int , planning_work : Int , attempts : Int , holdings : Int , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , host_capacity_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "physical_input_byte",
+          "declaration": "physical_input_byte ( input : Int , index : Int ) - > Int"
+        },
+        {
+          "name": "physical_input_cleanup",
+          "declaration": "physical_input_cleanup ( input : Int ) - > Int"
+        },
+        {
+          "name": "physical_input_copy",
+          "declaration": "physical_input_copy ( input : Int , start : Int , offset : Int , length : Int , ) - > Int"
+        },
+        {
+          "name": "physical_native_cleaned",
+          "declaration": "physical_native_cleaned ( handle : Int ) - > Int"
+        },
+        {
+          "name": "physical_native_settled",
+          "declaration": "physical_native_settled ( handle : Int ) - > Int"
+        },
+        {
+          "name": "physical_native_stopped",
+          "declaration": "physical_native_stopped ( handle : Int ) - > Int"
+        },
+        {
+          "name": "physical_reader_stop",
+          "declaration": "physical_reader_stop ( input : Int , reader : Int ) - > Int"
+        },
+        {
+          "name": "prepare_product_sequence_contracts",
+          "declaration": "prepare_product_sequence_contracts ( ) - > InstalledSequenceContracts ?"
+        },
+        {
+          "name": "read_block",
+          "declaration": "read_block ( nonce : Int64 , handle : Int , start : Int , length : Int , ) - > Int"
+        },
+        {
+          "name": "read_packed",
+          "declaration": "read_packed ( nonce : Int64 , handle : Int , start : Int , count : Int , ) - > Int64"
+        },
+        {
+          "name": "report_live",
+          "declaration": "report_live ( nonce : Int64 ) - > Int"
+        },
+        {
+          "name": "reserve",
+          "declaration": "reserve ( nonce : Int64 , physical_input : Int , wire_bytes : Int , physical_copy_bytes : Int64 , ) - > Int"
+        },
+        {
+          "name": "reserve_input_admission",
+          "declaration": "reserve_input_admission ( value : Instance , physical_input : Int ) - > Int"
+        },
+        {
+          "name": "reserved",
+          "declaration": "reserved ( nonce : Int64 ) - > Int64"
+        },
+        {
+          "name": "retain_live_issue",
+          "declaration": "retain_live_issue ( issue : @ resources . ImportedChildLedgerIssue ) - > Int"
+        },
+        {
+          "name": "return_reader",
+          "declaration": "return_reader ( nonce : Int64 , reader : Int ) - > Int"
+        },
+        {
+          "name": "seal",
+          "declaration": "seal ( nonce : Int64 , handle : Int ) - > Int"
+        },
+        {
+          "name": "selected",
+          "declaration": "selected ( nonce : Int64 ) - > Instance ?"
+        },
+        {
+          "name": "status",
+          "declaration": "status ( result : Result [ Unit , @ buffers . BufferIssue ] ) - > Int"
+        },
+        {
+          "name": "stop_live",
+          "declaration": "stop_live ( nonce : Int64 ) - > Int"
+        }
+      ],
+      "exports": []
     }
   ]
 }

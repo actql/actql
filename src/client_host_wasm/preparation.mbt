@@ -303,6 +303,17 @@ pub fn reserve_preparation(
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
+  if value.platform_vm is Some(original) {
+    match
+      @resources.require_platform_vm_capacity(
+        original,
+        value.root,
+        value.wasm_capacity,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return imported_child_issue_code(issue)
+    }
+  }
   if value.next_handle == 2147483647 {
     return -4
   }

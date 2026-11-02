@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "bf2747e9bb0cfa7e1f4a15ffe06ef621dbeb59eca85ebdba9497774bfa82f0ad",
+  "syntaxProjectionSha256": "687690de926b50ebdb2a8d042056586f03c3eae0b192d278be402778259427f4",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -5567,6 +5567,16 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_platform_vm_observation",
+          "parameters": [
+            "self",
+            "caller",
+            "nonce",
+            "ordinal"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_produce_output",
           "parameters": [
             "self",
@@ -7969,7 +7979,7 @@
           ]
         }
       ],
-      "sha256": "3014a6ef4260535f7eb78e8dc0e3ef3a31aaf9d2e1a89ebdbb9d9f47b896f38a",
+      "sha256": "1c2a5def986fdd358ee529b4399e0555c79d0872fe3cf689ad72b1b4d8f7adeb",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14641,6 +14651,114 @@
               {
                 "path": "scripts/fixtures/python-local-platform-vm-original.py",
                 "anchor": "    def test_callback_cannot_drop_original_vm_metadata_before_outer_return("
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalCore/_platform_vm_observation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def _platform_vm_observation("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
               }
             ]
           }
@@ -64255,7 +64373,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "94646e307c60860e2a1723ec867e0cc0fcf6264e84b863e12799277d3dc831ad",
+      "sha256": "03a14b23a482ccb33c967b523b753e7da47c1d729889f632693e64452ace20bc",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -74630,7 +74748,7 @@
     },
     {
       "module": "src/client_host_wasm/version.mbt",
-      "sha256": "9a2f41f6aa25c37f5b03ab89d08862892819186b7ea627f8b4f8aaa0facceeda",
+      "sha256": "3932baefa434a57ec039a543368148502f2a72410bc767a484151067e2bfd553",
       "exports": [],
       "operations": [
         {
@@ -74859,7 +74977,7 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "727870c167279725bae49aee8e30e8d19b8197ca2d5562c0bb5bfbff4a493e83",
+      "sha256": "7275ee4ce2974bfbbba5b587c682715830bce442f886a8f96ff383f4cbed6e9c",
       "exports": [],
       "operations": [
         {
@@ -74967,6 +75085,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "inputsOutputs": [
@@ -74977,6 +75099,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Accepted preparation failure"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "identity": [
@@ -74987,6 +75113,10 @@
               {
                 "path": "src/client_host_wasm/preparation.mbt",
                 "anchor": "fn stored_preparation_input("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "ownership": [
@@ -74997,6 +75127,10 @@
               {
                 "path": "src/client_host_wasm/preparation.mbt",
                 "anchor": "fn stored_preparation_input("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "synchronization": [
@@ -75007,6 +75141,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "def _commit_preparation_failure("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "failure": [
@@ -75017,6 +75155,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_preparation_failure_journal.py",
                 "anchor": "def test_lost_commit_reply_keeps_same_failed_preparation_and_never_looks_up_or_retries("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "cancellation": [
@@ -75027,6 +75169,10 @@
               {
                 "path": "src/client_host_wasm/preparation.mbt",
                 "anchor": "pub fn close_preparation("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "resources": [
@@ -75037,6 +75183,10 @@
               {
                 "path": "src/client_host_wasm/submission.mbt",
                 "anchor": "@buffers.reserve_output_buffer("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "extension": [
@@ -75047,6 +75197,10 @@
               {
                 "path": "src/run_publication_host/client_submitted_journal_record.mbt",
                 "anchor": "pub fn decode_client_submitted_journal_row("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ],
             "verification": [
@@ -75061,6 +75215,10 @@
               {
                 "path": "src/run_publication_host/client_saved_submission_public_view_wbtest.mbt",
                 "anchor": "test \"accepted failure candidate preserves same intent and refuses terminal or foreign originals\""
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
               }
             ]
           }
@@ -78522,6 +78680,777 @@
               {
                 "path": "src/client_host_wasm/source_submission_request_wbtest.mbt",
                 "anchor": "test \"Source request handoff refuses substituted submitted view before Run preparation\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "COMPILER_OUTPUT",
+        "FAMILIES",
+        "IMPORT",
+        "OUTPUT",
+        "PUBLIC",
+        "Path",
+        "ROOT",
+        "SCALAR",
+        "annotations",
+        "argparse",
+        "args",
+        "ast",
+        "compiler_rendered",
+        "declaration_source",
+        "hashlib",
+        "json",
+        "package_wasm_exports",
+        "parameters",
+        "parser",
+        "re",
+        "render",
+        "render_compiler_header",
+        "rendered",
+        "unit"
+      ],
+      "imports": [
+        "__future__",
+        "argparse",
+        "ast",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re"
+      ],
+      "module": "scripts/generate-local-wasm-abi.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "declaration_source",
+          "parameters": [
+            "text",
+            "mask_literals"
+          ]
+        },
+        {
+          "async": false,
+          "name": "declaration_source/hide",
+          "parameters": [
+            "begin",
+            "end"
+          ]
+        },
+        {
+          "async": false,
+          "name": "package_wasm_exports",
+          "parameters": [
+            "path"
+          ]
+        },
+        {
+          "async": false,
+          "name": "package_wasm_exports/fields",
+          "parameters": [
+            "end"
+          ]
+        },
+        {
+          "async": false,
+          "name": "package_wasm_exports/take",
+          "parameters": [
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "package_wasm_exports/value",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "parameters",
+          "parameters": [
+            "raw"
+          ]
+        },
+        {
+          "async": false,
+          "name": "render",
+          "parameters": [
+            "root"
+          ]
+        },
+        {
+          "async": false,
+          "name": "render_compiler_header",
+          "parameters": [
+            "root"
+          ]
+        },
+        {
+          "async": false,
+          "name": "unit",
+          "parameters": [
+            "symbol",
+            "name"
+          ]
+        }
+      ],
+      "sha256": "a5d68393e45da8fff7e97d556a2ef3657ef49921d620960f84de26f42ee5c4b8",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core scalar generator and physical diagnostic fixture owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "declaration_source",
+            "declaration_source/hide",
+            "package_wasm_exports",
+            "package_wasm_exports/fields",
+            "package_wasm_exports/take",
+            "package_wasm_exports/value",
+            "parameters",
+            "render",
+            "render_compiler_header",
+            "unit"
+          ],
+          "exports": [
+            "COMPILER_OUTPUT",
+            "FAMILIES",
+            "IMPORT",
+            "OUTPUT",
+            "PUBLIC",
+            "Path",
+            "ROOT",
+            "SCALAR",
+            "annotations",
+            "argparse",
+            "args",
+            "ast",
+            "compiler_rendered",
+            "declaration_source",
+            "hashlib",
+            "json",
+            "package_wasm_exports",
+            "parameters",
+            "parser",
+            "re",
+            "render",
+            "render_compiler_header",
+            "rendered",
+            "unit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/generate-local-wasm-abi.py",
+                "anchor": "def render("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "LOCAL_CORE_ABI",
+        "Path",
+        "PhysicalFixture",
+        "sys",
+        "wasmtime"
+      ],
+      "imports": [
+        "actql_sdk._local_core",
+        "actql_sdk._local_wasm_abi",
+        "pathlib",
+        "sys",
+        "wasmtime"
+      ],
+      "module": "scripts/fixtures/python_local_physical.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "PhysicalFixture",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/__init__",
+          "parameters": [
+            "self",
+            "module",
+            "nonce",
+            "capacity",
+            "slots",
+            "fuel",
+            "execution_bytes",
+            "retained_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/call",
+          "parameters": [
+            "self",
+            "name",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/cleanup",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/close",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/copy",
+          "parameters": [
+            "self",
+            "ticket",
+            "payload",
+            "retained_bytes"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/execution_child_unavailable",
+          "parameters": [
+            "self",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/input_copy",
+          "parameters": [
+            "self",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/journal_copy",
+          "parameters": [
+            "self",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/journal_query_copy",
+          "parameters": [
+            "self",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/journal_refuse",
+          "parameters": [
+            "self",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/native_cleaned",
+          "parameters": [
+            "self",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/native_settled",
+          "parameters": [
+            "self",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/native_stopped",
+          "parameters": [
+            "self",
+            "handle"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/platform_vm_observation",
+          "parameters": [
+            "self",
+            "caller",
+            "nonce",
+            "ordinal"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/publisher_begin",
+          "parameters": [
+            "self",
+            "ticket",
+            "length"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/publisher_byte",
+          "parameters": [
+            "self",
+            "ticket",
+            "index",
+            "byte"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/publisher_copy",
+          "parameters": [
+            "self",
+            "*args"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/publisher_current",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/publisher_finish",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/read",
+          "parameters": [
+            "self",
+            "ticket",
+            "index"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/stop",
+          "parameters": [
+            "self",
+            "ticket",
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "PhysicalFixture/unexpected_native",
+          "parameters": [
+            "self",
+            "handle"
+          ]
+        }
+      ],
+      "sha256": "184af60fa488ac7bdaa34346116993dd7f6a1c9b9dffbba6c00387a958d50b28",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core scalar generator and physical diagnostic fixture owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "PhysicalFixture",
+            "PhysicalFixture/__init__",
+            "PhysicalFixture/call",
+            "PhysicalFixture/cleanup",
+            "PhysicalFixture/close",
+            "PhysicalFixture/copy",
+            "PhysicalFixture/execution_child_unavailable",
+            "PhysicalFixture/input_copy",
+            "PhysicalFixture/journal_copy",
+            "PhysicalFixture/journal_query_copy",
+            "PhysicalFixture/journal_refuse",
+            "PhysicalFixture/native_cleaned",
+            "PhysicalFixture/native_settled",
+            "PhysicalFixture/native_stopped",
+            "PhysicalFixture/platform_vm_observation",
+            "PhysicalFixture/publisher_begin",
+            "PhysicalFixture/publisher_byte",
+            "PhysicalFixture/publisher_copy",
+            "PhysicalFixture/publisher_current",
+            "PhysicalFixture/publisher_finish",
+            "PhysicalFixture/read",
+            "PhysicalFixture/stop",
+            "PhysicalFixture/unexpected_native"
+          ],
+          "exports": [
+            "LOCAL_CORE_ABI",
+            "Path",
+            "PhysicalFixture",
+            "sys",
+            "wasmtime"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/fixtures/python_local_physical.py",
+                "anchor": "class PhysicalFixture:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "scripts/check-python-local-core.mjs",
+      "sha256": "07e7bbdaea50a5bd5cf1107cdcfdeaa6be927c8b717001168cde972c21848954",
+      "exports": [],
+      "operations": [
+        {
+          "name": "run",
+          "parameters": [
+            "command",
+            "args",
+            "timeout"
+          ],
+          "async": false
+        },
+        {
+          "name": "run/hash/hash",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./local-checks-guard.mjs",
+        "node:assert/strict",
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "node:url"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Core scalar generator and physical diagnostic fixture owners",
+      "referenceQualification": "Source/type original VM binding plus real same-VM Root/input-pool component with explicit reader stop/cleanup ports only; not Request demand, installed image, normal Run, durable approval/Result/Saved or physical ACK qualification.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "run",
+            "run/hash/hash"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "scripts/check-python-local-core.mjs",
+                "anchor": "function run("
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/fixtures/python-local-platform-vm-abi.py",
+                "anchor": "cases.append('same VM original"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM capacity binds exact original Root"
               }
             ]
           }

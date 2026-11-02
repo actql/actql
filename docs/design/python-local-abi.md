@@ -3557,3 +3557,41 @@ Core cleanup retains the same instance and observation if Store close fails.
 Metadata is cleared only after that same Store closes successfully. A logical
 pool close or a metadata observation is not the physical acknowledgement. The
 existing native-holding observer and imported-child profile remain separate.
+
+### Platform VM capacity and input-pool binding
+
+Private scalar ABI 86 adds the fixed `platform_vm_observation` import and the
+`open_platform` entry. The observation checks the same captured Store, Instance,
+Memory and real Caller. Its state and immutable selected maximum are DATA;
+ordinary initialization binds them to its existing Root and VM reservation
+before opening the platform input pool. The public Client supplies neither this
+port nor a callback, address, capacity original or allocation domain. Diagnostic
+scalar opening and the existing original native/imported-child entrance remain
+separate. An absent platform original refuses; it does not fall back to either.
+
+The opaque `PlatformVMCapacity` is a view of that same Resource reservation,
+not another allocator or lifecycle Owner. Equal limits on a different Root,
+reservation or copied view do not match. Closing and lost observations fence
+new claims on that original; a later observation does not clear the fence.
+The non-Wasm fixed port remains unavailable.
+
+A platform input pool claims its actual mutable/immutable wire overlap from the
+same existing VM capacity rather than reserving another whole execution pool.
+Its separately supplied external-copy allowance remains separately charged on
+the same Root. Pool limits are bounds, not allocations of their unused maximum.
+The existing borrower, original stop, cleanup and shared-allocation release
+sequence remains mandatory. Closing the pool settles only its own suballocations;
+it does not return the VM reservation or retire the physical Store. The enclosing
+Instance may mark that reservation closing for cleanup; the original Root/Store
+retains its charge until existing physical retirement. The fixed memory maximum and
+ordinary platform/no-native-provider profile are unchanged.
+
+This connection does not by itself fund Request syntax, checking, compilation,
+Plan, output, failed-child or retained Run overlap. Preparation input admission
+checks the same original VM, but complete Request demand must still be claimed
+before those constructors run. Neither this membership view nor remaining-byte
+DATA supplies that missing Request admission. Source and component checks must
+not be promoted to installed-image, durable approval, Saved or normal acceptance.
+The diagnostic ABI cases use real Wasmtime VM/Root/buffers with explicit
+physical-reader stop and cleanup ports; those ports are not a provider's live
+reader or physical-stop proof.

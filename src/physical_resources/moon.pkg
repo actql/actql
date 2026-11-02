@@ -35,6 +35,8 @@ options(
     "node_original_source_child_js_wbtest.mbt": [ "js" ],
     "ledger_usage_js_boundary_wbtest.mbt": [ "js" ],
     "imported_child_ledger_wasm.mbt": [ "wasm" ],
+    "platform_vm_capacity_wasm.mbt": [ "wasm" ],
+    "platform_vm_capacity_unsupported.mbt": [ "not", "wasm" ],
     "imported_child_ledger_unsupported.mbt": [ "not", "wasm" ],
     "imported_child_ledger_unsupported_wbtest.mbt": [ "not", "wasm" ],
   },

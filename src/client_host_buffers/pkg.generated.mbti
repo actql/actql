@@ -50,6 +50,8 @@ pub fn open_pool_on_imported_vm_capacity(@physical_resources.ImportedChildLedger
 
 pub fn open_pool_on_ledger(@physical_resources.Ledger, Int64, Int, Int) -> Result[BufferPool, BufferIssue]
 
+pub fn open_pool_on_platform_vm_capacity(@physical_resources.PlatformVMCapacity, @physical_resources.Ledger, @physical_resources.SharedCapacity, Int64, Int, Int) -> Result[BufferPool, BufferIssue]
+
 pub fn reserve_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[BufferSlot, BufferIssue]
 
 pub fn reserve_output_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[BufferSlot, BufferIssue]
