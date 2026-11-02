@@ -136,3 +136,68 @@ test('scalar request byte limits cannot revive the retired unbacked query-proper
     }
   }finally{assert.equal(f.reader.retire(),true);}
 });
+
+// Exercise the exact Table reader and the existing shared admission callbacks.
+// Core/physical ports are explicit: this counts Host encoding, not admission
+// authority, provider I/O, managed Plan funding or ordinary Table acceptance.
+function tablePageEncodingFixture({rows = [{text:'e\u0301\r\n',zero:0,flag:false,nullable:null}, {}],
+  receivedCount = rows.length} = {}) {
+  const table = text('./installed-table-source.mjs'), row = text('./installed-row-source.mjs');
+  const find = (source, predicate) => {
+    const found = [];
+    function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (predicate(node)) found.push(node);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit); else visit(value);
+      }
+    }
+    visit(parse(source, {ecmaVersion:'latest',sourceType:'module'}));
+    assert.equal(found.length,1); return source.slice(found[0].start,found[0].end);
+  };
+  const arrow = name => find(table,node=>node.type==='VariableDeclarator'&&node.id.name===name)
+    .slice(name.length+3);
+  // Select by the actual readerOptions owner, avoiding unrelated keyed callbacks.
+  const optionsNode = find(row,node=>node.type==='VariableDeclarator'&&node.id.name==='readerOptions');
+  const options = parse(`const ${optionsNode};`,{ecmaVersion:'latest'}).body[0].declarations[0].init;
+  const callback = name => {
+    const property = options.properties.filter(node=>node.key?.name===name);
+    assert.equal(property.length,1);
+    const code = `const ${optionsNode};`;
+    return code.slice(property[0].value.start,property[0].value.end);
+  };
+  let serializations = 0, consumed, charged;
+  const calls = [], schema = 'original-schema', selector = {catalog_identity_cid:'catalog',table_uuid:'table',schema_cid:'schema'};
+  const receipt = {catalog_identity_cid:'catalog',table_uuid:'table',schema_cid:'schema',storage_mapping_cid:'mapping',
+    generation_cid:'sha256:'+'a'.repeat(64),row_count:receivedCount};
+  const ports = {Buffer,fail,JSON:{stringify(value){serializations++;return JSON.stringify(value);}},
+    identifier:value=>/^sha256:[0-9a-f]{64}$/u.test(value??''),
+    byResource:new Map([['rows',{selector,schemaWire:schema}]]),declared:{views:[{resource:'rows',fields:['text','zero','flag','nullable']}]},
+    bridge:{async resolveGeneration(actual){assert.equal(actual,selector);calls.push('metadata');return {ok:true,result:{receipt,mapping:{schema_cid:'schema',mapping_cid:'mapping'},schema_wire:schema}};},
+      async read(actual,mapping){assert.equal(actual,receipt);assert.equal(mapping.mapping_cid,'mapping');calls.push('read');return {ok:true,result:rows};}}};
+  const ownKeys=arrow('keys'),closed=arrow('closedReply');
+  const readPages=Function(...Object.keys(ports),`const text=value=>typeof value==='string'&&value.length>0;const keys=${ownKeys};const closedReply=${closed};return ${arrow('readPages')};`)(...Object.values(ports));
+  const run={},ticket={};
+  const runtime={clientProgramRowSourceAcceptChargedPage(actual,charge,bytes){assert.equal(actual,run);assert.equal(charge,ticket);assert.deepEqual(bytes,charged);consumed=bytes;return ok();}};
+  const consume = name => Function('Buffer','JSON','moon','run','checked','return '+callback(name))(Buffer,ports.JSON,runtime,run,checked);
+  return {calls,async read(){await readPages({resource:'rows',columns:['text','zero','flag','nullable'],
+    async authorizationFor(index){calls.push(`authorize-${index}`);},
+    chargePage(bytes){assert.equal(charged,undefined);charged=bytes;return ticket;},
+    consumePage:consume('consumePage'),consumePageWire:consume('consumePageWire')});},
+    count:()=>serializations,consumed:()=>consumed};
+}
+
+test('Table Source encodes one original row page once before the same charged admission',async()=>{
+  const f=tablePageEncodingFixture();await f.read();
+  assert.equal(f.count(),1,'the same row page must not be JSON-encoded again in the shared admission callback');
+  assert.equal(f.consumed().toString('utf8'),'[{"text":"é\\r\\n","zero":0,"flag":false,"nullable":null},{}]');
+  assert.deepEqual(f.calls,['authorize-0','metadata','authorize-1','read','authorize-2']);
+});
+
+test('Table Source empty generation keeps one encoded page and the original generation refusal precedes encoding',async()=>{
+  const empty=tablePageEncodingFixture({rows:[]});await empty.read();assert.equal(empty.count(),1);
+  assert.equal(empty.consumed().toString('utf8'),'[]');
+  const mismatch=tablePageEncodingFixture({receivedCount:99});
+  await assert.rejects(mismatch.read(),{code:'InvalidTableReadReply'});
+  assert.equal(mismatch.count(),0);assert.equal(mismatch.consumed(),undefined);
+});

@@ -121,7 +121,7 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     connectorRevision, catalogCid: declared.catalog_cid,
     targets: installed.map(({resource, selector}) => ({resource, selector}))});
   const readPages = async ({resource, columns, signal, authorizationFor,
-    chargePage, consumePage}) => {
+    chargePage, consumePageWire}) => {
     const target = byResource.get(resource);
     const view = declared.views.find(view => view.resource === resource);
     if (!target || columns.some(column => !view.fields.includes(column))) fail('InstalledTableReadTargetMismatch');
@@ -150,9 +150,10 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     signal?.throwIfAborted();
     // Keep original objects: omitted fields remain omitted. The existing common
     // checked-input owner validates and captures the rows, including empty input.
-    const bytes = Buffer.from(JSON.stringify(rows), 'utf8');
+    const pageWire = JSON.stringify(rows);
+    const bytes = Buffer.from(pageWire, 'utf8');
     const charge = chargePage(bytes);
-    consumePage(rows, {charge});
+    consumePageWire(pageWire, {charge});
   };
   return createInstalledRowSource({moon, declaration, declared, environment, sourceInitialization,
     environmentWire: environment.wire, connectorId, connectorRegistration,

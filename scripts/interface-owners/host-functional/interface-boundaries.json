@@ -74797,7 +74797,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6cb9d8c75ef278c366cf26cec4129b922e66bfa8a4684150dbea9630f7d625ca",
+      "sha256": "7cd3fd0c482021ef92392e7adc41f1c173db48a63035b12f2be4c83b1c118e95",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -74914,7 +74914,7 @@
             "signal",
             "authorizationFor",
             "chargePage",
-            "consumePage"
+            "consumePageWire"
           ],
           "async": true
         },
