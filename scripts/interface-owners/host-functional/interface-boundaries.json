@@ -54377,7 +54377,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-source.cjs",
-      "sha256": "ded10c0291b112d5cd79668904407902ceea2d20775173493bb24522bd33abf8",
+      "sha256": "af656964686f5837a75f058a2c5ab2ea38a8bab19e430835ac8a7db2e87211d9",
       "exports": [
         "commonjs:captureInitialControlImageSource"
       ],
@@ -54498,7 +54498,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/initial-control-image-source.cjs",
-                "anchor": "// Always keep the same close function and numeric FD."
+                "anchor": "// Only observe this original unresolved duty."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -54512,7 +54512,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "without rereading"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -54540,7 +54540,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "an unconfirmed close with otherwise valid bytes cannot return Source or retire a sibling FD"
+                "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -54586,7 +54586,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "frozen read failure and close Unknown retain the same FD"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -54658,7 +54658,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/initial-control-image-source.cjs",
-                "anchor": "// Always keep the same close function and numeric FD."
+                "anchor": "// Only observe this original unresolved duty."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -54672,7 +54672,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "without rereading"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -54700,7 +54700,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "an unconfirmed close with otherwise valid bytes cannot return Source or retire a sibling FD"
+                "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -54746,7 +54746,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "frozen read failure and close Unknown retain the same FD"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
