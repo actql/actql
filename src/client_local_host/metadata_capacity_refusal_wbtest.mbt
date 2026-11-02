@@ -95,7 +95,7 @@ test "metadata quote failure is distinguished before provider construction" {
   )
   assert_true(plan._retained_result_envelope is Some(_))
   assert_eq(plan.metadata_retained_bytes, 0L)
-  assert_eq(plan.metadata_quote, MetadataUnavailable)
+  assert_true(plan.metadata_quote is MetadataUnavailable)
   assert_false(client_local_capacity_plan_matches(plan, sequences, 10000000))
   let mut factories = 0
   let result = prepare_installed_managed_source_free_with_contracts(
@@ -208,7 +208,7 @@ test "unproved metadata envelope overflow remains a required quote refusal" {
     graph=Some(@publication_host.prepared_client_graph(prepared)),
   )
   assert_true(plan._retained_result_envelope is None)
-  assert_eq(plan.metadata_quote, MetadataUnavailable)
+  assert_true(plan.metadata_quote is MetadataUnavailable)
   assert_eq(plan.metadata_retained_bytes, 0L)
   assert_false(client_local_capacity_plan_matches(plan, sequences, 2147483647))
 }
@@ -319,29 +319,29 @@ test "metadata quote distinguishes required failure absent role and genuine zero
   let original = metadata_capacity_prepared("SELECT 7 AS x", 100)
   let graph = @publication_host.prepared_client_graph(original)
   let envelope = client_local_result_envelope(graph, 1).unwrap()
-  assert_eq(
-    client_local_result_metadata_quote(None, true, None, 1),
-    MetadataNotApplicable,
+  assert_true(
+    client_local_result_metadata_quote(None, true, None, 1)
+    is MetadataNotApplicable,
   )
-  assert_eq(
-    client_local_result_metadata_quote(Some(graph), true, None, 1),
-    MetadataUnavailable,
+  assert_true(
+    client_local_result_metadata_quote(Some(graph), true, None, 1)
+    is MetadataUnavailable,
   )
-  assert_eq(
+  assert_true(
     client_local_result_metadata_quote(
       Some(graph),
       true,
       Some(envelope),
       2147483647,
-    ),
-    MetadataUnavailable,
+    )
+    is MetadataUnavailable,
   )
   assert_true(
     client_local_result_metadata_quote(Some(graph), true, Some(envelope), 1)
     is MetadataQuoted(_),
   )
   let graphless = client_local_capacity_plan([], 100)
-  assert_eq(graphless.metadata_quote, MetadataNotApplicable)
+  assert_true(graphless.metadata_quote is MetadataNotApplicable)
   assert_true(client_local_capacity_plan_matches(graphless, [], 100))
   assert_true(
     client_local_capacity_plan_matches(
