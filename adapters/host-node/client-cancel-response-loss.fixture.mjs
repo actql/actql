@@ -1,7 +1,7 @@
-// Public SDK/installed-ingress acceptance, with the real request journal and
+// Public SDK/ingress component with the real request journal and
 // common Run/control issuers and cancellation-operation custody. This does not
-// simulate provider execution. Physical-start/close facts in the
-// explanation cases are recorded through the existing control owner only.
+// establish ordinary Host or funded execution acceptance. Physical-start/close
+// facts are recorded through the existing control owner only.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
@@ -25,6 +25,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const scratch = new URL('../../_build/client-cancel-tests/', import.meta.url).pathname;
 await mkdir(scratch, {recursive: true});
@@ -188,7 +189,13 @@ export async function fixture(t, transport, loss, {physicalStart = false, termin
       },
     });
   } else {
-    const handler = createClientHttpHandler(options);
+    const environmentWire = await readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8');
+    const environmentBody = JSON.parse(environmentWire);
+    const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd(),
+      environmentBody.evidence_bundle_cid, false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const funded = await fundedClientPreparation(t, {moon, environment, http: true});
+    const handler = createClientHttpHandler({...options, prepareRequest: funded.prepareRequest});
     const serve = (request, response) => {
       const operation = request.url.split('/').at(-1);
       operations.push(operation);

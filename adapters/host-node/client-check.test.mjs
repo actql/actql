@@ -31,6 +31,7 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createHostObservationConnection} from '../host-common/observation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const {exerciseGraphArgumentChecks, graphArgumentCheckInventory} = await import(
@@ -1897,7 +1898,8 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     t.after(() => client.close());
     return client;
   }
-  const handler = createClientHttpHandler({...configuration,
+  const funded = await fundedClientPreparation(t, {moon, environment: admitted, http: true});
+  const handler = createClientHttpHandler({...configuration, prepareRequest: funded.prepareRequest,
     authenticate: header => header === 'Bearer owner-token' ? owner : undefined});
   const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
     if (observations && request.url.endsWith('/check')) {

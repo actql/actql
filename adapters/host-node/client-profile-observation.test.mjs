@@ -12,6 +12,7 @@ import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const environmentWire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
 const environmentBody = JSON.parse(environmentWire);
@@ -57,7 +58,8 @@ async function installed(t, entrance, getters = false, profileFault) {
   const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(scratch.path, name))));
   const originalCAs = getCACertificates('default');
   setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
-  const handle = createClientHttpHandler(services);
+  const funded = await fundedClientPreparation(t, {moon, environment, http: true});
+  const handle = createClientHttpHandler({...services, prepareRequest: funded.prepareRequest});
   const server = createServer({key, cert}, (request, response) => {
     if (request.url?.endsWith('/connect') && profileFault !== undefined) {
       const end = response.end;
