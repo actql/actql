@@ -112,6 +112,16 @@ raw history. A driver that still exposes success/error response aliases and
 cannot observe their retirement must keep `cleanupConfirmed` false. It cannot
 enable normal retirement merely by supplying a finite byte declaration.
 
+A completed acquired Model's Content prefix borrows the same Source reservation
+and holding on its original Request Ledger. A provider's still-open reservation
+keeps all remaining retention and scratch beside the prefix's own reservation;
+starting the prefix does not settle or refund it. The Core prerequisite checks
+the exact ordered tokens, holding-to-reservation association, one-shot attempt
+history and absence of cleanup pending, both before reservation and after input
+callbacks. Foreign tokens, read issuance, extra children and spent opportunities
+still refuse. Prefix cleanup retires only its own child; Source cleanup must
+observe and retire the original provider before the parent can finish.
+
 The original Host/Run inventory includes the retained declaration and planner
 pair, preparer and receiver, reader and three method references, request and
 current callbacks, response borrow and its cleanup closure, pending read/stop

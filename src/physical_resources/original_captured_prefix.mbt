@@ -14,7 +14,9 @@ pub fn original_ledger_preparation_available(
 
 ///|
 // Only the accounted Row capture Owner supplies these exact opaque tokens.
-// The initial Direct capture must be the single recorded child/holding. After
+// The completed Direct capture must be the single recorded child/holding.
+// A selected provider can still own live scratch/cleanup backing; borrowing
+// it never settles that reservation. Pending cleanup refuses new use. After
 // the prefix reserves its attempt, even successful cleanup cannot restore this
 // prerequisite. Capacity failure leaves the same original capture retryable.
 pub fn original_captured_prefix_available(
@@ -28,10 +30,12 @@ pub fn original_captured_prefix_available(
   }
   value.reservations.length() == 1 &&
   physical_equal(value.reservations[0], reservation) &&
-  !reservation_open(reservation) &&
+  physical_equal(reservation.owner, ledger) &&
+  !reservation_pending(reservation) &&
   value.holdings.length() == 1 &&
   physical_equal(value.holdings[0], holding) &&
   holding_available(ledger, holding) &&
+  holding.reservation_serial == reservation.serial &&
   value.delegations.is_empty() &&
   ledger.next_capacity_serial == Some(-2) &&
   original_prefix_attempt_count_is(value, 1)
@@ -52,7 +56,8 @@ pub fn original_captured_prefix_reservation_available(
   }
   value.reservations.length() == 2 &&
   physical_equal(value.reservations[0], reservation) &&
-  !reservation.open &&
+  physical_equal(reservation.owner, ledger) &&
+  !reservation_pending(reservation) &&
   value.holdings.length() == 1 &&
   physical_equal(value.holdings[0], holding) &&
   holding_available(ledger, holding) &&

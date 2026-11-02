@@ -563,6 +563,8 @@ priv struct RequestAcquiredModelCaptureFixture {
 ///|
 fn request_acquired_model_capture_fixture(
   current? : () -> Bool = () => true,
+  provider? : @execution.ExecutionCapacity? = None,
+  provider_stopped? : () -> Bool = () => true,
 ) -> RequestAcquiredModelCaptureFixture raise {
   let f = request_serialized_model_fixture(single_capture=true, current~)
   let (_, execution, measurement) = client_local_execution_limits(max_rows=1)
@@ -593,6 +595,7 @@ fn request_acquired_model_capture_fixture(
     true,
     0,
     _ => [],
+    providers=provider.map(value => [Some(value)]),
   ).unwrap()
   let plan = prepare_installed_mock_model_capture_plan_binding(
     module_plan,
@@ -634,20 +637,29 @@ fn request_acquired_model_capture_fixture(
     module_plan.ordered_body,
   ).unwrap()
   assert_true(physical_equal(ledger, f.parent.ledger))
-  let source = match
-    start_installed_source_read_rows(
-      read,
-      acquisition,
-      "same-request-acquired-model",
-      _ => {
-        if verify_hook.val is Some(hook) {
-          hook()
-        }
-        true
-      },
-      4096L,
-      2048L,
-    ) {
+  let verify = _ => {
+    if verify_hook.val is Some(hook) {
+      hook()
+    }
+    true
+  }
+  let started = match provider {
+    None =>
+      start_installed_source_read_rows(
+        read, acquisition, "same-request-acquired-model", verify, 4096L, 2048L,
+      )
+    Some(value) =>
+      start_installed_source_read_provider_rows(
+        read,
+        acquisition,
+        Some(value),
+        "same-request-acquired-model",
+        verify,
+        4096L,
+        2048L,
+      )
+  }
+  let source = match started {
     Ok(value) => value
     Err(Acquisition(@row_source_host.Physical(issue))) =>
       fail("same Request managed Source physical: " + @debug.to_string(issue))
@@ -656,6 +668,14 @@ fn request_acquired_model_capture_fixture(
     Err(_) => fail("same Request managed Source non-physical refusal")
   }
   @row_source_host.begin_row_run(source, 128, 1, 1).unwrap()
+  if provider is Some(_) {
+    let responses = @row_source_host.borrow_row_run_responses(
+      source, acquisition,
+    ).unwrap()
+    @row_source_host.bind_row_run_response_borrow_cleanup(
+      responses, provider_stopped,
+    ).unwrap()
+  }
   assert_eq(
     @row_source_host.accept_row_run_page(
       source,
@@ -1926,4 +1946,52 @@ test "plain Model component factory receives the already backed original input b
   assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
   abort_request_preparation_after_cleanup(f.parent).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "same Request acquired Model prefix keeps live provider backing until original Source cleanup" {
+  let stopped = Ref(false)
+  let f = request_acquired_model_capture_fixture(
+    provider=Some(@execution.execution_capacity(7L, 9L).unwrap()),
+    provider_stopped=() => stopped.val,
+  )
+  let original = f.original
+  let ledger = original.parent.ledger
+  let before = @resources.ledger_usage(ledger)
+  // The captured provider still owns its original scratch/cleanup allowance.
+  // Prefix borrowing is neither physical retirement nor a released byte grant.
+  assert_true(before.reserved_execution_bytes > 0L)
+  let prefix = start_installed_managed_acquired_serialization_prefix(
+    f.run,
+    original.prepared,
+    f.prefix,
+    f.capture,
+  ).unwrap()
+  assert_true(physical_equal(prefix.ledger, ledger))
+  assert_true(
+    @resources.ledger_usage(ledger).reserved_execution_bytes >=
+    before.reserved_execution_bytes,
+  )
+  let mut complete = false
+  for _ in 0..<1000 {
+    match advance_client_serialization_prefix(prefix, 1).unwrap() {
+      @local.Complete(value, ..) => {
+        assert_eq(@execution.completed_row_count(value), 1)
+        complete = true
+        break
+      }
+      @local.Continue(..) | @local.Waiting(..) | @local.Settling(_, ..) => ()
+      _ => fail("retained provider prefix did not complete")
+    }
+  }
+  assert_true(complete)
+  assert_true(
+    cleanup_installed_managed_serialization_prefix(f.run, f.prefix).unwrap(),
+  )
+  assert_true(@row_source_host.row_capture_source(f.capture) is Ok(_))
+  assert_true(retire_installed_source_read(f.read) is Err(_))
+  assert_true(@resources.ledger_usage(ledger).live_reservations > 0)
+  assert_false(stopped.val)
+  stopped.val = true
+  request_acquired_model_capture_close(f)
 }
