@@ -1,10 +1,10 @@
 # Current Session input review
 
-Source: `523ada3259bf9e8147f746727fbfd56065036fd5`. This is a finite JS input-identity successor review, not Host/runtime acceptance, physical custody evidence, a capability grant or permission to skip work. Historical configuration descriptors and fixed historical corpora remain unchanged.
+Source: `523ada3259bf9e8147f746727fbfd56065036fd5`. This is a finite JS input-identity successor review, not Host/runtime acceptance, physical custody evidence, a capability grant or permission to skip work. Archived configuration reviews and fixed historical corpora remain unchanged.
 
 ## Exact manifests
 
-All eight manifests were read in full against the earlier review source `38e95bfac2907700456de6c53ed0cad3620bb72d`. Every import is a literal `actql/actql/...` package or pinned `moonbitlang/core/...` package. Source members, tests, modes, directory membership, transitive imports and toolchain remain separate action inputs. Only these exact bytes, JS target and the existing pinned toolchain match the successor descriptor. Unknown bytes/options/paths/targets and added nested FFI files retain unresolved fallback; no current-file hash is computed to authorize future inputs.
+All eight manifests were read in full against the earlier review source `38e95bfac2907700456de6c53ed0cad3620bb72d`. Every import is a literal `actql/actql/...` package or pinned `moonbitlang/core/...` package. Source members, tests, modes, directory membership, transitive imports and toolchain remain separate action inputs. The existing CURRENT map contains these exact entries with per-entry review revisions; every unaffected entry retains its original review revision. Only exact bytes, JS target and the existing pinned toolchain match a descriptor. Unknown bytes/options/paths/targets and added nested FFI files retain unresolved fallback; no current-file hash is computed to authorize future inputs.
 
 | Manifest | SHA-256 | Reviewed boundary |
 | --- | --- | --- |
