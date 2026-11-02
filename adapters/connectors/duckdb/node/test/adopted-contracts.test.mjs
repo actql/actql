@@ -12,13 +12,23 @@ const cid = value => `sha256:${createHash('sha256').update(canonical(value)).dig
 
 test('example ships exact adopted contract bodies, not test-generated execution expectations', async () => {
   const bundle = JSON.parse(await readFile(new URL('../contracts/adopted-relation.json', import.meta.url), 'utf8'));
+  const root = new URL('../../../../../', import.meta.url);
+  const aoa = JSON.parse(await readFile(new URL('spec/contracts/actql-aoa.json', root), 'utf8'));
+  const authoritative = {
+    registry: JSON.parse(await readFile(new URL(aoa.pipeline_registry_file, root), 'utf8')),
+    values: aoa.execution_contracts['REL.values'],
+    fragment: aoa.execution_contracts['ACTQL.expression_fragment/0.1'],
+    graph: aoa.execution_contracts['BRIDGE.rows.to_graph'],
+  };
   const expected = {
-    registry: 'sha256:bad5b4562a4e6cbb056ab2dea31cd9a20366190353b14e0be3125454177519b8',
-    values: 'sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b',
-    fragment: 'sha256:01b5deb12652eaff90dbf16c4595b7806a71266a65859fd12ffe3a5941045459',
-    graph: 'sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210',
+    registry: 'sha256:204fd80c64c2bff246015f06ae50d0044aa566f197922f14cd15ecf0b3285fdb',
+    values: 'sha256:96c7925a693801dcb3bce9f3e2da9b4fd9ed39e517af90cbac0e1adbee5ad2ae',
+    fragment: 'sha256:ced7ee00f232f8d5bcfde44dfc769d9d6ae02c8386e54db7d844d43f922bac90',
+    graph: 'sha256:0979999a64bb47f7fcb0d113c0bbcab592ad0a268b548a8776f8fac4fd6f6d84',
   };
   for (const [key, identity] of Object.entries(expected)) {
+    assert.equal(cid(authoritative[key]), identity);
+    assert.deepEqual(bundle[key], authoritative[key]);
     assert.equal(bundle[`${key}_cid`], identity);
     assert.equal(cid(bundle[key]), identity);
   }
