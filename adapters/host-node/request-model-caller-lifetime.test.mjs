@@ -435,9 +435,9 @@ test('Model Source prepare forwards its original adopted Run and Request and rec
     const primary = new Error('original-after-prepare-current'), preparedReads = new WeakMap();
     let resolve, forwarded, current = true;
     const adapter = {prepare(value) {forwarded = value; return new Promise(done => {resolve = done;});}};
-    const holder = Function('adapter', 'sameRun', 'preparedReads', 'fail',
+    const holder = Function('adapter', 'sameRun', 'preparedReads', 'effectRuns', 'fail',
       `return ({${source.slice(method.start, method.end)}});`)(adapter,
-      value => {assert.equal(value, prepared); if (!current) throw primary; return run;}, preparedReads,
+      value => {assert.equal(value, prepared); if (!current) throw primary; return run;}, preparedReads, new WeakMap(),
       code => {throw Object.assign(new Error(code), {code});});
     const pending = holder.prepare(facts);
     if (requestOwned) {
@@ -487,7 +487,7 @@ test('Mock Effect reader consumes the same planned original and retires physical
   const closeFunctions = outer.body.body.filter(node => node.type === 'FunctionDeclaration' &&
     ['closeRead', 'closePhysicalRead', 'releaseEffectSourceAliases'].includes(node.id.name)).map(node => source.slice(node.start, node.end)).join('\n');
   const same = (actual, expected) => actual.forEach((value, i) => assert.strictEqual(value, expected[i]));
-  const ports = {moon, sourceManaged, originalReads, effectReads, declaration, index: 0,
+  const ports = {moon, sourceManaged, originalReads, effectReads, effectRuns: new WeakMap([[prepared, new WeakRef(run)]]), declaration, index: 0,
     bundle: {sources: [{declaration}, {declaration}]}, checked: value => value, fail,
     sameRun(p) {assert.strictEqual(p, prepared); return run;}};
   const code = [...properties.values()].map(node => source.slice(node.start, node.end)).join(',');
@@ -788,7 +788,7 @@ test('Host unadopted Model Scope cleanup keeps original thrown causes and pendin
 });
 
 
-test('actual acquired Model admission retains one Request compiler prefix and Scope and refuses an unbacked plain acquired Model', () => {
+test('actual acquired Model admission retains one Request compiler prefix and Scope and refuses a missing original read installation', () => {
   const f = installedModelRequestFixture({serialized: true, acquisitions: 1});
   f.admit(); f.admit();
   assert.equal(f.early().model.scope, f.scope); assert.equal(f.early().managed, f.managed);
@@ -796,6 +796,10 @@ test('actual acquired Model admission retains one Request compiler prefix and Sc
   assert.equal(f.calls.filter(v => v === 'construct').length, 1);
   assert.equal(f.calls.filter(v => v === 'same prefix').length, 1);
   const plain = installedModelRequestFixture({acquisitions: 1});
+  // Plain acquired Models are supported by the current constructor. An
+  // actually missing physical original, rather than this fixture's inert
+  // placeholder object, is the existing refusal boundary.
+  plain.selected.originalReadInstallation = undefined;
   assert.throws(plain.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
   assert.equal(plain.early(), undefined);
 });

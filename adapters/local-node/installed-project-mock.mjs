@@ -133,16 +133,18 @@ export async function prepareInstalledProjectMock(moon, project, profile,
 // Source/managed-Compute original; neither the profile label nor this factory
 // issues a permission, a runtime parent, or a replacement Run.
 export async function installPreparedProjectMockSources({moon, mockPreparation,
-  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun, effectManagedRun}) {
+  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun, prepareManagedSourceRun, effectManagedRun}) {
   if (typeof authorizationFor !== 'function' || typeof readAsset !== 'function' ||
+      typeof prepareManagedSourceRun !== 'function' ||
       typeof sourceManaged?.assertCurrent !== 'function' ||
-      typeof sourceManaged?.prepareRun !== 'function' ||
       typeof sourceManaged?.prepareRead !== 'function') fail('NodeManagedRunAdmissionUnavailable');
   const bundle = mockPreparation.originalsForRuntime(moon);
   if (bundle.sources.length !== 2) fail('InstalledMockCatalogueUnavailable');
   let closing = false;
   const prepareRequestModel = prepareManagedModelRun;
+  const prepareRequestSource = prepareManagedSourceRun;
   const records = new Map(), originalReads = new WeakMap();
+  // Weak provenance for Source and Effect Runs already owned by this Host.
   const effectRuns = new WeakMap(), effectReads = new Set();
   const sources = [], closedSources = new Set();
   const current = () => {
@@ -162,31 +164,32 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, record.request));
     return record;
   };
-  function prepareManagedRun(prepared, request, model, effectful = false) {
-    if (effectful !== false) fail('InstalledEffectPlanUnavailable');
-    current();
-    if (model !== undefined && !effectful) fail('InstalledMockModelOperationalAdmissionUnavailable');
-    let record = records.get(prepared);
-    if (record !== undefined) {
-      if (record.failure !== undefined) throw record.failure;
-      if (record.model !== model || record.effectful !== effectful) fail('ForeignInstalledModelPreparation');
-      sameRun(prepared);
-      checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, request));
-      return;
+  function prepareManagedRun(facts) {
+    if (arguments.length !== 1 || facts?.preparedProgram === undefined ||
+        facts.requestIdentity === undefined || facts.effectful !== undefined) {
+      fail('InvalidInstalledManagedRunRequest');
     }
-    // Retain every acquired original before the next fallible operation. A
-    // failed start is sticky; another caller cannot replace the original Run.
-    record = {prepared, request, original: undefined, admission: undefined,
-      value: undefined, reads: [], model, effectful, failure: undefined};
-    if (records.size === 4096) fail('InstalledMockRunLimit');
-    records.set(prepared, record);
-    try {
-      record.original = sourceManaged.prepareRun(prepared);
-      sourceManaged.assertCurrent();
-      record.admission = checked(moon.clientProgramNodeManagedRunPrepare(record.original, prepared));
-      record.value = checked(moon.clientProgramInstalledManagedRunBegin(record.admission, prepared, request));
-      sameRun(prepared);
-    } catch (error) { record.failure = error; throw error; }
+    const {preparedProgram: prepared, requestIdentity: request, prepareInvocation} = facts;
+    current();
+    if (typeof prepareRequestSource !== 'function') fail('NodeManagedRunAdmissionUnavailable');
+    // The Host retains partial construction and the adopted original before
+    // this callback returns. This weak index adds no Root or retirement owner.
+    const record = Reflect.apply(prepareRequestSource, undefined,
+      [Object.freeze({preparedProgram: prepared, requestIdentity: request, prepareInvocation})]);
+    if (record?.prepared !== prepared || record.request !== request ||
+        record.runtime !== moon || record.closed || record.value === undefined) {
+      fail('ForeignInstalledSourcePreparation');
+    }
+    if (Object.hasOwn(record, 'failure')) throw record.failure;
+    effectRuns.set(prepared, new WeakRef(record));
+    const value = record.value;
+    current();
+    if (Object.hasOwn(record, 'failure')) throw record.failure;
+    if (effectRuns.get(prepared)?.deref() !== record || record.prepared !== prepared ||
+        record.request !== request || record.runtime !== moon || record.closed || record.value !== value) {
+      fail('ForeignInstalledSourcePreparation');
+    }
+    return value;
   }
   function prepareManagedMockModelRun(prepared, request, control, plan, selection, publicationCapacity) {
     current();
@@ -315,7 +318,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   function releaseEffectSourceAliases(prepared, request) {
     const run = this, reads = run.mockSourceReads;
     if (effectRuns.get(prepared)?.deref() !== run || run.prepared !== prepared ||
-        run.request !== request || run.preparationKind !== 'effect-plan' || run.closed ||
+        run.request !== request || run.closed ||
         run.releaseMockSourceAliases !== releaseEffectSourceAliases || !Array.isArray(reads)) {
       fail('InstalledSourcePreparationMismatch');
     }
@@ -443,28 +446,29 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedOwner)
             : moon.clientProgramAcquisitionCount(checkedOwner);
           const slot = occurrence.stage;
-          const reads = effectful ? run.mockSourceReads ??= [] : run.reads;
+          const shared = effectRuns.get(checkedOwner)?.deref() === run;
+          const reads = shared ? run.mockSourceReads ??= [] : run.reads;
           if (effectful !== (run.preparationKind === 'effect-plan' || run.effectful === true) || selected !== declaration ||
               !Number.isSafeInteger(slot) || slot < 0 || slot >= count ||
               occurrence.input !== 0 || reads[slot] !== undefined ||
-              effectful && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
-          if (effectful) {
+              shared && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
+          if (shared) {
             if (run.releaseMockSourceAliases !== undefined &&
                 run.releaseMockSourceAliases !== releaseEffectSourceAliases) fail('InstalledSourcePreparationMismatch');
             run.releaseMockSourceAliases = releaseEffectSourceAliases;
           }
           const raw = sourceManaged.prepareRead(checkedOwner, declaration,
-            effectful || run.requestOwned ? run.value : run.original, occurrence);
+            shared || run.requestOwned ? run.value : run.original, occurrence);
           const read = {raw, source: index, close: undefined, bytes: undefined, value: undefined, closed: false};
           reads[slot] = read;
-          if (effectful) effectReads.add(read);
+          if (shared) effectReads.add(read);
           read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;
           read.bytes = Object.getOwnPropertyDescriptor(raw, 'readOriginalBytes')?.value;
           if (typeof read.close !== 'function' || typeof read.bytes !== 'function') {
             fail('InstalledMockSourceUnavailable');
           }
           sourceManaged.assertCurrent();
-          read.value = effectful ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, slot));
+          read.value = shared ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, slot));
           originalReads.set(read.value, {run, read});
           return read.value;
         },
@@ -495,7 +499,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           // Keep the same admitted document correspondence across separately
           // closed physical children. This is an alias to the charged original
           // bytes, never a new copy or a substitute decoded document.
-          const siblings = run.preparationKind === 'effect-plan' ? run.mockSourceReads : run.reads;
+          const siblings = run.mockSourceReads ?? run.reads;
           for (const sibling of siblings) if (sibling?.observedBytes !== undefined &&
               !bytes.equals(sibling.observedBytes)) fail('InstalledMockSourceChanged');
           read.observedBytes = bytes;
@@ -532,7 +536,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           // The SAME adopted Plan retains its original Query/acquisition.
           // Let the existing Core borrower select it instead of preparing a
           // second requirement from the physical source description.
-          const forwarded = run.requestOwned || run.preparationKind === 'effect-plan' ? Object.freeze({...facts,
+          const forwarded = run.requestOwned || effectRuns.get(owner)?.deref() === run ? Object.freeze({...facts,
             managedRun: run.value, requestIdentity: run.request}) : facts;
           const prepared = await adapter.prepare(forwarded);
           if (sameRun(owner) !== run) fail('ForeignInstalledModelPreparation');

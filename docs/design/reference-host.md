@@ -2915,3 +2915,29 @@ remaining accounting. DAG cleanup must not require that shared Ledger to be
 empty before allowing the Run owner to perform that separate retirement.
 Neither step treats unrelated/unknown resources as released, refunds consumed
 work, or creates another Run/resource owner.
+
+
+### Named Source Run handoff
+
+The installed Source profile receives one internal JavaScript object:
+`{preparedProgram, requestIdentity, prepareInvocation}`. The first two fields
+are the same original checked Program and nominal Request. `prepareInvocation`
+is the Host's original optional QueryTime continuation; it is never a Model
+selection or a permission. This internal profile boundary does not change the
+opaque Core calling convention.
+
+The Host captures the selected profile method and receiver once. Admission and
+dispatch invoke the same retained ordinary route. That route handles only
+ordinary Source or source-free computation; Model and Serialization retain their
+existing selected constructors and cannot enter the ordinary fallback. The
+profile must return the same Host-owned Core Run. Mock Source reads use a weak
+index to the existing Host record, whose actual child close and Run retirement
+continue to own cleanup. No profile-issued Node admission or separate Root is
+created. Local Files forwards the same named fields to its captured Host method.
+
+A Host-backed RowSource obtains its capture capacity from the same original
+checked Row acquisition. Its existing transfer and page bounds accompany that
+original; they do not issue another resource budget or a provider reader. The
+separate original read supplied by the adopted Run is used unchanged. Pending
+physical close, failed native retirement and consumed-parent-return failures
+retain their existing distinct duties and alias-retirement fences.

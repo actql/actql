@@ -1511,7 +1511,17 @@ export async function createInstalledRowSource({moon, declaration, commands,
   }
   const providerSiteCurrent = originalReader === undefined ? undefined : site.referenceCurrent;
   function managedProviderCaptureCapacity(requirement) {
-    if (originalReader === undefined || typeof providerSiteCurrent !== 'function' ||
+    if (originalReader === undefined) {
+      if (typeof prepareSourceRead !== 'function') fail('InstalledSourceCapacityUnavailable');
+      // A Host-backed original read uses the same checked Row acquisition,
+      // without pretending to have a provider reader or a second Run budget.
+      const acquisition = prepareOriginalAcquisition(requirement);
+      const capacity = moon.clientProgramInstalledRowCaptureCapacity(acquisition);
+      if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
+      return Object.freeze({capacity, transferBytes: maxTransferBytes,
+        executionBytes: BigInt(limits.maxPageBytes)});
+    }
+    if (typeof providerSiteCurrent !== 'function' ||
         Reflect.apply(providerSiteCurrent, site, []) !== true) fail('InstalledSourceReaderNotCurrent');
     const acquisition = prepareOriginalAcquisition(requirement);
     const capacity = moon.clientProgramInstalledProviderRowCaptureCapacity(acquisition, originalReader.capacity);
@@ -2744,8 +2754,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
       context: authorization.context}),
     sourceAccess,
     sourceReadAccesses,
-    ...(originalReader === undefined ? {} : {managedCaptureCapacity: managedProviderCaptureCapacity,
-      managedWholeSourceCapacity}),
+    ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
+      ? {managedCaptureCapacity: managedProviderCaptureCapacity} : {}),
+    ...(originalReader === undefined ? {} : {managedWholeSourceCapacity}),
       managedEffectPlanSelection() {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot

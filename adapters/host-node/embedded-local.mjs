@@ -1164,6 +1164,38 @@ function managedPreparationRetirementContinuation(run, record) {
   };
 }
 
+// Capture implementation methods and their original receivers once. Both
+// admission and dispatch use this same ordinary route; Model and Content keep
+// their existing typed constructors, never the ordinary Pure fallback.
+function captureInstalledManagedRunRoute({sourceProfile, preparation, moon, prepareInvocation}) {
+  const profilePrepare = sourceProfile?.prepareManagedRun;
+  const sourcePrepare = preparation?.prepareManagedSourceRun;
+  const computePrepare = preparation?.prepareManagedComputeRun;
+  if (profilePrepare !== undefined && typeof profilePrepare !== 'function') {
+    throw clientOperationError('InstalledManagedSourceUnavailable');
+  }
+  return ({preparedProgram, requestIdentity, acquisitionCount, model, serializationCount}) => {
+    if (model !== undefined || serializationCount !== 0) {
+      throw clientOperationError('InstalledManagedDomainPreparationRequired');
+    }
+    if (acquisitionCount > 0) {
+      if (profilePrepare !== undefined) {
+        const value = Reflect.apply(profilePrepare, sourceProfile,
+          [Object.freeze({preparedProgram, requestIdentity, prepareInvocation})]);
+        if (value === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+        return value;
+      }
+      if (typeof sourcePrepare === 'function') return Reflect.apply(sourcePrepare, preparation,
+        [moon, preparedProgram, requestIdentity, sourceProfile, prepareInvocation]);
+    } else if (typeof computePrepare === 'function') {
+      return Reflect.apply(computePrepare, preparation,
+        [moon, preparedProgram, requestIdentity, undefined, prepareInvocation]);
+    }
+    if (preparation !== undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+    return undefined;
+  };
+}
+
 async function openInstalledHost(originalInstallation, preparation) {
   // Both installed Local and HTTP entrances supply this same fixed owner.
   // Standalone compiler callers use their separate adapter, never this Host.
@@ -4000,6 +4032,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       compilationOriginal, kind, authorityScopeCid, namespaceId, now, retainedInvocation,
       retainedDefinitionWire: retained?.runDefinition.wire});
   };
+  const prepareOrdinaryManagedRun = captureInstalledManagedRunRoute({
+    sourceProfile, preparation, moon, prepareInvocation: prepareTimedRunInvocation});
   const submit = async submission => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters} = submission;
@@ -4026,6 +4060,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (effectful) {
       return submitEffect(submission, requested, resultNames);
     }
+    const serializationCount = moon.clientProgramSerializationOccurrences(submission.preparedProgram).length;
     // A reserved physical start can only be reconciled from its original
     // durable Run. Do this before rebuilding physical source preparations.
     // INFER continues to its existing saved-capture replay owner below.
@@ -4061,24 +4096,18 @@ async function openInstalledHost(originalInstallation, preparation) {
       // Dispatch and the original Source wrapper consume the same nominal
       // Run, never the private JS record that retains it.
       managedSourceRun = managed.value;
-    } else if (acquisitionCount > 0 &&
-        moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
-      const early = earlyContentPlans.get(submission.preparedProgram);
-      if (early === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
-      runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
-        plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
-    } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
-      // The actual same Host's early admission is only being claimed here,
-      // not issued after compilation or reconstructed from graph limits.
-      managedSourceRun = sourceProfile.prepareManagedRun(submission.preparedProgram, requested, prepareTimedRunInvocation);
-    } else if (acquisitionCount > 0 && preparation !== undefined) {
-      managedSourceRun = preparation.prepareManagedSourceRun(
-        moon, submission.preparedProgram, requested, sourceProfile, prepareTimedRunInvocation);
+    } else if (serializationCount !== 0) {
+      if (acquisitionCount > 0) {
+        const early = earlyContentPlans.get(submission.preparedProgram);
+        if (early === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
+        runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
+          plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
+      }
+    } else {
+      managedSourceRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
+        requestIdentity: requested, acquisitionCount, model: selectedModel, serializationCount});
     }
-    const managedRun = managedSourceRun ?? (preparation !== undefined && acquisitionCount === 0 &&
-      !inferSelections.has(submission.preparedProgram) &&
-      moon.clientProgramSerializationOccurrences(submission.preparedProgram).length === 0
-      ? preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested, undefined, prepareTimedRunInvocation) : undefined);
+    const managedRun = managedSourceRun;
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -4467,7 +4496,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           prepareInstalledRequestModelRun(submission, requested, selection);
           return;
         }
-        if (moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+        const serializationCount = moon.clientProgramSerializationOccurrences(submission.preparedProgram).length;
+        if (serializationCount !== 0) {
           // Content has its own pre-admitted prefix and real Store writers. A
           // Result service or Source/Model allowance cannot supply that work.
           if (selection !== undefined || acquisitionCount !== 0 &&
@@ -4506,13 +4536,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
             control, early.plan, selection,
             () => preparation.modelPublicationCapacity(submission.preparedProgram));
-        } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
-          sourceProfile.prepareManagedRun(submission.preparedProgram, requested, prepareTimedRunInvocation);
-        } else if (acquisitionCount === 0) {
-          preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested, undefined, prepareTimedRunInvocation);
-        } else if (typeof preparation.prepareManagedSourceRun === 'function') {
-          preparation.prepareManagedSourceRun(moon, submission.preparedProgram, requested, sourceProfile, prepareTimedRunInvocation);
-        } else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+        } else {
+          prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
+            requestIdentity: requested, acquisitionCount, model: selection, serializationCount});
+        }
       } catch (error) {
         admissionFailures.set(submission, Object.freeze({error, requested,
           prepared: submission.preparedProgram}));
@@ -6967,9 +6994,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
         prepareManagedContentRun(prepared, request, graph, recipe, constructPlan, contentPreparation) {
           return preparation.prepareManagedKeyedContentRun(moon, prepared, request, graph, recipe, constructPlan, contentPreparation);
         },
-        prepareManagedRun(prepared, request, profile, prepareInvocation) {
-          return Reflect.apply(prepare, preparation, prepareInvocation === undefined
-            ? [moon, prepared, request, profile] : [moon, prepared, request, profile, prepareInvocation]);
+        prepareManagedRun({preparedProgram, requestIdentity, sourceProfile, prepareInvocation}) {
+          return Reflect.apply(prepare, preparation,
+            [moon, preparedProgram, requestIdentity, sourceProfile, prepareInvocation]);
         }});
       return acquired.then(async profile => {
         if (record.managedSourceProfile !== undefined) {
@@ -7014,12 +7041,29 @@ async function openPreparedInstalledHost(options, initialEntry) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      const prepareSource = preparation.prepareManagedSourceRun;
+      if (typeof prepareSource !== 'function') throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       const profile = await installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path),
         effectManagedRun: (prepared, request) => preparation.effectManagedPlanRun(moon, prepared, request),
+        prepareManagedSourceRun({preparedProgram, requestIdentity, prepareInvocation}) {
+          const value = Reflect.apply(prepareSource, preparation,
+            [moon, preparedProgram, requestIdentity, record.managedSourceProfile, prepareInvocation]);
+          const run = record.computeRuns?.get(preparedProgram);
+          if (run?.value !== value || run.runtime !== moon || run.prepared !== preparedProgram ||
+              run.request !== requestIdentity || run.sourceProfile !== record.managedSourceProfile || run.closed) {
+            throw clientOperationError('ForeignInstalledSourcePreparation');
+          }
+          return run;
+        },
         prepareManagedModelRun: (prepared, request, model) => preparation.prepareManagedModelRun(moon,
           prepared, request, model)});
+      if (record.managedSourceProfile !== undefined) {
+        throw await retainInstalledHostInitializationFailure(
+          clientOperationError('InstalledSourcePreparationChanged'), {sourceProfile: profile});
+      }
+      record.managedSourceProfile = originalInstallation.managedSourceProfile = profile;
       record.mockSourceProfile = profile;
       return profile;
     },

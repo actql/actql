@@ -42531,6 +42531,27 @@
           "async": false
         },
         {
+          "name": "captureInstalledManagedRunRoute",
+          "parameters": [
+            "sourceProfile",
+            "preparation",
+            "moon",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledManagedRunRoute/captureInstalledManagedRunRoute",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "acquisitionCount",
+            "model",
+            "serializationCount"
+          ],
+          "async": false
+        },
+        {
           "name": "cid/cid",
           "parameters": [
             "value"
@@ -45046,6 +45067,15 @@
           "async": true
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/init:prepareManagedSourceRun/init:prepareManagedSourceRun",
+          "parameters": [
+            "preparedProgram",
+            "requestIdentity",
+            "prepareInvocation"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile",
           "parameters": [
             "path"
@@ -45110,9 +45140,9 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources/acquired/init:prepareManagedRun/init:prepareManagedRun",
           "parameters": [
-            "prepared",
-            "request",
-            "profile",
+            "preparedProgram",
+            "requestIdentity",
+            "sourceProfile",
             "prepareInvocation"
           ],
           "async": false
@@ -56880,6 +56910,76 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "captureInstalledManagedRunRoute",
+            "captureInstalledManagedRunRoute/captureInstalledManagedRunRoute",
+            "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/init:prepareManagedSourceRun/init:prepareManagedSourceRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Named Source Run handoff"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -56996,7 +57096,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "44e7d5bd5ee9a2b98587b25ee38718f7c744b8aeaae25d89e802835da245b15b"
+      "sha256": "d2b8778d87438fda543463e4621fed1a8c62ed73fd3b3c891e48ed7b1eaa7024"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -77660,7 +77760,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8b84c933451a100b9e8b54ed1b0f587d7341a47b770e3e79cc3551d2bdd7d429",
+      "sha256": "aad49690ad64739d8060c96814ba3d1c8a3ba133c7268fa21dc91490f9105e61",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

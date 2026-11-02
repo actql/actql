@@ -69870,7 +69870,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "71b49743fd83981908815d1a138b3d3072b43ff7b4d8a3d44cd32e6041c22f0e",
+      "sha256": "97b7730ebf85eeca8737a359b50e18f23d9b926c6101cb3acdf5338aafaaf0cc",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -69902,6 +69902,7 @@
             "authorizationFor",
             "readAsset",
             "prepareManagedModelRun",
+            "prepareManagedSourceRun",
             "effectManagedRun"
           ],
           "async": true
@@ -70094,10 +70095,7 @@
         {
           "name": "installPreparedProjectMockSources/prepareManagedRun",
           "parameters": [
-            "prepared",
-            "request",
-            "model",
-            "effectful"
+            "facts"
           ],
           "async": false
         },
@@ -70387,7 +70385,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+                "anchor": "effectRuns.set(prepared, new WeakRef(record));"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -70395,7 +70393,7 @@
               },
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "record.original = sourceManaged.prepareRun(prepared);"
+                "anchor": "effectRuns.set(prepared, new WeakRef(record));"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -70423,7 +70421,7 @@
             "failure": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "} catch (error) { record.failure = error; throw error; }"
+                "anchor": "if (Object.hasOwn(record, 'failure')) throw record.failure;"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
@@ -70487,7 +70485,7 @@
               },
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
-                "anchor": "test('same managed Run original is retained before post-factory current refusal and typed start stays zero',()=>{"
+                "anchor": "test('same Host Run is retained before post-factory current refusal and independent typed start stays zero', () => {"
               },
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
