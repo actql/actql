@@ -490,6 +490,10 @@ pub fn installed_standard_driver_recipe_capacities(Array[(@execution_relation.Ex
 
 pub fn installed_table_source_body_capacity(@execution_relation.ExecutionCapacity, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_table_source_reader_capacity(Int, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
+
+pub fn installed_table_source_serialization_capacity(@execution_relation.ExecutionCapacity, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_whole_source_acquisition(ClientInstalledWholeSourceCapacity) -> @client_row_source_host.RowInputAcquisition
 
 pub fn installed_whole_source_capture_capacity(@sourceview_resolution.SourceAcquisition, @client_row_source_host.RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledWholeSourceCapacity?

@@ -381,3 +381,53 @@ test "Table body quote enters the same original RowRun and retains constructor r
   assert_eq(closed.reserved_execution_bytes, 0L)
   assert_eq(closed.transferred_bytes, original.transferred_bytes)
 }
+
+///|
+test "native Table protocol charges actual original body separately from projected row page limits" {
+  let (_, acquisition) = row_page_acquisition()
+  let ledger = provider_capacity_ledger(acquisition)
+  let run = provider_capacity_start(acquisition, ledger, "table-protocol-body")
+  @row_host.begin_row_run(run, 128, 10, 10).unwrap()
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
+  let stopped = Ref(false)
+  let raw = Bytes::make(140, b' ')
+  assert_true(
+    @row_host.charge_row_run_response_body(run, raw)
+    is Err(Evidence(UnverifiedTransport)),
+  )
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let observation = @row_host.charge_row_run_response_body(run, raw).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes + 140L,
+  )
+  @row_host.consume_row_run_observation_charge(run, observation).unwrap()
+  let response = @row_host.charge_row_run_response_body(run, raw).unwrap()
+  assert_eq(
+    @row_host.accept_charged_row_run_page(
+      run,
+      response,
+      @utf8.encode("[{\"id\":2}]"),
+    ).unwrap(),
+    1,
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes + 280L,
+  )
+  assert_true(
+    @row_host.consume_row_run_observation_charge(run, response) is Err(_),
+  )
+  // Actual transport remains charged after refusal/retirement; no re-encoded
+  // row Buffer was billed as a second received page or a new attempt.
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes + 280L,
+  )
+}

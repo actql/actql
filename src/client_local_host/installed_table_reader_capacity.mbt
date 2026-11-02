@@ -99,3 +99,110 @@ pub fn installed_table_source_body_capacity(
   }
   @execution.add_execution_capacity(previous, body)
 }
+
+///|
+/// Existing common reader/RowRun controls plus the selected Table reader's
+/// original stop/signal/handle and callback frame. Profile constructor DATA
+/// comes from the SAME checked installation, not scalar capacity inputs. The
+/// three outbound stages (payload snapshot, envelope preflight, send encoding)
+/// conservatively keep their full original profile peaks live simultaneously.
+pub fn installed_table_source_reader_capacity(
+  columns : Int,
+  profile : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  if columns < 1 {
+    return None
+  }
+  let shared = installed_source_reader_fixed_retention_inventory()
+  // Table shared reader environment1H20R8W, thirteen original helper/
+  // handle/final-charge closures13H13R, four-method handle1H4R and original
+  // stop-controller/signal2H1R. Factory environment1H9R1W, its original
+  // record/methods3H5R and the pending physical callback view1H6R stay live.
+  // Count that shared factory envelope per selected reader conservatively;
+  // equal callback/source identity never discounts a concurrent reader.
+  let reader : @execution.PreparationRepresentationUnits = {
+    record_headers: 22L,
+    reference_slots: 58L + 2L * columns.to_int64(),
+    scalar_words: 9L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  // Factory's SAME managed-reader Set: one bounded original entry is
+  // charged to EACH selected reader. The shared growth Map recipe covers
+  // the entry/backing; no separate allocator or logical live-slot cap.
+  guard @shape.map_construction_extent(1L, 1L) is Some(handles) else {
+    return None
+  }
+  let held : @execution.PreparationRepresentationUnits = {
+    record_headers: handles.record_headers,
+    reference_slots: handles.reference_slots,
+    scalar_words: handles.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.compose_preparation_representation([shared, reader, held])
+    is Some(retained) else {
+    return None
+  }
+  let collection = @shape.collection_construction_quotation_extent()
+  let quote : @execution.PreparationRepresentationUnits = {
+    record_headers: collection.record_headers,
+    reference_slots: collection.reference_slots,
+    scalar_words: collection.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  guard @execution.compose_preparation_representation([
+      installed_source_reader_control_inventory(),
+      quote,
+    ])
+    is Some(workspace) &&
+    @execution.preparation_execution_capacity({
+      retained,
+      workspace,
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(base) else {
+    return None
+  }
+  let peak = @execution.execution_capacity_execution_bytes(profile)
+  guard @execution.execution_capacity_inventory(
+      [{ unit: @execution.QuotedBytes, count: peak, copies: 3, }],
+      [{ unit: @execution.QuotedBytes, count: peak, copies: 3, }],
+      @execution.SeparateDimensions,
+    )
+    is Some(outbound) else {
+    return None
+  }
+  @execution.add_execution_capacity(base, outbound)
+}
+
+///|
+/// A complete native body bounds its projected JSON output before stringify.
+/// Per original wire byte: at most six escaped text units plus a finite
+/// number's 25 units and one punctuation unit. Keep the output String and
+/// BOTH original Host/decoder Buffers; Common alone admits the actual rows.
+pub fn installed_table_source_serialization_capacity(
+  previous : @execution.ExecutionCapacity,
+  original_body_bytes : Int,
+) -> @execution.ExecutionCapacity? {
+  if original_body_bytes < 1 {
+    return None
+  }
+  let upper = 32L * original_body_bytes.to_int64() + 2L
+  let output : @execution.PreparationRepresentationUnits = {
+    record_headers: 3L,
+    reference_slots: 2L,
+    scalar_words: 2L,
+    owned_utf16_units: upper,
+    owned_wire_bytes: 2L * upper,
+  }
+  guard @execution.preparation_representation_cost(output) is Some(peak) &&
+    @execution.execution_capacity(peak, peak) is Some(capacity) else {
+    return None
+  }
+  @execution.add_execution_capacity(previous, capacity)
+}

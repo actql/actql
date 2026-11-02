@@ -74797,7 +74797,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7cd3fd0c482021ef92392e7adc41f1c173db48a63035b12f2be4c83b1c118e95",
+      "sha256": "aaf9fdcb5b65ddc1f4161623e2ba4b5fac4548b5f6f797edc8f39f6b5deb3cef",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -74827,6 +74827,8 @@
             "targets",
             "limits",
             "sourceInitialization",
+            "readerCapacity",
+            "bindReader",
             "originalDeclaration",
             "originalDeclared",
             "originalEnvironment",
@@ -74909,12 +74911,8 @@
         {
           "name": "createInstalledTableSource/readPages/readPages",
           "parameters": [
-            "resource",
-            "columns",
-            "signal",
-            "authorizationFor",
-            "chargePage",
-            "consumePageWire"
+            "options",
+            "physical"
           ],
           "async": true
         },
@@ -74937,6 +74935,110 @@
           "parameters": [
             "target"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader",
+          "parameters": [
+            "moon",
+            "initialCapacity",
+            "readPages",
+            "frameLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/createInstalledTableSourceReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options",
+            "retainPreparation",
+            "reserveResponseCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/beforeBodyAllocation/beforeBodyAllocation",
+          "parameters": [
+            "length"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/bodyReceived/bodyReceived",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/consumePrevious/consumePrevious",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/grow/grow",
+          "parameters": [
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read/physical/init:finalCharge/init:finalCharge",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/prepareOutput/prepareOutput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/preparePayload/preparePayload",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -75019,6 +75121,11 @@
           "parameters": [
             "target"
           ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:referenceCurrent/init:referenceCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -75134,7 +75241,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-table-source.mjs",
-                "anchor": "await authorizationFor(0);"
+                "anchor": "await Reflect.apply(authorizationFor, options, [0]);"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -75215,7 +75322,25 @@
         },
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "createInstalledTableSourceReader",
+            "createInstalledTableSourceReader/createInstalledTableSourceReader",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/beforeBodyAllocation/beforeBodyAllocation",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/bodyReceived/bodyReceived",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/check/check",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/consumePrevious/consumePrevious",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/grow/grow",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read/physical/init:finalCharge/init:finalCharge",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/prepareOutput/prepareOutput",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/preparePayload/preparePayload",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/retire/retire",
+            "createInstalledTableSourceReader/factory/init:retire/init:retire",
+            "installedTableReadSite/init:referenceCurrent/init:referenceCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -75231,6 +75356,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "inputsOutputs": [
@@ -75245,6 +75374,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "identity": [
@@ -75259,6 +75392,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "ownership": [
@@ -75273,12 +75410,16 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-table-source.mjs",
-                "anchor": "await authorizationFor(0);"
+                "anchor": "await Reflect.apply(authorizationFor, options, [0]);"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -75287,6 +75428,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "failure": [
@@ -75301,6 +75446,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "cancellation": [
@@ -75315,6 +75464,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "resources": [
@@ -75329,6 +75482,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "extension": [
@@ -75343,6 +75500,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "verification": [
@@ -75353,6 +75514,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }
@@ -122946,7 +123111,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "5a954f34e6450f25ab01f5d11883cc8fb65ce368f85939d23010156177b6cc4c",
+      "sha256": "72c15dcd8238193f9b11bea260cecf8ae9b20437501b281547370838e20d46bd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -123308,6 +123473,20 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/bindReader/bindReader",
+          "parameters": [
+            "reader"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/columns/columns",
+          "parameters": [
+            "view"
+          ],
+          "async": false
         },
         {
           "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/prepared/prepared",
@@ -124050,7 +124229,9 @@
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/value/value",
             "fail/fail",
             "readInstalledSourceAcquisitionContract",
-            "retainInstalledHostServiceInstallation"
+            "retainInstalledHostServiceInstallation",
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/bindReader/bindReader",
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/columns/columns"
           ],
           "exports": [
             "createInstalledHostServices",
@@ -124066,6 +124247,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "inputsOutputs": [
@@ -124076,6 +124261,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "identity": [
@@ -124086,6 +124275,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "ownership": [
@@ -124096,6 +124289,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "synchronization": [
@@ -124106,6 +124303,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "failure": [
@@ -124116,6 +124317,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "cancellation": [
@@ -124126,6 +124331,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "resources": [
@@ -124136,6 +124345,10 @@
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
                 "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "extension": [
@@ -124146,6 +124359,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "verification": [
@@ -124160,6 +124377,10 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }

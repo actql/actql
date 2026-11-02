@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "72380f852bf9b9c091670a9eb2397dc9bbc04a2f5961347734b1c4dc206cda49",
+    "sha256": "2d9f1184ba5b1a62ccedb81748800bc72b6ae54b6df66445a374c51b59892e5b",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
@@ -963,6 +963,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "inputsOutputs": [
@@ -977,6 +981,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "identity": [
@@ -995,6 +1003,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "ownership": [
@@ -1013,6 +1025,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "synchronization": [
@@ -1027,6 +1043,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "failure": [
@@ -1045,6 +1065,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "cancellation": [
@@ -1059,6 +1083,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "resources": [
@@ -1081,6 +1109,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "extension": [
@@ -1099,6 +1131,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ],
           "verification": [
@@ -1117,6 +1153,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The separate original `bodyReceived` entry"
+            },
+            {
+              "path": "adapters/host-node/managed-source-reader.md",
+              "anchor": "## Normal Table same-Request reader"
             }
           ]
         }

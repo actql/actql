@@ -134,3 +134,39 @@ pub fn client_program_installed_table_source_body_capacity(
     None => Err(@resources.InvalidExtent)
   }
 }
+
+///|
+#export_name("clientProgramInstalledTableSourceReaderCapacity")
+pub fn client_program_installed_table_source_reader_capacity(
+  columns : Int,
+  profile : @execution.ExecutionCapacity,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_table_source_reader_capacity(columns, profile)
+}
+
+///|
+#export_name("clientProgramInstalledTableSourceSerializationCapacity")
+pub fn client_program_installed_table_source_serialization_capacity(
+  previous : @execution.ExecutionCapacity,
+  bytes : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_source_serialization_capacity(
+      previous, bytes,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}
+
+///|
+#export_name("clientProgramRowSourceChargeResponseBody")
+pub fn client_program_row_source_charge_response_body(
+  run : @client_row_source_host.RowRun,
+  body : Bytes,
+) -> Result[
+  @client_row_source_host.RowPageCharge,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.charge_row_run_response_body(run, body)
+}

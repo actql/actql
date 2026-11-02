@@ -465,3 +465,53 @@ retires; no cleanup flag is cleared to manufacture acknowledgement. A cleanup
 exception after a previously successful read is still a cleanup exception.
 This changes no current boundary, capacity, callback count, physical stop or
 response evidence rule.
+
+## Normal Table same-Request reader
+
+The existing bound Source constructor retains the checked Table profile, its
+original bridge, declaration, Authorization and Site. It quotes the Table
+reader from that SAME profile constructor DATA, reserves the quantity on the
+original initial parent, then registers the original reader and row demand on
+the same Source scope BEFORE the ordinary row Source constructor. Missing
+quantity or registration refuses; it never chooses the old unaccounted reader
+as a normal fallback. The existing direct low-level factory remains explicit
+without a Source initialization owner; it supplies no managed Plan evidence.
+
+The reader contributes the common fixed RowRun controls once, its own original
+callback/stop/handle inventory and one entry of its existing live-reader Set.
+The shared collection owner supplies that Set growth envelope. The same
+checked profile constructor backs each of the three existing outbound stages:
+payload snapshot, complete-envelope preflight and channel encoding. No fake
+credential, guessed readerCapacity, new Root or user capacity knob is added.
+Fixed quotation controls are included before the body quote; the active
+original RowRun admits every additional body/metadata/output peak before its
+constructor, preserving all previous/failed peaks until original retirement.
+
+The bridge exposes its SAME frozen frame bounds. Two commands (generation
+resolution and data read) each have one original ready and reply body. This
+physical transfer inventory is independent of the unchanged row-page profile.
+`charge_row_run_response_body` requires the same cleanup-bound provider Run
+and charges the complete original Buffer against its original physical
+transfer reservation. A raw protocol envelope is not constrained by a later
+projected row JSON size; the ordinary row admission still checks that size,
+schema, rows and values. Announcements and re-encoded row arrays issue no raw
+received-byte evidence. The original non-provider/page charge entry is unchanged.
+
+Earlier real tickets are consumed once as observations before the next
+constructor; the last original data-response ticket remains live through the
+existing charged grow and final row admission. Metadata used by the next read
+is reserved before its three outbound constructors; final JSON stringify and
+its Host/decoder Buffers are reserved before construction as well. Empty typed
+input still produces one original checked empty page. Original decomposed text,
+NULL/omission, generation/schema correspondence and all three read-authority
+checks remain. No implicit projection or scalar conversion replaces them.
+
+`requestStop` aborts only this reader's original process signal. Its existing
+process cleanup handle retains invalid callbacks and pending tasks; a settled
+read, exception or requested stop is not retirement. The same observer/retry
+checks that original handle until it is actually no longer pending, then cuts
+the reader's callback/options/body aliases. The original row/capture/input and
+Source owners retain their separate Resource, publication and final-cleanup
+duties. Source retirement stops its original live readers and cannot return
+while any remains pending. Whole-Relation Effect planning and ordinary
+Python/Catalog/normal distribution qualification remain separate consumers.

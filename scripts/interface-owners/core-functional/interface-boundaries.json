@@ -34041,7 +34041,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "6e24d4c150f24dac4d3efde0295b1baca9837e5841b293cb6559842ef72d1ffd",
+      "sha256": "899e67e33ac8c180e1ec4c6a9935629d464dc9d7d6be202ce5dbe67023757690",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -34076,6 +34076,10 @@
           "declaration": "installed_source_reader_control_inventory ( ) - > @ execution . PreparationRepresentationUnits"
         },
         {
+          "name": "installed_source_reader_fixed_retention_inventory",
+          "declaration": "installed_source_reader_fixed_retention_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
           "name": "installed_source_reader_policy",
           "declaration": "installed_source_reader_policy ( ) - > Array [ Int ]"
         },
@@ -34104,7 +34108,8 @@
             "installed_json_source_reader_capacity",
             "installed_slack_source_reader_capacity",
             "installed_source_reader_policy",
-            "installed_source_response_workspace"
+            "installed_source_response_workspace",
+            "installed_source_reader_fixed_retention_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -34112,60 +34117,100 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed users Source"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/slack/site/slack-source-read.mjs",
                 "anchor": "export function prepareSlackSourceReadSequence("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "identity": [
               {
                 "path": "src/connectors/slack/catalog/message_history.mbt",
                 "anchor": "pub fn prepare_slack_message_history_from_channel("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",
                 "anchor": "export function createInstalledCredentialSourceReader("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/slack/site/slack-source-read.mjs",
                 "anchor": "if(pending)return false;"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "No failed"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "Retirement waits for any actual in-flight reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "resources": [
               {
                 "path": "src/client_local_host/installed_source_reader_capacity.mbt",
                 "anchor": "pub fn installed_slack_source_reader_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "occurrences, not new user tuning dimensions"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }
@@ -67054,7 +67099,7 @@
     },
     {
       "module": "src/client_local_host/installed_table_reader_capacity.mbt",
-      "sha256": "e13fc6c14b288a6079b70e1553af8b3427fbe87849f1f4cae45b66a9f8cd1f24",
+      "sha256": "4fb87728020de85746a1fd6931089b5b24a008ccfe06e171360df681e60df903",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Local Table native body-construction domain and shared representation/capacity Owners; no Run, permission or physical-stop issuer",
@@ -67067,6 +67112,14 @@
         {
           "name": "installed_table_source_body_capacity",
           "declaration": "installed_table_source_body_capacity ( previous : @ execution . ExecutionCapacity , body_bytes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_table_source_reader_capacity",
+          "declaration": "installed_table_source_reader_capacity ( columns : Int , profile : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_table_source_serialization_capacity",
+          "declaration": "installed_table_source_serialization_capacity ( previous : @ execution . ExecutionCapacity , original_body_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "contracts": [
@@ -67074,7 +67127,9 @@
           "operations": [
             "<module>",
             "installed_table_body_construction_inventory",
-            "installed_table_source_body_capacity"
+            "installed_table_source_body_capacity",
+            "installed_table_source_reader_capacity",
+            "installed_table_source_serialization_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -67082,6 +67137,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "inputsOutputs": [
@@ -67092,30 +67151,50 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "cancellation": {
@@ -67133,12 +67212,20 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "verification": [
@@ -67149,6 +67236,10 @@
               {
                 "path": "src/query_integration/provider_capacity_wbtest.mbt",
                 "anchor": "test \"Table body quote enters the same original RowRun"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }

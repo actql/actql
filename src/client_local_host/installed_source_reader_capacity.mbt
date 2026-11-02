@@ -171,6 +171,25 @@ fn installed_source_reader_retained_inventory(
     is Some(text) else {
     return None
   }
+  let fixed = installed_source_reader_fixed_retention_inventory()
+  let retained : @execution.PreparationRepresentationUnits = {
+    record_headers: fixed.record_headers + 3L * originals,
+    reference_slots: fixed.reference_slots +
+    2L * fields +
+    9L * originals +
+    2L * ids +
+    2L * cursors,
+    scalar_words: fixed.scalar_words + 3L * originals + ids + cursors,
+    owned_utf16_units: text,
+    owned_wire_bytes: raw,
+  }
+  Some(retained)
+}
+
+///|
+// One original shared RowRun/reader frame envelope. Protocols add only their
+// selected variable response/identity material, never duplicate this recipe.
+fn installed_source_reader_fixed_retention_inventory() -> @execution.PreparationRepresentationUnits {
   // Source-owned reader frame, handle/custody/binding envelopes, captured
   // methods and callback environments, provider invocation context/limits,
   // prepared reader/state, two projected-name vectors and two live Sets.
@@ -194,27 +213,18 @@ fn installed_source_reader_retained_inventory(
   // Two typed-value callbacks share the original RowRun/sequence state.
   let native_callback_headers = 2L
   let native_callback_slots = 4L
-  let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 39L +
-    resolver_headers +
-    native_callback_headers +
-    3L * originals,
+  {
+    record_headers: 39L + resolver_headers + native_callback_headers,
     reference_slots: common_fields +
     provider_fields +
     closures +
     resolver_slots +
     native_callback_slots +
-    4L +
-    2L * fields +
-    9L * originals +
-    2L * ids +
-    2L * cursors,
-    // The one native-prepared selection flag survives until reader retirement.
-    scalar_words: 20L + 3L * originals + ids + cursors,
-    owned_utf16_units: text,
-    owned_wire_bytes: raw,
+    4L,
+    scalar_words: 20L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   }
-  Some(retained)
 }
 
 ///|

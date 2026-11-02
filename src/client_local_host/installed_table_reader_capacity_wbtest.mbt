@@ -49,3 +49,21 @@ test "Table body inventory uses actual announced bytes before snapshot limits an
     is Some(_),
   )
 }
+
+///|
+test "Table initial reader reuses common controls original profile stages and separate output constructors" {
+  // Existing common fixed envelope46H189R20W=2408. Table selected frame
+  //22H62R9W=920; original live-reader Set11H29R34W=680. The SAME shared
+  // constructor/quotation workspace is1408+688=2096. Three original outbound
+  // profile stages retain23 each; these are independent authored quantities.
+  let profile = @execution.execution_capacity(17L, 23L).unwrap()
+  let initial = installed_table_source_reader_capacity(2, profile).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(initial), 4077L)
+  assert_eq(@execution.execution_capacity_execution_bytes(initial), 6173L)
+  assert_true(installed_table_source_reader_capacity(0, profile) is None)
+  let body = installed_table_source_serialization_capacity(profile, 4).unwrap()
+  // 130 UTF16 units and two130-byte Buffers +3H2R2W=600, before stringify.
+  assert_eq(@execution.execution_capacity_retained_bytes(body), 617L)
+  assert_eq(@execution.execution_capacity_execution_bytes(body), 623L)
+  assert_true(installed_table_source_serialization_capacity(profile, 0) is None)
+}

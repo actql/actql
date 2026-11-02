@@ -201,3 +201,173 @@ test('Table Source empty generation keeps one encoded page and the original gene
   await assert.rejects(mismatch.read(),{code:'InvalidTableReadReply'});
   assert.equal(mismatch.count(),0);assert.equal(mismatch.consumed(),undefined);
 });
+
+// Actual authored Table reader + its actual readPages body. The explicit
+// transport/Core ports inspect correspondence and ordering only. They issue
+// no Resource/Ledger, Page, Source, authority, Python/Catalog or ordinary Run.
+function tableManagedReaderFixture({rows=[{name:'e\u0301\r\n',zero:0,nullable:null},{}],
+  growthFailure, returnedFailure, metadataRows=rows.length}={}) {
+  const source=text('./installed-table-source.mjs'),ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const found=[];
+  const visit=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='VariableDeclarator'&&node.id?.name==='readPages')found.push(node.init);
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);else visit(value);};
+  visit(ast);assert.equal(found.length,1);
+  const events=[],schemaWire='original-schema',selector={catalog_identity_cid:'catalog',table_uuid:'table',schema_cid:'schema'};
+  const receipt={catalog_identity_cid:'catalog',table_uuid:'table',schema_cid:'schema',storage_mapping_cid:'mapping',
+    generation_cid:'sha256:'+'a'.repeat(64),row_count:metadataRows};
+  const frozen={receipt,mapping:{schema_cid:'schema',mapping_cid:'mapping'},schema_wire:schemaWire};
+  const raw=[],tickets=[],bodyQuotes=[],serializeQuotes=[],reserveCalls=[];
+  let nativeTicket,chargedBytes=0,encoded=0,readCalls=0,resolving=0;
+  const initial=Object.freeze({original:'initial'}),run=Object.freeze({original:'row-run'});let capacity=initial;
+  const moon={clientProgramInstalledTableSourceBodyCapacity(previous,bytes,depth){
+    assert.equal(this,moon);assert.equal(previous,capacity);assert.equal(depth,32);
+    const next=Object.freeze({previous,bytes,kind:'body'});bodyQuotes.push(next);events.push('quote-body');return ok(next);
+  },clientProgramInstalledTableSourceSerializationCapacity(previous,bytes){
+    assert.equal(this,moon);assert.equal(previous,capacity);const next=Object.freeze({previous,bytes,kind:'serialization'});
+    serializeQuotes.push(next);events.push('quote-serialization');return ok(next);
+  },clientProgramRowSourceChargeResponseBody(actual,body){
+    assert.equal(this,moon);assert.equal(actual,run);assert.equal(nativeTicket,undefined);assert.equal(body,raw.at(-1));
+    chargedBytes+=body.length;nativeTicket=Object.freeze({body});tickets.push(nativeTicket);events.push('charge-raw');return ok(nativeTicket);
+  }};
+  const reserve=(next,phase)=>{
+    assert.equal(next.previous,capacity);
+    if(phase===undefined)assert.notEqual(nativeTicket,undefined,'final unconsumed response uses charged growth');
+    else{assert.equal(phase,'announced-body');assert.equal(nativeTicket,undefined,'previous observation retired before constructor grow');}
+    reserveCalls.push({next,phase});events.push('reserve');if(growthFailure!==undefined&&reserveCalls.length===1)throw growthFailure;
+    capacity=next;
+  };
+  const receive=(physical,value)=>{
+    const body=Buffer.from(JSON.stringify(value));raw.push(body);
+    physical.beforeBodyAllocation(body.length);events.push('allocate');physical.bodyReceived(body);events.push('received');
+  };
+  const bridge={async resolveGeneration(actual,signal,beforeBodyAllocation,bodyReceived){
+    assert.equal(actual,selector);resolving++;events.push('metadata');signal.throwIfAborted();
+    const p={beforeBodyAllocation,bodyReceived};receive(p,{kind:'ready'});receive(p,{ok:true,result:frozen});return {ok:true,result:frozen};
+  },async read(actualReceipt,actualMapping,signal,beforeBodyAllocation,bodyReceived){
+    assert.equal(actualReceipt,receipt);assert.equal(actualMapping,frozen.mapping);readCalls++;events.push('read');signal.throwIfAborted();
+    const p={beforeBodyAllocation,bodyReceived};receive(p,{kind:'ready'});receive(p,{ok:true,result:rows});
+    if(returnedFailure!==undefined)throw returnedFailure;
+    return {ok:true,result:rows};
+  }};
+  let consumed;
+  const options=Object.freeze({rowRun:Object.freeze({run}),resource:'rows',columns:['name','zero','nullable'],signal:new AbortController().signal,
+    authorizationFor(index){assert.equal(this,options);events.push(`authorize-${index}`);},
+    chargePage(){assert.fail('projected rows cannot be charged as another received body');},
+    consumeObservation(ticket){assert.equal(this,options);assert.equal(ticket,nativeTicket);nativeTicket=undefined;events.push('consume-observation');},
+    consumePageWire(wire,{charge}){assert.equal(charge,nativeTicket);assert.equal(charge,tickets.at(-1));
+      assert.equal(charge.body,raw.at(-1));nativeTicket=undefined;consumed=wire;events.push('admit-rows');}});
+  const ports={fail,Buffer,identifier:value=>/^sha256:[0-9a-f]{64}$/u.test(value??''),
+    byResource:new Map([['rows',{selector,schemaWire}]]),declared:{views:[{resource:'rows',fields:['name','zero','nullable']}]},bridge,
+    closedReply(value){if(!value.ok)fail(value.code);return value.result;},JSON:{stringify(value){encoded++;return JSON.stringify(value);}}};
+  const readPages=Function(...Object.keys(ports),'return ('+source.slice(found[0].start,found[0].end)+');')(...Object.values(ports));
+  const factory=Function('checked','fail',body(source,'createInstalledTableSourceReader')+'\nreturn createInstalledTableSourceReader;')
+    (checked,fail)({moon,initialCapacity:initial,readPages,frameLimits:Object.freeze({maxBytes:4194304,maxNodes:100000,maxDepth:32})});
+  const reader=factory.prepare(options,undefined,reserve);
+  return{factory,reader,events,raw,tickets,reserveCalls,bodyQuotes,serializeQuotes,options,
+    stats:()=>({chargedBytes,encoded,consumed,resolving,readCalls,nativeTicket})};
+}
+
+test('Table managed reader retains same actual raw tickets and reserves before metadata copy and row serialization',async()=>{
+  const f=tableManagedReaderFixture();await f.reader.read();
+  assert.equal(f.raw.length,4);assert.equal(f.tickets.length,4);
+  assert.equal(f.stats().chargedBytes,f.raw.reduce((sum,body)=>sum+body.length,0));
+  assert.equal(f.events.filter(v=>v==='consume-observation').length,3);
+  assert.equal(f.stats().encoded,1);assert.equal(f.stats().consumed,'[{"name":"é\\r\\n","zero":0,"nullable":null},{}]');
+  assert.equal(f.stats().nativeTicket,undefined);
+  assert.equal(f.bodyQuotes.length,7,'four original bodies plus three actual metadata outbound stages');
+  assert.equal(f.serializeQuotes.length,2,'metadata request and final row output constructed under same original');
+  assert.equal(f.reserveCalls.at(-1).phase,undefined,'final raw response ticket stays unconsumed for checked row admission');
+  assert.equal(f.reader.observe().cleanupConfirmed,false);f.reader.requestStop();
+  assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+  await assert.rejects(f.reader.read(),{code:'InstalledTableSourceReaderAlreadyStarted'});
+});
+
+test('Table managed reader capacity refusal and invalid generation precede body allocation or row encoding',async()=>{
+  const cause=Object.freeze(new Error('original-resource-refusal')),f=tableManagedReaderFixture({growthFailure:cause});
+  await assert.rejects(f.reader.read(),error=>error===cause);
+  assert.equal(f.events.includes('allocate'),false);assert.equal(f.raw.length,1);assert.equal(f.stats().chargedBytes,0);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+  const mismatch=tableManagedReaderFixture({metadataRows:99});
+  await assert.rejects(mismatch.reader.read(),{code:'InvalidTableReadReply'});
+  assert.equal(mismatch.stats().encoded,0);assert.equal(mismatch.stats().consumed,undefined);
+  mismatch.reader.requestStop();assert.equal(mismatch.factory.retire(),true);
+});
+
+test('Table managed reader typed empty input and original pending cleanup keep their separate duties',async()=>{
+  const empty=tableManagedReaderFixture({rows:[]});await empty.reader.read();
+  assert.equal(empty.stats().consumed,'[]');assert.equal(empty.stats().encoded,1);empty.reader.requestStop();assert.equal(empty.factory.retire(),true);
+  let pending=true,retries=0;
+  const cleanup=Object.freeze({status:()=>({pending}),async retry(){retries++;}});
+  const cause=Object.freeze(Object.assign(new Error('original-process-unknown'),{cleanupHandle:cleanup}));
+  const f=tableManagedReaderFixture({returnedFailure:cause});await assert.rejects(f.reader.read(),error=>error===cause);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,false);assert.equal(f.factory.retire(),false);
+  await f.reader.retry();assert.equal(retries,1);assert.equal(f.reader.observe().cleanupConfirmed,false);
+  pending=false;await f.reader.retry();assert.equal(retries,2);assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
+  assert.equal(f.stats().encoded,0);assert.equal(f.stats().consumed,undefined);
+});
+
+// Exact authored normal bound constructor and exact Table factory; only the
+// Core capacity/Source association/Account ports are explicit. This connects
+// the actual registration sequence, not physical authority or a normal ABI.
+function tableBoundConstructionFixture({refuseInitial=false}={}) {
+  const host=text('./installed-host-services.mjs'),table=text('./installed-table-source.mjs');
+  const services={},context={},installation={registration:'local',revision:'local/0.1'},sourceContexts=new WeakMap(),installations=new WeakMap(),boundConstructions=new WeakMap();
+  const events=[],profile={},profileCapacity={},capacity={},declaration={},environment={wire:'original-environment'},account={authorize(){assert.fail('no read authorization during installation');}};
+  const selector={catalog_identity_cid:'catalog',table_uuid:'table',schema_cid:'schema'},targets=[{resource:'rows',selector,schemaWire:'original-schema'}];
+  const declared={catalog_cid:'catalog',views:[{resource:'rows',fields:['name','zero','nullable']}],manifest_entry:'original'};
+  const prepared={declaration,declared,environment};
+  const scope={active:true,role:'source',installation,baseEnvironmentWire:'original-base',connectorId:'table'};
+  const material={phase:'working',inputs:[],providers:[]};
+  const frames=Object.freeze({maxBytes:4194304,maxNodes:100000,maxDepth:32});
+  const bridge=Object.freeze({frameLimits:frames,checkReadSelector(value){assert.equal(value,selector);return value;},
+    async resolveGeneration(){assert.fail('no metadata during installation');},async read(){assert.fail('no Table read during installation');}});
+  const moon={clientProgramInstalledTableSourceReaderCapacity(columns,original){assert.equal(this,moon);assert.equal(columns,3);assert.equal(original,profileCapacity);events.push('reader-quote');return refuseInitial?undefined:capacity;},
+    clientProgramInstalledTableSourceBodyCapacity(){assert.fail('no body quote during installation');},
+    clientProgramInstalledTableSourceSerializationCapacity(){assert.fail('no output quote during installation');},
+    clientProgramRowSourceChargeResponseBody(){assert.fail('no received-byte charge during installation');}};
+  const original={moon,root:'/UNOPENED',principalId:'original',current(){},selected:new Map([[installation,'original-runtime']])};
+  sourceContexts.set(context,{original,material,scope});installations.set(services,original);
+  context.prepareDeclaration=views=>{assert.equal(views[0].schema_cid,selector.schema_cid);scope.prepared=prepared;events.push('declare');return prepared;};
+  let source;
+  const row=options=>{
+    assert.equal(scope.reader,options.providerReader,'original reader association must precede Common row Source construction');
+    assert.equal(options.providerReader.capacity,capacity);assert.equal(options.readPages,undefined,'normal has no legacy fallback');
+    assert.equal(options.declaration,declaration);assert.equal(options.environment,environment);assert.equal(options.sourceInitialization,context);
+    assert.deepEqual(scope.readerDemand,{nested:false,responses:4,queryPages:3,maxResponseBytes:65536,maxNodes:400000,maxDepth:32,maxRows:16,maxTotalRows:16,transferBytes:16777216n});
+    events.push('row-source');source=Object.freeze({tableReadTargets:options.tableReadTargets,reader:options.providerReader});scope.source=source;return source;
+  };
+  const tablePorts={fail,text:value=>typeof value==='string'&&value.length>0,
+    keys:(value,names)=>value&&Object.keys(value).sort().join(',')===[...names].sort().join(','),
+    dataCid:()=> 'sha256:'+'a'.repeat(64),checked,createInstalledRowSource:row};
+  const factory=Function(...Object.keys(tablePorts),body(table,'createInstalledTableSourceReader')+'\n'+body(table,'createInstalledTableSource')+'\nreturn createInstalledTableSource;')(...Object.values(tablePorts));
+  const hostPorts={sourceContexts,installations,boundConstructions,fail,nodeTypes,
+    runtimeUnboxedReferenceOption:value=>value,
+    captureConfigurationReaders:value=>value,installedSourceConfigurationReader:()=>({}),
+    reserveInstalledTableConstruction(a,b,c){assert.equal(a,original);assert.equal(b,material);assert.equal(c,profile);events.push('profile-reserve');return profileCapacity;},
+    requireSynchronousSourceConstruction:(_m,value)=>value,
+    async installRowSourceAuthorization(){events.push('account');return account;},
+    installedTableReadSite({authorization,ownAuthorization}){assert.equal(authorization,account);assert.equal(ownAuthorization,true);return {connection:'table-original',issueReadGrant(){assert.fail('no grant during construction');}};},
+    reserveSource(a,b){assert.equal(a,original);assert.equal(b,material);assert.equal(material.providers.at(-1),capacity);events.push('reserve-reader');},
+    createInstalledTableSource:factory};
+  const bind=Function(...Object.keys(hostPorts),body(host,'bindInstalledSourceConstruction')+'\nreturn bindInstalledSourceConstruction;')(...Object.values(hostPorts));
+  const bound=bind(services,context,profile);
+  const options={connection:'table-original',targets,limits:{maxPages:3,maxPageBytes:65536,maxPageRows:16,maxCaptureRows:16},accountConfiguration:'original-account',
+    createBridge(){events.push('bridge');return bridge;}};
+  return{create:()=>bound.createTableSource(options),events,scope,material,owned:()=>boundConstructions.get(context),source:()=>source};
+}
+
+test('normal Table bound construction reserves and registers its SAME managed reader before original row Source',async()=>{
+  const f=tableBoundConstructionFixture();const source=await f.create();
+  assert.equal(source,f.source());assert.equal(f.scope.reader,source.reader);assert.equal(f.owned().reader,source.reader);
+  assert.deepEqual(f.events,['profile-reserve','bridge','declare','account','reader-quote','reserve-reader','row-source']);
+  assert.equal(f.owned().adapter,source);assert.equal(source.reader.retire(),true);
+});
+
+test('normal Table missing original reader capacity refuses before reader constructor with partial originals retained',async()=>{
+  const f=tableBoundConstructionFixture({refuseInitial:true});
+  await assert.rejects(f.create(),{code:'InstalledTableSourceReaderUnavailable'});
+  assert.equal(f.events.includes('row-source'),false);assert.equal(f.events.includes('reserve-reader'),false);
+  assert.equal(f.owned().reader,undefined);assert.notEqual(f.owned().site,undefined);assert.notEqual(f.owned().authorization,undefined);
+  assert.equal(f.owned().constructing,false);assert.equal(f.source(),undefined);
+});

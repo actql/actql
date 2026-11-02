@@ -140,6 +140,8 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal, undefined, beforeBodyAllocation, bodyReceived);
   };
   const bridge = Object.freeze({
+    // SAME checked original transport DATA; not a second profile or grant.
+    frameLimits: frames,
     supportsOperation(values) { assertImplementation(); return supportsIcebergTableOperation(values); },
     issueStorageMapping(values) { assertImplementation(); return issueIcebergStorageMapping(values); },
     admitStorageMapping(values) { assertImplementation(); return admitIcebergStorageMapping(values); },

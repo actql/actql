@@ -63,6 +63,7 @@ export function installedTableReadSite({connection, authorization, principalId, 
       }
       return Object.freeze({runInvocationCid, dispatchRequestCid});
     },
+    referenceCurrent() {return !closed;},
     close() {
       if (ownAuthorization && authorization.close() !== true) fail('InstalledSourceAuthorizationCleanupPending');
       closed = true;
@@ -70,12 +71,119 @@ export function installedTableReadSite({connection, authorization, principalId, 
   });
 }
 
+// The normal Table reader uses the existing provider-reader contract. Its
+// process, RowRun, Site and Request are originals; it owns no replacement
+// reservation, grant, attempt, receipt or physical cleanup implementation.
+function createInstalledTableSourceReader({moon, initialCapacity, readPages, frameLimits}) {
+  const bodyCapacity = moon.clientProgramInstalledTableSourceBodyCapacity;
+  const serializationCapacity = moon.clientProgramInstalledTableSourceSerializationCapacity;
+  const chargeBody = moon.clientProgramRowSourceChargeResponseBody;
+  if ([bodyCapacity,serializationCapacity,chargeBody].some(value=>typeof value !== 'function') ||
+      initialCapacity === undefined || typeof readPages !== 'function' || !Object.isFrozen(frameLimits)) {
+    fail('InstalledTableSourceReaderUnavailable');
+  }
+  let closing = false;
+  const readers = new Set();
+  const factory = Object.freeze({capacity:initialCapacity,
+    prepare(options, retainPreparation, reserveResponseCapacity) {
+      if (this !== factory || closing || retainPreparation !== undefined ||
+          typeof reserveResponseCapacity !== 'function' || readers.size === Number.MAX_SAFE_INTEGER) {
+        fail('InstalledTableSourceReaderUnavailable');
+      }
+      // The SAME caller supplied these methods after its RowRun/cleanup bind.
+      let run = options.rowRun?.run, consume = options.consumeObservation;
+      if (run === undefined || typeof consume !== 'function') fail('InstalledTableSourceResponseUnavailable');
+      let stop = new AbortController();
+      let signal = options.signal === undefined ? stop.signal : AbortSignal.any([options.signal,stop.signal]);
+      let selected = options, capacity = initialCapacity, ticket, bodyBytes = 0;
+      let phase = 'ready', pending = false, stopped = false, retired = false, cleanup;
+      let handle;
+      const check = () => {
+        if (closing || retired || stopped || !pending) fail('InstalledTableSourceReaderClosed');
+        signal.throwIfAborted();
+      };
+      const consumePrevious = () => {
+        if (ticket !== undefined) {Reflect.apply(consume,selected,[ticket]);ticket=undefined;}
+      };
+      const grow = next => {
+        check();reserveResponseCapacity(next,'announced-body');check();capacity=next;
+      };
+      const beforeBodyAllocation = length => {
+        check();consumePrevious();
+        grow(checked(Reflect.apply(bodyCapacity,moon,[capacity,length,frameLimits.maxDepth])));
+      };
+      const bodyReceived = body => {
+        check();if(ticket!==undefined)fail('InstalledTableSourceResponsePending');
+        ticket=checked(Reflect.apply(chargeBody,moon,[run,body]));bodyBytes=body.byteLength;
+      };
+      const preparePayload = () => {
+        check();consumePrevious();
+        // Actual metadata payload snapshot, full envelope preflight and send
+        // encoding are separate constructors. Keep their original full peaks
+        // alongside the received prefix; no earlier body is assumed retired.
+        for(let index=0;index<3;index++)grow(checked(Reflect.apply(bodyCapacity,moon,
+          [capacity,bodyBytes,frameLimits.maxDepth])));
+        grow(checked(Reflect.apply(serializationCapacity,moon,[capacity,bodyBytes])));
+      };
+      const prepareOutput = () => {
+        check();
+        if(ticket===undefined)fail('InstalledTableSourceResponseUnavailable');
+        // This is the final received response: preserve its unconsumed
+        // original ticket and use the EXISTING charged constructor entrance.
+        const next=checked(Reflect.apply(serializationCapacity,moon,[capacity,bodyBytes]));
+        reserveResponseCapacity(next);check();capacity=next;
+      };
+      // Retirement follows the existing process Owner's observation, never a
+      // settled read, a stop request or an exception code. The SAME unresolved
+      // cleanup handle remains reachable on this original reader.
+      const retire = () => {
+        if(retired)return true;
+        if(!stopped||pending||cleanup!==undefined&&cleanup.status().pending!==false)return false;
+        selected=capacity=ticket=cleanup=run=consume=signal=stop=undefined;
+        retired=true;readers.delete(handle);return true;
+      };
+      handle=Object.freeze({
+        async read() {
+          if(this!==handle||phase!=='ready'||stopped||closing)fail('InstalledTableSourceReaderAlreadyStarted');
+          phase='reading';pending=true;
+          try {
+            const physical={signal,beforeBodyAllocation,bodyReceived,preparePayload,prepareOutput,
+              finalCharge() {if(ticket===undefined)fail('InstalledTableSourceResponseUnavailable');const value=ticket;ticket=undefined;return value;}};
+            const result=await readPages(selected,physical);
+            phase='complete';return result;
+          }catch(cause){cleanup=cause?.cleanupHandle;phase='failed';throw cause;}
+          finally{pending=false;if(stopped)retire();}
+        },
+        requestStop(reason) {
+          if(this!==handle)fail('ForeignInstalledTableSourceReader');
+          if(retired)return;stopped=true;stop.abort(reason);retire();
+        },
+        async retry() {
+          if(this!==handle||!stopped)fail('InstalledTableSourceReaderStopRequired');
+          if(cleanup!==undefined)await cleanup.retry();retire();
+        },
+        observe() {
+          if(this!==handle)fail('ForeignInstalledTableSourceReader');
+          return Object.freeze({phase,readPending:pending,stopRequested:stopped,cleanupConfirmed:retire()});
+        },
+      });
+      readers.add(handle);return handle;
+    },
+    retire() {
+      if(this!==factory)fail('ForeignInstalledTableSourceReader');closing=true;
+      for(const reader of readers)reader.requestStop();
+      return readers.size===0;
+    },
+  });
+  return factory;
+}
+
 // Installation binds saved schema and Table UUID/name. It never reads provider
 // metadata during Check or uses observed rows to issue a declaration. A new
 // acquisition resolves one immutable generation under current read authority.
 export async function createInstalledTableSource({moon, baseEnvironmentWire,
   connectorId, connectorRegistration, connectorRevision,
-  site, authorization, bridge, targets, limits, sourceInitialization,
+  site, authorization, bridge, targets, limits, sourceInitialization, readerCapacity, bindReader,
   declaration: originalDeclaration, declared: originalDeclared, environment: originalEnvironment, publicationBindingCid}) {
   if (!moon || !text(baseEnvironmentWire) || !text(connectorId) ||
       !text(connectorRegistration) || !text(connectorRevision) ||
@@ -120,14 +228,15 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
     connection: site.connection, connectorId, connectorRegistration,
     connectorRevision, catalogCid: declared.catalog_cid,
     targets: installed.map(({resource, selector}) => ({resource, selector}))});
-  const readPages = async ({resource, columns, signal, authorizationFor,
-    chargePage, consumePageWire}) => {
+  const readPages = async (options, physical) => {
+    const {resource, columns, authorizationFor, chargePage, consumePageWire} = options;
+    const signal = physical?.signal ?? options.signal;
     const target = byResource.get(resource);
     const view = declared.views.find(view => view.resource === resource);
     if (!target || columns.some(column => !view.fields.includes(column))) fail('InstalledTableReadTargetMismatch');
     signal?.throwIfAborted();
-    await authorizationFor(0);
-    const frozen = closedReply(await bridge.resolveGeneration(target.selector, signal),
+    await Reflect.apply(authorizationFor, options, [0]);
+    const frozen = closedReply(await bridge.resolveGeneration(target.selector, signal, physical?.beforeBodyAllocation, physical?.bodyReceived),
       ['receipt', 'mapping', 'schema_wire']);
     signal?.throwIfAborted();
     // The physical owner verified its immutable metadata and publication record.
@@ -142,23 +251,31 @@ export async function createInstalledTableSource({moon, baseEnvironmentWire,
         !identifier(frozen.receipt?.generation_cid)) fail('InstalledTableReadGenerationMismatch');
     // Re-evaluation after the metadata await and after the data await uses the
     // existing acquisition gate. It does not renew original Effect authority.
-    await authorizationFor(1);
+    await Reflect.apply(authorizationFor, options, [1]);
     signal?.throwIfAborted();
-    const rows = closedReply(await bridge.read(frozen.receipt, frozen.mapping, signal));
+    physical?.preparePayload();
+    const rows = closedReply(await bridge.read(frozen.receipt, frozen.mapping, signal,
+      physical?.beforeBodyAllocation, physical?.bodyReceived));
     if (!Array.isArray(rows) || rows.length !== frozen.receipt.row_count) fail('InvalidTableReadReply');
-    await authorizationFor(2);
+    await Reflect.apply(authorizationFor, options, [2]);
     signal?.throwIfAborted();
     // Keep original objects: omitted fields remain omitted. The existing common
     // checked-input owner validates and captures the rows, including empty input.
+    physical?.prepareOutput();
     const pageWire = JSON.stringify(rows);
-    const bytes = Buffer.from(pageWire, 'utf8');
-    const charge = chargePage(bytes);
-    consumePageWire(pageWire, {charge});
+    const charge = physical === undefined ? Reflect.apply(chargePage, options, [Buffer.from(pageWire, 'utf8')]) : physical.finalCharge();
+    Reflect.apply(consumePageWire, options, [pageWire, {charge}]);
   };
+  let providerReader;
+  if(sourceInitialization!==undefined){
+    if(typeof bindReader!=='function')fail('InstalledTableSourceReaderUnavailable');
+    providerReader=createInstalledTableSourceReader({moon,initialCapacity:readerCapacity,readPages,frameLimits:bridge.frameLimits});
+    bindReader(providerReader);
+  }
   return createInstalledRowSource({moon, declaration, declared, environment, sourceInitialization,
     environmentWire: environment.wire, connectorId, connectorRegistration,
     connectorRevision, site, authorization, readOperation: 'table.read',
-    physicalTarget, readPages, bindingCid, publicationBindingCid, limits,
+    physicalTarget, ...(providerReader===undefined?{readPages}:{providerReader}), bindingCid, publicationBindingCid, limits,
     tableReadTargets: Object.freeze(installed.map(target => physicalTarget(target.resource,
       declared.views.find(view => view.resource === target.resource).fields)))});
 }

@@ -89,11 +89,15 @@
     {
       "module": "src/client_row_source_host/response_charge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4b43835d064d7bf76370dcab23787fdc37429f0c8cc0a0ccfee478003f0ab2eb",
+      "sha256": "56fa59d678da412297f521028db2114b651d3bc1a19f6f41d31e26164cf1bf80",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [],
       "operations": [
+        {
+          "name": "charge_row_run_response_body",
+          "declaration": "charge_row_run_response_body ( run : RowRun , body : Bytes , ) - > Result [ RowPageCharge , RowHostIssue ]"
+        },
         {
           "name": "consume_row_run_response_charge",
           "declaration": "consume_row_run_response_charge ( run : RowRun , charge : RowPageCharge , ) - > Result [ Unit , RowHostIssue ]"
@@ -103,7 +107,8 @@
         {
           "operations": [
             "<module>",
-            "consume_row_run_response_charge"
+            "consume_row_run_response_charge",
+            "charge_row_run_response_body"
           ],
           "exports": [],
           "attributes": {
@@ -111,60 +116,100 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "identity": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "failure": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "resources": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "extension": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "verification": [
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }
@@ -174,7 +219,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "f72d31e835538687da93729b51943fb5c7eba735e6777a5f559a2ad0fb703e6d",
+      "sha256": "c1d620071be9e4a1bacb8c89790172c62b00edeffab2cfdd703166d22e9ce6c1",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -210,6 +255,7 @@
         "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
         "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
         "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
+        "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
@@ -462,6 +508,10 @@
         {
           "name": "charge_row_run_page",
           "declaration": "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
+        },
+        {
+          "name": "charge_row_run_response_body",
+          "declaration": "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
         },
         {
           "name": "check_row_acquisition_original",
@@ -1022,7 +1072,8 @@
             "start_original_accounted_keyed_row_acquisition",
             "start_row_acquisition",
             "grow_row_run_response_capacity",
-            "grow_row_run_response_construction_capacity"
+            "grow_row_run_response_construction_capacity",
+            "charge_row_run_response_body"
           ],
           "exports": [
             "pub fn abort_row_run(RowRun) -> Unit",
@@ -1129,7 +1180,8 @@
             "pub struct RowMapping {",
             "pub struct RowRunResponseBorrow {",
             "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
-            "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
+            "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+            "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -1148,6 +1200,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "inputsOutputs": [
@@ -1166,6 +1222,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "identity": [
@@ -1184,6 +1244,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "ownership": [
@@ -1206,6 +1270,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "synchronization": [
@@ -1228,6 +1296,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "failure": [
@@ -1250,6 +1322,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "cancellation": [
@@ -1272,6 +1348,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "resources": [
@@ -1294,6 +1374,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "extension": [
@@ -1312,6 +1396,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ],
             "verification": [
@@ -1350,6 +1438,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }
