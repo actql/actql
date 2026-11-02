@@ -208,7 +208,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
       environmentSha256, historyProtocolSha256: controls.historyProtocolSha256, rows: []}, cleanup: {closed: false},
     qualification: 'Selected warm public operations only. Other latency, structural, history, chunk and fault gates remain unmeasured.'};
   const save = () => writeFile(join(output, 'measurements.json'), JSON.stringify(report, null, 2) + '\n', {mode: 0o600});
-  let client, original, primary, active = 'ordinary public open and initial Result';
+  let client, original, primary, hasPrimary = false, active = 'ordinary public open and initial Result';
   const initial = process.hrtime.bigint();
   try {
     const {open} = await import(pathToFileURL(join(consumer, 'node_modules/@actql/node/index.mjs')).href);
@@ -271,25 +271,32 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
       }
     }
   } catch (error) {
+    hasPrimary = true;
     primary = error;
     report.firstFailure = {operation: active, ...nodeBenchmarkFailure(error)};
   } finally {
     if (client) {
       const closeStart = process.hrtime.bigint();
       try { await client.close(); report.cleanup.closed = true; }
-      catch (error) { primary ??= error; report.cleanup.failure = nodeBenchmarkFailure(error); }
+      catch (error) {
+        if (!hasPrimary) {hasPrimary = true; primary = error;}
+        report.cleanup.failure = nodeBenchmarkFailure(error);
+      }
       report.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
     }
     try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
-    catch (error) { primary ??= error; report.packageFailure = error.message; }
+    catch (error) {
+      if (!hasPrimary) {hasPrimary = true; primary = error;}
+      report.packageFailure = nodeBenchmarkFailure(error).message;
+    }
     report.assessments = mode === 'record-only' ? [] : report.latency.map(row => assessLatency(row, controls.comparison));
-    if (mode === 'record-only' && !report.firstFailure && !primary) {
+    if (mode === 'record-only' && !report.firstFailure && !hasPrimary && report.cleanup.closed === true) {
       report.measurements = report.latency.map(recordOperationMeasurements);
     }
     report.fullAcceptance = false;
     await save();
   }
-  if (primary) throw primary;
+  if (hasPrimary) throw primary;
   return report;
 }
 
@@ -645,8 +652,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const report = await runNodeWarmBenchmark(options);
       console.log(JSON.stringify({sourceSha: report.sourceSha, stoppedAt: report.stoppedAt ?? null,
         assessments: report.assessments, fullAcceptance: false}));
-      process.exitCode = report.firstFailure || report.stoppedAt || (options.mode !== 'record-only' &&
+      process.exitCode = report.firstFailure || report.stoppedAt || report.cleanup.closed !== true || (options.mode !== 'record-only' &&
         (report.initialLatencyExceeded || report.assessments.some(row => row.status !== 'passed'))) ? 1 : 0;
     }
-  } catch (error) { console.error(error.message); process.exitCode = 2; }
+  } catch (error) { console.error(nodeBenchmarkFailure(error).message); process.exitCode = 2; }
 }
