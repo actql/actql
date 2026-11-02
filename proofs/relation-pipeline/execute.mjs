@@ -28,10 +28,11 @@ assert(part === '' || ['L-C0', 'L-C1', 'L-M0', 'L-M1'].includes(part), 'Unknown 
 const invocation = invocationIdentity(part);
 export const executions = [];
 // All contexts share only receipt storage and serial IDs, never source/build trees.
-export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {targets = ['js', 'wasm', 'native']} = {}) {
+export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {targets = ['js', 'wasm', 'native'], jobs} = {}) {
   assert(Array.isArray(targets) && targets.length > 0 && new Set(targets).size === targets.length &&
     targets.every(target => ['js', 'wasm', 'native'].includes(target)), 'Invalid execution target scope');
   const allowedTargets = new Set(targets);
+  executionCommand(targets[0], jobs);
   const workspaceRoot = workspace.root;
   const built = new Map();
   let ownedFixture = null;
@@ -88,13 +89,14 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     assert(!closed, 'Execution workspace is closed');
     if (!allowedTargets.has(target) || !cases.length) throw new Error('Bad execution request or target outside owner scope');
     const prefix = receiptBasename(invocation, serial, label, target);
+    const command = executionCommand(target, jobs).slice(1);
     const source = workspace.check();
     assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
     const boundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: workspace.id,
       root: workspaceRoot, role: workspace.role, sourceDigest: source.digest,
-      toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: executionCommand(target) };
+      toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: ['moon', ...command] };
     const buildIdentity = digest(JSON.stringify(boundary));
-    const fixtureBody = boundFixture(boundary);
+    const fixtureBody = boundFixture(boundary, {jobs});
     if (ownedFixture !== null) assertOwnedFixture();
     else {
       assert(!existsSync(path), 'Another pipeline batch owns the temporary fixture');
@@ -116,7 +118,6 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
     mkdirSync(join(directory, 'sources'), { recursive: true });
     if (!existsSync(join(root, sourcePath))) writeFileSync(join(root, sourcePath), JSON.stringify(source, null, 2) + '\n');
     serial++;
-    const command = executionCommand(target).slice(1);
     writeFileSync(join(directory, `${prefix}.fixture.mbt`), fixtureBody);
     writeFileSync(join(directory, `${prefix}.inputs.json`), inputs);
     const result = spawnProofCommand(moon, command, target, { cwd: workspaceRoot,

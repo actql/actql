@@ -7,6 +7,26 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 const targets = ['js', 'wasm', 'native'];
 const fixture = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
 
+test('an explicit positive compiler job cap reaches the process and exact compiled boundary once', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+for (const jobs of [0, -1, 1.5, Infinity, NaN, '1', null])
+  assert.throws(() => createExecutor(undefined, {targets: ['js'], jobs}), /Invalid execution jobs/);
+assert.equal(calls().length, 0);
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+const receipt = executions[0].receipt;
+assert.deepEqual(receipt.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt',
+  '--target', 'js', '--jobs', '1', '--deny-warn']);
+assert.deepEqual(receipt.boundary.command, receipt.command);
+assert.deepEqual(calls()[0].args, receipt.command.slice(1));
+assert.equal(receipt.buildIdentity, digest(JSON.stringify(receipt.boundary)));
+assert.equal(calls()[0].buildIdentity, receipt.buildIdentity);
+assert.equal(calls().length, 1);
+assert.equal(executions.length, 1);
+executor.close();
+`));
+});
+
 test('real executor records fresh inputs and observations while unchanged builds stay fixed on three targets', t => {
   const root = minimalRepository(t);
   const result = runDriver(root, String.raw`

@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { hash } from './inventory.mjs';
 export const fixturePath = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
-export const executionCommand = target => ['moon', 'test', fixturePath, '--target', target, '--deny-warn'];
+export const executionCommand = (target, jobs) => {
+  assert(jobs === undefined || (Number.isSafeInteger(jobs) && jobs > 0), 'Invalid execution jobs');
+  return ['moon', 'test', fixturePath, '--target', target,
+    ...(jobs === undefined ? [] : ['--jobs', String(jobs)]), '--deny-warn'];
+};
 export const inputVariable = 'ACTQL_RELATION_PIPELINE_CASES';
 export const body = `${readFileSync(new URL('./harness.mbt', import.meta.url), 'utf8')}
 // Fixed generated observation driver; no expected semantics.
@@ -45,11 +49,11 @@ export const payload = (entries, correspondence) => JSON.stringify(entries.map((
 
 // This constant is compiled into the actual test binary, not read from its
 // runtime input environment. A stale or other-workspace binary fails closed.
-export function boundFixture(boundary) {
+export function boundFixture(boundary, {jobs} = {}) {
   const marker = 'test "Relation pipeline generated observation batch" {\n';
   if (body.split(marker).length !== 2) throw new Error('Ambiguous observation fixture');
   const bindings = ['js', 'wasm', 'native'].map(target => {
-    const identity = hash(JSON.stringify({ ...boundary, target, command: executionCommand(target) }));
+    const identity = hash(JSON.stringify({ ...boundary, target, command: executionCommand(target, jobs) }));
     return `///|\n#cfg(target="${target}")\nfn relation_pipeline_build_identity() -> String {\n  "ACTQL_PIPELINE_BUILD:${identity}"\n}\n`;
   }).join('\n');
   return bindings + '\n' + body.replace(marker, `${marker}  println(relation_pipeline_build_identity())\n`);
