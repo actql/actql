@@ -106,8 +106,8 @@ test('snapshot fixed projector admission is pinned to its finite constructor cal
   closed_values_program_maps:1,compilation_writer_ancestry_layout:2,hash_writer_live_key_inventory:2,
   compilation_metadata_repeat_units:2,client_local_json_leaf_wire_byte_bound:1,preparation_representation_cost:11,
   checked_preparation_add_product:300,writer_frame_construction_extent:2,collection_construction_extent:4,
-  map_construction_extent:4,add_collection_construction_extents:2,checked_nonnegative_add_product:375,
-  nfc_lf_construction_extent:1,nfc_lf_retained_output_units:1,canonical_normalization_preparation_units:1,
+  map_construction_extent:4,add_collection_construction_extents:2,checked_nonnegative_add_product:376,
+  nfc_lf_construction_extent:1,nfc_lf_retained_output_units:2,canonical_normalization_preparation_units:1,
   client_local_schema_proof_work:1,client_standard_program_preparation_limits:1});
  assert.deepEqual(Object.fromEntries(fixture.items.map(entry=>[entry.function,entry.multiplicity])),multiplicities);
  // Sort's halving loop has no constructors. Compose's only per-item allocation
@@ -118,7 +118,7 @@ test('snapshot fixed projector admission is pinned to its finite constructor cal
   scalar_words:11*records+2*options+2*arrays,owned_utf16_units:0,owned_wire_bytes:0};
  assert.deepEqual(units,fixture.census_units);
  const price=value=>16*value.record_headers+8*value.reference_slots+8*value.scalar_words;
- assert.equal(price(units),367880);
+ assert.equal(price(units),368688);
  assert.equal(price(units),fixture.census_logical_bytes);
  assert.equal(price(fixture.units),370128);
  assert.equal(fixture.logical_bytes,370128);

@@ -5,7 +5,7 @@
     "Some": "1header+1ref+2words (tag plus possible scalar payload)",
     "Array": "2headers+43refs+2words; max literal17items, capacity<=8+2*17 plus wrapperref"
   },
-  "loop_proof": "Five direct compose literals4+8+17+2+9, one canonical literal3 and two writer literals2:8 compose invocations/47 items.11 tariff projections and two five-product repeats:47*5+11*5+2*5=300 execution arithmetic delegates. Four collections/four maps/two extent additions add4*11+4*6+2*3=74, canonical output adds1:375 shared arithmetic calls. Sort halving loop has no allocating body. Include eight array recipes, one map recipe, two subtractions, and schema-work standard-profile constructors. Option.map and unwrap_or execute at most once; their fixed packet also includes one noncapturing conversion closure.",
+  "loop_proof": "Five direct compose literals4+8+17+2+9, one canonical literal3 and two writer literals2:8 compose invocations/47 items.11 tariff projections and two five-product repeats:47*5+11*5+2*5=300 execution arithmetic delegates. Four collections/four maps/two extent additions add4*11+4*6+2*3=74, canonical output is used twice and adds2:376 shared arithmetic calls. Sort halving loop has no allocating body. Include eight array recipes, one map recipe, two subtractions, and schema-work standard-profile constructors. Option.map and unwrap_or execute at most once; their fixed packet also includes one noncapturing conversion closure.",
   "items": [
     {
       "path": "src/client_local_host/preparation_scalar_snapshot_layout.mbt",
@@ -200,7 +200,7 @@
     {
       "path": "src/capacity_arithmetic/preparation_counts.mbt",
       "function": "checked_nonnegative_add_product",
-      "multiplicity": 375,
+      "multiplicity": 376,
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
@@ -214,17 +214,17 @@
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "4cea6d6570edfc00b56cb223ed1a57b6d14f1336135f8513578d52b95b0e2964",
-      "body_sha256": "4514d4681d874df75812de00821f3f47bf9c91defab81686351436c6a5610003"
+      "source_sha256": "d2fdc6fcc154084e527bc5bf29596d4773ed5dc47ae333141e342e46d4344290",
+      "body_sha256": "b2a22b51692aa6755942101133aef3585d4cd754bc4426786cd5fc9e6338b91c"
     },
     {
       "path": "src/canonical_value/normalization_construction_extent.mbt",
       "function": "nfc_lf_retained_output_units",
-      "multiplicity": 1,
+      "multiplicity": 2,
       "record_sites": 1,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "4cea6d6570edfc00b56cb223ed1a57b6d14f1336135f8513578d52b95b0e2964",
+      "source_sha256": "d2fdc6fcc154084e527bc5bf29596d4773ed5dc47ae333141e342e46d4344290",
       "body_sha256": "e6077400e2957db47cb43d9b520636e48fd891739bca8aad33d031e50dafc636"
     },
     {
@@ -259,8 +259,8 @@
     }
   ],
   "weighted_sites": {
-    "record": 1772,
-    "some": 613,
+    "record": 1776,
+    "some": 614,
     "array": 8
   },
   "units": {
@@ -292,12 +292,12 @@
     "closure_records": 1
   },
   "census_units": {
-    "record_headers": 2401,
-    "reference_slots": 20449,
-    "scalar_words": 20734,
+    "record_headers": 2406,
+    "reference_slots": 20494,
+    "scalar_words": 20780,
     "owned_utf16_units": 0,
     "owned_wire_bytes": 0
   },
-  "census_logical_bytes": 367880,
+  "census_logical_bytes": 368688,
   "allowance_note": "The unchanged units vector is the original decomposition of the fixed byte allowance, not separate H/R/W limits. The current finite census is priced by the same v1 tariff and must fit its unchanged logical_bytes ceiling. No allowance is inferred from executing a projector."
 }

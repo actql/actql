@@ -420,6 +420,13 @@ test('Source evidence preparation failure preserves the exact capture cleanup ow
 });
 
 
+function originalSourceSnapshotEntry(context) {
+  // Keep the extracted entry connected to its actual lexical producer helper.
+  const beginProducer = get('./ordinary-source-managed.mjs', 'beginProducer', context);
+  return get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot',
+    {...context, beginProducer}, true);
+}
+
 function originalSourcePreparationCallbacks(entry, readContext, retire, originals) {
   const callbacks = {explicitStartup: false, assertSourceManagedHostPreparation: value => assert.equal(value, originals),
     assertRetainedSourceManagedHost: value => assert.equal(value, originals),
@@ -459,7 +466,7 @@ test('both actual Source entries open the same Request before snapshot and retai
           // Use the actual helper's unselected branch, not a replacement.
           borrowSourceInitialization: undefined,
         });
-      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+      const before = originalSourceSnapshotEntry({
         current() {}, callbacks, originals, receipts, producers, closed: false, fail,
         retainSourceInitializationMaterial,
         requestPreparationAvailable: value => {assert.equal(value, context); return true;},
@@ -469,7 +476,7 @@ test('both actual Source entries open the same Request before snapshot and retai
           assert.equal(actualConnection, connection); assert.equal(producers.size, 1);
           state.parent = parent; events.push('begin'); return true;
         }, cleanupRequestInput() {assert.fail('successful opening has no early cleanup');},
-      }, true);
+      });
       const receipt = before(kind, kind === 'program' ? {} : 'SELECT @original AS n',
         {parameters: {original: 9}}, connection);
       const producer = receipts.get(receipt);
@@ -501,12 +508,12 @@ test('Source context refuses unavailable original capability before producer all
     const originals = {}, context = {}, receipts = new WeakMap(), producers = new Set();
     const callbacks = originalSourcePreparationCallbacks(entry, () => context,
       () => assert.fail('no prepared input to retire'), originals);
-    const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+    const before = originalSourceSnapshotEntry({
       current() {}, callbacks, originals, receipts, producers, fail,
       requestPreparationAvailable: value => {assert.equal(value, context); return false;},
       assertRequestPreparationControl() {assert.fail('no available original');},
       beginRequestInput() {assert.fail('no allocation after original refusal');},
-    }, true);
+    });
     assert.throws(() => before('aql', 'SELECT 9 AS n', {}, {}),
       {code: 'NodeLocalPreparationAdmissionUnavailable'});
     assert.equal(producers.size, 0);
@@ -520,11 +527,11 @@ test('Source context original refusal cannot allocate or select an unfunded snap
       const originals = {}, receipts = new WeakMap(), producers = new Set();
       const callbacks = originalSourcePreparationCallbacks(entry, () => {throw issue;},
         () => assert.fail('no preparation was acquired'), originals);
-      const before = get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot', {
+      const before = originalSourceSnapshotEntry({
         current() {}, callbacks, originals, receipts, producers,
         requestPreparationAvailable() {assert.fail('no returned context');},
         beginRequestInput() {assert.fail('no allocation after original refusal');},
-      }, true);
+      });
       let failed = false;
       try {before('program', {}, {}, {});}
       catch (actual) {failed = true; assert.equal(actual, issue);}
