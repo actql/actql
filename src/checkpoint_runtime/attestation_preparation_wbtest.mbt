@@ -11,13 +11,13 @@ test "prepared attestation wire retains the complete original body and bounds" {
   )
   // Independent existing complete encoder: stripping only the two transport
   // fields must recover every original field, including the nested evidence.
-  let sealed = seal_verified_resolution(
+  let sealed_resolution = seal_verified_resolution(
     admitted,
     "host-key",
     "aG9zdA==",
     limits(),
   ).unwrap()
-  let full = parse_wire(sealed.wire, limits()).unwrap()
+  let full = parse_wire(sealed_resolution.wire, limits()).unwrap()
   let unsigned = @json.object_without_field(
     @json.object_without_field(full, "verified_resolution_cid").unwrap(),
     "host_attestation",

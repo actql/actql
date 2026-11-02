@@ -1,5 +1,8 @@
 ///|
 /// Actual ordinary Node supplier; no Source, Account, provider or I/O port.
+// Retain the original Array object across this identity boundary. A FixedArray
+// conversion would select a copy instead of the input admitted below.
+#warnings("-deprecated")
 extern "js" fn request_parent_test_original(
   loader : PublicationTestLoader,
   input : Array[Int],
