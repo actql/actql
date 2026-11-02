@@ -7,6 +7,39 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 const targets = ['js', 'wasm', 'native'];
 const fixture = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
 
+test('an internal toolchain directory alias retains actual file and resolved-path identity', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const release = join(root, '.fake-moon/lib/core/_build/js/release');
+for (const name of ['build', 'same-bytes']) {
+  mkdirSync(join(release, name), {recursive: true});
+  writeFileSync(join(release, name, 'current.core'), 'original compiled input\n');
+}
+const alias = join(release, 'bundle');
+symlinkSync('build', alias);
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+assert.equal(calls().length, 1);
+unlinkSync(alias);
+symlinkSync('same-bytes', alias);
+assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Execution toolchain changed/);
+assert.equal(calls().length, 1, 'a changed resolved input is refused before another process');
+executor.close();
+`));
+});
+
+for (const [name, target, expected] of [
+  ['external directory', '../../../vendor/native/include', /External or directory-linked Moon toolchain input/],
+  ['ancestor cycle', '..', /Cyclic Moon toolchain directory input/],
+]) {
+  test(`a toolchain directory alias refuses ${name} before execution`, t => {
+    successful(runDriver(minimalRepository(t), String.raw`
+symlinkSync(${JSON.stringify(target)}, join(root, '.fake-moon/lib/core/refused'));
+assert.throws(() => createExecutor(undefined, {targets: ['js'], jobs: 1}), ${expected});
+assert.equal(calls().length, 0);
+`));
+  });
+}
+
 test('an explicit positive compiler job cap reaches the process and exact compiled boundary once', t => {
   successful(runDriver(minimalRepository(t), String.raw`
 for (const jobs of [0, -1, 1.5, Infinity, NaN, '1', null])
