@@ -414,8 +414,8 @@ function compiledStoreGeneration(f,runId){
 }
 
 for(const [name,serializationOptions,expected] of [
-  ['Host defaults','',{maxRows:1000,maxBytes:1000}],
-  ['authored tighter ceilings',', max_rows = 7, max_bytes = 41',{maxRows:7,maxBytes:41}],
+  ['Host defaults','',{maxRows:1000,maxBytes:1000,jsonLeafFields:1}],
+  ['authored tighter ceilings',', max_rows = 7, max_bytes = 41',{maxRows:7,maxBytes:41,jsonLeafFields:1}],
 ])test(`actual Local STORE generation retains original ${name} before encoding`,async()=>{
   const f=await storeOwnerFixture({serializationOptions});let foreign;
   try{
@@ -460,7 +460,7 @@ test('actual compiled Content preserves zero private generation ceilings without
     executionContextCid:'sha256:'+'1'.repeat(64),hostPolicyCid:'sha256:'+'2'.repeat(64),
     expiresAt:'2099-01-01T00:00:00.000Z'},graph);
   assert.deepEqual(control.checkedClientSerializationGenerationLimits(compiled,graph),
-    {maxRows:0,maxBytes:0});
+    {maxRows:0,maxBytes:0,jsonLeafFields:1});
 });
 
 test('actual Local STORE authored Content captures Preview with its original published target',async t=>{
