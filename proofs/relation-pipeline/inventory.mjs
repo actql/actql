@@ -19,6 +19,22 @@ export function snapshot(root) {
   const sources = Object.fromEntries(paths.map(p => [relative(root, p), hash(readFileSync(p))]));
   return { sources, digest: hash(JSON.stringify(sources)) };
 }
+// Bind current evidence to actual tracked HEAD inputs. No ancestor walk or
+// per-commit declaration is needed; shallow checkouts are sufficient.
+export function checkCurrentSource(root) {
+  const inputs = [...snapshotDirectories, ...snapshotFiles,
+    ':(exclude)src/query_integration/relation_pipeline_batch_wbtest.mbt'];
+  const git = args => spawnSync('git', ['--no-replace-objects', ...args],
+    {cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
+  const head = git(['rev-parse', '--verify', 'HEAD^{commit}']);
+  assert.equal(head.status, 0, 'Missing current source commit');
+  const difference = git(['diff', '--quiet', 'HEAD', '--', ...inputs]);
+  assert.equal(difference.status, 0, 'Current proof inputs differ from tested HEAD');
+  const untracked = git(['ls-files', '--others', '--', ...inputs]);
+  assert.equal(untracked.status, 0, 'Cannot inspect current source inputs');
+  assert.equal(untracked.stdout, '', 'Untracked current proof inputs');
+  return head.stdout.trim();
+}
 export function checkBaseline(root, {read = path => readFileSync(join(root, path))} = {}) {
   const baseline = JSON.parse(read('proofs/relation-pipeline/baseline.json'));
   const extension = baseline.modelExtension;

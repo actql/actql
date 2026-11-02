@@ -1,9 +1,0 @@
-{
-  "version": "actql-foundation-single-base-normalization/0.1",
-  "id": "normalize-manifest-provider-runtime-pack-single-base-d9088eb9",
-  "target": {
-    "id": "resolve-manifest-provider-runtime-pack-main",
-    "digest": "55e088312fb497b52e3a9a876494826267ee4415d46d68186bbe6bdfe22ac476"
-  },
-  "reason": "The inherited resolution records exactly the actual singleton maximal merge base 426d857dff443d59f992b9e7db20a27ee9176554. Normalize only this redundant field through the existing digest-bound rule; retain the original bytes, actual source/ordered parents, every protected path/blob/mode and all resolution input obligations. No validator or execution guarantee changes."
-}

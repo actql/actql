@@ -1,9 +1,0 @@
-{
-  "version": "actql-foundation-single-base-normalization/0.1",
-  "id": "normalize-scoped-authoring-single-base-706816df",
-  "target": {
-    "id": "resolve-scoped-authoring-main-706816df5068",
-    "digest": "7a3b8a8d4f67e6bb3d51c40054b68f99dccd935ee0f7100a0915e5016ced7155"
-  },
-  "reason": "The immutable scoped-authoring integration declaration redundantly records its sole maximal merge base. Verify that exact base against actual unsimplified Git ancestry and preserve the original bytes, source obligations, modes and dependency grounds."
-}

@@ -19,8 +19,8 @@ export const partSchema = 'actql-pipeline-ci-part/0.1';
 export const partJobs = Object.freeze({'L-C0':'pipeline-capacity', 'L-C1':'pipeline-capacity-mutants',
   'L-M0':'pipeline-mutations', 'L-M1':'pipeline-mutations-rest'});
 export const partStages = Object.freeze({
-  'L-C0':['foundation','capacity','final-normal'], 'L-C1':['foundation','capacity'],
-  'L-M0':['foundation','baseline','mutations'], 'L-M1':['foundation','baseline','mutations'],
+  'L-C0':['source','capacity','final-normal'], 'L-C1':['source','capacity'],
+  'L-M0':['source','baseline','mutations'], 'L-M1':['source','baseline','mutations'],
 });
 const targets = ['js','wasm','native'], prefix = '.artifacts/relation-pipeline/';
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
@@ -116,7 +116,7 @@ export function inspectPart(directory, partId, expected) {
   for (const file of inventory(directory,{excludeManifest:true})) {
     if (receiptPattern.test(file.path)) assert(paths.has(file.path),'Unclaimed extra execution receipt');
     assert(!/^L-[CM][01]-/u.test(file.path) || file.path.startsWith(`${partId}-`),'Foreign part payload');
-    const common=['current-foundation.json','session-model.log','chain-model.log'].includes(file.path)
+    const common=['session-model.log','chain-model.log'].includes(file.path)
       || /^sources\/[0-9a-f]{64}\.json$/u.test(file.path)
       || new RegExp(`^${partId}-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\\.(json|inputs\\.json|fixture\\.mbt|log)$`,'u').test(file.path);
     const owned=partFamily(partId)==='capacity'
@@ -130,9 +130,9 @@ export function inspectPart(directory, partId, expected) {
     receipts:receipts.sort((a,b)=>a.path.localeCompare(b.path)),observations:observations.sort((a,b)=>a.id.localeCompare(b.id))};
 }
 export function validatePartEnvelope(manifest, expected, partId) {
-  assert.deepEqual(Object.keys(manifest).sort(),['schema','partId','context','source','foundation','exploration','toolchain','workflow','planDigest','completedStages','restoration','files','evidence'].sort());
+  assert.deepEqual(Object.keys(manifest).sort(),['schema','partId','context','source','exploration','toolchain','workflow','planDigest','completedStages','restoration','files','evidence'].sort());
   assert.equal(manifest.schema,partSchema); assert.equal(manifest.partId,partId); assert(partIds.includes(partId));
-  for (const key of ['context','source','foundation','exploration','toolchain','workflow','planDigest']) assert.deepEqual(manifest[key],expected[key],`Different ${key}`);
+  for (const key of ['context','source','exploration','toolchain','workflow','planDigest']) assert.deepEqual(manifest[key],expected[key],`Different ${key}`);
   assert.equal(manifest.planDigest,planDigest,'Unknown partition plan');
   assert.deepEqual(manifest.completedStages,partStages[partId],'Incomplete part stages');
   assert.deepEqual(manifest.restoration,{sourceRestored:true,fixtureClosed:true,workspacesClosed:true},'Unclosed part');
@@ -175,7 +175,6 @@ export function validatePartEnvelope(manifest, expected, partId) {
 export function sealPart({root,directory,partId,expected,stages}) {
   assert(!existsSync(join(root,fixturePath)),'Executor fixture not closed');
   assert.equal(snapshot(root).digest,expected.source.digest,'Source not restored');
-  assert.equal(fileDigest(join(directory,'current-foundation.json')),expected.foundation.digest);
   const evidence = inspectPart(directory,partId,expected);
   const manifest={schema:partSchema,partId,...expected,completedStages:stages,
     restoration:{sourceRestored:true,fixtureClosed:true,workspacesClosed:true},files:inventory(directory,{excludeManifest:true}),evidence};
@@ -195,13 +194,12 @@ export function validatePartInputs(inputs) {
 export function joinParts({inputs,expected,destination}) {
   validatePartInputs(inputs); assert(!existsSync(destination),'Union destination exists');
   const files=new Map(), owners=new Set(), observations=new Set(), manifests=[];
-  const shared=path=>['current-foundation.json','session-model.log','chain-model.log','exploration-decision.json'].includes(path)
+  const shared=path=>['session-model.log','chain-model.log','exploration-decision.json'].includes(path)
     || /^sources\/[0-9a-f]{64}\.json$/u.test(path) || /^capacity\/binaries\/(js|wasm|native)\/[0-9a-f]{64}$/u.test(path);
   for (const input of inputs) {
     const seal=join(input.directory,'ci-seal.json'); assert.equal(fileDigest(seal),input.manifestDigest);
     const manifest=canonicalJson(seal); validatePartEnvelope(manifest,expected,input.partId);
     assert.deepEqual(inventory(input.directory,{excludeManifest:true}),manifest.files,'Transferred inventory differs');
-    assert.equal(fileDigest(join(input.directory,'current-foundation.json')),expected.foundation.digest);
     assert.deepEqual(inspectPart(input.directory,input.partId,expected),manifest.evidence,'Transferred obligations differ');
     for (const owner of manifest.evidence.owners) {assert(!owners.has(owner),'Foreign/reused part owner');owners.add(owner);}
     for (const observation of manifest.evidence.observations) {assert(!observations.has(observation.id),'Duplicate observation');observations.add(observation.id);}
@@ -259,12 +257,12 @@ async function main() {
   assert(partIds.includes(partId));assert.equal(process.env.ACTQL_PIPELINE_PART,partId,'Part environment differs');
   const output=join(stateRoot,partId);
   if(command==='begin') {
-    const state=partState(root);assert(!existsSync(join(root,fixturePath)));assert.equal(fileDigest(join(directory,'current-foundation.json')),state.foundation.digest);
-    mkdirSync(output,{recursive:true});writeFileSync(join(output,'start.json'),encode(state),{flag:'wx'});writeFileSync(join(output,'stages.json'),encode(['foundation']),{flag:'wx'});
+    const state=partState(root); assert(!existsSync(join(root,fixturePath)));
+    mkdirSync(output,{recursive:true});writeFileSync(join(output,'start.json'),encode(state),{flag:'wx'});writeFileSync(join(output,'stages.json'),encode(['source']),{flag:'wx'});
   } else if(command==='stage') {
     const path=join(output,'stages.json'), stages=canonicalJson(path);assert.equal(stage,partStages[partId][stages.length],'Wrong stage ordering');stages.push(stage);writeFileSync(path,encode(stages));
   } else if(command==='seal') {
-    const expected=canonicalJson(join(output,'start.json'));assert.deepEqual(partState(root),expected,'Source/toolchain/foundation changed');
+    const expected=canonicalJson(join(output,'start.json'));assert.deepEqual(partState(root),expected,'Source/toolchain changed');
     sealPart({root,directory,partId,expected,stages:canonicalJson(join(output,'stages.json'))});
     outputs({'archive-digest':packArchive(directory,join(output,'evidence.tar')),'manifest-digest':fileDigest(join(directory,'ci-seal.json'))});
   } else assert.fail('Use begin|stage|seal PART, validation, or join');

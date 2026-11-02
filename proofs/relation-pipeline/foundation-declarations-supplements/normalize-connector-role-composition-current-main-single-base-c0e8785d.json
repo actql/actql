@@ -1,9 +1,0 @@
-{
-  "version": "actql-foundation-single-base-normalization/0.1",
-  "id": "normalize-connector-role-composition-current-main-single-base-c0e8785d",
-  "target": {
-    "id": "resolve-connector-role-composition-current-main",
-    "digest": "776c4ae87a0e50fbfa0170c620ee80e1c3bfb5461c4d31f1a64f960a40044807"
-  },
-  "reason": "The unchanged inherited resolution records exactly the actual singleton maximal merge base ca5ff0893bdbbe96e9f13b19f23754f9ac59f213. Normalize only that redundant field through the existing digest-bound rule; preserve actual source/ordered parents, original bytes/inputs, every protected path/blob/mode and all dependency obligations. No validator or execution guarantee change."
-}
