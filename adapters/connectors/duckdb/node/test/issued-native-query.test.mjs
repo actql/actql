@@ -21,6 +21,7 @@ const canonical = value => Array.isArray(value) ? `[${value.map(canonical).join(
     ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
     : JSON.stringify(value);
 const hash = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const twoReceiptContractCid = 'sha256:dcf4b1e2c8a078d96f9160a75a9f8279047e7448ea39b3b882588e18b9ab0929';
 
 // Independent contract preimages and fixed rows; no product receipt, record,
 // observation or returned SQL value is used to construct expected content.
@@ -41,7 +42,7 @@ function expectedObservation(requirement, [issuer, attempt, read_view], scan, se
     requirement_cid: requirementCid, role, snapshot: null, scan_scope_cid: scope, accesses, output,
   }));
   return { version: 'actql-query-two-receipt-observation/0.1', requirement_cid: requirementCid,
-    evidence_contract_cid: 'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a',
+    evidence_contract_cid: twoReceiptContractCid,
     execution: { issuer, attempt, read_view }, owner: requirement.owner,
     source_ref: requirement.source_ref, source_contract_cid: requirement.source_contract_cid,
     parameter_values_cid: requirement.parameter_values_cid, resolved_request_cid: requestCid,
@@ -112,10 +113,12 @@ test('real native SQL and public CheckedProgram produce independently checked tw
     .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
   assert(catalog);
   const contracts = await pinnedEngineContracts(root);
+  const twoReceiptContract = await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8');
+  assert.equal(hash(JSON.parse(twoReceiptContract)), twoReceiptContractCid);
   const configuration = [JSON.parse(catalog[1]), catalog[2], ...contracts,
     await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
     await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
-    await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8')];
+    twoReceiptContract];
   const base = join(root, '_build/duckdb-fixtures');
   await mkdir(base, { recursive: true });
   const directory = await mkdtemp(join(base, 'issued-native-'));
