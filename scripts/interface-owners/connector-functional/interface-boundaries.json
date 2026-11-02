@@ -4093,7 +4093,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "cded4c133b7af588d04e400ef0726f388f6e84a8233c0fde8c54824bbd4c69c3",
+      "sha256": "8030881314e4537dd962ac50c105197e6d9c81dfbb0cab54ade286371c47f383",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4712,6 +4712,7 @@
             "targetReads",
             "contentOwner",
             "managedEffect",
+            "updateTargetSelections",
             "own",
             "ownInputs",
             "ownChildren",
@@ -5903,7 +5904,8 @@
           "parameters": [
             "facts",
             "members",
-            "stageIndex"
+            "stageIndex",
+            "updateTargetSelections"
           ],
           "async": false
         },

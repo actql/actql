@@ -1077,8 +1077,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     if (runOriginal === undefined) fail('InstalledEffectResourcesUnavailable');
     return {runOriginal};
   };
-  const selectionFence = (facts, members, stageIndex) => {
-    const selections = validateOwnerSelections(owners, facts.updateTargetSelections, facts.prepared);
+  const selectionFence = (facts, members, stageIndex, updateTargetSelections) => {
+    const selections = validateOwnerSelections(owners, updateTargetSelections, facts.prepared);
     const resourceOwners = [...new Map(members.flatMap(member => {
       const owner = ownerOf(member);
       return owner.resources === undefined ? [] : [[owner, resourceFields(member).runOriginal]];
@@ -1979,7 +1979,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, contentOwner, managedEffect, own, ownInputs, ownChildren, assertCurrent}) {
+    targetReads, contentOwner, managedEffect, updateTargetSelections, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
@@ -2396,7 +2396,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           now: plan.now},
         scopes: scopes(members),
         continuationWire: continuationOf(plan, unit, members, dispatches,
-          assertCurrent !== undefined),
+          updateTargetSelections !== undefined),
         releaseInputs,
         dispose: async () => { await releaseInputs(); ledger.close(); }});
     } catch (error) {
@@ -2430,7 +2430,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
     const members = membersOf(prepared, unit);
     bindRunResources(facts, members);
-    const assertCurrent = selectionFence(facts, members, unit.stageIndex);
+    const updateTargetSelections = facts.updateTargetSelections;
+    const assertCurrent = selectionFence(facts, members, unit.stageIndex, updateTargetSelections);
     const runInvocationCid = plan.invocation.identity;
     const dispatches = members.map(member =>
       memberDispatch(runInvocationCid, member));
@@ -2448,7 +2449,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         return await captureStage({control, store, execution, checkedHost,
           prepared, identity, plan, previewContext, unit, members,
           runInvocationCid, dispatches, requestScope, storedResults, signal,
-          targetReads, contentOwner, managedEffect: facts.managedEffect, assertCurrent, own: value => { sourceSet = value; },
+          targetReads, contentOwner, managedEffect: facts.managedEffect, updateTargetSelections, assertCurrent, own: value => { sourceSet = value; },
           ownChildren: value => { requestChildren = value; },
           ownInputs: (release, finish) => { releaseInputs = release; finishCapture = finish; }});
       } finally { finishCapture?.(); }
@@ -2613,7 +2614,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         !text(provider.stage_id)) {
       fail('InstalledEffectContinuationMismatch');
     }
-    const selected = facts.updateTargetSelections !== undefined;
+    const updateTargetSelections = facts.updateTargetSelections;
+    const selected = updateTargetSelections !== undefined;
     if (!selected && Object.hasOwn(provider, 'stage_index')) selectionChanged();
     if (selected && (!Number.isSafeInteger(provider.stage_index) ||
         provider.stage_index < 0 || (singular !== undefined &&
@@ -2626,7 +2628,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const body = JSON.parse(previewWire);
     const members = recoveredMembers(body, provider, selected);
     bindRunResources(facts, members);
-    const assertCurrent = selectionFence(facts, members, provider.stage_index);
+    const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);
     const runInvocationCid = body.invocation_cid;
     const dispatches = members.map(member =>
       memberDispatch(runInvocationCid, member));

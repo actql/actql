@@ -639,6 +639,23 @@ test('ordinary CREATE retains the original Run continuation current fence withou
   current();assert.equal(reads,2);
 });
 
+test('CREATE continuation namespace follows its original Mapping selection rather than Run current presence', () => {
+  const calls=nodes.filter(({node})=>node.type==='CallExpression'&&node.callee.name==='continuationOf');
+  assert.equal(calls.length,1);
+  const selected=calls[0].node.arguments.at(-1);
+  const choose=Function('assertCurrent','updateTargetSelections',`return (${source.slice(selected.start,selected.end)});`);
+  const owner={},installation={binding:'original'};
+  const wire=expression('continuationOf',{canonicalJson:JSON.stringify,
+    singular:{profile:{continuation:'legacy',continuationBinding:'binding'},continuationBinding:'original'},
+    contractCidOf:()=>cid('a'),ownerOf:()=>owner,installationFacts:actual=>{assert.equal(actual,owner);return installation;}});
+  const serialize=selections=>JSON.parse(wire({request:'request',attempt:'attempt'},
+    {programId:'program',stageId:'stage',stageIndex:0},[{kind:'create',effectId:'append'}],['dispatch'],choose(()=>{},selections)));
+  const ordinary=serialize(undefined);
+  assert.equal(Object.hasOwn(ordinary,'stage_index'),false);
+  assert.equal(Object.hasOwn(ordinary.members[0],'installation'),false);
+  const mapped=serialize([{}]);assert.equal(mapped.stage_index,0);assert.deepEqual(mapped.members[0].installation,installation);
+});
+
 test('Run continuation current cannot replace an original Mapping selection current assertion', () => {
   const prepared={},selection={},selections=[selection];let asserted=0;
   const member={kind:'update',stageIndex:0,effectId:'edit',mapping:{target:'target',mappingRef:'mapping',mappingCid:'cid'}};
@@ -650,8 +667,8 @@ test('Run continuation current cannot replace an original Mapping selection curr
     assertUpdateTargetSelectionMembersCurrent:(original,members,p)=>{assert.equal(original,selections);assert.equal(p,prepared);
       assert.deepEqual(members,[{stage_index:0,effect_id:'edit',target_ref:'target',mapping_ref:'mapping',mapping_cid:'cid'}]);},
     selectionChanged:()=>fail('MissingOriginalMappingCurrent'),fail});
-  const current=select(facts,[member],0);current();assert.equal(asserted,2);
-  assert.throws(()=>select({...facts,assertUpdateSelectionCurrent:undefined},[member],0),{code:'MissingOriginalMappingCurrent'});
+  const current=select(facts,[member],0,selections);current();assert.equal(asserted,2);
+  assert.throws(()=>select({...facts,assertUpdateSelectionCurrent:undefined},[member],0,selections),{code:'MissingOriginalMappingCurrent'});
 });
 
 test('actual Effect execution retains its original cancellation read and avoids a duplicate resumed read', async () => {

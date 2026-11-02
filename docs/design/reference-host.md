@@ -2786,6 +2786,13 @@ attempts and physical cleanup duties remain with their existing owners.
 No new Root, empty current assertion, cached Allow, constructor or capacity
 dimension is introduced by forwarding this existing lifetime boundary.
 
+Continuation namespace selection is independent of that live assertion.
+Capture retains the original admitted Mapping-selection array once and passes
+that same original through the row stage; its presence alone selects the
+existing Mapping continuation fields. A CREATE Run-current callback cannot
+supply a Mapping original or add `stage_index` to the singleton legacy wire.
+Recovery keeps its strict original-selection and installation checks unchanged.
+
 
 The optional checked value-node proof preserves closed Object fields and
 original Array max_items through the same prepared schema inventory. A row
