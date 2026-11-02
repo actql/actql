@@ -26,7 +26,7 @@ pub struct BackedExecutionRegion[P, C] {
   mut owner_borrow : SharedBorrow?
   children : Array[BackedExecutionDelegation[P, C]]
   mut closing : Bool
-  mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
+  priv mut working : (PlatformVMWorkingCapacity, Int64, Int64)?
 }
 
 ///|
