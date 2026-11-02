@@ -82,6 +82,9 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  if access.region is Some(region) {
+    value.origin.working = region.working
+  }
   access.child_origin = Some(value.origin)
   Ok(value)
 }
@@ -102,6 +105,7 @@ fn retire_backed_original_child_origin(
   origin.report = retired_backed_original_child_report
   origin.stop = retired_backed_original_child_status
   origin.ledger = None
+  origin.working = None
 }
 
 ///|

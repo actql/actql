@@ -247,6 +247,15 @@ fn reserve_attempt_current(
     return Err(IdentityOverflow)
   }
   let retained = u.held_bytes + u.reserved_retention_bytes + retained_bytes
+  match
+    grow_imported_platform_working_current(
+      ledger,
+      retained,
+      u.reserved_execution_bytes + execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   ledger.usage = {
     ..u,
     reserved_attempts: u.reserved_attempts + 1,

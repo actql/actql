@@ -185,6 +185,7 @@ pub fn[P, C, R] backed_execution_live_state(
   }
   if access.closing ||
     region.closing ||
+    (region.working is Some((working, _, _)) && working.closing) ||
     read_use.closing ||
     region.capacity.unwrap().closing {
     Ok(LiveClosing)

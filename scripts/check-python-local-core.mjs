@@ -26,6 +26,7 @@ const fixtureModes = Object.freeze({
   'contract': 'actual artifact shape; synthetic entry refusal only',
   'buffer': 'unmetered transfer/cleanup custody',
   'platform-vm': 'raw same-VM Root/input-pool/current/borrower; no installed image or Request/Run',
+  'platform-input': 'raw same-VM staged input/parser/coexistence; no installed Request/Run or physical ACK',
   'buffer-packed': 'unmetered raw Wasmtime i64 transport; no Run or physical ACK',
   'original-bulk': 'unmetered raw original-memory block ABI; no funded Host/Run or physical ACK',
   'preparation': 'unmetered positive; separate metered5k interruption',
@@ -234,6 +235,10 @@ if(process.argv.includes('--build-and-consume')){
     assert.equal(platformVm.success,true);
     assert.equal(platformVm.cases.length,3);
     assert.equal(platformVm.module_sha256,digest);
+    const platformInput=JSON.parse(run(python,['scripts/fixtures/python-local-platform-input-abi.py',module]));
+    assert.equal(platformInput.success,true);
+    assert.equal(platformInput.cases.length,3);
+    assert.equal(platformInput.module_sha256,digest);
     const physical=JSON.parse(run(python,['scripts/fixtures/python-local-runtime-abi.py',module]));
     assert.equal(physical.success,true);
     assert.equal(physical.module_sha256,digest);

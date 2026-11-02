@@ -106,7 +106,10 @@ pub fn[P, C] require_backed_execution_read_use_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if region.closing || read_use.closing || region.capacity.unwrap().closing {
+  if region.closing ||
+    read_use.closing ||
+    region.capacity.unwrap().closing ||
+    (region.working is Some((working, _, _)) && working.closing) {
     Err(RegionClosing)
   } else {
     Ok(())

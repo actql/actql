@@ -125,6 +125,7 @@ pub struct BufferSlot {
   mut input_complete : Bool
   mut retired : Bool
   mut cleaned : Bool
+  // private fields
 }
 
 type OriginalWorkspaceRead[T]

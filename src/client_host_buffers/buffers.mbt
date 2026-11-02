@@ -42,6 +42,9 @@ pub struct BufferSlot {
   mut input_complete : Bool
   mut retired : Bool
   mut cleaned : Bool
+  priv mut parser_working : @resources.PlatformVMWorkingCapacity?
+  priv mut parser_preflight : @source.JsonSourcePreflight?
+  priv mut parser : @source.JsonParse?
 }
 
 ///|
@@ -304,6 +307,9 @@ pub fn reserve_buffer(
     input_complete: false,
     retired: false,
     cleaned: false,
+    parser_working: None,
+    parser_preflight: None,
+    parser: None,
   }
   pool.next_serial += 1
   pool.allocated_bytes += charge
@@ -468,6 +474,9 @@ pub fn seal_buffer(
   if max_nodes < 1 || max_depth < 1 {
     return Err(InvalidLimits)
   }
+  if pool.backing is PlatformVmCapacity(original) {
+    return seal_platform_buffer(pool, slot, original, max_nodes, max_depth)
+  }
   let wire = Bytes::from_array(slot.bytes)
   let node = match
     @source.parse_json_bytes_preserving(wire, {
@@ -613,6 +622,24 @@ pub fn close_buffer(
   if @resources.shared_allocation_usage(slot.allocation.unwrap()).readers != 0 ||
     (slot.published && !(slot.cleanup)()) {
     return Err(CleanupPending)
+  }
+  if slot.parser_preflight is Some(preflight) {
+    @source.cancel_json_source_preflight(preflight)
+    slot.parser_preflight = None
+  }
+  if slot.parser is Some(parser) {
+    @source.cancel_json_parse(parser)
+    slot.parser = None
+  }
+  // Borrowers and the external input cleanup have finished. Cut the actual
+  // parser/tree aliases before returning their same VM working allocation.
+  slot.source = None
+  if slot.parser_working is Some(working) {
+    match @resources.close_platform_vm_working_capacity_after_cleanup(working) {
+      Err(@resources.Resource(issue)) => return Err(Resource(issue))
+      Err(_) => return Err(Resource(@resources.ChildFundingUnavailable))
+      Ok(_) => slot.parser_working = None
+    }
   }
   if slot.copy_capacity is Some(capacity) {
     match @resources.settle_shared_capacity(capacity) {

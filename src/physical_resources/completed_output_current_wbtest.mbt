@@ -40,6 +40,7 @@ fn completed_current_callback(
     report: (_, _) => 0,
     stop: _ => 0,
     fixed_capacities: false,
+    working: None,
     ledger: Some(ledger),
     stopping: false,
     unavailable: false,

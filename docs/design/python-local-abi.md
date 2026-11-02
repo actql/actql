@@ -3575,6 +3575,92 @@ reservation or copied view do not match. Closing and lost observations fence
 new claims on that original; a later observation does not clear the fence.
 The non-Wasm fixed port remains unavailable.
 
+#### Demand-sized working claims
+
+`PlatformVMWorkingCapacity` is an original view of one shared allocation on
+that same VM reservation. Its supplier must already back the entry/controller
+prefix before calling the constructor. The retained and execution extents are
+the complete simultaneous demand, not the unused policy ceilings. Growth checks
+the same live VM original and the original Resource mutation fence, then updates
+the same allocation atomically. A failed grow leaves its previous extents and
+sibling/input allocations unchanged. Earlier retained and execution peaks stay
+charged until cleanup; a smaller later quote does not release them.
+
+Construction and exported-body users retain the existing `SharedBorrow` before
+use. Closing forbids new growth and borrowers, but cannot release an allocation
+with outstanding borrowers. Only their original after-use returns permit the
+enclosing owner to finish cleanup of this suballocation. That operation does
+not return the whole VM reservation or acknowledge physical Store destruction.
+Other shared allocations retain their existing fixed-size behavior; only the
+closed original VM working-claim implementation changes its own byte extent.
+
+This view does not issue an imported child, a Request admission, a resource
+policy, a read/send grant or a Run. The installing Host must connect its actual
+original preparation admission, controller/constructor/output overlap and
+failure retirement to these claims. Equal byte counts alone cannot replace that
+connection. Node and mapped/native backing retain their own existing contracts.
+
+#### Staged platform input construction
+
+Platform input sealing owns its decoded input tree before a Request can borrow
+it. The transfer's two wire copies alone do not cover that tree. The original
+Buffer slot therefore retains a separate demand-sized working claim on the
+same VM capacity. The existing Source preflight-control inventory and actual
+wire length fund UTF-8 decoding and initial scalar preflight. The preflight's
+observed node/depth geometry then selects the existing preserving-parser
+construction inventory before grammar/tree allocation. Long scalar text is
+not treated as one node per character, and the unused configured node/depth
+limits are not allocated in advance.
+
+The same Source cursor transfers once from preflight to grammar. The selected
+data-key mode preserves original Unicode and keys; the default scalar, imported
+and Native input paths keep their existing decoder. Original bounded polls
+report their work on the same Root, without changing policy, engine, fuel or
+VM geometry. This does not qualify the later Request/Plan work admission.
+
+The Buffer slot retains its working claim and any failed/interrupted cursor
+before those constructors can trap. A started failed parser is not replaced
+by another seal on the same handle. Existing borrowers and the original input
+cleanup must finish before the slot cuts its parser/tree aliases and returns
+that suballocation. Returning a Buffer borrow does not itself retire the tree.
+Parser capacity refusal, input error and physical cleanup pending keep their
+existing distinct Host codes. Neither successful sealing nor cleanup grants
+Source checking, Run execution or physical Store retirement.
+
+#### Original Request admission and demand growth
+
+The fixed platform preparation connection uses the existing backed region,
+execution delegation, read use, live projection and `BackedPreparationAdmission`.
+It does not create another admission framework or Root. Its caller already
+funds the complete entry prefix, including region, origin, callback and receipt
+controls. The region snapshots those original entry extents once. Only one
+exclusive child can use this working claim; its extent describes current
+allocation coordinates, not a mapped address or a promise to allocate policy
+ceilings. Mapped and Native regions keep their existing fixed-window rules.
+
+The existing delegation still reserves and reports the same nonbyte quotas on
+the parent. Its existing logical byte projection avoids charging VM backing a
+second time. Full child byte usage remains bounded and retained separately.
+For a platform region, every canonical reservation or byte resize first claims
+the entry prefix plus the child's complete retained/scratch coexistence from
+the same VM. That fixed private Resource cut invokes no external callback
+between validating demand and committing the ledger mutation. If physical
+coexistence is insufficient, the old usage, serial and allocation remain
+unchanged. Other imported origins have no platform binding and keep their
+existing mutation path.
+
+Reports cannot grow this claim or substitute for backing before construction.
+Closing forbids new admission while existing covered disposal remains possible.
+Original construction and body borrowers must retire before the child becomes
+quiescent. The same enclosing owner then supplies its actual runtime/reader
+retirement to the existing after-owner-ACK boundary, returns the read borrow,
+settles the original delegation and closes its region. Only then can it finish
+cleanup of the working suballocation. Neither logical quiescence nor a successful
+report acknowledges physical Store destruction or returns the VM reservation.
+The ordinary Host must retain this complete original chain before entering the
+shared Request driver; numeric limits or a detached prepared value do not
+replace that connection.
+
 A platform input pool claims its actual mutable/immutable wire overlap from the
 same existing VM capacity rather than reserving another whole execution pool.
 Its separately supplied external-copy allowance remains separately charged on
