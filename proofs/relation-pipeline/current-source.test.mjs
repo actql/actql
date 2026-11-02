@@ -81,3 +81,14 @@ test('current source rejects physical executable mode hidden by Git configuratio
   git(root, 'diff', '--quiet', 'HEAD', '--', 'src');
   assert.throws(() => checkCurrentSource(root), /Current proof input mode/);
 });
+
+test('current source rejects a committed symlink above a selected input', t => {
+  const root = fixture(t);
+  mkdirSync(join(root, 'outside/spec'), {recursive: true});
+  writeFileSync(join(root, 'outside/spec/language.md'), 'unbound specification\n');
+  symlinkSync('outside', join(root, 'docs'), 'dir');
+  git(root, 'add', 'docs');
+  git(root, 'commit', '-qm', 'Symbolic link above selected specification');
+  git(root, 'diff', '--quiet', 'HEAD', '--', 'docs/spec/language.md');
+  assert.throws(() => checkCurrentSource(root), /Non-regular current proof input/);
+});
