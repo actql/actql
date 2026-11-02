@@ -2,6 +2,34 @@
 // Core parses original bytes; this module never parses JSON or owns I/O,
 // credentials, currentness, row charging, cancellation or physical cleanup.
 import {checked} from '../host-common/runtime-result.mjs';
+import {types} from 'node:util';
+
+const isProxy = types.isProxy;
+
+// Author transforms return closed plain own DATA. Descriptor capture enters no
+// getter and keeps the same primitives for validation, encoding and cursor use.
+function captureTransformResult(value) {
+  if (value === null || typeof value !== 'object' || isProxy(value)) {
+    fail('InvalidRestSourceTransform');
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== null && prototype !== Object.prototype) fail('InvalidRestSourceTransform');
+  const fields = Object.getOwnPropertyDescriptors(value);
+  if (!Object.hasOwn(fields, 'rowsWire') ||
+      Reflect.ownKeys(fields).some(key => key !== 'rowsWire' && key !== 'nextCursor')) {
+    fail('InvalidRestSourceTransform');
+  }
+  const rows = fields.rowsWire, hasNextCursor = Object.hasOwn(fields, 'nextCursor');
+  const cursor = hasNextCursor ? fields.nextCursor : undefined;
+  if (!Object.hasOwn(rows, 'value') || cursor !== undefined && !Object.hasOwn(cursor, 'value')) {
+    fail('InvalidRestSourceTransform');
+  }
+  const rowsWire = rows.value, nextCursor = cursor?.value;
+  if (typeof rowsWire !== 'string' || nextCursor !== undefined && typeof nextCursor !== 'string') {
+    fail('InvalidRestSourceTransform');
+  }
+  return {rowsWire, hasNextCursor, nextCursor};
+}
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const names = ['clientProgramRowSourceProjectJsonPage', 'clientProgramRowSourceJsonPageRowsWire',
@@ -66,26 +94,22 @@ export function restSourcePageReader({moon, source, decodePage}) {
         let page = project(response.body, items, nextPath, remaining, transform !== undefined);
         if (transform !== undefined) {
           // The SAME managed owner invokes and joins even an invalid async
-          // author computation. The invoker never enters the author DATA.
+          // author computation. Capture only its synchronous returned DATA.
           const value = applySynchronousProjection(transform, undefined,
             [Object.freeze({rowsWire: page.rowsWire, rowCount: page.rowCount,
               nextCursor: page.nextCursor}), transformContext]);
-          if (value === null || typeof value !== 'object' ||
-              typeof value.rowsWire !== 'string' ||
-              Object.keys(value).some(key => !['rowsWire', 'nextCursor'].includes(key))) {
-            fail('InvalidRestSourceTransform');
-          }
-          if (Object.hasOwn(value, 'nextCursor') && value.nextCursor !== page.nextCursor) {
+          const {rowsWire, hasNextCursor, nextCursor} = captureTransformResult(value);
+          if (hasNextCursor && nextCursor !== page.nextCursor) {
             fail('RestSourceCursorProjectionMismatch');
           }
           // Only a changed wire needs another existing Core parse. Counts
           // never come from an author callback and JS never rounds values.
-          if (value.rowsWire !== page.rowsWire) {
-            if (value.rowsWire.length > bound.maxPageBytes ||
-                Buffer.byteLength(value.rowsWire, 'utf8') > bound.maxPageBytes) {
+          if (rowsWire !== page.rowsWire) {
+            if (rowsWire.length > bound.maxPageBytes ||
+                Buffer.byteLength(rowsWire, 'utf8') > bound.maxPageBytes) {
               fail('RestSourceTransformPageLimit');
             }
-            const changed = project(Buffer.from(value.rowsWire, 'utf8'), [], undefined, remaining);
+            const changed = project(Buffer.from(rowsWire, 'utf8'), [], undefined, remaining);
             page = {...changed, nextCursor: page.nextCursor};
           }
         }

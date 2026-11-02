@@ -124765,13 +124765,27 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17c61dd9c33d0e0e9b3d7bdbd404639502dab3537bcc2ca4268b7d5b282d7bf9",
+      "sha256": "135e51fbf146f3903d3ae9be6764a818d05d70026427bb0284321211668cc4eb",
       "role": "connector-semantics",
       "owner": "Existing Common JSON/row projection and Host ManagedReader Owners; REST adapter supplies authored request, cursor and pure row-wire transformation semantics only.",
       "exports": [
         "restSourcePageReader"
       ],
       "operations": [
+        {
+          "name": "captureTransformResult",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureTransformResult/captureTransformResult",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -124834,13 +124848,6 @@
           "async": false
         },
         {
-          "name": "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage/init:decodePage",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "restSourcePageReader/preparePageReader/init:fetchPage/init:fetchPage",
           "parameters": [
             "pageIndex",
@@ -124861,13 +124868,16 @@
         }
       ],
       "imports": [
-        "../host-common/runtime-result.mjs"
+        "../host-common/runtime-result.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
+            "captureTransformResult",
+            "captureTransformResult/captureTransformResult",
             "fail/fail",
             "restSourcePageReader",
             "restSourcePageReader/checkCursor/checkCursor",
@@ -124876,7 +124886,6 @@
             "restSourcePageReader/original/original/original",
             "restSourcePageReader/preparePageReader",
             "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage",
-            "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage/init:decodePage",
             "restSourcePageReader/preparePageReader/init:fetchPage/init:fetchPage",
             "restSourcePageReader/project/project"
           ],
@@ -124914,6 +124923,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "function captureTransformResult(value) {"
               }
             ],
             "identity": [
@@ -124986,6 +124999,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "if (value === null || typeof value !== 'object' || isProxy(value)) {"
               }
             ],
             "cancellation": [
@@ -125022,6 +125039,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "Buffer.byteLength(rowsWire, 'utf8') > bound.maxPageBytes) {"
               }
             ],
             "extension": [
@@ -125070,6 +125091,14 @@
               {
                 "path": "adapters/host-node/rest-source-page-typed.test.mjs",
                 "anchor": "test('REST author transform cannot change cursor add fields or exceed the existing page bound'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST transform captures own DATA before an alternating getter can bypass the byte bound'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST transform refusal keeps the shared original response charge and first cleanup without another send'"
               }
             ]
           }
