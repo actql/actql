@@ -1,7 +1,7 @@
 """Original Local payload transport into the existing SDK JSONL reader."""
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterator, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Callable as _Callable
 from typing import TYPE_CHECKING
 
 import httpx
@@ -29,7 +29,7 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
     terminal evidence. Sink completion or a precommit callback alone is not EOF.
     """
     def __init__(self, host: InstalledLocalHost, reader: OriginalSDKPayloadReader, *,
-                 close_parent: Callable[[], bool] | None = None) -> None:
+                 close_parent: _Callable[[], bool] | None = None) -> None:
         if type(reader) is not OriginalSDKPayloadReader or reader._core is not host._core:
             raise ValueError('Foreign original Local SDK response reader')
         if close_parent is not None and not callable(close_parent):

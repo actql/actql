@@ -1,6 +1,6 @@
 {
   "source": "d5d66cd86ac2e153f31a511e7d37c78e0cc28ae3",
-  "syntaxProjectionSha256": "d3c5ab04739699ae1cc926bba1b0e9abf999a41da38d28570247ae12a97d4d02",
+  "syntaxProjectionSha256": "1c128f09a8b9bb7eaef1736dfc131596c875a1f71dbc5be1fbd5537ade3445ca",
   "qualification": "Source-reference coverage only; original Native/FFI/Python executions retain their own source, artifact and target qualifications. No normal funding, VM or installed product admission.",
   "generated": [
     {
@@ -57407,7 +57407,8 @@
           "parameters": [
             "self",
             "host",
-            "reader"
+            "reader",
+            "close_parent"
           ]
         },
         {
@@ -57467,7 +57468,7 @@
           ]
         }
       ],
-      "sha256": "85af88ae20f9e356f110962f76ddec9f99b1700b6a3dfb4b51b21e327c770162",
+      "sha256": "a5dc138bc0d754e80b10046ccd9e80ad11405a87824c3ea5ef5eaebe2c80dd6d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -57770,6 +57771,14 @@
               {
                 "path": "scripts/test_python_local_host_fuel.py",
                 "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_saved_parent_retires_after_reader_ack_and_allows_sequential_area_restore("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
               }
             ]
           }
@@ -72538,7 +72547,7 @@
           ]
         }
       ],
-      "sha256": "54d103f1f19e586c9342992ba309dbe52c9e91016825a0cadcaab02c32ee984b",
+      "sha256": "8426cad48fab48cfdfd52499ae999f10b89a20d07564fa20d5ae9a8e1506dd5f",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -72748,6 +72757,14 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_saved_parent_retires_after_reader_ack_and_allows_sequential_area_restore("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_partial_parent_close_does_not_reuse_retired_transport_inputs("
               }
             ]
           }
