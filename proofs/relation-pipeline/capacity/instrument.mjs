@@ -97,7 +97,7 @@ export function instrument(path, original) {
   for (let [before, after] of replacements[path] ?? []) {
     const copy = mutations.find(m => m.name === 'handoff-copy-without-accounting');
     if (path === reads && original.includes(copy.after)) {
-      before = copy.after;
+      before = before.replace(copy.before, copy.after);
       after = after.replace('bound: cursor.bound,', `bound: ${copy.binding},`);
     }
     assert.equal(changed.split(before).length, 2, `Ambiguous observation site ${path}`);
