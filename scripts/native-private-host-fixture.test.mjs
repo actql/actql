@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
+import {createPrivateKey, createPublicKey} from 'node:crypto';
 import {lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture} from './native-private-host-fixture.mjs';
+import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 
 test('filesystem fixture is private even under the ordinary permissive umask', () => {
   const parent = mkdtempSync(join(tmpdir(), 'actql-private-fixture-'));
@@ -69,6 +70,55 @@ test('independent package Store roots do not inherit retained state', () => {
     assert.equal(statSync(second).mode & 0o777, 0o700);
     assert.deepEqual(readdirSync(second), []);
     assert.equal(readFileSync(join(first, 'retained'), 'utf8'), 'original');
+  } finally {
+    rmSync(parent, {recursive: true, force: true});
+  }
+});
+
+test('original signing fixture reuses public RFC bytes inside its private invocation', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'actql-original-signing-fixture-'));
+  const previous = process.umask(0o022);
+  const originalEnvironment = process.env.ACTQL_TEST_ORIGINAL_SIGNING_ROOT;
+  try {
+    const environment = nativeOriginalSigningFixture(parent);
+    assert.deepEqual(Object.keys(environment), ['ACTQL_TEST_ORIGINAL_SIGNING_ROOT']);
+    const root = environment.ACTQL_TEST_ORIGINAL_SIGNING_ROOT;
+    assert.equal(root, join(parent, 'original-signing'));
+    assert.equal(statSync(root).mode & 0o777, 0o700);
+    const keyPath = join(root, 'key.pem');
+    assert.equal(statSync(keyPath).mode & 0o777, 0o600);
+    const existing = readFileSync(new URL('fixtures/native-original-key-signing.c', import.meta.url), 'utf8');
+    const literal = existing.match(/static const char \*private_key = ("[^\n]+?");/u);
+    assert(literal, 'Existing public RFC fixture literal is required');
+    const key = readFileSync(keyPath, 'utf8');
+    assert.equal(key, JSON.parse(literal[1]));
+    const publicKey = createPublicKey(createPrivateKey(key)).export({type: 'spki', format: 'der'});
+    assert.equal(publicKey.subarray(-32).toString('base64'),
+      '11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=');
+    assert.equal(process.env.ACTQL_TEST_ORIGINAL_SIGNING_ROOT, originalEnvironment,
+      'Fixture return values must not mutate the global environment');
+    // Original test consumers retain the same file; setup is not a new key or
+    // a replacement of a still-owned original after the first test closes.
+    assert.throws(() => nativeOriginalSigningFixture(parent), {code: 'EEXIST'});
+    assert.equal(readFileSync(keyPath, 'utf8'), key);
+  } finally {
+    process.umask(previous);
+    rmSync(parent, {recursive: true, force: true});
+  }
+});
+
+test('original signing fixture refuses a foreign child without adopting or chmodding it', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'actql-foreign-signing-fixture-'));
+  const root = join(parent, 'original-signing');
+  try {
+    mkdirSync(root, {mode: 0o750});
+    writeFileSync(join(root, 'marker'), 'foreign invocation');
+    const before = statSync(root);
+    assert.throws(() => nativeOriginalSigningFixture(parent), {code: 'EEXIST'});
+    assert.equal(statSync(root).ino, before.ino);
+    assert.equal(statSync(root).mode, before.mode);
+    assert.deepEqual(readdirSync(root), ['marker']);
+    assert.equal(readFileSync(join(root, 'marker'), 'utf8'), 'foreign invocation');
   } finally {
     rmSync(parent, {recursive: true, force: true});
   }
