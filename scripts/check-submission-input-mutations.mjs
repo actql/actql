@@ -115,8 +115,9 @@ const expected = (phase, assertion = 'submission-input') => {
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
   }));
   if (phase === 'check-shape') {
-    return [{name: 'local: check reply custody refuses uncloneable values and copied shape loss',
-      assertions: [{id: assertion, operator: 'strictEqual'}]}];
+    return ['missing-version', 'invalid-outcome'].map(fault => ({
+      name: `local: malformed original check reply ${fault} refuses before issuing a verdict`,
+      assertions: [{id: assertion, operator: 'strictEqual'}]}));
   }
   if (phase === 'check-custody') {
     return ['preserve original syntax inputs and positions',
@@ -259,17 +260,23 @@ const mutations = [
     '    requestId: context.requestId, ...(problem === undefined ? {} : {problem}),',
     '    requestId: context.requestId, stopped: true, resourcesReleased: true, ...(problem === undefined ? {} : {problem}),',
     'request-cancel-stop', 'request-cancel-physical-claim', [], 'packages/sdk/operation-presentation.mjs'],
-  ['request cancellation accepted becomes already terminal',
-    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
-    "return retainRequestCancellationExplanation(freezeInput(observation), context, 'already_terminal');",
-    'request-cancel-public', 'request-cancel-public'],
+  ["request cancellation accepted becomes already terminal",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    "request-cancel-public",
+    "request-cancel-public",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['request cancellation response loss becomes accepted',
     "'outcome_unknown', 'exchange_failed');", "'accepted');",
     'request-cancel-loss', 'request-cancel-loss', [], 'packages/sdk/internal/submission-observation.mjs'],
-  ['request cancellation preparation response becomes already terminal',
-    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
-    "return retainRequestCancellationExplanation(freezeInput(observation), context, 'already_terminal');",
-    'request-cancel-preparation', 'request-cancel-preparation'],
+  ["request cancellation preparation response becomes already terminal",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);",
+    "return retainRequestCancellationExplanation(freezeInput(answer), context, 'already_terminal');",
+    "request-cancel-preparation",
+    "request-cancel-preparation",
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['request observation failures reuse the borrowed exception',
     '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
     '  const retained = error;', 'request-error-custody', 'request-failure-custody', [], 'packages/sdk/internal/submission-observation.mjs'],
@@ -340,10 +347,13 @@ const mutations = [
   ['unknown submit loses its original input',
     "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);\n  if (input) submissionInputs.set(result, input);",
     "const submissionUnknown = (context, cause) => {\n  const result = new ClientError('SubmissionUnknown', {...context, cause});\n  const input = submissionContexts.get(context);", 'after-commit', undefined, [], 'packages/sdk/internal/submission-observation.mjs'],
-  ['original supplied parameters are replaced by null',
-    'const snapshot = freezeInput({...body, requestId, connection: selected.wire,',
-    'const snapshot = freezeInput({...body, parameters: null, requestId, connection: selected.wire,',
-    'after-commit'],
+  ["original supplied parameters are replaced by null",
+    "const snapshot = Object.freeze({...body, requestId, connection: selected.wire,",
+    "const snapshot = Object.freeze({...body, parameters: null, requestId, connection: selected.wire,",
+    "after-commit",
+    undefined,
+    [],
+    "packages/sdk/internal/submission-observation.mjs"],
   ['accepted handle loses its original input',
     '        submissionInputs.set(run, snapshot);', '', 'acceptance', undefined, [], 'packages/sdk/internal/submission-observation.mjs'],
   ['unknown acceptance is presented as a held request',
@@ -380,10 +390,13 @@ const mutations = [
     'const cancellationExplanations = new WeakMap();',
     'const cancellationExplanations = {values: new Map(), set(key, value) {this.values.set(JSON.stringify(key), value);}, get(key) {return this.values.get(JSON.stringify(key));}};',
     'cancellation-attempt-custody', 'cancel-attempt-custody', [], 'packages/sdk/internal/run-observation.mjs'],
-  ['unknown cancellation is presented as confirmed acceptance',
-    'cancellationExplanations.set(result, freezeInput({observation,',
-    "cancellationExplanations.set(result, freezeInput({observation: observation === 'outcome_unknown' ? 'accepted' : observation,",
-    'cancellation-unknown', 'cancel-unknown-explanation'],
+  ["unknown cancellation is presented as confirmed acceptance",
+    "return freezeInput({observation,\n    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],",
+    "return freezeInput({observation: observation === 'outcome_unknown' ? 'accepted' : observation,\n    ...(revision === undefined ? {} : {revision}), summary: summaries[observation],",
+    "cancellation-unknown",
+    "cancel-unknown-explanation",
+    [],
+    "packages/sdk/operation-presentation.mjs"],
   ['cancellation observation advice targets another Run',
     ": {operation: 'status', ref: context.ref}",
     ": {operation: 'status', ref: {...context.ref, runDefinitionCid: 'sha256:' + '0'.repeat(64)}}",
@@ -396,36 +409,37 @@ const mutations = [
     '...(revision === undefined ? {} : {revision}), summary: summaries[observation],',
     '...(revision === undefined ? {} : {revision}), summary: result.cause?.message ?? summaries[observation],',
     'cancellation-unknown', 'cancel-unknown-explanation', [], 'packages/sdk/operation-presentation.mjs'],
-  ['local cancellation response-format failure loses uncertainty',
-    "        if (value instanceof Response) {\n" +
-    "          throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),\n" +
-    "            cancellationContext, 'outcome_unknown');\n        }",
-    "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
-    'cancellation-format', 'cancel-format-uncertainty', [
-      ['          if (!dispatchedCancellations.has(context)) throw cause;',
-        "          if (!dispatchedCancellations.has(context) || cause?.code === 'InvalidLocalHostPortResponse') throw cause;"],
-    ], 'packages/sdk/internal/transport.mjs'],
-  ['cancellation response reuse changes an earlier Run observation',
-    'received = detachResponse(received);', 'received = response;',
-    'cancellation-custody', 'cancel-custody', [
-      ['received = freezeInput(received);\n        return retainCancellationAttemptExplanation(received, context);',
-        'return retainCancellationAttemptExplanation(received, context);'],
-    ]],
+  ["local cancellation response-format failure loses uncertainty",
+    "if (!wasCancellationDispatched(context)) throw cause;",
+    "if (cause?.code === 'InvalidLocalHostPortResponse') throw new ClientError(cause.code);\n          if (!wasCancellationDispatched(context)) throw cause;",
+    "cancellation-format",
+    "cancel-format-uncertainty",
+    [],
+    "packages/sdk/internal/run-observation.mjs"],
+  ["cancellation response reuse changes an earlier Run observation",
+    "received = captureResponse(response);",
+    "received = response;",
+    "cancellation-custody",
+    "cancel-custody",
+    [["received = freezeInput(received);\n        return retainCancellationAttemptExplanation(received, context);","return retainCancellationAttemptExplanation(received, context);"]],
+    "packages/sdk/internal/run-observation.mjs"],
   ['cancellation clone failure leaks an unassociated error',
     "        let received;\n        try {\n          received = captureResponse(response);",
     "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
     'cancellation-clone:clone throws', 'cancel-clone-invalid', [], 'packages/sdk/internal/run-observation.mjs'],
-  ['cancellation clone erasure bypasses copy and shape validation',
-    'received = detachResponse(received);\n          if (!validCancellationAttempt(received, cancelRef, attemptRef))',
-    'received = structuredClone(received);\n          if (false)',
-    'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
+  ["cancellation clone erasure bypasses copy and shape validation",
+    "if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
+    "if (false) fail('InvalidHostCancellation');",
+    "cancellation-clone:clone erases fields",
+    "cancel-clone-invalid",
+    [],
+    "packages/sdk/internal/run-observation.mjs"],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
-    'received = detachResponse(received);\n' +
-      "          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
-    'received = structuredClone(received);\n' +
-      `          if (!validCancellationAttempt(received, {...cancelRef, ${field}: received.cancellation.cancelRef.${field}}, attemptRef)) fail('InvalidHostCancellation');`,
-    `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
+    "if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');",
+    `if (!validCancellationAttempt(received, {...cancelRef, ${field}: received.cancellation.cancelRef.${field}}, attemptRef)) fail('InvalidHostCancellation');`,
+    `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid', [],
+    'packages/sdk/internal/run-observation.mjs',
   ]),
   ['check reporting budget is blamed on an invalid input',
     'The reporting budget could not produce a complete bound check report.',
@@ -446,30 +460,29 @@ const mutations = [
     'export function explainCheckOutcome(outcome, options) {',
     'check-outcome-validation', 'check-outcome-invalid', [], 'packages/sdk/check-presentation.mjs'],
 
-  ['check response reuse overwrites original input custody',
-    '        try { outcome = structuredClone(outcome); }\n' +
-      "        catch { reject(); }\n", '',
-    'check-custody', 'check-response-custody'],
+  ["check response reuse overwrites original input custody",
+    "try { outcome = captureResponse(outcome); }",
+    "try { outcome = outcome; }",
+    "check-custody",
+    "check-response-custody",
+    [],
+    "packages/sdk/internal/check-observation.mjs"],
 
-  ['copied check response loses its wire shape without refusal',
-    "        catch { reject(); }\n" +
-      "        if (!validCheckOutcome(outcome)) reject();\n" +
-      "        if (structuralKey(outcome) !== observedKey) reject();",
-    "        catch { reject(); }",
-    'check-shape', 'check-copied-shape'],
+  ["copied check response loses its wire shape without refusal",
+    "if (!validCheckOutcome(outcome)) reject();",
+    "if (false) reject();",
+    "check-shape",
+    "check-copied-shape",
+    [],
+    "packages/sdk/internal/check-observation.mjs"],
 
-  ['check response accepts a known location in another input document',
-    "        if (!validCheckOutcome(outcome)) reject();\n" +
-      "        const observedKey = structuralKey(outcome);\n" +
-      "        // Own this call's value before binding or freezing it. A Local Host may\n" +
-      "        // reuse its response object without replacing a previous SDK observation.\n" +
-      "        try { outcome = structuredClone(outcome); }\n" +
-      "        catch { reject(); }\n" +
-      "        if (!validCheckOutcome(outcome)) reject();",
-    "        const observedKey = structuralKey(outcome);\n" +
-      "        try { outcome = structuredClone(outcome); }\n" +
-      "        catch { reject(); }",
-    'check-location-domain', 'known-location-domain'],
+  ["check response accepts a known location in another input document",
+    "if (!validCheckOutcome(outcome)) reject();",
+    "",
+    "check-location-domain",
+    "known-location-domain",
+    [],
+    "packages/sdk/internal/check-observation.mjs"],
 
   ['check Problem explanation loses its opaque correlation',
     "return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,",
@@ -539,12 +552,6 @@ const mutationPath = (phase, sourceFile) => sourceFile ?? (phase.startsWith('ope
   : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path);
 const originals = new Map(selected.map(([, , , phase, , , sourceFile]) => mutationPath(phase, sourceFile))
   .map(file => [file, readFileSync(file, 'utf8')]));
-// Redundant capture/copy defenses must both be removed to inject the original
-// custody or copied-value fault. Named assertion targets remain unchanged.
-const captureFaults = {
-  'cancellation-custody': ["received = captureResponse(response);"],
-  'check-custody': ['try { outcome = captureResponse(outcome); }'],
-};
 // A parent local gate already owns the worktree lock. Keep this bounded
 // compiler child in its process group rather than acquiring a nested gate.
 const buildOperationInputRuntime = () => execFileSync('moon',
@@ -564,21 +571,14 @@ try {
     }
     if (phase === 'unresolvable-restart') {
       for (const [anchor, replacement] of [
-        ['  const submitIntent = (kind, input, options) => {',
-          '  let unsafeRestartInput;\n  const submitIntent = (kind, input, options) => {'],
+        ['  const submitIntent = (kind, input, options, sourceProducer, requestName) => {',
+          '  let unsafeRestartInput;\n  const submitIntent = (kind, input, options, sourceProducer, requestName) => {'],
         ['    submissionInputs.set(pending, snapshot);',
           '    unsafeRestartInput = snapshot;\n    submissionInputs.set(pending, snapshot);'],
       ]) {
         if (altered.split(anchor).length !== 2) throw new Error(`Restart fault anchor not unique: ${name}`);
         altered = altered.replace(anchor, replacement);
       }
-    }
-    if (captureFaults[phase]) {
-      const [capture, following] = captureFaults[phase];
-      const anchor = following ? capture + '\n      ' + following : capture;
-      if (altered.split(anchor).length !== 2) throw new Error(`Capture fault anchor not unique: ${name}`);
-      altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
-        .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
     if (phase === 'operation-input-range') {
       const capacity = '                | InvalidSeriesCount(ReversedRange)\n';

@@ -2550,26 +2550,48 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
-test('local: check reply custody refuses uncloneable values and copied shape loss', async t => {
+test('local: unused check clone traps cannot replace the original captured outcome', async t => {
   const nativeClone = globalThis.structuredClone;
-  let kind;
+  let kind, conversions = 0;
   t.mock.method(globalThis, 'structuredClone', received => {
     if (received?.version !== 'actql-check-outcome/0.1') return nativeClone(received);
-    // Inject a conversion fault after the original DTO has been captured.
+    conversions++;
     return kind === 'proxy' ? nativeClone(new Proxy(received, {}))
       : nativeClone(Object.assign(new Date(0), received));
   });
   for (kind of ['proxy', 'date']) {
     const client = await contextClient(t, 'local', absentEnvironment);
-    let refused = false;
-    try { await client.check('SELECT', {kind: 'text', scope: 'bound_input', format: 'sql'}); }
-    catch (cause) {
-      if (cause?.code !== 'InvalidHostCheckOutcome') throw cause;
-      refused = true;
-    }
-    assert.equal(refused, true, '[check-mutation:check-copied-shape]');
+    let outcome, failure;
+    try {outcome = await client.check('SELECT', {kind: 'text', scope: 'bound_input', format: 'sql'});}
+    catch (cause) {failure = cause;}
+    assert.equal(failure, undefined, '[check-mutation:check-no-response-conversion]');
+    assert.equal(conversions, 0, '[check-mutation:check-no-response-conversion]');
+    assert.equal(outcome.outcome, 'completed');
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.equal(getCheckInput(outcome, 'source').text, 'SELECT');
   }
 });
+
+for (const fault of ['missing-version', 'invalid-outcome']) {
+  test(`local: malformed original check reply ${fault} refuses before issuing a verdict`, async t => {
+    const client = await contextClient(t, 'local', absentEnvironment, {
+      mutateCheckTransportReply(outcome) {
+        const received = {...outcome};
+        if (fault === 'missing-version') delete received.version;
+        else received.outcome = 'verified';
+        return received;
+      },
+    });
+    let outcome, failure;
+    try {outcome = await client.check('SELECT', {kind: 'text', scope: 'bound_input', format: 'sql'});}
+    catch (cause) {failure = cause;}
+    assert.equal(failure?.code, 'InvalidHostCheckOutcome', '[check-mutation:check-copied-shape]');
+    assert.equal(outcome, undefined);
+    assert.notEqual(sdk.explainCheckFailure(failure), undefined);
+    assert.equal(sdk.explainCheckOutcome(failure), undefined);
+    assert.equal(getCheckInput(failure, 'source'), undefined);
+  });
+}
 
 for (const kind of ['proxy', 'date']) {
   test(`local: check captures own DTO fields from a ${kind} response`, async t => {
