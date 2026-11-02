@@ -9,6 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
+import {prepareInstalledPublicationRoot} from './installed-publication-root.mjs';
 import {createLocalResultAuthorization} from './local-result-authorization.mjs';
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
   closePreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
@@ -182,4 +183,20 @@ test('ordinary Local partial materialization never restores a missing configurat
   await rename(f.config, f.config + '.test-owned-original');
   await assert.rejects(f.start(), {code: 'LocalAccountAdoptedStateMissing'});
   await assert.rejects(stat(f.config), {code: 'ENOENT'});
+});
+
+// The publication entry records intent, not policy material or adoption.
+test('fresh publication hands the same intent to ordinary Local Account adoption', async t => {
+  const f = await fixture(t);
+  await prepareInstalledPublicationRoot(f.root, 'person');
+  const intent = await readFile(f.intent);
+  await assert.rejects(stat(f.config), {code: 'ENOENT'});
+  const authorization = await f.start();
+  assert.equal(authorization.accountConfig, f.config);
+  assert.deepEqual(await readFile(f.intent), intent);
+  const marker = JSON.parse(await readFile(f.marker));
+  assert.equal(marker.account_bootstrap.initialization_cid, cid(intent));
+  await f.close();
+  await f.start();
+  assert.deepEqual(await readFile(f.intent), intent);
 });

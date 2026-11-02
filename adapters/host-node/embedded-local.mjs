@@ -193,6 +193,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate,
   observeInstalledAccount} from './local-account-config.mjs';
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
 import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
+import {prepareInstalledPublicationRoot} from './installed-publication-root.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan, prepareTimedClientInvocation,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
@@ -5615,11 +5616,12 @@ export async function publishInstalledSource({sourceProfilePath, directory,
   resolveSourceSecret, signal, connectorTable} = {}) {
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
-  await admitHostRootFormat(root);
+  const principalId = userInfo().username;
+  await prepareInstalledPublicationRoot(root, principalId);
   const moon = await import(runtimeUrl.href);
   return publishInstalledSourceProfile(
     sourceProfilePath ?? process.env.ACTQL_LOCAL_SOURCE_PROFILE, {root,
-      principalId: userInfo().username, moon, runtimeUrl,
+      principalId, moon, runtimeUrl,
       resolveSecret: resolveSourceSecret, signal, connectorTable});
 }
 
@@ -5634,14 +5636,15 @@ export async function publishInstalledEffect({effectProfilePath, directory,
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   const root = directory === undefined ? localStateRoot() : resolve(directory);
-  await admitHostRootFormat(root);
+  const principalId = userInfo().username;
+  await prepareInstalledPublicationRoot(root, principalId);
   const moon = await import(runtimeUrl.href);
   const baseEnvironmentWire = selectInstalledHostEnvironment(moon, (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd(), hostCapacityPolicy,
     hostLookupExecutionPolicy);
   return publishInstalledEffectProfile(
     effectProfilePath ?? process.env.ACTQL_LOCAL_EFFECT_PROFILE, {root,
-      principalId: userInfo().username, moon, runtimeUrl,
+      principalId, moon, runtimeUrl,
       baseEnvironmentWire, resolveSecret: resolveEffectSecret, signal, connectorTable});
 }
 
