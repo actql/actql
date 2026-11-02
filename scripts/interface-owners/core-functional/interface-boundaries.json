@@ -31985,7 +31985,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "457c7199549f3c7a75b332f9ebbc77ec2a1ce189bb124b122cf975ebfd57cc9b",
+      "sha256": "49faa586f1641690ad0a0bafc2835f742cf86f0d2f081fb9f24eaad53d9c0ebf",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -32994,12 +32994,12 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "6d0b05956d983485debce95a6cd626cca448ae524fc71fc6508f7250bcbe3e21",
+      "sha256": "c5a72f4f19aed10be9a1b3088cd389440d2482296c76d1db9a9a59f9777a2583",
       "exports": [],
       "operations": [
         {
           "name": "[P]check_installed_managed_run_admission",
-          "declaration": "[ P ] check_installed_managed_run_admission ( admission : @ resources . NodeManagedRunAdmission [ P ] , prepared : P , ledger : @ resources . Ledger , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+          "declaration": "[ P ] check_installed_managed_run_admission ( admission : @ resources . PreparedRunAdmission [ P ] , prepared : P , ledger : @ resources . Ledger , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
         },
         {
           "name": "begin_installed_managed_run",
@@ -37914,7 +37914,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "6793697cc1a214f22c782f736698bd090fa3e40d2a748f85c7c5b0e88623b315",
+      "sha256": "d9262dcf057a750ce744923cfbc725438c5423cbe67628edc2a294231f2e0982",
       "exports": [],
       "operations": [
         {
@@ -38222,7 +38222,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9aa9d339f8707846a62c29128e9d4d06ac6c5f5a81e8ac2a6b6773d29c1758cf",
+      "sha256": "1dab77d3b7994a8ae8ed3f6e37ea08d347119191abeb451a198fa35215a2ef42",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -38911,7 +38911,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "a070ffa2173908529279eae928457f5416b2feb6321b355d47b2f95e19d9a5e2"
+      "sha256": "38922ffc809c0e87b4ef696ba81033b728aca3fd072a157202183862eecb9577"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -39875,7 +39875,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b332b04bda712e2e787f23f52c5c4a144602c44eadf187d489abdc6b421f500e",
+      "sha256": "3d30c70b4bc754878e98a929803f7cf2b0f4852fcaa0e2303847bf2e52a8d3e8",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -39885,8 +39885,16 @@
           "declaration": "[ I ] abort_request_preparation_after_cleanup ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
         {
+          "name": "[I]begin_backed_request_preparation",
+          "declaration": "[ I ] begin_backed_request_preparation ( initial : @ resources . BackedPreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "[I]begin_request_preparation",
           "declaration": "[ I ] begin_request_preparation ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]begin_request_preparation_original",
+          "declaration": "[ I ] begin_request_preparation_original ( initial : ClientPreparationInitial [ I ] , input : I , policy : ClientLocalResourcePolicy , ) - > Result [ ClientRequestPreparation [ I ] , ClientRequestPreparationIssue ]"
         },
         {
           "name": "[I]prepare_request_check_preparation_owned",
@@ -40556,6 +40564,87 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Fixed Request controls and synchronous domain construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "[I]begin_backed_request_preparation",
+            "[I]begin_request_preparation_original"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
               }
             ]
           }
@@ -41399,7 +41488,7 @@
           }
         }
       ],
-      "sha256": "b3fdc913d5a92194fbfc63d10c5f606f3834820138a4027412f48dd5911eba66",
+      "sha256": "e7425a8902a11e0ea2865fbf64df00d448060cb85f144ff25899dc7057413099",
       "exports": [],
       "operations": [
         {
@@ -57024,7 +57113,7 @@
     },
     {
       "module": "src/physical_resources/backed_live_child.mbt",
-      "sha256": "c737e3765a5bcf1f9c8a55391451046f995129e47268275a6473b44efaca09c9",
+      "sha256": "2b3e350b3fb42c9083f0c57a4411fa04cbb73404659bcef132d7cac4240daff8",
       "exports": [],
       "operations": [
         {
@@ -66311,6 +66400,1782 @@
         }
       ],
       "referenceQualification": "Same-Request captured input Source/Program/checker components and actual target API only. Normal Node driver, complete work metering and physical backing remain separate."
+    },
+    {
+      "module": "src/client_local_host/installed_effect_managed_run.mbt",
+      "sha256": "7d74f47f5d3d78750352c1231c09ee1b4d50dfba5799e2d85df42a1ba66b2947",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_prepared_installed_effect_mock_model_managed_run",
+          "declaration": "begin_prepared_installed_effect_mock_model_managed_run ( admission : @ resources . NodeManagedRunAdmission [ ClientInstalledEffectManagedPlan , ] , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ ( ClientInstalledManagedRun , @ publication_host . ClientModelReadScope ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "check_installed_effect_managed_run",
+          "declaration": "check_installed_effect_managed_run ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_effect_managed_run_binding",
+          "declaration": "check_installed_effect_managed_run_binding ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_effect_operation_extent",
+          "declaration": "check_installed_effect_operation_extent ( owner : ClientInstalledManagedRun , extent : ClientInstalledEffectOperationExtent , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_operation_plan",
+          "declaration": "installed_effect_managed_operation_plan ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_request_matches",
+          "declaration": "installed_effect_managed_request_matches ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_managed_run_requirements",
+          "declaration": "installed_effect_managed_run_requirements ( prepared : @ publication_host . PreparedClientEffectComputation , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_mock_model_run_requirements",
+          "declaration": "installed_effect_mock_model_run_requirements ( prepared : @ publication_host . PreparedClientEffectComputation , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_effect_managed_run_ledger",
+          "declaration": "prepare_installed_effect_managed_run_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_planned_installed_effect_ledger",
+          "declaration": "prepare_planned_installed_effect_ledger ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "require_installed_effect_operation_plan",
+          "declaration": "require_installed_effect_operation_plan ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ( ClientInstalledEffectManagedPlan , @ resources . Ledger ) , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_prepared_installed_effect_mock_model_managed_run",
+            "check_installed_effect_managed_run",
+            "check_installed_effect_managed_run_binding",
+            "check_installed_effect_operation_extent",
+            "installed_effect_managed_operation_plan",
+            "installed_effect_managed_request_matches",
+            "installed_effect_managed_run_requirements",
+            "installed_effect_mock_model_run_requirements",
+            "prepare_installed_effect_managed_run_ledger",
+            "prepare_planned_installed_effect_ledger",
+            "require_installed_effect_operation_plan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_managed_keyed_prefix.mbt",
+      "sha256": "7bcaa29a066b5798f3439e2407ce1ab7671d1f17b57470779dcfae34f34a353f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "cleanup_installed_managed_keyed_serialization_prefix",
+          "declaration": "cleanup_installed_managed_keyed_serialization_prefix ( owner : ClientInstalledManagedRun , selected : ClientInstalledManagedKeyedPreparation , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_managed_keyed_prefix_requirements",
+          "declaration": "prepared_installed_managed_keyed_prefix_requirements ( selected : ClientInstalledManagedKeyedPreparation , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "start_installed_managed_keyed_serialization_prefix",
+          "declaration": "start_installed_managed_keyed_serialization_prefix ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedKeyedPreparation , source : @ query . CapturedInputSource , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ ClientSerializationPrefix , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cleanup_installed_managed_keyed_serialization_prefix",
+            "prepared_installed_managed_keyed_prefix_requirements",
+            "start_installed_managed_keyed_serialization_prefix"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_managed_serialization.mbt",
+      "sha256": "167009410e10fdefba85fd16d153647a209244690de6c994e78df75bf663d571",
+      "exports": [],
+      "operations": [
+        {
+          "name": "cleanup_installed_managed_serialization_prefix",
+          "declaration": "cleanup_installed_managed_serialization_prefix ( owner : ClientInstalledManagedRun , selected : ClientInstalledManagedSerializationPreparation , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_managed_serialization",
+          "declaration": "prepare_installed_managed_serialization ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , component : @ publication_host . ClientSerializationPlanGraph , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , model ? : @ publication_host . ClientInferPlanGraph ?"
+        },
+        {
+          "name": "prepared_installed_managed_serialization_prefix_requirements",
+          "declaration": "prepared_installed_managed_serialization_prefix_requirements ( selected : ClientInstalledManagedSerializationPreparation , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "start_installed_managed_acquired_serialization_prefix",
+          "declaration": "start_installed_managed_acquired_serialization_prefix ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , capture : @ row_source_host . RowSourceCapture , ) - > Result [ ClientSerializationPrefix , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "start_installed_managed_serialization_prefix",
+          "declaration": "start_installed_managed_serialization_prefix ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , ) - > Result [ ClientSerializationPrefix , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "start_installed_managed_serialization_prefix_owned",
+          "declaration": "start_installed_managed_serialization_prefix_owned ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , selected : ClientInstalledManagedSerializationPreparation , capture : @ row_source_host . RowSourceCapture ? , ) - > Result [ ClientSerializationPrefix , ClientInstalledManagedRunIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cleanup_installed_managed_serialization_prefix",
+            "prepare_installed_managed_serialization",
+            "prepared_installed_managed_serialization_prefix_requirements",
+            "start_installed_managed_acquired_serialization_prefix",
+            "start_installed_managed_serialization_prefix",
+            "start_installed_managed_serialization_prefix_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_dispatch_custody.mbt",
+      "sha256": "c535c31e37cd8c40911824df7726d1712883a06fb65a2b7c3d9fe1f8e7619480",
+      "exports": [],
+      "operations": [
+        {
+          "name": "borrow_installed_effect_dispatch_preparation",
+          "declaration": "borrow_installed_effect_dispatch_preparation ( value : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ ClientInstalledEffectManagedPlan ] ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "borrow_installed_managed_dispatch_preparation",
+          "declaration": "borrow_installed_managed_dispatch_preparation ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] ? , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_managed_preparation_usage_isolated",
+          "declaration": "installed_managed_preparation_usage_isolated ( value : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , captured : @ strategy . CapturedDAG , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "borrow_installed_effect_dispatch_preparation",
+            "borrow_installed_managed_dispatch_preparation",
+            "installed_managed_preparation_usage_isolated"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_initial.mbt",
+      "sha256": "ac6f9c5615a16d1745e1a9d35028d9240dedcdad1cc3a75c624cc76eec9d02a6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]adopt_preparation_initial",
+          "declaration": "[ I , P ] adopt_preparation_initial ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , P ] , prepared : P , ) - > Result [ ( @ resources . PreparedRunAdmission [ P ] , @ resources . Ledger , @ resources . PreparationRetirement , @ resources . PreparationBodyBorrow [ P ] , ) , @ resources . ImportedChildLedgerIssue , ]"
+        },
+        {
+          "name": "[I]preparation_initial_cleanup",
+          "declaration": "[ I ] preparation_initial_cleanup ( initial : ClientPreparationInitial [ I ] , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]preparation_initial_input",
+          "declaration": "[ I ] preparation_initial_input ( initial : ClientPreparationInitial [ I ] , input : I , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]preparation_initial_limits",
+          "declaration": "[ I ] preparation_initial_limits ( initial : ClientPreparationInitial [ I ] , input : I , ) - > Result [ @ resources . LedgerLimits , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]preparation_initial_start",
+          "declaration": "[ I ] preparation_initial_start ( initial : ClientPreparationInitial [ I ] , input : I , ) - > Result [ @ resources . Ledger , @ resources . ImportedChildLedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]adopt_preparation_initial",
+            "[I]preparation_initial_cleanup",
+            "[I]preparation_initial_input",
+            "[I]preparation_initial_limits",
+            "[I]preparation_initial_start"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_owned_run.mbt",
+      "sha256": "6ff2cb813cca7d49ebd25e504cdf00d2641a2463af5ab22219bf6bf092912ea0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]adopt_preparation_owned_content_original",
+          "declaration": "[ I ] adopt_preparation_owned_content_original ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , content : ClientInstalledContentPreparation , required : @ resources . LedgerLimits , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]adopt_preparation_owned_installed_effect_plan",
+          "declaration": "[ I ] adopt_preparation_owned_installed_effect_plan ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]adopt_preparation_owned_pure_plan",
+          "declaration": "[ I ] adopt_preparation_owned_pure_plan ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_capture_run",
+          "declaration": "[ I ] begin_preparation_owned_installed_capture_run ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledManagedCapturePlan , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_capture_run_original",
+          "declaration": "[ I ] begin_preparation_owned_installed_capture_run_original ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledManagedCapturePlan , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_content_run",
+          "declaration": "[ I ] begin_preparation_owned_installed_content_run ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , selected : ClientInstalledManagedKeyedPreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_content_run_original",
+          "declaration": "[ I ] begin_preparation_owned_installed_content_run_original ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , selected : ClientInstalledManagedKeyedPreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_effect_managed_run",
+          "declaration": "[ I ] begin_preparation_owned_installed_effect_managed_run ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_effect_managed_run_original",
+          "declaration": "[ I ] begin_preparation_owned_installed_effect_managed_run_original ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_effect_model_run",
+          "declaration": "[ I ] begin_preparation_owned_installed_effect_model_run ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ledger : @ resources . Ledger , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_managed_run",
+          "declaration": "[ I ] begin_preparation_owned_installed_managed_run ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , original : ClientInstalledManagedSourceFreePreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_managed_run_original",
+          "declaration": "[ I ] begin_preparation_owned_installed_managed_run_original ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , original : ClientInstalledManagedSourceFreePreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_serialization_run",
+          "declaration": "[ I ] begin_preparation_owned_installed_serialization_run ( initial : @ resources . NodePreparationAdmission [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , selected : ClientInstalledManagedSerializationPreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_preparation_owned_installed_serialization_run_original",
+          "declaration": "[ I ] begin_preparation_owned_installed_serialization_run_original ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , selected : ClientInstalledManagedSerializationPreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]check_preparation_owned_effect_limits",
+          "declaration": "[ I ] check_preparation_owned_effect_limits ( initial : ClientPreparationInitial [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[P]preparation_retirement_payload_severed",
+          "declaration": "[ P ] preparation_retirement_payload_severed ( original : ClientManagedPreparationRetirement [ P ] , ledger : @ resources . Ledger , ) - > Bool"
+        },
+        {
+          "name": "[P]retire_preparation_owned_installed_run",
+          "declaration": "[ P ] retire_preparation_owned_installed_run ( value : ClientInstalledManagedRun , original : ClientManagedPreparationRetirement [ P ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_preparation_payload_severed",
+          "declaration": "installed_preparation_payload_severed ( value : ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]adopt_preparation_owned_content_original",
+            "[I]adopt_preparation_owned_installed_effect_plan",
+            "[I]adopt_preparation_owned_pure_plan",
+            "[I]begin_preparation_owned_installed_capture_run",
+            "[I]begin_preparation_owned_installed_capture_run_original",
+            "[I]begin_preparation_owned_installed_content_run",
+            "[I]begin_preparation_owned_installed_content_run_original",
+            "[I]begin_preparation_owned_installed_effect_managed_run",
+            "[I]begin_preparation_owned_installed_effect_managed_run_original",
+            "[I]begin_preparation_owned_installed_effect_model_run",
+            "[I]begin_preparation_owned_installed_managed_run",
+            "[I]begin_preparation_owned_installed_managed_run_original",
+            "[I]begin_preparation_owned_installed_serialization_run",
+            "[I]begin_preparation_owned_installed_serialization_run_original",
+            "[I]check_preparation_owned_effect_limits",
+            "[P]preparation_retirement_payload_severed",
+            "[P]retire_preparation_owned_installed_run",
+            "installed_preparation_payload_severed"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_content_body.mbt",
+      "sha256": "3f74b0ea5520ac800033dfdaf3000adf714f5791d4e96d9c8fdeaec7a32f2436",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_request_content_managed_run",
+          "declaration": "[ I ] begin_request_content_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_content_plan_input",
+          "declaration": "[ I ] borrow_request_content_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_content_preparation",
+          "declaration": "[ I ] complete_request_content_preparation ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , selected : ClientInstalledManagedKeyedPreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]complete_request_serialization_preparation",
+          "declaration": "[ I ] complete_request_serialization_preparation ( owner : ClientRequestPreparation [ I ] , input : I , selected : ClientInstalledManagedSerializationPreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_keyed_serialization_compilation",
+          "declaration": "[ I ] prepare_request_keyed_serialization_compilation ( owner : ClientRequestPreparation [ I ] , input : I , selected : ClientInstalledManagedKeyedPreparation , component : @ publication_host . ClientSerializationPlanGraph , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_model_serialization_plan",
+          "declaration": "[ I ] prepare_request_model_serialization_plan ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ ClientInstalledManagedSerializationPreparation , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_serialization_compilation",
+          "declaration": "[ I ] prepare_request_serialization_compilation ( owner : ClientRequestPreparation [ I ] , input : I , component : @ publication_host . ClientSerializationPlanGraph , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_serialization_compilation_owned",
+          "declaration": "[ I ] prepare_request_serialization_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , component : @ publication_host . ClientSerializationPlanGraph , contracts : ClientInstalledSequenceContracts , keyed : ClientInstalledManagedKeyedPreparation ? , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_serialization_plan",
+          "declaration": "[ I ] prepare_request_serialization_plan ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledManagedSerializationPreparation , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_serialization_plan_owned",
+          "declaration": "[ I ] prepare_request_serialization_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , workspace : @ execution . ExecutionCapacity ? , model : @ publication_host . ClientInferPlanGraph ? , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ ClientInstalledManagedSerializationPreparation , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_request_content_managed_run",
+            "[I]borrow_request_content_plan_input",
+            "[I]complete_request_content_preparation",
+            "[I]complete_request_serialization_preparation",
+            "[I]prepare_request_keyed_serialization_compilation",
+            "[I]prepare_request_model_serialization_plan",
+            "[I]prepare_request_serialization_compilation",
+            "[I]prepare_request_serialization_compilation_owned",
+            "[I]prepare_request_serialization_plan",
+            "[I]prepare_request_serialization_plan_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/backed_preparation_admission.mbt",
+      "sha256": "eedbb57cde2010cfb9b96d1792d5034ccac94c09ed259969f49aaffd568096b6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]adopt_backed_preparation_admission",
+          "declaration": "[ I , P ] adopt_backed_preparation_admission ( owner : BackedPreparationAdmission [ I ] , input : I , capacity : PreparationCapacity [ I , P ] , prepared : P , ) - > Result [ ( BackedPreparedRunAdmission [ P ] , Ledger , PreparationRetirement , PreparationBodyBorrow [ P ] , ) , ImportedChildLedgerIssue , ]"
+        },
+        {
+          "name": "[I]backed_preparation_limits",
+          "declaration": "[ I ] backed_preparation_limits ( owner : BackedPreparationAdmission [ I ] , input : I , ) - > Result [ LedgerLimits , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]backed_preparation_original",
+          "declaration": "[ I ] backed_preparation_original ( owner : BackedPreparationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]backed_preparation_original_frame",
+          "declaration": "[ I ] backed_preparation_original_frame ( owner : BackedPreparationAdmission [ I ] , input : I , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]check_backed_preparation_input",
+          "declaration": "[ I ] check_backed_preparation_input ( owner : BackedPreparationAdmission [ I ] , input : I , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]cleanup_backed_preparation_admission",
+          "declaration": "[ I ] cleanup_backed_preparation_admission ( owner : BackedPreparationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]start_backed_preparation_admission",
+          "declaration": "[ I ] start_backed_preparation_admission ( owner : BackedPreparationAdmission [ I ] , input : I , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P,C,I]prepare_backed_preparation_admission",
+          "declaration": "[ P , C , I ] prepare_backed_preparation_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , ) - > Result [ BackedPreparationAdmission [ I ] , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]backed_preparation_usage_isolated",
+          "declaration": "[ P ] backed_preparation_usage_isolated ( owner : BackedPreparedRunAdmission [ P ] , ledger : Ledger , ) - > Bool"
+        },
+        {
+          "name": "[P]backed_prepared_run_original",
+          "declaration": "[ P ] backed_prepared_run_original ( owner : BackedPreparedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_backed_preparation_cleanup_original",
+          "declaration": "[ P ] check_backed_preparation_cleanup_original ( owner : BackedPreparedRunAdmission [ P ] , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_backed_prepared_run_admission",
+          "declaration": "[ P ] check_backed_prepared_run_admission ( owner : BackedPreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_backed_prepared_run_binding",
+          "declaration": "[ P ] check_backed_prepared_run_binding ( owner : BackedPreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]cleanup_backed_prepared_run_admission",
+          "declaration": "[ P ] cleanup_backed_prepared_run_admission ( owner : BackedPreparedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]release_backed_preparation_holder",
+          "declaration": "[ P ] release_backed_preparation_holder ( owner : BackedPreparedRunAdmission [ P ] , ) - > Result [ Bool , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]adopt_backed_preparation_admission",
+            "[I]backed_preparation_limits",
+            "[I]backed_preparation_original",
+            "[I]backed_preparation_original_frame",
+            "[I]check_backed_preparation_input",
+            "[I]cleanup_backed_preparation_admission",
+            "[I]start_backed_preparation_admission",
+            "[P,C,I]prepare_backed_preparation_admission",
+            "[P]backed_preparation_usage_isolated",
+            "[P]backed_prepared_run_original",
+            "[P]check_backed_preparation_cleanup_original",
+            "[P]check_backed_prepared_run_admission",
+            "[P]check_backed_prepared_run_binding",
+            "[P]cleanup_backed_prepared_run_admission",
+            "[P]release_backed_preparation_holder"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/node_managed_run_admission.mbt",
+      "sha256": "fc0510c882fd23dca2fc685b4bcf46ca692a08ea86f3a5aa6e323cf186c098e9",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[P,E]check_node_managed_run_operation_original",
+          "declaration": "[ P , E ] check_node_managed_run_operation_original ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P]check_node_local_content_run_preparation",
+          "declaration": "[ P ] check_node_local_content_run_preparation ( value : NodeManagedRunAdmission [ P ] , prepared : P , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_node_local_mock_model_run_preparation",
+          "declaration": "[ P ] check_node_local_mock_model_run_preparation ( value : NodeManagedRunAdmission [ P ] , prepared : P , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_node_managed_run_admission",
+          "declaration": "[ P ] check_node_managed_run_admission ( value : NodeManagedRunAdmission [ P ] , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_node_managed_run_mutable_admission",
+          "declaration": "[ P ] check_node_managed_run_mutable_admission ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_node_managed_run_original",
+          "declaration": "[ P ] check_node_managed_run_original ( value : NodeManagedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_node_managed_run_preparation",
+          "declaration": "[ P ] check_node_managed_run_preparation ( value : NodeManagedRunAdmission [ P ] , prepared : P , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_node_source_compute_run_preparation",
+          "declaration": "[ P ] check_node_source_compute_run_preparation ( value : NodeManagedRunAdmission [ P ] , prepared : P , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]cleanup_node_managed_run_admission",
+          "declaration": "[ P ] cleanup_node_managed_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]cleanup_node_managed_run_read_bootstrap",
+          "declaration": "[ P ] cleanup_node_managed_run_read_bootstrap ( value : NodeManagedRunAdmission [ P ] , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]prepare_node_managed_run_original",
+          "declaration": "[ P ] prepare_node_managed_run_original ( child : ImportedChildLedger , prepared : P , abort_unpublished : ( ) - > Result [ Unit , ImportedChildLedgerIssue ] , purpose ? : NodeManagedRunPurpose"
+        },
+        {
+          "name": "[P]report_node_managed_run_admission",
+          "declaration": "[ P ] report_node_managed_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]reserve_node_managed_run_attempt",
+          "declaration": "[ P ] reserve_node_managed_run_attempt ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , quantities ? : QuantityAmounts ?"
+        },
+        {
+          "name": "[P]reserve_node_managed_run_read_bootstrap",
+          "declaration": "[ P ] reserve_node_managed_run_read_bootstrap ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ CapacityReservation , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]restore_node_managed_run_admission",
+          "declaration": "[ P ] restore_node_managed_run_admission ( value : NodeManagedRunAdmission [ P ] , prepared : P , saved : LedgerContinuationState , ) - > Result [ Ledger , LedgerContinuationIssue ]"
+        },
+        {
+          "name": "[P]start_node_managed_run_admission",
+          "declaration": "[ P ] start_node_managed_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]stop_node_managed_run_admission",
+          "declaration": "[ P ] stop_node_managed_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,E]check_node_managed_run_operation_original",
+            "[P]check_node_local_content_run_preparation",
+            "[P]check_node_local_mock_model_run_preparation",
+            "[P]check_node_managed_run_admission",
+            "[P]check_node_managed_run_mutable_admission",
+            "[P]check_node_managed_run_original",
+            "[P]check_node_managed_run_preparation",
+            "[P]check_node_source_compute_run_preparation",
+            "[P]cleanup_node_managed_run_admission",
+            "[P]cleanup_node_managed_run_read_bootstrap",
+            "[P]prepare_node_managed_run_original",
+            "[P]report_node_managed_run_admission",
+            "[P]reserve_node_managed_run_attempt",
+            "[P]reserve_node_managed_run_read_bootstrap",
+            "[P]restore_node_managed_run_admission",
+            "[P]start_node_managed_run_admission",
+            "[P]stop_node_managed_run_admission"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/node_managed_run_operation.mbt",
+      "sha256": "4a7f8efc0739bfc1b5e0ca90bf7ea0e709e7c47a25cfbbdb2e4f02bebeb7ada0",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[P,E]begin_node_managed_run_operation_construction",
+          "declaration": "[ P , E ] begin_node_managed_run_operation_construction ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , execution_bytes : Int64 , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]begin_prepared_run_operation_construction",
+          "declaration": "[ P , E ] begin_prepared_run_operation_construction ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , execution_bytes : Int64 , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]complete_node_managed_run_operation_construction",
+          "declaration": "[ P , E ] complete_node_managed_run_operation_construction ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]complete_prepared_run_operation_construction",
+          "declaration": "[ P , E ] complete_prepared_run_operation_construction ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]reserve_node_managed_run_operation",
+          "declaration": "[ P , E ] reserve_node_managed_run_operation ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , control : CapacityReservation ? , control_retained_bytes : Int64 , control_execution_bytes : Int64 , physical_attempt : Bool , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( CapacityReservation , Result [ NodeManagedRunOperationBacking , LedgerIssue ] ) , NodeManagedRunOperationIssue [ E ] , ]"
+        },
+        {
+          "name": "[P,E]reserve_node_managed_run_operation_controls",
+          "declaration": "[ P , E ] reserve_node_managed_run_operation_controls ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , control : CapacityReservation ? , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ CapacityReservation , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]reserve_prepared_run_operation",
+          "declaration": "[ P , E ] reserve_prepared_run_operation ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , control : CapacityReservation ? , control_retained_bytes : Int64 , control_execution_bytes : Int64 , physical_attempt : Bool , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( CapacityReservation , Result [ NodeManagedRunOperationBacking , LedgerIssue ] ) , NodeManagedRunOperationIssue [ E ] , ]"
+        },
+        {
+          "name": "[P,E]reserve_prepared_run_operation_controls",
+          "declaration": "[ P , E ] reserve_prepared_run_operation_controls ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , control : CapacityReservation ? , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ CapacityReservation , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]resize_node_managed_run_operation_control_construction",
+          "declaration": "[ P , E ] resize_node_managed_run_operation_control_construction ( value : NodeManagedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , control : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]resize_prepared_run_operation_control_construction",
+          "declaration": "[ P , E ] resize_prepared_run_operation_control_construction ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , control : CapacityReservation , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "reserve_node_managed_run_operation_control_owned",
+          "declaration": "reserve_node_managed_run_operation_control_owned ( ledger : Ledger , control : CapacityReservation ? , control_retained_bytes : Int64 , control_execution_bytes : Int64 , ) - > Result [ CapacityReservation , LedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,E]begin_node_managed_run_operation_construction",
+            "[P,E]begin_prepared_run_operation_construction",
+            "[P,E]complete_node_managed_run_operation_construction",
+            "[P,E]complete_prepared_run_operation_construction",
+            "[P,E]reserve_node_managed_run_operation",
+            "[P,E]reserve_node_managed_run_operation_controls",
+            "[P,E]reserve_prepared_run_operation",
+            "[P,E]reserve_prepared_run_operation_controls",
+            "[P,E]resize_node_managed_run_operation_control_construction",
+            "[P,E]resize_prepared_run_operation_control_construction",
+            "reserve_node_managed_run_operation_control_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/node_preparation_lifecycle_js.mbt",
+      "sha256": "cc626557bee46cf4711c4f7ae1a9b0f8c3b5c2f9f48664ed5ec7b8d7ec26e3ef",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]adopt_node_preparation_admission",
+          "declaration": "[ I , P ] adopt_node_preparation_admission ( owner : NodePreparationAdmission [ I ] , input : I , capacity : PreparationCapacity [ I , P ] , prepared : P , ) - > Result [ ( NodeManagedRunAdmission [ P ] , Ledger , PreparationRetirement , PreparationBodyBorrow [ P ] , ) , ImportedChildLedgerIssue , ]"
+        },
+        {
+          "name": "[I]begin_node_preparation_inventory",
+          "declaration": "[ I ] begin_node_preparation_inventory ( owner : NodePreparationAdmission [ I ] , input : I , retained_bytes : Int64 , execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ OriginalLedgerIdentity , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]check_node_local_preparation_original",
+          "declaration": "[ I ] check_node_local_preparation_original ( admission : NodeManagedRunAdmission [ I ] , input : I , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]check_node_preparation_input",
+          "declaration": "[ I ] check_node_preparation_input ( owner : NodePreparationAdmission [ I ] , input : I , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]cleanup_node_preparation_admission",
+          "declaration": "[ I ] cleanup_node_preparation_admission ( owner : NodePreparationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]node_local_preparation_limits",
+          "declaration": "[ I ] node_local_preparation_limits ( owner : NodePreparationAdmission [ I ] , input : I , ) - > Result [ LedgerLimits , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[I]start_node_preparation_admission",
+          "declaration": "[ I ] start_node_preparation_admission ( owner : NodePreparationAdmission [ I ] , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]adopt_node_preparation_admission",
+            "[I]begin_node_preparation_inventory",
+            "[I]check_node_local_preparation_original",
+            "[I]check_node_preparation_input",
+            "[I]cleanup_node_preparation_admission",
+            "[I]node_local_preparation_limits",
+            "[I]start_node_preparation_admission"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/preparation_adoption.mbt",
+      "sha256": "0d6d0687efedab84b9519a94e714598099d22fc919a295b35c253a4701c2eb7b",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]transfer_preparation_adoption_holders",
+          "declaration": "[ I , P ] transfer_preparation_adoption_holders ( capacity : PreparationCapacity [ I , P ] , input : I , prepared : P , ledger : Ledger , observe_current : ( ) - > Result [ Unit , ImportedChildLedgerIssue ] , ) - > Result [ ( PreparationRetirement , PreparationBodyBorrow [ P ] , PreparationBodyBorrow [ P ] ) , ImportedChildLedgerIssue , ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]transfer_preparation_adoption_holders"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/prepared_run_admission.mbt",
+      "sha256": "9b63ffc8b0f7210cd492a35c9d282e0b9336cb323b1a2fb984e6ede1ad2cc616",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[P,E]check_prepared_run_operation_original",
+          "declaration": "[ P , E ] check_prepared_run_operation_original ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P]backed_prepared_run_admission",
+          "declaration": "[ P ] backed_prepared_run_admission ( value : BackedPreparedRunAdmission [ P ] , ) - > PreparedRunAdmission [ P ]"
+        },
+        {
+          "name": "[P]check_prepared_run_admission",
+          "declaration": "[ P ] check_prepared_run_admission ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]check_prepared_run_cleanup_original",
+          "declaration": "[ P ] check_prepared_run_cleanup_original ( value : PreparedRunAdmission [ P ] , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]cleanup_prepared_run_admission",
+          "declaration": "[ P ] cleanup_prepared_run_admission ( value : PreparedRunAdmission [ P ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]node_prepared_run_admission",
+          "declaration": "[ P ] node_prepared_run_admission ( value : NodeManagedRunAdmission [ P ] , ) - > PreparedRunAdmission [ P ]"
+        },
+        {
+          "name": "[P]prepared_run_usage_isolated",
+          "declaration": "[ P ] prepared_run_usage_isolated ( value : PreparedRunAdmission [ P ] , ledger : Ledger , ) - > Bool"
+        },
+        {
+          "name": "[P]release_prepared_run_holder",
+          "declaration": "[ P ] release_prepared_run_holder ( value : PreparedRunAdmission [ P ] , ) - > Result [ Bool , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "[P]reserve_prepared_run_attempt",
+          "declaration": "[ P ] reserve_prepared_run_attempt ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , transfer_bytes : Int64 , retained_bytes : Int64 , execution_bytes : Int64 , quantities ? : QuantityAmounts ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource backed-child and Local Request/Run owners; closed original admission adaptation, no independent owner or permission",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P,E]check_prepared_run_operation_original",
+            "[P]backed_prepared_run_admission",
+            "[P]check_prepared_run_admission",
+            "[P]check_prepared_run_cleanup_original",
+            "[P]cleanup_prepared_run_admission",
+            "[P]node_prepared_run_admission",
+            "[P]prepared_run_usage_isolated",
+            "[P]release_prepared_run_holder",
+            "[P]reserve_prepared_run_attempt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission.mbt",
+                "anchor": "pub fn[P, C, I] prepare_backed_preparation_admission("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/backed_live_child.mbt",
+                "anchor": "pub fn[P, C, R] stop_backed_execution_live_child("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "## Portable Request preparation under the original backed child"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/preparation_backed_request_wbtest.mbt",
+                "anchor": "test \"portable backed Request keeps original compiler body Run and pending physical retirement\""
+              },
+              {
+                "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
+                "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

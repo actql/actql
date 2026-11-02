@@ -23,8 +23,8 @@ pub(all) enum NodeManagedRunOperationIssue[E] {
 /// post-fences in this call; no reusable current capability leaves it.
 /// A body quota refusal returns the actual control, which the SAME caller must
 /// retain before returning that refusal. No serial, charge or peak is refunded.
-pub fn[P, E] reserve_node_managed_run_operation(
-  value : NodeManagedRunAdmission[P],
+pub fn[P, E] reserve_prepared_run_operation(
+  value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
@@ -47,7 +47,7 @@ pub fn[P, E] reserve_node_managed_run_operation(
     return Err(Control(InvalidCharge))
   }
   match
-    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -81,8 +81,8 @@ pub fn[P, E] reserve_node_managed_run_operation(
 ///|
 /// The same closed current/original boundary for the actual control-only
 /// entrance. No dummy operation body, mode, current proof or scope is created.
-pub fn[P, E] reserve_node_managed_run_operation_controls(
-  value : NodeManagedRunAdmission[P],
+pub fn[P, E] reserve_prepared_run_operation_controls(
+  value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
@@ -94,7 +94,7 @@ pub fn[P, E] reserve_node_managed_run_operation_controls(
     return Err(Control(InvalidCharge))
   }
   match
-    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -141,15 +141,15 @@ fn reserve_node_managed_run_operation_control_owned(
 /// Keep its SAME retained backing and spent slot; dispose only workspace.
 /// This creates no reservation, attempt, physical stop or cleanup ACK. The
 /// closed consumer fence runs after the one original current observation.
-pub fn[P, E] complete_node_managed_run_operation_construction(
-  value : NodeManagedRunAdmission[P],
+pub fn[P, E] complete_prepared_run_operation_construction(
+  value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
   backing : NodeManagedRunOperationBacking,
 ) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
   match
-    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -169,8 +169,8 @@ pub fn[P, E] complete_node_managed_run_operation_construction(
 /// Grow only the SAME retained pure-constructor reservation immediately before
 /// its callback. The original consumer/current frame is the same as completion;
 /// neither this byte resize nor completion creates an attempt or a new owner.
-pub fn[P, E] begin_node_managed_run_operation_construction(
-  value : NodeManagedRunAdmission[P],
+pub fn[P, E] begin_prepared_run_operation_construction(
+  value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
@@ -181,7 +181,7 @@ pub fn[P, E] begin_node_managed_run_operation_construction(
     return Err(Control(InvalidCharge))
   }
   match
-    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -200,8 +200,8 @@ pub fn[P, E] begin_node_managed_run_operation_construction(
 /// Resize the SAME existing management-control reservation at its actual
 /// synchronous constructor boundary. The original consumer/current frame
 /// precedes the callback-free resize; no attempt, resource or Root is created.
-pub fn[P, E] resize_node_managed_run_operation_control_construction(
-  value : NodeManagedRunAdmission[P],
+pub fn[P, E] resize_prepared_run_operation_control_construction(
+  value : PreparedRunAdmission[P],
   prepared : P,
   ledger : Ledger,
   original : () -> Result[Unit, E],
@@ -213,11 +213,126 @@ pub fn[P, E] resize_node_managed_run_operation_control_construction(
     return Err(Control(InvalidCharge))
   }
   match
-    check_node_managed_run_operation_original(value, prepared, ledger, original) {
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   resize_capacity_reservation_current(
     ledger, control, retained_bytes, execution_bytes,
   ).map_err(issue => Control(issue))
+}
+
+///|
+// Original Node entry forwards the same original to the shared closed operation.
+pub fn[P, E] reserve_node_managed_run_operation(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  control : CapacityReservation?,
+  control_retained_bytes : Int64,
+  control_execution_bytes : Int64,
+  physical_attempt : Bool,
+  transfer_bytes : Int64,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[
+  (CapacityReservation, Result[NodeManagedRunOperationBacking, LedgerIssue]),
+  NodeManagedRunOperationIssue[E],
+] {
+  reserve_prepared_run_operation(
+    NodePreparedRun(value),
+    prepared,
+    ledger,
+    original,
+    control,
+    control_retained_bytes,
+    control_execution_bytes,
+    physical_attempt,
+    transfer_bytes,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
+// Original Node entry forwards the same original to the shared closed operation.
+pub fn[P, E] reserve_node_managed_run_operation_controls(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  control : CapacityReservation?,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[CapacityReservation, NodeManagedRunOperationIssue[E]] {
+  reserve_prepared_run_operation_controls(
+    NodePreparedRun(value),
+    prepared,
+    ledger,
+    original,
+    control,
+    retained_bytes,
+    execution_bytes,
+  )
+}
+
+///|
+// Original Node entry forwards the same original to the shared closed operation.
+pub fn[P, E] complete_node_managed_run_operation_construction(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  complete_prepared_run_operation_construction(
+    NodePreparedRun(value),
+    prepared,
+    ledger,
+    original,
+    backing,
+  )
+}
+
+///|
+// Original Node entry forwards the same original to the shared closed operation.
+pub fn[P, E] begin_node_managed_run_operation_construction(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+  execution_bytes : Int64,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  begin_prepared_run_operation_construction(
+    NodePreparedRun(value),
+    prepared,
+    ledger,
+    original,
+    backing,
+    execution_bytes,
+  )
+}
+
+///|
+// Original Node entry forwards the same original to the shared closed operation.
+pub fn[P, E] resize_node_managed_run_operation_control_construction(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  control : CapacityReservation,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  resize_prepared_run_operation_control_construction(
+    NodePreparedRun(value),
+    prepared,
+    ledger,
+    original,
+    control,
+    retained_bytes,
+    execution_bytes,
+  )
 }

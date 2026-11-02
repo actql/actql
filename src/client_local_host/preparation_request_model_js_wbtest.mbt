@@ -685,9 +685,7 @@ test "Model Scope closing in adoption current keeps the original Request cleanup
   assert_true(closed.val)
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   assert_true(parent.phase == ProgramBodyReady && parent.input is Some(_))
-  assert_true(
-    @resources.check_node_preparation_input(parent.initial, input) is Ok(_),
-  )
+  assert_true(preparation_initial_input(parent.initial, input) is Ok(_))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

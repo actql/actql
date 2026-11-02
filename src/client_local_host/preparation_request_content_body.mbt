@@ -686,7 +686,7 @@ pub fn[I] begin_request_content_managed_run(
         selected.limits,
       )
     SerializationContent(selected) =>
-      begin_preparation_owned_installed_serialization_run(
+      begin_preparation_owned_installed_serialization_run_original(
         owner.initial,
         input,
         capacity,

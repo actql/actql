@@ -5305,3 +5305,63 @@ the reader constructor therefore receives the same page-byte-derived node and
 row-wire bounds and the one-page total, while preserving tighter policy limits.
 This does not change production provider profiles, schema admission, credential
 limits, target or identity bounds, Source ownership or failed-response overlap.
+
+## Portable Request preparation under the original backed child
+
+The installed physical owner may select `begin_backed_request_preparation`
+with the same input-bound `BackedPreparationAdmission`. That admission consumes
+one fresh `BackedExecutionLiveProjection` through the existing backed
+initialization admission. It starts and takes only that original delegated
+child. The Host's imported Root, seeded VM/Host capacities, current observation
+and physical lease remain unchanged. The Request inventory still requires a
+pristine child; an already used Host ledger cannot satisfy this condition.
+A legitimately admitted Request delegation under the same parent supplies that
+child, rather than resetting the Host or inventing a Node admission.
+
+A closed internal initial-admission choice dispatches only start, original-input,
+limits, adoption and cleanup to their existing owners. The Query, Program,
+Effect, Model, Content and capture algorithms continue on the same Request and
+capacity. Node's existing public constructors and nominal admissions retain
+their original signatures and remain uninhabited on other backends. No scalar
+limit, equal input, provider callback or serialized identifier creates an
+admission through this adapter.
+
+Run adoption uses the original Resource transfer: two separately registered
+body holders are installed before the single original current boundary.
+The existing constructor, operation, attempt and retirement paths dispatch over
+the closed original admission without acquiring another current capability.
+A synchronous stop of an admitted backed child immediately restricts that same
+imported child's stopping state. A consuming callback cannot admit a new
+reservation after that stop by waiting for a later current observation.
+The separate physical acknowledgment is never inferred from this restriction.
+
+The physical issuer must reserve the complete original region, provisioning
+attempts, admission/frame/controller captures, output and failed-constructor
+coexistence before creating them. Shared region bytes remain suballocations of
+the same original allocation; independent overhead remains debited to the same
+parent. The Local policy's existing limits and fixed control quote are DATA,
+not evidence that a particular Host capacity contains this complete envelope.
+There is no fallback to another Root, lower estimate or independent preparation.
+
+Retirement first releases each actual operation/output/body borrower through
+its existing owner. Logical quiescence permits the original imported child to
+stop and report, but does not acknowledge its physical lease. Backed admission
+cleanup remains pending until the same physical issuer retires the original
+live access after its real acknowledgment. Failed constructors retain their
+original input, reservation and cleanup dependency; foreign, copied, stopped,
+reentered or already consumed originals cannot replace them. This port neither
+starts a second execution nor provides a new recovery or authorization engine.
+
+### Actual scoped Request demand and the Local ceiling
+
+The Node supplier keeps its existing complete sealed installation envelope
+requirement. An already admitted backed Request child instead retains its
+actual, possibly smaller scope within the same installed Local policy ceiling.
+The child is not upgraded to the ceiling, and the ceiling is not preallocated
+as an otherwise unused physical region. The fixed prefix must fit its complete
+existing control quote before the Request controller is constructed. Every
+snapshot, parser, compiler, output and failed-constructor overlap then grows
+the same reservation by its existing independently computed demand before its
+allocation. A one-byte-short fixed prefix or unfunded later grow still refuses
+on that original child. Neither successful prefix admission nor available
+policy headroom establishes physical capacity for the next phase.

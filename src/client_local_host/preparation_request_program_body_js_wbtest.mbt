@@ -1502,10 +1502,7 @@ test "source-free adoption checks exact initial limits before transferring its o
   let (parent, input, prepared) = request_program_body_fixture()
   reserve_request_program_plan(parent, input).unwrap()
   let original = request_program_installed_plan(prepared)
-  let available = @resources.node_local_preparation_limits(
-    parent.initial,
-    input,
-  ).unwrap()
+  let available = preparation_initial_limits(parent.initial, input).unwrap()
   // White-box boundary: alter only the quoted DATA, not the operational grant.
   // No execution/normal-installation acceptance is claimed by this fixture.
   let oversized = {
@@ -1533,7 +1530,7 @@ test "source-free adoption checks exact initial limits before transferring its o
   assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
   assert_eq(after.live_reservations, before.live_reservations)
   assert_true(
-    begin_preparation_owned_installed_managed_run(
+    begin_preparation_owned_installed_managed_run_original(
       parent.initial,
       [1],
       parent.program_capacity.unwrap(),
@@ -1546,7 +1543,7 @@ test "source-free adoption checks exact initial limits before transferring its o
   let (foreign_parent, foreign_input, foreign_prepared) = request_program_body_fixture()
   let foreign = request_program_installed_plan(foreign_prepared)
   assert_true(
-    begin_preparation_owned_installed_managed_run(
+    begin_preparation_owned_installed_managed_run_original(
       parent.initial,
       input,
       parent.program_capacity.unwrap(),

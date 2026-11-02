@@ -363,7 +363,7 @@ pub fn[I] begin_request_effect_managed_run(
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_effect_managed_run(
+  let result = begin_preparation_owned_installed_effect_managed_run_original(
     owner.initial,
     input,
     capacity,

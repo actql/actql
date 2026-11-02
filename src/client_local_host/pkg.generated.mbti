@@ -72,6 +72,8 @@ pub fn attach_installed_source_read_acquisition(ClientInstalledSourceRead, @clie
 
 pub fn[I] begin_backed_host_initialization_preparation(@physical_resources.BackedInitializationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientHostInitializationPreparation[I], ClientHostInitializationIssue]
 
+pub fn[I] begin_backed_request_preparation(@physical_resources.BackedPreparationAdmission[I], I, ClientLocalResourcePolicy) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue]
+
 pub fn begin_client_original_keyed_lookup_response(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture) -> Result[Unit, ClientOriginalKeyedChildIssue]
 
 pub fn[I, P] begin_effect_program_check_preparation(@physical_resources.PreparationCapacity[I, P], I, @stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, P], ClientProgramCheckPreparationIssue]

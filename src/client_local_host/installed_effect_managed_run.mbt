@@ -161,7 +161,10 @@ pub fn begin_prepared_installed_effect_mock_model_managed_run(
     Ok(value) => value
   }
   let run = new_installed_managed_run_owned(
-    PlannedEffectManaged(admission, plan),
+    PlannedEffectManaged(
+      @resources.node_prepared_run_admission(admission),
+      plan,
+    ),
     request,
     ledger,
   )

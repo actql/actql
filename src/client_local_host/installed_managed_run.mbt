@@ -3,15 +3,15 @@
 /// capacity issuer. Any Source reads and the managed DAG borrow this one Ledger.
 priv enum ClientInstalledManagedRunOriginal {
   PureManaged(
-    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @resources.PreparedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
   PlannedEffectManaged(
-    @resources.NodeManagedRunAdmission[ClientInstalledEffectManagedPlan],
+    @resources.PreparedRunAdmission[ClientInstalledEffectManagedPlan],
     ClientInstalledEffectManagedPlan
   )
   PreparationContentManaged(
-    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @resources.PreparedRunAdmission[@publication_host.PreparedClientProgram],
     @publication_host.PreparedClientProgram
   )
 }
@@ -774,7 +774,7 @@ fn new_installed_managed_run(
   ledger : @resources.Ledger,
 ) -> ClientInstalledManagedRun {
   new_installed_managed_run_owned(
-    PureManaged(admission, prepared),
+    PureManaged(@resources.node_prepared_run_admission(admission), prepared),
     request,
     ledger,
   )
@@ -938,13 +938,11 @@ fn installed_managed_run_accounting_values(
 
 ///|
 fn[P] check_installed_managed_run_admission(
-  admission : @resources.NodeManagedRunAdmission[P],
+  admission : @resources.PreparedRunAdmission[P],
   prepared : P,
   ledger : @resources.Ledger,
 ) -> Result[Unit, @resources.ImportedChildLedgerIssue] {
-  @resources.check_node_managed_run_mutable_admission(
-    admission, prepared, ledger,
-  )
+  @resources.check_prepared_run_admission(admission, prepared, ledger)
 }
 
 ///|
@@ -1412,11 +1410,11 @@ pub fn retire_installed_managed_run(
   guard value.preparation is Some(preparation) else { return Err(Retired) }
   let cleaned = match preparation {
     PureManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
+      @resources.cleanup_prepared_run_admission(admission)
     PlannedEffectManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
+      @resources.cleanup_prepared_run_admission(admission)
     PreparationContentManaged(admission, _) =>
-      @resources.cleanup_node_managed_run_admission(admission)
+      @resources.cleanup_prepared_run_admission(admission)
   }
   match cleaned {
     Err(issue) => return Err(Resource(issue))

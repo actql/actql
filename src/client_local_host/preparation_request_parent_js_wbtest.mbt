@@ -57,7 +57,10 @@ test "request parent reserves controls then grows its original snapshot reservat
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let after = @resources.ledger_usage(owner.ledger)
   assert_true(physical_equal(owner.capacity, original))
-  assert_true(physical_equal(owner.initial, initial))
+  assert_true(
+    owner.initial is NodeRequestInitial(original) &&
+    physical_equal(original, initial),
+  )
   assert_true(after.reserved_retention_bytes > before.reserved_retention_bytes)
   assert_true(after.reserved_execution_bytes > 0L)
   assert_eq(after.live_reservations, before.live_reservations)
@@ -236,4 +239,22 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)
+}
+
+///|
+test "Node Request keeps its original full sealed envelope requirement" {
+  let input = [1]
+  let policy = client_local_resource_policy()
+  let ceiling = client_local_preparation_initial_limits(policy).unwrap()
+  let (controls, _) = client_request_preparation_control_capacity(policy).unwrap()
+  let initial = request_parent_fixture(
+    input,
+    initial_limits=Some({
+      ..ceiling,
+      retained_bytes: controls,
+      execution_bytes: 0L,
+    }),
+  )
+  assert_true(begin_request_preparation(initial, input, policy) is Err(Policy))
+  @resources.cleanup_node_preparation_admission(initial).unwrap()
 }

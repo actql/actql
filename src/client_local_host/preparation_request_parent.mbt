@@ -90,7 +90,7 @@ priv enum ClientRequestDomainCompilationInputs {
 /// body type is selected. Unit is never completed or interpreted as a body.
 /// This record owns no second Ledger, byte allowance, parser or serializer.
 struct ClientRequestPreparation[I] {
-  initial : @resources.NodePreparationAdmission[I]
+  initial : ClientPreparationInitial[I]
   ledger : @resources.Ledger
   capacity : @resources.PreparationCapacity[I, Unit]
   mut input : I?
@@ -242,22 +242,38 @@ pub fn[I] begin_request_preparation(
   input : I,
   policy : ClientLocalResourcePolicy,
 ) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
+  begin_request_preparation_original(NodeRequestInitial(initial), input, policy)
+}
+
+///|
+fn[I] begin_request_preparation_original(
+  initial : ClientPreparationInitial[I],
+  input : I,
+  policy : ClientLocalResourcePolicy,
+) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
   guard client_local_preparation_initial_limits(policy) is Some(expected) &&
     client_request_preparation_control_capacity(policy)
     is Some((retained, execution)) else {
     return Err(Policy)
   }
-  match @resources.check_node_preparation_input(initial, input) {
+  match preparation_initial_input(initial, input) {
     Err(issue) => return Err(Initial(issue))
     Ok(_) => ()
   }
-  let ledger = match @resources.start_node_preparation_admission(initial) {
+  let ledger = match preparation_initial_start(initial, input) {
     Err(issue) => return Err(Initial(issue))
     Ok(value) => value
   }
-  // Actual sealed initial envelope may cover additional installed domains.
-  // It must contain the Local baseline; no caller-supplied limit is admitted.
-  if !installed_effect_limits_fit(expected, @resources.ledger_limits(ledger)) {
+  let available = @resources.ledger_limits(ledger)
+  let fits = match initial {
+    // Preserve the existing Node supplier's full sealed installation envelope.
+    NodeRequestInitial(_) => installed_effect_limits_fit(expected, available)
+    // This nominal scoped child supplies actual backing, not the policy's
+    // unused maxima. Keep its original grant within that policy ceiling;
+    // every fixed/variable constructor still reserves its full actual quote.
+    BackedRequestInitial(_) => installed_effect_limits_fit(available, expected)
+  }
+  if !fits {
     return Err(Policy)
   }
   let capacity : @resources.PreparationCapacity[I, Unit] = match
@@ -667,7 +683,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
     Ok(false) => return Err(WrongPhase)
     Ok(true) => owner.input = None
   }
-  match @resources.cleanup_node_preparation_admission(owner.initial) {
+  match preparation_initial_cleanup(owner.initial) {
     Err(issue) => Err(Initial(issue))
     Ok(_) => {
       owner.program_capacity = None
@@ -686,4 +702,20 @@ pub fn[I] request_preparation_accounting(
   owner : ClientRequestPreparation[I],
 ) -> (Int64, Int64, Int64, Int64, Int64, Int64) {
   @resources.preparation_capacity_accounting(owner.capacity)
+}
+
+///|
+/// The same Request owner on a fresh legitimately backed child of the actual
+/// installed parent. Fixed VM capacities and the enclosing Host stay owned by
+/// that parent; Node's pristine-child/census law is unchanged.
+pub fn[I] begin_backed_request_preparation(
+  initial : @resources.BackedPreparationAdmission[I],
+  input : I,
+  policy : ClientLocalResourcePolicy,
+) -> Result[ClientRequestPreparation[I], ClientRequestPreparationIssue] {
+  begin_request_preparation_original(
+    BackedRequestInitial(initial),
+    input,
+    policy,
+  )
 }

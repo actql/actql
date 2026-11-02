@@ -474,8 +474,7 @@ pub fn[I] prepare_request_model_read_scope(
     physical_equal(original, input) else {
     return Err(ForeignOriginal)
   }
-  let available = match
-    @resources.node_local_preparation_limits(owner.initial, input) {
+  let available = match preparation_initial_limits(owner.initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }

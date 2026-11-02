@@ -302,7 +302,7 @@ test "same Request Effect Model retains original Scope Plan input history and bo
   )
   assert_true(parent.phase == Selected && parent.effect_plan is None)
   assert_true(
-    @resources.check_node_preparation_input(parent.initial, input)
+    preparation_initial_input(parent.initial, input)
     is Err(@resources.AlreadyConsumed),
   )
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
@@ -486,9 +486,7 @@ test "Model Scope closing inside original adoption current leaves the same Reque
   )
   assert_true(acknowledged.val)
   assert_true(parent.phase == EffectBodyReady && parent.input is Some(_))
-  assert_true(
-    @resources.check_node_preparation_input(parent.initial, input) is Ok(_),
-  )
+  assert_true(preparation_initial_input(parent.initial, input) is Ok(_))
   assert_eq(@resources.ledger_usage(parent.ledger), before)
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)

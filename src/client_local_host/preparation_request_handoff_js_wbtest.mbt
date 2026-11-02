@@ -40,7 +40,7 @@ fn request_handoff_fixture_cleanup(
   assert_true(
     @resources.abort_preparation_capacity_after_cleanup(parent.capacity, input).unwrap(),
   )
-  @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+  preparation_initial_cleanup(parent.initial).unwrap()
 }
 
 ///|

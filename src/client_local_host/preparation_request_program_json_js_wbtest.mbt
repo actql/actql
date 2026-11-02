@@ -25,7 +25,10 @@ test "original request parent continues into generic Unicode Effect source and P
   assert_true(physical_equal(child.capacity, parent.capacity))
   assert_true(physical_equal(child.limits, limits))
   assert_true(physical_equal(parent.program_json.unwrap(), child))
-  assert_true(physical_equal(parent.initial, initial))
+  assert_true(
+    parent.initial is NodeRequestInitial(original) &&
+    physical_equal(original, initial),
+  )
   assert_true(parent.phase == ProgramJson)
   assert_eq(child.base_retained, before.reserved_retention_bytes)
   assert_eq(child.base_execution, before.reserved_execution_bytes)

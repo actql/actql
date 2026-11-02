@@ -182,7 +182,7 @@ test "original Request parent funds Source entry across both one-byte-short boun
         input,
       ).unwrap(),
     )
-    @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+    preparation_initial_cleanup(parent.initial).unwrap()
   }
 }
 

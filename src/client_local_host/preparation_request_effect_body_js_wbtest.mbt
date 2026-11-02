@@ -339,11 +339,10 @@ test "Effect Request immutable limits DATA does not observe current while the re
   let (plan, request) = request_effect_plan_fixture(prepared)
   complete_request_effect_preparation(parent, input, plan).unwrap()
   let before = calls.val
-  let limits = @resources.node_local_preparation_limits(parent.initial, input).unwrap()
+  let limits = preparation_initial_limits(parent.initial, input).unwrap()
   assert_true(physical_equal(limits, @resources.ledger_limits(parent.ledger)))
   assert_true(
-    @resources.node_local_preparation_limits(parent.initial, [1])
-    is Err(ForeignOriginal),
+    preparation_initial_limits(parent.initial, [1]) is Err(ForeignOriginal),
   )
   assert_eq(calls.val, before)
   action.val = Some(() => {

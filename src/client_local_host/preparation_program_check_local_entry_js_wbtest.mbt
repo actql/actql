@@ -88,7 +88,7 @@ test "same parent backs original Local child before entry across both one-byte-s
     )
     @resources.abort_preparation_capacity_after_cleanup(parent.capacity, input).unwrap()
     |> ignore
-    @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+    preparation_initial_cleanup(parent.initial).unwrap()
   }
 }
 

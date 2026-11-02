@@ -409,10 +409,7 @@ test "source-free SQL capacity is refused before module completion on its origin
       provider_factory=_ => [],
     )
     let plan = parent.program_source_free.unwrap()
-    let available = @resources.node_local_preparation_limits(
-      parent.initial,
-      input,
-    ).unwrap()
+    let available = preparation_initial_limits(parent.initial, input).unwrap()
     assert_true(plan.limits.retained_bytes <= available.retained_bytes)
     if fits {
       result.unwrap()

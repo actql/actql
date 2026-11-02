@@ -707,8 +707,7 @@ fn[I] prepare_request_program_module_body_owned(
       // the same initial admission before completing its body or adopting a Run.
       // These immutable quantities neither grant bytes nor establish currentness.
       if plan is Some(original) {
-        let available = match
-          @resources.node_local_preparation_limits(owner.initial, input) {
+        let available = match preparation_initial_limits(owner.initial, input) {
           Err(issue) => return Err(Installed(Resource(issue)))
           Ok(value) => value
         }
@@ -1180,7 +1179,7 @@ pub fn[I] begin_request_program_managed_run(
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_managed_run(
+  let result = begin_preparation_owned_installed_managed_run_original(
     owner.initial,
     input,
     capacity,

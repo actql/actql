@@ -47,7 +47,7 @@ pub fn[I] begin_request_capture_managed_run(
     return Err(ForeignOriginal)
   }
   owner.phase = Selecting
-  let result = begin_preparation_owned_installed_capture_run(
+  let result = begin_preparation_owned_installed_capture_run_original(
     owner.initial,
     input,
     capacity,

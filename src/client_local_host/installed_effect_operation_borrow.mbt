@@ -292,7 +292,7 @@ fn borrow_installed_effect_operation_original(
   }
   let previous_control = owner.effect_operation_controls
   let control_capacity = plan.operation_control_capacity
-  let reserved = @resources.reserve_node_managed_run_operation(
+  let reserved = @resources.reserve_prepared_run_operation(
     admission,
     plan,
     ledger,
@@ -672,7 +672,7 @@ fn begin_installed_effect_operation_controls_original(
   }
   let capacity = plan.operation_control_capacity
   let reservation = match
-    @resources.reserve_node_managed_run_operation_controls(
+    @resources.reserve_prepared_run_operation_controls(
       admission,
       plan,
       ledger,
@@ -738,7 +738,7 @@ pub fn begin_installed_effect_operation_construction(
     return Err(AlreadyBound)
   }
   owner.effect_operation_opening = true
-  let result = @resources.begin_node_managed_run_operation_construction(
+  let result = @resources.begin_prepared_run_operation_construction(
     admission,
     plan,
     ledger,
@@ -791,7 +791,7 @@ pub fn complete_installed_effect_operation_construction(
     return Err(AlreadyBound)
   }
   owner.effect_operation_opening = true
-  let result = @resources.complete_node_managed_run_operation_construction(
+  let result = @resources.complete_prepared_run_operation_construction(
     admission,
     plan,
     ledger,
@@ -923,7 +923,7 @@ fn resize_installed_effect_operation_control_construction(
   owner.effect_operation_opening = true
   let capacity = plan.operation_control_capacity
   let retained = @execution.execution_capacity_retained_bytes(capacity)
-  let result = @resources.resize_node_managed_run_operation_control_construction(
+  let result = @resources.resize_prepared_run_operation_control_construction(
     admission,
     plan,
     ledger,

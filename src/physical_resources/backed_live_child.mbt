@@ -252,6 +252,12 @@ pub fn[P, C, R] stop_backed_execution_live_child(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  // The same original child already exists inside this synchronous stop.
+  // Publish its restriction before a consuming callback can return; the
+  // imported post-current fence must not wait for another external callback.
+  if access.child_origin is Some(origin) {
+    origin.stopping = true
+  }
   access.closing = true
   Ok(())
 }

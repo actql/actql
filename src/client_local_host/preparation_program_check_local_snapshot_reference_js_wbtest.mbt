@@ -94,7 +94,7 @@ test "same parent funds first original Member Reference observation before eithe
     @context.clear_source_registration(read)
     @resources.abort_preparation_capacity_after_cleanup(parent.capacity, input).unwrap()
     |> ignore
-    @resources.cleanup_node_preparation_admission(parent.initial).unwrap()
+    preparation_initial_cleanup(parent.initial).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).attempts, 0)
     assert_eq(
       @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
