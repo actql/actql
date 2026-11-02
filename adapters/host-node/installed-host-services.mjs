@@ -933,47 +933,6 @@ export function retireInstalledSourceInitialization(services) {
   return completed;
 }
 
-// The Calendar provider keeps its original, mandatory profile grammar. This
-// projects rejection bounds into the SAME selected generic inventory; it
-// neither changes that profile nor reserves or credits any capacity.
-function calendarImplementationReaderLimits(supplied, selected) {
-  if (selected === undefined || selected.metadata !== 0) {
-    fail('InstalledCalendarImplementationProfileUnavailable');
-  }
-  const names = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxPages', 'maxRows',
-    'maxRequests', 'perPage', 'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes',
-    'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth', 'maxDeclarationBytes',
-    'maxDeclarationNodes', 'maxSecretBytes', 'maxCaBytes'];
-  if (Reflect.ownKeys(supplied).length !== names.length || names.some(name =>
-    !Object.hasOwn(supplied[name] ?? {}, 'value') || !Number.isSafeInteger(supplied[name].value) ||
-    supplied[name].value < 1 || supplied[name].value >= 2147483647)) {
-    fail('InvalidInstalledCalendarImplementationLimits');
-  }
-  const original = Object.freeze(Object.fromEntries(names.map(name => [name, supplied[name].value])));
-  const policy = selected.value;
-  const total = BigInt(original.maxResponseBytes) * BigInt(original.maxPages);
-  // Four bytes per original UTF16 unit is a conservative UTF8 ceiling, not
-  // a conversion/normalization of the cursor. Check before Number conversion.
-  const cursor = 4n * BigInt(original.maxCursorUnits);
-  if (original.perPage > 250 || original.maxPages > original.maxRequests ||
-      original.perPage > policy.pageSize || original.maxRows > policy.maxTotalRows ||
-      original.maxDeclarationBytes > policy.maxDeclarationBytes ||
-      original.maxDeclarationNodes > policy.maxDeclarationNodes ||
-      total > BigInt(policy.maxTotalResponseBytes) || cursor > BigInt(policy.maxCursorBytes)) {
-    fail('InstalledSourceReaderImplementationBoundsExceeded');
-  }
-  return Object.freeze({original, limits: Object.freeze({
-    maxResponseBytes: original.maxResponseBytes, maxTotalResponseBytes: Number(total),
-    maxNodes: original.maxNodes, maxDepth: original.maxDepth,
-    maxRows: Math.min(original.perPage, original.maxRows), maxTotalRows: original.maxRows,
-    maxPages: original.maxPages, pageSize: original.perPage, maxCursorBytes: Number(cursor),
-    maxIdentityBytes: original.maxValueTextBytes, maxTargetBytes: policy.maxTargetBytes,
-    maxValueNodes: original.maxValueNodes, maxValueTextBytes: original.maxValueTextBytes,
-    maxRowsWireBytes: original.maxRowsWireBytes, maxRowsWireNodes: original.maxRowsWireNodes,
-    maxRowsWireDepth: original.maxRowsWireDepth, maxSecretBytes: original.maxSecretBytes,
-  })});
-}
-
 // Project the two existing complete query/point provider grammars once. The
 // result retains every original rejection bound; it is not another profile,
 // a grant or an independently admitted capacity.
@@ -1192,7 +1151,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         requestConstruction = field.value;
       }
       const profile = sourceProfiles.get(selection);
-      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), calendarLimits, nestedLimits, threadLimits, slackLimits;
+      let supplied = Object.getOwnPropertyDescriptors(fields.limits.value ?? {}), nestedLimits, threadLimits, slackLimits;
       if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'gmail' &&
           Object.hasOwn(supplied, 'maxThreads')) {
         threadLimits = gmailThreadImplementationReaderLimits(supplied, columns, profile);
@@ -1209,14 +1168,8 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
         nestedLimits = nestedImplementationReaderLimits(supplied, columns, profile);
         supplied = Object.getOwnPropertyDescriptors(nestedLimits.limits);
       }
-      if (Object.getOwnPropertyDescriptor(installation, 'registration')?.value === 'calendar' &&
-          !Object.hasOwn(supplied, 'maxTotalResponseBytes')) {
-        const projected = calendarImplementationReaderLimits(supplied, profile);
-        calendarLimits = projected.original;
-        supplied = Object.getOwnPropertyDescriptors(projected.limits);
-      }
       if (requestConstruction !== undefined &&
-          (calendarLimits !== undefined || nestedLimits !== undefined || threadLimits !== undefined || slackLimits !== undefined)) {
+          (nestedLimits !== undefined || threadLimits !== undefined || slackLimits !== undefined)) {
         fail('InstalledSourceReaderRequestConstructionChanged');
       }
       const names = [...installedJsonSourceReaderLimitNames, 'maxSecretBytes'];
@@ -1245,10 +1198,6 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
             nestedLimits !== undefined && Object.keys(nestedLimits.original).some(function sequenceSelectionChanged(name) {
               return previous.nestedLimits.original[name] !== nestedLimits.original[name];
             }) ||
-            (previous.calendarLimits === undefined) !== (calendarLimits === undefined) ||
-            calendarLimits !== undefined && Object.keys(calendarLimits).some(function calendarSelectionChanged(name) {
-              return previous.calendarLimits[name] !== calendarLimits[name];
-            }) ||
             (previous.threadLimits === undefined) !== (threadLimits === undefined) ||
             threadLimits !== undefined && Object.keys(threadLimits.original).some(function threadSelectionChanged(name) {
               return previous.threadLimits.original[name] !== threadLimits.original[name];
@@ -1270,7 +1219,7 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       const value = Object.freeze({capacity, limits, runAcquisitionLimits: Object.freeze({
         maxBindings: policy[1], maxSecretBytes: limits.maxSecretBytes})});
-      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, calendarLimits, nestedLimits, threadLimits, slackLimits, requestConstruction, preservingResponse, value}));
+      current(); sourceImplementations.set(selection, Object.freeze({runtimeBundleCid, columns, nestedLimits, threadLimits, slackLimits, requestConstruction, preservingResponse, value}));
       return value;
     },
     createSourceReader(options) {

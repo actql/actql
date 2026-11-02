@@ -122273,7 +122273,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "86f613556ff3048496fa65b9223ec5fc3bade0906aeb7dd2f2e1e6740da3e60a",
+      "sha256": "41449e1a79fe048ff5d5fc70d69d9f6f6860ccfba0df17abfa50f4ce00140ea0",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -122486,28 +122486,6 @@
           "async": false
         },
         {
-          "name": "calendarImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "calendarImplementationReaderLimits/calendarImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "calendarImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "captureInstalledSourceServices",
           "parameters": [
             "receiver",
@@ -122602,13 +122580,6 @@
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation",
           "parameters": [
             "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/calendarSelectionChanged",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -123475,12 +123446,8 @@
             "borrowInstalledSourceInitialization",
             "borrowInstalledSourceInitialization/view/init:environment/init:environment",
             "borrowInstalledSourceInitialization/view/init:release/init:release",
-            "calendarImplementationReaderLimits",
-            "calendarImplementationReaderLimits/calendarImplementationReaderLimits",
-            "calendarImplementationReaderLimits/original/original",
             "closeInstalledSourceConstruction",
             "completeInstalledSourceInitialization",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/calendarSelectionChanged",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/sequenceSelectionChanged",
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
@@ -123626,116 +123593,6 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
-              },
-              {
-                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
-                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
-              },
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-host-services.mjs",
-                "anchor": "export function createInstalledHostServices"
-              },
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
-                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "## Installed JSON Source service originals"
               },
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",

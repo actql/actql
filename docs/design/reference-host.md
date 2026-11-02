@@ -3095,3 +3095,16 @@ The existing original child status/retry, borrower return and parent retirement
 still govern resource release; pending or unknown duties remain retained.
 Independent wire-only and held-target continuations keep their declared original
 boundaries and cannot use copied DATA as a same-parent preparation witness.
+
+
+### Connector-owned Calendar reader selection
+
+The Calendar Source constructor keeps its complete immutable installation profile
+and selects the standard JSON reader limits before entering the shared Host
+service. It preserves the original page/request relationship, total response
+ceiling, row limits and four-byte cursor ceiling. The same original profile
+continues to the provider page reader and installation identity. The shared
+service retains its original Source/installation/runtime association, generic
+limit equality and capacity/reader/cleanup duties; it does not parse Calendar
+profile grammar or dispatch on its registration. This moves the existing
+projection without adding a capacity owner, policy or profile field.
