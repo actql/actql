@@ -24,6 +24,9 @@ const pause = () => new Promise(resolve => setTimeout(resolve, 25));
 let original;
 try {
   if (step === 'hold') {
+    // Open alone retains lazy services. This existing public read activates
+    // the same empty Checkpoint owner without submitting or approving a Run.
+    assert.deepEqual((await client.checkpoints({limit: 1})).items, []);
     await client.close();
     original = await writeSyntheticHistoricalHeldValues({directory, document, requestId, authorization,
       runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')),
