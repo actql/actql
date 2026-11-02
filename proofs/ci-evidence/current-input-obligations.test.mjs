@@ -83,7 +83,7 @@ test('reviewed current inventory and runner extension preserve eager Session iso
   // This reviewed source adds the existing CJS runtime to snapshotFiles.
   // Keep the earlier import-isolation and lazy baseline checks above/below.
   const reviewed = execFileSync('git', ['--no-replace-objects', 'show',
-    `287b18cc33050d480b9d7b7911593ef197a53527:${path}`], {cwd: root});
+    `d6f427871e58fc1770dedfee4237dba5d7ca329d:${path}`], {cwd: root});
   assert.equal(hash(reviewed), hash(current), 'Unreviewed function or top-level change');
   const baseline = text => text.slice(text.indexOf('export function checkBaseline('));
   assert.equal(baseline(current), baseline(introduced), 'Changed separately invoked model checker');
