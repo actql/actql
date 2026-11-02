@@ -45,7 +45,7 @@ export async function runCase({rows, nullable = false, maxRows = 100, cancel = f
   const setup = fixture.workersScenarioHost(scenario);
   const abort = new AbortController();
   if (cancel) abort.abort(new Error('test cancellation'));
-  let saved;
+  let saved, outcome, beforeCloseUsage;
   try {
     const result = await host.withCapturedStrategy(setup, async report => {
       saved = report;
@@ -65,7 +65,7 @@ export async function runCase({rows, nullable = false, maxRows = 100, cancel = f
     }, abort.signal);
     let released = false;
     try { saved.output(1); } catch (error) { released = error.code === 'ReleasedStrategy'; }
-    return {status:'completed', ...result, released, finalUsage:host.usage(setup)};
+    outcome = {status:'completed', ...result, released};
   } catch (error) {
     let released = !saved;
     if (saved) {
@@ -74,9 +74,13 @@ export async function runCase({rows, nullable = false, maxRows = 100, cancel = f
     const runtimeFailure = error.errors?.[0]?.cause;
     const diagnostic = runtimeFailure?.code === 'MoonBitHostFailure'
       ? fixture.workersFailureText(runtimeFailure.cause) : null;
-    return {status:'failed', diagnostic, arithmetic:fixture.workersArithmeticFailure(scenario), cleanupPending:!!error.cleanupHandle?.status().pending,
-      released, finalUsage:host.usage(setup)};
-  } finally { fixture.closeWorkersScenario(scenario); }
+    outcome = {status:'failed', diagnostic, arithmetic:fixture.workersArithmeticFailure(scenario), cleanupPending:!!error.cleanupHandle?.status().pending,
+      released};
+  } finally {
+    try { beforeCloseUsage = host.usage(setup); }
+    finally { fixture.closeWorkersScenario(scenario); }
+  }
+  return {...outcome, beforeCloseUsage, finalUsage:host.usage(setup)};
 }
 
 export default {
