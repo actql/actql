@@ -8,11 +8,13 @@ import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, Proc
 import {encodeProcessLimits, decodeProcessUsage} from './process-accounting.mjs';
 
 const preparations = new WeakMap();
+const NativePromise = Promise;
+const nativeThen = Promise.prototype.then;
 
 // Pure configuration validation precedes admission. The opaque preparation
 // snapshots every value used by spawn and the handshake, including the URL.
 export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,
-  hostService, maxHostCalls = 0, accounting }) {
+  hostService, maxHostCalls = 0, accounting, beforeBodyAllocation }) {
   frames = validateFrameLimits(frames);
   const budget = accounting === undefined ? undefined : Object.freeze({
     limits: encodeProcessLimits(accounting.limits), report: accounting.report,
@@ -30,6 +32,8 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
       !Number.isSafeInteger(graceMs) || graceMs < 1 || graceMs > 60000 ||
       !Number.isSafeInteger(startupMs) || startupMs < 1 || startupMs > 60000 ||
       !Number.isSafeInteger(maxHostCalls) || maxHostCalls < 0 ||
+      (beforeBodyAllocation !== undefined && (typeof beforeBodyAllocation !== 'function' ||
+        utilTypes.isAsyncFunction(beforeBodyAllocation))) ||
       (service === undefined ? maxHostCalls !== 0 :
         maxHostCalls < 1 || typeof service.invoke !== 'function' ||
         typeof service.status !== 'function' || typeof service.retry !== 'function')) {
@@ -46,7 +50,7 @@ export function prepareManagedExecution({ entry, runtime, run, frames, maxReques
   const hello = encodeProcessFrame(envelope('hello', 0, budget ? {resourceLimits: budget.limits} : null), frames);
   const prepared = Object.freeze({});
   preparations.set(prepared, { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
-    service, maxHostCalls, budget });
+    service, maxHostCalls, budget, beforeBodyAllocation });
   return prepared;
 }
 
@@ -57,7 +61,7 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
   signal?.throwIfAborted();
   const prepared = preparations.has(configuration) ? configuration : prepareManagedExecution(configuration);
   const { executable, runtimePath, hello, envelope, frames, session, run, maxRequests, graceMs, startupMs,
-    service, maxHostCalls, budget } = preparations.get(prepared);
+    service, maxHostCalls, budget, beforeBodyAllocation } = preparations.get(prepared);
   preparations.delete(prepared);
   signal?.throwIfAborted();
   // Installed Host accounting records the attempted physical handoff after
@@ -89,9 +93,10 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
   let sequence = 0;
   let pending;
   let hostCalls = 0, hostWork, hostController;
+  let bodyAdmissionOriginal, bodyAdmissionJoin;
   let lastUsageSequence = 0, terminalUsage = false;
   const servicePending = () => {
-    try { return !!hostWork || !!service?.status().pending; }
+    try { return bodyAdmissionOriginal !== undefined || !!hostWork || !!service?.status().pending; }
     catch { return true; }
   };
   let stopTimer;
@@ -110,6 +115,7 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
     retry: async () => {
       stop(); await exit;
       if (hostWork) await hostWork;
+      if (bodyAdmissionJoin) await bodyAdmissionJoin;
       if (service) await service.retry();
       return Object.freeze({pending: !exited || servicePending()});
     },
@@ -214,6 +220,37 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
     } else {
       current.resolve(message.body);
     }
+  }, beforeBodyAllocation === undefined ? undefined : length => {
+    try {
+      const result = beforeBodyAllocation(length);
+      if (result !== undefined) {
+        if (result !== null && ['object', 'function'].includes(typeof result)) {
+          // A mistaken async entry is never accepted as backing. Retain the
+          // SAME returned task under this process's existing cleanup custody;
+          // process exit alone cannot release its original resource borrower.
+          bodyAdmissionOriginal = result;
+          if (utilTypes.isPromise(result)) {
+            bodyAdmissionJoin = new NativePromise(resolve => {
+              const settled = () => {
+                bodyAdmissionOriginal = bodyAdmissionJoin = undefined;
+                resolve();
+              };
+              try { Reflect.apply(nativeThen, result, [settled, settled]); }
+              catch { resolve(); } // Keep the unjoined original pending.
+            });
+          }
+        }
+        throw new TypeError('InvalidFrameCapacityHandoff');
+      }
+    }
+    catch (cause) {
+      // This SAME process owner must survive a refused/throwing resource
+      // handoff too. Never mutate a frozen original or discard thrown undefined
+      // while attaching the existing process-exit cleanup handle.
+      const error = failure('ExecutionChannelFailure');
+      error.cause = cause;
+      throw error;
+    }
   });
   stream.on('data', chunk => {
     receivedBytes += BigInt(chunk.byteLength);
@@ -283,6 +320,7 @@ export async function startManagedExecution(configuration, signal, beforeSpawn) 
     async close() {
       stop(); const result = await exit;
       if (hostWork) await hostWork;
+      if (bodyAdmissionJoin) await bodyAdmissionJoin;
       return result;
     },
   });

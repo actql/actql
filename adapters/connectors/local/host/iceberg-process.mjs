@@ -99,7 +99,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
   const preflight = (command, payload) => snapshot({protocol: 'actql-local-execution/0.1',
     session: '00000000-0000-0000-0000-000000000000', run,
     kind: 'execute', sequence: 1, body: {catalog: config, command, payload}});
-  const invoke = async (command, payload, signal, stopped) => {
+  const invoke = async (command, payload, signal, stopped, beforeBodyAllocation) => {
     assertImplementation();
     let channel, error;
     // A bounded physical I/O wait does not certify cancellation/noncommit.
@@ -107,7 +107,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     const deadline = AbortSignal.timeout(60000);
     const cancellation = signal === undefined ? deadline : AbortSignal.any([signal, deadline]);
     try {
-      channel = await startManagedExecution(prepareManagedExecution(configuration()), cancellation);
+      channel = await startManagedExecution(prepareManagedExecution({...configuration(), beforeBodyAllocation}), cancellation);
       return await channel.request({catalog: config, command, payload}, cancellation);
     } catch (caught) {
       error = caught;
@@ -126,11 +126,11 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     if (!owned || owned.bridge !== bridge) fail('ForeignTablePhysicalPreparation');
     return owned;
   };
-  const reconcileOperation = (operation, signal) => {
+  const reconcileOperation = (operation, signal, beforeBodyAllocation) => {
     const payload = snapshot({operation});
     if (!cid(payload.operation?.request_cid)) fail('InvalidTablePhysicalPreparation');
     preflight('reconcile', payload);
-    return invoke('reconcile', payload, signal);
+    return invoke('reconcile', payload, signal, undefined, beforeBodyAllocation);
   };
   const bridge = Object.freeze({
     supportsOperation(values) { assertImplementation(); return supportsIcebergTableOperation(values); },
@@ -145,7 +145,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       Object.freeze(payload.selector.namespace);
       return Object.freeze(payload.selector);
     },
-    prepareWrite({operation, mapping, rows, reservation, schemaWire}) {
+    prepareWrite({operation, mapping, rows, reservation, schemaWire, beforeBodyAllocation}) {
       assertImplementation();
       if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
       const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
@@ -166,7 +166,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       // a substitute for common input admission/retention accounting.
       preflight('write', payload);
       const prepared = Object.freeze({});
-      preparations.set(prepared, {bridge, payload, attempted: false, stopped: false});
+      preparations.set(prepared, {bridge, payload, attempted: false, stopped: false, beforeBodyAllocation});
       return prepared;
     },
     async execute(prepared, {useCid, signal} = {}) {
@@ -176,7 +176,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       assertImplementation();
       if (owned.attempted) fail('TablePhysicalReconcileOnly');
       owned.attempted = true;
-      const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; });
+      const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; }, owned.beforeBodyAllocation);
       if (typeof result?.ok !== 'boolean' || !(keys(result, ['ok', 'result']) ||
           (!result.ok && keys(result, ['ok', 'code']) && typeof result.code === 'string'))) {
         fail('InvalidTablePhysicalReply');
@@ -187,7 +187,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     },
     async reconcile(prepared, signal) {
       const owned = own(prepared);
-      return reconcileOperation(owned.payload.operation, signal);
+      return reconcileOperation(owned.payload.operation, signal, owned.beforeBodyAllocation);
     },
     // Recovery needs the original sealed operation, not live input, a new
     // writer preparation or recreated payload. Caller owns evidence authority.
@@ -196,24 +196,24 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       const owned = own(prepared);
       const payload = {operation: owned.payload.operation};
       preflight('inspect', payload);
-      return invoke('inspect', payload, signal);
+      return invoke('inspect', payload, signal, undefined, owned.beforeBodyAllocation);
     },
     async cleanup(prepared, signal) {
       const owned = own(prepared);
       if (!owned.attempted || !owned.stopped) fail('TableWriterNotStopped');
       // The Catalog checks original-operation publication and fences commit in
       // the same transaction before deleting only this operation's staged files.
-      return invoke('cleanup', {operation: owned.payload.operation}, signal);
+      return invoke('cleanup', {operation: owned.payload.operation}, signal, undefined, owned.beforeBodyAllocation);
     },
-    async read(receipt, mapping, signal) {
+    async read(receipt, mapping, signal, beforeBodyAllocation) {
       const payload = snapshot({receipt, mapping});
       preflight('read', payload);
-      return invoke('read', payload, signal);
+      return invoke('read', payload, signal, undefined, beforeBodyAllocation);
     },
-    async resolveGeneration(selector, signal) {
+    async resolveGeneration(selector, signal, beforeBodyAllocation) {
       const payload = {selector: bridge.checkReadSelector(selector)};
       preflight('resolve_generation', payload);
-      return invoke('resolve_generation', payload, signal);
+      return invoke('resolve_generation', payload, signal, undefined, beforeBodyAllocation);
     },
     status(prepared) {
       const owned = own(prepared);

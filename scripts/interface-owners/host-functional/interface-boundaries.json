@@ -27902,7 +27902,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28065,7 +28065,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28697,7 +28697,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -87350,7 +87350,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb7562a91c1a8ec6310715d74d5942156f948ea74a9b63cdc15d3880959b8d5f",
+      "sha256": "0a6c69c35363fe7928e028eb81d2a6419ff6c200420ddf5fd7c9dc6d6db8754c",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -87370,7 +87370,8 @@
             "startupMs",
             "hostService",
             "maxHostCalls",
-            "accounting"
+            "accounting",
+            "beforeBodyAllocation"
           ],
           "async": false
         },
@@ -87491,6 +87492,25 @@
           "name": "startManagedExecution/reader/reader/reader",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "startManagedExecution/reader/reader/reader/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/reader/reader/reader#2",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/reader/reader#2",
+          "parameters": [
+            "length"
+          ],
+          "async": false
         },
         {
           "name": "startManagedExecution/readyPromise/readyPromise",
@@ -87638,6 +87658,9 @@
             "startManagedExecution/init:request/init:request/result/result/result",
             "startManagedExecution/reader/reader",
             "startManagedExecution/reader/reader/reader",
+            "startManagedExecution/reader/reader/reader/settled/settled",
+            "startManagedExecution/reader/reader/reader#2",
+            "startManagedExecution/reader/reader#2",
             "startManagedExecution/readyPromise/readyPromise",
             "startManagedExecution/rejectPending/rejectPending",
             "startManagedExecution/send/send",
@@ -87774,6 +87797,10 @@
               {
                 "path": "docs/design/local-provider-work-accounting.md",
                 "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The private IPC reader can enter the caller's original synchronous body backing"
               }
             ],
             "extension": [
@@ -87802,6 +87829,10 @@
               {
                 "path": "adapters/host-node/process-channel.test.mjs",
                 "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
+              },
+              {
+                "path": "adapters/host-node/process-channel.test.mjs",
+                "anchor": "test('returned asynchronous body backing never admits a frame or releases its process cleanup early', async () => {"
               }
             ]
           }
@@ -87970,7 +88001,7 @@
     {
       "module": "adapters/host-node/process-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a885a1e002182efdfc764bb24d2a0872e789776016fcb243e0aa5683b80210b2",
+      "sha256": "8d7a7b67f14cc5c45509284782d5b8c8c3580e5b0f5b5f1c3e9c35a599736b9b",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -87986,7 +88017,8 @@
           "name": "createProcessFrameReader",
           "parameters": [
             "inputLimits",
-            "accept"
+            "accept",
+            "beforeBodyAllocation"
           ],
           "async": false
         },
@@ -121224,7 +121256,7 @@
       "sha256": "dcb8f8e8f4fd284f2ec9ffbe3f951d9ebb7c0bb65a947072828be7ea3469267e",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -122098,7 +122130,7 @@
       "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -122787,7 +122819,7 @@
       "sha256": "5a954f34e6450f25ab01f5d11883cc8fb65ce368f85939d23010156177b6cc4c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledSourceInitialization",
