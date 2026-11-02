@@ -52,11 +52,7 @@ fn checked_preview_test_member(
     resolved_cid +
     "\","
   }
-  let approval = if kind == "command" {
-    ""
-  } else {
-    "\"approval\":\"none\","
-  }
+  let approval = if kind == "command" { "" } else { "\"approval\":\"none\"," }
   "{\"effect_id\":\"" +
   id +
   "\",\"effect_kind\":\"" +

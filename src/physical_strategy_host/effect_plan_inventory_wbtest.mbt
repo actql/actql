@@ -17,11 +17,7 @@ fn plan_inventory_preview(
     cid +
     "\","
   }
-  let approval = if kind == "command" {
-    ""
-  } else {
-    "\"approval\":\"none\","
-  }
+  let approval = if kind == "command" { "" } else { "\"approval\":\"none\"," }
   let plan = if with_plan {
     "\"effect_plan_logical_cid\":\"" + cid + "\","
   } else {
