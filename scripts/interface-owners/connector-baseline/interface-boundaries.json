@@ -7966,7 +7966,7 @@
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
       "responsibilityFacet": "primary",
-      "sha256": "5d8ea6e74e0d3775a6730f5a946925d2e6d480e5cb4463342759ebb529bbdb6d",
+      "sha256": "331780ab1a81da49d01627ff30fa0428a8808ce45ca3b59d7e60664bc95a1082",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
       "exports": [
@@ -8298,6 +8298,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/custody.py",
                 "anchor": "def reserve"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog.py",
+                "anchor": "scratch = bytearray(64 * 1024)"
               }
             ],
             "extension": [
@@ -8318,6 +8322,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "test_record_failure_rolls_back_catalog_head_not_only_receipt"
+              },
+              {
+                "path": "adapters/host-node/table-original-metadata.test.mjs",
+                "anchor": "Table original metadata generation hashes all exact bytes with one bounded reusable scratch"
               }
             ]
           }

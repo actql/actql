@@ -362,6 +362,14 @@ remains separate. The installed Source caller must check current read authority
 before and after I/O and admit decoded rows through the common presence-aware
 Relation owner; this physical primitive alone is not public Source acceptance.
 
+Generation identity hashes the exact published metadata bytes on one original
+FD with one reusable 64 KiB scratch buffer. It does not retain a complete
+metadata byte copy, parse or canonicalize the input, or impose a new metadata
+size policy. The same FD closes on EOF or failure, and an interrupted hash
+never returns a partial generation. This fixed hashing workspace is separate
+from the still-required metadata parser, Arrow, output and failed-child peak;
+a transport frame limit supplies none of those Native allocations.
+
 The installed Table row adapter restores SourceViews from the exact saved
 logical schema and an explicit Table selector, without Catalog I/O during
 installation or Check. Selector identity preserves namespace/name data bytes;

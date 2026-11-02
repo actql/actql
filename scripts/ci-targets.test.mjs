@@ -656,6 +656,7 @@ test('normal distribution keeps original Request resource and cleanup regression
   const selected = command.split(/\s+/u);
   for (const file of [
   "adapters/host-node/table-owned-site-retirement.test.mjs",
+  "adapters/host-node/table-original-metadata.test.mjs",
   "adapters/host-node/content-pre-record-retirement.test.mjs",
   "adapters/host-node/effect-capture-connection.test.mjs",
   "adapters/host-node/effect-capture-resources.test.mjs",
