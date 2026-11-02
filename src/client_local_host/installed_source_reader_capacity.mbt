@@ -111,6 +111,7 @@ fn installed_source_reader_retained_inventory(
   limits : Array[Int],
   columns : Int,
   secret_bytes : Int,
+  track_row_identity? : Bool = true,
 ) -> @execution.PreparationRepresentationUnits? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
@@ -125,9 +126,12 @@ fn installed_source_reader_retained_inventory(
   }
   let response = limits[0].to_int64()
   let total = limits[1].to_int64()
-  let ids = limits[5].to_int64()
+  // JSON page decoding owns its id/cursor duplicate-tracking state. A native
+  // managed sequence never constructs it; its selected codec owns and quotes
+  // the original protocol's actual identity/locator material instead.
+  let ids = if track_row_identity { limits[5].to_int64() } else { 0L }
   let pages = limits[6].to_int64()
-  let cursors = pages
+  let cursors = if track_row_identity { pages } else { 0L }
   let originals = pages + 1L
   let fields = columns.to_int64()
   // Charge/retain the original received body before a total-byte refusal.
@@ -618,7 +622,12 @@ pub fn installed_native_source_reader_capacity(
   native : @execution.ExecutionCapacity?,
 ) -> @execution.ExecutionCapacity? {
   guard native is Some(native) &&
-    installed_source_reader_retained_inventory(limits, columns, secret_bytes)
+    installed_source_reader_retained_inventory(
+      limits,
+      columns,
+      secret_bytes,
+      track_row_identity=false,
+    )
     is Some(retained) else {
     return None
   }

@@ -295,6 +295,12 @@ The native Reader quote uses the original Describe/query bounds, published
 Resource names, installed binding strings and existing SOQL bound. It composes
 the shared response/binding/control inventory with the Salesforce catalog,
 observation recovery, query/contract/value and failed-prefix inventories.
+The generic JSON page protocol's row-id/cursor duplicate tracking is absent
+from the native sequence. Its shared Reader inventory excludes those arrays
+and String payloads; the selected native codec remains responsible for its
+actual identity/locator state. Both alternatives retain every original raw
+response and failed body under the same aggregate response bound. Changing
+protocol inventory does not change any rejection limit or parent allowance.
 Metadata retains its normalizing Source/key semantics; query pages retain their
 preserving parser. The shared value Owner supplies the original Contract's
 temporary conversion workspace. The existing ordered Address component table

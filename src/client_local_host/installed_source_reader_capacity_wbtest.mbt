@@ -197,12 +197,50 @@ test "native typed Source composes only shared Reader controls with its original
     3,
     Some(codec),
   ).unwrap()
-  // Same independent retained vector3488. Native shared controls are
+  // The independent generic retained vector3488 includes row-id/cursor
+  // tracking: (3+2)*(2R+1W) + (3*7+2*5)U = 182B. This native Reader
+  // never constructs that generic tracking state; its codec owns its cursor.
+  // The remaining shared retained vector is3306. Native shared controls are
   // 27H/99R/23W=1408B, target8U=16B and one physical response4B.
   // The codec alone owns its actual parser/typed projection; no row wire or
   // generic raw JSON decoder is allocated or priced by this alternative.
-  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3505L)
-  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 4939L)
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3323L)
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 4757L)
+  let spelling = limits.copy()
+  spelling[8] = 5000
+  spelling[9] = 7000
+  let same = installed_native_source_reader_capacity(
+    spelling,
+    2,
+    3,
+    Some(codec),
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(same),
+    @execution.execution_capacity_retained_bytes(capacity),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(same),
+    @execution.execution_capacity_execution_bytes(capacity),
+  )
+  // The JSON reader still owns its actual row-id/cursor tracking, and both
+  // alternatives retain every charged raw response, including a failed body.
+  assert_true(
+    @execution.execution_capacity_retained_bytes(
+      installed_json_source_reader_capacity(spelling, 2, 3).unwrap(),
+    ) >
+    @execution.execution_capacity_retained_bytes(
+      installed_json_source_reader_capacity(limits, 2, 3).unwrap(),
+    ),
+  )
+  let body = limits.copy()
+  body[1] = 7
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(
+      installed_native_source_reader_capacity(body, 2, 3, Some(codec)).unwrap(),
+    ),
+    3324L,
+  )
   assert_true(
     installed_native_source_reader_capacity(limits, 2, 3, None) is None,
   )

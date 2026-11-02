@@ -34041,7 +34041,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "2a2862ee1056aedf7f950bb3c83cdf3089a925b398ff697d17ae1b5daebae19f",
+      "sha256": "6fc91112b1d945b2d41ba827a1ba778aff69954d9479128637c74d0a04c20a97",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -34081,7 +34081,7 @@
         },
         {
           "name": "installed_source_reader_retained_inventory",
-          "declaration": "installed_source_reader_retained_inventory ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+          "declaration": "installed_source_reader_retained_inventory ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , track_row_identity ? : Bool"
         },
         {
           "name": "installed_source_response_preserving_workspace",
