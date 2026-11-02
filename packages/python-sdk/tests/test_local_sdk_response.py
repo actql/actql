@@ -185,3 +185,56 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(reader._closed)
             await stream.aclose()
             self.assertTrue(holder.close())
+
+    async def test_partial_saved_payload_constructor_keeps_cleanup_when_core_is_closing(self):
+        # Exercise the actual partial payload constructor and response carrier;
+        # the explicit Core port refuses binding after entering closing state.
+        from actql_sdk._local_product import InstalledLocalHost
+        from actql_sdk._local_sdk_payload_reader import SDKPayloadReaderCleanupPending
+        files = files_fixture.ReaderFactsTests()
+        helper = payload_fixture.SDKPayloadReaderTests()
+        helper.addCleanup = self.addCleanup
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            holder, _, core, request, first, fact, clock, state, _ = helper.bridge(root, final)
+            host = SimpleNamespace(_core=core, _inputs=[clock], _response_streams=set(),
+                                   _saved_result_reads=[], _closing=False,
+                                   _installation=object(), _nominal=lambda: None)
+            host._active = lambda: InstalledLocalHost._active(host)
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads.append(saved)
+            original_call = core._call
+            def closing_bind(family, name, *args):
+                if name == 'bind_sdk_payload_record':
+                    core._closing = True
+                    state['binding_status'] = -32
+                return original_call(family, name, *args)
+            stream = None
+            try:
+                with patch.object(core, '_call', side_effect=closing_bind), patch(
+                        'actql_sdk._local_files.os.open',
+                        side_effect=AssertionError('Refused binding cannot open a payload')):
+                    with self.assertRaises(SDKPayloadReaderCleanupPending) as issue:
+                        OriginalSDKPayloadReader(holder, request, clock, fact)
+                partial = issue.exception.cleanup_reader
+                self.assertTrue(core._closing)
+                self.assertIs(holder._payload_reader_borrows[request.ticket], partial)
+                self.assertIsNone(partial._reader)
+                with self.assertRaises(ValueError):
+                    saved._ensure_active()
+                stream = OriginalLocalSDKResponseStream(host, partial, saved_read=saved)
+                self.assertIs(stream._reader, partial)
+                self.assertIs(stream._saved_read, saved)
+                self.assertIn(stream, host._response_streams)
+                self.assertIs(core._loans[first.ticket], first)
+                await stream.aclose()
+                self.assertTrue(partial._closed)
+                self.assertTrue(saved._closed)
+                self.assertNotIn(stream, host._response_streams)
+                self.assertNotIn(saved, host._saved_result_reads)
+            finally:
+                if stream is not None:
+                    await stream.aclose()
+                for partial in tuple(holder._payload_reader_borrows.values()):
+                    self.assertTrue(partial.close())
+                self.assertTrue(core.close_input(clock))
+                self.assertTrue(holder.close())
