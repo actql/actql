@@ -75,25 +75,30 @@ const foreignLibraryConfigurations = Object.freeze({
 
 // Current successor review is separate from every retained historical cohort.
 // See docs/reviews/2026-10-25-session-current-configuration-review.json.
+// Current updates: docs/reviews/2026-11-02-session-current-input-review.md.
 // Constants below are reviewed bytes, never hashes computed from current files.
+// A per-entry revision records only that exact reviewed input; the default
+// revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: 'e06586941f97b45ff7b67d531eca19b8b99843b5fb040f5e6fe994b9588c156a', rule: 'literal-target-selectors-with-bound-source-membership'}),
-  'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '667d7148f76fef6ff03c76c2da4bf6bc915512d973661729761178a9b749f0c9', rule: 'literal-js-foreign-library-with-bound-source-membership'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '912a368a64d2a69da0a9da056be167d6cda90bfb36ad856659f191604b64c48f', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
+  'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '9e03071c2c9fdd0857fca8814a5868390d057ef173574e8bdd6152f58ba0ccfa', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/physical_resources/moon.pkg': Object.freeze({digest: '931fade17137c784847a5d68a35e62792f92b7c109379f6a87cb8b3c0dcb313c', rule: 'literal-target-selectors-with-bound-source-membership'}),
+  'src/physical_resources/moon.pkg': Object.freeze({digest: 'addb0576581b9c9381a93061a0845bce4d19b0301ad7806527f3ad45f586caaf', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
   'src/platform_native/bounded_files/moon.pkg': Object.freeze({digest: '9dcccf37816250ccb794c1467658f3cd4c2ff239ed752b36e59ef167a40553a5', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/filesystem/moon.pkg': Object.freeze({digest: 'ccbef60792340068be1ef431d1f8a7336a842dcd1021a84a816c3582a7c6b08b', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/platform_native/http_client/moon.pkg': Object.freeze({digest: 'ddb4cd700ab2ddd16a73d1772872316d6d29ec2049ceb04ee839614d1a98b5ef', rule: 'literal-native-options-with-bound-source-membership'}),
+  'src/platform_native/http_client/moon.pkg': Object.freeze({digest: '67cf437063d4a099acc9d33736d48fb3cfbff4cd4efa3235dc0239121ee6455e', rule: 'literal-native-options-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
   'src/platform_native/publication_store/moon.pkg': Object.freeze({digest: '43ab4a8d9546c327742bae8c574381a62a03ea6311b592c61f311bea8ada4b6d', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/remote_journal/moon.pkg': Object.freeze({digest: '89432a0cc007a76c3af8f2311c98f1838e13e74976bb7d28240a9704830aa60b', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/platform_native/remote_standard_host/moon.pkg': Object.freeze({digest: '6e7f44a5a79232c71ea841285629cf60a86eb2e9c12c40d175e13e168aacebc4', rule: 'literal-native-options-with-bound-source-membership'}),
+  'src/platform_native/remote_standard_host/moon.pkg': Object.freeze({digest: '01ae0816929d7ae3037f46906d63f999bca640fa20d12433e478c41475229886', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
   'src/platform_native/result_access/moon.pkg': Object.freeze({digest: '3857eed803af513e307d4f6a8f3450edbed4f94e830e38af3b3a88ab5d448697', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/runtime_bundle/moon.pkg': Object.freeze({digest: '61fa8185b3011964381b1b9670741db9cd3a368021e4bbf4f72a7d60e8ceb95c', rule: 'literal-native-options-with-bound-source-membership'}),
-  'src/platform_native/signature/moon.pkg': Object.freeze({digest: '1a833304ef2d8320afb381dfe990c9cd6e5f3f6e97ab09088b0cc0f598b28828', rule: 'literal-native-options-with-bound-source-membership'}),
+  'src/platform_native/signature/moon.pkg': Object.freeze({digest: 'c9f579ed2e7db177e27ae45e694788e76332cbc058594eca03e120539c138a7e', rule: 'literal-native-options-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
   'src/platform_native/sqlite/moon.pkg': Object.freeze({digest: 'c7d68a61eb5b6a12c6dce4dffab6e7214c4ef36ab165d50652bd9a6ae197390c', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/platform_native/trusted_clock/moon.pkg': Object.freeze({digest: '19f2c6b1beb2a401a9152b82e679f0df352d11da6efeb1bc79f56ab516537ab0', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/query_integration/moon.pkg': Object.freeze({digest: 'af3a808f706672d2bdd7c0814109c3feb66c6daff0d3561977dda00d5e0f02ef', rule: 'literal-native-options-with-bound-source-membership'}),
+  'src/connectors/kintone/host/moon.pkg': Object.freeze({digest: '73dbf3743734e3b8cdaf06f9baacfd05be7f6ced274d75a9312d9ca5f3d60e27', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
+  'src/source_value/moon.pkg': Object.freeze({digest: 'a2ea86ea9291b3f4a0ed85711aa9cb95cdbd6fe84ae336de0d57f3a90c761053', rule: 'literal-target-selectors-with-bound-source-membership', revision: '523ada3259bf9e8147f746727fbfd56065036fd5'}),
 });
 
 export const currentNestedFixtureConfigurations = Object.freeze({
@@ -103,10 +108,10 @@ export const currentNestedFixtureConfigurations = Object.freeze({
 });
 
 export function currentPackageConfigurationReviewFor({path, digest, target, toolchainDigest}) {
+  if (target !== 'js' || toolchainDigest !== packageConfigurationReview.toolchainDigest) return null;
   const entry = currentPackageConfigurations[path];
-  if (target !== 'js' || toolchainDigest !== packageConfigurationReview.toolchainDigest ||
-      !entry || entry.digest !== digest) return null;
-  return Object.freeze({revision: currentConfigurationReviewRevision, target,
+  if (!entry || entry.digest !== digest) return null;
+  return Object.freeze({revision: entry.revision ?? currentConfigurationReviewRevision, target,
     toolchainDigest, moonRevision: packageConfigurationReview.moonRevision, rule: entry.rule});
 }
 
