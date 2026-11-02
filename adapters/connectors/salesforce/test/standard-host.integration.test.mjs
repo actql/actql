@@ -24,6 +24,10 @@ import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
+import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
+import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
+import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
+import {observeOwnScopedStateFds} from '../../../../scripts/fixtures/external-rest/conformance.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
 import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
@@ -2712,4 +2716,34 @@ test('an Address beyond its original component scale fails typed without a Resul
   } finally {
     adapter.close();
   }
+});
+
+
+test('registered Salesforce Source retains original publication and initialized constructor without provider reads',async t=>{
+  const setup=await installation(t),published=await setup.publish();
+  const requests=setup.org.seen.length,root=join(setup.root,'state');
+  const baseEnvironmentWire=(await readFile(join(repository,'spec/local-check-environment.json'),'utf8')).trimEnd();
+  const lifetime=installedSourceFixtureLifetime(t);
+  const initialized=lifetime.open({root,principalId:owner,moon:commonMoon,
+    installation:installedConnectors.find(entry=>entry.name==='salesforce'),runtimeBundleCid,baseEnvironmentWire});
+  let source;
+  try{source=await loadInstalledSource(setup.profilePath,{root,principalId:owner,moon:commonMoon,
+    runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url),
+    baseEnvironmentWire,resolveSecret:secret,installationServices:initialized.installationServices});}
+  catch(error){
+    const errors=[];let cursor=error;for(let index=0;index<6&&cursor&&typeof cursor==='object';index++,cursor=cursor.primaryFailure??cursor.cause){
+      errors.push({name:cursor.name,code:cursor.code,stack:typeof cursor.stack==='string'?cursor.stack.split('\n').slice(0,8):undefined});}
+    t.diagnostic(JSON.stringify({originalSalesforceInitializationFailure:errors}));throw error;
+  }
+  lifetime.sources.push(source);
+  assert.equal(source.connectorRegistration,'salesforce');assert.equal(source.connectorRevision,'salesforce/0.1');
+  assert.equal(source.generationCid,published.generationCid);
+  assert.deepEqual(source.sourceReadAccesses.map(value=>value.resource),['Test_Record__c']);
+  const environment=JSON.parse(source.environmentWire);
+  assert.equal(environment.connector_catalogs[0].catalog_cid,published.declared.catalog_cid);
+  assert.notEqual(commonMoon.clientProgramCheckEnvironment(source.environmentWire,environment.evidence_bundle_cid,
+    false,false,true,false,false,false,false),undefined);
+  assert.equal(setup.org.seen.length,requests,'Restoration/discovery never performs a provider read');
+  await source.close();
+  assert.equal(observeOwnScopedStateFds([setup.root]).scopedStateFd0,true);
 });
