@@ -8,6 +8,7 @@ import {captureConfigurationReaders} from '../../../host-node/source-profile-jso
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
 import {types as nodeTypes} from 'node:util';
+import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 import {prepareGmailLabelListPages,GMAIL_LABEL_LIST_OPERATION} from '../site/gmail-label-list-read.mjs';
 import {checkGmailThreadReaderLimits,gmailThreadReaderLimitNames} from '../site/gmail-thread-limits.mjs';
@@ -91,6 +92,28 @@ export async function installedGmailSourceIdentityParts(profile,providerProfile,
   return[{...profile,accountConfigurationWire:JSON.parse(profile.accountConfigurationWire)},site,binding];
 }
 
+// Same original list/get profile and complete Core recipe. The shared Host
+// retains this result unchanged; it does not select or recompose Gmail work.
+function gmailThreadReaderSelection(original, columns, profile) {
+  if (columns !== 5) fail('InvalidInstalledGmailThreadReaderLimits');
+  if (original.pageSize > 500 || original.maxPages > 2147483647 - original.maxThreads ||
+      original.maxMailboxBytes > profile.maxIdentityBytes ||
+      original.maxDeclarationBytes > profile.maxDeclarationBytes ||
+      original.maxDeclarationNodes > profile.maxDeclarationNodes) fail('InstalledSourceReaderImplementationBoundsExceeded');
+  const responses = original.maxPages + original.maxThreads;
+  return Object.freeze({original,responses,limits:Object.freeze({
+    maxResponseBytes:original.maxResponseBytes,maxTotalResponseBytes:original.maxTotalResponseBytes,
+    maxNodes:original.maxNodes,maxDepth:original.maxDepth,maxRows:1,maxTotalRows:original.maxThreads,
+    maxPages:responses,pageSize:original.pageSize,maxCursorBytes:original.maxTokenBytes,maxIdentityBytes:original.maxIdBytes,
+    maxTargetBytes:original.maxTargetBytes,maxValueNodes:original.maxValueNodes,
+    // The quote's positive slot does not replace Gmail's valid zero-text guard.
+    maxValueTextBytes:original.maxValueTextBytes === 0 ? 1 : original.maxValueTextBytes,
+    maxRowsWireBytes:original.maxRowsWireBytes,maxRowsWireNodes:original.maxRowsWireNodes,
+    maxRowsWireDepth:original.maxRowsWireDepth,maxSecretBytes:original.maxSecretBytes,
+  }),sequence:Object.freeze({operation:'gmail:threads:list',maxUses:original.maxPages,
+    children:Object.freeze([Object.freeze({operation:'gmail:threads:get',maxUses:original.maxThreads})])})});
+}
+
 export async function loadInstalledGmailSource(profile,{root,principalId,moon,providerMoon:provider,
   baseEnvironmentWire,runtimeBundleCid,resolveSecret,configurationReader,
   sourceInitialization,installationServices,installation}={}){
@@ -107,6 +130,8 @@ export async function loadInstalledGmailSource(profile,{root,principalId,moon,pr
     new Error('InstalledGmailSourceServicesUnavailable'),{code:'InstalledGmailSourceServicesUnavailable'}));
   if(typeof resolveSecret!=='function')fail('GmailCredentialMaterialUnavailable');
   if(provider===null||!['object','function'].includes(typeof provider)||nodeTypes.isProxy(provider))fail('InstalledGmailProviderUnavailable');
+  const capacityPort=Object.getOwnPropertyDescriptor(moon??{},'clientProgramInstalledGmailThreadReaderCapacity')?.value;
+  if(typeof capacityPort!=='function')fail('InstalledSourceReaderRuntimeUnavailable');
   const originalProvider=provider;
   provider=Object.freeze(Object.fromEntries(['gmailThreadSchemaWire','gmailThreadRelationFactsWire','gmailThreadColumnNames',
     'gmailPrepareThreadRead','gmailNextThreadRequest','gmailThreadRequestJson','gmailThreadRequestMatches',
@@ -124,8 +149,15 @@ export async function loadInstalledGmailSource(profile,{root,principalId,moon,pr
   if(limits.maxDeclarationBytes>policy.maxDeclarationBytes||limits.maxDeclarationNodes>policy.maxDeclarationNodes){
     fail('InstalledGmailImplementationBoundsExceeded');
   }
-  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,
-    columnCount:provider.gmailThreadColumnNames().length});
+  const columns=provider.gmailThreadColumnNames().length;
+  const selected=gmailThreadReaderSelection(limits,columns,policy);
+  const capacity=Reflect.apply(capacityPort,moon,[
+    installedJsonSourceReaderLimitNames.map(name=>selected.limits[name]),columns,limits.maxSecretBytes,
+    limits.maxPages,limits.maxMailboxBytes]);
+  if(capacity===undefined||capacity===null)fail('InstalledSourceReaderCapacityUnavailable');
+  const readSequenceConstruction=Object.freeze({capacity,originalLimits:limits,sequence:selected.sequence});
+  const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,
+    limits:selected.limits,columnCount:columns,readSequenceConstruction});
   const wire=checked(provider.gmailThreadSchemaWire(limits.maxDeclarationBytes,limits.maxDeclarationNodes,limits.maxDepth));
   const{declaration,declared,environment}=Reflect.apply(prepareDeclaration,sourceInitialization,
     [[{resource:'threads',resource_kind:'gmail_threads',schema_wire:wire,schema_cid:sha(wire),

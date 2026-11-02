@@ -1344,7 +1344,7 @@
     },
     {
       "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-      "sha256": "43d20ce5ed54b4f973f05ba0643c8cfa2910f3a2f757a8c07bef7c0594ff61ac",
+      "sha256": "01ca18d3f15356d76d8f06440b3646ea09e2fa5d96c7e170d00c5b3984312e2c",
       "exports": [
         "INSTALLED_GMAIL_SITE_VERSION",
         "INSTALLED_GMAIL_SOURCE_VERSION",
@@ -1414,6 +1414,15 @@
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "gmailThreadReaderSelection",
+          "parameters": [
+            "original",
+            "columns",
+            "profile"
           ],
           "async": false
         },
@@ -1522,6 +1531,13 @@
         },
         {
           "name": "loadInstalledGmailSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGmailSource/capacity/capacity",
           "parameters": [
             "name"
           ],
@@ -1840,6 +1856,75 @@
               {
                 "path": "adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs",
                 "anchor": "test('actual Gmail Catalog supplies identical complete label cells"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "gmailThreadReaderSelection",
+            "loadInstalledGmailSource/capacity/capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ]
           }

@@ -334,7 +334,7 @@
     },
     {
       "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
-      "sha256": "761aa42a438fa3748d92f02e05e0b9c737ee1c57fbbe56168854c9bbd9d7ac4e",
+      "sha256": "f8f0a27cf918d7abd79eac710b1be2701aa801b6144ffbbfec19467329b5edb8",
       "exports": [
         "INSTALLED_SLACK_SITE_VERSION",
         "INSTALLED_SLACK_SOURCE_VERSION",
@@ -448,6 +448,13 @@
           "async": false
         },
         {
+          "name": "loadInstalledSlackSource/capacity/capacity",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledSlackSource/columnCount/columnCount",
           "parameters": [
             "name"
@@ -518,6 +525,46 @@
           "name": "sha/sha",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "slackReaderSelection",
+          "parameters": [
+            "original",
+            "columns",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "slackReaderSelection/children/children",
+          "parameters": [
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "slackReaderSelection/children/children/children",
+          "parameters": [
+            "operation",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "slackReaderSelection/sequence/sequence",
+          "parameters": [
+            "operation",
+            "maxUses",
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "slackReaderSelection/slackReaderSelection",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -1341,6 +1388,79 @@
               {
                 "path": "adapters/host-node/source-profile-json.test.mjs",
                 "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledSlackSource/capacity/capacity",
+            "slackReaderSelection",
+            "slackReaderSelection/children/children",
+            "slackReaderSelection/children/children/children",
+            "slackReaderSelection/sequence/sequence",
+            "slackReaderSelection/slackReaderSelection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ]
           }

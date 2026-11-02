@@ -3108,3 +3108,37 @@ service retains its original Source/installation/runtime association, generic
 limit equality and capacity/reader/cleanup duties; it does not parse Calendar
 profile grammar or dispatch on its registration. This moves the existing
 projection without adding a capacity owner, policy or profile field.
+
+
+### Source-owned complete read sequences
+
+Gmail THREADS and Slack select their existing complete Core reader capacities
+in their original Source constructor. Each captures the original Core method
+and receiver before configuration awaits, calls it once with the same checked
+profile projection, and retains the returned capacity with the original profile
+and immutable operation occurrences. Gmail keeps separate list/get counts;
+Slack keeps identity, list, history and replies counts and the original two-byte
+identity POST bound. No operation label supplies a grant.
+
+The shared Host retains this same construction in its existing Source selection,
+checks its installation/runtime and generic limits, and passes its original
+capacity and occurrence declaration unchanged to the existing reader/RowRun.
+It neither dispatches by connector registration nor quotes the same recipe
+again. Repeated access requires the same selected construction; replacing it,
+including with equal-looking DATA, does not replace the original. Current,
+Account/Credential, charge/consume and failed-child retirement stay with their
+existing owners. The original Source profile remains part of installation
+identity and supplies the actual provider's guards.
+
+The Source selection reuses its frozen checked profile instead of retaining a
+second profile clone. Variable JSON/row/prefix/failed-body inventories remain
+in the unchanged complete Core recipes; fixed method/tuple/control frames stay
+in the existing trusted Host baseline of `installed_source_construction_capacity`.
+No new budget, resource owner or user tuning field is introduced.
+
+The old query/property projection is removed from this shared entrance. Its
+21-field projection could not enter the real 16-field JSON capacity constructor,
+and its managed sequence was already refused without complete construction.
+A scalar request-byte field still refuses instead of selecting an ordinary
+page recipe. This removal does not remove a previously admitted Source route
+or enable an unimplemented provider protocol.

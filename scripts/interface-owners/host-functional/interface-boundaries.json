@@ -122273,7 +122273,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "41449e1a79fe048ff5d5fc70d69d9f6f6860ccfba0df17abfa50f4ce00140ea0",
+      "sha256": "c18cabe231436ead89b565a62ea629bb571c50cf3cc3bb8b78d5e73050ff805a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -122614,19 +122614,26 @@
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#4",
           "parameters": [
-            "port"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
           "parameters": [
-            "value"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#7",
           "parameters": [
             "name"
           ],
@@ -122634,27 +122641,6 @@
         },
         {
           "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/sequenceSelectionChanged",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/slackSelectionChanged",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/threadSelectionChanged",
           "parameters": [
             "name"
           ],
@@ -122717,29 +122703,6 @@
           "name": "freezeSourceProjection",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "columns",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadImplementationReaderLimits/gmailThreadImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "gmailThreadImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -122822,36 +122785,6 @@
           "name": "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
           "parameters": [
             "bytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "columns",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits/nestedImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "nestedImplementationReaderLimits/quote/quote",
-          "parameters": [
-            "name"
           ],
           "async": false
         },
@@ -123005,60 +122938,6 @@
           "async": false
         },
         {
-          "name": "slackImplementationReaderLimits",
-          "parameters": [
-            "supplied",
-            "columns",
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/children/children",
-          "parameters": [
-            "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/children/children/children",
-          "parameters": [
-            "operation",
-            "maxUses"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/original/original",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/sequence/sequence",
-          "parameters": [
-            "operation",
-            "maxUses",
-            "entries"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/slackImplementationReaderLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "slackImplementationReaderLimits/slackImplementationReaderLimits#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceCall",
           "parameters": [
             "original",
@@ -123186,7 +123065,6 @@
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#5",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#6",
             "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/limits/limits",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/threadSelectionChanged",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile",
             "createInstalledHostServices/services/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile/init:sourceReaderImplementationProfile#2",
@@ -123448,12 +123326,8 @@
             "borrowInstalledSourceInitialization/view/init:release/init:release",
             "closeInstalledSourceConstruction",
             "completeInstalledSourceInitialization",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/sequenceSelectionChanged",
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
-            "gmailThreadImplementationReaderLimits",
-            "gmailThreadImplementationReaderLimits/gmailThreadImplementationReaderLimits",
-            "gmailThreadImplementationReaderLimits/original/original",
             "installedSourceConfigurationReader",
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
@@ -123465,10 +123339,6 @@
             "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
             "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
             "installedSourceConfigurationReader/reader/init:readText/init:readText",
-            "nestedImplementationReaderLimits",
-            "nestedImplementationReaderLimits/nestedImplementationReaderLimits",
-            "nestedImplementationReaderLimits/original/original",
-            "nestedImplementationReaderLimits/quote/quote",
             "prepareInstalledSourceAcquisitionContracts",
             "reconcileSource",
             "releaseFinishedSourceWorkspaces",
@@ -123490,14 +123360,6 @@
             "sourceMaterial",
             "sourceQuote",
             "withInstalledSourceLoading",
-            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/slackSelectionChanged",
-            "slackImplementationReaderLimits",
-            "slackImplementationReaderLimits/children/children",
-            "slackImplementationReaderLimits/children/children/children",
-            "slackImplementationReaderLimits/original/original",
-            "slackImplementationReaderLimits/sequence/sequence",
-            "slackImplementationReaderLimits/slackImplementationReaderLimits",
-            "slackImplementationReaderLimits/slackImplementationReaderLimits#2",
             "assertInstalledSourceConstruction/empty/empty",
             "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
             "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
@@ -123597,6 +123459,74 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledHostServices/services/init:sourceReaderImplementation/init:sourceReaderImplementation/init:sourceReaderImplementation#7"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Source-owned complete read sequences"
               }
             ]
           }
