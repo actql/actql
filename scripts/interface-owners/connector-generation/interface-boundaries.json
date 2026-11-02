@@ -399,7 +399,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
+                "anchor": "installationCid:bindingCid"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -503,7 +503,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "anchor": "close() {closed=true;return adapter.close();}"
               },
               {
                 "path": "adapters/host-node/installed-credential-source-reader.mjs",

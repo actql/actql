@@ -9695,7 +9695,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "502e716e1c3af7089c8240add1fbd1a1e677443265fba5dca05dccb98f68839a",
+      "sha256": "8c0ba87141ded12b166bff7cd7e8d0115e5d254e9c6ac3a004ef661b0867242d",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -10477,6 +10477,15 @@
           "name": "installedRowCredentialOperationSite",
           "parameters": [
             "credential"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowSourceContext",
+          "parameters": [
+            "root",
+            "principalId",
+            "connectorRegistration"
           ],
           "async": false
         },
@@ -11341,6 +11350,7 @@
         "createInstalledRowSource",
         "installRowSourceAuthorization",
         "installedRowCredentialOperationSite",
+        "installedRowSourceContext",
         "loadRowSourceCredentialCustody",
         "openInstalledRowSite",
         "openRowSourceCredentialCustody",
@@ -11513,7 +11523,8 @@
             "rowSourceMapping",
             "text/text",
             "valueCid/valueCid",
-            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target"
+            "prepareImmutablePhysicalTargets/init:prepare/init:prepare/target/target",
+            "installedRowSourceContext"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -11521,7 +11532,8 @@
             "openRowSourceCredentialCustody",
             "openRowSourceCredentialSite",
             "rowSourceCheckEnvironment",
-            "rowSourceMapping"
+            "rowSourceMapping",
+            "installedRowSourceContext"
           ],
           "attributes": {
             "responsibility": [
@@ -11552,6 +11564,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "When the same Site has already authorized and issued a grant,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "inputsOutputs": [
@@ -11590,6 +11606,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindRunAcquisition(authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "identity": [
@@ -11599,7 +11619,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
+                "anchor": "installationCid:bindingCid"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -11644,6 +11664,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "Standard REST installations hand their complete frozen physical-target DATA"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "ownership": [
@@ -11698,6 +11722,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "synchronization": [
@@ -11711,7 +11739,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "anchor": "close() {closed=true;return adapter.close();}"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
@@ -11760,6 +11788,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "failure": [
@@ -11806,6 +11838,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "cancellation": [
@@ -11844,6 +11880,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const observeCurrent = async () =>"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "resources": [
@@ -11906,6 +11946,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "extension": [
@@ -11944,6 +11988,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "const credentialRead = owner.originalRead === undefined ||"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "verification": [
@@ -12070,6 +12118,10 @@
               {
                 "path": "adapters/host-node/installed-row-source-binding-originals.test.mjs",
                 "anchor": "test('same immutable binding removes generation/hash work without removing Account or Core target observations'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ]
           }
@@ -12327,7 +12379,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
+                "anchor": "installationCid:bindingCid"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -12423,7 +12475,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "anchor": "close() {closed=true;return adapter.close();}"
               },
               {
                 "path": "adapters/host-node/installed-row-source.mjs",

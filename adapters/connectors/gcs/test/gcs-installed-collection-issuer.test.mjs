@@ -9,6 +9,9 @@ import * as moon from '../../../../_build/js/release/build/connectors_builtin_no
 import * as fixtureMoon from '../../../../_build/js/release/build/connectors/gcs/fixtures/original_reference_node/original_reference_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {loadInstalledSource} from '../../../host-node/installed-source.mjs';
+import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
+import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
+import {observeOwnScopedStateFds} from '../../../../scripts/fixtures/external-rest/conformance.mjs';
 import {installRowSourceAuthorization, openRowSourceCredentialSite} from '../../../host-node/installed-row-source.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
@@ -20,7 +23,7 @@ const runtimeUrl = new URL('../../../../_build/js/release/build/' +
 const baseEnvironmentWire = (await readFile(new URL('../../../../spec/local-check-environment.json',
   import.meta.url), 'utf8')).trimEnd();
 
-async function fixture(t) {
+async function fixture(t,{installation=installedConnectors.find(entry=>entry.name==='gcs')}={}) {
   const scratch = await createOwnedScratch({parent: new URL('../../../../_build/', import.meta.url).pathname,
     prefix: 'gcs-original-collection-', label: 'GCS original installed collection issuer'});
   const siteProfilePath = join(scratch.path, 'site.json');
@@ -45,21 +48,28 @@ async function fixture(t) {
       maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}};
   let secrets = 0;
   const loaded = [];
+  let closeInitial,initialized;
+  const lifetime=installedSourceFixtureLifetime({after(close){closeInitial=close;},diagnostic:(...args)=>t.diagnostic(...args)});
+  const runtimeBundleCid='sha256:'+(await import('node:crypto')).createHash('sha256').update(await readFile(runtimeUrl)).digest('hex');
+  const initialize=()=>initialized??=lifetime.open({root:scratch.path,principalId:userInfo().username,moon,
+    installation,runtimeBundleCid,baseEnvironmentWire});
   const options = {root: scratch.path, principalId: userInfo().username, moon, runtimeUrl,
     baseEnvironmentWire, resolveSecret() { secrets++; assert.fail('No credential or GCS I/O'); }};
   const open = async (name, changes = {}, overrides = {}) => {
     const path = join(scratch.path, name);
     await writeFile(path, JSON.stringify({...profile, ...changes}));
-    const source = await loadInstalledSource(path, {...options, ...overrides});
-    loaded.push(source);
+    const source=await loadInstalledSource(path,{...options,...overrides,installationServices:initialize().installationServices});
+    loaded.push(source);lifetime.sources.push(source);
     return source;
   };
   t.after(async () => {
-    for (const source of loaded) await source.close();
+    await closeInitial();
+    assert.equal(observeOwnScopedStateFds([scratch.path]).scopedStateFd0,true);
     assert.equal(secrets, 0);
     scratch.passed();
   });
-  return {open, profile, site, options, scratch};
+  return {open,profile,site,options,scratch,
+    direct(selected){return initialize().load(loadInstalledGcsSource,selected,{...options,runtimeBundleCid});}};
 }
 
 function originalPair(source) {
@@ -98,9 +108,9 @@ test('ordinary installed GCS supplies its original checked collection without to
 });
 
 test('a different installed scope cannot substitute its actual Common collection pair', async t => {
-  const {open} = await fixture(t);
-  const first = await open('first.json');
-  const foreign = await open('foreign.json', {prefix: 'test/é/'});
+  const firstFixture=await fixture(t),foreignFixture=await fixture(t);
+  const first=await firstFixture.open('first.json');
+  const foreign=await foreignFixture.open('foreign.json',{prefix:'test/é/'});
   const pair = originalPair(foreign);
   assert.throws(() => first.issueOriginalCollectionReference(pair, 1000000),
     {code: 'GcsForeignCollectionSelection'});
@@ -143,20 +153,16 @@ test('the same credential Site invalidates reference currentness before failed c
   assert.equal(site.referenceCurrent(), false);
 });
 
-test('only an explicitly source-only legacy installation can omit the collection provider', async t => {
-  const {profile, options, scratch} = await fixture(t);
-  const missing = {...profile, siteProfilePath: join(scratch.path, 'must-not-be-read.json')};
-  await assert.rejects(loadInstalledGcsSource(missing, {...options,
-    installation: {providerBundle: 'connectors/gcs/host_node'}}),
-  {code: 'GcsCollectionProviderUnavailable'});
-  const legacy = await loadInstalledGcsSource(profile, {...options,
-    runtimeBundleCid: `sha256:${'8'.repeat(64)}`,
-    installation: {registration: 'gcs', revision: 'gcs/0.1', responseHeaders: []}});
-  t.after(() => legacy.close());
-  assert.equal(legacy.issueOriginalCollectionReference, undefined);
-  assert.equal(legacy.publishedStoreTargets, undefined);
-  assert.equal(JSON.parse(legacy.environmentWire).connector_catalogs[0].commands.length, 0);
-  assert.equal(legacy.sourceReadAccesses.length, 2);
+test('only an explicitly source-only installation under original initialization can omit the collection provider',async t=>{
+  const required=await fixture(t);
+  await assert.rejects(required.direct({...required.profile,
+    siteProfilePath:join(required.scratch.path,'must-not-be-read.json')}),{code:'GcsCollectionProviderUnavailable'});
+  const value=await fixture(t,{installation:Object.freeze({registration:'gcs',revision:'gcs/0.1',responseHeaders:[]})});
+  const legacy=await value.direct(value.profile);
+  assert.equal(legacy.issueOriginalCollectionReference,undefined);
+  assert.equal(legacy.publishedStoreTargets,undefined);
+  assert.equal(JSON.parse(legacy.environmentWire).connector_catalogs[0].commands.length,0);
+  assert.equal(legacy.sourceReadAccesses.length,2);
 });
 
 for (const variant of ['resource issuer throws', 'collection issuer throws', 'issuer ABI missing']) {
@@ -166,7 +172,7 @@ for (const variant of ['resource issuer throws', 'collection issuer throws', 'is
     const closeFailure = Object.freeze(new Error('same original SQLite close pending'));
     const originalExec = DatabaseSync.prototype.exec;
     const originalClose = DatabaseSync.prototype.close;
-    let database, databaseClosed = false, closeAttempts = 0, issuerCalls = 0;
+    let database, databaseClosed = false, allowClose=false, closeAttempts = 0, issuerCalls = 0;
     // Observe only this fresh fixture's actual connection. No replacement
     // journal, credential grant, historical DB or physical operation is used.
     t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
@@ -179,7 +185,7 @@ for (const variant of ['resource issuer throws', 'collection issuer throws', 'is
     t.mock.method(DatabaseSync.prototype, 'close', function() {
       assert.equal(this, database, 'cleanup must keep the acquired original database');
       closeAttempts++;
-      if (closeAttempts === 1) throw closeFailure;
+      if (!allowClose) throw closeFailure;
       originalClose.call(this);
       databaseClosed = true;
     });
@@ -201,6 +207,7 @@ for (const variant of ['resource issuer throws', 'collection issuer throws', 'is
     let failure;
     await assert.rejects(open('constructor-failure.json', {}, {moon: testMoon}), error => {
       failure = error;
+      const chain=[];let cursor=error;for(let i=0;i<6&&cursor&&typeof cursor==='object';i++,cursor=cursor.primaryFailure??cursor.cause){chain.push({code:cursor.code,name:cursor.name,stack:typeof cursor.stack==='string'?cursor.stack.split('\n').slice(0,6):undefined});}t.diagnostic(JSON.stringify({originalConstructorFailure:chain}));
       assert.equal(error.code, 'InstalledHostInitializationFailed');
       assert.equal(error.cleanupPending, true);
       if (variant === 'issuer ABI missing') assert.ok(error.primaryFailure instanceof TypeError);
@@ -210,19 +217,22 @@ for (const variant of ['resource issuer throws', 'collection issuer throws', 'is
     assert.notEqual(database, undefined, 'the actual Site was acquired before failure');
     assert.equal(issuerCalls, variant === 'resource issuer throws' ? 1 :
       variant === 'collection issuer throws' ? 2 : 0);
-    assert.equal(closeAttempts, 1);
+    assert.equal(closeAttempts,2,
+      'Original module catch and outer loader each drain the SAME pending cleanup, without acknowledging it');
     const pending = failure.cleanupHandle.status();
     assert.equal(pending.pending, true);
-    assert.deepEqual(pending.owners, ['source-profile']);
+    assert.deepEqual(pending.owners,['initialization']);
+    assert.equal(pending.errors[0].owner,'source-profile');
     assert.equal(pending.errors[0].error, closeFailure);
     assert.equal(databaseClosed, false, 'failed close does not retire its handle');
+    allowClose=true;
     const retry = failure.cleanupHandle.retry();
     assert.equal(failure.cleanupHandle.retry(), retry, 'the existing cleanup stays single-flight');
     assert.equal((await retry).pending, false);
-    assert.equal(closeAttempts, 2, 'retry closes the same acquired Site without reconstruction');
+    assert.equal(closeAttempts,3,'Retry closes the same acquired Site without reconstruction');
     assert.equal(databaseClosed, true);
     await failure.cleanupHandle.retry();
-    assert.equal(closeAttempts, 2, 'settled cleanup does not close or construct another Site');
+    assert.equal(closeAttempts,3,'Settled cleanup does not close or construct another Site');
     assert.equal(pending.pending, true, 'the previously returned status snapshot remains frozen');
   });
 }

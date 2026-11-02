@@ -147,3 +147,38 @@ The retained value, capture reference and preparation state are part of the
 existing capture/publication overlap that the actual constructor and caller
 must fund. This port supplies no reservation, publication authority, persisted
 evidence admission or normal execution acceptance.
+
+## Closed native output and original Source facade
+
+A closed native Source declaration may return its already serialized `wire`,
+its original parsed `declared` graph and immutable Mapping bodies beside the
+original nominal `declaration` and retained `material`. The initializer retains
+those exact outputs and constructs their complete Environment once; it does not
+restore a second declaration or repeat the original serializer. Source-only
+completion rejects accessors, sparse Mapping arrays and asynchronous results.
+The native recipe's retained quantity replaces its full peak only after the
+synchronous output has been retained. A failed or still-running constructor
+keeps its peak and pending child; neither equal wire nor elapsed time retires it.
+The existing two-field native completion keeps its original serializer path.
+
+`retainInstalledSourceAdapter` associates only the next frozen facade of this
+same active constructor, with the same complete Environment wire. Finish accepts
+that latest original facade; copies, a stale predecessor, another context and a
+retired constructor do not substitute it. The underlying constructor remains
+the sole Source close original. Returning or closing a facade cannot acknowledge
+its physical cleanup. The facade forwards the original close result, including
+its Promise, refusal or pending outcome, before the initial material can retire.
+This fixed wrapper association shares all variable arrays and wires; it issues
+no Resource, grant, policy result or cleanup owner.
+
+The pure `installedRowSourceContext` helper retains the existing canonical
+installation preimage. A provider can use that same immutable context to bind
+its native declaration before opening a Site. The original Account constructor
+still admits configuration and decisions; context DATA is not authorization.
+The actual Site receives that same context object, not a copied decision.
+
+Focused native completion/facade controls are in
+`installed-effect-profile-cleanup.test.mjs`. Actual GCS registered construction,
+Common Environment admission, nominal collection references and SQLite cleanup
+are separate from those explicit-port controls. Neither scope establishes a
+new normal distribution, measured heap bound or live provider acceptance.

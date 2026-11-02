@@ -120,6 +120,7 @@ export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
     completeness: 'complete_per_requested_key', max_rows_per_key: 1,
     max_pages_per_request: 2, max_response_bytes_per_page: limits.maxPageBytes}});
   const declaration = restore(expectedCatalogCid);
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
-  return Object.freeze({declaration, declared, scopeCid, versionCid});
+  const wire=moon.clientProgramRowSourceDeclarationJson(declaration);
+  const declared=JSON.parse(wire);
+  return Object.freeze({declaration,declared,wire,scopeCid,versionCid});
 }

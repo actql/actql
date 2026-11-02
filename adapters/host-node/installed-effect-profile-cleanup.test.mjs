@@ -9,7 +9,7 @@ import {retainInstalledHostInitializationFailure} from './installed-host-cleanup
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
   retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization,
-  assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction, reserveInstalledSourceEnvironment, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
+  assertInstalledSourceConstruction, retainInstalledSourceConstruction, retainInstalledSourceAdapter, closeInstalledSourceConstruction, reserveInstalledSourceEnvironment, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
@@ -483,7 +483,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
   const declared = {...base, command_bodies: ['{}']};
   const events = [], quotes = [], reservedQuotes = [], completions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
-  let reserveCalls = 0, retired = 0, context, pending;
+  let reserveCalls = 0, retired = 0, serializerCalls=0, context, pending;
   const originalIo=new Set();
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial','BorrowedInstalledSourceEnvironment','ReturnInstalledSourceMaterial',
@@ -508,7 +508,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     },
     clientProgramRetireInstalledSourceMaterial(value, original) {assert.equal(value, capacity);assert.equal(original, input);retired++;return ok(true);},
     clientProgramRowSourceRestoreRelationDeclaration(...args) {assert.equal(events.at(-1), 'reserve');events.push('restore');assert.equal(args[4], undefined);return ok(declaration);},
-    clientProgramRowSourceDeclarationJson(value) {assert.equal(value, declaration);return JSON.stringify(base);},
+    clientProgramRowSourceDeclarationJson(value) {serializerCalls++;assert.equal(value, declaration);return JSON.stringify(base);},
   });
   if (missingRetainedProjection) delete moon.clientProgramInstalledSourceRetainedConstructionCapacity;
   const services = createInstalledHostServices({root: '/unopened-original-command-construction', principalId: 'fixture', moon,
@@ -528,7 +528,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   return {context,services,projection,commands,declared,declaration,quotes,reservedQuotes,completions,events,refusal,contractOriginal,installed,moon,native,environment,
     prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
     finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
-    retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,originalIo,
+    retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,serializerCalls:()=>serializerCalls,originalIo,
     // Native Promise settlement is independent of constructor refusal.
     getPending:()=>pending};
 }
@@ -924,4 +924,71 @@ test('invalid async native Source construction remains held until original settl
     settle(Object.freeze({unexpected:'never admitted'}));await Promise.resolve();await Promise.resolve();
     assert.equal(f.retire(),true);
   }
+});
+
+
+test('closed native Source output retains original graph and Mapping without a second serializer',()=>{
+  const output=Object.freeze({original:'retained-native'});
+  const f=commandConstructionFixture({role:'source',retainedNative:output});
+  const graph={catalog_cid:'sha256:'+'a'.repeat(64),catalog:'{}',contracts:[],view_bodies:[],
+    evidence_schemas:[],evidence_capabilities:[],manifest_entry:'{}',command_bodies:['{}']};
+  const mappings=Object.freeze(['{"mapping_contract_cid":"sha256:original"}']);
+  const material=Object.freeze({original:'native material'});
+  const prepared=f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material,declared:graph,
+      wire:JSON.stringify(graph),mappings});}}));
+  assert.equal(prepared.declared,graph);assert.equal(prepared.material,material);
+  assert.equal(prepared.mappings,mappings);assert.equal(Object.isFrozen(graph),true);
+  assert.equal(f.serializerCalls(),0);assert.equal(f.completions.length,1);
+  assert.equal(f.quotes.at(-1).selected[0],output);
+  assert.deepEqual(JSON.parse(prepared.environment.wire).mapping_contracts,[JSON.parse(mappings[0])]);
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('invalid native Source completion keeps full constructor debt and never invokes DATA getters',async()=>{
+  for(const variant of ['getter','sparse-mapping','async','effect-wire']){
+    const f=commandConstructionFixture({role:variant==='effect-wire'?'effect':'source'});
+    let getterCalls=0,settle;
+    const record={declaration:f.declaration,material:Object.freeze({}),wire:'{}'};
+    if(variant==='getter')Object.defineProperty(record,'declared',{get(){getterCalls++;assert.fail('Not DATA');}});
+    if(variant==='sparse-mapping')record.mappings=Object.freeze(Array(1));
+    Object.freeze(record);
+    assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+      project(){return variant==='async'?new Promise(resolve=>{settle=resolve;}):record;}})),
+      {code:variant==='async'?'InstalledSourceConstructorNotSynchronous':'InvalidInstalledSourceNativeDeclaration'});
+    assert.equal(getterCalls,0);assert.equal(f.completions.length,0);
+    assert.equal(f.quotes.at(-1).selected[0],f.native);
+    f.finish();assert.equal(f.retire(),variant!=='async');
+    if(settle){settle(record);await Promise.resolve();await Promise.resolve();assert.equal(f.retire(),true);}
+  }
+});
+
+test('Source facade association retains exact constructor and only its latest original may finish',()=>{
+  const f=commandConstructionFixture({role:'source'}),prepared=f.prepare();
+  const source=Object.freeze({environmentWire:prepared.environment.wire});
+  retainInstalledSourceConstruction(f.context,source,f.declaration,f.declared,prepared.environment);
+  const first=Object.freeze({...source,first:true}),second=Object.freeze({...source,second:true});
+  assert.equal(retainInstalledSourceAdapter(f.context,source,first),first);
+  assert.throws(()=>retainInstalledSourceAdapter(f.context,source,second),{code:'ForeignInstalledSourceAdapter'});
+  assert.equal(retainInstalledSourceAdapter(f.context,first,second),second);
+  assert.throws(()=>finishInstalledSourceInitialization(f.context,first),{code:'InstalledSourceConstructorUnavailable'});
+  assert.throws(()=>finishInstalledSourceInitialization(f.context,{...second}),{code:'InstalledSourceConstructorUnavailable'});
+  assert.throws(()=>closeInstalledSourceConstruction(f.context,second),{code:'ForeignInstalledSourceConstruction'});
+  finishInstalledSourceInitialization(f.context,second);
+  assert.equal(f.retire(),false,'Returning a facade never acknowledges original physical close');
+  assert.throws(()=>retainInstalledSourceAdapter(f.context,second,Object.freeze({...second})),{code:'ForeignInstalledSourceAdapter'});
+  closeInstalledSourceConstruction(f.context,source);assert.equal(f.retire(),true);
+  assert.throws(()=>retainInstalledSourceAdapter(f.context,second,Object.freeze({...second})),{code:'ForeignInstalledSourceAdapter'});
+});
+
+test('Source facade association refuses foreign context changed Environment and accessors without running them',()=>{
+  const f=commandConstructionFixture({role:'source'}),prepared=f.prepare();
+  const source=Object.freeze({environmentWire:prepared.environment.wire});
+  retainInstalledSourceConstruction(f.context,source,f.declaration,f.declared,prepared.environment);
+  for(const candidate of [{...source},Object.freeze({...source,environmentWire:'foreign'}),
+    Object.freeze(Object.defineProperty({},'environmentWire',{get(){assert.fail('No getter');}}))]){
+    assert.throws(()=>retainInstalledSourceAdapter(f.context,source,candidate),{code:'ForeignInstalledSourceAdapter'});
+  }
+  assert.throws(()=>retainInstalledSourceAdapter({},source,Object.freeze({...source})),{code:'ForeignInstalledSourceAdapter'});
+  closeInstalledSourceConstruction(f.context,source);f.finish();assert.equal(f.retire(),true);
 });

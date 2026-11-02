@@ -4,13 +4,12 @@
 import {openRowSourceCredentialSite} from '../../../host-node/installed-row-source.mjs';
 
 export function openGcsCredentialSite(options) {
-  const admitsApprovalTarget = options.admitsApprovalTarget;
   return openRowSourceCredentialSite({...options,
-    // Upload preparation reads metadata of this installed objects collection.
-    // Do not turn a write approval, a files/contents Source, or another GCS
-    // operation into that read. The existing exact physical scope predicate
-    // remains the single installation check for both Source and Effect reads.
-    admitsEffectTargetRead: (binding, resource, operation) =>
-      resource === 'objects' && operation === 'gcs:file:read' &&
-      admitsApprovalTarget(binding, resource) === true});
+    admitsEffectTargetRead:gcsEffectTargetRead(options.admitsApprovalTarget)});
+}
+
+// One installation predicate, never a target-read grant or write approval.
+export function gcsEffectTargetRead(admitsApprovalTarget) {
+  return (binding,resource,operation)=>resource==='objects'&&operation==='gcs:file:read'&&
+    admitsApprovalTarget(binding,resource)===true;
 }

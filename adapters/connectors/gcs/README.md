@@ -926,3 +926,40 @@ counter/failure ports. They test exact values, nominal refusals, changed
 generation/metageneration, pre-I/O refusal, raw backing and primary-failure
 identity. These ports do not prove genuine Core authorization, durable
 Effect/Store reconciliation, installed public acceptance or live GCS service.
+
+## Original Source initialization
+
+The execution loader requires the original Source initialization, configuration
+reader and installation services before reading its Site profile. The same
+initial parent reserves native relation, Command Catalog, collection and Mapping
+construction before their callbacks. The closed native bundle contains at most
+three fixed views (eight, five and twelve columns), one fixed upload Command and
+one four-field Mapping; it accepts no supplied schema array. Its existing
+4,000,000-byte/400,000-node representation envelope retains the output bundle;
+two additional envelopes cover synchronous parser, identity and writer overlap.
+These are logical quantities passed through the shared unit tariff once, not
+new limits, an RSS measurement or a numerical permission. Failure retains the
+full original peak; successful closed return keeps the original retained part
+before Environment construction. Generic Host Environment/input quantities are
+still charged separately on that same parent.
+
+The two original relation phases remain distinct: the first supplies carrier
+schema CIDs, and the second binds the unchanged listing/Content facts. Their
+original final wire is retained once. The shared native completion retains the
+complete Command Catalog, original collection binding and Mapping without a
+second declaration restore or serializer. A source-only installation may omit
+its optional collection provider only under that same initialization protocol;
+the standard registered installation still requires its selected provider.
+
+The original canonical context is prepared as installation DATA, then passed
+unchanged to the existing Account/Site service. Resource references, collection
+references, approval predicates and same-Site target-read rules retain their
+existing owners and currentness. The returned facade is associated with that
+same initialized Source and forwards its exact close result. A failed adapter
+or facade constructor keeps the acquired Site/Source in the existing cleanup
+carrier, whose retry cannot reconstruct a Site or resend an operation.
+
+The registered Source and collection-issuer tests exercise real Common/provider
+and SQLite components. Explicit native/facade port controls are separately
+scoped. These tests do not establish a pristine matching normal distribution,
+public GCS service execution, Saved acceptance or a whole-Host physical bound.

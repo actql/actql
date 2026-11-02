@@ -44,7 +44,7 @@ export function installedSourceFixtureLifetime(t) {
       'InstalledSourceFixtureCleanupUnconfirmed', {cause: failures[0]});
   });
   return {transportContext, sources,
-    open({root, moon, installation, runtimeBundleCid, baseEnvironmentWire}) {
+    open({root, moon, installation, runtimeBundleCid, baseEnvironmentWire,principalId='operator'}) {
       assert.equal(initialization, undefined);
       // Retain before the actual fallible Resource/admission constructor.
       initialization = {state: {}, active: true, childrenPending: false};
@@ -52,7 +52,7 @@ export function installedSourceFixtureLifetime(t) {
       const input = Object.freeze({root, original: 'installed Source component'});
       const parent = openHostInitializationPreparation(initialization.state, moon,
         input, current, () => initialization.childrenPending);
-      const services = createInstalledHostServices({root, principalId: 'operator', moon,
+      const services = createInstalledHostServices({root, principalId, moon,
         assertCurrent: current, initialPreparation: parent});
       initialization.services = services;
       // The SAME service's acknowledged retirement, rather than an optional

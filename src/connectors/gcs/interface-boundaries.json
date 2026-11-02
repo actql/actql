@@ -52,7 +52,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
+                "anchor": "installationCid:bindingCid"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -154,7 +154,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "anchor": "close() {closed=true;return adapter.close();}"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_upload.mbt",
@@ -693,26 +693,34 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ee9b09524542041c30a8d894933f5d00fe7a8647b13b6e892e954dfdf8fbfaca",
+      "sha256": "a28f5c234a2c340f2f7bb7f0de3f5145fc0aef09b87a4604e88d0b92d47740c3",
       "role": "connector-semantics",
       "owner": "Existing GCS installation scope policy; Checkpoint/current/credential signing remain in the original row Site Owner",
       "exports": [
+        "gcsEffectTargetRead",
         "openGcsCredentialSite"
       ],
       "operations": [
         {
-          "name": "openGcsCredentialSite",
+          "name": "gcsEffectTargetRead",
           "parameters": [
-            "options"
+            "admitsApprovalTarget"
           ],
           "async": false
         },
         {
-          "name": "openGcsCredentialSite/openGcsCredentialSite",
+          "name": "gcsEffectTargetRead/gcsEffectTargetRead",
           "parameters": [
             "binding",
             "resource",
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openGcsCredentialSite",
+          "parameters": [
+            "options"
           ],
           "async": false
         }
@@ -727,9 +735,11 @@
           "operations": [
             "<module>",
             "openGcsCredentialSite",
-            "openGcsCredentialSite/openGcsCredentialSite"
+            "gcsEffectTargetRead",
+            "gcsEffectTargetRead/gcsEffectTargetRead"
           ],
           "exports": [
+            "gcsEffectTargetRead",
             "openGcsCredentialSite"
           ],
           "attributes": {
@@ -784,7 +794,7 @@
             "extension": [
               {
                 "path": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
-                "anchor": "resource === 'objects' && operation === 'gcs:file:read'"
+                "anchor": "resource==='objects'&&operation==='gcs:file:read'"
               }
             ],
             "verification": [

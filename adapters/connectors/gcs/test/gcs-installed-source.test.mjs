@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
+import {generateKeyPairSync,createHash} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
@@ -17,6 +17,9 @@ import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {restoreGcsSourceDeclaration} from '../host/gcs-source-declaration.mjs';
 import {gcsAcceptancePrograms} from '../../../../scripts/gcs-files-content-environment.mjs';
 import {selectInstalledHostEnvironment} from '../../../host-node/installed-host-policy.mjs';
+import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
+import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
+import {observeOwnScopedStateFds} from '../../../../scripts/fixtures/external-rest/conformance.mjs';
 
 const runtimeUrl = new URL('../../../../_build/js/release/build/' +
   'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
@@ -84,13 +87,33 @@ async function fixture(t) {
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
-  const loaded = [], closers = [];
-  t.after(async () => {
-    for (const close of closers) await close();
-    for (const source of loaded) await source.close();
+  const loaded=[],closers=[];let closeInitial,initialized;
+  const lifetime=installedSourceFixtureLifetime({after(close){closeInitial=close;},diagnostic:(...args)=>t.diagnostic(...args)});
+  t.after(async()=>{
+    const failures=[];
+    try{for(const close of closers)await close();await closeInitial();}catch(cause){failures.push(cause);}
+    assert.equal(observeOwnScopedStateFds([scratch.path]).scopedStateFd0,true);
+    if(failures.length)throw new AggregateError(failures,'GcsFixtureCleanupUnconfirmed');
     scratch.passed();
   });
-  return {scratch, site, siteProfilePath, profile, profilePath, declared, queryAliases,
+  const load=async()=>{
+    const runtimeBundleCid='sha256:'+createHash('sha256').update(await readFile(runtimeUrl)).digest('hex');
+    initialized??=lifetime.open({root:scratch.path,principalId:userInfo().username,moon,baseEnvironmentWire,runtimeBundleCid,
+      installation:installedConnectors.find(value=>value.name==='gcs')});
+    try{
+      const source=await loadInstalledSource(profilePath,{root:scratch.path,principalId:userInfo().username,moon,runtimeUrl,
+        baseEnvironmentWire,resolveSecret,installationServices:initialized.installationServices});
+      loaded.push(source);lifetime.sources.push(source);return source;
+    }catch(cause){
+      const pending=[cause],seen=new Set(),errors=[];while(pending.length&&errors.length<8){
+        const value=pending.shift();if(!value||typeof value!=='object'||seen.has(value))continue;
+        seen.add(value);errors.push({name:value.name,code:value.code,stack:typeof value.stack==='string'?value.stack.split('\n').slice(0,8):undefined});
+        pending.push(value.cause,value.primaryFailure);
+      }
+      t.diagnostic(JSON.stringify({originalInitializationErrors:errors}));throw cause;
+    }
+  };
+  return {scratch, site, siteProfilePath, profile, profilePath, declared, queryAliases,load,
     loaded, closers, authorization, secretCalls: () => secretCalls, resolveSecret,
     options: {root: scratch.path, principalId: userInfo().username, moon, runtimeUrl,
       baseEnvironmentWire, resolveSecret}};
@@ -144,8 +167,7 @@ async function connectFixture(t, entrance, value) {
 
 test('standard GCS Connector loads its three declared read Resources without provider or credential I/O', async t => {
   const value = await fixture(t);
-  const source = await loadInstalledSource(value.profilePath, value.options);
-  value.loaded.push(source);
+  const source=await value.load();
   assert.equal(source.connectorRegistration, 'gcs');
   assert.equal(source.connectorRevision, 'gcs/0.1');
   assert.deepEqual(source.sourceReadAccesses.map(({resource}) => resource).sort(), ['contents', 'files', 'objects']);
@@ -174,7 +196,7 @@ test('standard GCS installation identity preserves exact scope and observes Site
 test('standard GCS Site rejects arbitrary origins and unknown profile fields before credential use', async t => {
   const value = await fixture(t);
   await writeFile(value.siteProfilePath, JSON.stringify({...value.site, apiOrigin: 'https://foreign.example'}));
-  await assert.rejects(loadInstalledSource(value.profilePath, value.options), {code: 'InvalidInstalledGcsSite'});
+  await assert.rejects(value.load(),cause=>{assert.equal(cause.primaryFailure?.code,'InvalidInstalledGcsSite');assert.equal(cause.cleanupPending,false);return true;});
   assert.equal(value.secretCalls(), 0);
 });
 
@@ -312,3 +334,20 @@ test(`public ${entrance} LIST_FILES paths=[] uses the standard GCS installation 
   assert.equal(value.secretCalls(), 0, 'empty exact selection performs no GCS operation');
 });
 }
+
+
+test('registered GCS native completion keeps complete Command Mapping and original close result',async t=>{
+  const value=await fixture(t),source=await value.load(),wire=source.environmentWire;
+  const environment=JSON.parse(wire);
+  assert.equal(environment.command_contracts.length,1);
+  assert.equal(environment.mapping_contracts.length,1);
+  assert.notEqual(moon.clientProgramCheckEnvironment(wire,environment.evidence_bundle_cid,
+    false,false,true,false,false,false,false),undefined);
+  assert.deepEqual(source.publishedStoreTargets,[{targetRef:'connector://storage/objects',
+    mappingRef:'mapping:storage.gcs.objects.upload.v1',commandRef:'command:storage.gcs.upload.v1'}]);
+  assert.equal(typeof source.issueOriginalCollectionReference,'function');
+  const closing=source.close();
+  assert.equal(typeof closing?.then,'function','Forward the original Source close instead of dropping its pending observation');
+  assert.equal(await closing,undefined,'The original synchronous Site uses Unit, not an invented Boolean ACK');
+  assert.equal(value.secretCalls(),0);
+});

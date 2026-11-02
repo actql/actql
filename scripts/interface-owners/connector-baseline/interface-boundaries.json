@@ -4106,7 +4106,7 @@
     {
       "module": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "02413f8e6fca1deb356b7b33f082890cfc8b17daee765bf783e387b11d5a65f1",
+      "sha256": "0e8636361e0aaa711d3231db1554c58c3caef4443d3e438ec4b7e72681f9d953",
       "role": "connector-semantics",
       "owner": "GCS profile and declaration inputs; Common RowSource declaration seals catalogs/schema/capabilities",
       "exports": [
@@ -4426,7 +4426,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "754e475a7e2519c68dd1842f747d80bf536f7ccc56b30b139cf6e7ec16b7e435",
+      "sha256": "caa6f17415cde948ed88edbcec5816352f178b437b8263c242d986b492859afd",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4491,9 +4491,16 @@
           "parameters": [
             "profile",
             "providerProfile",
-            "read"
+            "read",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedGcsSourceIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledGcsSource",
@@ -4506,21 +4513,10 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "installation"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledGcsSource/adapter/adapter",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledGcsSource/adapter/adapter/adapter",
-          "parameters": [
-            "resource"
+            "installation",
+            "sourceInitialization",
+            "configurationReader",
+            "installationServices"
           ],
           "async": true
         },
@@ -4575,6 +4571,59 @@
           "async": false
         },
         {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource/loadInstalledGcsSource",
+          "parameters": [
+            "resource"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGcsSource/loadInstalledGcsSource#2",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledGcsSource/method/method",
+          "parameters": [
+            "receiver",
+            "name",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/originalContext/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/originalContext/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/prepared/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/prepared/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGcsSource/readers/readers",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledGcsSource/referenceIssuer/referenceIssuer",
           "parameters": [],
           "async": false
@@ -4604,11 +4653,6 @@
           "async": false
         },
         {
-          "name": "loadInstalledGcsSource/site/site",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "loadInstalledGcsSource/target/target",
           "parameters": [
             "resource",
@@ -4619,7 +4663,8 @@
         {
           "name": "readSite",
           "parameters": [
-            "path"
+            "path",
+            "read"
           ],
           "async": true
         },
@@ -4652,8 +4697,6 @@
             "fail/fail",
             "installedGcsSourceIdentityParts",
             "loadInstalledGcsSource",
-            "loadInstalledGcsSource/adapter/adapter",
-            "loadInstalledGcsSource/adapter/adapter/adapter",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGcsSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledGcsSource/collectionIssuer/collectionIssuer",
@@ -4665,11 +4708,20 @@
             "loadInstalledGcsSource/resourceFor/resourceFor",
             "loadInstalledGcsSource/resourceValid/resourceValid",
             "loadInstalledGcsSource/resourceValid/resourceValid/resourceValid",
-            "loadInstalledGcsSource/site/site",
             "loadInstalledGcsSource/target/target",
             "readSite",
             "sameKeys/sameKeys",
-            "text/text"
+            "text/text",
+            "installedGcsSourceIdentityParts/readers/readers",
+            "loadInstalledGcsSource/loadInstalledGcsSource",
+            "loadInstalledGcsSource/loadInstalledGcsSource/loadInstalledGcsSource",
+            "loadInstalledGcsSource/loadInstalledGcsSource#2",
+            "loadInstalledGcsSource/method/method",
+            "loadInstalledGcsSource/originalContext/init:capacity/init:capacity",
+            "loadInstalledGcsSource/originalContext/init:project/init:project",
+            "loadInstalledGcsSource/prepared/init:capacity/init:capacity",
+            "loadInstalledGcsSource/prepared/init:project/init:project",
+            "loadInstalledGcsSource/readers/readers"
           ],
           "exports": [
             "INSTALLED_GCS_SITE_VERSION",
@@ -4737,7 +4789,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
+                "anchor": "installationCid:bindingCid"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -4793,7 +4845,7 @@
               },
               {
                 "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
+                "anchor": "close() {closed=true;return adapter.close();}"
               },
               {
                 "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
@@ -4971,7 +5023,9 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/gcs-credential-site.mjs",
@@ -4982,7 +5036,8 @@
         "./gcs-source-declaration.mjs",
         "./gcs-upload-declaration.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

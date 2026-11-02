@@ -78056,13 +78056,14 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "502e716e1c3af7089c8240add1fbd1a1e677443265fba5dca05dccb98f68839a",
+      "sha256": "8c0ba87141ded12b166bff7cd7e8d0115e5d254e9c6ac3a004ef661b0867242d",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowSource",
         "installRowSourceAuthorization",
         "installedRowCredentialOperationSite",
+        "installedRowSourceContext",
         "loadRowSourceCredentialCustody",
         "openInstalledRowSite",
         "openRowSourceCredentialCustody",
@@ -78851,6 +78852,15 @@
           "name": "installedRowCredentialOperationSite",
           "parameters": [
             "credential"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowSourceContext",
+          "parameters": [
+            "root",
+            "principalId",
+            "connectorRegistration"
           ],
           "async": false
         },
@@ -80434,10 +80444,12 @@
             "installRowSourceAuthorization/installRowSourceAuthorization",
             "installRowSourceAuthorization/installRowSourceAuthorization#2",
             "installRowSourceAuthorization/installRowSourceAuthorization#3",
-            "installRowSourceAuthorization/own/own"
+            "installRowSourceAuthorization/own/own",
+            "installedRowSourceContext"
           ],
           "exports": [
-            "installRowSourceAuthorization"
+            "installRowSourceAuthorization",
+            "installedRowSourceContext"
           ],
           "attributes": {
             "responsibility": [
@@ -80448,6 +80460,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "inputsOutputs": [
@@ -80458,6 +80474,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "identity": [
@@ -80468,6 +80488,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "ownership": [
@@ -80478,6 +80502,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "synchronization": [
@@ -80488,6 +80516,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "failure": [
@@ -80498,6 +80530,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "cancellation": [
@@ -80508,6 +80544,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "resources": [
@@ -80518,6 +80558,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "extension": [
@@ -80528,6 +80572,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ],
             "verification": [
@@ -80546,6 +80594,10 @@
               {
                 "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
                 "anchor": "shared installer retains its default context"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Closed native output and original Source facade"
               }
             ]
           }
