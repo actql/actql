@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as fixtureMoon from '../../../../_build/js/release/build/connectors/gcs/fixtures/original_reference_node/original_reference_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -236,3 +237,30 @@ for (const variant of ['resource issuer throws', 'collection issuer throws', 'is
     assert.equal(pending.pending, true, 'the previously returned status snapshot remains frozen');
   });
 }
+
+
+test('two GCS scopes on the same original initializer retain their own collection and close independently',async t=>{
+  const value=await fixture(t),first=await value.open('first.json');
+  let second;
+  try{second=await value.open('second.json',{prefix:'test/é/'});}
+  catch(error){
+    // The Core PreparationCapacityIssue/LedgerIssue enums carry no business
+    // values. This bounded failure observation never chooses a product branch.
+    const chain=[];let cursor=error;
+    for(let index=0;index<6&&cursor&&typeof cursor==='object';index++,cursor=cursor.primaryFailure??cursor.cause){
+      chain.push({name:cursor.name,code:cursor.code,
+        stack:typeof cursor.stack==='string'?cursor.stack.split('\n').slice(0,7):undefined,
+        capacityIssue:cursor.code==='MoonBitHostFailure'?inspect(cursor.cause,
+          {depth:2,customInspect:false,getters:false,maxArrayLength:0}):undefined});
+    }
+    t.diagnostic(JSON.stringify({sameParentOriginalFailure:chain}));throw error;
+  }
+  const pair=originalPair(second);
+  assert.throws(()=>first.issueOriginalCollectionReference(pair,1000000),{code:'GcsForeignCollectionSelection'});
+  const original=second.issueOriginalCollectionReference(pair,1000000);
+  assert.equal(fixtureMoon.fixtureGcsReferenceAvailable(original),true);
+  await first.close();
+  assert.equal(fixtureMoon.fixtureGcsReferenceAvailable(original),true);
+  await second.close();
+  assert.equal(fixtureMoon.fixtureGcsReferenceAvailable(original),false);
+});
