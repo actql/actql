@@ -70,6 +70,15 @@ fn reserve_capacity_current(
   let retained = usage.held_bytes +
     usage.reserved_retention_bytes +
     retained_bytes
+  match
+    grow_imported_platform_working_current(
+      ledger,
+      retained,
+      usage.reserved_execution_bytes + execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   ledger.usage = {
     ..usage,
     live_reservations: usage.live_reservations + 1,
@@ -246,6 +255,15 @@ fn resize_reservation_bytes_current(
   if execution_delta >
     ledger.limits.execution_bytes - usage.reserved_execution_bytes {
     return Err(ExecutionLimit)
+  }
+  match
+    grow_imported_platform_working_current(
+      ledger,
+      usage.held_bytes + usage.reserved_retention_bytes + retained_delta,
+      usage.reserved_execution_bytes + execution_delta,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   ledger.usage = {
     ..usage,

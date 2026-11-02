@@ -70859,6 +70859,152 @@
         }
       ],
       "exports": []
+    },
+    {
+      "module": "src/physical_resources/platform_vm_working_capacity.mbt",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing platform VM Resource and preparation owners",
+      "referenceQualification": "Nominal Resource suballocation/current/borrower component and consuming types only; not a Host Request admission, normal Run, provider grant or physical Store ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "borrow_platform_vm_working_capacity",
+            "close_platform_vm_working_capacity_after_cleanup",
+            "grow_platform_vm_working_capacity",
+            "platform_vm_working_original",
+            "reserve_platform_vm_working_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              },
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity.mbt",
+                "anchor": "pub fn grow_platform_vm_working_capacity("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/platform_vm_working_capacity_wbtest.mbt",
+                "anchor": "test \"platform VM demand grows only its original claim"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "#### Demand-sized working claims"
+              }
+            ]
+          }
+        }
+      ],
+      "sha256": "da6ee2bcc8bc31fc1ef750c1468fc3564913cfdd021059eb2d777afbb06450a3",
+      "operations": [
+        {
+          "name": "borrow_platform_vm_working_capacity",
+          "declaration": "borrow_platform_vm_working_capacity ( owner : PlatformVMWorkingCapacity , ) - > Result [ SharedBorrow , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "close_platform_vm_working_capacity_after_cleanup",
+          "declaration": "close_platform_vm_working_capacity_after_cleanup ( owner : PlatformVMWorkingCapacity , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "grow_platform_vm_working_capacity",
+          "declaration": "grow_platform_vm_working_capacity ( owner : PlatformVMWorkingCapacity , retained : Int64 , execution : Int64 , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "platform_vm_working_original",
+          "declaration": "platform_vm_working_original ( owner : PlatformVMWorkingCapacity , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "reserve_platform_vm_working_capacity",
+          "declaration": "reserve_platform_vm_working_capacity ( vm : PlatformVMCapacity , retained : Int64 , execution : Int64 , ) - > Result [ PlatformVMWorkingCapacity , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "exports": []
     }
   ]
 }

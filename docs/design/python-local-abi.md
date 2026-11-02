@@ -3575,6 +3575,31 @@ reservation or copied view do not match. Closing and lost observations fence
 new claims on that original; a later observation does not clear the fence.
 The non-Wasm fixed port remains unavailable.
 
+#### Demand-sized working claims
+
+`PlatformVMWorkingCapacity` is an original view of one shared allocation on
+that same VM reservation. Its supplier must already back the entry/controller
+prefix before calling the constructor. The retained and execution extents are
+the complete simultaneous demand, not the unused policy ceilings. Growth checks
+the same live VM original and the original Resource mutation fence, then updates
+the same allocation atomically. A failed grow leaves its previous extents and
+sibling/input allocations unchanged. Earlier retained and execution peaks stay
+charged until cleanup; a smaller later quote does not release them.
+
+Construction and exported-body users retain the existing `SharedBorrow` before
+use. Closing forbids new growth and borrowers, but cannot release an allocation
+with outstanding borrowers. Only their original after-use returns permit the
+enclosing owner to finish cleanup of this suballocation. That operation does
+not return the whole VM reservation or acknowledge physical Store destruction.
+Other shared allocations retain their existing fixed-size behavior; only the
+closed original VM working-claim implementation changes its own byte extent.
+
+This view does not issue an imported child, a Request admission, a resource
+policy, a read/send grant or a Run. The installing Host must connect its actual
+original preparation admission, controller/constructor/output overlap and
+failure retirement to these claims. Equal byte counts alone cannot replace that
+connection. Node and mapped/native backing retain their own existing contracts.
+
 A platform input pool claims its actual mutable/immutable wire overlap from the
 same existing VM capacity rather than reserving another whole execution pool.
 Its separately supplied external-copy allowance remains separately charged on

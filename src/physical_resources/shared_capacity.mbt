@@ -12,7 +12,7 @@ struct SharedCapacity {
 ///|
 struct SharedAllocation {
   owner : SharedCapacity
-  bytes : Int64
+  mut bytes : Int64
   mut readers : Int
   mut retiring : Bool
   mut released : Bool
