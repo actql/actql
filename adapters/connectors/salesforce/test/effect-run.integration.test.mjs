@@ -431,6 +431,8 @@ test('shared Effect Client admission and physical claim survive races and restar
     readFile(new URL('../../../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
   ]);
   const values = JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, values, undefined, undefined));
   const control = runtimeCore(moon).publicationControl;
   let starts = 0;
   let failAfterCapture = false;
@@ -455,7 +457,7 @@ test('shared Effect Client admission and physical claim survive races and restar
         compilation)).root_refs.some(root => root.role === 'effect_result'));
       starts++;
       const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
-        owner, registry, values, 1n, 0n, 0n, 0n);
+        owner, installedContracts, values, 1n, 0n, 0n, 0n, undefined, undefined);
       assert.ok(setup);
       const execution = await runCapturedEffectComputation(setup);
       await execution.close();
