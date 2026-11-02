@@ -861,3 +861,67 @@ test('closed Command missing retained DATA port refuses before original construc
   assert.deepEqual(f.events,[]);assert.equal(f.completions.length,0);
   f.finish();assert.equal(f.retire(),true);
 });
+
+test('native Source input and original declaration stay on the same pre-reserved initializer',()=>{
+  const f=commandConstructionFixture({role:'source',repeatedNative:true});
+  const events=[];
+  const input=f.context.prepareInputConstruction(Object.freeze({
+    capacity(){events.push('input-quantity');return f.native;},
+    project(){assert.equal(f.events.at(-1),'reserve');events.push('input');return Buffer.from('original');},
+  }));
+  const material=Object.freeze({input,description:Object.freeze({original:'description'})});
+  const prepared=f.context.prepareNativeDeclaration(Object.freeze({
+    capacity(){events.push('declaration-quantity');return f.native;},
+    project(){assert.equal(f.events.at(-1),'reserve');events.push('declaration');
+      return Object.freeze({declaration:f.declaration,material});},
+  }));
+  assert.strictEqual(prepared.declaration,f.declaration);
+  assert.strictEqual(prepared.material,material);
+  assert.equal(prepared.environment.wire,JSON.stringify(JSON.parse(prepared.environment.wire)));
+  assert.doesNotThrow(()=>assertInstalledSourceConstruction(f.context,prepared.declaration,
+    prepared.declared,prepared.environment));
+  assert.deepEqual(events,['input-quantity','input','declaration-quantity','declaration']);
+  assert.deepEqual(f.quotes.at(-1).selected,[f.native,f.native]);
+  assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},project(){assert.fail('no second original');}})),
+    {code:'ForeignInstalledSourceInitialization'});
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('native Source input reservation refuses before allocation and cannot retry its failed original',()=>{
+  const f=commandConstructionFixture({role:'source',refuseReserve:true,reserveAt:1});
+  let entered=0;
+  const projection=Object.freeze({capacity(){return f.native;},project(){entered++;return Buffer.alloc(8);}});
+  assert.throws(()=>f.context.prepareInputConstruction(projection),cause=>cause===f.refusal);
+  assert.equal(entered,0);
+  assert.throws(()=>f.context.prepareInputConstruction(projection),{code:'ForeignInstalledSourceInitialization'});
+  assert.equal(entered,0);assert.equal(f.retire(),false);
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('native Source construction preserves thrown undefined and refuses foreign or reentrant entry',()=>{
+  for(const method of ['prepareInputConstruction','prepareNativeDeclaration']){
+    const f=commandConstructionFixture({role:'source'});let entered=0;
+    const projection=Object.freeze({capacity(){return f.native;},project(){entered++;
+      assert.throws(()=>f.context[method](projection),{code:'ForeignInstalledSourceInitialization'});
+      throw undefined;}});
+    assert.throws(()=>Reflect.apply(f.context[method],Object.freeze({}),[projection]),
+      {code:'ForeignInstalledSourceInitialization'});
+    let threw=false;
+    try{f.context[method](projection);}catch(cause){threw=true;assert.equal(cause,undefined);}
+    assert.equal(threw,true);assert.equal(entered,1);
+    assert.throws(()=>f.context[method](projection),{code:'ForeignInstalledSourceInitialization'});
+    f.finish();assert.equal(f.retire(),true);
+  }
+});
+
+test('invalid async native Source construction remains held until original settlement without retry',async()=>{
+  for(const method of ['prepareInputConstruction','prepareNativeDeclaration']){
+    const f=commandConstructionFixture({role:'source'});let settle;
+    const projection=Object.freeze({capacity(){return f.native;},project(){return new Promise(resolve=>{settle=resolve;});}});
+    assert.throws(()=>f.context[method](projection),{code:'InstalledSourceConstructorNotSynchronous'});
+    f.finish();assert.equal(f.retire(),false);
+    assert.throws(()=>f.context[method](projection),{code:'ForeignInstalledSourceInitialization'});
+    settle(Object.freeze({unexpected:'never admitted'}));await Promise.resolve();await Promise.resolve();
+    assert.equal(f.retire(),true);
+  }
+});

@@ -447,7 +447,95 @@ export function beginInstalledSourceInitialization(services, installation, conne
     reconcileSource(original, material);
     return target;
   }
+  function prepareInitialNativeConstruction(projection, attempt) {
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        scope[attempt] || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    if (material.busy) fail('InstalledSourceInitializationReentry');
+    const methods = sourceProjectionMethods(projection);
+    if (typeof material.methods.ComposeInstalledSourceConstructionCapacity !== 'function') {
+      fail('InstalledSourceInitializationRuntimeUnavailable');
+    }
+    scope[attempt] = true;
+    let quantity;
+    material.busy = true;
+    try {quantity = requireSynchronousSourceConstruction(material,
+      Reflect.apply(methods.capacity, projection, []));}
+    finally {material.busy = false;}
+    if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) {
+      fail('InstalledSourceCommandConstructionUnavailable');
+    }
+    // The selected original recipe includes every returned native value and
+    // failed constructor prefix. It stays on this initial parent through
+    // Source retirement; this entrance does not issue another capacity.
+    material.providers.push(quantity);material.inputs.push(projection);
+    reserveSource(original, material);
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    return methods.project;
+  }
   const context = Object.freeze({
+    prepareInputConstruction(projection) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      const project = prepareInitialNativeConstruction(projection, 'nativeInputAttempted');
+      material.busy = true;
+      try {
+        const value = requireSynchronousSourceConstruction(material,
+          Reflect.apply(project, projection, []));
+        material.inputs.push(value);
+        if (!scope.active || scope.prepared !== undefined || material.phase !== 'working' ||
+            value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
+          fail('InvalidInstalledSourceNativeInput');
+        }
+        // A private original Buffer/opaque native value is retained as-is.
+        // Walking or freezing its contents would allocate another input copy.
+        return value;
+      } finally {material.busy = false;}
+    },
+    prepareNativeDeclaration(projection) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      const project = prepareInitialNativeConstruction(projection, 'nativeDeclarationAttempted');
+      let declaration, nativeMaterial, declaredWire;
+      material.busy = true;
+      try {
+        const projected = requireSynchronousSourceConstruction(material,
+          Reflect.apply(project, projection, []));
+        material.inputs.push(projected);
+        if (!scope.active || scope.prepared !== undefined || material.phase !== 'working' ||
+            !projected || typeof projected !== 'object' || nodeTypes.isProxy(projected) ||
+            !Object.isFrozen(projected)) fail('InvalidInstalledSourceNativeDeclaration');
+        const fields = Object.getOwnPropertyDescriptors(projected);
+        if (Reflect.ownKeys(fields).length !== 2 || ['declaration','material'].some(name =>
+            !Object.hasOwn(fields[name] ?? {}, 'value'))) fail('InvalidInstalledSourceNativeDeclaration');
+        declaration = fields.declaration.value;nativeMaterial = fields.material.value;
+        // The actual Common serializer consumes the provider's original
+        // nominal declaration. No wire is restored as a second declaration.
+        material.inputs.push(declaration, nativeMaterial);
+        declaredWire = requireSynchronousSourceConstruction(material,
+          Reflect.apply(original.declarationJson, original.moon, [declaration]));
+        material.inputs.push(declaredWire);
+        if (typeof declaredWire !== 'string') fail('InvalidInstalledSourceDeclaration');
+      } finally {material.busy = false;}
+      // Same Host JSON/Environment envelope used by native Command completion.
+      // The original native recipe above owns declaration serialization;
+      // reserve its actual returned wire before the Host parse/merge below.
+      const basis = 16n * (BigInt(declaredWire.length) + BigInt(scope.baseEnvironmentWire.length));
+      reserveSource(original, material, basis, basis, basis);
+      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+      let prepared;
+      material.busy = true;
+      try {
+        const declared = freezeSourceProjection(JSON.parse(declaredWire));
+        const environment = scope.role === 'effect' ? undefined
+          : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
+        prepared = Object.freeze({declaration, declared, environment, material: nativeMaterial});
+        scope.prepared = prepared;scope.declarationBasis = basis;
+        material.inputs.push(declared, environment, prepared);
+        material.nodes += basis;material.text += basis;material.wire += basis;
+      } finally {material.busy = false;}
+      reconcileSource(original, material);
+      return prepared;
+    },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
           scope.role !== 'effect' || scope.source !== undefined || scope.mappingsAttempted ||

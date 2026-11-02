@@ -122261,7 +122261,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "c18cabe231436ead89b565a62ea629bb571c50cf3cc3bb8b78d5e73050ff805a",
+      "sha256": "7f7bb37d5f7dedf4ff365afb7501176dd574a9aa4bd371d3cdacfe743f51aebd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -122391,6 +122391,13 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
           "parameters": [
             "writesJson",
@@ -122428,9 +122435,31 @@
           "async": false
         },
         {
+          "name": "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
           "parameters": [
             "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledSourceInitialization/prepareInitialNativeConstruction",
+          "parameters": [
+            "projection",
+            "attempt"
           ],
           "async": false
         },
@@ -123515,6 +123544,81 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Source-owned complete read sequences"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
+            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "beginInstalledSourceInitialization/prepareInitialNativeConstruction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "Native Source input and declaration completion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
+                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
+                "anchor": "test('invalid async native Source construction remains held until original settlement without retry'"
               }
             ]
           }

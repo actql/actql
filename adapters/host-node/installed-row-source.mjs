@@ -1432,7 +1432,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   }
   const [queryContract, evidenceContract] = readAsset === undefined
     ? await Promise.all(['actql-query-acquisition.json', 'actql-query-process-evidence.json']
-      .map(name => retainedAcquisitionContracts
+      .map(name => sourceInitialization !== undefined
         ? readInstalledSourceAcquisitionContract(sourceInitialization, fileURLToPath(new URL(name,contractRoot)))
         : readFile(new URL(name, contractRoot), 'utf8')))
     : ['actql-query-acquisition.json', 'actql-query-process-evidence.json']
