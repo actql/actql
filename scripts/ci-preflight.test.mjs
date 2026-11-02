@@ -196,3 +196,19 @@ test('scheduled deep validation is pinned to authenticated main and cannot admit
     await assert.rejects(assertCurrentRevision(f.context, f.body, async () => merge, {checkoutRevision: merge}));
   }
 });
+
+// These runners do not use setup-toolchain: their tests and bundle generators
+// still import the root's pinned parser and build dependencies.
+test('isolated connector jobs install their own exact root verification dependencies', () => {
+  for (const name of ['connector-addition', 'duckdb-node']) {
+    const steps = jobs[name].steps;
+    const install = steps.findIndex(step => step.run === 'npm ci');
+    assert(install >= 0, `${name} must install root dependencies in its own checkout`);
+    const consumer = steps.findIndex(step => step.run === (name === 'connector-addition'
+      ? 'npm run check:connector-addition' : 'npm test --prefix adapters/connectors/duckdb/node'));
+    assert(consumer > install, `${name} must install before consuming root tools`);
+    const setup = steps.find(step => step.uses?.startsWith('actions/setup-node@'));
+    assert.deepEqual(setup.with['cache-dependency-path'].trim().split(/\s+/u),
+      ['package-lock.json', 'adapters/connectors/duckdb/node/package-lock.json']);
+  }
+});

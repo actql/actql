@@ -1377,7 +1377,11 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-          cache-dependency-path: adapters/connectors/duckdb/node/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
+      - name: Install exact root build and verification dependencies
+        run: npm ci
       - run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
       - name: Install pinned MoonBit
         run: |
@@ -1417,7 +1421,11 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-          cache-dependency-path: adapters/connectors/duckdb/node/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            adapters/connectors/duckdb/node/package-lock.json
+      - name: Install exact root build and verification dependencies
+        run: npm ci
       - name: Install exact DuckDB transport dependencies
         run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
       - name: Install pinned MoonBit for generated SQL conformance
