@@ -9,8 +9,7 @@ import {closeSync, constants, copyFileSync, existsSync, fstatSync, lstatSync,
 import {dirname, join, resolve, sep} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {hash, snapshot} from './inventory.mjs';
-import {currentFoundation} from './history.mjs';
+import {hash, snapshot, checkCurrentSource} from './inventory.mjs';
 import {decision} from './exploration-impact.mjs';
 import {auditFixture, fixturePath} from './fixture.mjs';
 
@@ -23,13 +22,13 @@ const maxFiles = 50000, maxFileBytes = 4 * 1024 ** 3, maxTotalBytes = 16 * 1024 
 const maxManifestBytes = 32 * 1024 ** 2;
 // The existing whole capacity report is about 159 MiB (535 observations plus
 // repeated correspondence). Give only that named report a bounded allowance;
-// manifests, foundation records and individual receipts keep the smaller cap.
+// manifests and individual receipts keep the smaller cap.
 const maxCapacityReportBytes = 256 * 1024 ** 2;
 const manifestName = 'ci-seal.json';
 const prefix = '.artifacts/relation-pipeline/';
 export const requiredStages = Object.freeze({
-  mutations: ['foundation', 'focused', 'baseline', 'mutations'],
-  capacity: ['foundation', 'capacity', 'capacity-audit', 'capacity-negative', 'final-normal'],
+  mutations: ['source', 'focused', 'baseline', 'mutations'],
+  capacity: ['source', 'capacity', 'capacity-audit', 'capacity-negative', 'final-normal'],
 });
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
 export function canonicalJson(path, limit = maxManifestBytes) {
@@ -129,9 +128,10 @@ function validateContext(context) {
   assert(context.prHeadSha === null || shaPattern.test(context.prHeadSha));
 }
 export function sourceState(root) {
-  const source = snapshot(root), foundation = currentFoundation(root);
+  checkCurrentSource(root);
+  const source = snapshot(root);
   return {context: contextFromEnvironment(root), source: {digest: source.digest},
-    foundation: {digest: hash(encode(foundation))}, exploration: decision(root),
+    exploration: decision(root),
     toolchain: {moonbit: JSON.parse(readFileSync(join(root, 'toolchain.json'))),
       lean: readFileSync(join(root, 'proofs/bounded-session/lean-toolchain'), 'utf8').trim(),
       setupDigest: hash(readFileSync(join(root, '.github/actions/setup-toolchain/action.yml'))),
@@ -182,19 +182,19 @@ export function inspectProducerEvidence(directory, producer, expected) {
   return receipts.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
 }
 function ownedPath(producer, path) {
-  if (['current-foundation.json', 'session-model.log', 'chain-model.log'].includes(path) || /^sources\/[0-9a-f]{64}\.json$/u.test(path)) return true;
+  if (['session-model.log', 'chain-model.log'].includes(path) || /^sources\/[0-9a-f]{64}\.json$/u.test(path)) return true;
   if (/^[0-9]+-[0-9]+-[0-9]{4}-[A-Za-z0-9_-]+\.(?:json|inputs\.json|fixture\.mbt|log)$/u.test(path)) return true;
   return producer === 'mutations'
     ? ['base-js.json', 'fixed-mutations.json', 'mutations.json', 'exploration-decision.json'].includes(path)
     : ['js.json', 'wasm.json', 'native.json'].includes(path) || path.startsWith('capacity/') || /^final-artifacts\/(?:js|wasm|native)\//u.test(path);
 }
 export function validateEnvelope(manifest, expected) {
-  assert.deepEqual(Object.keys(manifest).sort(), ['schema', 'producer', 'context', 'source', 'foundation', 'exploration', 'toolchain', 'completedStages', 'restoration', 'files', 'receipts'].sort(), 'Unknown envelope fields');
+  assert.deepEqual(Object.keys(manifest).sort(), ['schema', 'producer', 'context', 'source', 'exploration', 'toolchain', 'completedStages', 'restoration', 'files', 'receipts'].sort(), 'Unknown envelope fields');
   assert.equal(manifest.schema, schema); assert(producers.includes(manifest.producer));
   assert.equal(manifest.producer, expected.producer);
   validateContext(manifest.context); assert.deepEqual(manifest.context, expected.context, 'Different run, attempt or tested checkout');
-  for (const key of ['source', 'foundation', 'exploration', 'toolchain']) assert.deepEqual(manifest[key], expected[key], `Different ${key}`);
-  assert(digestPattern.test(manifest.source.digest) && digestPattern.test(manifest.foundation.digest));
+  for (const key of ['source', 'exploration', 'toolchain']) assert.deepEqual(manifest[key], expected[key], `Different ${key}`);
+  assert(digestPattern.test(manifest.source.digest));
   assert.deepEqual(manifest.completedStages, requiredStages[manifest.producer], 'Incomplete producer stages');
   assert.deepEqual(manifest.restoration, {sourceRestored: true, fixtureClosed: true, workspacesClosed: true}, 'Unclosed producer');
   assert(Array.isArray(manifest.files) && manifest.files.length > 0 && manifest.files.length <= maxFiles);
@@ -219,14 +219,11 @@ export function validateEnvelope(manifest, expected) {
   }
   return manifest;
 }
-export function sealEvidence({root, directory, producer, context, stages, source, foundation, exploration, toolchain}) {
+export function sealEvidence({root, directory, producer, context, stages, source, exploration, toolchain}) {
   assert(root, 'Producer checkout root is required');
   assert(!existsSync(join(root, fixturePath)), 'Executor fixture was not closed');
   assert.equal(snapshot(root).digest, source.digest, 'Producer source was not restored');
-  const expected = {producer, context, source, foundation, exploration, toolchain};
-  const archivedFoundation = canonicalJson(join(directory, 'current-foundation.json'));
-  assert.equal(archivedFoundation.sourceRevision, context.testedSha);
-  assert.equal(fileDigest(join(directory, 'current-foundation.json')), foundation.digest, 'Stale archived foundation');
+  const expected = {producer, context, source, exploration, toolchain};
   const receipts = inspectProducerEvidence(directory, producer, expected);
   const manifest = {...expected, schema, completedStages: stages,
     restoration: {sourceRestored: true, fixtureClosed: true, workspacesClosed: true},
@@ -332,7 +329,7 @@ export function joinEvidence({root, inputs, expected, destination}) {
   assert.equal(new Set(ids).size, 2, 'Repeated producer artifact ID');
   assert(!existsSync(destination), 'Joined evidence destination already exists');
   const merged = new Map(), receiptPaths = new Set(), observations = new Set(), manifests = [];
-  const shared = new Set(['current-foundation.json', 'session-model.log', 'chain-model.log', `sources/${expected.source.digest}.json`]);
+  const shared = new Set(['session-model.log', 'chain-model.log', `sources/${expected.source.digest}.json`]);
   for (const input of inputs) {
     assert.equal(input.result, 'success', 'Producer failed, cancelled or skipped');
     assert(digestPattern.test(input.manifestDigest)); assert(digestPattern.test(input.artifactDigest), 'Missing outer transport digest');
@@ -342,8 +339,6 @@ export function joinEvidence({root, inputs, expected, destination}) {
     assert.equal(hash(encode(manifest)), input.manifestDigest, 'Parsed manifest digest differs');
     validateEnvelope(manifest, {...expected, producer: input.producer});
     assert.deepEqual(inventory(input.directory, {excludeManifest: true}), manifest.files, 'Transferred file inventory differs');
-    assert.equal(fileDigest(join(input.directory, 'current-foundation.json')), expected.foundation.digest, 'Transferred foundation differs');
-    assert.equal(canonicalJson(join(input.directory, 'current-foundation.json')).sourceRevision, expected.context.testedSha);
     assert.deepEqual(inspectProducerEvidence(input.directory, input.producer, expected), manifest.receipts, 'Transferred receipt bindings differ');
     for (const receipt of manifest.receipts) {
       assert(!receiptPaths.has(receipt.path), 'Receipt path collides across producers'); receiptPaths.add(receipt.path);
@@ -368,7 +363,7 @@ export function joinEvidence({root, inputs, expected, destination}) {
   return {schema: 'actql-pipeline-ci-join/0.1', context: expected.context,
     producers: inputs.map(({producer, artifactId, artifactDigest, manifestDigest, archiveDigest}) =>
       ({producer, artifactId, artifactDigest, manifestDigest, archiveDigest})),
-    foundation: expected.foundation, source: expected.source, fileCount: merged.size,
+    source: expected.source, fileCount: merged.size,
     expandedBytes: [...merged.values()].reduce((sum, {file}) => sum + file.size, 0),
     receiptCount: receiptPaths.size, observationCount: observations.size, manifests};
 }
@@ -387,10 +382,9 @@ async function main() {
     assert(producers.includes(producer));
     const state = sourceState(root);
     assert(!existsSync(join(root, fixturePath)), 'Fixture exists before campaign');
-    assert.equal(fileDigest(join(directory, 'current-foundation.json')), state.foundation.digest);
     const output = join(stateRoot, producer); mkdirSync(output, {recursive: true});
     writeFileSync(join(output, 'start.json'), encode(state), {flag: 'wx'});
-    writeFileSync(join(output, 'stages.json'), encode(['foundation']), {flag: 'wx'});
+    writeFileSync(join(output, 'stages.json'), encode(['source']), {flag: 'wx'});
   } else if (command === 'stage') {
     assert(producers.includes(producer)); const stage = process.argv[4];
     const path = join(stateRoot, producer, 'stages.json'), stages = canonicalJson(path);
@@ -399,7 +393,7 @@ async function main() {
   } else if (command === 'seal') {
     assert(producers.includes(producer)); const out = join(stateRoot, producer);
     const expected = canonicalJson(join(out, 'start.json'));
-    assert.deepEqual(sourceState(root), expected, 'Producer source/toolchain/foundation was not restored');
+    assert.deepEqual(sourceState(root), expected, 'Producer source/toolchain was not restored');
     assert(!existsSync(join(root, fixturePath)), 'Executor fixture was not closed');
     sealEvidence({root, directory, producer, ...expected, stages: canonicalJson(join(out, 'stages.json'))});
     const archiveDigest = packArchive(directory, join(out, 'evidence.tar'));

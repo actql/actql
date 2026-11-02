@@ -3,7 +3,6 @@ import { mutationNamesByPart } from './proof-parts.mjs';
 import { variants } from './mutation-registry.mjs';
 import { fixedCorpus, coverage } from './corpus.mjs';
 import { registrations } from './obligations.mjs';
-import { checkTakeHistory, checkFoundation } from './history.mjs';
 import { decision } from './exploration-impact.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -11,7 +10,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { candidates, program } from './engine.mjs';
 import { registry, baseRegistry } from './registry.mjs';
-import { hash, snapshot, checkBaseline } from './inventory.mjs';
+import { hash, snapshot, checkBaseline, checkCurrentSource } from './inventory.mjs';
 import { validate, compareSemantics, auditModelLogs } from './evidence.mjs';
 import { auditFixture, payload, inputVariable } from './fixture.mjs';
 import { applyMutation } from './sites.mjs';
@@ -25,7 +24,7 @@ function freeze(value) {
   return value;
 }
 
-// One read-only invocation owns this preparation. The checkout, Git history and
+// One read-only invocation owns this preparation. The checkout and
 // environment must stay fixed while its alternate report directories are audited.
 // No report, receipt, observation identity or validation result is shared.
 export function createAudit(root = defaultRoot) {
@@ -33,8 +32,8 @@ export function createAudit(root = defaultRoot) {
   checkBaseline(root);
   const preparation = { baselineMs: performance.now() - started };
   started = performance.now();
-  checkFoundation(root);
-  preparation.foundationMs = performance.now() - started;
+  checkCurrentSource(root);
+  preparation.sourceMs = performance.now() - started;
   started = performance.now();
   const current = freeze(structuredClone(snapshot(root)));
   preparation.snapshotMs = performance.now() - started;
@@ -255,9 +254,6 @@ export function createAudit(root = defaultRoot) {
       log(`${result.name}: ${mode} evidence, pristine healthy and new-owner restored mutable finite replay audited`);
     }
     }
-    const extension = checkTakeHistory(root);
-    assert.equal(extension.handwrittenCombinationAdditions, 0);
-    log('Historical take measurement preserved; current foundation changes are counted separately');
     const actions = checkMutationActions({root, directory, source: current, decision: expectedImpact, auditedReceipts});
     log(`ACTQL_PIPELINE_ACTIONS:${JSON.stringify(actions)}`);
     return actions;

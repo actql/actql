@@ -754,6 +754,7 @@ priv struct TaskRetention {
   mut holding : @resources.Holding?
   mut release_confirmed : () -> Bool
   parents : Array[Int]
+  mut cleanup_observation : CleanupObservation
 }
 
 ///|
@@ -811,7 +812,7 @@ pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
   collect_captured_retention(run)
   for execution in run.executions {
     if execution is Some(execution) && execution.disposed {
-      release_task_execution(run, execution)
+      release_task_execution(run, execution) |> ignore
     }
   }
 }
@@ -985,37 +986,96 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
 
 ///|
 fn collect_captured_retention(run : CapturedDAG) -> Unit {
-  // Backward edges ensure one descending pass releases newly unreferenced
-  // ancestors. This traversal is bounded by the checked graph's task limit.
+  // Keep reverse dependency order; an independently refused sibling must not
+  // prevent other eligible children from releasing their own originals.
   for task = run.resources.length() - 1; task >= 0; task = task - 1 {
-    guard !run.lifetimes[task].live &&
-      run.lifetimes[task].pins == 0 &&
-      run.resources[task] is Some(resource) else {
-      continue
-    }
-    let mut needed = false
-    if run.executions[task] is Some(execution) &&
-      (!execution.disposed || !task_execution_retention_released(execution)) {
-      needed = true
-    }
-    for child in run.resources {
-      if child is Some(child) && child.parents.contains(task) {
-        needed = true
-      }
-    }
-    if run.running is Some((active, _)) &&
-      run.graph
-      .data_iter()
-      .any(edge => edge.consumer == active && edge.producer == task) {
-      needed = true
-    }
-    if !needed && (resource.release_confirmed)() {
-      if resource.holding is Some(holding) {
-        @resources.release_allocation(run.ledger, holding) |> ignore
-      }
-      run.resources[task] = None
+    release_captured_task_retention(run, task) |> ignore
+  }
+}
+
+///|
+fn release_captured_task_retention(
+  run : CapturedDAG,
+  task : Int,
+) -> Result[Bool, @resources.LedgerIssue] {
+  guard !run.lifetimes[task].live &&
+    run.lifetimes[task].pins == 0 &&
+    run.resources[task] is Some(resource) else {
+    return Ok(true)
+  }
+  let previous = resource.cleanup_observation
+  match previous {
+    CleanupChecking => return Ok(false)
+    CleanupReady | CleanupRefused(_) => ()
+  }
+  resource.cleanup_observation = CleanupChecking
+  let observed = release_captured_task_retention_owned(run, task, resource)
+  // Preserve the last accounting refusal until this original actually retires;
+  // a later physical-pending observation does not erase that diagnosis.
+  let result = match (observed, previous) {
+    (Ok(false), CleanupRefused(issue)) => Err(issue)
+    _ => observed
+  }
+  resource.cleanup_observation = match result {
+    Err(issue) => CleanupRefused(issue)
+    Ok(true) => CleanupReady
+    Ok(false) => previous
+  }
+  result
+}
+
+///|
+fn release_captured_task_retention_owned(
+  run : CapturedDAG,
+  task : Int,
+  resource : TaskRetention,
+) -> Result[Bool, @resources.LedgerIssue] {
+  if run.executions[task] is Some(execution) &&
+    (!execution.disposed || !task_execution_retention_released(execution)) {
+    return Ok(false)
+  }
+  if captured_task_retention_borrowed(run, task) {
+    return Ok(true)
+  }
+  if !(resource.release_confirmed)() {
+    return Ok(false)
+  }
+  // Recheck actual borrows after the external physical-release observation.
+  // A successful predicate cannot revoke a pin acquired by its own reentry.
+  if captured_task_retention_borrowed(run, task) {
+    return Ok(true)
+  }
+  // Predicates and Common currentness may reenter. Do not clear another slot.
+  guard run.resources[task] is Some(current) &&
+    physical_equal(current, resource) else {
+    return Ok(true)
+  }
+  if resource.holding is Some(holding) {
+    match @resources.release_allocation(run.ledger, holding) {
+      Err(issue) => return Err(issue)
+      Ok(_) => resource.holding = None
     }
   }
+  if run.resources[task] is Some(current) && physical_equal(current, resource) {
+    run.resources[task] = None
+  }
+  Ok(true)
+}
+
+///|
+fn captured_task_retention_borrowed(run : CapturedDAG, task : Int) -> Bool {
+  if run.lifetimes[task].live || run.lifetimes[task].pins != 0 {
+    return true
+  }
+  for child in run.resources {
+    if child is Some(child) && child.parents.contains(task) {
+      return true
+    }
+  }
+  run.running is Some((active, _)) &&
+  run.graph
+  .data_iter()
+  .any(edge => edge.consumer == active && edge.producer == task)
 }
 
 ///|

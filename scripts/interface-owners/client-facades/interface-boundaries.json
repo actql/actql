@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "31bdc57da5ed90fea363394081a6031c63ece76810e3573d151fc037687ac41d",
+      "sha256": "e5b274e08e833670907b535bb5911811de67883b5ade05663ede37815e06eeeb",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -3270,7 +3270,7 @@
     {
       "module": "packages/node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b72c7086e0553d9184fdb798188d660d26dd729181e6ff31897f2fb65b477ecb",
+      "sha256": "8466652332438ba77fdeb0ec440e885d653176c11b48af8cbf6b31163b751ae2",
       "exports": [
         "ClientError",
         "RequestHeld",
@@ -3322,6 +3322,7 @@
         }
       ],
       "imports": [
+        "@actql/local-node/_internal/compile-cache",
         "@actql/sdk/_internal/client-errors",
         "node:module",
         "node:path"
@@ -3470,6 +3471,10 @@
               }
             ],
             "verification": [
+              {
+                "path": "scripts/node-local-compile-cache.test.mjs",
+                "anchor": "public open enables the existing cache before the actual Local static Host graph"
+              },
               {
                 "path": "scripts/local-node-package-imports.test.mjs",
                 "anchor": "test("

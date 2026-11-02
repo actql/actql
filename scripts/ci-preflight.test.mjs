@@ -72,7 +72,7 @@ test('mandatory preflight admits every normal heavy primitive and does not seria
   assert.equal(jobs.preflight.steps[0].with['fetch-depth'], 0);
   assert.equal(jobs.preflight.steps[0].with['persist-credentials'], false);
   const preflight = commands('preflight');
-  assert(preflight.indexOf('node proofs/relation-pipeline/history.mjs --write') < preflight.findIndex(command => command.includes('setup-moonbit')));
+  assert(!preflight.some(command => command.includes('proofs/relation-pipeline/history.mjs')));
   assert.equal(preflight.at(-1), 'node scripts/ci-preflight.mjs');
   assert(!preflight.some(command => /sleep|check:spec|run\.mjs all/u.test(command)));
 });
@@ -95,7 +95,6 @@ test('operation evidence consistency is mandatory admission without changing the
   assert.equal(steps[0].if, undefined, 'the complete inventory is checked for every normal admission');
   assert.equal(steps[0]['continue-on-error'], undefined);
   const preflight = commands('preflight');
-  assert(preflight.indexOf('node proofs/relation-pipeline/history.mjs --write') < preflight.indexOf(command));
   assert(preflight.indexOf(command) < preflight.indexOf('npm ci'));
   // Keep the original semantic checks and local command intact. This early
   // replay rejects invalid inputs; it is not a successful reduced profile.

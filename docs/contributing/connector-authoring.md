@@ -86,8 +86,12 @@ an identity projection needs no extra JavaScript file. If a projection is
 needed, `transform` names one relative `.mjs` file exporting synchronous
 `decodePage(page, context)`. Its inputs are frozen row-wire/count/cursor DATA
 and resource/column DATA. It returns only `rowsWire` and an optional unchanged
-`nextCursor`. It cannot supply a row count, run an asynchronous operation,
-access credentials or authorize another read. The Host invokes it under the
+`nextCursor`, in a plain own-data record with `Object.prototype` or a null
+prototype. Return primitive field values; Proxies, accessors, inherited fields,
+extra fields and symbols are rejected. Compute transformed values inside
+`decodePage`, then return them as own data properties. It cannot supply a row
+count, run an asynchronous operation, access credentials or authorize another
+read. The Host invokes it under the
 same active reader; changed wire is bounded before allocation and checked by
 Common. Avoid parsing provider numbers through JavaScript `Number` and then
 reserializing them.

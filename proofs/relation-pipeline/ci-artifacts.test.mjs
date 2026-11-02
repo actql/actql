@@ -14,7 +14,7 @@ import { safePath, inventory, validateEnvelope, requiredStages, contextFromEnvir
 import { body, boundFixture, executionCommand } from './fixture.mjs';
 
 // Only synthetic evidence is used here. Real compiler execution and source,
-// semantic, foundation and capacity acceptance remain in the existing gates.
+// semantic and capacity acceptance remain in the existing gates.
 const digest = value => createHash('sha256').update(value).digest('hex');
 function scratch(t) {
   // Resolve only the directory this fixture just created. macOS /var and an
@@ -37,7 +37,7 @@ function git(root, ...args) {
 }
 
 test('canonical evidence paths are accepted without normalization', () => {
-  for (const path of ['current-foundation.json', 'sources/' + 'a'.repeat(64) + '.json',
+  for (const path of ['sources/' + 'a'.repeat(64) + '.json',
     'capacity/backing-core/binaries/native/probe.exe', '123-45-0000-normal-js.fixture.mbt']) {
     assert.doesNotThrow(() => safePath(path), path);
   }
@@ -122,7 +122,7 @@ function envelope(producer = 'mutations') {
     command: ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', 'js', '--deny-warn'] };
   const expected = { producer, context: { repository: 'actql/actql', runId: '12345', runAttempt: '2',
     testedSha: 'a'.repeat(40), prHeadSha: 'b'.repeat(40) },
-    source: { digest: boundary.sourceDigest }, foundation: { digest: digest('foundation') },
+    source: { digest: boundary.sourceDigest },
     exploration: { required: true, reason: 'CI change', paths: ['.github/workflows/ci.yml'],
       revision: 'a'.repeat(40), base: 'c'.repeat(40), classifierDigest: digest('classifier') },
     toolchain: { moonbit: { version: 'fixture-pin', moonc: 'fixture-compiler' }, lean: 'fixture-lean',
@@ -156,7 +156,6 @@ for (const [name, change] of [
   ['missing context field', m => { delete m.context.prHeadSha; }],
   ['unexpected context field', m => { m.context.branch = 'main'; }],
   ['different source', m => { m.source.digest = digest('other'); }],
-  ['different foundation', m => { m.foundation.digest = digest('other'); }],
   ['different exploration decision', m => { m.exploration.required = false; }],
   ['different toolchain', m => { m.toolchain.node = 'different'; }],
   ['missing stage', m => { m.completedStages.pop(); }],
@@ -322,10 +321,7 @@ function producerFixture(root, producer, expected, mutate = () => {}) {
   const source = { sources: { 'fixture/source.mbt': digest('source bytes') } };
   source.digest = digest(JSON.stringify(source.sources));
   expected.source = { digest: source.digest };
-  const foundation = { sourceRevision: expected.context.testedSha, fixture: true };
-  expected.foundation = { digest: digest(canonical(foundation)) };
   function json(path, value) { put(directory, path, canonical(value)); }
-  json('current-foundation.json', foundation);
   json(`sources/${source.digest}.json`, source);
   put(directory, 'session-model.log', 'shared session model\n');
   put(directory, 'chain-model.log', 'shared chain model\n');
@@ -415,14 +411,14 @@ test('aggregate allowance stays bounded and does not expand receipt or manifest 
   assert.throws(() => joinEvidence(options), /Oversized JSON evidence/);
 });
 
-test('join accepts only the four exact shared paths and preserves relocated read-only evidence', t => {
+test('join accepts only the three exact shared paths and preserves relocated read-only evidence', t => {
   const options = joinFixture(t);
   const snapshots = options.inputs.map(input => inventory(input.directory));
   const report = joinEvidence(options);
   assert.equal(report.receiptCount, 9);
   assert.equal(report.observationCount, 9);
   assert.deepEqual(options.inputs.map(input => inventory(input.directory)), snapshots);
-  assert.equal(report.fileCount, snapshots.flat().filter(file => file.path !== 'ci-seal.json').length - 4);
+  assert.equal(report.fileCount, snapshots.flat().filter(file => file.path !== 'ci-seal.json').length - 3);
   assert.equal(readdirSync(options.destination).includes('_build'), false);
   for (const file of inventory(options.destination)) {
     assert.equal(statSync(join(options.destination, file.path)).mode & 0o222, 0, file.path);

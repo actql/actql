@@ -1,9 +1,0 @@
-{
-  "version": "actql-foundation-single-base-normalization/0.1",
-  "id": "normalize-durable-submission-manifest-gates-single-base-09eb3572",
-  "target": {
-    "id": "resolve-durable-submission-manifest-gates",
-    "digest": "0a747667d7b4c3b07e4da333278114828d2ff48fee1f3ebce034848f3981f663"
-  },
-  "reason": "The unchanged inherited resolution records exactly the actual singleton maximal merge base 192bf26e102d25bdc97d4e6924ac3425a2ad2a17. Normalize only that redundant field through the existing digest-bound rule; preserve actual source/ordered parents, original bytes/inputs, every protected path/blob/mode and all dependency obligations. No validator or execution guarantee change."
-}

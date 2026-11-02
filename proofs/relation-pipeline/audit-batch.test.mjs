@@ -41,7 +41,7 @@ test('prepared source and decision are detached from mutable preparation results
 test('a prior successful audit revalidates changed archived artifact bytes', () => {
   accepted('revalidate-artifacts');
 });
-for (const stage of ['baseline', 'foundation', 'snapshot', 'decision']) {
+for (const stage of ['baseline', 'source', 'snapshot', 'decision']) {
   test(`mandatory ${stage} preparation failure stops the factory`, () => {
     accepted(`setup-failure-${stage}`);
   });
@@ -56,14 +56,14 @@ test('ordinary audit CLI retains successful three-target checks', () => {
 test('target regression CLI accepts only expected target-binding rejections', () => {
   const { stdout } = accepted('cli-targets');
   const { results: result, preparation } = JSON.parse(stdout.split('\n').find(line => line.startsWith('{')));
-  assert.deepEqual(Object.keys(preparation), ['baselineMs', 'foundationMs', 'snapshotMs', 'decisionMs']);
+  assert.deepEqual(Object.keys(preparation), ['baselineMs', 'sourceMs', 'snapshotMs', 'decisionMs']);
   assert.deepEqual(result.map(entry => entry.name), ['native-in-js-slot', 'native-in-wasm-slot', 'native-in-base-js-slot']);
   assert(result.every(entry => entry.rejected === true && !Object.hasOwn(entry, 'exit')));
 });
 for (const [scenario, reason] of [
   ['cli-admitted-negative', /Audit accepted|accepted unexpectedly|unexpectedly-healthy|admitted/i],
   ['cli-wrong-rejection', /Wrong rejection|unrelated|requested audit target js/i],
-  ['cli-preparation-failure', /Synthetic foundation preparation failure/],
+  ['cli-preparation-failure', /Synthetic baseline preparation failure/],
 ]) {
   test(`target regression CLI exits nonzero for ${scenario.replace('cli-', '')}`, () => {
     const result = run(scenario);

@@ -559,7 +559,9 @@ export interface RestSourcePageData {
   readonly rowCount: number;
   readonly nextCursor?: string;
 }
-/** Pure synchronous provider DATA adaptation, never a reader or an issuer. */
+/** Pure synchronous provider DATA adaptation, never a reader or an issuer.
+ * Return a plain own-data record (Object.prototype or null prototype) with
+ * rowsWire and optional nextCursor only. Proxies and accessors are rejected. */
 export type RestSourceTransform = (page: Readonly<RestSourcePageData>,
   context: Readonly<{resource: string; columns: readonly string[]}>) =>
   Readonly<{rowsWire: string; nextCursor?: string}>;

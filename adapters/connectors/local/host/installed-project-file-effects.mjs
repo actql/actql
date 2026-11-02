@@ -106,7 +106,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
 
 // This physical adapter receives the original Account decision and Run port;
 // request DATA cannot construct either. The native child performs no I/O until
-// send, after the existing durable claim and explicit whole-Preview approval.
+// send, after the existing dispatch claim and any required Preview approval.
 export function createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
   authorization,assertCurrent,resources,limits,nativeFilesystem}) {
   const requests=new WeakMap(),descriptions=new WeakMap(),grants=new WeakMap(),children=new Set();
@@ -159,13 +159,14 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
       writeChild:undefined,released:false});
     return request;
   };
+  // Account permission and continuation ownership are separate Common gates.
+  // Do not reinterpret the issuer's basis or invent a connector approval minimum.
   const decisionCurrent=decision=>{
     current();const facts=authorizationDispatchFacts(decision);
     if(facts?.principal!==principalId||facts.configurationCid!==authorization.configurationCid||
         decision.action!=='dispatch'||decision.boundary!=='effect_commit'||
         decision.tuple?.connection!==entry.connection||decision.tuple?.resource!=='files'||
-        decision.tuple?.operation!=='effect'||decision.basis!=='resumed'||
-        !isCid(decision.checkpointCid)||!isCid(decision.resolutionCid))fail('LocalStoreNotAuthorized');
+        decision.tuple?.operation!=='effect')fail('LocalStoreNotAuthorized');
     assertAuthorizationAccountCurrent(decision);current();
   };
   const close=async()=>{

@@ -117,7 +117,6 @@ jobs:
       python-package-artifact-id: ${{ inputs.performance_python_package_artifact_id }}
       python-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}
   # Admission checks complete before any normal runtime/proof runner starts.
-  # Actual retained history is checked before installing the build toolchain.
   preflight:
     needs: [select-targets]
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -132,8 +131,6 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
-      - name: Validate actual retained foundation history
-        run: node proofs/relation-pipeline/history.mjs --write
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
       - name: Check Native diagnostic counter assignments before fan-out
@@ -141,25 +138,6 @@ jobs:
       - run: npm ci
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
-      - name: Test declaration provenance validators
-        if: needs.select-targets.outputs.profile == 'declaration'
-        run: node --test proofs/relation-pipeline/foundation.test.mjs proofs/relation-pipeline/history.test.mjs proofs/relation-pipeline/foundation-integration.test.mjs proofs/relation-pipeline/foundation-historical-input-edit.test.mjs
-      - name: Record declaration selection (not semantic campaign evidence)
-        if: needs.select-targets.outputs.profile == 'declaration'
-        env:
-          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
-        run: node --input-type=module -e 'import {writeFileSync} from "node:fs"; writeFileSync(".artifacts/relation-pipeline/ci-selection.json", JSON.stringify(JSON.parse(process.env.CI_PLAN), null, 2) + "\n")'
-      - name: Archive declaration provenance and applicability
-        if: needs.select-targets.outputs.profile == 'declaration'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: declaration-provenance-${{ github.run_id }}-${{ github.run_attempt }}
-          include-hidden-files: true
-          path: |
-            .artifacts/relation-pipeline/current-foundation.json
-            .artifacts/relation-pipeline/ci-selection.json
-          if-no-files-found: error
-          retention-days: 7
       - name: Check owned contract versions
         run: npm run check:contract-versions
       - name: Check specification metadata without updating it
@@ -437,8 +415,6 @@ jobs:
         run: |
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Compose and archive the exact-source foundation declarations
-        run: node proofs/relation-pipeline/history.mjs --write
       - name: Bind independently owned part to source and partition plan
         run: node proofs/relation-pipeline/ci-parts.mjs begin L-M0
       - name: Verify this part's independent three-operation baseline
@@ -493,8 +469,6 @@ jobs:
         run: |
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Compose and archive the exact-source foundation declarations
-        run: node proofs/relation-pipeline/history.mjs --write
       - name: Bind independently owned part to source and partition plan
         run: node proofs/relation-pipeline/ci-parts.mjs begin L-M1
       - name: Verify this part's independent three-operation baseline
@@ -549,8 +523,6 @@ jobs:
         run: |
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Compose and archive the exact-source foundation declarations
-        run: node proofs/relation-pipeline/history.mjs --write
       - name: Bind independently owned part to source and partition plan
         run: node proofs/relation-pipeline/ci-parts.mjs begin L-C0
       - name: Execute this part's structural capacity obligations
@@ -605,8 +577,6 @@ jobs:
         run: |
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
-      - name: Compose and archive the exact-source foundation declarations
-        run: node proofs/relation-pipeline/history.mjs --write
       - name: Bind independently owned part to source and partition plan
         run: node proofs/relation-pipeline/ci-parts.mjs begin L-C1
       - name: Execute this part's structural capacity obligations

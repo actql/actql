@@ -54507,7 +54507,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-source.cjs",
-      "sha256": "ded10c0291b112d5cd79668904407902ceea2d20775173493bb24522bd33abf8",
+      "sha256": "af656964686f5837a75f058a2c5ab2ea38a8bab19e430835ac8a7db2e87211d9",
       "exports": [
         "commonjs:captureInitialControlImageSource"
       ],
@@ -54628,7 +54628,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/initial-control-image-source.cjs",
-                "anchor": "// Always keep the same close function and numeric FD."
+                "anchor": "// Only observe this original unresolved duty."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -54642,7 +54642,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "without rereading"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -54670,7 +54670,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "an unconfirmed close with otherwise valid bytes cannot return Source or retire a sibling FD"
+                "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -54716,7 +54716,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "frozen read failure and close Unknown retain the same FD"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -54788,7 +54788,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/initial-control-image-source.cjs",
-                "anchor": "// Always keep the same close function and numeric FD."
+                "anchor": "// Only observe this original unresolved duty."
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -54802,7 +54802,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "without rereading"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.cjs",
@@ -54830,7 +54830,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "an unconfirmed close with otherwise valid bytes cannot return Source or retire a sibling FD"
+                "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -54876,7 +54876,7 @@
               },
               {
                 "path": "adapters/host-node/initial-control-image-source.test.mjs",
-                "anchor": "frozen read failure and close Unknown retain the same FD"
+                "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
                 "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
@@ -55659,7 +55659,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "00a0f7bdb2166f2967085e8aabd0e38545b473b3b6ee8df5ddf470a26a72fa3c",
+      "sha256": "2914cdb608ee2bf4a72e770f8e5b76e481585c2775b8c6f8e5c73042cfa3f0fe",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody"
@@ -55891,10 +55891,6 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "// Use the already captured helper before compiling the static Host graph."
               }
             ],
             "failure": [
@@ -55985,10 +55981,6 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "ordinary custody enables its original code cache before compiling the Host dependency graph"
               }
             ]
           }
@@ -56059,10 +56051,6 @@
               {
                 "path": "adapters/host-node/initial-control-package-custody.cjs",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "// Use the already captured helper before compiling the static Host graph."
               }
             ],
             "failure": [
@@ -56153,10 +56141,6 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
-              },
-              {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
-                "anchor": "ordinary custody enables its original code cache before compiling the Host dependency graph"
               }
             ]
           }
@@ -107716,7 +107700,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "0c33e69e625867c0156605e28d2c3cccfb25ab7fe3fe45905e2024226c4c0219",
+      "sha256": "d1500367a2bc8721cb00125343c62416a5480a1acfe088187e06b25697608d51",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -107927,7 +107911,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "operations === 4096"
+                "anchor": "retainedBytes: BigInt(value.maxContractBytes)"
               }
             ],
             "extension": [
@@ -108028,6 +108012,10 @@
               {
                 "path": "adapters/host-node/ordinary-host-result.test.mjs",
                 "anchor": "test('ordinary Model publication uses the same admitted Run and live Store, not copied limits'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "anchor": "test('ordinary Result keeps current cancellation and original failure checks after long operation history'"
               }
             ]
           }
@@ -108331,7 +108319,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "operations === 4096"
+                "anchor": "retainedBytes: BigInt(value.maxContractBytes)"
               }
             ],
             "extension": [
@@ -124893,13 +124881,27 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17c61dd9c33d0e0e9b3d7bdbd404639502dab3537bcc2ca4268b7d5b282d7bf9",
+      "sha256": "135e51fbf146f3903d3ae9be6764a818d05d70026427bb0284321211668cc4eb",
       "role": "connector-semantics",
       "owner": "Existing Common JSON/row projection and Host ManagedReader Owners; REST adapter supplies authored request, cursor and pure row-wire transformation semantics only.",
       "exports": [
         "restSourcePageReader"
       ],
       "operations": [
+        {
+          "name": "captureTransformResult",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureTransformResult/captureTransformResult",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
         {
           "name": "fail/fail",
           "parameters": [
@@ -124962,13 +124964,6 @@
           "async": false
         },
         {
-          "name": "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage/init:decodePage",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "restSourcePageReader/preparePageReader/init:fetchPage/init:fetchPage",
           "parameters": [
             "pageIndex",
@@ -124989,13 +124984,16 @@
         }
       ],
       "imports": [
-        "../host-common/runtime-result.mjs"
+        "../host-common/runtime-result.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "contracts": [
         {
           "operations": [
+            "captureTransformResult",
+            "captureTransformResult/captureTransformResult",
             "fail/fail",
             "restSourcePageReader",
             "restSourcePageReader/checkCursor/checkCursor",
@@ -125004,7 +125002,6 @@
             "restSourcePageReader/original/original/original",
             "restSourcePageReader/preparePageReader",
             "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage",
-            "restSourcePageReader/preparePageReader/init:decodePage/init:decodePage/init:decodePage",
             "restSourcePageReader/preparePageReader/init:fetchPage/init:fetchPage",
             "restSourcePageReader/project/project"
           ],
@@ -125042,6 +125039,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "function captureTransformResult(value) {"
               }
             ],
             "identity": [
@@ -125114,6 +125115,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "if (value === null || typeof value !== 'object' || isProxy(value)) {"
               }
             ],
             "cancellation": [
@@ -125150,6 +125155,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page.mjs",
+                "anchor": "Buffer.byteLength(rowsWire, 'utf8') > bound.maxPageBytes) {"
               }
             ],
             "extension": [
@@ -125198,6 +125207,14 @@
               {
                 "path": "adapters/host-node/rest-source-page-typed.test.mjs",
                 "anchor": "test('REST author transform cannot change cursor add fields or exceed the existing page bound'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST transform captures own DATA before an alternating getter can bypass the byte bound'"
+              },
+              {
+                "path": "adapters/host-node/rest-source-page-typed.test.mjs",
+                "anchor": "test('REST transform refusal keeps the shared original response charge and first cleanup without another send'"
               }
             ]
           }

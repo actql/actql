@@ -61,6 +61,7 @@ fn commit_task_output(
   run.resources[task] = Some({
     holding,
     release_confirmed: fn() { true },
+    cleanup_observation: CleanupReady,
     parents: task_parents(run, task),
   })
   run.outputs[task] = Some(output)

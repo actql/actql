@@ -40,6 +40,11 @@ async function localProvider() {
       cause,
     });
   }
+  // Enable only the existing optional V8 cache before Local's static Host
+  // graph loads. This private helper belongs to the same resolved package;
+  // it supplies no ActQL admission, checking result, or execution authority.
+  const cache = await import('@actql/local-node/_internal/compile-cache');
+  cache.enableNodeCompileCache();
   const provider = await import(resolved);
   if (typeof provider.connect !== 'function') {
     throw new ClientError('InvalidLocalProvider');

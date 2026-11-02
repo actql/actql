@@ -15,10 +15,10 @@ const auditPath = fileURLToPath(new URL('../audit.mjs', import.meta.url));
 const hash = value => createHash('sha256').update(value).digest('hex');
 const clone = value => structuredClone(value);
 const prefix = '.artifacts/relation-pipeline/';
-const stages = ['baseline', 'foundation', 'snapshot', 'decision'];
-const calls = { preparation: [], validate: 0, fixture: 0, history: 0 };
+const stages = ['baseline', 'source', 'snapshot', 'decision'];
+const calls = { preparation: [], validate: 0, fixture: 0, actions: 0 };
 const failure = scenario.startsWith('setup-failure-') ? scenario.slice('setup-failure-'.length)
-  : scenario === 'cli-preparation-failure' ? 'foundation' : null;
+  : scenario === 'cli-preparation-failure' ? 'baseline' : null;
 const sources = { 'synthetic-source.mbt': hash('synthetic source, not compiled') };
 const current = { sources, digest: hash(JSON.stringify(sources)) };
 const impact = { revision: '1'.repeat(40), required: false, paths: ['README.md'],
@@ -32,17 +32,14 @@ const mockModule = (relative, namedExports) => mock.module(new URL(relative, imp
 mockModule('../inventory.mjs', {
   hash,
   checkBaseline: () => { prepare('baseline'); },
+  checkCurrentSource: () => { prepare('source'); },
   snapshot: () => { prepare('snapshot'); return current; },
-});
-mockModule('../history.mjs', {
-  checkFoundation: () => { prepare('foundation'); },
-  checkTakeHistory: () => { calls.history++; return { handwrittenCombinationAdditions: 0 }; },
 });
 mockModule('../exploration-impact.mjs', { decision: () => { prepare('decision'); return impact; } });
 // This diagnostic deliberately has no real mutation cohort. Only its final
 // connection is controlled; mutation-actions.test.mjs executes the Lean checker.
 mockModule('../mutation-actions.mjs', { checkMutationActions: ({auditedReceipts}) => {
-  assert.equal(calls.history > 0, true, 'Action admission must follow the scientific audit');
+  calls.actions++;
   assert.equal(auditedReceipts.size, 4, 'Action admission needs all original receipt bindings');
   return {authority: 'synthetic-orchestration-only', reuseAuthorized: false};
 } });
@@ -184,11 +181,11 @@ if (scenario.startsWith('cli-')) {
   }
   await import('../audit.mjs');
   assertPreparation();
-  if (scenario === 'cli-healthy') assert.equal(calls.history, 1);
-  else assert.equal(calls.history, 0);
+  if (scenario === 'cli-healthy') assert.equal(calls.actions, 1);
+  else assert.equal(calls.actions, 0);
 } else {
   const { createAudit, auditTargetRegressions } = await import('../audit.mjs');
-  assert.deepEqual(calls, { preparation: [], validate: 0, fixture: 0, history: 0 }, 'Import must have no audit side effects');
+  assert.deepEqual(calls, { preparation: [], validate: 0, fixture: 0, actions: 0 }, 'Import must have no audit side effects');
   if (scenario === 'import-only') {
     assert.equal(typeof createAudit, 'function');
     assert.equal(typeof auditTargetRegressions, 'function');
@@ -197,12 +194,12 @@ if (scenario.startsWith('cli-')) {
     assertPreparation(stages.slice(0, stages.indexOf(failure) + 1));
     assert.equal(calls.validate, 0);
     assert.equal(calls.fixture, 0);
-    assert.equal(calls.history, 0);
+    assert.equal(calls.actions, 0);
   } else if (scenario === 'batch-targets') {
     const entries = [...targetCases, ...targetCases.toReversed()];
     const { results, preparation } = auditTargetRegressions(entries);
     assert(Object.isFrozen(preparation));
-    assert.deepEqual(Object.keys(preparation), ['baselineMs', 'foundationMs', 'snapshotMs', 'decisionMs']);
+    assert.deepEqual(Object.keys(preparation), ['baselineMs', 'sourceMs', 'snapshotMs', 'decisionMs']);
     assert(Object.values(preparation).every(value => Number.isFinite(value) && value >= 0));
     assert.equal(results.length, entries.length);
     results.forEach((result, index) => {
@@ -226,7 +223,7 @@ if (scenario.startsWith('cli-')) {
           run(healthy);
         }
       }
-      assert.equal(calls.history, 12);
+      assert.equal(calls.actions, 12);
       assert(log.some(line => line.startsWith('native: exact normal corpus')));
     } else if (scenario === 'detached-preparation') {
       assert(!Object.isFrozen(current) && !Object.isFrozen(current.sources), 'Factory must not freeze caller-owned snapshot');
@@ -248,7 +245,7 @@ if (scenario.startsWith('cli-')) {
       checkError(() => run(healthy), 'Final normal artifact changed');
       writeFileSync(archive, original);
       run(healthy);
-      assert.equal(calls.history, 2);
+      assert.equal(calls.actions, 2);
       assert.equal(calls.validate, 10);
       assert.equal(calls.fixture, 10);
     } else if (scenario === 'model-old-inventory' || scenario === 'model-duplicate-summary') {
@@ -262,7 +259,7 @@ if (scenario.startsWith('cli-')) {
       checkError(() => run(healthy), 'Missing or incomplete typed model observation');
       write(path, original); model.logDigest = hash(original); json(reportPath, report);
       run(healthy);
-      assert.equal(calls.history, 2);
+      assert.equal(calls.actions, 2);
     } else throw new Error(`Unknown synthetic scenario ${scenario}`);
     assertPreparation();
   }

@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -11,13 +11,66 @@ function files(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory()
     ? files(join(path, e.name)) : e.isFile() ? [join(path, e.name)] : []);
 }
-export function snapshot(root) {
-  const paths = snapshotDirectories
-    .flatMap(p => files(join(root, p)))
-    .concat(snapshotFiles.map(p => join(root, p)))
+function snapshotPaths(root, allowMissing = false) {
+  const present = path => !allowMissing || lstatSync(path, {throwIfNoEntry: false}) !== undefined;
+  return snapshotDirectories.map(p => join(root, p)).filter(present).flatMap(files)
+    .concat(snapshotFiles.map(p => join(root, p)).filter(present))
     .filter(p => relative(root, p) !== 'src/query_integration/relation_pipeline_batch_wbtest.mbt').sort();
+}
+export function snapshot(root) {
+  const paths = snapshotPaths(root);
   const sources = Object.fromEntries(paths.map(p => [relative(root, p), hash(readFileSync(p))]));
   return { sources, digest: hash(JSON.stringify(sources)) };
+}
+// Bind current evidence to actual tracked HEAD inputs. No ancestor walk or
+// per-commit declaration is needed; shallow checkouts are sufficient.
+export function checkCurrentSource(root) {
+  const inputs = [...snapshotDirectories, ...snapshotFiles,
+    ':(exclude)src/query_integration/relation_pipeline_batch_wbtest.mbt'];
+  const git = args => spawnSync('git', ['--no-replace-objects', ...args],
+    {cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
+  const head = git(['rev-parse', '--verify', 'HEAD^{commit}']);
+  assert.equal(head.status, 0, 'Missing current source commit');
+  const difference = git(['diff', '--quiet', 'HEAD', '--', ...inputs]);
+  assert.equal(difference.status, 0, 'Current proof inputs differ from tested HEAD');
+  const untracked = git(['ls-files', '--others', '--', ...inputs]);
+  assert.equal(untracked.status, 0, 'Cannot inspect current source inputs');
+  assert.equal(untracked.stdout, '', 'Untracked current proof inputs');
+  // Index flags cannot establish the bytes that the runner actually reads.
+  // Bind only this HEAD's regular inputs; no historical declarations are used.
+  const tree = git(['ls-tree', '-rtz', head.stdout.trim()]);
+  assert.equal(tree.status, 0, 'Cannot inspect current source tree');
+  const selected = [...snapshotDirectories, ...snapshotFiles];
+  const checkedFiles = new Set();
+  for (const entry of tree.stdout.split('\0').filter(Boolean)) {
+    const match = /^(\d+) (\S+) ([0-9a-f]+)\t([\s\S]+)$/.exec(entry);
+    assert(match, 'Invalid current source tree entry');
+    const [, mode, type, object, path] = match;
+    if (path === 'src/query_integration/relation_pipeline_batch_wbtest.mbt') continue;
+    if (!selected.some(input => path === input || path.startsWith(input + '/') ||
+        input.startsWith(path + '/'))) continue;
+    const file = join(root, path), stat = lstatSync(file);
+    if (type === 'tree') {
+      assert(!snapshotFiles.includes(path) && stat.isDirectory() && !stat.isSymbolicLink(),
+        `Non-regular current proof input directory: ${path}`);
+      continue;
+    }
+    assert(!snapshotDirectories.includes(path) &&
+      !selected.some(input => input.startsWith(path + '/')),
+    `Non-regular current proof input directory: ${path}`);
+    assert(type === 'blob' && ['100644', '100755'].includes(mode),
+      `Non-regular current proof input: ${path}`);
+    assert(stat.isFile() && !stat.isSymbolicLink(), `Non-regular current proof input: ${path}`);
+    assert.equal(Boolean(stat.mode & 0o111), mode === '100755', `Current proof input mode: ${path}`);
+    const bytes = readFileSync(file);
+    const actual = createHash(object.length === 40 ? 'sha1' : 'sha256')
+      .update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    assert.equal(actual, object, `Current proof inputs differ from tested HEAD: ${path}`);
+    checkedFiles.add(path);
+  }
+  for (const path of snapshotPaths(root, true)) assert(checkedFiles.has(relative(root, path)),
+    `Untracked current proof inputs: ${relative(root, path)}`);
+  return head.stdout.trim();
 }
 export function checkBaseline(root, {read = path => readFileSync(join(root, path))} = {}) {
   const baseline = JSON.parse(read('proofs/relation-pipeline/baseline.json'));

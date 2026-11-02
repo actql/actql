@@ -126,6 +126,9 @@ import {
 } for "wbtest"
 
 options(
+  targets: {
+    "strategy_cleanup_current_js_wbtest.mbt": [ "js" ],
+  },
   link: {
     "native": {
       "cc": "./scripts/native-cxx-link-driver.sh",
