@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir, arch, platform, release, cpus, totalmem} from 'node:os';
 import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {assessPriorityTransition} from './operation-performance.mjs';
 import {nodeBenchmarkInstrumentation, nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol,
@@ -19,7 +20,7 @@ test('known startup profiling cannot be labeled uninstrumented latency', () => {
   assert.equal(nodeBenchmarkInstrumentation({...ordinary, nodeOptions: '--cpu-prof'}).profiled, true);
   assert.equal(nodeBenchmarkInstrumentation({...ordinary, coverage: 'coverage'}).profiled, true);
 });
-async function fixture(t, fail = false, slow = false, wrong = '', markImport = false) {
+async function fixture(t, fail = false, slow = false, wrong = '', markImport = false, closeFailure) {
   const root = await mkdtemp(join(tmpdir(), 'actql-benchmark-oracle-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const packageRoot = join(root, 'consumer/node_modules/@actql/node');
@@ -29,6 +30,7 @@ async function fixture(t, fail = false, slow = false, wrong = '', markImport = f
   const code = Buffer.from(`import {appendFile,mkdir,writeFile} from 'node:fs/promises';
 import {setTimeout as delay} from 'node:timers/promises';
 ${markImport ? `await writeFile(${JSON.stringify(join(root, 'imported'))},'yes');` : ''}
+${closeFailure === 'pending' ? 'export const closeEntered = Promise.withResolvers(), closeAcknowledgement = Promise.withResolvers();' : ''}
 export async function open({stateDir}) {
  await mkdir(stateDir); let closed=false;
  const run={ref:{id:'same'}, wait:async()=>({status:'succeeded'}),
@@ -47,7 +49,9 @@ export async function open({stateDir}) {
   }
   if(text==="SELECT 'é😀' AS label")return ${wrong === 'unicode' ? "[{label:'foreign'}]" : "[{label:'é😀'}]"};
   return [{id:1}];}}),
- close:async()=>{if(closed)throw new Error('close twice');closed=true;await writeFile(stateDir+'/closed','yes');}};
+ close:async()=>{await appendFile(stateDir+'/close-attempts','close\\n');
+  if(closed)throw new Error('close twice');closed=true;await writeFile(stateDir+'/closed','yes');
+  ${closeFailure === 'pending' ? 'closeEntered.resolve();await closeAcknowledgement.promise;' : closeFailure === undefined ? '' : `throw ${closeFailure};`}}};
 }`);
   const product = join(packageRoot, 'index.mjs'); await writeFile(product, code, {mode: 0o644});
   const tar = Buffer.from('synthetic unit fixture, not a package tarball');
@@ -643,4 +647,62 @@ test('record-only CLI succeeds for slow correct observations and fails on Unknow
     if (fail) {assert(report.firstFailure); assert.equal(report.measurements, undefined);}
     else assert.equal(report.measurements.length, 8);
   }
+});
+
+for (const [label, literal, original] of [
+  ['undefined', 'undefined', undefined], ['null', 'null', null],
+  ['false', 'false', false], ['zero', '0', 0], ['empty string', "''", ''],
+]) {
+  test(`record-only warm preserves falsy close failure: ${label}`, async t => {
+    const prepare = async () => {
+      const options = await fixture(t, false, false, '', false, literal);
+      options.mode = 'record-only';
+      const controls = JSON.parse(await readFile(options.controlsPath));
+      controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodeWarmProtocol(options.mode))));
+      await writeFile(options.controlsPath, JSON.stringify(controls));
+      return options;
+    };
+    const cli = await prepare();
+    const child = spawnSync(process.execPath, ['scripts/benchmark-node-operations.mjs',
+      '--manifest', cli.manifestPath, '--consumer', cli.consumer, '--output', cli.output,
+      '--controls', cli.controlsPath, '--mode', cli.mode], {encoding: 'utf8', timeout: 20_000});
+    assert.equal(child.error, undefined);
+    assert.notEqual(child.status, 0, 'an unacknowledged original close cannot pass the CLI');
+    const options = await prepare();
+    let rejected = false;
+    try {await runNodeWarmBenchmark(options);}
+    catch (error) {rejected = true; assert.strictEqual(error, original);}
+    assert.equal(rejected, true, 'the original throwable must remain a rejection');
+    for (const selected of [cli, options]) {
+      const report = JSON.parse(await readFile(join(selected.output, 'measurements.json')));
+      assert.equal(report.cleanup.closed, false);
+      assert.equal(typeof report.cleanup.failure.message, 'string');
+      assert.equal(report.measurements, undefined);
+      assert.equal(await readFile(join(selected.output, 'new-state/close-attempts'), 'utf8'), 'close\n');
+    }
+  });
+}
+
+test('record-only warm waits for its one original close acknowledgement', async t => {
+  const options = await fixture(t, false, false, '', false, 'pending');
+  options.mode = 'record-only';
+  const controls = JSON.parse(await readFile(options.controlsPath));
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodeWarmProtocol(options.mode))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  const original = await import(pathToFileURL(join(options.consumer, 'node_modules/@actql/node/index.mjs')).href);
+  const flight = runNodeWarmBenchmark(options);
+  let settled = false;
+  const terminal = flight.then(value => {settled = true; return value;});
+  try {
+    await original.closeEntered.promise;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(settled, false);
+    const pending = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+    assert.equal(pending.cleanup.closed, false);
+    assert.equal(pending.measurements, undefined);
+  } finally {original.closeAcknowledgement.resolve();}
+  const report = await terminal;
+  assert.equal(report.cleanup.closed, true);
+  assert.equal(report.measurements.length, 8);
+  assert.equal(await readFile(join(options.output, 'new-state/close-attempts'), 'utf8'), 'close\n');
 });
