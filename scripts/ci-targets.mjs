@@ -28,38 +28,6 @@ export const maintenanceFiles = Object.freeze([
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
 ]);
 const maintenance = new Set(maintenanceFiles);
-// Declarations interpret provenance only. Actual ancestry and protected source
-// obligations are validated by mandatory preflight, never by this scheduler.
-const declarationPath = /^proofs\/relation-pipeline\/foundation-declarations\/([a-z0-9]+(?:-[a-z0-9]+)*)\.json$/u;
-const zero = '0'.repeat(40);
-function eligibleDeclarations(paths, changes) {
-  return paths.length > 0 && paths.every(path => declarationPath.test(path))
-    && new Set(paths).size === paths.length && Array.isArray(changes) && changes.length === paths.length
-    && changes.every((entry, index) => entry && Object.keys(entry).sort().join(',') === 'after,before,path'
-      && entry.path === paths[index]
-      && entry.before && Object.keys(entry.before).sort().join(',') === 'mode,object'
-      && entry.before.mode === '000000' && entry.before.object === zero
-      && entry.after && Object.keys(entry.after).sort().join(',') === 'mode,object'
-      && entry.after.mode === '100644' && sha.test(entry.after.object) && entry.after.object !== zero);
-}
-// Compose only the two already bounded classes, preserving their independent
-// identities and obligations. Every path must belong to exactly one inventory.
-function eligibleDeclarationSelection(paths, declarations, modifications) {
-  const declarationPaths = paths.filter(path => declarationPath.test(path));
-  const maintenancePaths = paths.filter(path => maintenance.has(path));
-  return declarationPaths.length + maintenancePaths.length === paths.length
-    && new Set(paths).size === paths.length
-    && eligibleDeclarations(declarationPaths, declarations)
-    && (maintenancePaths.length ? eligibleMaintenance(maintenancePaths, modifications) : modifications === null);
-}
-function canonicalDeclaration(path, contents) {
-  const value = JSON.parse(contents);
-  assert.equal(contents, `${JSON.stringify(value, null, 2)}\n`, 'Noncanonical declaration JSON');
-  assert.equal(value.version, 'actql-foundation-declaration/0.1', 'Unknown declaration schema');
-  assert.equal(value.id, declarationPath.exec(path)?.[1], 'Declaration filename/id mismatch');
-  assert(['change', 'resolution'].includes(value.kind), 'Unknown declaration kind');
-}
-
 export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
   'native', 'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node', 'focused-tests']);
@@ -88,11 +56,11 @@ export function pullRequestDraft(event, payload) {
   return draft;
 }
 export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
-  targetSensitiveDiff = false, maintenanceChanges = null, declarationChanges = null, focusedChanges = null, focusedTests = null, mainBaseline = null} = {}) {
+  targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null, mainBaseline = null} = {}) {
   if (mainBaseline !== null) validateMainBaseline(mainBaseline);
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
-    profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, declarationChanges: null, focusedChanges: null, focusedTests: null, mainBaseline});
+    profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null, focusedChanges: null, focusedTests: null, mainBaseline});
   // Automatic main integration always executes the existing full profile.
   // Historical bounded selections remain interpretable; their receipts are not
   // upgraded into full checkpoints or release authorization.
@@ -124,8 +92,6 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
   if (eligibleMaintenance(paths, maintenanceChanges)) return {...full('Reviewed maintenance files: lint and spec required; runtime and proof families not applicable'),
     profile: 'maintenance', targets: ['js'], macos: false, maintenanceChanges};
-  if (eligibleDeclarationSelection(paths, declarationChanges, maintenanceChanges)) return {...full('Canonical declaration additions and optional reviewed maintenance: history preflight, lint and spec required; runtime and semantic proof families not applicable'),
-    profile: 'declaration', targets: ['js'], macos: false, declarationChanges, maintenanceChanges};
   if (focusedTests && eligibleFocusedChanges(paths, focusedChanges)) {
     try { validateFocusedTests(paths, focusedChanges, focusedTests); }
     catch { return full('Invalid focused test family inventory'); }
@@ -150,12 +116,12 @@ function eligibleMaintenance(paths, changes) {
 }
 export function validateSelection(selection) {
   assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'reason',
-    'profile', 'event', 'paths', 'maintenanceChanges', 'declarationChanges', 'focusedChanges', 'focusedTests', 'mainBaseline'].sort(), 'Invalid selection fields');
+    'profile', 'event', 'paths', 'maintenanceChanges', 'focusedChanges', 'focusedTests', 'mainBaseline'].sort(), 'Invalid selection fields');
   assert.equal(selection?.schema, 'actql-ci-targets/0.1');
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
   assert(typeof selection.reason === 'string' && selection.reason.trim());
-  assert(['full', 'maintenance', 'declaration', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
+  assert(['full', 'maintenance', 'focused-tests', 'draft', 'draft-focused'].includes(selection.profile), 'Invalid selection profile');
   assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
   assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
   if (selection.mainBaseline !== null) {
@@ -167,12 +133,7 @@ export function validateSelection(selection) {
     assert(eligibleMaintenance(selection.paths, selection.maintenanceChanges), 'Invalid maintenance inventory');
     assert.deepEqual(selection.targets, ['js']);
     assert.equal(selection.macos, false);
-  } else if (selection.profile !== 'declaration') assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
-  if (selection.profile === 'declaration') {
-    assert(eligibleDeclarationSelection(selection.paths, selection.declarationChanges, selection.maintenanceChanges), 'Invalid declaration/maintenance inventory');
-    assert.deepEqual(selection.targets, ['js']);
-    assert.equal(selection.macos, false);
-  } else assert.equal(selection.declarationChanges, null, 'Unexpected declaration inventory');
+  } else assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
   if (selection.profile.startsWith('draft')) {
     assert.equal(selection.event, 'pull_request', 'Draft profile requires a PR event');
     assert.equal(selection.mainBaseline, null, 'Draft cannot reuse a main checkpoint');
@@ -226,9 +187,9 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   const patch = git(['diff', '--no-renames', '--unified=0', base, head, '--']);
   const changedLines = patch.split('\n').filter(line => /^[+-](?![+-])/u.test(line)).join('\n');
   const paths = output.split('\0').filter(Boolean);
-  let maintenanceChanges = null, declarationChanges = null, focusedChanges = null, focusedTests = null, structuralChange = false;
+  let maintenanceChanges = null, focusedChanges = null, focusedTests = null, structuralChange = false;
   const focusedOnly = paths.length > 0 && paths.every(path => focusedPattern.test(path));
-  const lightweightOnly = paths.length > 0 && paths.every(path => declarationPath.test(path) || maintenance.has(path));
+  const lightweightOnly = paths.length > 0 && paths.every(path => maintenance.has(path));
   if (focusedOnly || lightweightOnly) {
     // Exact raw Git identities distinguish ordinary edits from additions,
     // deletions, renames, symlinks and mode changes. No text/extension guess.
@@ -243,15 +204,9 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       const [, beforeMode, afterMode, beforeObject, afterObject, status] = match;
       changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
         after: {mode: afterMode, object: afterObject}});
-      if (!(focusedOnly ? ['A', 'M'].includes(status) : status === (declarationPath.test(records[index + 1]) ? 'A' : 'M'))) changes[index / 2].before.mode = 'unsupported';
+      if (!(focusedOnly ? ['A', 'M'].includes(status) : status === 'M')) changes[index / 2].before.mode = 'unsupported';
     }
-    const declarations = changes.filter(change => declarationPath.test(change.path));
-    const modifications = changes.filter(change => maintenance.has(change.path));
-    if (eligibleDeclarationSelection(paths, declarations, modifications.length ? modifications : null)) {
-      for (const change of declarations) canonicalDeclaration(change.path, git(['show', `${head}:${change.path}`]));
-      declarationChanges = declarations;
-      maintenanceChanges = modifications.length ? modifications : null;
-    } else if (focusedOnly && eligibleFocusedChanges(paths, changes)) {
+    if (focusedOnly && eligibleFocusedChanges(paths, changes)) {
       focusedTests = readFocusedTests(paths, changes, git);
       if (focusedTests) focusedChanges = changes;
       else structuralChange = true;
@@ -269,7 +224,7 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       targetSensitiveDiff ||= [base, head].some(revision => boundary.test(git(['show', `${revision}:${path}`])));
     } catch { targetSensitiveDiff = true; }
   }
-  return {paths, targetSensitiveDiff, maintenanceChanges, declarationChanges, focusedChanges, focusedTests, head};
+  return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head};
 }
 async function main() {
   if (process.argv[2] === 'gate') {
@@ -309,7 +264,7 @@ async function main() {
     mainIntegration: process.env.GITHUB_EVENT_NAME === 'push' ||
       process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.GITHUB_REF === 'refs/heads/main',
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
-    maintenanceChanges: changes.maintenanceChanges, declarationChanges: changes.declarationChanges,
+    maintenanceChanges: changes.maintenanceChanges,
     focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, mainBaseline}));
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');

@@ -5,7 +5,7 @@ import {partIds,planDigest,plan} from './proof-parts.mjs';
 import {partSchema,partStages,capacityPartExecutions,validatePartEnvelope,validatePartInputs,requireValidation} from './ci-parts.mjs';
 const digest='a'.repeat(64);
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
- source:{digest},foundation:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
+ source:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
  workflow:{ref:'actql/actql/.github/workflows/ci.yml@refs/heads/main',sha:'b'.repeat(40)},planDigest};
 function envelope(partId='L-C0') {
  const path=`${partId}-123-45-0000-normal-js.json`,boundary={workspace:`owner-${partId}`,target:'js',role:'normal'};
@@ -31,7 +31,7 @@ for(const [label,change] of Object.entries({
  unrestored:m=>m.restoration.sourceRestored=false,liveWorkspace:m=>m.restoration.workspacesClosed=false,
  foreignRun:m=>m.context.runId='2',foreignAttempt:m=>m.context.runAttempt='2',headInsteadOfMerge:m=>m.context.testedSha='c'.repeat(40),
  wrongPlan:m=>m.planDigest='c'.repeat(64),foreignWorkflow:m=>m.workflow.sha='c'.repeat(40),
- foreignSource:m=>m.source.digest='c'.repeat(64),foreignFoundation:m=>m.foundation.digest='c'.repeat(64),
+ foreignSource:m=>m.source.digest='c'.repeat(64),
  duplicateReceipt:m=>m.evidence.receipts.push(m.evidence.receipts[0]),duplicateObservation:m=>m.evidence.observations.push(m.evidence.observations[0]),
  foreignOwner:m=>m.evidence.observations[0].owner='other',foreignTarget:m=>m.evidence.observations[0].target='native',
  unknownReceipt:m=>m.evidence.observations[0].receipt='missing',foreignPart:m=>m.partId='L-C1',unknownField:m=>m.fullSuccess=true,

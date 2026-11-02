@@ -23,12 +23,10 @@ retire the four Host tests kept by #131, or prove the whole implementation.
    MoonBit and audited Lean tools. Submit the marginal operation rules, actual
    connection evidence, mutation/shrink receipts and remaining obligations.
 
-For a second operation, freeze the completed first foundation's source SHA and
-common hashes in `reuse-baseline.json`. The audit rejects common changes against
-that baseline. A necessary generic correction must be a separate commit and
-reported as a failure of the original no-common-change comparison, followed by
-its corrected result. Moving large meaning rules into callbacks does not count
-as avoiding review work.
+Each campaign validates its current source snapshot, tested commit, pinned toolchain,
+independent semantic observations and exact artifact/receipt identities. Changes do
+not require declarations about earlier commits. Historical comparison experiments
+are available in Git history, not part of current acceptance.
 
 ## Supported route and independent observations
 
@@ -124,24 +122,17 @@ path and archived normal binary. Unchanged native reports in JS, Wasm or baselin
 slots are rejected. Hashes fix evidence identity; scope is checked independently.
 The runner, compiler and environment remain trusted assumptions.
 
-## Review-cost comparison
+## Current source and retained model baseline
 
-The historical take experiment in `extension.json` remains immutable and is
-checked against its original Git blobs, including the separately recorded #128
-P2 correction. It is not relabelled as using this expanded foundation.
+Current evidence must match the tracked tested commit, including proof inputs
+that Git ignore rules would otherwise hide. No per-commit historical declaration
+or declaration archive is required.
 
-This first increment pays common costs for concrete obligation completion,
-checked/kernel observations and separate fixed/exploratory CI auditing. Rename
-adds its own contract/oracle/reductions, six concrete predicates, actual Select
-projection correspondence and three primitive/connection mutations. No common
-Lean theorem or handwritten existing-operation/rename combination fixture is
-added. Generic construction supplies those combinations. Its fixed single-step
-mutation regressions are additional defect reproductions, not saved tests.
-
-No deletion count, generated-case-to-saved-test conversion or CI speedup is
-claimed. Existing operation boundaries and physical-route reviews still apply.
-The second distinct increment measures marginal meaning rules and connection
-review against the fixed first foundation, separately from these initial costs.
+The separate bounded-model baseline remains: it checks reviewed model/checker
+bytes against fixed Git revisions and verifies the current model inputs. These
+specific historical Git objects are still required by the full proof audit;
+shallow-checkout support for the current-source guard does not imply that the
+entire proof suite runs without those objects.
 
 ### Four-part hosted evidence
 
@@ -163,7 +154,7 @@ local consistency and custody checks remain mandatory before sealing.
 `ci-parts.mjs` seals a PART envelope, never a full scientific success. Receipts
 and observation IDs receive their part namespace at production. The aggregate
 requires all four successful exact artifact IDs from one workflow/run/attempt,
-identical tested source, foundation, toolchain and plan, and successful same-source
+identical tested source, toolchain and plan, and successful same-source
 synthetic validation (executed once in parallel). Missing or duplicate parts,
 observations, changed receipts, foreign owners and incomplete local obligations
 fail admission. Original part reports and receipts are retained unchanged; a
@@ -222,28 +213,3 @@ The current 114 inputs and corpus digest remain unchanged. Future additions in
 the corpus regression use generator-only fixtures to demonstrate two successive
 extensions; they are not registered product operations, runtime acceptance or
 new semantic guarantees.
-
-### Explicit equivalence of late resolution supplements
-
-Two independently introduced immutable supplements can name different raw
-receipt IDs for the same complete late source set. They remain an error by
-default. To join them, append an
-`actql-foundation-supplement-equivalence/0.1` record in the existing supplement
-directory, strictly after every member receipt. Its closed body contains
-`version`, `id`, `target` (original declaration ID and SHA-256 digest), `members`
-(sorted unique supplement IDs and exact SHA-256 digests), and `reason`.
-
-At least two ordinary resolution supplements must share the exact target and
-the complete set of actual source revisions. Every declaration and supplement
-still independently passes canonical bytes, real Git parents/modes/digests,
-ancestor closure, late-introduction and effective source-binding checks. The
-record cannot excuse a dependency already in the original declaration, two
-aliases within one supplement, partially overlapping sets, conflicting source
-bindings or a rewritten original. One member cannot belong to overlapping
-equivalence records. Originals, their introduction revisions and every raw
-receipt remain in the composed artifact. No receipt is deleted or chosen as a
-representative that exempts the others from validation.
-
-This is append-only provenance integration, not runtime compatibility or
-permission to reuse test results. Full retained-history validation is still
-required for the actual integrated source.

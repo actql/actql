@@ -160,8 +160,8 @@ test('A product change without successful CI followed by declaration B keeps pro
     for (const path of policyPaths.slice(1)) writeFileSync(join(dir, path), 'policy');
     writeFileSync(join(dir, 'src/product.mbt'), 'original'); git(['add', '.']); git(['commit', '-qm', 'C verified']); const c = git(['rev-parse', 'HEAD']).trim();
     writeFileSync(join(dir, 'src/product.mbt'), 'changed'); git(['add', '.']); git(['commit', '-qm', 'A unverified']); const a = git(['rev-parse', 'HEAD']).trim();
-    mkdirSync(join(dir, 'proofs/relation-pipeline/foundation-declarations'), {recursive: true});
-    writeFileSync(join(dir, 'proofs/relation-pipeline/foundation-declarations/b.json'), '{}');
+    mkdirSync(join(dir, 'proofs/relation-pipeline/fixtures'), {recursive: true});
+    writeFileSync(join(dir, 'proofs/relation-pipeline/fixtures/new-case.json'), '{}');
     git(['add', '.']); git(['commit', '-qm', 'B declaration']); const b = git(['rev-parse', 'HEAD']).trim();
     const f = fixture(); f.state.run.head_sha = c; for (const job of f.state.jobs.jobs) job.head_sha = c;
     // A cancelled run is not supplied by the successful-runs API. Even if supplied, it is rejected.

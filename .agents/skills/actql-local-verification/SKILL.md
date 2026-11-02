@@ -48,9 +48,8 @@ unconditional suite or a complete dependency map.
 - Workflow/selector contracts: include their consuming artifact and aggregate
   fixtures, even when those files were not edited. For example:
   `node scripts/local-checks.mjs test node -- proofs/relation-pipeline/ci-artifacts.test.mjs scripts/ci-targets.test.mjs scripts/ci-preflight.test.mjs`.
-  Protected-source changes also need actual source/parent/blob/mode declarations
-  and retained-history validation; synthetic Git fixtures do not prove the
-  published repository's history.
+  Current-source and artifact identities remain required; past commits do not
+  require an additional declaration ledger.
 - Owned identifiers and schema pins: select their real occurrence/vector
   validators, not only a test accepting the new spelling. For example, select
   `scripts/owned-contract-versions.test.mjs` through the Node wrapper and run

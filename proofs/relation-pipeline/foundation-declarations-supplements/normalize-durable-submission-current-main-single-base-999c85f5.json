@@ -1,9 +1,0 @@
-{
-  "version": "actql-foundation-single-base-normalization/0.1",
-  "id": "normalize-durable-submission-current-main-single-base-999c85f5",
-  "target": {
-    "id": "resolve-durable-submission-current-main",
-    "digest": "ccc51189120298376f373370241549fc8dfd32275993fcd9b278d119b306c51e"
-  },
-  "reason": "The unchanged inherited resolution records exactly the actual singleton maximal merge base 426d857dff443d59f992b9e7db20a27ee9176554. Normalize only that redundant field through the existing digest-bound rule; preserve actual source/ordered parents, original bytes/inputs, every protected path/blob/mode and all dependency obligations. No validator or execution guarantee change."
-}
