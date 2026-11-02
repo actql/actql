@@ -13,6 +13,7 @@ const modules = ['proofs/relation-pipeline/execute.mjs', 'proofs/relation-pipeli
   'proofs/relation-pipeline/inventory.mjs', 'proofs/relation-pipeline/proof-runner-extension.mjs',
   'proofs/relation-pipeline/workspaces.mjs',
   'proofs/relation-pipeline/take.mjs', 'proofs/bounded-session/evidence.mjs',
+  'proofs/bounded-session/native-command.mjs',
   'proofs/bounded-session/nest-obligations.json', 'scripts/owned-scratch.mjs', 'scripts/ar', 'toolchain.json'];
 
 const fakeMoon = String.raw`import assert from 'node:assert/strict';

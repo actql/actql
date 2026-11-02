@@ -50,6 +50,7 @@ import {
 import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 import {createClientHttpHandler} from '../host-node/client-http.mjs';
+import {fundedClientPreparation} from '../host-node/funded-client-preparation.fixture.mjs';
 import {openClientRequestJournal} from '../host-node/client-request-journal.mjs';
 import {installNodeClientRunStateObservation, observeClientRunState} from
   '../host-node/client-run-state.mjs';
@@ -3008,7 +3009,15 @@ test('portable control validates Receipt and Captured Run references',
     stateService, stateRequest);
   assert.equal(availableClientState.status, 'succeeded');
   assert.deepEqual(availableClientState.result_availability, availableState.result_availability);
+  const environmentWire = await readFile(new URL(
+    '../../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const environment = moon.clientProgramCheckEnvironment(environmentWire.trimEnd(),
+    JSON.parse(environmentWire).evidence_bundle_cid,
+    false, false, true, true, false, false, false);
+  assert.ok(environment);
+  const funded = await fundedClientPreparation(t, {moon, environment, http: true});
   const clientHost = createServer(createClientHttpHandler({
+    prepareRequest: funded.prepareRequest,
     authenticate: authorization => authorization === 'Bearer scoped-token'
       ? 'principal-a' : undefined,
     authorizeConnection: facts => facts.connection.mode === 'local' &&
