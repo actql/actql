@@ -5750,7 +5750,12 @@ async function preparePublicationRoot(root, principalId) {
     await closeJournal();
   }
   try {
-    await journal.admitRootFormat(root);
+    const rootCreation = await journal.admitRootFormat(root);
+    if (rootCreation === 'new') {
+      await prepareOrdinaryLocalAccount({root, principal: principalId,
+        preparedOriginal: journal.privateEvidenceInitializationOwnership(), rootCreation});
+    }
+    journal.assertInitializationCurrent();
     const moon = await import(runtimeUrl.href);
     const control = runtimeCore(moon).publicationControl;
     const storeAuthorityCid = localPublicationStoreAuthorityCid(root, principalId);
