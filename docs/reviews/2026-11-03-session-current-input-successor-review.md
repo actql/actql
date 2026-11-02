@@ -34,3 +34,38 @@ original literal path and source membership; no linker execution is claimed.
 The three previously reviewed inert nested C fixtures are unchanged. No source,
 compiler, policy, runtime, collector acceptance or mutation verdict is modified
 by recording these five successor inputs.
+
+## Physical Resource platform VM target successor
+
+Reviewed source: `3484e0f43d8eee0013bb5fb8fba03e7fc873377f`, a public ancestor
+of the selected candidate. This separately refreshes only the existing
+`src/physical_resources/moon.pkg` entry. Its complete SHA-256 is
+`23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb`.
+
+Against the preceding exact review at
+`523ada3259bf9e8147f746727fbfd56065036fd5`, the only manifest changes are:
+
+```text
+"platform_vm_capacity_wasm.mbt": [ "wasm" ]
+"platform_vm_capacity_unsupported.mbt": [ "not", "wasm" ]
+```
+
+Removing these two clauses reproduces the complete preceding manifest bytes.
+All imports, supported targets and the original twenty-five ordered selectors
+are unchanged. There is no command, build hook, stub, resolver or linker option.
+The existing `literal-target-selectors-with-bound-source-membership` JS rule
+therefore remains the same. The Wasm-only Host observation import is not
+executed on that JS path; the non-Wasm body returns its existing unavailable
+result. Both source bodies, all other package members, modes, directory
+membership and transitive imports remain inputs. Target predicates never
+remove them from the keyed source closure. This review does not attest to VM
+identity, capacity, currentness, resource backing or Native/Wasm correctness.
+
+The map still contains eighteen entries, ten with explicit successor revisions.
+Only this entry's exact digest and review revision change; the other seventeen
+complete descriptors, default review, archived reviews, JS target and pinned
+toolchain are unchanged. An old or altered digest, unknown option, changed
+selector, foreign path, target or toolchain remains unresolved. The extractor
+retains its original full-source fallback and refusal of unresolved reuse.
+Changing these reviewed bytes changes the scientific action inputs and requires
+fresh work; it does not make an old receipt current or establish reuse.
