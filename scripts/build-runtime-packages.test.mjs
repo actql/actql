@@ -76,7 +76,7 @@ const expectedGates = {
     "node scripts/local-checks.mjs test node -- adapters/host-node/submission-snapshot-publication.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/local-preparation-registry.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-host-custody.test.mjs",
-    "node scripts/local-checks.mjs test node -- adapters/host-node/client-large-input-public.test.mjs adapters/host-node/local-values-policy-original.test.mjs adapters/host-node/host-result-extent.test.mjs adapters/host-node/client-join-scale-public.test.mjs",
+    "node scripts/local-checks.mjs test node -- adapters/host-node/client-large-input-public.test.mjs adapters/host-node/local-values-policy-original.test.mjs adapters/host-node/host-result-extent.test.mjs adapters/host-node/ordinary-host-result.test.mjs adapters/host-node/client-join-scale-public.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/preparation-journal-failure-public.test.mjs adapters/host-node/preparation-initial-failure-public.test.mjs",
     "node scripts/local-checks.mjs test node -- adapters/host-node/ordinary-preparation-cut-retry.test.mjs",
     "node scripts/local-checks.mjs test node -- scripts/preparation-closed-values-plan-controls.test.mjs",
