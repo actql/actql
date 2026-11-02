@@ -124264,8 +124264,8 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
-                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
+                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
+                "anchor": "test('generated BigQuery entry reaches its real bound constructor and exact registration'"
               },
               {
                 "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
@@ -124373,8 +124373,8 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/bigquery/test/installed-bigquery-source.test.mjs",
-                "anchor": "test('registered BigQuery load joins actual Source parent constructor registration and cleanup'"
+                "path": "adapters/host-node/installed-bound-construction.actual.test.mjs",
+                "anchor": "test('generated BigQuery entry reaches its real bound constructor and exact registration'"
               },
               {
                 "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
