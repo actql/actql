@@ -3,7 +3,7 @@
 // MoonBit capture tests exercise its real nominal Run/Preview binding.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, rm, readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -11,7 +11,8 @@ import * as checkpoint from '../../_build/js/release/build/checkpoint_runtime_no
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson, createLocalAuthorizationGate} from './local-account-config.mjs';
+import {physicalLocal} from '../connectors/local/test/fixtures/file-store-authorization.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 
@@ -21,7 +22,7 @@ const pem = key => key.export({type: key.type === 'private' ? 'pkcs8'
   : 'spki', format: 'pem'});
 
 async function fixture(t, {outcome = 'allow', decide, originalRun = false,
-  deferAdvanceMs = 0} = {}) {
+  deferAdvanceMs = 0, scope = tuple} = {}) {
   const rootBase = new URL('../../_build/requested-effect-checkpoints/', import.meta.url);
   await mkdir(rootBase, {recursive: true});
   const root = await mkdtemp(join(rootBase.pathname, 'host-'));
@@ -64,16 +65,17 @@ async function fixture(t, {outcome = 'allow', decide, originalRun = false,
       assert.equal(sealed.ok, true, JSON.stringify(sealed));
       return sealed.checkpoint_wire;
     }};
+  const accountConfiguration = canonicalJson({
+    version: 'actql-execution-account-config/0.1', account_id: 'local',
+    entries: [{entry_id: 'write', outcome, principal: {all: true},
+      connection: {any_of: [scope.connection]}, resource: {any_of: [scope.resource]},
+      operation: {any_of: [scope.operation]}, exclusions: []}]});
   const open = async () => {
     const installed = await installRemoteCheckpoints({root,
       namespaceId: 'local', authorityScopeCid: cid('3'), ownerPrincipal: 'owner',
       siteKey: 'local', realizationKey: 'source-free-values', environmentCid: cid('4'),
       contractControl: control, now: () => sample,
-      authorization: {accountConfiguration: canonicalJson({
-        version: 'actql-execution-account-config/0.1', account_id: 'local',
-        entries: [{entry_id: 'write', outcome, principal: {all: true},
-          connection: {any_of: ['reference']}, resource: {any_of: ['records']},
-          operation: {any_of: ['effect']}, exclusions: []}]}),
+      authorization: {accountConfiguration,
       decide, resumeAfterAnswer: false,
       reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
         principalId: 'reviewer', publicKey: pem(reviewer.publicKey)}],
@@ -113,8 +115,8 @@ async function fixture(t, {outcome = 'allow', decide, originalRun = false,
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') t.diagnostic(`Original requested-stop journal retained: ${root}`);
     else await rm(root, {recursive: true, force: true});
   });
-  return {open, close, gate, approve, options, original,
-    retained: () => retained, retire() { current = false; }};
+  return {open, close, gate, approve, options, original, accountConfiguration,
+    retained: () => retained, advance(ms) { sample += ms; }, retire() { current = false; }};
 }
 
 test('exact pending lookup selects only the same original ID without a paging search', async t => {
@@ -283,3 +285,74 @@ test('requested first Effect rejects foreign Preview and retired original before
     {subjectCid: cid('2'), resumption: {claim}}), {code: 'OriginalRetired'});
   assert.equal(installed.journal.hasStartedResume(claim.checkpointCid), false);
 });
+
+
+test('requested-stop approval without a held claim cannot enter protected dispatch', async t => {
+  const f = await fixture(t), installed = await f.open(), first = await f.gate(installed);
+  await first.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+  const {claim} = await f.approve(installed);
+  const resumed = await f.gate(installed);
+  let protectedDispatches = 0;
+  await assert.rejects(async () => {
+    const permission = await resumed.resume('effect_commit', tuple, {subjectCid: cid('2')});
+    assert.equal(permission.action, 'dispatch');
+    resumed.continuationAdmission(undefined, cid('2')).enter('effect-set');
+    protectedDispatches++;
+  }, {code: 'ResumeNotClaimed'});
+  assert.throws(() => resumed.continuationAdmission(undefined, cid('2')), {code: 'ResumeNotClaimed'});
+  assert.equal(protectedDispatches, 0);
+  assert.equal(installed.journal.hasStartedResume(claim.checkpointCid), false);
+});
+
+test('requested-stop claim expiry after permission selection prevents admission entry', async t => {
+  const f = await fixture(t), installed = await f.open(), first = await f.gate(installed);
+  await first.authorize('effect_commit', tuple, {subjectCid: cid('2')});
+  const {claim} = await f.approve(installed);
+  const resumed = await f.gate(installed), options = {subjectCid: cid('2'), resumption: {claim}};
+  const permission = await resumed.resume('effect_commit', tuple, options);
+  assert.equal(permission.action, 'dispatch');
+  assert.equal(permission.basis, 'account_allow');
+  const admission = resumed.continuationAdmission(options.resumption, options.subjectCid);
+  f.advance(1001); // Original claim lease is 1000 ms, original Run remains live.
+  let protectedDispatches = 0;
+  assert.throws(() => {admission.enter('effect-set'); protectedDispatches++;}, {code: 'ResumeClaimStale'});
+  assert.equal(protectedDispatches, 0);
+  assert.equal(installed.journal.hasStartedResume(claim.checkpointCid), false);
+  assert.throws(() => resumed.continuationAdmission(options.resumption, options.subjectCid), {code: 'ResumeClaimStale'});
+});
+
+
+// This composes the actual compiled Account gate, durable Checkpoint claim,
+// and Local driver/native Files. The stop projection and Run/Content domain
+// ports remain explicit fixtures; this is not managed public STORE acceptance.
+for (const outcome of ['allow', 'delegate']) {
+test(`approved ${outcome} reaches the real Local grant after original claim entry`,
+  {skip: process.platform !== 'linux' || process.arch !== 'x64'
+    ? 'Physical Files fixture requires Linux x64; common checkpoint cases remain enabled' : false}, async t => {
+  const scope = {connection: 'local', resource: 'files', operation: 'effect'};
+  const f = await fixture(t, {scope, outcome}), installed = await f.open(), first = await f.gate(installed);
+  const authorization = await createLocalAuthorizationGate({
+    accountConfiguration: f.accountConfiguration, principal: 'owner'});
+  t.after(() => authorization.close());
+  const physical = await physicalLocal(t, authorization, {subjectCid: cid('2')});
+  const grant = decision => physical.grant(decision);
+  const waiting = await first.authorize('effect_commit', scope, {subjectCid: cid('2')});
+  assert.equal(waiting.action, 'waiting');
+  assert.throws(() => grant(waiting), {code: 'LocalStoreNotAuthorized'});
+  const {claim} = await f.approve(installed), resumed = await f.gate(installed);
+  const options = {subjectCid: cid('2'), resumption: {claim}};
+  const permission = await resumed.resume('effect_commit', scope, options);
+  assert.equal(permission.basis, outcome === 'allow' ? 'account_allow' : 'resumed');
+  const admission = permission.admission ??
+    resumed.continuationAdmission(options.resumption, options.subjectCid);
+  admission.enter('original-local-effect-set');
+  const issued = grant(permission);
+  await physical.send(issued);
+  assert.deepEqual(await readFile(join(physical.directory, 'result.txt')), physical.bytes);
+  assert.equal(physical.renames(), 1);
+  await assert.rejects(physical.send(issued), {code: 'ForeignLocalStoreUse'});
+  assert.equal(physical.renames(), 1);
+  assert.throws(() => admission.enter('replacement-effect-set'), {code: 'ResumeAdmissionConsumed'});
+  assert.throws(() => grant({...permission}), {code: 'LocalStoreNotAuthorized'});
+});
+}
