@@ -57360,6 +57360,7 @@
         "LocalSDKResponseCleanupPending",
         "OriginalLocalSDKResponseStream",
         "OriginalSDKPayloadReader",
+        "OriginalSavedResultRead",
         "TYPE_CHECKING",
         "annotations",
         "httpx"
@@ -57367,6 +57368,7 @@
       "imports": [
         "._local_core",
         "._local_product",
+        "._local_saved_read",
         "._local_sdk_payload_reader",
         "__future__",
         "collections.abc",
@@ -57407,7 +57409,8 @@
           "parameters": [
             "self",
             "host",
-            "reader"
+            "reader",
+            "saved_read"
           ]
         },
         {
@@ -57467,7 +57470,7 @@
           ]
         }
       ],
-      "sha256": "85af88ae20f9e356f110962f76ddec9f99b1700b6a3dfb4b51b21e327c770162",
+      "sha256": "c648f1f53036a61ec8ab4226851ff1f355ec2ffe1800b62c32295ebfb80175a6",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -72538,7 +72541,7 @@
           ]
         }
       ],
-      "sha256": "54d103f1f19e586c9342992ba309dbe52c9e91016825a0cadcaab02c32ee984b",
+      "sha256": "f4475ff5235ef7201fc8a7702d3ca880c05ac93bff575343e8eb00cf6c0e3ebb",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",

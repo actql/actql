@@ -3162,6 +3162,15 @@ modules must match the existing exact generated ABI contract.
 
 ### Saved Run observations and Result reads
 
+A saved payload response retains its same original Saved-read carrier. After
+its payload, first workspace and clock have actually returned, response close
+retires that carrier through its existing child-first cleanup, including the
+original allocation-area descriptor. A pending return keeps the same response
+and carrier; it does not repeat already acknowledged child closes or reacquire
+an area. Client close remains the owner of partial acquisitions that never
+reached a response. No file, stored receipt, Run or reserved disk capacity is
+deleted or replayed by this retirement.
+
 The private saved-Result acquisition returns its already bounded and checked
 metadata together with the same retained Core output. Its immediate caller
 uses that original parsed DATA instead of reparsing the output inside another
