@@ -120800,7 +120800,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "96047fe4e8954cd48f8797a336f833e80843f0a8202cc38e690a944b9ca69f04",
+      "sha256": "30e1558ebfbb3290b74a9184c8a5815194420b73abe1f73eba1e87e04f315509",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C \u2014 existing standard Host Source/Effect service originals",
@@ -120899,7 +120899,9 @@
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence",
-          "parameters": [],
+          "parameters": [
+            "initialAuthorization"
+          ],
           "async": true
         },
         {
@@ -121168,6 +121170,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
@@ -121186,6 +121192,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
@@ -121204,6 +121214,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
@@ -121222,6 +121236,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": [
@@ -121240,6 +121258,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "failure": [
@@ -121258,6 +121280,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": [
@@ -121276,6 +121302,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "resources": [
@@ -121294,6 +121324,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
@@ -121312,6 +121346,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -121350,6 +121388,14 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native reader keeps the Site original signed child without issuing another grant'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
               }
             ]
           }

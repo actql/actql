@@ -11,7 +11,7 @@ test "Source reader retains original request constructor without changing its or
   // The independent retained reader vector plus the selected original 17B.
   // Keep this composition attached to the original reader's current Source
   // workspace instead of a second frozen execution/NFC aggregate.
-  assert_eq(@execution.execution_capacity_retained_bytes(combined), 3497L)
+  assert_eq(@execution.execution_capacity_retained_bytes(combined), 3505L)
   let reader = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
   assert_eq(
     @execution.execution_capacity_execution_bytes(combined),

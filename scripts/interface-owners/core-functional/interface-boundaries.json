@@ -60356,7 +60356,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "4b11f96a12872e8cd830e5e81a8b8b942786f92c80fb176182d02f6acc9429a9",
+      "sha256": "c0a3567652dbb618fc12656d75e687852b2a9418446e559bc83138d6270fe283",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -60551,6 +60551,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
@@ -60561,6 +60565,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
@@ -60571,6 +60579,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
@@ -60585,6 +60597,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": {
@@ -60598,6 +60614,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": {
@@ -60615,6 +60635,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
@@ -60625,6 +60649,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native signed children and original typed cells"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -60639,6 +60667,10 @@
               {
                 "path": "src/client_local_host/installed_source_reader_capacity_wbtest.mbt",
                 "anchor": "test \"JSON Source reader inventory uses shared tariff and separate retained workspace\""
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ]
           }

@@ -27,6 +27,7 @@ import {assertAuthorizationAccountCurrent, authorizationDispatchFacts} from
 import {describeSalesforceResources, recoverNamedSalesforceObservation,
   withSalesforceNamedDescribeOriginals} from
   '../site/salesforce-named-describe.mjs';
+import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
 import {attestSalesforceEffectCapabilityAuthority} from
   '../site/salesforce-effect-capability.mjs';
 
@@ -222,8 +223,9 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   const profileWire = JSON.stringify(profile);
   const recordAuthorizations = runAcquisitionLimits === undefined ? undefined : new WeakMap();
 
-  function signRecord(fields, resource, assertDecisionCurrent) {
-    const issued = sign(fields);
+  function signRecord(fields, resource, assertDecisionCurrent, decision) {
+    const issued = sign({...fields, ...(fields.operation === 'salesforce:query:read'
+      ? {issuerPurpose: Object.freeze({kind: 'read', resource, decision})} : {})});
     recordAuthorizations?.set(issued, Object.freeze({resource, assertDecisionCurrent}));
     return issued;
   }
@@ -253,7 +255,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       approved.assertCurrent?.();
       approved.enter?.();
       return signRecord({operation, runInvocationCid, taskAttempt,
-        dispatchRequestCid, maxUses}, resource, approved.assertCurrent);
+        dispatchRequestCid, maxUses}, resource, approved.assertCurrent, decision);
     }
     // An Effect commit dispatch another gate of the Host (its Checkpoint
     // commit gate) decided counts as this gate's only when that gate decided
@@ -282,7 +284,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     assertAuthorizationAccountCurrent(decision);
     return signRecord({operation, runInvocationCid, taskAttempt,
       dispatchRequestCid, maxUses}, resource,
-    () => assertAuthorizationAccountCurrent(decision));
+    () => assertAuthorizationAccountCurrent(decision), decision);
   }
 
   // Retain the original Site-issued read/write authorization, not a grant
@@ -507,11 +509,12 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   async function describeNamed({resources, occurrence, runInvocationCid:
     runCid, dispatchRequestCid: dispatchCid, retainEvidence = false,
     maxRetainedBytes = 0, limits = DEFAULT_SALESFORCE_CATALOG_LIMITS,
-    approval, signal, retainPublicationOriginals = false}) {
+    approval, signal, retainPublicationOriginals = false, readChild}) {
     ensureOpen();
     if (!Array.isArray(resources) || resources.length === 0 ||
         !resources.every(text) || !text(occurrence) ||
-        (runCid === undefined) !== (dispatchCid === undefined)) {
+        (runCid === undefined) !== (dispatchCid === undefined) ||
+        readChild !== undefined && typeof readChild !== 'function') {
       fail('InvalidSalesforceCredentialGrantRequest');
     }
     const decided = new Map();
@@ -532,6 +535,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       siteGeneration: profile.siteGeneration, syncOccurrence: occurrence});
     const dispatchRequestCid = dispatchCid ?? cid({version:
       'actql-salesforce-catalog-dispatch/0.1', runInvocationCid});
+    const originals = readChild === undefined ? undefined : new Map();
     const result = await describeSalesforceResources({moon: salesforceMoon,
       apiVersion: profile.apiVersion,
       connectionRevision: profile.connectionRevision, orgId: profile.orgId,
@@ -539,14 +543,22 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       maxObservationBytes: limits.maxObservationBytes,
       resources: [...resources], credential,
       describeLimits: limits.describe, retainEvidence, retainPublicationOriginals, maxRetainedBytes,
+      ...(readChild === undefined ? {} : {callResource(input) {
+        const original = originals.get(input.grant);
+        if (original === undefined) fail('ForeignSalesforceSourceReadChild');
+        return readChild(original, input);
+      }}),
       authorizationForDescribe: async name => {
         if (!decided.has(name)) fail('SalesforceCatalogDescribeNotAuthorized');
         const original = decided.get(name);
         if (original !== undefined) assertAuthorizationAccountCurrent(original);
         covered?.assertCurrent?.();
         covered?.enter?.();
-        return {...sign({operation: 'salesforce:catalog:describe',
-          runInvocationCid, taskAttempt: 1, dispatchRequestCid, maxUses: 1}),
+        const issued = sign({operation: 'salesforce:catalog:describe',
+          runInvocationCid, taskAttempt: 1, dispatchRequestCid, maxUses: 1,
+          issuerPurpose: Object.freeze({kind: 'read', resource: name, decision: original ?? approval})});
+        originals?.set(issued.grant, issued);
+        return {...issued,
         useId: `${occurrence}-describe-${name}`};
       }, signal});
     if (retainPublicationOriginals) liveDescribes.set(result, () => {
@@ -747,7 +759,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   // own metadata read decision. The describe responses are retained so the
   // runtime that owns the acquisition reprojects the observation itself.
   async function describeForAcquisition({resource, runInvocationCid,
-    dispatchRequestCid, occurrence, approval, signal} = {}) {
+    dispatchRequestCid, occurrence, approval, signal, readChild} = {}) {
     ensureOpen();
     if (!text(resource) || !text(occurrence) ||
         !cidPattern.test(runInvocationCid ?? '') ||
@@ -757,7 +769,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     const catalog = await describeNamed({resources: [resource], occurrence,
       runInvocationCid, dispatchRequestCid, retainEvidence: true,
       maxRetainedBytes: DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes,
-      approval, signal});
+      approval, signal, readChild});
     if (catalog.status === 'interrupted') {
       fail(catalog.interruptionCode === 'SalesforceCatalogCancelled'
         ? 'SalesforceCatalogCancelled' : 'SalesforceCatalogRefreshInterrupted');
@@ -912,7 +924,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     connectorRegistration: 'salesforce', connectorRevision: 'salesforce/0.1',
     principal: principalId, context,
   });
-  const site = Object.freeze({...siteFacts, authorization, credential,
+  const site = Object.freeze({...siteFacts, authorization, credential, callResource: callHttpsCredentialResource,
     issueGrant, bindRecordAcquisition, attestEffectCapability, refreshCatalog, declareCatalog,
     restoreDeclaration, describeForAcquisition, describeEffectCatalog,
     admitCheckpointReadApproval,
@@ -963,7 +975,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
       return value;
     },
   }));
-  return site;
+  return custody.retainOperationSite === undefined ? site : custody.retainOperationSite(site);
 }
 
 // Compatibility entries delegate the same Site and primary failure to the

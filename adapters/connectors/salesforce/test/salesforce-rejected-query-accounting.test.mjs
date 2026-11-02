@@ -7,6 +7,12 @@ import {readSalesforceQuery, readSalesforceManagedQuery} from
   '../site/salesforce-query-read.mjs';
 import {credentialInvocationBindingKeys} from
   '../../../host-common/credential-scope-fields.generated.mjs';
+import {createInstalledCredentialSourceReader} from
+  '../../../host-node/installed-credential-source-reader.mjs';
+import {invokeScopedCredentialOperation} from
+  '../../../host-common/owned-invocation-context.mjs';
+import {prepareSalesforceSourceReadSequence, readSalesforceSourceChild} from
+  '../site/salesforce-query-read.mjs';
 
 const operation = 'salesforce:query:read';
 const path = '/services/data/v62.0/query?q=SELECT%20Id%20FROM%20Account';
@@ -92,6 +98,128 @@ for (const mode of ['raw', 'managed']) {
     assert.deepEqual(f.events, ['current', 'begin', 'next', 'response', 'charge', 'charged', 'interrupt']);
   });
 }
+
+// Actual shared Reader plus the existing Salesforce query sequencer. The Site
+// issuer, typed codecs, same-parent capacity and physical Resource are explicit
+// ports; this is not normal Common/HTTPS or numerical backing acceptance.
+function managedSourceFixture({rejected = false, consumeFailure = false} = {}) {
+  const events = [], cells = Object.freeze([Object.freeze([Object.freeze({typed: true})])]);
+  const columns = Object.freeze(['Id']), acquisition = Object.freeze({}), declaration = Object.freeze({});
+  const plan = Object.freeze({}), query = Object.freeze({}), observation = Object.freeze({});
+  const root = Object.freeze({grant: Object.freeze({}), scope: Object.freeze({
+    ...Object.fromEntries(credentialInvocationBindingKeys.map(key => [key, 'same'])), operation,
+    runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch', siteGeneration: 1})});
+  const originalCredential = Object.freeze({}), boundCredential = Object.freeze({});
+  const originals = new Set([root]), chargeByBody = new Map();
+  let pages = 0, closes = 0, charges = 0, consumed = 0;
+  const preparedRead = Object.freeze({acquisition, resource: 'Account', nonce: 'original',
+    runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch'});
+  const site = Object.freeze({credential: originalCredential, apiVersion: 'v62.0',
+    async describeForAcquisition(request) {
+      assert.equal(this, site);assert.equal(request.resource, 'Account');
+      assert.equal(request.runInvocationCid, 'original-run');
+      assert.equal(request.dispatchRequestCid, 'original-dispatch');
+      const metadata = Object.freeze({grant: Object.freeze({}),
+        scope: Object.freeze({...root.scope, operation: 'salesforce:catalog:describe'})});
+      originals.add(metadata);
+      await invokeScopedCredentialOperation({authorization: {...metadata, useId: request.occurrence},
+        credential: originalCredential, operation: 'salesforce:catalog:describe', method: 'GET',
+        path: '/services/data/v62.0/sobjects/Account/describe', maxResponseBytes: 1024,
+        callResource: input => request.readChild(metadata, input)});
+      return {evidence: {observationJson: '{}'}, observationCid: 'original-observation'};
+    }});
+  const moon = Object.freeze({
+    clientProgramRecheckSalesforceRowProjection(d, a, o, max) {
+      assert.equal(d, declaration);assert.equal(a, acquisition);assert.equal(o, observation);
+      assert.equal(max, 4096);events.push('plan');return ok(plan);
+    }, clientProgramSalesforceQueryPageValues(page) {
+      assert.equal(page, query);events.push('values');return {_0: columns, _1: cells};
+    }});
+  const queryMoon = Object.freeze({
+    salesforceReadProjectionScopeMatches(p) {assert.equal(p, plan);return true;},
+    salesforceRecheckReadProjection(p, o) {assert.equal(p, plan);assert.equal(o, observation);return ok(undefined);},
+    salesforceBeginQueryRead(p) {assert.equal(p, plan);events.push('begin');return ok(query);},
+    salesforceQueryReadNextPath(q) {assert.equal(q, query);return ok(pages === 0 ? path : undefined);},
+    salesforceQueryReadAcceptPage(q, actualPath, body) {
+      assert.equal(q, query);assert.equal(actualPath, path);assert(chargeByBody.has(body));
+      events.push('decode');return ok(query);
+    }, salesforceQueryReadAcknowledgePage(page) {assert.equal(page, query);pages++;return ok(undefined);},
+    salesforceQueryReadComplete(q) {assert.equal(q, query);return pages === 1;},
+    salesforceQueryReadRowCount(q) {assert.equal(q, query);return 1;},
+    salesforceQueryPageResponseSha256() {return 'original-digest';},
+    salesforceQueryPageRowCount() {return 1;},
+    salesforceQueryReadInterrupt(q) {assert.equal(q, query);events.push('interrupt');},
+  });
+  const originalBinding = Object.freeze({credential: boundCredential, close() {closes++;return 'closed';}});
+  const originalSite = Object.freeze({site, referenceCurrent() {return true;},
+    authorizationPurpose(original) {assert.equal(original, root);return {kind: 'read'};},
+    bindRunAcquisition(original) {assert.equal(original, root);events.push('bind');return originalBinding;},
+    readChildCredential(binding, original) {
+      assert.equal(binding, originalBinding);assert(originals.has(original));return boundCredential;
+    }, async callResource(input) {
+      assert.equal(this, site);assert([...originals].some(original => original.grant === input.grant));
+      await input.currentBeforeSend();
+      const selected = [...input.operations.keys()][0], isQuery = selected === operation;
+      events.push(isQuery ? 'query-response' : 'describe-response');
+      const response = Object.freeze({accepted: !isQuery || !rejected, statusCode: isQuery && rejected ? 503 : 200,
+        body: Buffer.from(isQuery ? 'query bytes' : 'metadata bytes'), useCid: 'original-use'});
+      input.responseCustody.retain(response);return response;
+    }});
+  const limits = Object.freeze({maxBytes: 1024, maxNodes: 100, maxDepth: 8, maxRows: 2,
+    maxLocatorUnits: 1024, maxPages: 1, maxTotalRows: 2});
+  const factory = createInstalledCredentialSourceReader({capacity: {}, originalSite, assertCurrent() {},
+    maxResponses: 3, maxResponseBytes: 1024,
+    prepareReadSequence(input) {
+      assert.equal(input.preparedRead, preparedRead);assert.equal(input.originalAuthorization, root);
+      assert.deepEqual(events, []);
+      return prepareSalesforceSourceReadSequence({moon, queryMoon, site, declaration,
+        preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization,
+        recover(_evidence, run) {assert.equal(run, 'original-run');events.push('recover');return observation;}, limits});
+    }});
+  const reader = factory.prepare(Object.freeze({originalAuthorization: root, preparedRead, columns,
+    verifyRead() {}, authorizationFor() {return {...root, useId: 'original-query-0'};},
+    authorizeReadChild(_operation, _index, _occurrence, supplied) {return supplied;},
+    chargePage(body) {const charge = Object.freeze({});charges++;chargeByBody.set(body, charge);events.push('charge');return charge;},
+    consumeObservation(charge) {assert([...chargeByBody.values()].includes(charge));events.push('observation');},
+    consumeValues(names, rows, {charge}) {
+      assert.equal(names, columns);assert.equal(rows, cells);assert([...chargeByBody.values()].includes(charge));
+      consumed++;events.push('consume');if (consumeFailure) throw undefined;return rows.length;
+    }}));
+  return {reader, factory, events, counts: () => ({charges, consumed, closes, pages})};
+}
+
+test('Salesforce managed source joins two original describes and typed query on the same Reader', async () => {
+  const f = managedSourceFixture();assert.deepEqual(f.events, []);
+  assert.deepEqual(await f.reader.read(), {pages: 3, rowCount: 1});
+  assert.deepEqual(f.events, ['bind', 'describe-response', 'charge', 'recover', 'observation', 'plan',
+    'describe-response', 'charge', 'recover', 'observation', 'begin', 'query-response', 'charge', 'decode', 'values', 'consume']);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {charges: 3, consumed: 1, closes: 1, pages: 1});
+});
+
+test('Salesforce managed source charges a rejected query once and keeps its original refusal', async () => {
+  const f = managedSourceFixture({rejected: true});
+  await assert.rejects(f.reader.read(), {code: 'SalesforceQueryResourceRejected'});
+  assert(!f.events.includes('decode'));assert.equal(f.events.at(-1), 'interrupt');
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {charges: 3, consumed: 0, closes: 1, pages: 0});
+});
+
+test('Salesforce managed source preserves thrown undefined without replaying a typed page', async () => {
+  const f = managedSourceFixture({consumeFailure: true});let caught = false;
+  try {await f.reader.read();} catch (cause) {caught = true;assert.equal(cause, undefined);}
+  assert.equal(caught, true);assert.equal(f.events.at(-1), 'interrupt');
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {charges: 3, consumed: 1, closes: 1, pages: 0});
+});
+
+test('Salesforce managed child refuses a copied-scope field substitution before the Reader', () => {
+  const original = Object.freeze({grant: {}, scope: Object.freeze({operation, expiresUnixMilliseconds: 1n})});
+  assert.throws(() => readSalesforceSourceChild({readChild: forbidden}, original,
+    {grant: original.grant, scope: {...original.scope, expiresUnixMilliseconds: 2n},
+      operations: new Map([[operation, {method: 'GET', path}]]), useId: 'original'}),
+  {code: 'ForeignSalesforceSourceReadChild'});
+});
 
 for (const mode of ['raw', 'managed']) {
   test(`Salesforce ${mode} query preserves accounting failure and interrupts the original read`, async () => {

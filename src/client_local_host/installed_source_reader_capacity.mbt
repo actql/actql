@@ -207,7 +207,8 @@ fn installed_json_source_reader_capacity_with_decoder(
     9L * originals +
     2L * ids +
     2L * cursors,
-    scalar_words: 19L + 3L * originals + ids + cursors,
+    // The one native-prepared selection flag survives until reader retirement.
+    scalar_words: 20L + 3L * originals + ids + cursors,
     owned_utf16_units: text,
     owned_wire_bytes: raw,
   }
@@ -252,9 +253,13 @@ fn installed_json_source_reader_capacity_with_decoder(
   // Include the optional method envelope and typed-consumption callback
   // controls alongside that whole prefix, even though those calls ordinarily
   // complete in sequence. No new variable payload or credential is copied.
-  let native_control_headers = 6L
-  let native_control_slots = 10L
-  let native_control_words = 8L
+  // Prepared-native entry adds one own-field descriptor (one reference and
+  // three Boolean words), two original-fact references in the existing input
+  // record and one first-invocation reference in the existing read arguments.
+  // These are borrowed originals, never copied acquisition or grant payloads.
+  let native_control_headers = 7L
+  let native_control_slots = 14L
+  let native_control_words = 11L
   let workspace : @execution.PreparationRepresentationUnits = {
     record_headers: 20L + native_control_headers,
     reference_slots: 3L +

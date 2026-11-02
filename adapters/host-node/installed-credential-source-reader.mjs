@@ -117,6 +117,7 @@ export function createInstalledCredentialSourceReader(options) {
       let unconfirmedCharge;
       let responses = [], responseCount = 0, responseBytes = 0n, rowCount = 0;
       let provider, fetchPage, decodePage, runSequence, providerRetire, providerRetired = false;
+      let nativePrepared = false;
       let onError, setupFailure, setupFailed = false;
       const pendingCallbacks = new Set();
       const check = () => {
@@ -207,8 +208,13 @@ export function createInstalledCredentialSourceReader(options) {
         return callProjection(fn, receiver, args);
       };
       try {
+        const prepared = managedSequence ? Object.getOwnPropertyDescriptor(options, 'preparedRead') : undefined;
+        if (prepared !== undefined && !Object.hasOwn(prepared, 'value')) fail('InvalidInstalledSourceReadPreparation');
+        nativePrepared = prepared !== undefined && prepared.value !== undefined;
         provider = callProjection(prepareProvider, undefined, [Object.freeze({resource: options.resource,
-          columns: Object.freeze([...options.columns]), requestWire: options.requestWire}), applySynchronousProjection]);
+          columns: Object.freeze([...options.columns]), requestWire: options.requestWire,
+          ...(nativePrepared ? {preparedRead: sync(prepared.value),
+            originalAuthorization: options.originalAuthorization} : {})}), applySynchronousProjection]);
         if (managedSequence) {
           runSequence = ownMethod(provider, 'read');
           providerRetire = ownMethod(provider, 'retire');
@@ -317,7 +323,7 @@ export function createInstalledCredentialSourceReader(options) {
         }
         fail('InstalledSourceReaderResponseCountLimit');
       }
-      async function readManagedSequence() {
+      async function readManagedSequence(initialAuthorization) {
         let active = true, pending, failure, failed = false, lastCharge;
         const current = () => {
           if (!active || !readPending) fail('InstalledSourceReadChildClosed');
@@ -464,8 +470,14 @@ export function createInstalledCredentialSourceReader(options) {
         });
         try {
           let sequenceFailure, sequenceFailed = false;
-          try {await Reflect.apply(runSequence,provider,[context]);}
-          catch (cause) {sequenceFailure = cause;sequenceFailed = true;}
+          try {await Reflect.apply(runSequence,provider,nativePrepared ? [context,initialAuthorization] : [context]);}
+          catch (cause) {
+            // A provider may turn its awaited child failure into a status or
+            // wrapper. Preserve the earlier original already observed here,
+            // including thrown undefined. A later failure while joining an
+            // unawaited child still cannot replace this sequence's primary.
+            sequenceFailure = failed ? failure : cause;sequenceFailed = true;
+          }
           if (pending !== undefined) {
             try {await pending;} catch (cause) {if (!sequenceFailed) {sequenceFailure = cause;sequenceFailed = true;}}
             if (!sequenceFailed && !failed) {sequenceFailure = Object.assign(new Error('InstalledSourceReadChildNotJoined'),

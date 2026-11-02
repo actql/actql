@@ -276,3 +276,56 @@ response or native metadata tree is copied by this handoff. A selected native
 protocol must still supply its complete metadata/graph/query workspace before
 callbacks; this shared connection is not that Salesforce recipe or its normal
 caller acceptance.
+
+## Native Salesforce original Reader protocol
+
+The Salesforce Site registers its original credential in the existing private
+operation-Site association through that credential's own custody. This entry
+retains the same principal, runtime, issuer, Journal and binding methods; a
+copied credential or a second Site cannot replace the registered original.
+The installed Site's query grant records its actual admitted read decision and
+Resource as private purpose. Describe grants record their independently
+admitted metadata decision (or the same original admitted approval), Resource
+and invocation. Operation names and request DATA issue no authority.
+
+A native prepared sequence receives the same already prepared acquisition
+facts and the Site's original authorization at Reader preparation. Preparation
+performs no provider read. The first invocation, including its original use ID,
+is forwarded unchanged only after the same Reader opens its binding. Existing
+sequences without prepared facts retain their one-argument read protocol.
+Accessors refuse without invocation; asynchronous prepared inputs remain with
+the Reader until the original computation settles, even after stop.
+
+`prepareSalesforceSourceReadSequence` runs the existing Describe and query
+codecs inside that Reader. The first Describe rechecks the original row
+projection; the independent Describe immediately before query execution
+remains. Both descriptions use the same original dispatch and their separately
+issued Site originals. `readSalesforceSourceChild` compares every copied
+primitive scope field, then hands the Site original and actual request
+occurrence unchanged to `readChild`. The same Site's nominal purpose,
+Resource, invocation and binding checks still precede physical use.
+
+The shared Reader retains and charges each actual response once before codec
+projection. Metadata consumes that same charge as an observation; query pages
+pass the original Common typed columns/cells to `consumeValues`, without a row
+JSON roundtrip or a second charge. Rejected query bodies remain charged and
+cannot reach typed admission. The already observed original child failure,
+including thrown `undefined`, survives a provider's later status conversion.
+A provider failure observed before an outstanding child settles remains its
+primary failure while the same Reader joins that child.
+
+The protocol's pending read prevents its retirement. After settlement the
+original Reader owns physical close, pending callbacks, unconfirmed charges
+and provider retirement; no returned status is a physical acknowledgement.
+The protocol releases its acquisition, Site, declaration, codec and credential
+aliases only through that original retirement. Existing Effect record bindings
+and their separate current/profile checks do not use a replacement wrapper.
+
+Installation must compose the actual native metadata, recovery, query,
+projection and failed-prefix inventory with the shared Reader recipe before
+constructing this protocol or calling its codecs. The fixed shared handoff
+adds only the original field descriptor, two borrowed input references, one
+invocation reference and one retained selection flag. It neither covers the
+variable native codec inventory nor supplies admission by itself. The original
+Describe/query limits, row bounds and approvals remain independent of this
+representation inventory; no cap, fallback read or standalone Run is implied.

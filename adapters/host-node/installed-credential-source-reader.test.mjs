@@ -375,7 +375,9 @@ test('retired original Reader observer stays usable while Core capture cleanup r
 // cells. Site/Core/current/charge ports remain explicit; this is not a normal
 // Credential, numerical recipe or physical cleanup qualification.
 function nativeReaderFixture({foreign = false, typed = false, replacement = false,
-  pendingConsume, failConsume = false, admittedCount, asyncOriginal, getter = false} = {}) {
+  pendingConsume, failConsume = false, admittedCount, asyncOriginal, getter = false,
+  preparationHandoff = false, invocationHandoff = false, wrappedTransportFailure = false,
+  asyncPreparation, preparationGetter = false, plainSequence = false} = {}) {
   const root = Object.freeze({grant: {}, scope: Object.freeze({operation: 'query'})});
   const metadata = Object.freeze({grant: {}, scope: Object.freeze({operation: 'describe'})});
   const original = foreign ? Object.freeze({...metadata}) : metadata;
@@ -386,6 +388,8 @@ function nativeReaderFixture({foreign = false, typed = false, replacement = fals
   const charge = Object.freeze({}), credential = Object.freeze({}), site = Object.freeze({});
   let sends = 0, closes = 0, uses = 0, consumes = 0, charges = 0, retired = 0;
   const consuming = deferred();
+  const preparedRead = Object.freeze({originalAcquisition: Object.freeze({})});
+  let initialAuthorization;
   const acquisition = Object.freeze({credential, close() {closes++; return 'closed';}});
   const originalSite = Object.freeze({site,
     referenceCurrent() {return true;},
@@ -399,29 +403,43 @@ function nativeReaderFixture({foreign = false, typed = false, replacement = fals
     async callResource(input) {
       assert.equal(this, site);assert.equal(input.grant, metadata.grant);
       assert.equal(input.useId, 'original-native-use');sends++;
+      if (wrappedTransportFailure) throw undefined;
       await input.currentBeforeSend();input.responseCustody.retain(response);return response;
     },
   });
   let factory;
   factory = createInstalledCredentialSourceReader({capacity: {}, originalSite, assertCurrent() {},
     maxResponses: 1, maxResponseBytes: 128,
-    prepareReadSequence() {
-      return Object.freeze({async read(context) {
-        await context.readChild({operation: 'describe', prepare() {
+    prepareReadSequence(input) {
+      if (plainSequence) assert.deepEqual(Reflect.ownKeys(input).sort(), ['columns', 'requestWire', 'resource']);
+      if (preparationHandoff) {
+        assert.equal(input.preparedRead, preparedRead);
+        assert.equal(input.originalAuthorization, root);
+        assert.equal(sends, 0);
+      }
+      return Object.freeze({async read(context, invocation) {
+        if (plainSequence) assert.equal(arguments.length, 1);
+        if (invocationHandoff) assert.equal(invocation, initialAuthorization);
+        try {await context.readChild({operation: 'describe', prepare() {
           const selected = {original: provided, ...provided,
             request: Object.freeze({method: 'GET', path: '/original'}),
             project(actual) {assert.equal(actual, response);return undefined;}};
           if (asyncOriginal !== undefined) selected.originalAuthorization = asyncOriginal;
           if (getter) Object.defineProperty(selected, 'originalAuthorization', {get() {assert.fail('No native grant getter');}});
           return Object.freeze(selected);
-        }});
+        }});} catch (cause) {
+          if (wrappedTransportFailure) throw new Error('Provider converted its original child failure');
+          throw cause;
+        }
         if (typed) await context.consumeValues(names, cells);
         else await context.consumeObservation();
       }, retire() {retired++;return true;}});
     },
   });
-  const reader = factory.prepare(Object.freeze({originalAuthorization: root, columns: names,
-    verifyRead() {}, authorizationFor(index) {assert.equal(index,0);return {...root,useId:'original-root-use'};},
+  const options = {originalAuthorization: root, columns: names,
+    ...(preparationHandoff || invocationHandoff || asyncPreparation !== undefined ? {preparedRead: asyncPreparation ?? preparedRead} : {}),
+    verifyRead() {}, authorizationFor(index) {assert.equal(index,0);
+      initialAuthorization=Object.freeze({...root,useId:'original-root-use'});return initialAuthorization;},
     consumePage() {assert.fail('No JSON row fallback');},
     authorizeReadChild(operation, index, occurrence, actual) {
       assert.equal(operation, 'describe');assert.equal(index, 0);assert.equal(occurrence, provided);
@@ -437,9 +455,54 @@ function nativeReaderFixture({foreign = false, typed = false, replacement = fals
       if (failConsume) throw undefined;
       return admittedCount ?? cells.length;
     },
-  }));
+  };
+  if (preparationGetter) Object.defineProperty(options, 'preparedRead', {get() {assert.fail('No prepared-read getter');}});
+  const reader = factory.prepare(Object.freeze(options));
   return {factory, reader, provided, consuming: consuming.promise, metadata, counts: () => ({sends, closes, uses, consumes, charges, retired})};
 }
+
+test('shared native sequence prepares from the same original facts without doing provider IO', async () => {
+  const f = nativeReaderFixture({preparationHandoff: true});
+  assert.deepEqual(await f.reader.read(), {pages: 1, rowCount: 0});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+});
+
+test('shared native sequence retains the earlier original transport failure through provider conversion', async () => {
+  const f = nativeReaderFixture({wrappedTransportFailure: true});let caught = false;
+  try {await f.reader.read();} catch (cause) {caught = true;assert.equal(cause, undefined);}
+  assert.equal(caught, true);f.reader.requestStop();
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+});
+
+test('shared native sequence keeps the existing single-argument protocol without a prepared input', async () => {
+  const f = nativeReaderFixture({plainSequence: true});
+  assert.deepEqual(await f.reader.read(), {pages: 1, rowCount: 0});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+});
+
+test('shared native sequence refuses prepared input getters without invoking them', async () => {
+  const f = nativeReaderFixture({preparationGetter: true});
+  await assert.rejects(f.reader.read(), {code: 'InvalidInstalledSourceReadPreparation'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.equal(f.counts().sends, 0);
+});
+
+test('shared native sequence retains an asynchronous prepared input until its same computation settles', async () => {
+  const gate = deferred(), f = nativeReaderFixture({asyncPreparation: gate.promise});
+  await assert.rejects(f.reader.read(), {code: 'InstalledSourcePageCallbackNotSynchronous'});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, false);assert.equal(f.factory.retire(), false);
+  gate.resolve(Object.freeze({}));await Promise.resolve();await Promise.resolve();
+  assert.equal(f.reader.observe().cleanupConfirmed, true);assert.equal(f.factory.retire(), true);
+  assert.equal(f.counts().sends, 0);
+});
+
+test('shared native sequence reads with the same first original invocation after binding', async () => {
+  const f = nativeReaderFixture({invocationHandoff: true});
+  assert.deepEqual(await f.reader.read(), {pages: 1, rowCount: 0});
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+});
 
 test('shared native reader keeps the Site original signed child without issuing another grant', async () => {
   const f = nativeReaderFixture();

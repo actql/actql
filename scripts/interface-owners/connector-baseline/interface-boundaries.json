@@ -9069,7 +9069,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6197e5871844e6c8278f97bc93d5923abee5c308484cf490556c9c0ddd777d58",
+      "sha256": "c684a59161f997ee21fea6e68d38a9ed1b8c81697aca27ad4eacd90240460b5a",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9345,7 +9345,8 @@
             "dispatchRequestCid",
             "occurrence",
             "approval",
-            "signal"
+            "signal",
+            "readChild"
           ],
           "async": true
         },
@@ -9361,13 +9362,21 @@
             "limits",
             "approval",
             "signal",
-            "retainPublicationOriginals"
+            "retainPublicationOriginals",
+            "readChild"
           ],
           "async": true
         },
         {
           "name": "loadInstalledSalesforceSite/describeNamed/describeNamed",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource",
+          "parameters": [
+            "input"
+          ],
           "async": false
         },
         {
@@ -9545,7 +9554,8 @@
           "parameters": [
             "fields",
             "resource",
-            "assertDecisionCurrent"
+            "assertDecisionCurrent",
+            "decision"
           ],
           "async": false
         },
@@ -9733,6 +9743,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "inputsOutputs": [
@@ -9755,6 +9769,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "identity": [
@@ -9781,6 +9799,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "ownership": [
@@ -9807,6 +9829,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "synchronization": [
@@ -9833,6 +9859,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "failure": [
@@ -9859,6 +9889,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "cancellation": [
@@ -9877,6 +9911,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "resources": [
@@ -9899,6 +9937,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "extension": [
@@ -9925,6 +9967,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
               }
             ],
             "verification": [
@@ -9983,6 +10029,14 @@
               {
                 "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
                 "anchor": "test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal'"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
               }
             ]
           }
@@ -9996,7 +10050,8 @@
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
             "withInstalledSalesforceDeclarationOriginals",
-            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value"
+            "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value",
+            "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource"
           ],
           "exports": [
             "observeInstalledSalesforcePublicationCurrent",
@@ -10080,6 +10135,7 @@
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
         "../site/salesforce-catalog-sync.mjs",
         "../site/salesforce-cli-secret.mjs",
         "../site/salesforce-effect-capability.mjs",

@@ -669,8 +669,29 @@ export function openRowSourceCredentialCustody({profile, principalId,
       released = true;
     }});
   }
-  return Object.freeze({credential, sign, signInstallationMetadata,
+  const custody = Object.freeze({credential, sign, signInstallationMetadata,
     ...(construction === undefined ? {} : {construction}),
+    ...(construction === undefined ? {} : {retainOperationSite(site) {
+      ensureOpen();
+      if (this !== custody || site === null || typeof site !== 'object' ||
+          nodeTypes.isProxy(site) || !Object.isFrozen(site)) fail('ForeignInstalledCredentialOperationSite');
+      const fields = Object.getOwnPropertyDescriptors(site);
+      if (!Object.hasOwn(fields.credential ?? {}, 'value') || fields.credential.value !== credential ||
+          !Object.hasOwn(fields.callResource ?? {}, 'value') || typeof fields.callResource.value !== 'function' ||
+          !Object.hasOwn(fields.connection ?? {}, 'value') || !text(fields.connection.value)) {
+        fail('ForeignInstalledCredentialOperationSite');
+      }
+      const retained = operationSites.get(credential);
+      if (retained !== undefined) {
+        if (retained.site !== site) fail('ForeignInstalledCredentialOperationSite');
+        return site;
+      }
+      // This same private issuer binds its own original Site. No caller may
+      // replace the custody, credential, principal or immutable runtime facts.
+      return retainCredentialOperationSite(site, custody,
+        {connection: fields.connection.value, principalId, connectorRegistration,
+          connectorRevision, runtimeBundleCid}, true);
+    }}),
     installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose, readChildCredential,
     checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
@@ -681,6 +702,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
     closeOnce() { if (!released) close(); },
     cleanupPending: () => closing && !released,
   });
+  return custody;
 }
 
 // An operational alternative of this same installed Credential Site. Common
