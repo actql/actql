@@ -53745,7 +53745,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "f8d6b5cfc792febb09a5f020f906f063da31f94d0f52c8efcd96a48c59128b94",
+      "sha256": "c16512bb67d6750c251263eba57d53a2aedcf007c7a0100413ef974029352031",
       "exports": [
         "commonjs:installInitialControlImageLoader",
         "commonjs:installOrdinaryInitialControlImageLoader"
@@ -53982,6 +53982,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Instance identity, original callback and receiver correspondence prevent"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "if (original !== undefined) captured = {url, format: original.format, shortCircuit: true};"
               }
             ],
             "ownership": [
@@ -54064,6 +54068,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "let captured;"
               }
             ],
             "extension": [
@@ -54078,6 +54086,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "anchor": "const result = captured ?? nextResolve(specifier, context);"
               }
             ],
             "verification": [
