@@ -67051,6 +67051,109 @@
         }
       ],
       "sha256": "1c158bf792768a2952893fb9212e3b2a2f86e3de3caf2b78952169e914a2182a"
+    },
+    {
+      "module": "src/client_local_host/installed_table_reader_capacity.mbt",
+      "sha256": "e13fc6c14b288a6079b70e1553af8b3427fbe87849f1f4cae45b66a9f8cd1f24",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local Table native body-construction domain and shared representation/capacity Owners; no Run, permission or physical-stop issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_table_body_construction_inventory",
+          "declaration": "installed_table_body_construction_inventory ( body_bytes : Int , max_depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "installed_table_source_body_capacity",
+          "declaration": "installed_table_source_body_capacity ( previous : @ execution . ExecutionCapacity , body_bytes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_table_body_construction_inventory",
+            "installed_table_source_body_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity.mbt",
+                "anchor": "pub fn installed_table_source_body_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity.mbt",
+                "anchor": "fn installed_table_body_construction_inventory("
+              },
+              {
+                "path": "src/execution_relation/preparation_representation.mbt",
+                "anchor": "pub fn preparation_representation_cost("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity_wbtest.mbt",
+                "anchor": "test \"Table announced body owns native parse snapshot"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "test \"Table body quote enters the same original RowRun"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

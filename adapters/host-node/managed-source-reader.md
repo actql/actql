@@ -415,3 +415,39 @@ a managed Table Plan. The Table caller must supply its actual simultaneous
 body, decoder, output and failed-child inventory before the corresponding
 constructor. It cannot fabricate a received-byte ticket, use a guessed amount,
 or substitute process exit for Resource, Catalog or publication cleanup.
+
+## Table announced-body construction inventory
+
+The existing Local Table frame reader runs native `JSON.parse` before its
+bounded `snapshot`. `maxNodes` therefore cannot limit the native tree which
+already exists at shape refusal. The original checked announced body length
+bounds both value/field occurrences and decoded UTF16 units. The existing
+Source owner supplies the span-free JSON tree envelope; the snapshot keeps
+that same structural envelope and borrows original scalar/key String backing.
+No key NFC or scalar conversion is introduced by this construction quote.
+
+The explicit snapshot call chain includes its rejecting call. Each live level
+retains the original item/prototype/result/property/key/child roots, property
+descriptor and the depth/array/index/count fields. Its original parents Set
+uses the shared growing collection envelope. The same peak includes the raw
+Buffer, decoded String, fatal decoder/options, one scalar-stringify String
+and decimal-index String. Finite numeric text uses the existing Host writer's
+25-unit envelope; string escaping is bounded by six units per original unit
+plus quotes. Algorithmic frames and these constructed objects are counted;
+opaque VM/GC backing remains outside the existing logical tariff.
+
+`installed_table_source_body_capacity(previous, bytes, depth)` composes this
+full peak with the original previous capacity through the common checked
+capacity fold. `clientProgramInstalledTableSourceBodyCapacity` returns that
+same opaque native value in the existing Result ABI, with no Host Option or
+record construction. This is DATA only. The original provider must back the
+fixed quotation/prelude before entry and reserve on its same cleanup-bound
+RowRun before the body allocation. Successive bodies retain both full peaks;
+new callbacks or equal values do not establish retirement. Missing, invalid
+or overflowing data refuses without an implicit allowance.
+
+This inventory covers incoming native body construction only. A normal Table
+reader still needs its own original initial controls, outbound/profile material,
+row serialization/output and failed-child overlap, actual Source registration
+and same-Request Plan before it can run. These obligations cannot be inferred
+from this pure quote or the explicit Core consuming component.

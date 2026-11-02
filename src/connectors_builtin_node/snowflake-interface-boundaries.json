@@ -282,7 +282,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "5f075a0450ddcaefa116501701a1aa16ef292a3345e6018a84aefa07f873eda5",
+      "sha256": "c1c02ca50f32820037a26265c0ea382cbdf087db7b2cc7183fb4e8fbf5854577",
       "exports": [],
       "operations": [
         {
@@ -292,6 +292,10 @@
         {
           "name": "client_program_installed_provider_row_capture_capacity_matches",
           "declaration": "client_program_installed_provider_row_capture_capacity_matches ( capacity : @ client_local_host . ClientInstalledCaptureCapacity , acquisition : @ client_row_source_host . RowAcquisition , declaration : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "client_program_installed_table_source_body_capacity",
+          "declaration": "client_program_installed_table_source_body_capacity ( previous : @ execution . ExecutionCapacity , body_bytes : Int , max_depth : Int , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_row_source_bind_response_cleanup",
@@ -727,6 +731,87 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Announced IPC body construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_table_source_body_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_row_response_bridge.mbt",
+                "anchor": "pub fn client_program_installed_table_source_body_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity.mbt",
+                "anchor": "fn installed_table_body_construction_inventory("
+              },
+              {
+                "path": "src/execution_relation/preparation_representation.mbt",
+                "anchor": "pub fn preparation_representation_cost("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity_wbtest.mbt",
+                "anchor": "test \"Table announced body owns native parse snapshot"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "test \"Table body quote enters the same original RowRun"
               }
             ]
           }

@@ -115,3 +115,22 @@ pub fn client_program_row_source_grow_response_construction_capacity(
     value, capacity,
   )
 }
+
+///|
+/// Pure Local Table body-construction DATA. The installing caller retains
+/// this SAME returned native capacity and grows its original RowRun before
+/// allocation; this projection issues no page, attempt or cleanup proof.
+#export_name("clientProgramInstalledTableSourceBodyCapacity")
+pub fn client_program_installed_table_source_body_capacity(
+  previous : @execution.ExecutionCapacity,
+  body_bytes : Int,
+  max_depth : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_source_body_capacity(
+      previous, body_bytes, max_depth,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}

@@ -328,3 +328,56 @@ test "IPC body construction grows the same original before a page without fabric
     is Err(InvalidState),
   )
 }
+
+///|
+test "Table body quote enters the same original RowRun and retains constructor refusal until original stop" {
+  let (_, acquisition) = row_page_acquisition()
+  // Independent headroom, not limits derived from a returned quote. Fixed
+  // quotation/prelude is outside this explicit Core component's acceptance;
+  // it does not claim a physically funded Table process or ordinary caller.
+  let ledger = provider_capacity_ledger(
+    acquisition,
+    retained_short=-5000L,
+    execution_short=-5000L,
+  )
+  let run = provider_capacity_start(acquisition, ledger, "table-body-original")
+  @row_host.begin_row_run(run, 128, 10, 10).unwrap()
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
+  let stopped = Ref(false)
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
+  let original = @resources.ledger_usage(ledger)
+  let quoted = @client_local_host.installed_table_source_body_capacity(
+    @execution.execution_capacity(7L, 9L).unwrap(),
+    4,
+    2,
+  ).unwrap()
+  @row_host.grow_row_run_response_construction_capacity(borrow, quoted).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(
+    grown.reserved_retention_bytes,
+    original.reserved_retention_bytes + 4764L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes,
+    original.reserved_execution_bytes + 4764L,
+  )
+  assert_eq(grown.transferred_bytes, original.transferred_bytes)
+  let next = @client_local_host.installed_table_source_body_capacity(
+    quoted, 4, 2,
+  ).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, next)
+    is Err(Physical(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), grown)
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  let closed = @resources.ledger_usage(ledger)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+  assert_eq(closed.transferred_bytes, original.transferred_bytes)
+}
