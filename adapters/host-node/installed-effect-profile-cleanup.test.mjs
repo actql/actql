@@ -1050,3 +1050,56 @@ test('native retained quantity must be original own DATA on a complete wire resu
     f.finish();assert.equal(f.retire(),true);
   }
 });
+
+
+test('native Source completion retains its exact original precomposed Environment without canonicalizing again',()=>{
+  const f=commandConstructionFixture({role:'source'}),graph={original:'graph'};
+  const environment=Object.freeze({wire:'{"original":"e\u0301"}',evidenceCid:'sha256:'+'b'.repeat(64)});
+  const result=f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material:Object.freeze({}),wire:'original-closed-wire',
+      declared:graph,environment});}}));
+  assert.equal(result.environment,environment);assert.equal(result.declared,graph);
+  assert.equal(result.environment.wire,'{"original":"e\u0301"}');
+  assert.deepEqual(f.reservedQuotes[1].original.values.slice(3),[0n,0n,0n],
+    'The original domain funded its completed Environment; no second Host merge workspace');
+  assert.equal(f.quotes.at(-1).original.values[0],3n);
+  f.finish();assert.equal(f.retire(),true);
+});
+
+test('native Source precomposed Environment rejects accessors foreign shape and missing original graph',()=>{
+  for(const variant of ['getter','extra','missing-graph','unfrozen']){
+    const f=commandConstructionFixture({role:'source'});
+    let getterCalls=0;
+    const environment=variant==='getter'?Object.freeze(Object.defineProperty({evidenceCid:'original'},'wire',
+      {get(){getterCalls++;assert.fail('No getter');}})):
+      {wire:'original',evidenceCid:'original',...(variant==='extra'?{extra:true}:{})};
+    if(variant!=='unfrozen')Object.freeze(environment);
+    const value=Object.freeze({declaration:f.declaration,material:Object.freeze({}),wire:'{}',environment,
+      ...(variant==='missing-graph'?{}:{declared:{}})});
+    assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},project(){return value;}})),
+      {code:'InvalidInstalledSourceNativeDeclaration'});
+    assert.equal(getterCalls,0);assert.equal(f.completions.length,0);
+    assert.equal(f.quotes.at(-1).selected[0],f.native);f.finish();assert.equal(f.retire(),true);
+  }
+});
+
+test('asynchronous native Source Environment stays pending without selecting or recomposing it',async()=>{
+  const f=commandConstructionFixture({role:'source'});let settle;
+  assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material:Object.freeze({}),wire:'{}',declared:{},
+      environment:new Promise(resolve=>{settle=resolve;})});}})),{code:'InstalledSourceConstructorNotSynchronous'});
+  assert.equal(f.completions.length,0);f.finish();assert.equal(f.retire(),false);
+  settle(Object.freeze({wire:'original',evidenceCid:'original'}));await Promise.resolve();await Promise.resolve();
+  assert.equal(f.completions.length,0);assert.equal(f.retire(),true);
+});
+
+
+test('native Effect completion cannot select the Source precomposed Environment continuation',()=>{
+  const f=commandConstructionFixture({role:'effect'});
+  assert.throws(()=>f.context.prepareNativeDeclaration(Object.freeze({capacity(){return f.native;},
+    project(){return Object.freeze({declaration:f.declaration,material:Object.freeze({}),wire:'{}',declared:{},
+      environment:Object.freeze({wire:'original',evidenceCid:'original'})});}})),
+    {code:'InvalidInstalledSourceNativeDeclaration'});
+  assert.equal(f.completions.length,0);assert.equal(f.quotes.at(-1).selected[0],f.native);
+  f.finish();assert.equal(f.retire(),true);
+});

@@ -495,7 +495,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
     prepareNativeDeclaration(projection) {
       if (this !== context) fail('ForeignInstalledSourceInitialization');
       const {project,quantity,providerIndex} = prepareInitialNativeConstruction(projection, 'nativeDeclarationAttempted');
-      let declaration, nativeMaterial, declaredWire, declaredOriginal, mappingBodies;
+      let declaration, nativeMaterial, declaredWire, declaredOriginal, mappingBodies,environmentOriginal;
       material.busy = true;
       try {
         const projected = requireSynchronousSourceConstruction(material,
@@ -506,7 +506,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
             !Object.isFrozen(projected)) fail('InvalidInstalledSourceNativeDeclaration');
         const fields = Object.getOwnPropertyDescriptors(projected);
         const keys=Reflect.ownKeys(fields);
-        if(keys.some(name=>!['declaration','material','wire','declared','mappings','retainedCapacity'].includes(name)||
+        if(keys.some(name=>!['declaration','material','wire','declared','mappings','retainedCapacity','environment'].includes(name)||
             !Object.hasOwn(fields[name],'value'))||['declaration','material'].some(name=>
             !Object.hasOwn(fields[name]??{},'value')))fail('InvalidInstalledSourceNativeDeclaration');
         declaration=fields.declaration.value;nativeMaterial=fields.material.value;
@@ -528,9 +528,18 @@ export function beginInstalledSourceInitialization(services, installation, conne
               fail('InvalidInstalledSourceNativeDeclaration');
             }
           }
+          if(fields.environment!==undefined){
+            environmentOriginal=requireSynchronousSourceConstruction(material,fields.environment.value);
+            if(scope.role!=='source'||declaredOriginal===undefined||!environmentOriginal||nodeTypes.isProxy(environmentOriginal)||
+                !Object.isFrozen(environmentOriginal))fail('InvalidInstalledSourceNativeDeclaration');
+            const own=Object.getOwnPropertyDescriptors(environmentOriginal);
+            if(Reflect.ownKeys(own).length!==2||['wire','evidenceCid'].some(name=>
+                !Object.hasOwn(own[name]??{},'value')||typeof own[name].value!=='string'))fail('InvalidInstalledSourceNativeDeclaration');
+            material.inputs.push(environmentOriginal);
+          }
           material.inputs.push(declaredOriginal,mappingBodies);
         }else{
-          if(fields.declared!==undefined||fields.mappings!==undefined||fields.retainedCapacity!==undefined)fail('InvalidInstalledSourceNativeDeclaration');
+          if(fields.declared!==undefined||fields.mappings!==undefined||fields.retainedCapacity!==undefined||fields.environment!==undefined)fail('InvalidInstalledSourceNativeDeclaration');
           declaredWire=requireSynchronousSourceConstruction(material,Reflect.apply(original.declarationJson,original.moon,[declaration]));
         }
         material.inputs.push(declaredWire);
@@ -567,15 +576,19 @@ export function beginInstalledSourceInitialization(services, installation, conne
       let units=BigInt(declaredWire.length)+BigInt(scope.baseEnvironmentWire.length);
       for(const body of mappingBodies??[])units+=BigInt(body.length);
       const basis=16n*units;
-      reserveSource(original, material, basis, basis, basis);
+      // A compatibility producer may already own its exact original complete
+      // Environment (including its existing canonicalization law). Its native
+      // peak funded that construction; retain it, never recompose a second one.
+      if(environmentOriginal===undefined)reserveSource(original,material,basis,basis,basis);
+      else reserveSource(original,material);
       if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
           material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
       let prepared;
       material.busy = true;
       try {
         const declared=freezeSourceProjection(declaredOriginal??JSON.parse(declaredWire));
-        const environment = scope.role === 'effect' ? undefined
-          : rowSourceCheckEnvironment(scope.baseEnvironmentWire,declared,mappingBodies);
+        const environment=environmentOriginal??(scope.role==='effect'?undefined:
+          rowSourceCheckEnvironment(scope.baseEnvironmentWire,declared,mappingBodies));
         prepared=Object.freeze({declaration,declared,environment,material:nativeMaterial,
           ...(mappingBodies===undefined?{}:{mappings:mappingBodies})});
         scope.prepared = prepared;scope.declarationBasis = basis;

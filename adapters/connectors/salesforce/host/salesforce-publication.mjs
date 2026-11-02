@@ -79,12 +79,12 @@ export async function replacePublicationFile(path, body) {
 
 // The exact published text at `path` and its identity. A missing file is
 // `SalesforcePublicationMissing`; nothing is repaired or regenerated.
-export async function readPublicationFile(path) {
+export async function readPublicationFile(path,{readText=readBoundedConfigurationText}={}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidSalesforcePublication');
   }
   let body;
-  try { body = await readBoundedConfigurationText(path, {maxBytes: maxGenerationBytes}); }
+  try { body = await readText(path, {maxBytes: maxGenerationBytes}); }
   catch (error) {
     if (error?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
     if (error?.message === 'InvalidInstalledSourceProfile') {
@@ -217,21 +217,21 @@ export function restoreSalesforceGeneration({site, generation, connectorId,
 // Restore the published generation at `path` into `site` without provider
 // I/O. The generation must name the Host profile's connector and target
 // Resources and must be bound to the Site as installed now.
-export async function loadSalesforceGeneration({site, path, connectorId,
-  resources}) {
-  if (typeof site?.restoreDeclaration !== 'function') {
-    fail('InvalidSalesforcePublication');
-  }
-  const {body, generationCid} = await readPublicationFile(path);
+export async function loadSalesforceGeneration({site,path,connectorId,resources,readText}) {
+  if(typeof site?.restoreDeclaration!=='function')fail('InvalidSalesforcePublication');
+  const publication=await readPublicationFile(path,{readText});
+  return restoreSalesforceGenerationText({site,...publication,connectorId,resources});
+}
+
+// SAME original saved-text admission after its actual bounded reader has
+// closed. This synchronous continuation lets the existing initial parent
+// fund JSON/native restoration before it allocates those representations.
+export function restoreSalesforceGenerationText({site,body,generationCid,connectorId,resources}) {
   let generation;
-  try { generation = JSON.parse(body); }
-  catch (error) { fail('InvalidSalesforcePublication', error); }
-  if (JSON.stringify(generation) !== body) {
-    fail('InvalidSalesforcePublication');
-  }
-  const restored = restoreSalesforceGeneration({site, generation,
-    connectorId, resources});
-  return Object.freeze({generationCid, ...restored});
+  try{generation=JSON.parse(body);}catch(error){fail('InvalidSalesforcePublication',error);}
+  if(JSON.stringify(generation)!==body)fail('InvalidSalesforcePublication');
+  const restored=restoreSalesforceGeneration({site,generation,connectorId,resources});
+  return Object.freeze({generationCid,...restored});
 }
 
 const byCid = values => values.map(value => JSON.parse(value))

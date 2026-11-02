@@ -8836,7 +8836,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "33659da72fb6dc7a1caa4fd6aba48915e2c8471a10e463d12f6f5e1ecea9f647",
+      "sha256": "c0d6430173c70749b5715c3ea78c44dcc99ef54f15c94daf173c925b44982971",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -8884,13 +8884,16 @@
             "site",
             "authorization",
             "declaration",
+            "rowDeclaration",
             "declared",
             "recover",
             "discovery",
             "environment",
             "generationCid",
             "catalogCid",
-            "connectorId"
+            "connectorId",
+            "sourceInitialization",
+            "close"
           ],
           "async": true
         },
@@ -8961,11 +8964,6 @@
         },
         {
           "name": "installedSalesforceAdapter/source/source#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/source/source#4",
           "parameters": [
             "resource",
             "fields"
@@ -8973,7 +8971,7 @@
           "async": false
         },
         {
-          "name": "installedSalesforceAdapter/source/source#5",
+          "name": "installedSalesforceAdapter/source/source#4",
           "parameters": [
             "prepared",
             "acquisition",
@@ -8988,7 +8986,7 @@
           "async": true
         },
         {
-          "name": "installedSalesforceAdapter/source/source#6",
+          "name": "installedSalesforceAdapter/source/source#5",
           "parameters": [
             "preparedRead",
             "authorizationFor",
@@ -9003,9 +9001,16 @@
           "parameters": [
             "profile",
             "providerProfile",
-            "read"
+            "read",
+            "_entry",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "installedSalesforceSourceIdentityParts/readers/readers",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSource",
@@ -9018,16 +9023,52 @@
             "baseEnvironmentWire",
             "runtimeBundleCid",
             "resolveSecret",
-            "openCredentialJournal"
+            "openCredentialJournal",
+            "sourceInitialization",
+            "configurationReader",
+            "installationServices"
           ],
           "async": true
         },
         {
-          "name": "loadInstalledSalesforceSource/recover/recover",
+          "name": "loadInstalledSalesforceSource/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/prepared/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/prepared/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/prepared/init:project/init:project/recover/recover",
           "parameters": [
             "evidence",
             "expectedRun"
           ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSource/readers/readers",
+          "parameters": [],
           "async": false
         },
         {
@@ -9040,9 +9081,20 @@
             "salesforceMoon",
             "runtimeBundleCid",
             "resolveSecret",
-            "openCredentialJournal"
+            "openCredentialJournal",
+            "configurationReader"
           ],
           "async": true
+        },
+        {
+          "name": "openSite/init:cleanupPending/init:cleanupPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSite/init:close/init:close",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "publishInstalledSalesforceSource",
@@ -9565,7 +9617,6 @@
             "installedSalesforceAdapter/source/source#3",
             "installedSalesforceAdapter/source/source#4",
             "installedSalesforceAdapter/source/source#5",
-            "installedSalesforceAdapter/source/source#6",
             "installedSalesforceAdapter/source/source/describe/describe",
             "installedSalesforceAdapter/source/source/source",
             "installedSalesforceAdapter/source/source/source#2",
@@ -9681,7 +9732,8 @@
         },
         {
           "operations": [
-            "installedSalesforceSourceIdentityParts"
+            "installedSalesforceSourceIdentityParts",
+            "installedSalesforceSourceIdentityParts/readers/readers"
           ],
           "exports": [
             "installedSalesforceSourceIdentityParts"
@@ -9796,7 +9848,13 @@
         {
           "operations": [
             "loadInstalledSalesforceSource",
-            "loadInstalledSalesforceSource/recover/recover"
+            "loadInstalledSalesforceSource/init:capacity/init:capacity",
+            "loadInstalledSalesforceSource/init:project/init:project",
+            "loadInstalledSalesforceSource/method/method",
+            "loadInstalledSalesforceSource/prepared/init:capacity/init:capacity",
+            "loadInstalledSalesforceSource/prepared/init:project/init:project",
+            "loadInstalledSalesforceSource/prepared/init:project/init:project/recover/recover",
+            "loadInstalledSalesforceSource/readers/readers"
           ],
           "exports": [
             "loadInstalledSalesforceSource"
@@ -9810,6 +9868,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "inputsOutputs": [
@@ -9820,6 +9882,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "identity": [
@@ -9830,6 +9896,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "ownership": [
@@ -9840,6 +9910,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "synchronization": [
@@ -9850,6 +9924,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "failure": [
@@ -9860,6 +9938,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "cancellation": [
@@ -9870,6 +9952,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "resources": [
@@ -9880,6 +9966,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "extension": [
@@ -9890,6 +9980,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "verification": [
@@ -9904,13 +9998,23 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
+                "anchor": "test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal'"
               }
             ]
           }
         },
         {
           "operations": [
-            "openSite"
+            "openSite",
+            "openSite/init:cleanupPending/init:cleanupPending",
+            "openSite/init:close/init:close"
           ],
           "exports": [],
           "attributes": {
@@ -9922,6 +10026,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "inputsOutputs": [
@@ -9932,6 +10040,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "identity": [
@@ -9942,6 +10054,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "ownership": [
@@ -9952,6 +10068,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "synchronization": [
@@ -9962,6 +10082,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "failure": [
@@ -9972,6 +10096,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "cancellation": [
@@ -9982,6 +10110,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "resources": [
@@ -9992,6 +10124,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "extension": [
@@ -10002,6 +10138,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "verification": [
@@ -10016,6 +10156,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
+                "anchor": "test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal'"
               }
             ]
           }
@@ -10036,6 +10184,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "inputsOutputs": [
@@ -10046,6 +10198,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "identity": [
@@ -10056,6 +10212,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "ownership": [
@@ -10066,6 +10226,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "synchronization": [
@@ -10076,6 +10240,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "failure": [
@@ -10086,6 +10254,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "cancellation": [
@@ -10096,6 +10268,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "resources": [
@@ -10106,6 +10282,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "extension": [
@@ -10116,6 +10296,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "verification": [
@@ -10130,6 +10314,14 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
+                "anchor": "test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal'"
               }
             ]
           }
@@ -10590,13 +10782,17 @@
       "imports": [
         "../../../host-common/compiler-binding.generated.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../../../host-node/source-profile-json.mjs",
         "../site/salesforce-query-read.mjs",
         "./installed-salesforce-site.mjs",
         "./salesforce-publication.mjs",
         "./salesforce-resource-service.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

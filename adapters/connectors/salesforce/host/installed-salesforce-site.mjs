@@ -4,7 +4,7 @@
 // Credential grants are issued only for a protected decision that installed
 // gate returned as dispatch.
 import {createHash} from 'node:crypto';
-import {readSourceProfileJson} from '../../../host-node/source-profile-json.mjs';
+import {readSourceProfileJson,captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {retainInstalledCredentialSiteCleanup, releaseInstalledCredentialSite} from
   '../../../host-node/installed-host-cleanup.mjs';
 import {isAbsolute} from 'node:path';
@@ -171,7 +171,7 @@ export async function installSalesforceAuthorization({accountConfiguration,
 // opener (the SQLite journal by default); tests use it to inject close
 // failures.
 export async function loadInstalledSalesforceSite(path, {commonMoon,
-  salesforceMoon, authorization, runtimeBundleCid, resolveSecret,
+  salesforceMoon, authorization, runtimeBundleCid, resolveSecret,configurationReader,
   now = () => Date.now(), grantLifetimeMs = 15 * 60 * 1000,
   openCredentialJournal, runAcquisitionLimits} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
@@ -189,10 +189,11 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
   }
   const principalId = authorization.context.principal;
   const context = authorization.context;
+  const readers=captureConfigurationReaders(configurationReader,undefined,()=>fail('InvalidInstalledSalesforceSiteOptions'));
   let profile;
   // Match the existing Host identity/configuration ceiling; Salesforce's
   // publication uses its separate original 16,000,000-byte text boundary.
-  try { profile = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024}); }
+  try { profile = await readers.readJson(path, {maxBytes: 8 * 1024 * 1024}); }
   catch (error) { fail('InvalidInstalledSalesforceSiteProfile', error); }
   if (!validProfile(profile)) fail('InvalidInstalledSalesforceSiteProfile');
   const connection = `salesforce:${profile.orgId}`;
@@ -203,7 +204,7 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
     principalId, connectorRegistration: 'salesforce',
     connectorRevision: 'salesforce/0.1', runtimeBundleCid, commonMoon,
     now, grantLifetimeMs,
-    openCredentialJournal, runAcquisitionLimits,
+    openCredentialJournal, runAcquisitionLimits,configurationReader,
     credentialFacts: Object.freeze({orgId: profile.orgId}),
     closedCode: 'SalesforceSiteClosed',
     grantCode: 'InvalidSalesforceCredentialGrantRequest'}, {

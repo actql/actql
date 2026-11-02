@@ -9069,7 +9069,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8fc20f1e0bd618002cd97d5a355ab54e15812254957aa801baad715cd10f4916",
+      "sha256": "6197e5871844e6c8278f97bc93d5923abee5c308484cf490556c9c0ddd777d58",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9126,6 +9126,7 @@
             "authorization",
             "runtimeBundleCid",
             "resolveSecret",
+            "configurationReader",
             "now",
             "grantLifetimeMs",
             "openCredentialJournal",
@@ -9508,6 +9509,11 @@
           "async": false
         },
         {
+          "name": "loadInstalledSalesforceSite/readers/readers",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSalesforceSite/refreshCatalog",
           "parameters": [
             "signal",
@@ -9694,7 +9700,8 @@
             "loadInstalledSalesforceSite/bindRecordAcquisition/init:close/init:close",
             "loadInstalledSalesforceSite/bindRecordAcquisition/init:forAuthorization/init:forAuthorization",
             "loadInstalledSalesforceSite/issueGrant/issueGrant",
-            "loadInstalledSalesforceSite/signRecord"
+            "loadInstalledSalesforceSite/signRecord",
+            "loadInstalledSalesforceSite/readers/readers"
           ],
           "exports": [
             "DEFAULT_SALESFORCE_CATALOG_LIMITS",
@@ -9722,6 +9729,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "### Salesforce original record-operation borrows"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "inputsOutputs": [
@@ -9740,6 +9751,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "function bindRecordAcquisition(originalAuthorization, originalCurrent)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "identity": [
@@ -9762,6 +9777,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "recordAuthorizations.get(originalAuthorization)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "ownership": [
@@ -9784,6 +9803,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "custody.bindRunAcquisition(originalAuthorization, firstCurrent)"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "synchronization": [
@@ -9806,6 +9829,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "const current = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024})"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "failure": [
@@ -9828,6 +9855,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "state.failure ??= cause"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "cancellation": [
@@ -9842,6 +9873,10 @@
               {
                 "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
                 "anchor": "state.retiring = true"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "resources": [
@@ -9860,6 +9895,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "The original phase inventory includes Site authorization membership records,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "extension": [
@@ -9882,6 +9921,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "conditional target evidence, sealed Preview or authenticated cold recovery."
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "verification": [
@@ -9932,6 +9975,14 @@
               {
                 "path": "adapters/connectors/salesforce/test/site-credential-acquisition.test.mjs",
                 "anchor": "Salesforce Site holds the original Journal while a closing borrow is awaiting currentness"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
+                "anchor": "test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal'"
               }
             ]
           }
@@ -10044,7 +10095,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f5841347349bdba10bd3761d906a7030e59ec15e78424571cb3a4bfe77e47a5f",
+      "sha256": "cde1f2fea00134d28eb95c7d255802968c5ac395245c94454b556f4e418b17eb",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
@@ -10056,6 +10107,7 @@
         "readPublicationFile",
         "replacePublicationFile",
         "restoreSalesforceGeneration",
+        "restoreSalesforceGenerationText",
         "salesforceCheckEnvironment",
         "withSalesforcePublicationOriginals"
       ],
@@ -10122,7 +10174,8 @@
             "site",
             "path",
             "connectorId",
-            "resources"
+            "resources",
+            "readText"
           ],
           "async": true
         },
@@ -10158,7 +10211,8 @@
         {
           "name": "readPublicationFile",
           "parameters": [
-            "path"
+            "path",
+            "readText"
           ],
           "async": true
         },
@@ -10184,6 +10238,17 @@
           "name": "restoreSalesforceGeneration/restoreSalesforceGeneration",
           "parameters": [
             "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreSalesforceGenerationText",
+          "parameters": [
+            "site",
+            "body",
+            "generationCid",
+            "connectorId",
+            "resources"
           ],
           "async": false
         },
@@ -10249,7 +10314,8 @@
             "restoreSalesforceGeneration/restoreSalesforceGeneration",
             "salesforceCheckEnvironment",
             "targetSet",
-            "text/text"
+            "text/text",
+            "restoreSalesforceGenerationText"
           ],
           "exports": [
             "SALESFORCE_PUBLICATION_VERSION",
@@ -10259,7 +10325,8 @@
             "readPublicationFile",
             "replacePublicationFile",
             "restoreSalesforceGeneration",
-            "salesforceCheckEnvironment"
+            "salesforceCheckEnvironment",
+            "restoreSalesforceGenerationText"
           ],
           "attributes": {
             "responsibility": [
@@ -10270,6 +10337,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication responsibility:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "inputsOutputs": [
@@ -10280,6 +10351,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "identity": [
@@ -10290,6 +10365,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication identity:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "ownership": [
@@ -10300,6 +10379,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication ownership:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "synchronization": [
@@ -10310,6 +10393,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication synchronization:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "failure": [
@@ -10320,6 +10407,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication failure:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "cancellation": [
@@ -10330,6 +10421,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication cancellation:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "resources": [
@@ -10340,6 +10435,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication resources:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "extension": [
@@ -10350,6 +10449,10 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication extension:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
               }
             ],
             "verification": [
@@ -10364,6 +10467,14 @@
               {
                 "path": "docs/design/installed-row-reader-custody.md",
                 "anchor": "- Live publication verification:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native Salesforce Environment and publication custody"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/standard-host.integration.test.mjs",
+                "anchor": "test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal'"
               }
             ]
           }

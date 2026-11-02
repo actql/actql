@@ -212,3 +212,30 @@ another parse, serialization, semantic check or provider call. The shared owner
 alone converts these counts to allowances. The two-scope original-initializer
 case exercises independent nominal collections and physical closes on the same
 initial parent; it is distinct from the independent-parent foreign-pair case.
+
+
+## Native Salesforce Environment and publication custody
+
+Salesforce restores its original published generation through its selected
+configuration reader and the same native Source constructor. The original
+provider observation and Common projection coexist under that constructor's
+admission. The returned Common row declaration supplies the shared evidence
+members; discovery retains the provider's original published declaration.
+Restoration neither contacts the provider nor creates a new generation.
+
+A closed native completion may retain the domain's already composed frozen
+`{wire,evidenceCid}` Environment with the same returned declaration graph. This
+preserves Salesforce's existing configuration canonicalization and evidence
+identity. The Host retains that exact Environment object without parsing,
+canonicalizing or composing it again. Own DATA, complete graph and synchronous
+completion checks still apply. An asynchronous Environment keeps the original
+pending borrow and peak; it never selects a smaller retained holding.
+
+The original Site and its Account close in that order. Publication and failed
+Source construction retain the same pair through the existing cleanup owner.
+A failed Site close keeps the Account alive; a failed Account close keeps only
+its unacknowledged original duty. Repeated close does not call a successfully
+retired original again. This initialization connection does not supply the
+managed reader or Request capture recipe required by ordinary Source execution.
+Describe, query responses and failed-child overlap must enter that same Run
+before their callbacks, with their original Credential and Account decisions.

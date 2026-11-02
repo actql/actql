@@ -288,7 +288,10 @@ test('public Client reads a published Salesforce source to a Named Result',
     const setup = await installation(t);
     const start = setup.org.seen.length;
     // A Host start without a publication refuses before any provider I/O.
-    await assert.rejects(setup.open(), {code: 'SalesforcePublicationMissing'});
+    await assert.rejects(setup.open(),error=>{
+      assert.equal(error.primaryFailure?.code,'SalesforcePublicationMissing');
+      assert.equal(error.cleanupPending,false);return true;
+    });
     assert.equal(setup.org.seen.length, start);
     await setup.publish();
     const published = setup.org.seen.length;
@@ -2746,4 +2749,93 @@ test('registered Salesforce Source retains original publication and initialized 
   assert.equal(setup.org.seen.length,requests,'Restoration/discovery never performs a provider read');
   await source.close();
   assert.equal(observeOwnScopedStateFds([setup.root]).scopedStateFd0,true);
+});
+
+
+test('two registered Salesforce Sources retain original publication ports on the same initializer',async t=>{
+  const setup=await installation(t,{readable:['Test_Record__c','Other_Record__c'],
+    sourceResources:['Test_Record__c'],writableObjects:['Other_Record__c'],secondInstallation:true});
+  await setup.publish();
+  const requests=setup.org.seen.length,root=join(setup.root,'state');
+  const baseEnvironmentWire=(await readFile(join(repository,'spec/local-check-environment.json'),'utf8')).trimEnd();
+  const lifetime=installedSourceFixtureLifetime(t),initialized=lifetime.open({root,principalId:owner,moon:commonMoon,
+    installation:installedConnectors.find(entry=>entry.name==='salesforce'),runtimeBundleCid,baseEnvironmentWire});
+  const sources=[];
+  for(const path of [setup.profilePath,join(setup.root,'source-profile-other.json')]){
+    const source=await loadInstalledSource(path,{root,principalId:owner,moon:commonMoon,
+      runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url),
+      baseEnvironmentWire,resolveSecret:secret,installationServices:initialized.installationServices});
+    sources.push(source);lifetime.sources.push(source);
+  }
+  const [first,second]=sources;
+  assert.deepEqual(first.sourceReadAccesses.map(value=>value.resource),['Test_Record__c']);
+  assert.deepEqual(second.sourceReadAccesses.map(value=>value.resource),['Other_Record__c']);
+  assert.notEqual(first.connectorBindings[0].bindingCid,second.connectorBindings[0].bindingCid);
+  assert.notEqual(first.generationCid,second.generationCid);
+  assert.equal(first.admitsSource(second.sourceReadAccesses[0].sourceRef),false);
+  assert.equal(setup.org.seen.length,requests);
+  await first.close();await second.close();
+  assert.equal(observeOwnScopedStateFds([setup.root]).scopedStateFd0,true);
+});
+
+test('Salesforce Source execution without original initializer refuses before Site or publication reads',async()=>{
+  const profile={version:INSTALLED_SALESFORCE_SOURCE_VERSION,connectorId:'crm-main',resources:['Test_Record__c'],
+    accountConfigurationWire:'not-read',siteProfilePath:'/unopened/site.json',publicationPath:'/unopened/publication.json'};
+  await assert.rejects(loadInstalledSalesforceSource(profile,{root:'/unopened',principalId:owner,moon:commonMoon,
+    providerMoon:salesforceMoon,baseEnvironmentWire:'not-read',runtimeBundleCid,
+    resolveSecret(){assert.fail('No credential without the original initializer');}}),
+    {code:'InstalledSalesforceInitializationUnavailable'});
+});
+
+
+test('registered Salesforce Source keeps acquired original Site cleanup through publication refusal',async t=>{
+  const setup=await installation(t);await setup.publish();
+  const generation=JSON.parse(await readFile(setup.profile.publicationPath,'utf8'));
+  const observation=JSON.parse(generation.evidence.observationJson);observation.binding.site_generation++;
+  generation.evidence.observationJson=JSON.stringify(observation);
+  await writeFile(setup.profile.publicationPath,JSON.stringify(generation));
+  const requests=setup.org.seen.length,root=join(setup.root,'state');
+  const baseEnvironmentWire=(await readFile(join(repository,'spec/local-check-environment.json'),'utf8')).trimEnd();
+  const lifetime=installedSourceFixtureLifetime(t),initialized=lifetime.open({root,principalId:owner,moon:commonMoon,
+    installation:installedConnectors.find(entry=>entry.name==='salesforce'),runtimeBundleCid,baseEnvironmentWire});
+  const originalExec=DatabaseSync.prototype.exec,originalClose=DatabaseSync.prototype.close;
+  let database,closes=0,allowClose=false,closed=false;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(sql.includes('CREATE TABLE IF NOT EXISTS journal_metadata')){assert.equal(database??this,this);database=this;}
+    return originalExec.call(this,sql);
+  });
+  t.mock.method(DatabaseSync.prototype,'close',function(){
+    // The org fixture owns a different original journal. Fault only this
+    // newly acquired Source journal; never block the org's server teardown.
+    if(this!==database)return originalClose.call(this);
+    closes++;
+    if(!allowClose)throw Object.assign(new Error('OriginalSalesforceSqliteClosePending'),{code:'OriginalSalesforceSqliteClosePending'});
+    const result=originalClose.call(this);closed=true;return result;
+  });
+  t.after(()=>{if(database!==undefined&&!closed)originalClose.call(database);});
+  let failure;
+  await assert.rejects(loadInstalledSource(setup.profilePath,{root,principalId:owner,moon:commonMoon,
+    runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url),
+    baseEnvironmentWire,resolveSecret:secret,installationServices:initialized.installationServices}),error=>{
+      failure=error;assert.equal(error.primaryFailure?.code,'ForeignSalesforceDeclaration');
+      assert.equal(error.cleanupPending,true);return true;
+    });
+  assert.notEqual(database,undefined);assert.equal(closed,false);assert.equal(closes,2);
+  assert.equal(failure.cleanupHandle.status().pending,true);allowClose=true;
+  const retry=failure.cleanupHandle.retry();assert.equal(failure.cleanupHandle.retry(),retry);
+  assert.equal((await retry).pending,false);assert.equal(closed,true);assert.equal(closes,3);
+  await failure.cleanupHandle.retry();assert.equal(closes,3);assert.equal(setup.org.seen.length,requests);
+  assert.equal(observeOwnScopedStateFds([setup.root]).scopedStateFd0,true);
+});
+
+
+test('explicit Salesforce publication closes its original Site and Account before returning',async t=>{
+  const setup=await installation(t);
+  const published=await setup.publish();
+  assert.match(published.generationCid,/^sha256:[0-9a-f]{64}$/u);
+  assert.equal(observeOwnScopedStateFds([setup.root]).scopedStateFd0,true);
+  const requests=setup.org.seen.length;
+  const body=await readFile(setup.profile.publicationPath,'utf8');
+  assert.equal(JSON.parse(body).catalog_cid,published.declared.catalog_cid);
+  assert.equal(setup.org.seen.length,requests);
 });
