@@ -189,7 +189,7 @@ test('standard metadata projection uses its original managed control frame after
   check.project=()=>assert.fail('the captured original projector is required');
   await driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},controlConstruction:control,
     callResource(){assert(!active);events.push('http');return response;}});
-  assert.deepEqual(events,['http','begin','project','complete']);assert.equal(control.retire(),true);
+  assert.deepEqual(events,['begin','complete','http','begin','project','complete']);assert.equal(control.retire(),true);
 });
 
 test('standard metadata invalid async projection keeps the original control borrower until settlement', async () => {
@@ -205,7 +205,7 @@ test('standard metadata invalid async projection keeps the original control borr
   const {request}=driver.prepareRequest({member,value:{name:'original'}});
   await assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
     controlConstruction:control,callResource:()=>response}),{code:'InvalidInstalledEffectControlConstruction'});
-  assert.equal(completed,0);assert.equal(run.selecting,true);assert.equal(control.retire(),false);
+  assert.equal(completed,1,'only the earlier request body completed');assert.equal(run.selecting,true);assert.equal(control.retire(),false);
   resolve();await pending;await Promise.resolve();
   assert.equal(run.selecting,false);assert.equal(control.retire(),true);
 });

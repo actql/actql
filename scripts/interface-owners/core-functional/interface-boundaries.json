@@ -34958,7 +34958,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "c48af494ad47757cefd3386a9f4876a5655b3f9b92ad07a5b214206ab54d262e",
+      "sha256": "18af182b7ad000c2fff8efe9f4071f863fd3a517bd1d31cae6c4349741b057c4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",

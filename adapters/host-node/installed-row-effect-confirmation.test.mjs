@@ -11,7 +11,7 @@ import * as providerMoon from '../../_build/js/release/build/connectors/github/h
 import * as provider from '../connectors/github/site/github-comment-create.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {captureInstalledStandardCreateLimits} from './installed-effect-plan.mjs';
+import {captureInstalledStandardCreateLimits, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
@@ -75,6 +75,7 @@ function fixture(options = {}) {
     scope: Object.freeze({resourceOrigin: 'https://api.github.test'})});
   const credential = {}, callResource = () => assert.fail('No transport engine in this component');
   const write = originalWrite();
+  if (options.body) write.confirmation.body = options.body(write.confirmation.body);
   if (options.project) write.confirmation.project = options.project;
   const derive = source.fn('deriveInstalledRowWrite', {nodeTypes, createHash, canonicalJson, localContractLimits,
     ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames,
@@ -118,7 +119,11 @@ function fixture(options = {}) {
     previewRows: [[{}]], runInvocationCid: 'original invocation', dispatches: ['original dispatch'],
     subjectCid: 'original subject', dispatchIndexes: [[0]], operationPhase: options.phase ?? 'apply',
     assertCurrent() {if (!current) throw new Error('original current lost'); events.push('current');},
-    controlConstruction(receiver, method, args) {events.push('control'); return Reflect.apply(method, receiver, args);},
+    controlConstruction(receiver, method, args) {
+      events.push('control');
+      return options.control === undefined ? Reflect.apply(method, receiver, args)
+        : options.control(receiver, method, args);
+    },
     async physicalOperations(facts) {
       assert.strictEqual(facts.member, member); assert.equal(facts.rowIndex, 0);
       assert.equal(facts.phase, `${options.phase ?? 'apply'}-confirm`); assert.equal(facts.purpose, 'read');
@@ -319,6 +324,8 @@ test('actual fresh dispatch stores the original mutation response before indepen
     runInvocationCid: 'original invocation', applyPreview: preview, previewRows: [[{}]], ledger,
     requireApproval(_member, original) {assert.strictEqual(original, decision);},
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return claim;},
+    recipeOf: source.variable('recipeOf', {ownerOf: () => h.owner,
+      controlRecipes: new Map([[h.owner.managedPlanRecipe, h.owner.managedPlanRecipe]])}),
     captureClaimedEffectResponse, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
     async physicalOperations(facts) {
       assert.equal(facts.phase, 'write'); assert.equal(facts.purpose, 'effect');
@@ -355,4 +362,70 @@ test('actual installer rejects an unpriced confirmation even without marker fina
         minimum_approval: 'required', permission_rules: [{effect_kind: 'create', permissions: ['write']}],
         primary_identity: ['id']})}],
   }), {code: 'InstalledEffectConfirmationPlanUnavailable'});
+});
+
+// The actual shared control helper, with explicit Core current/workspace ports.
+// These calls do not create a Resource, physical ACK or ordinary Host result.
+function confirmationControlFrame() {
+  const parent = {}, prepared = {}, request = {}, plan = {}, events = [];
+  let active = false;
+  const runtime = {
+    clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
+    clientProgramInstalledEffectOperationControlConstructionBegin(...originals) {
+      assert.deepEqual(originals, [parent, prepared, request, plan]);
+      assert.equal(active, false);
+      active = true; events.push('begin'); return {$tag: 1, _0: undefined};
+    },
+    clientProgramInstalledEffectOperationControlConstructionComplete(...originals) {
+      assert.deepEqual(originals, [parent, prepared, request, plan]);
+      assert.equal(active, true);
+      active = false; events.push('complete'); return {$tag: 1, _0: undefined};
+    },
+  };
+  const run = {runtime, value: parent, prepared, request, operationPlan: plan,
+    readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan,
+    closed: false, selecting: false};
+  const work = prepareInstalledEffectControlConstruction(run);
+  run.controlConstruction = work; run.retireControlConstruction = work.retire;
+  return {work, events, active: () => active};
+}
+
+test('original confirmation request constructor returns only its control workspace before the physical read', async () => {
+  const frame = confirmationControlFrame();
+  let bodyCalls = 0;
+  const h = fixture({control: frame.work,
+    body: original => function (...args) {
+      assert.equal(frame.active(), true);
+      bodyCalls++;
+      return Reflect.apply(original, this, args);
+    },
+    read(_facts, originalRequest) {
+      assert.equal(frame.active(), false);
+      return {accepted: true, useCid: tag, statusCode: 200,
+        body: readReply(originalRequest), headers: []};
+    }});
+  applied(await h.confirm(pending));
+  assert.equal(bodyCalls, 1);
+  assert.equal(h.readCalls.length, 1);
+  assert.equal(h.grantCount(), 1);
+  assert.deepEqual(frame.events, ['begin', 'complete', 'begin', 'complete', 'begin', 'complete']);
+  assert.equal(frame.active(), false);
+});
+
+test('failed original confirmation request retains its same control workspace and never enters the physical read', async () => {
+  const frame = confirmationControlFrame();
+  let bodyCalls = 0;
+  const h = fixture({control: frame.work,
+    body: () => function () {
+      assert.equal(frame.active(), true);
+      bodyCalls++; throw undefined;
+    }});
+  await assert.rejects(h.confirm(pending), cause => cause === undefined);
+  assert.deepEqual(frame.events, ['begin', 'complete', 'begin']);
+  assert.equal(frame.active(), true);
+  assert.equal(h.readCalls.length, 0);
+  assert.equal(bodyCalls, 1);
+  await assert.rejects(h.confirm(pending), cause => cause === undefined);
+  assert.equal(bodyCalls, 1, 'same failed control cannot repeat the constructor');
+  assert.equal(h.readCalls.length, 0);
 });

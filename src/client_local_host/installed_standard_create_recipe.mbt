@@ -568,8 +568,23 @@ fn installed_standard_recipe_capacities(
     // The metadata HTTP child retains its own response and secret. Its pure
     // projector runs afterwards through the SAME controlConstruction frame,
     // just like the claimed-write and stored-response projectors above.
-    // Sum every returned holder and reuse only completed synchronous scratch.
-    guard standard_create_sequence_pair_capacity(controls, constructors[3])
+    // The request body runs through that same synchronous frame before the
+    // physical call. Each physical occurrence retains its complete Native/Host
+    // output separately; only its completed private workspace belongs here.
+    let request_retained = @execution.execution_capacity_retained_bytes(
+      constructors[1],
+    )
+    let request_workspace = @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(constructors[1]) -
+      request_retained,
+    ).unwrap()
+    guard standard_create_sequence_pair_capacity(controls, request_workspace)
+      is Some(controls_with_request) &&
+      standard_create_sequence_pair_capacity(
+        controls_with_request,
+        constructors[3],
+      )
       is Some(next) else {
       return Err(Unsupported)
     }
@@ -579,7 +594,15 @@ fn installed_standard_recipe_capacities(
     // Original confirmation reply and saved marked-request validation use
     // this SAME synchronous control frame. Keep their returned holders and
     // only share completed private scratch; failure retains the full peak.
-    for selected in [constructors[5], constructors[6]] {
+    let request_retained = @execution.execution_capacity_retained_bytes(
+      constructors[4],
+    )
+    let request_workspace = @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(constructors[4]) -
+      request_retained,
+    ).unwrap()
+    for selected in [request_workspace, constructors[5], constructors[6]] {
       guard standard_create_sequence_pair_capacity(controls, selected)
         is Some(next) else {
         return Err(Unsupported)
@@ -644,7 +667,17 @@ fn installed_standard_recipe_capacities(
         response_read_quantum~,
       )
       is Some(read_receive) &&
-      standard_create_sum_capacities([read_receive, secret, constructors[1]])
+      // The same physical child retains every request output until its real
+      // alias/credential cleanup. Its pure constructor workspace is acquired
+      // and completed by the existing synchronous control frame above.
+      standard_create_sum_capacities([
+        read_receive,
+        secret,
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(constructors[1]),
+          @execution.execution_capacity_retained_bytes(constructors[1]),
+        ).unwrap(),
+      ])
       is Some(read_body) else {
       return Err(Unsupported)
     }
@@ -681,7 +714,14 @@ fn installed_standard_recipe_capacities(
         response_read_quantum~,
       )
       is Some(confirm_receive) &&
-      standard_create_sum_capacities([confirm_receive, secret, constructors[4]])
+      standard_create_sum_capacities([
+        confirm_receive,
+        secret,
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(constructors[4]),
+          @execution.execution_capacity_retained_bytes(constructors[4]),
+        ).unwrap(),
+      ])
       is Some(confirm_body) else {
       return Err(Unsupported)
     }

@@ -81,3 +81,95 @@ test "confirmed CREATE recipe keeps absent and incomplete native inventories ref
     assert_true(confirmation_recipe_capacities(count) is Err(Unsupported))
   }
 }
+
+///|
+test "standard read request scratch belongs to the shared control while each physical child keeps its retained output" {
+  for count in [4, 7] {
+    let profile = confirmation_recipe_profile(count)
+    let quote = (
+      original : Array[
+        (
+          @execution.ExecutionCapacity,
+          @source.ParseLimits?,
+          @source.ParseLimits?,
+        ),
+      ],
+    ) => {
+      installed_standard_create_request_recipe_capacities(
+        Some(original),
+        4096,
+        128,
+        16,
+        1024,
+        32,
+        8,
+        2048,
+        4096,
+        2048,
+        4096,
+        false,
+        64,
+        7,
+        256,
+        4096,
+        128,
+        16,
+        0L,
+      ).unwrap()
+    }
+    let baseline = quote(profile)
+    let baseline_workspace = @execution.execution_capacity_execution_bytes(
+        baseline[4],
+      ) -
+      @execution.execution_capacity_retained_bytes(baseline[4])
+    let request_workspace = baseline_workspace + 100L
+    profile[1] = (
+      @execution.execution_capacity(16L, 16L + request_workspace).unwrap(),
+      None,
+      profile[1].2,
+    )
+    if count == 7 {
+      profile[4] = (
+        @execution.execution_capacity(16L, 26L + request_workspace).unwrap(),
+        None,
+        profile[4].2,
+      )
+    }
+    let selected = quote(profile)
+    let constructors = installed_standard_create_constructor_capacities(
+      Some(profile),
+    ).unwrap()
+    let mut expected_workspace = Int64::max(
+      baseline_workspace,
+      @execution.execution_capacity_execution_bytes(constructors[1]) -
+      @execution.execution_capacity_retained_bytes(constructors[1]),
+    )
+    if count == 7 {
+      expected_workspace = Int64::max(
+        expected_workspace,
+        @execution.execution_capacity_execution_bytes(constructors[4]) -
+        @execution.execution_capacity_retained_bytes(constructors[4]),
+      )
+    }
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected[4]),
+      @execution.execution_capacity_retained_bytes(baseline[4]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(selected[4]),
+      @execution.execution_capacity_retained_bytes(selected[4]) +
+      expected_workspace,
+    )
+    let physical_slots = if count == 7 { [5, 7] } else { [5] }
+    for slot in physical_slots {
+      assert_eq(
+        @execution.execution_capacity_retained_bytes(selected[slot]),
+        @execution.execution_capacity_retained_bytes(baseline[slot]),
+      )
+      assert_eq(
+        @execution.execution_capacity_execution_bytes(selected[slot]),
+        @execution.execution_capacity_execution_bytes(baseline[slot]),
+      )
+    }
+  }
+}

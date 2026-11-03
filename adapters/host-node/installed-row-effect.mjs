@@ -531,8 +531,9 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
         const {value} = physicalOriginal(request);
         if (authorization?.scope?.resourceOrigin !== readOrigin) fail();
         signal?.throwIfAborted();
-        const preparedBody = Reflect.apply(body, confirmation,
-          [Object.freeze({resource, value, request, providerEvidence})]);
+        const context = Object.freeze({resource, value, request, providerEvidence});
+        const preparedBody = controlConstruction === undefined ? Reflect.apply(body, confirmation, [context])
+          : controlConstruction(confirmation, body, [context]);
         const absentBody = preparedBody === undefined && readMethod === 'GET';
         if (!absentBody && typeof preparedBody !== 'string') {await preparedBody; fail();}
         if (!absentBody && (preparedBody.length > requestBytes || Buffer.byteLength(preparedBody) > requestBytes)) fail();
@@ -590,7 +591,8 @@ function deriveInstalledRowWrite(write, connectorRegistration) {
           if (authorization?.scope?.resourceOrigin !== checkOrigin) fail();
           signal?.throwIfAborted();
           const context = Object.freeze({resource, value: mappedValue, request});
-          const value = Reflect.apply(body, check, [context]);
+          const value = controlConstruction === undefined ? Reflect.apply(body, check, [context])
+            : controlConstruction(check, body, [context]);
           // Existing metadata GET operations carry no entity body. Keep
           // that original wire distinction; an empty String adds HTTP framing.
           const absentBody = value === undefined && checkMethod === 'GET';
