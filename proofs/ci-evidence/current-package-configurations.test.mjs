@@ -79,6 +79,23 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
 
 // One current map records each input's exact review, while archived preimages
 // above remain evidence for their own source only, never runtime acceptance.
+test('current Local Host review binds the literal Relation import and JS Kintone fixture', () => {
+  const path = 'src/client_local_host/moon.pkg';
+  const entry = currentPackageConfigurations[path];
+  const selectedTree = gitTree(root, entry.revision);
+  const body = selectedTree.read(path).toString();
+  assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
+  assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
+  assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
+  const selected = packageSourceInputs({tree: selectedTree, packages: ['src/client_local_host'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  assert(selected.paths.includes('src/relation_typing/moon.pkg'));
+  assert(selected.paths.includes('src/client_local_host/installed_kintone_whole_source_js_wbtest.mbt'));
+  for (const target of ['native', 'wasm']) {
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, entry.digest), target}), null);
+  }
+});
+
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
   assert.equal(Object.keys(currentPackageConfigurations).length, 19);
   assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 11);

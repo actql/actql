@@ -82,7 +82,7 @@ const foreignLibraryConfigurations = Object.freeze({
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: '4c1eff238ebdad084307b08ded8a57684faeac8d6af0d5e01b40ccf8aeef469c', rule: 'literal-target-selectors-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '377a7506bb4aa9c8a202afdd5dc59ba031ae71b418c7532523348d5dc615514d', rule: 'literal-target-selectors-with-bound-source-membership', revision: '6c79db90f6a7d4d618fac84e0b729fe2cb5903c0'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '707ebd62113403d8c1a08c3db9ea28d5e899c3c80d6ac7dc5cfadd545045ac38', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb', rule: 'literal-target-selectors-with-bound-source-membership', revision: '3484e0f43d8eee0013bb5fb8fba03e7fc873377f'}),
