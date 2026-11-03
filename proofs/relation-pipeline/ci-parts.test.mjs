@@ -3,6 +3,7 @@ import test from 'node:test';
 import fs from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname,join} from 'node:path';
+import {syncBuiltinESMExports} from 'node:module';
 import {fileDigest,packArchive,unpackArchive} from './ci-artifacts.mjs';
 import {hash} from './inventory.mjs';
 import {partIds,planDigest,plan} from './proof-parts.mjs';
@@ -40,6 +41,88 @@ test('verified union member consumes one extracted inode without duplicating pay
  for(const key of ['dev','ino','size','mtimeMs','blocks'])assert.equal(after[key],before[key],key);
  assert.equal(after.nlink,1);assert.equal(after.mode&0o777,0o444);
  assert.deepEqual(fs.readFileSync(f.to),f.bytes);
+ originalArchiveUnchanged(f);
+});
+function transferFaults(t,methods) {
+ for(const [name,implementation] of Object.entries(methods))t.mock.method(fs,name,implementation);
+ syncBuiltinESMExports();
+ t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+}
+function samePayloadIdentity(path,before) {
+ const after=identity(path);
+ for(const key of ['dev','ino','mode','size','mtimeMs','nlink','blocks'])assert.equal(after[key],before[key],key);
+}
+test('verified union member refuses an existing destination without changing either original',t=>{
+ const f=stagedMember(t);fs.writeFileSync(f.to,f.bytes);
+ const source=identity(f.from),target=identity(f.to);
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),{code:'EEXIST'});
+ samePayloadIdentity(f.from,source);samePayloadIdentity(f.to,target);
+ originalArchiveUnchanged(f);
+});
+test('verified union member refuses changed bytes before consuming the source',t=>{
+ const f=stagedMember(t);fs.chmodSync(f.from,0o644);fs.writeFileSync(f.from,'changed');fs.chmodSync(f.from,0o444);
+ const before=identity(f.from);
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/Verified member bytes changed/);
+ samePayloadIdentity(f.from,before);assert.equal(fs.existsSync(f.to),false);
+ originalArchiveUnchanged(f);
+});
+for(const kind of ['symbolic','hard-linked'])test(`verified union member refuses a ${kind} source`,t=>{
+ const f=stagedMember(t),other=join(f.root,'other');
+ if(kind==='symbolic') {fs.writeFileSync(other,f.bytes);fs.unlinkSync(f.from);fs.symlinkSync(other,f.from);}
+ else fs.linkSync(f.from,other);
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/unlinked regular file/);
+ assert.equal(fs.existsSync(f.to),false);assert.deepEqual(fs.readFileSync(other),f.bytes);
+ originalArchiveUnchanged(f);
+});
+test('verified union member preserves source on cross-device failure without a copy fallback',t=>{
+ const f=stagedMember(t),before=identity(f.from),failure=Object.assign(new Error('fixture cross-device link'),{code:'EXDEV'});
+ let copies=0;
+ transferFaults(t,{linkSync(){throw failure;},copyFileSync(){copies++;throw new Error('Copy fallback is forbidden');}});
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),error=>error===failure);
+ assert.equal(copies,0);samePayloadIdentity(f.from,before);assert.equal(fs.existsSync(f.to),false);
+ originalArchiveUnchanged(f);
+});
+test('verified union member preserves source and original error when unlink fails',t=>{
+ const f=stagedMember(t),before=identity(f.from),unlink=fs.unlinkSync,failure=new Error('fixture source unlink failure');
+ transferFaults(t,{unlinkSync(path){if(path===f.from)throw failure;return Reflect.apply(unlink,fs,[path]);}});
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),error=>error===failure);
+ samePayloadIdentity(f.from,before);assert.equal(fs.existsSync(f.to),false);
+ originalArchiveUnchanged(f);
+});
+test('verified union member retains canonical bytes after an uncertain source removal',t=>{
+ const f=stagedMember(t),before=identity(f.from),unlink=fs.unlinkSync,failure=new Error('fixture error after unlink');
+ transferFaults(t,{unlinkSync(path){const value=Reflect.apply(unlink,fs,[path]);if(path===f.from)throw failure;return value;}});
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),error=>error===failure);
+ assert.equal(fs.existsSync(f.from),false);samePayloadIdentity(f.to,before);
+ assert.equal(fileDigest(f.to),f.sha256);originalArchiveUnchanged(f);
+});
+test('verified union member reports both source removal and link cleanup failures',t=>{
+ const f=stagedMember(t),failure=new Error('fixture source unlink failure'),cleanup=new Error('fixture link cleanup failure');
+ transferFaults(t,{unlinkSync(path){throw path===f.from?failure:cleanup;}});
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),error=>{
+  assert(error instanceof AggregateError);assert.equal(error.cause,failure);assert.deepEqual(error.errors,[failure,cleanup]);return true;
+ });
+ assert.equal(fs.statSync(f.from).ino,fs.statSync(f.to).ino);assert.equal(fs.statSync(f.to).nlink,2);
+ assert.deepEqual(fs.readFileSync(f.from),f.bytes);originalArchiveUnchanged(f);
+});
+test('verified union member detects same-byte source replacement during transfer',t=>{
+ const f=stagedMember(t),before=identity(f.from),link=fs.linkSync,held=fs.openSync(f.from,'r');
+ let replacement;
+ try {
+  transferFaults(t,{linkSync(from,to){fs.unlinkSync(from);fs.writeFileSync(from,f.bytes,{mode:0o444});replacement=identity(from);return Reflect.apply(link,fs,[from,to]);}});
+  assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/Verified source identity changed/);
+  assert.notEqual(replacement.ino,before.ino);assert.equal(fs.statSync(f.from).ino,replacement.ino);
+  assert.deepEqual(fs.readFileSync(f.from),f.bytes);originalArchiveUnchanged(f);
+ }finally{fs.closeSync(held);}
+});
+test('verified union member retains the final hash check after transfer',t=>{
+ const f=stagedMember(t),unlink=fs.unlinkSync;
+ transferFaults(t,{unlinkSync(path){
+  if(path===f.from){fs.chmodSync(path,0o644);fs.writeFileSync(path,'changed after validation');}
+  return Reflect.apply(unlink,fs,[path]);
+ }});
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/Materialized member bytes changed/);
+ assert.equal(fs.existsSync(f.from),false);assert.equal(fs.statSync(f.to).nlink,1);
  originalArchiveUnchanged(f);
 });
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
