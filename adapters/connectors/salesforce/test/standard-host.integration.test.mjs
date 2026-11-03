@@ -930,9 +930,17 @@ test('invalid diagnostics retain an acquired source and its failed cleanup',
     const seen = setup.org.seen.length;
     const close = DatabaseSync.prototype.close;
     const cleanup = new Error('SourceJournalCloseFailure');
-    let closes = 0;
+    let closes = 0, allowClose = false, failedDatabase;
     DatabaseSync.prototype.close = function() {
-      if (++closes === 1) throw cleanup;
+      // Initial setup also closes other SQLite owners. Fault only this
+      // acquired Source's actual credential journal, never a prior reader.
+      const file = this.prepare('PRAGMA database_list').get().file;
+      if (file === join(setup.root, 'credential-journal', 'credential-journal.sqlite3')) {
+        failedDatabase ??= this;
+        assert.strictEqual(this, failedDatabase);
+        closes++;
+        if (!allowClose) throw cleanup;
+      }
       return close.call(this);
     };
     let failure;
@@ -945,22 +953,28 @@ test('invalid diagnostics retain an acquired source and its failed cleanup',
           'InvalidDiagnosticObserver');
         assert.equal(error.cleanupPending, true);
         assert.equal(error.cleanupErrors[0].error, cleanup);
-        // Runtime retirement wraps the same original initializer; the Source
-        // remains with that child until its original journal close succeeds.
+        // Initialization and its current control remain pending while the
+        // SAME Source journal is still physically open.
         assert.deepEqual(error.cleanupHandle.status().owners,
-          ['initialization', 'runtime']);
+          ['initialization', 'initial-control']);
         assert.equal(error.cause.primaryFailure, error.primaryFailure);
         assert.equal(error.cause.cleanupPending, true);
         assert.equal(error.cause.code, 'InstalledHostInitializationFailed');
         assert.equal(error.cause.cleanupErrors[0].error, cleanup);
-        assert.ok(error.cause.cleanupHandle.status().owners.includes(
-          'source-profile'));
+        assert.ok(error.cause.cleanupErrors.some(item =>
+          item.owner === 'source-profile' && item.error === cleanup));
+        assert.equal(failedDatabase.isOpen, true);
         return true;
       });
       assert.equal(setup.org.seen.length, seen);
+      const refusedCloses = closes;
+      assert.ok(refusedCloses > 0);
+      allowClose = true;
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
-      assert.equal(closes, 2);
+      assert.equal(failedDatabase.isOpen, false);
+      assert.equal(closes, refusedCloses + 1);
     } finally {
+      allowClose = true;
       DatabaseSync.prototype.close = close;
     }
     const reopened = await setup.open({authorization:
@@ -981,6 +995,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
           connection: {any_of: [`salesforce:${setup.org.orgId}`]},
           resource: {any_of: ['Test_Record__c']},
           operation: {any_of: ['effect']}},
+        {...hostReadEntry, resource: {any_of: ['result/answer', 'result/records', 'run']}},
         {entry_id: 'host-run', outcome: 'allow', exclusions: [],
           principal: {all: true}, connection: {all: true},
           resource: {all: true}, operation: {any_of: ['write']}},
@@ -1298,8 +1313,19 @@ test('a publication of another connection or Site generation is refused',
       {orgId: '00D000000000009EAA'}]) {
       await writeFile(setup.sitePath, JSON.stringify({...setup.siteDocument,
         ...change}));
-      await assert.rejects(setup.open(),
-        {code: 'ForeignSalesforceDeclaration'}, JSON.stringify(change));
+      let originalFailure;
+      await assert.rejects(setup.open(), error => {
+        originalFailure = error;
+        assert.equal(error.code, 'InstalledHostInitializationFailed');
+        assert.equal(error.primaryFailure.code, 'ForeignSalesforceDeclaration');
+        assert.strictEqual(error.cause, error.primaryFailure);
+        const field = {siteGeneration: 'site_generation',
+          connectionRevision: 'connection_revision', orgId: 'org_id'}[Object.keys(change)[0]];
+        assert.deepEqual(error.primaryFailure.fields, [field]);
+        return true;
+      }, JSON.stringify(change));
+      assert.equal((await originalFailure.cleanupHandle.retry()).pending, false,
+        'the same refused initialization must retire before another generation');
     }
     // An altered publication is refused as well.
     await writeFile(setup.sitePath, JSON.stringify(setup.siteDocument));
@@ -1550,7 +1576,8 @@ test('long text in several columns and many rows reaches the Named Result',
     const {client, close} = await setup.open();
     const execution = await client.startSource(program, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'long-rows'})});
-    assert.equal((await execution.wait()).status, 'succeeded');
+    const state = await execution.wait();
+    assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const rows = await execution.result('records').all();
     assert.deepEqual(rows.map(row => [row.External_Key__c, row.Name]).sort(),
       stored.map(row => [row.External_Key__c, row.Name]).sort());
