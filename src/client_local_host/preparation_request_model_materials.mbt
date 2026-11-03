@@ -124,8 +124,19 @@ pub fn[I] prepare_request_model_contract_materials(
   // This selects only the original material-construction purpose before a
   // Graph exists. Its checked Serialize/Infer coordinates are DATA inventory;
   // the later same-Request Graph/module/Scope entries retain their own guards.
+  // A single captured prefix needs its checked original occurrence here too,
+  // before the material reader can enter or the backed Graph can be built.
   let material_profile = if installed_managed_run_shape_supported(
       prepared, true,
+    ) ||
+    (
+      @publication_host.prepared_client_composed_infer_occurrences(prepared)
+      is Some([occurrence]) &&
+      installed_managed_owner_shape_supported(
+        Pure(prepared),
+        true,
+        model_occurrence=Some(occurrence),
+      )
     ) {
     true
   } else {

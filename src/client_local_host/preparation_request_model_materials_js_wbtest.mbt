@@ -200,3 +200,89 @@ test "serialized Model material current refusal precedes original reader and kee
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+test "single captured Model materials use the original occurrence before Graph construction" {
+  let (parent, input, prepared) = request_model_input_fixture(
+    single_capture=true,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+    prepared,
+  ).unwrap()
+  assert_false(installed_managed_run_shape_supported(prepared, true))
+  assert_true(
+    installed_managed_owner_shape_supported(
+      Pure(prepared),
+      true,
+      model_occurrence=Some(occurrence),
+    ),
+  )
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let calls = Ref(0)
+  let observed = Ref(false)
+  prepare_request_model_contract_materials(
+    parent,
+    input,
+    1,
+    _ => {
+      calls.val += 1
+      let during = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      ).unwrap()
+      observed.val = parent.phase == Selecting &&
+        during.0 > before.0 &&
+        during.1 > before.1
+      "{\"execution\":\"original\"}"
+    },
+    1,
+  ).unwrap()
+  assert_eq(calls.val, 1)
+  assert_true(observed.val)
+  assert_true(parent.phase == ModelPlanReserved)
+  assert_true(
+    parent.program_domain_compilation_inputs is None &&
+    parent.program_compilation is None,
+  )
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "single captured Model materials retain original current refusal before reader entry" {
+  let armed = Ref(false)
+  let (parent, input, _) = request_model_input_fixture(single_capture=true, current=() => {
+    !armed.val
+  })
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let calls = Ref(0)
+  armed.val = true
+  assert_true(
+    prepare_request_model_contract_materials(
+      parent,
+      input,
+      1,
+      _ => {
+        calls.val += 1
+        "{}"
+      },
+      1,
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(
+    parent.phase == ProgramBodyFailed && parent.program_capacity is Some(_),
+  )
+  assert_true(
+    parent.program_domain_compilation_inputs is None &&
+    parent.program_compilation is None,
+  )
+  armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}

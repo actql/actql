@@ -4956,6 +4956,12 @@ remain checked. The ordinary purpose and the legacy shape lookup without this
 original occurrence retain their separate refusal; a capture count alone cannot
 select Model construction.
 
+The same original occurrence also selects the pre-Graph contract-material
+reservation. That reservation precedes execution/dependency readers and keeps
+the same Request capacity, current fence and failed-child abort custody. A
+single captured prefix cannot be rejected by a legacy shape lookup that lacks
+the occurrence while its later Graph constructor accepts the original.
+
 After Graph construction, compilation and module binding consume that exact
 retained Graph. A plain Model has no Content component; a serialized Model must
 retain the exact compiler-selected Content component. The module, original
