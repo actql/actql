@@ -16481,7 +16481,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f99afda3ed9306dc7717539471999b48e43f8c6f79b45852fea4a53bb7f57500",
+      "sha256": "e38e01ffb65aee94ccce145c722b0fe3a727dbc274fd14d2a2b548dfe477fedb",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
