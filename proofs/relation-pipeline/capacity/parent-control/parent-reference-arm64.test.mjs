@@ -116,3 +116,16 @@ test('ARM64 callback retirement cannot free a primitive Ref or precede retaining
   const early=[...changed];early.splice(24,0,'mov x0, x24',{call:decref});
   assert.throws(()=>check(early),/retirement count|precedes/);
 });
+
+// The constructor now captures the original reclamation prefix Int, rather
+// than the former all-or-nothing scratch flag. Its pure query does not move
+// any private Ref slot or replace a callback/Owner handoff.
+test('ARM64 current original reclaimed-prefix query preserves private Ref custody',()=>{
+  const prefix='__M0FP45actql5actql10connectors5local34relation__chain__reclaimed__prefix';
+  addresses.set(prefix,0x9c00);
+  const current=[...ops];current.splice(24,0,'mov x0, x19',{call:prefix});
+  assert.equal(check(current).pointRequestedBytes,64);
+  const prior='__M0FP45actql5actql10connectors5local42relation__chain__reclaims__completed__scratch';
+  addresses.set(prior,0x9d00);
+  assert.throws(()=>check(current.map(op=>op.call===prefix?{call:prior}:op)),/Unreviewed ARM64 custody call/);
+});
