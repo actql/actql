@@ -689,6 +689,10 @@ const {writeFileSync, existsSync, statSync, readlinkSync} = require('node:fs');
 const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
+if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
+  require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
+    JSON.stringify(process.argv.slice(2)) + '\\n');
+}
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
      'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
     process.argv.includes('--index')) {
@@ -1028,7 +1032,7 @@ test('Native checkpoint producers retain the selected debug mode before the same
   const before=source.indexOf('function originalReference(');
   const after=source.indexOf('export function nativeClientCheckpointFixture(',before);
   assert(before>=0&&after>before);
-  for(const strip of [false,true]){
+  for(const strip of [false,true]) for(const denyWarn of [false,true]){
     const calls=[];
     const original=runInNewContext('('+source.slice(before,after).trim()+')',{
       spawnSync(node,args,options){
@@ -1043,7 +1047,36 @@ test('Native checkpoint producers retain the selected debug mode before the same
         return {status:0,signal:null,stdout:'ACTQL_CLIENT_CHECKPOINT original-reference\n',stderr:''};
       },process:{execPath:process.execPath,stdout:{write(){}},stderr:{write(){}}},
     });
-    assert.equal(original('/original/root',{},'original_wbtest.mbt',strip),'original-reference');
-    assert.deepEqual(calls,[['--target','native',...(strip?['--strip']:[]),'original_wbtest.mbt','--index','0']]);
+    assert.equal(original('/original/root',{},'original_wbtest.mbt',strip,denyWarn),'original-reference');
+    assert.deepEqual(calls,[['--target','native',...(strip?['--strip']:[]),
+      ...(denyWarn?['--deny-warn']:[]),'original_wbtest.mbt','--index','0']]);
   }
+});
+
+test('strict Native checkpoint producers share the full child compilation mode without changing its selection', t => {
+  const f = fixture(t);
+  const commands = join(f.root, 'native-commands.jsonl');
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+    '--deny-warn', '--strip', '-j', '3', '--verbose'], {
+    cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+    env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands},
+  });
+  assert.ifError(result.error);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
+  const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(calls.length, 3);
+  const compilation = args => args.filter(arg =>
+    ['--target', 'native', '--strip', '--deny-warn'].includes(arg)).sort();
+  assert.deepEqual(calls[2], ['test', '--target', 'native',
+    '--deny-warn', '--strip', '-j', '3', '--verbose']);
+  for (const [index, file] of [
+    'src/platform_native/client_host/run_checkpoint_wbtest.mbt',
+    'src/platform_native/client_host/run_effect_receipt_wbtest.mbt',
+  ].entries()) {
+    assert.deepEqual(compilation(calls[index]), compilation(calls[2]),
+      'original producer must not invalidate the full child compilation cache');
+    assert.deepEqual(calls[index].slice(-3), [file, '--index', '0']);
+  }
+  f.verifyExternal();
 });
