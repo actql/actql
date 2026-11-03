@@ -23717,7 +23717,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "98951a5d6eb6a9d0ebe5c3b827132598b0ffcbb2637430e2ff68cc204944eec0",
+      "sha256": "31daa1013dbf08faf1f349bfdf632776d6d34565c09622663bf561ab48869f16",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23865,6 +23865,19 @@
         },
         {
           "name": "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation/init:restoreComputation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation#2",
           "parameters": [],
           "async": false
         },
@@ -23971,6 +23984,8 @@
             "installNodeClientEffectRun/init:recordReconciliation/init:recordReconciliation",
             "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation",
             "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation",
+            "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation#2",
+            "installNodeClientEffectRun/init:restoreComputation/init:restoreComputation/init:restoreComputation/init:restoreComputation",
             "installNodeClientEffectRun/init:start/init:start",
             "installNodeClientEffectRun/init:start/init:start/init:start",
             "installNodeClientEffectRun/installNodeClientEffectRun",
@@ -27903,7 +27918,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28066,7 +28081,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28698,7 +28713,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -122053,7 +122068,7 @@
       "sha256": "165562802b61bbfe5b4b8f9eafdbb4f84a437724eec0a7e82d67700421ac5a87",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -123194,7 +123209,7 @@
       "sha256": "400e99ff69ed9ac0c765c37691d7b7cca2f447d7692f698563b58249154914b1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -123996,7 +124011,7 @@
       "sha256": "1447473d2203e9c722ee438f95c2436ff1f7613a573d5bbb9e4ba731e08d8707",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
