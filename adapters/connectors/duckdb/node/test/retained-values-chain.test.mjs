@@ -29,6 +29,7 @@ import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
 import {identifyRetainedCapturedSource} from '../../../../local-node/captured-source-identity.mjs';
 import {openLocalPublicationStore} from '../../../../store-local/publication-store.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {closeManagedFixtureExecution, managedFixtureCleanupDiagnostic} from './managed-fixture-cleanup.mjs';
 
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -864,15 +865,20 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         assert.equal((await publicationFailure.cleanupHandle.retry()).pending, false);
       }
     }, async () => {
-      const child = owner ?? execution;
+      // The published wrapper delegates close/cleanup to this SAME execution.
+      const child = execution;
       if (!child) return;
       if (!executionCloseStarted) {
         executionCloseStarted = true;
-        await child.close();
+        const recovery = await closeManagedFixtureExecution(child, 60000);
+        if (recovery.firstCloseFailure !== undefined) {
+          retainFirstAndLatestCleanupError(cleanupErrors, recovery.firstCloseFailure);
+        }
+      } else {
+        // A failed close remains cached; the retained outer continuation uses
+        // only this original child's cleanup port on a later explicit retry.
+        assert.equal(await child.cleanup(), true);
       }
-      // close() can retain its original rejected Promise. Retry through the
-      // same child's cleanup port instead of repeating that failed close.
-      assert.equal(await child.cleanup(), true);
     }, async () => {
       if (execution) {
         assert.equal(dispatches, beforeCleanup, 'cleanup must not redispatch Compute');
@@ -957,7 +963,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     try { await cleanupHandle.retry(); }
     catch (cause) {
       reportedCleanupFailure = Object.assign(
-        new Error(`RetainedValuesCleanupPending [cleanup step ${nextCleanup}]`,
+        new Error(`RetainedValuesCleanupPending [cleanup step ${nextCleanup}; primary ${managedFixtureCleanupDiagnostic(hasPrimaryFailure ? primaryFailure : cause)}; cleanup ${managedFixtureCleanupDiagnostic(cause)}]`,
           {cause: hasPrimaryFailure ? primaryFailure : cause}), {
           primaryFailure: hasPrimaryFailure ? primaryFailure : cause,
           cleanupErrors, cleanupPending: true, cleanupHandle,

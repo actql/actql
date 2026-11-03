@@ -70,3 +70,30 @@ export async function closeManagedFixtureExecution(execution, timeoutMs) {
   }
   return Object.freeze({firstCloseFailure, cleanupAttempts});
 }
+
+// Closed fixture diagnostics only. Never emit messages, stacks, assertion
+// values or arbitrary error codes from the retained primary/cleanup originals.
+export function managedFixtureCleanupDiagnostic(error) {
+  const own=(value,key)=>value!==null&&(typeof value==='object'||typeof value==='function')
+    ?Object.getOwnPropertyDescriptor(value,key)?.value:undefined;
+  const known=new Set(['ManagedInputReleaseFailed','ManagedExecutionFailed',
+    'LocalManagedOutputCleanupPending','ExecutionSiteCleanupPending',
+    'ERR_ASSERTION','RunHostTaskInvocationRejected','CapturedRunExecutionFailed']);
+  const kind=value=>{
+    if(value===undefined)return 'undefined';
+    if(value===null)return 'null';
+    try {
+      const code=own(value,'code');if(known.has(code))return code;
+      const name=own(value,'name');
+      if(['AbortError','AssertionError','TypeError','RangeError'].includes(name))return name;
+      if(value instanceof AggregateError)return 'AggregateError';
+      if(value instanceof Error)return 'Error';
+    }catch{return 'opaque';}
+    return 'opaque';
+  };
+  try {
+    const errors=own(error,'errors');
+    return [kind(error),Array.isArray(errors)?kind(own(errors,'0')):'none',
+      Array.isArray(errors)&&errors.length>1?kind(own(errors,String(errors.length-1))):'none'].join('/');
+  }catch{return 'opaque';}
+}
