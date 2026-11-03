@@ -1215,11 +1215,11 @@ test('original Request observation is transient initial metadata and never Journ
   }});
   const initial = await f.service.submitIntent(f.body('SELECT ('));
   assert.equal(initial.checkObservation.report.verdict, 'invalid');
-  assert.equal(observations, 1);
+  assert.equal(observations, 2, 'observe the same original before and after its durable write');
   f.restart();
   assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), initial);
   assertReferenceOnly(await f.service.submitIntent(f.body('SELECT (')), initial);
-  assert.equal(observations, 1); assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  assert.equal(observations, 2, 'lookup and replay cannot reconstruct the original observation'); assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
 test('original Request observation failure omits report while authorization loss refuses disclosure', async t => {
@@ -1286,4 +1286,130 @@ test('original Request compiled Check observation uses actual parent preparation
     assert.equal(await view.observeOriginalCheckOutcome(request, failure, () =>
       assert.fail('No metadata after original retirement')), undefined);
   } finally {await view.close();}
+});
+
+
+test('same original completed Source violation classifies before its first durable refusal', async t => {
+  const failure = Object.assign(new Error('original unresolved Source fixture'), {code: 'ClientProgramRejected'});
+  let originalCalls = 0, freshChecks = 0;
+  const f = await fixture(t, {prepare() {throw failure;},
+    async originalObservation(error, value) {
+      assert.strictEqual(error, failure);
+      originalCalls++;
+      return checkValues({...value, kind: 'text', scope: 'bound_input'});
+    }, async check(value) {
+      freshChecks++;
+      return checkValues(value);
+    }});
+  const initial = await f.service.submitIntent(f.body('SELECT ('));
+  assert.equal(initial.kind, 'not_accepted');
+  assert.deepEqual(initial.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+  assert.equal(initial.checkObservation.report.verdict, 'invalid');
+  assert.equal(initial.checkObservation.report.scope.kind, 'bound_input');
+  assert.equal(failure.code, 'ClientProgramRejected', 'projection must not rewrite the original exception');
+  assert.equal(originalCalls, 2, 'retain original current observation before and after durable write');
+  assert.equal(freshChecks, 0, 'initial classification cannot borrow another check');
+  f.restart();
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), initial);
+  assert.equal(originalCalls, 2, 'reference-only lookup cannot reconstruct the original observer');
+  assert.equal(freshChecks, 1, 'lookup retains its separate current disclosure check');
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('typed SubmitAttempt classifies only its completed original Source observation', async t => {
+  const failure = Object.assign(new Error('original unresolved Source fixture'), {code: 'ClientProgramRejected'});
+  let observations = 0;
+  const f = await fixture(t, {prepare() {throw failure;}, async originalObservation(error, value) {
+    assert.strictEqual(error, failure);
+    observations++;
+    return checkValues({...value, kind: 'text', scope: 'bound_input'});
+  }, check() {assert.fail('no separate check may classify the original invocation');}});
+  const reply = await f.service.submitAttempt(f.body('SELECT ('));
+  assert.equal(reply.kind, 'recorded');
+  assert.deepEqual(reply.attemptRef, {operation: 'submit', attemptId: 'submission-test-invocation'});
+  assert.equal(reply.outcome.kind, 'not_accepted');
+  assert.deepEqual(reply.outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+  assert.equal(reply.outcome.checkObservation.report.verdict, 'invalid');
+  assert.equal(observations, 2);
+  assert.equal(failure.code, 'ClientProgramRejected');
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+for (const mode of ['missing', 'partial', 'undetermined', 'unavailable', 'malformed', 'exception', 'template', 'lost authority']) {
+  test(`generic Source refusal cannot borrow invalidity from ${mode} original reporting`, async t => {
+    let f, freshChecks = 0;
+    f = await fixture(t, {prepare() {
+      throw Object.assign(new Error('original unresolved Source fixture'), {code: 'ClientProgramRejected'});
+    }, async originalObservation(_error, value) {
+      if (mode === 'missing') return undefined;
+      if (mode === 'exception') throw new Error('original observation unavailable');
+      if (mode === 'unavailable') return checkValues.unavailable();
+      if (mode === 'undetermined') return checkValues({...value, kind: 'text', scope: 'bound_input',
+        input: {format: 'sql', text: 'SELECT id FROM missing'}});
+      if (mode === 'template') {
+        const {parameters, ...unbound} = value;
+        void parameters;
+        return checkValues({...unbound, kind: 'text', scope: 'template_only'});
+      }
+      const report = await checkValues({...value, kind: 'text', scope: 'bound_input'});
+      if (mode === 'malformed') return {...report, outcome: 'malformed'};
+      if (mode === 'partial') {
+        const failure = JSON.parse(await readFile(new URL(
+          '../../packages/client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+        return {...failure, partial_report: report.report};
+      }
+      f.authorize(false);
+      return report;
+    }, check() {freshChecks++; assert.fail('a generic original cannot request another checker');}});
+    const pending = f.service.submitIntent(f.body('SELECT ('));
+    if (mode === 'lost authority') {
+      await assert.rejects(pending, {code: 'ClientRequestLookupDenied'});
+      f.authorize(true);
+      assert.equal((await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref})).kind, 'unresolvable');
+    } else {
+      const initial = await pending;
+      assert.equal(initial.kind, 'not_accepted');
+      assert.deepEqual(initial.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'});
+      f.restart();
+      assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), initial);
+    }
+    assert.equal(freshChecks, 0);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  });
+}
+
+
+test('original Source input classification never rewrites an accepted preparation phase', async t => {
+  const failure = Object.assign(new Error('original unresolved Source fixture'), {code: 'ClientProgramRejected'});
+  const f = await fixture(t, {prepare() {throw failure;}, originalObservation(_error, value) {
+    return checkValues({...value, kind: 'text', scope: 'bound_input'});
+  }});
+  const value = f.body('SELECT (');
+  const intent = moon.clientSubmittedIntent(JSON.stringify({kind: value.kind, input: value.input,
+    parameters: value.parameters}), 1048576, 65536, 64);
+  f.journal.recordSubmittedIntent(f.ref, intent, {...fields, phase: 'preparing'}, moon);
+  const response = await f.service.submitAttempt(value);
+  assert.equal(response.outcome.kind, 'preparation_failed');
+  assert.deepEqual(response.outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+  assert.equal(response.outcome.checkObservation.report.verdict, 'invalid');
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('original Source classification retains the post-write authority fence and recorded outcome', async t => {
+  let f, observations = 0;
+  f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('original unresolved Source fixture'), {code: 'ClientProgramRejected'});
+  }, async originalObservation(_error, value) {
+    const report = await checkValues({...value, kind: 'text', scope: 'bound_input'});
+    if (++observations === 2) f.authorize(false);
+    return report;
+  }});
+  await assert.rejects(f.service.submitAttempt(f.body('SELECT (')), {code: 'ClientRequestLookupDenied'});
+  assert.equal(observations, 2);
+  f.authorize(true);
+  const retained = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  assert.equal(retained.kind, 'not_accepted');
+  assert.deepEqual(retained.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+  assert.equal(Object.hasOwn(retained, 'checkObservation'), false);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });

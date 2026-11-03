@@ -1997,6 +1997,16 @@ audience's Source publication, before storing an input problem. A completed
 invalid bound-input report permits that classification. An undetermined,
 unavailable, failed, malformed or absent reporting result does not.
 
+For an initial Source refusal, a completed bound-input violation from that SAME
+failed Request can classify its otherwise generic Problem before the first
+outcome is stored. The original typed exception remains unchanged. A missing,
+partial or template observation cannot supply this classification, and the
+initial operation never borrows a separate check to establish it. The original
+observation/current boundaries remain before and after the durable write;
+lookup retains its existing disclosure check rather than reconstructing that
+retired original. Structured Program and separately issued admission refusals
+keep their existing classification paths.
+
 Lookup and replay recheck disclosure before showing a retained Source input
 problem. Losing access returns a generic operation problem with the same
 original submission reference and acceptance phase; it does not rewrite the

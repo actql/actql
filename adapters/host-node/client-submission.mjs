@@ -328,12 +328,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (!isClientSubmitRejection(issuedCode ?? error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
-      // The same Request already owns the typed refusal and its audience-bound
-      // check observation. Preserve that original code; never run a second
-      // public checker or upgrade it through a legacy Source-failure marker.
+      // Preserve the actual typed exception. The same failed Request may also
+      // supply a completed audience-bound Source violation before this first
+      // durable outcome; neither a later check nor a Source marker supplies it.
       const code = issuedCode ?? error.code;
-      const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
-        problem: {code, classification: classification(code)}};
       const originalObservation = async () => {
         if (observeOriginalPreparationFailure !== undefined) {
           try {
@@ -349,6 +347,13 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         return null;
       };
       let checkObservation = await originalObservation();
+      const problemCode = issuedCode === undefined && code === 'ClientProgramRejected' &&
+          value.kind === 'aql' && checkObservation?.outcome === 'completed' &&
+          checkObservation.report.scope.kind === 'bound_input' &&
+          checkObservation.report.verdict === 'invalid'
+        ? 'ClientProgramInvalidInput' : code;
+      const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
+        problem: {code: problemCode, classification: classification(problemCode)}};
       const projected = await discloseOutcome(value, candidate, current,
         {intentWire: moon.clientSubmittedIntentWire(input)}, checkObservation);
       const {checkObservation: transientObservation, ...outcome} = projected;

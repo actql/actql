@@ -6366,8 +6366,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: CTE unresolved witnesses require authorized complete namespace absence`, async t => {
+    const account = JSON.parse(namespaceAccount());
+    // Namespace inspection does not grant the separate original-Submission read.
+    account.entries.push({entry_id: 'host-run-read', outcome: 'allow',
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []});
     const client = await namespaceClient(t, entrance, configurations.allowed, {sourceNamespace: 'queries',
-      authorization: namespaceAuthorization({accountConfiguration: namespaceAccount()})});
+      authorization: namespaceAuthorization({accountConfiguration: canonicalJson(account)})});
     for (const [text, missing] of [
       ['WITH missing AS (SELECT id FROM missing) SELECT id FROM missing', 'missing'],
       ['WITH chosen AS (SELECT id FROM records UNION ALL SELECT id FROM later), later AS (SELECT id FROM records) SELECT id FROM chosen', 'later'],
@@ -6384,6 +6389,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
         assert.equal(original.kind, 'not_accepted');
         assert.deepEqual(original.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
         assert.deepEqual(original.submissionRef, submissionRef);
+        const observed = frontierSDK.getSubmissionCheckObservation(error);
+        assert.equal(observed?.outcome, 'completed');
+        assert.equal(observed.report.verdict, 'invalid');
+        assert.deepEqual(observed.report.reasons, [namespaceReason(missing)]);
+        assert.deepEqual(observed.report.coverage, {limits: [], unresolved: []});
+        assert.equal(frontierSDK.getCheckInput(observed, 'source').text, text);
+        assert.equal(frontierSDK.getSubmissionCheckObservation({...error}), undefined);
         assert.equal('admission' in original, false);
         return error.code === 'SubmissionNotAccepted';
       });
