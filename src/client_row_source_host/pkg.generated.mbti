@@ -225,6 +225,8 @@ pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution
 
 pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?
 
+pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn relation_target_before(RelationTargetRow) -> String?
 
 pub fn relation_target_row_count(RelationTargetDocument) -> Int?

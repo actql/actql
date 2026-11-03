@@ -961,6 +961,10 @@ pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompil
 
 pub fn client_original_keyed_prefix_lookup_input(ClientOriginalKeyedPrefixLookup) -> ClientKeyedLookupInput?
 
+pub fn client_project_catalog_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 
 pub fn client_project_model_task_selection_usage(ClientProjectModelTaskSelection) -> Int

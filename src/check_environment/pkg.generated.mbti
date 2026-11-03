@@ -926,6 +926,8 @@ pub fn source_view_shape_at(SourceViewShapes, Int) -> Member?
 
 pub fn source_view_shape_usage(SourceViewShapes) -> (Int, Int)
 
+pub fn source_view_shape_validation_construction_extent(Int, Int, Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn source_view_shape_values(SourceViewShapes) -> ProtocolValueContracts
 
 pub fn stage_semantic_contract_cid(StageSemanticContract) -> String

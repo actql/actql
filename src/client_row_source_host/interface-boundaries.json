@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "b4c67bce83e7e2aaf9a8ba2ff6ccfa2e26c1415b673f1b0dd80120a3ce3b83c1",
+      "sha256": "9827bcf1034a67ae103788932e57729a5860d9e3e77b1617786fa3fff8ea9d1e",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -279,6 +279,7 @@
         "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
         "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",
+        "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn relation_target_before(RelationTargetRow) -> String?",
         "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
         "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
@@ -770,6 +771,10 @@
         {
           "name": "relation_document_usage",
           "declaration": "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?"
+        },
+        {
+          "name": "relation_restore_construction_inventory",
+          "declaration": "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?"
         },
         {
           "name": "relation_target_before",
@@ -3207,6 +3212,76 @@
             "verification": [
               {
                 "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "relation_restore_construction_inventory"
+          ],
+          "exports": [
+            "pub fn relation_restore_construction_inventory(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
                 "anchor": "- Verification:"
               }
             ]
