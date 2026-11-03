@@ -325,6 +325,99 @@ test('Compiler stop diagnostic preserves inputs and private environment with fre
   assert(!JSON.stringify(result).includes('PRIVATE_'));
 });
 
+test('Compiler stop diagnostic validates launch input and distinguishes inferior exit from cleanup', t => {
+  const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-launch-control-'));
+  t.after(() => rmSync(namespace, {recursive: true, force: true}));
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  driver.write('failed: ' + [driver.tool, ...driver.args].join(' ') + '\n');
+  for (const scenario of ['exit', 'arguments-mismatch', 'image-mismatch', 'stopped']) {
+    const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace,
+      env: {TOKEN: 'PRIVATE_TOKEN'}}, (command, args, options) => {
+      const program = JSON.parse(options.input.slice('script exec('.length,
+        options.input.indexOf(')\nquit')));
+      const expected = args.slice(args.indexOf('--') + 1);
+      // Execute the actual embedded program with an explicit LLDB API port.
+      // This launches no debugger or compiler and reads no process memory.
+      const port = `import sys, json, types, os
+payload = json.load(sys.stdin)
+scenario = payload["scenario"]
+expected = payload["expected"]
+class FileSpec:
+    def __init__(self, path): self.path = path
+    def GetDirectory(self): return os.path.dirname(self.path)
+    def GetFilename(self): return os.path.basename(self.path)
+class LaunchInfo:
+    def __init__(self): self.args = ["stale-default"]
+    def SetArguments(self, args, append):
+        assert append is False
+        self.args = list(args)
+    def SetExecutableFile(self, spec, first):
+        assert first is False
+        self.exe = spec
+    def GetNumArguments(self): return len(self.args)
+    def GetArgumentAtIndex(self, i):
+        return "wrong" if scenario == "arguments-mismatch" and i == 1 else self.args[i]
+    def GetExecutableFile(self): return self.exe
+    def SetEnvironmentEntries(self, entries, append):
+        assert entries == ["TOKEN=PRIVATE_TOKEN"] and append is False
+    def SetWorkingDirectory(self, path): assert path == "/checkout"
+    def GetLaunchFlags(self): return 7
+    def SetLaunchFlags(self, flags): assert flags == 4
+    def SetDetachOnError(self, value): assert value is False
+    def AddSuppressFileAction(self, fd, read, write): assert fd in (1, 2) and not read and write
+class Error:
+    def Success(self): return True
+class Frame:
+    def IsValid(self): return False
+class Thread:
+    def GetStopDescription(self, size): return "signal SIGTRAP PRIVATE_DETAIL"
+    def GetFrameAtIndex(self, index): return Frame()
+class Process:
+    def __init__(self, valid=False):
+        self.valid = valid
+        self.state = 1 if scenario == "stopped" else 3
+    def IsValid(self): return self.valid
+    def GetState(self): return self.state
+    def GetExitStatus(self):
+        assert self.state == 3
+        return 43 if scenario == "exit" else 9
+    def GetSelectedThread(self): return Thread()
+    def Kill(self):
+        self.state = 3
+        return Error()
+class Target:
+    launches = 0
+    def GetLaunchInfo(self): return LaunchInfo()
+    def GetExecutable(self):
+        return FileSpec("/foreign/moon" if scenario == "image-mismatch" else expected[0])
+    def Launch(self, info, error):
+        assert info.args == expected and info.exe.path == expected[0]
+        self.launches += 1
+        return Process(True)
+target = Target()
+sys.modules["lldb"] = types.SimpleNamespace(
+    debugger=types.SimpleNamespace(GetSelectedTarget=lambda: target, SetAsync=lambda value: None),
+    SBFileSpec=FileSpec, SBError=Error, SBProcess=Process,
+    eLaunchFlagDisableASLR=1, eLaunchFlagStopAtEntry=2,
+    eStateStopped=1, eStateCrashed=2, eStateExited=3, eStateDetached=4, eStateInvalid=5)
+exec(payload["program"])
+assert target.launches == (0 if scenario.endswith("mismatch") else 1)
+`;
+      const control = spawnSync('python3', ['-c', port], {encoding: 'utf8', timeout: 10000,
+        input: JSON.stringify({program, expected, scenario})});
+      assert.equal(control.status, 0, control.stderr);
+      return control;
+    });
+    assert.equal(result.launchArgumentsMatch, scenario !== 'arguments-mismatch');
+    assert.equal(result.launchImageMatch, scenario !== 'image-mismatch');
+    assert.equal(result.launchSucceeded, !scenario.endsWith('mismatch'));
+    assert.equal(result.inferiorExitStatus, scenario === 'exit' ? 43 : null);
+    assert.equal(result.terminatedByDiagnostic, scenario === 'stopped');
+    assert.equal(result.cause, scenario === 'stopped' ? 'SIGTRAP' : 'unobserved');
+    assert(!JSON.stringify(result).includes('PRIVATE_'));
+  }
+});
+
 test('Compiler stop diagnostic timeout stays unobserved without raw debugger payload', t => {
   const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-timeout-control-'));
   t.after(() => rmSync(namespace, {recursive: true, force: true}));

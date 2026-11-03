@@ -25,10 +25,17 @@ export function failedCoreDriver(root, moonHome) {
 
 // LLDB launches asynchronously so this Python loop can enforce its own bound
 // and kill the same diagnostic inferior before the debugger exits.
-const debuggerProgram = `import lldb, json, base64, time, re
+const debuggerProgram = `import lldb, json, base64, time, re, os
 target = lldb.debugger.GetSelectedTarget()
 lldb.debugger.SetAsync(True)
 info = target.GetLaunchInfo()
+command = json.loads(base64.b64decode("COMMAND"))
+info.SetArguments(command, False)
+info.SetExecutableFile(lldb.SBFileSpec(command[0]), False)
+def image_path(spec):
+    return os.path.join(spec.GetDirectory() or "", spec.GetFilename() or "")
+arguments_match = [info.GetArgumentAtIndex(i) for i in range(info.GetNumArguments())] == command
+image_match = image_path(target.GetExecutable()) == command[0] and image_path(info.GetExecutableFile()) == command[0]
 info.SetEnvironmentEntries(json.loads(base64.b64decode("ENVIRONMENT")), False)
 info.SetWorkingDirectory(json.loads(base64.b64decode("DIRECTORY")))
 flags = info.GetLaunchFlags()
@@ -39,8 +46,11 @@ info.SetDetachOnError(False)
 info.AddSuppressFileAction(1, False, True)
 info.AddSuppressFileAction(2, False, True)
 error = lldb.SBError()
-process = target.Launch(info, error)
-result = {"attempted": True, "frames": [], "cause": "unobserved", "cleanup": "unobserved"}
+process = target.Launch(info, error) if arguments_match and image_match else lldb.SBProcess()
+result = {"attempted": True, "frames": [], "cause": "unobserved", "cleanup": "unobserved",
+          "launchArgumentsMatch": arguments_match, "launchImageMatch": image_match,
+          "launchSucceeded": arguments_match and image_match and error.Success() and process.IsValid(),
+          "inferiorExitStatus": None, "terminatedByDiagnostic": False}
 deadline = time.monotonic() + 52
 terminal = (lldb.eStateStopped, lldb.eStateCrashed, lldb.eStateExited, lldb.eStateDetached, lldb.eStateInvalid)
 while process.IsValid() and process.GetState() not in terminal and time.monotonic() < deadline:
@@ -62,6 +72,7 @@ if process.IsValid() and process.GetState() in (lldb.eStateStopped, lldb.eStateC
             re.fullmatch(r"[A-Za-z0-9_:$<>~.,()*\\[\\] +/=-]+", symbol)):
             result["frames"].append({"module": module, "symbol": symbol})
 if process.IsValid() and process.GetState() not in (lldb.eStateExited, lldb.eStateDetached, lldb.eStateInvalid):
+    result["terminatedByDiagnostic"] = True
     killed = process.Kill()
     deadline = time.monotonic() + 4
     while killed.Success() and process.GetState() != lldb.eStateExited and time.monotonic() < deadline:
@@ -69,6 +80,7 @@ if process.IsValid() and process.GetState() not in (lldb.eStateExited, lldb.eSta
     result["cleanup"] = "exited" if process.GetState() == lldb.eStateExited else "unconfirmed"
 elif process.IsValid() and process.GetState() == lldb.eStateExited:
     result["cleanup"] = "exited"
+    result["inferiorExitStatus"] = process.GetExitStatus()
 print("ACTQL_COMPILER_STOP " + json.dumps(result))
 `;
 
@@ -80,6 +92,7 @@ export function diagnoseFailedCoreDriver({driver, root, namespace, env}, run = s
   args[4] = join(output, 'blackbox-metadata.json');
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64');
   const program = debuggerProgram
+    .replace('COMMAND', encode([driver.tool, ...args]))
     .replace('ENVIRONMENT', encode(Object.entries(env).filter(([, value]) => value !== undefined)
       .map(([key, value]) => `${key}=${value}`)))
     .replace('DIRECTORY', encode(root));
@@ -99,6 +112,12 @@ export function diagnoseFailedCoreDriver({driver, root, namespace, env}, run = s
           /^(?:unobserved|EXC_[A-Z_]+|SIG[A-Z0-9]+)$/u.test(value.cause) &&
           ['unobserved', 'unconfirmed', 'exited'].includes(value.cleanup)) {
         selected = {attempted: true, cause: value.cause, cleanup: value.cleanup,
+          launchArgumentsMatch: value.launchArgumentsMatch === true,
+          launchImageMatch: value.launchImageMatch === true,
+          launchSucceeded: value.launchSucceeded === true,
+          inferiorExitStatus: Number.isInteger(value.inferiorExitStatus) &&
+            value.terminatedByDiagnostic === false ? value.inferiorExitStatus : null,
+          terminatedByDiagnostic: value.terminatedByDiagnostic === true,
           frames: value.frames.filter(frame => typeof frame.module === 'string' &&
             /^[A-Za-z0-9_.+-]{1,128}$/u.test(frame.module) && typeof frame.symbol === 'string' &&
             /^[A-Za-z0-9_:$<>~.,()*\[\] +/=-]{1,256}$/u.test(frame.symbol))
