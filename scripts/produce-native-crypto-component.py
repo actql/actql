@@ -167,7 +167,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path, *,
                '-Wl,-install_name,@rpath/' + library.name, '-o', str(library)]
     subprocess.run(command, cwd=ROOT, check=True)
     members = shlex.split(dependencies.read_text().replace('\\\n', '').split(': ', 1)[1])
-    header_aliases = {}
+    header_aliases, compiled = {}, {}
     for member in members:
         path = Path(member)
         if path.is_relative_to(sdk):
@@ -176,7 +176,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path, *,
                 raise ValueError('Crypto SDK header escapes selected SDK')
             header_aliases[str(path)] = str(resolved)
             path = resolved
-        inputs[str(path)] = original(path)
+        compiled[str(path)] = original(path)
     names = {line.split()[-1] for line in subprocess.check_output(
         ['/Library/Developer/CommandLineTools/usr/bin/nm', '-gU', str(library)], text=True).splitlines()}
     if names != {'_' + name for name in EXPORTS}:
@@ -201,15 +201,14 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path, *,
                 'actql_bootstrap_current_read_context')
     if not all('_' + name in undefined.split() for name in required):
         raise ValueError('Original process provider import missing')
-    for name, expected in inputs.items():
-        if original(Path(name), 512 * 1024 * 1024) != expected:
-            raise ValueError('Crypto build input changed')
+    verify_original_inputs(inputs, compiled)
     (output / 'OPENSSL-LICENSE.txt').write_bytes(license_path.read_bytes())
     (output / 'CRYPTO-NOTICE').write_bytes((SOURCE / 'NOTICE').read_bytes())
     result = {'source': head, 'target': recipe['target'], 'recipe': inputs[str(recipe_path)],
               'source_qualification': qualification,
               'provider_binding': 'existing process provider; actual original binding required before first allocation',
-              'command': command, 'inputs': inputs, 'exports': sorted(names), 'links': links,
+              'command': command, 'inputs': inputs, 'compiled_inputs': compiled,
+              'exports': sorted(names), 'links': links,
               'undefined': undefined, 'archive_minimum_macos': sorted(set(archive_minimums), key=version),
               'archive_object_count': len(archive_minimums), 'minimum_macos': observed_minimum[1],
               'compiler_header_aliases': header_aliases, 'library': original(library),

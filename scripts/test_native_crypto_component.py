@@ -8,6 +8,7 @@ import tempfile
 import unittest
 import tarfile
 import io
+import subprocess
 from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('crypto_original',
@@ -203,6 +204,69 @@ class CompatibleDarwinSource(unittest.TestCase):
         alias.unlink(); alias.symlink_to(replacement)
         with self.assertRaisesRegex(ValueError, 'tool alias changed'):
             P.verify_tool_aliases(aliases)
+
+
+class DarwinCompilerInputPins(unittest.TestCase):
+    def test_actual_compiler_boundary_cannot_replace_a_pinned_public_header(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            original_source = P.SOURCE
+            source = root / 'source'; source.mkdir()
+            recipe = json.loads((original_source / 'source.json').read_bytes())
+            for name in recipe['local']:
+                path = source / name; path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((original_source / name).read_bytes())
+            openssl = root / 'openssl'
+            files = {'.brew/openssl@3.rb': b'formula', 'INSTALL_RECEIPT.json': b'receipt',
+                     'lib/libcrypto.a': b'original static archive', 'LICENSE.txt': b'license',
+                     'include/openssl/original.h': b'original header'}
+            for name, data in files.items():
+                path = openssl / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(data)
+            pinned = recipe['candidate_static_input']
+            pinned.update(P.original(openssl / 'lib/libcrypto.a'))
+            pinned['formula_sha256'] = P.original(openssl / '.brew/openssl@3.rb')['sha256']
+            pinned['receipt_sha256'] = P.original(openssl / 'INSTALL_RECEIPT.json')['sha256']
+            header = openssl / 'include/openssl/original.h'
+            pinned['header_count'] = 1
+            pinned['header_census_sha256'] = hashlib.sha256(json.dumps([
+                {'path': 'openssl/original.h', **P.original(header)}],
+                sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            recipe['license_sha256'] = P.original(openssl / 'LICENSE.txt')['sha256']
+            (source / 'source.json').write_text(json.dumps(recipe))
+            compiler = root / 'compiler'; compiler.write_bytes(b'compiler port')
+            sdk = root / 'SDK'; sdk.mkdir()
+            def execute(arguments, text, **options):
+                if arguments[0] == 'git':
+                    return '' if arguments[1] == 'status' else 'a' * 40 + '\n'
+                if '-l' in arguments:
+                    return 'cmd LC_BUILD_VERSION\ncmdsize 24\nplatform 1\nminos 26.0\n'
+                if '-L' in arguments:
+                    return 'component:\n@rpath/libactql_crypto_component.dylib (version)\n/usr/lib/libSystem.B.dylib (version)\n'
+                if '-gU' in arguments:
+                    return '\n'.join('0000 T _' + name for name in P.EXPORTS)
+                return '\n'.join('_' + name for name in P.PROVIDER_IMPORTS)
+            for changed in (False, True):
+                with self.subTest(changed=changed):
+                    header.write_bytes(b'original header')
+                    output = root / ('changed' if changed else 'control')
+                    def compile_port(arguments, **options):
+                        library = Path(arguments[arguments.index('-o') + 1])
+                        library.write_bytes(b'Source-only library port; never executable')
+                        Path(arguments[arguments.index('-MF') + 1]).write_text(str(library) + ': ' + str(header) + '\n')
+                        if changed: header.write_bytes(b'changed during compiler invocation')
+                        return subprocess.CompletedProcess(arguments, 0)
+                    with patch.object(P, 'SOURCE', source), patch.object(P.platform, 'system', return_value='Darwin'), \
+                         patch.object(P.platform, 'machine', return_value='arm64'), \
+                         patch.object(P.subprocess, 'check_output', side_effect=execute), \
+                         patch.object(P.subprocess, 'run', side_effect=compile_port):
+                        if changed:
+                            with self.assertRaisesRegex(ValueError, 'Original Crypto build input changed'):
+                                P.produce(output, openssl, compiler, sdk)
+                            self.assertFalse((output / 'producer.json').exists())
+                        else:
+                            result = P.produce(output, openssl, compiler, sdk)
+                            self.assertIn(str(header), result['inputs'])
+                            self.assertIn(str(header), result['compiled_inputs'])
 
 
 if __name__ == '__main__':
