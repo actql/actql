@@ -10697,13 +10697,15 @@ async function exerciseStrategyGraph(
       program.stages.find(stage => stage.id === 'cross_right').steps[0]
         .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
     }
-    const binaryFixture = sequence
+    // Reach the injected fault with the complete retained-output evidence budget.
+    // The separate quota-boundary corpus keeps its original admission limits.
+    const binaryFixture = fixture.strategyFixtureAccounted(sequence
       ? fixture.strategyFixtureTeaSequenceCreate(...args, JSON.stringify(program))
       : temporal
       ? fixture.strategyFixtureTeaCreate(...args, JSON.stringify(program))
       : numericGroup
       ? fixture.strategyFixtureNumericCreate(...args, JSON.stringify(program))
-      : fixture.strategyFixtureCreate(...args, JSON.stringify(program));
+      : fixture.strategyFixtureCreate(...args, JSON.stringify(program)));
     const binaryCapture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const directory = await mkdtemp(join(tmpdir(),
@@ -10815,7 +10817,9 @@ async function exerciseStrategyGraph(
                   if (cancelling && !scheduled && (mode === 'cancel' || nestCancel
                     ? sawWork : sawLaterWork)) {
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // Abort at the observed incomplete step, before a later
+                    // output lease can begin during a timer turn.
+                    cancellation.abort();
                   }
                 }
                 return result;
