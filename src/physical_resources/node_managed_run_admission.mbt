@@ -88,7 +88,12 @@ pub fn[P] cleanup_node_managed_run_admission(
         Ok(_) => ()
       }
       let usage = ledger_usage(ledger)
-      if ledger_usage_has_pending_resources(usage) ||
+      // Unknown dispatched transfer remains cumulative budget history after
+      // its original child settles. Ignore it only in this cleanup projection;
+      // report/stop below still observe the unchanged SAME Ledger and usage.
+      // Every actual open token, reserved byte and holding remains pending.
+      let cleanup_usage = { ..usage, uncertain_transfer_bytes: 0L, }
+      if ledger_usage_has_pending_resources(cleanup_usage) ||
         ledger.delegated_planning != 0 ||
         ledger.delegated_attempts != 0 ||
         ledger.delegated_holdings != 0 {

@@ -591,6 +591,9 @@ fn[I, P] preparation_capacity_usage_isolated(
       return false
     }
   }
+  // Transferred and uncertain transfer bytes are cumulative budget history,
+  // including after physical cleanup. Actual open children and outstanding
+  // reserved bytes remain the original cleanup responsibility.
   let usage = ledger.usage
   usage.live_reservations == 1 &&
   usage.live_delegations == 0 &&
@@ -600,7 +603,6 @@ fn[I, P] preparation_capacity_usage_isolated(
   usage.reserved_execution_bytes == token.execution &&
   usage.held_bytes == 0L &&
   usage.reserved_transfer_bytes == 0L &&
-  usage.uncertain_transfer_bytes == 0L &&
   ledger.delegated_planning == 0 &&
   ledger.delegated_attempts == 0 &&
   ledger.delegated_holdings == 0

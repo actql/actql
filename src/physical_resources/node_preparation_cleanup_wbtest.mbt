@@ -123,11 +123,12 @@ test "settled unknown Model quantities do not pin preparation or reset same pare
       initial, input, capacity, body,
     ).unwrap()
     assert_true(physical_equal(ledger, same))
-    let attempt = reserve_attempt(ledger, 0L, 0L, 0L, quantities=Some(amounts)).unwrap()
+    let attempt = reserve_attempt(ledger, 19L, 0L, 0L, quantities=Some(amounts)).unwrap()
     assert_false(node_preparation_usage_isolated(run, ledger))
     assert_eq(quantity_usage(ledger).reserved, amounts)
     mark_quantities_uncertain(ledger, attempt).unwrap()
     observe_quantities(ledger, attempt, tokens=Some(3L), cost_units=Some(0L)).unwrap()
+    mark_transfer_uncertain(ledger, attempt, 19L).unwrap()
     mark_cleanup_pending(ledger, attempt).unwrap()
     assert_false(node_preparation_usage_isolated(run, ledger))
     // Only the same original physical child's explicit settlement removes its
@@ -137,6 +138,7 @@ test "settled unknown Model quantities do not pin preparation or reset same pare
     assert_eq(history.reserved, zero_quantities())
     assert_eq(history.consumed.tokens, 3L)
     assert_eq(history.uncertain.duration_ms, 500L)
+    assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 19L)
     assert_true(node_preparation_usage_isolated(run, ledger))
     assert_true(configure_quantities(ledger, amounts) is Err(InvalidCharge))
     assert_true(
@@ -148,6 +150,18 @@ test "settled unknown Model quantities do not pin preparation or reset same pare
         quantities=Some({ ..zero_quantities(), duration_ms: 1L, }),
       )
       is Err(DurationLimit),
+    )
+    // The original imported child declares 1000 transfer bytes. Previously
+    // dispatched uncertainty still consumes that SAME cumulative budget.
+    assert_true(
+      reserve_attempt(
+        ledger,
+        1000L,
+        0L,
+        0L,
+        quantities=quantity_neutral_amounts(ledger),
+      )
+      is Err(TransferLimit),
     )
     // A separate zero-byte child/holding remains an actual identity even when
     // every historical quantity has already moved out of reserved usage.
@@ -170,9 +184,10 @@ test "settled unknown Model quantities do not pin preparation or reset same pare
     assert_false(return_preparation_body_borrow(run_holder).unwrap())
     assert_true(release_node_preparation_holder(run).unwrap())
     assert_true(retire_transferred_preparation(retirement).unwrap())
-    cleanup_node_managed_run_admission(run).unwrap()
+    assert_eq(cleanup_node_managed_run_admission(run), Ok(()))
     assert_eq(ledger_usage(ledger).live_reservations, 0)
     assert_eq(ledger_usage(ledger).holdings, 0)
+    assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 19L)
     assert_eq(quantity_usage(ledger), history)
   }
 }
