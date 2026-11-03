@@ -26,6 +26,10 @@ fn[I] project_request_query_check_outcome(
     owner.query_syntax is Some(query) else {
     return Err(ForeignOriginal)
   }
+  let parsed_original = match query.query {
+    Some(Ok(original)) => Some(original)
+    _ => None
+  }
   let (issue, environment, publication) = match terminal {
     QuerySyntax(original) => {
       guard phase == QuerySyntaxFailed &&
@@ -149,13 +153,35 @@ fn[I] project_request_query_check_outcome(
           }
         _ => false
       }
-      guard same_terminal else { return Err(ForeignOriginal) }
+      let current_parsed = match query.query {
+        Some(Ok(original)) => Some(original)
+        _ => None
+      }
+      guard same_terminal &&
+        (match (parsed_original, current_parsed) {
+          (None, None) => true
+          (Some(original), Some(current)) => physical_equal(original, current)
+          _ => false
+        }) else {
+        return Err(ForeignOriginal)
+      }
       Ok(
         Some(
           @local_preparation.client_program_project_original_query_issue(
-            issue, environment, publication, visible_publication, context_ref, input_revision,
-            input_bytes, declarations_revision, declarations_bytes, parameters_revision,
-            parameters_bytes, correlation_ref, source_namespace,
+            issue,
+            environment,
+            publication,
+            visible_publication,
+            context_ref,
+            input_revision,
+            input_bytes,
+            declarations_revision,
+            declarations_bytes,
+            parameters_revision,
+            parameters_bytes,
+            correlation_ref,
+            source_namespace,
+            query_original=parsed_original,
           ),
         ),
       )

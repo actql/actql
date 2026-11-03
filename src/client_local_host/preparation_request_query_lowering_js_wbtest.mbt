@@ -457,3 +457,111 @@ test "source-free SQL capacity is refused before module completion on its origin
     )
   }
 }
+
+///|
+test "original standalone expression failure ignores unrelated publication filtering without rechecking" {
+  let (environment, publication) = request_query_publication_fixture()
+  let visible = " {\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  // Distinct retained publication bytes isolate the disclosure gate. The
+  // ordinary HTTP regression separately exercises an actually hidden Source.
+  assert_true(
+    !@source_publication.prepared_published_query_environment_publication_matches(
+      publication, environment, visible,
+    ),
+  )
+  for
+    (document, independent) in [
+      ("SELECT missing AS n", true),
+      ("SELECT missing AS n FROM records", false),
+      ("SELECT missing + 1 AS n", false),
+      ("WITH x AS (SELECT missing AS n) SELECT n FROM x", false),
+      ("SELECT n FROM (SELECT missing AS n) AS x", false),
+    ] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let original = parse_request_query_syntax(
+      parent,
+      input,
+      document,
+      @frontend.Sql,
+    ).unwrap()
+    let terminal = match
+      lower_request_published_query(
+        parent,
+        input,
+        publication,
+        environment,
+        None,
+        public_primary=true,
+      ) {
+      Err(issue) => QueryLowering(issue)
+      Ok(_) => fail("the authored unresolved expression must reject")
+    }
+    let selected = parent.query_syntax.unwrap()
+    let parse_work = selected.known_work
+    let before = @resources.ledger_usage(parent.ledger)
+    let report = project_request_check_outcome(
+        parent,
+        input,
+        terminal,
+        visible,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      .unwrap()
+      .unwrap()
+    if independent {
+      assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+      assert_true(report.contains("query_expression_invalid"), msg=report)
+      assert_true(report.contains("unknown_reference"), msg=report)
+      assert_true(!report.contains("source_resolution"), msg=report)
+    } else {
+      assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+      assert_true(report.contains("source_resolution"), msg=report)
+      assert_true(!report.contains("query_expression_invalid"), msg=report)
+    }
+    assert_true(parent.phase == QueryLoweringFailed)
+    assert_true(physical_equal(parent.query_syntax.unwrap(), selected))
+    assert_true(physical_equal(selected.query.unwrap().unwrap(), original))
+    assert_eq(selected.known_work, parse_work)
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).planning_work,
+      before.planning_work,
+    )
+    assert_true(
+      project_request_check_outcome(
+        parent,
+        [1],
+        terminal,
+        visible,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      is Err(ForeignOriginal),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}

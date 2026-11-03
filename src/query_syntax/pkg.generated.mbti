@@ -58,6 +58,8 @@ pub fn graph_source_query(Query) -> Query
 
 pub fn has_sga_relation_lowering(String) -> Bool
 
+pub fn is_standalone_reference_projection(Query) -> Bool
+
 pub fn join_part_at(Query, Int) -> JoinPart?
 
 pub fn join_part_count(Query) -> Int
