@@ -1,4 +1,4 @@
-import {publicationOriginalFixture} from '../../../../host-node/fixtures/local-publication-original.mjs';
+import {publicationOriginalFixture, adoptCapturedPublicationFixture} from '../../../../host-node/fixtures/local-publication-original.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
@@ -183,7 +183,7 @@ function familyProgram(family, filter = 'id >= 1') {
 // test installs Compute configuration directly; public Client dispatch mode
 // selection remains with its Host owner.
 async function openCapturedRetained(prepared, contracts, installedContracts, directory, rows, budgets,
-  fileInput = false) {
+  fileInput = false, retainPublication) {
   const [registry, values, fragment, ordered] = contracts;
   const planned = moon.clientProgramPrepareLocalQueryRequirement(
     prepared, 0, 0, installedContracts, values, fragment, ordered);
@@ -198,6 +198,13 @@ async function openCapturedRetained(prepared, contracts, installedContracts, dir
     .map(name => readFile(join(root, 'spec/contracts', name), 'utf8')));
   const acquisition = checked(moon.clientProgramPrepareDuckDBAcquisition(
     requirement, 'main', 'records', ...bodies));
+  const limits = {
+    maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
+    maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
+    memoryBytes: 128 * 1024 * 1024, threads: 1,
+  };
+  // Adopt the typed Plan on the original Request before any physical capture.
+  retainPublication(acquisition, limits);
   const databasePath = join(directory, 'records.duckdb');
   const database = await DuckDBInstance.create(databasePath);
   const connection = await database.connect();
@@ -214,11 +221,6 @@ async function openCapturedRetained(prepared, contracts, installedContracts, dir
     ...fixtureSourceAccess, sourceRef,
   });
   const captureStartedAt = new Date().toISOString();
-  const limits = {
-    maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
-    maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
-    memoryBytes: 128 * 1024 * 1024, threads: 1,
-  };
   const capture = fileInput
     ? await runRetainedNativeHostQuery(grant, acquisition, limits, {
       parentDirectory: directory, maxFrameBytes: 4096,
@@ -246,7 +248,7 @@ async function openCapturedRetained(prepared, contracts, installedContracts, dir
       : moon.clientProgramOpenCapturedLocalRetainedHost(prepared,
         source, installedContracts, values, 1n, 0n, 0n, 0n, fragment, ordered);
     assert.ok(setup, 'the product captured factory must install retained output');
-    return {setup, capture, identity, logicalInput,
+    return {setup, capture, identity, logicalInput, requirement,
       checkedSource: {sourceRef, sourceContractCid, carrierSchemaContractCid,
         sourceDataPolicyCid, dataClassification, sourceViewContractCid},
       captureStartedAt, captureCompletedAt,
@@ -263,6 +265,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   fileInput = false, route = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
   let retained, publication, owner, execution, captured, publicationFailure, preparation;
+  let prepared, captureRun, capturePreparation, captureRequestIdentity;
   let permitCleanup = mode !== 'finalize-failure' && !route.publicationFault;
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
@@ -311,11 +314,11 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       )
       : moon.clientProgramCheckEnvironment(...checkArguments);
     assert.ok(environment);
-    preparation = await openFundedClientPreparation({moon, environment});
-    let prepared;
+    preparation = await openFundedClientPreparation({moon, environment, retainedRelationOutput: true});
+    const preparationRequest = {kind: 'aql', input: {text: document, format: 'json'},
+      parameters: captureRows ? {minimum: 0} : null};
     try {
-      prepared = await preparation.prepare({kind: 'aql', input: {text: document, format: 'json'},
-        parameters: captureRows ? {minimum: 0} : null});
+      prepared = await preparation.prepare(preparationRequest);
     } catch (error) {
       throw new Error(`${error.message}: ${inspect(error.cause, {depth: 4})}`,
         {cause: error});
@@ -325,8 +328,25 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const [registry, values, fragment, ordered] = contracts;
     const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(
       registry, values, fragment, ordered));
-    if (captureRows) captured = await openCapturedRetained(prepared,
-      contracts, installedContracts, directory, captureRows, budgets, fileInput);
+    if (captureRows) {
+      captureRequestIdentity = moon.clientProgramRequestIdentity(prepared,
+        cid('a'), 'retained-captured-chain', cid('b'));
+      assert.ok(captureRequestIdentity);
+      captured = await openCapturedRetained(prepared,
+        contracts, installedContracts, directory, captureRows, budgets, fileInput,
+        (acquisition, limits) => {
+          captureRun = adoptCapturedPublicationFixture({moon, preparation,
+            prepared, request: preparationRequest, identity: captureRequestIdentity,
+            acquisition, limits, installedContracts, contracts});
+          assert.ok(captureRun);
+          // Retain the actual returned Run before any later projection can fail.
+          const publicationPreparation = preparation.manager.publicationPreparation(prepared);
+          assert.strictEqual(publicationPreparation, captureRun.value);
+          capturePreparation = Object.freeze({publicationPreparation,
+            publicationOriginal: Object.freeze({kind: 'installed_run', value: publicationPreparation}),
+            compilationOriginal: preparation.manager.compilationOriginal(prepared)});
+        });
+    }
     // Boundary injection uses the same checked owner, installed provider and
     // retained driver. Ordinary success/fault cases use the product factory.
     const setup = captured?.setup ?? (budgets
@@ -671,7 +691,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const host = createNodeHostEntry(() => observedMoon, installStrategyContributions);
     const runtime = runtimeCore(observedMoon);
     const options = {moon, control: runtime.publicationControl,
-      publicationOriginal: captured ? undefined : publicationOriginalFixture(moon, prepared),
+      ...(captured ? {
+        publicationOriginal: capturePreparation.publicationOriginal,
+        publicationPreparation: capturePreparation.publicationPreparation,
+        compilationOriginal: capturePreparation.compilationOriginal,
+        requestIdentity: captureRequestIdentity,
+      } : {publicationOriginal: publicationOriginalFixture(moon, prepared, true)}),
       preparedProgram: prepared, authorityScopeCid: cid('a'),
       namespaceId: route.publicationNamespace ?? 'local',
       storeAuthorityCid: cid('c'), now: () => captured
@@ -860,6 +885,18 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     }
     // Return the original Request preparation only after its retained users
     // and captured input have completed their existing cleanup above.
+    if (captureRun !== undefined) {
+      const run = captureRun;
+      try {checked(moon.clientProgramInstalledManagedRunRetire(run.value));}
+      catch (cause) {
+        if (moon.clientProgramInstalledPreparationPayloadSevered(
+          run.value, captureRequestIdentity) !== true) throw cause;
+      }
+      preparation.retireOriginal(prepared);
+      preparation.manager.severPreparation(prepared, run.original);
+      checked(moon.clientProgramInstalledManagedRunRetire(run.value));
+      preparation.manager.retireSeveredPreparation(run.original);
+    }
     await preparation?.close();
   }
 }
