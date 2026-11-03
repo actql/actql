@@ -212,7 +212,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.equal(jobs.core.strategy['fail-fast'], false);
   for (const target of ['js', 'wasm', 'native']) {
     assert.equal(runInNewContext(jobs.core['timeout-minutes'].slice(3, -2),
-      {matrix: {target}}, {timeout: 100}), target === 'native' ? 40 : 30);
+      {matrix: {target}}, {timeout: 100}), target === 'native' ? 75 : 30);
   }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);

@@ -66,12 +66,12 @@ function coreBudget(fixture, value) {
   writeFileSync(path, JSON.stringify(workflow));
 }
 
-const nativeMatrixBudget = "${{ matrix.target == 'native' && 40 || 30 }}";
+const nativeMatrixBudget = "${{ matrix.target == 'native' && 75 || 30 }}";
 
 test('Core job matrix budgets preserve Native and portable workflow rows', t => {
   const f = fixture(t);
   coreBudget(f, nativeMatrixBudget);
-  for (const [target, seconds] of [['native', 2400], ['js', 1800], ['wasm', 1800]]) {
+  for (const [target, seconds] of [['native', 4500], ['js', 1800], ['wasm', 1800]]) {
     const result = f.run(['run', 'core', '--allow-heavy', '--target', target]);
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, new RegExp(`budget: ${seconds}s`, 'u'));
@@ -83,7 +83,7 @@ test('focused Moon matrix budgets preserve the exact target and test/build argum
   const f = fixture(t);
   coreBudget(f, nativeMatrixBudget);
   const expected = [];
-  for (const [flag, target, seconds] of [['--target', 'native', 2400], ['--target=js', 'js', 1800]]) {
+  for (const [flag, target, seconds] of [['--target', 'native', 4500], ['--target=js', 'js', 1800]]) {
     const args = [flag, ...(flag === '--target' ? [target] : []), '-p', 'query_integration'];
     const result = f.run(['test', 'moon', '--', ...args]);
     assert.equal(result.status, 0, result.stderr);
@@ -92,7 +92,7 @@ test('focused Moon matrix budgets preserve the exact target and test/build argum
   }
   const build = f.run(['build', 'moon', '--', '--target=native', 'src/query_integration']);
   assert.equal(build.status, 0, build.stderr);
-  assert.match(build.stderr, /budget: 2400s/u);
+  assert.match(build.stderr, /budget: 4500s/u);
   expected.push(['build', '--target=native', 'src/query_integration']);
   assert.deepEqual(readFileSync(join(f.root, 'moon-args'), 'utf8').trim().split('\n').map(JSON.parse), expected);
 });

@@ -309,10 +309,12 @@ try {
   const compilerDriver = coreArgs !== undefined && process.platform === 'darwin' &&
       process.env.ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC === '1'
     ? failedCoreDriver(process.cwd(), process.env.MOON_HOME) : undefined;
+  // The full Core child includes cold Native compilation and every selected
+  // test. Its finite budget is separate from the ordinary fixture oracles.
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
-    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 3600000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
   {env: testEnv, stdio: compilerDriver ? ['inherit', 'pipe', 'pipe'] : 'inherit'});
   if (compilerDriver) {

@@ -288,8 +288,9 @@ jobs:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
     # Physical Native fixtures use the existing Darwin arm64 profile.
     runs-on: ${{ matrix.target == 'native' && 'macos-14' || 'ubuntu-24.04' }}
-    # Native keeps its full 30-minute child plus fixture preparation and cleanup.
-    timeout-minutes: ${{ matrix.target == 'native' && 40 || 30 }}
+    # Native keeps its full 60-minute cold compile/test child plus fixture
+    # preparation, current compiler diagnostics and cleanup.
+    timeout-minutes: ${{ matrix.target == 'native' && 75 || 30 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -318,7 +319,8 @@ jobs:
           node scripts/local-checks.mjs test node --timeout-seconds 300 --
           --test-name-pattern '^Reader custody callbacks preserve'
           scripts/test-native-core.test.mjs
-      # Use one test job per actual runner CPU. Building is unaffected.
+      # Portable tests use the runner CPU count. Native serializes the large
+      # generated C compilations to limit concurrent compiler memory pressure.
       - name: Test common core
         # A diagnostic failure still fails this job, but must not suppress the
         # original Native campaign after its actual prerequisites succeeded.
@@ -340,7 +342,7 @@ jobs:
             # Keep the debug optimization level and every test; omit generated DWARF
             # from the large full-Core C compilation. The focused prerequisite
             # and Reader/compiler diagnostics above keep their debug profile.
-            node scripts/test-native-core.mjs --deny-warn --strip -j "$(getconf _NPROCESSORS_ONLN)" --verbose
+            node scripts/test-native-core.mjs --deny-warn --strip -j 1 --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then

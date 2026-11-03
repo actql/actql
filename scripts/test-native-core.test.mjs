@@ -987,7 +987,7 @@ test('native journal inspection declares required interfaces', () => {
 });
 
 
-test('full Native Core strips only debug information while retaining the complete strict parallel selection and failures', t => {
+test('full Native Core strips only debug information while retaining the complete strict serial selection and failures', t => {
   const root=mkdtempSync(join(tmpdir(),'actql-core-strip-routing-'));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const bin=join(root,'bin');mkdirSync(bin);
@@ -1011,7 +1011,7 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
     if(target==='native'){
       assert.deepEqual(calls,[
         ['scripts/test-native-core.mjs','--deny-warn','-p','platform_native/trusted_clock'],
-        ['scripts/test-native-core.mjs','--deny-warn','--strip','-j','3','--verbose'],
+        ['scripts/test-native-core.mjs','--deny-warn','--strip','-j','1','--verbose'],
       ]);
       const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
         cwd:root,encoding:'utf8',timeout:5000,
@@ -1023,6 +1023,42 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
       assert(calls.every(args=>!args.includes('--strip')));
       assert.deepEqual(calls[0],['test','--target',target,'--deny-warn','-j','3']);
     }
+  }
+});
+
+test('Native target child keeps a finite cold Core budget without widening ordinary fixture timeouts', () => {
+  const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("child = spawn(process.execPath, ['--input-type=module', '-e',");
+  const end = source.indexOf('\n  if (compilerDriver)', start);
+  assert(start >= 0 && end > start);
+  const moonArgs = ['--target', 'native', '--deny-warn', '--strip', '-j', '1', '--verbose'];
+  for (const [coreArgs, originalLocalReview, timeout] of [
+    [undefined, false, 180000],
+    [undefined, true, 600000],
+    [moonArgs.slice(2), false, 3600000],
+  ]) {
+    let invocation;
+    runInNewContext('let child;\n' + source.slice(start, end), {
+      process: {execPath: process.execPath}, coreArgs, originalLocalReview,
+      moonArgs, root: '/original/owned/fixture', testEnv: {}, compilerDriver: false,
+      spawn(command, args) { invocation = {command, args: Array.from(args)}; return {}; },
+    });
+    assert.equal(invocation.command, process.execPath);
+    assert.deepEqual(invocation.args.slice(0, 2), ['--input-type=module', '-e']);
+    const prefix = "import {runFocusedTests} from './scripts/test-execution.mjs'; ";
+    assert(invocation.args[2].startsWith(prefix));
+    const execution = {};
+    runInNewContext(invocation.args[2].slice(prefix.length), {
+      process: execution,
+      runFocusedTests(kind, args, options) {
+        assert.equal(kind, 'moon');
+        assert.deepEqual(Array.from(args), moonArgs);
+        assert.equal(options.timeout, timeout);
+        assert.equal(options.evidenceScratch, '/original/owned/fixture');
+        return 7;
+      },
+    });
+    assert.equal(execution.exitCode, 7, 'the original child failure must propagate');
   }
 });
 
