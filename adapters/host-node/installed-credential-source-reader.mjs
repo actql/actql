@@ -433,6 +433,10 @@ export function createInstalledCredentialSourceReader(options) {
                   occurrence.value === null || typeof occurrence.value !== 'object' || types.isProxy(occurrence.value))) {
                 fail('InvalidInstalledSourceReadChildOriginal');
               }
+              const retainedResponse = occurrence === undefined ? undefined
+                : Object.getOwnPropertyDescriptor(occurrence.value, 'retainRunResponseOriginal');
+              if (retainedResponse !== undefined && (!Object.hasOwn(retainedResponse, 'value') ||
+                  typeof retainedResponse.value !== 'boolean')) fail('InvalidInstalledSourceReadChildOriginal');
               const originalField = Object.getOwnPropertyDescriptor(prepared, 'originalAuthorization');
               const authorizationField = Object.getOwnPropertyDescriptor(prepared, 'authorization');
               let supplied;
@@ -497,7 +501,11 @@ export function createInstalledCredentialSourceReader(options) {
                   invocationScopeFields(authorization.scope, credential.control).operation !== operation ||
                   !invocationBindingsMatch(authorization.scope,originalAuthorization.scope, credential.control)) fail('ForeignInstalledSourceReadChild');
               await verifyChild();
-              const received = await receiveSourceResponse(responseCustody => invokeScopedCredentialOperation({authorization,credential,
+              // Preserve the native protocol's existing response-original
+              // request while keeping this SAME bound credential's authority.
+              const responseCredential = retainedResponse?.value === true
+                ? Object.freeze({...credential, retainRunResponseOriginal: true}) : credential;
+              const received = await receiveSourceResponse(responseCustody => invokeScopedCredentialOperation({authorization,credential:responseCredential,
                 callResource: input => Reflect.apply(callResource,selectedSite.site,[{...input,currentBeforeSend:verifyChild}]),
                 operation,method:request.method,path:request.target,headers:request.headers,
                 ...(request.body === undefined ? {} : {body:request.body}),

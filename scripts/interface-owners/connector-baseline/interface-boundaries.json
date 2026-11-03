@@ -6229,7 +6229,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "19fb580021b4eb5aea7a91a336de847d2db3cb4aa596a3d5e00222b7804ea900",
+      "sha256": "8bb08e6a87bf468fed39433c481218f81194a51f63878f46ed83875ed5680bb9",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [

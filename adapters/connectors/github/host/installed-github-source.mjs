@@ -317,19 +317,6 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
   const viewInput = await readers.readOriginalText(viewsUrl);
   construction.prepareDeclaration(viewInput, publication.catalogCid);
   const connection = `github:${new URL(site.apiOrigin).host}/${site.owner}/${site.repo}`;
-  const opened = await construction.openRowSite({
-    accountConfiguration: checkedProfile.accountConfigurationWire, connection,
-    profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
-    resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
-    ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
-    admitsApprovalTarget: (binding, resource) =>
-      binding?.version === TARGET_VERSION &&
-      binding.api_origin === site.apiOrigin &&
-      binding.repository_id === publication.repository.id &&
-      binding.repository_node_id === publication.repository.node_id &&
-      binding.owner === site.owner && binding.repo === site.repo &&
-      binding.catalog_cid === publication.catalogCid &&
-      binding.resource === resource && Array.isArray(binding.fields)});
   {
     const physicalTarget = (resource, fields) => Object.freeze({
       version: TARGET_VERSION, api_origin: site.apiOrigin,
@@ -376,6 +363,22 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
         maxRequestBytes:readLimits.maxRequestBytes,
         sequence:Object.freeze({operation:GITHUB_GRAPHQL_READ_OPERATION,maxUses:readLimits.maxPages,
           children:Object.freeze([])})})});
+    // The same credential issuer captures this implementation's limits when
+    // its Site is constructed; later registration cannot retrofit that owner.
+    const opened = await construction.openRowSite({
+      accountConfiguration: checkedProfile.accountConfigurationWire, connection,
+      runAcquisitionLimits: implementation.runAcquisitionLimits,
+      profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
+      resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
+      ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
+      admitsApprovalTarget: (binding, resource) =>
+        binding?.version === TARGET_VERSION &&
+        binding.api_origin === site.apiOrigin &&
+        binding.repository_id === publication.repository.id &&
+        binding.repository_node_id === publication.repository.node_id &&
+        binding.owner === site.owner && binding.repo === site.repo &&
+        binding.catalog_cid === publication.catalogCid &&
+        binding.resource === resource && Array.isArray(binding.fields)});
     const repository = Object.freeze({nodeId:publication.repository.node_id,
       databaseId:publication.repository.id,nameWithOwner:`${site.owner}/${site.repo}`});
     const providerReader = construction.createSourceReader({implementation,
