@@ -277,7 +277,9 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                     raise ValueError('Foreign executable output')
                 if entry == LOCAL_ENTRY:
                     parts = local_initial_entry_arguments(parts, moon_home, emission)
-                    parts.extend('-Wl,-exported_symbol,_' + symbol
+                if entry in (LOCAL_ENTRY, BUNDLE_ENTRY):
+                    parts.extend(('-Wl,-exported_symbol,_' if target == 'darwin-arm64'
+                                  else '-Wl,--export-dynamic-symbol=') + symbol
                                  for symbol in LOCAL_COMPONENT_PROVIDER_EXPORTS)
             elif under(resolved, moon_home / 'lib/runtime'):
                 if source.stem not in RUNTIME_NAMES or source.stem in runtime:

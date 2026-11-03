@@ -1132,6 +1132,8 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
       - name: Test selected Linux x64 process-provider ABI and original physical custody
@@ -1327,6 +1329,11 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test macOS local execution ownership and cancellation
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Verify native macOS arm64 profile
@@ -1398,6 +1405,8 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Install isolated network tools
         run: |
           sudo apt-get update

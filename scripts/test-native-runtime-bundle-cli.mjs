@@ -1,4 +1,4 @@
-import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
+import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
@@ -33,17 +33,6 @@ await Promise.all([
 ]);
 
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
-const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
-  (process.platform === 'darwin'
-    ? [
-        '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib',
-        '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib',
-      ].find(existsSync) ?? 'libcrypto.3.dylib'
-    : 'libcrypto.so.3');
-const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-  (process.platform === 'darwin'
-    ? '/usr/lib/libsqlite3.dylib'
-    : 'libsqlite3.so.0');
 const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
   ? 'aarch64-apple-darwin'
   : process.platform === 'linux' && process.arch === 'x64'
@@ -55,12 +44,15 @@ if (targetTriple === undefined) {
   );
 }
 
+let passed = false;
 try {
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
   const executable = prepareNativeRuntimeBundle(repositoryRoot,
     join(root, 'runtime-bundle-producer'));
+  const bundleLibraries = prepareNativeRuntimeBundleLibraries(repositoryRoot,
+    join(root, 'runtime-bundle-components'));
   const moonModule = await import(pathToFileURL(join(
     repositoryRoot,
     '_build/js/release/build/connectors_builtin_node/' +
@@ -163,8 +155,8 @@ try {
 
   const common = [
     '--store-root', storeRoot,
-    '--sqlite-library', sqliteLibrary,
-    '--crypto-library', cryptoLibrary,
+    '--sqlite-library', bundleLibraries.sqliteLibrary,
+    '--crypto-library', bundleLibraries.cryptoLibrary,
     '--target-triple', targetTriple,
     '--authority-root', inputRoot,
     '--trust-config-name', 'trust.json',
@@ -404,6 +396,9 @@ try {
   assert.equal((await run('list')).length, 14);
   assert.equal((await run('recover')).length, 14);
   console.log('Native runtime bundle CLI lifecycle passed');
+  passed = true;
 } finally {
-  await rm(root, {recursive: true, force: true});
+  if (passed && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+    await rm(root, {recursive: true, force: true});
+  } else console.error(`Native runtime bundle original scratch retained: ${root}`);
 }

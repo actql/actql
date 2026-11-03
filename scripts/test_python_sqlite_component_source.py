@@ -20,6 +20,12 @@ def identity(raw):
 
 
 class SQLiteSourceTests(unittest.TestCase):
+    def test_current_provider_source_identities_are_exact(self):
+        recipe = json.loads((SOURCE / 'source.json').read_bytes())
+        for path, expected in recipe['provider_inputs'].items():
+            with self.subTest(path=path):
+                self.assertEqual(identity((ROOT / path).read_bytes()), expected)
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

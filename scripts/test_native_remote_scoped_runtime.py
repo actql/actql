@@ -353,6 +353,20 @@ class BundleInstallerComposition(unittest.TestCase):
             self.assertFalse(record['permission'])
             self.assertFalse(record['physicalAcquired'])
 
+    def test_installer_exports_only_the_existing_component_provider_ports_at_final_link(self):
+        for target, options, prefix in (
+            ('darwin-arm64', {}, '-Wl,-exported_symbol,_'),
+            ('linux-x64', {'stock_file_control_bytes': 4096}, '-Wl,--export-dynamic-symbol='),
+        ):
+            with self.subTest(target=target):
+                planned = self.plan(target=target, **options)
+                expected = {prefix + symbol for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS}
+                self.assertEqual({part for step in planned for part in step
+                                  if part.startswith(prefix)}, expected)
+                selected = [step for step in planned if any(part in expected for part in step)]
+                self.assertEqual(len(selected), 1)
+                self.assertNotIn('-c', selected[0])
+
     def test_installer_rejects_component_extents_that_cannot_coexist(self):
         original_root = MODULE.ROOT
         recipe = json.loads((original_root / MODULE.BUNDLE_ENTRY / 'initial_control_recipe.json').read_text())

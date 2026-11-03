@@ -1,4 +1,4 @@
-import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
+import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import assert from 'node:assert/strict';
@@ -2005,6 +2005,8 @@ verification: try {
 
   const runtimeBundleExecutable = prepareNativeRuntimeBundle(repositoryRoot,
     join(root, 'runtime-bundle-producer'));
+  const runtimeBundleLibraries = prepareNativeRuntimeBundleLibraries(repositoryRoot,
+    join(root, 'runtime-bundle-components'));
   const applicationComponent = await readFile(applicationExecutable);
   const applicationComponentCid = physicalCid(applicationComponent);
   const duckdbLibrary = join(
@@ -2083,8 +2085,8 @@ verification: try {
   ]);
   const applicationBundleCommon = [
     '--store-root', applicationRuntimeRoot,
-    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    '--crypto-library', cryptoLibrary,
+    '--sqlite-library', runtimeBundleLibraries.sqliteLibrary,
+    '--crypto-library', runtimeBundleLibraries.cryptoLibrary,
     '--target-triple', targetTriple,
     '--authority-root', applicationBundleInputRoot,
     '--trust-config-name', 'trust.json',

@@ -4,6 +4,7 @@
 // and runs it in a separate executor holder. The executor entry count is
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
+import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import test from 'node:test';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
@@ -153,7 +154,7 @@ async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
   execFileSync(moon, ['build', '--target', 'native', '--strip',
-    'src/cmd/native_remote_resident_site', 'src/cmd/native_runtime_bundle'],
+    'src/cmd/native_remote_resident_site'],
   {cwd: repository, stdio: 'inherit'});
   execFileSync(moon, ['build', '--target', 'js', '--release',
     'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
@@ -162,8 +163,10 @@ try {
   {cwd: repository, stdio: 'inherit'});
   const executable = join(repository, '_build/native/debug/build/cmd/' +
     'native_remote_resident_site/native_remote_resident_site.exe');
-  const bundleTool = join(repository, '_build/native/debug/build/cmd/' +
-    'native_runtime_bundle/native_runtime_bundle.exe');
+  const bundleTool = prepareNativeRuntimeBundle(repository,
+    join(root, 'runtime-bundle-producer'));
+  const bundleLibraries = prepareNativeRuntimeBundleLibraries(repository,
+    join(root, 'runtime-bundle-components'));
   const moonModule = await import(pathToFileURL(join(repository,
     '_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js')).href);
@@ -366,7 +369,7 @@ try {
     {mode: 0o600});
   await writeFile(join(bundleInput, 'component.bin'), component, {mode: 0o700});
   const bundleCommon = ['--store-root', runtimeRoot, '--sqlite-library',
-    sqliteLibrary, '--crypto-library', cryptoLibrary, '--target-triple',
+    bundleLibraries.sqliteLibrary, '--crypto-library', bundleLibraries.cryptoLibrary, '--target-triple',
     targetTriple, '--authority-root', bundleInput, '--trust-config-name',
     'trust.json', '--capacity-bytes', '268435456', '--max-bundles', '4',
     '--max-owners', '8', '--max-record-bytes', '1048576'];

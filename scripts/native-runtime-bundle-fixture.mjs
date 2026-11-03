@@ -49,3 +49,44 @@ export function prepareNativeRuntimeBundle(repository, destination, {
   for (const key of ['dev','ino','size','mode','mtimeMs','ctimeMs']) assert.equal(after[key],original[key]);
   return binary;
 }
+
+export function prepareNativeRuntimeBundleLibraries(repository, destination, {
+  execute = execFileSync, platform = process.platform, arch = process.arch,
+  opensslPrefix = process.env.ACTQL_TEST_NATIVE_OPENSSL_PREFIX ?? '/opt/homebrew/opt/openssl@3',
+  seconds = 600,
+} = {}) {
+  assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
+  const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
+    : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
+  assert(target, 'No selected bundle component recipe for this actual platform');
+  repository = realpathSync(repository);
+  destination = join(realpathSync(dirname(resolve(destination))), basename(destination));
+  const run = (command, args) => execute(command, args, {cwd: repository,
+    encoding: 'utf8', timeout: (seconds + 30) * 1000, maxBuffer: 8 * 1024 ** 2});
+  const source = run('git', ['rev-parse', 'HEAD']).trim();
+  assert.match(source, /^[0-9a-f]{40}$/u);
+  assert.equal(run('git', ['status', '--porcelain']), '');
+  const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
+    : run('sh', ['-c', 'command -v cc']).trim());
+  const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
+  run('python3', [join(repository, 'scripts/prepare-native-runtime-bundle-components.py'),
+    '--source', source, '--target', target, '--clang', clang,
+    ...(sdk === undefined ? [] : ['--sdk', sdk]), '--openssl-prefix', realpathSync(opensslPrefix),
+    '--destination', destination, '--seconds', String(seconds)]);
+  const receipt = JSON.parse(readFileSync(join(destination, 'bundle-components.json'), 'utf8'));
+  assert.equal(receipt.source, source); assert.equal(receipt.target, target);
+  assert.equal(receipt.providers, 0); assert.equal(receipt.loaded, false);
+  assert.equal(receipt.initialized, false);
+  for (const name of ['sqlite', 'crypto']) {
+    const item = receipt[name];
+    assert.equal(dirname(item.path), join(destination, name));
+    const original = lstatSync(item.path);
+    assert(original.isFile() && !original.isSymbolicLink());
+    const bytes = readFileSync(item.path);
+    assert.equal(bytes.length, item.bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
+  }
+  assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
+  assert.equal(run('git', ['status', '--porcelain']), '');
+  return {sqliteLibrary: receipt.sqlite.path, cryptoLibrary: receipt.crypto.path};
+}

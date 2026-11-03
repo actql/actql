@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {mkdirSync,mkdtempSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
+import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 
 function fixture(t, platform) {
   const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-bundle-producer-port-')));
@@ -61,4 +61,31 @@ test('foreign platform selection refuses before a compiler or source query',t=>{
   const f=fixture(t,'darwin');
   assert.throws(()=>prepareNativeRuntimeBundle(f.root,f.destination,{execute:f.execute,platform:'linux',arch:'arm64',moonHome:f.tool}),/No selected bundle command recipe/u);
   assert.deepEqual(f.calls,[]);
+});
+
+test('bundle libraries use the original component producers and verify their original bytes',t=>{
+  for (const corrupt of [false,true]) {
+    const f=fixture(t,'darwin');
+    const destination=join(f.root,'components');
+    const execute=(command,args)=>{
+      if(command!=='python3')return f.execute(command,args);
+      assert.equal(args[0],join(f.root,'scripts/prepare-native-runtime-bundle-components.py'));
+      assert.equal(args[args.indexOf('--openssl-prefix')+1],f.tool);
+      assert.equal(args[args.indexOf('--target')+1],'darwin-arm64');
+      const receipt={source:'a'.repeat(40),target:'darwin-arm64',providers:0,loaded:false,initialized:false};
+      for(const name of ['sqlite','crypto']) {
+        mkdirSync(join(destination,name),{recursive:true});
+        const path=join(destination,name,'original.dylib'),bytes=Buffer.from('Source-only '+name+' bytes');
+        writeFileSync(path,bytes);
+        receipt[name]={path,bytes:bytes.length,sha256:corrupt?'0'.repeat(64):createHash('sha256').update(bytes).digest('hex')};
+      }
+      writeFileSync(join(destination,'bundle-components.json'),JSON.stringify(receipt));
+      return '';
+    };
+    const prepare=()=>prepareNativeRuntimeBundleLibraries(f.root,destination,
+      {execute,platform:'darwin',arch:'arm64',opensslPrefix:f.tool});
+    if(corrupt)assert.throws(prepare,/Expected values to be strictly equal/u);
+    else assert.deepEqual(prepare(),{sqliteLibrary:join(destination,'sqlite/original.dylib'),
+      cryptoLibrary:join(destination,'crypto/original.dylib')});
+  }
 });
