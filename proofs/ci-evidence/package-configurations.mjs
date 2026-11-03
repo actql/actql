@@ -76,13 +76,14 @@ const foreignLibraryConfigurations = Object.freeze({
 // Current successor review is separate from every retained historical cohort.
 // See docs/reviews/2026-10-25-session-current-configuration-review.json.
 // Current updates: docs/reviews/2026-11-02-session-current-input-review.md and
-// docs/reviews/2026-11-03-session-current-input-successor-review.md.
+// docs/reviews/2026-11-03-session-current-input-successor-review.md and
+// docs/reviews/2026-11-04-session-current-recovery-configuration-review.md.
 // Constants below are reviewed bytes, never hashes computed from current files.
 // A per-entry revision records only that exact reviewed input; the default
 // revision still applies to every unchanged entry.
 export const currentConfigurationReviewRevision = '38e95bfac2907700456de6c53ed0cad3620bb72d';
 export const currentPackageConfigurations = Object.freeze({
-  'src/client_local_host/moon.pkg': Object.freeze({digest: 'cfca988cdf11313a74b593dfa02c6a2f12f796b408284a099d18813104e6dbb6', rule: 'literal-target-selectors-with-bound-source-membership', revision: '27e8548120386014e37c29b05b5d1e7d887e557c'}),
+  'src/client_local_host/moon.pkg': Object.freeze({digest: '954d9601ff5c5745b53f13ce74b1c2c5da870c5f9a87681df1212864826dd2b8', rule: 'literal-target-selectors-with-bound-source-membership', revision: '566220718ba5d0c93378419387f59802c5a56cfa'}),
   'src/connectors_builtin_node/moon.pkg': Object.freeze({digest: '707ebd62113403d8c1a08c3db9ea28d5e899c3c80d6ac7dc5cfadd545045ac38', rule: 'literal-js-foreign-library-with-bound-source-membership', revision: '66e7845f75c4eef5ebbb8d59d5fb4b652f73aa0c'}),
   'src/native_values_integration/moon.pkg': Object.freeze({digest: 'aa3777f1835f552da0ea34a13bbcb0de9afeb6c96adeadfbb26b483ce683c54f', rule: 'literal-native-options-with-bound-source-membership'}),
   'src/physical_resources/moon.pkg': Object.freeze({digest: '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb', rule: 'literal-target-selectors-with-bound-source-membership', revision: '3484e0f43d8eee0013bb5fb8fba03e7fc873377f'}),

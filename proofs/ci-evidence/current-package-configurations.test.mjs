@@ -79,11 +79,21 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
 
 // One current map records each input's exact review, while archived preimages
 // above remain evidence for their own source only, never runtime acceptance.
-test('current Local Host review binds the literal Relation import and JS Kintone fixture', () => {
+test('current Local Host review binds the exact JS recovery successor and original imports', () => {
   const path = 'src/client_local_host/moon.pkg';
   const entry = currentPackageConfigurations[path];
+  assert.equal(entry.revision, '566220718ba5d0c93378419387f59802c5a56cfa');
+  assert.equal(entry.digest, '954d9601ff5c5745b53f13ce74b1c2c5da870c5f9a87681df1212864826dd2b8');
   const selectedTree = gitTree(root, entry.revision);
   const body = selectedTree.read(path).toString();
+  assert.equal(hash(body), entry.digest);
+  execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
+  const prior = gitTree(root, '27e8548120386014e37c29b05b5d1e7d887e557c').read(path).toString();
+  assert.equal(hash(prior), 'cfca988cdf11313a74b593dfa02c6a2f12f796b408284a099d18813104e6dbb6');
+  const selector = '    "preparation_request_model_recovery_js_wbtest.mbt": [ "js" ],\n';
+  assert.equal(body.split(selector).length, 2);
+  assert.equal(body.replace(selector, ''), prior);
+  assert.deepEqual(packageImports(body).imports, packageImports(prior).imports);
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
@@ -91,8 +101,46 @@ test('current Local Host review binds the literal Relation import and JS Kintone
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes('src/relation_typing/moon.pkg'));
   assert(selected.paths.includes('src/client_local_host/installed_kintone_whole_source_js_wbtest.mbt'));
+  assert(selected.paths.includes('src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt'));
+  for (const changed of [prior, body.replace(selector, selector.replace('"js"', '"native"'))]) {
+    assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
+    const altered = {...selectedTree, read: member => member === path ? Buffer.from(changed) : selectedTree.read(member)};
+    assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
+      .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
   for (const target of ['native', 'wasm']) {
     assert.equal(currentPackageConfigurationReviewFor({...request(path, entry.digest), target}), null);
+  }
+});
+
+test('current preparation manifest binds the integrated literal value-admission dependency', () => {
+  const path = 'src/client_local_preparation/moon.pkg';
+  const revision = 'ef74293ba33e4493ba0777e3bb4ee29eac3b9551';
+  execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const reviewed = gitTree(root, revision), bytes = reviewed.read(path), body = bytes.toString();
+  assert.equal(hash(bytes), '15c87c0278844f963c003ee10256cd9bece3c436cdb9e00ffe1d4cb43e9304cd');
+  const parent = execFileSync('git', ['rev-parse', revision + '^'], {cwd: root, encoding: 'utf8'}).trim();
+  const prior = gitTree(root, parent).read(path).toString();
+  assert.equal(hash(prior), '86235f30cbe02faee143dddb93b7b9ce623b86e3eaeb89c4d7c7046900daf296');
+  const dependency = '  "actql/actql/value_admission" @admitted,\n';
+  assert.equal(body.split(dependency).length, 2);
+  assert.equal(body.replace(dependency, ''), prior);
+  assert.equal(packageImports(body).unknown, null, 'Literal imports use the existing parser, without an options exception');
+  assert.deepEqual(packageImports(body).imports,
+    [...packageImports(prior).imports, 'actql/actql/value_admission'].sort());
+  const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
+  assert.deepEqual(head.read(path), bytes);
+  const selected = packageSourceInputs({tree: head, packages: ['src/client_local_preparation'], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  for (const directory of ['src/client_local_preparation', 'src/parameter_binding', 'src/value_admission']) {
+    const members = [...head.entries.keys()].filter(member => member.startsWith(directory + '/') &&
+      !member.slice(directory.length + 1).includes('/')).sort();
+    assert.deepEqual(selected.directories.find(entry => entry.path === directory + '/*')?.members, members);
+    for (const member of members) {
+      assert(selected.paths.includes(member));
+      assert.equal(head.entries.get(member).kind, 'blob');
+      assert.equal(head.entries.get(member).mode, '100644');
+    }
   }
 });
 

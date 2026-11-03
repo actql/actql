@@ -76,7 +76,7 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   const transferManifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
   assert(packageImports(tree.read(transferManifest).toString('utf8')).imports.includes('actql/actql/sha256'),
     'Transfer destination reader identity requires the literal SHA-256 dependency');
-  for (const path of [transferManifest, 'src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
+  for (const path of [transferManifest, 'src/client_local_host/moon.pkg', 'src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
     'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
     'src/platform_native/remote_journal/moon.pkg', 'src/platform_native/remote_transfer_client/moon.pkg',
     'src/platform_native/signature/moon.pkg', 'src/query_integration/moon.pkg',
@@ -94,7 +94,8 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
     'src/effect_application', 'src/logical_request_scope', 'src/client_row_source_host', 'src/bounded_graph_diff',
     'src/platform_native/remote_transfer_journal', 'src/sha256',
     'src/platform_native/remote_journal', 'src/platform_native/remote_standard_host',
-    'src/platform_native/retained_task_file', 'src/client_local_preparation',
+    'src/platform_native/retained_task_file', 'src/client_local_host', 'src/client_local_preparation',
+    'src/value_admission',
     'src/client_local_run', 'src/client_host_buffers']) {
     const immediateMembers = allSources.filter(path => path.startsWith(`${directory}/`) &&
       !path.slice(directory.length + 1).includes('/')).sort();
@@ -128,6 +129,25 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
   const sourceRoot = join(destination, 'source'), expected = snapshotFromGit(tree);
   assert.deepEqual(snapshot(sourceRoot), expected);
   assert.deepEqual(checkMutationCheckout({root: sourceRoot, tree}), expected);
+  const recovery = 'src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt';
+  const preparation = 'src/client_local_preparation/moon.pkg';
+  assert(packageImports(tree.read(preparation).toString()).imports.includes('actql/actql/value_admission'));
+  for (const path of [recovery, preparation, 'src/value_admission/moon.pkg']) {
+    assert(inputs.inputs.files.some(entry => entry.path === path && entry.digest === hash(tree.read(path))));
+    assert.equal(expected.sources[path], hash(tree.read(path)));
+  }
+  const recoveryFile = join(sourceRoot, recovery), original = readFileSync(recoveryFile);
+  try {
+    writeFileSync(recoveryFile, Buffer.concat([original, Buffer.from('\n// unrestored current fixture\n')]));
+    assert.throws(() => checkMutationCheckout({root: sourceRoot, tree}), /Mutation checkout bytes differ from Git/u);
+    writeFileSync(recoveryFile, original);
+    chmodSync(recoveryFile, 0o755);
+    assert.throws(() => checkMutationCheckout({root: sourceRoot, tree}), /Mutation checkout mode differs from Git/u);
+  } finally {
+    writeFileSync(recoveryFile, original);
+    chmodSync(recoveryFile, 0o644);
+  }
+  assert.deepEqual(checkMutationCheckout({root: sourceRoot, tree}), expected);
   for (const path of tree.entries.keys()) if (path.startsWith('src/') && !Object.hasOwn(expected.sources, path))
     assert.equal(existsSync(join(sourceRoot, path)), false);
   assert(inputs.unresolved.includes('runtime not executed'));
@@ -135,7 +155,7 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
     stagedBytes: staged.bytes, scope: 'Git/filesystem correspondence; no compiler, image execution or reuse'}));
 });
 
-for (const manifest of ['src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
+for (const manifest of ['src/client_local_host/moon.pkg', 'src/connectors_builtin_node/moon.pkg', 'src/native_values_integration/moon.pkg',
   'src/platform_native/filesystem/moon.pkg', 'src/platform_native/http_client/moon.pkg',
   'src/platform_native/result_access/moon.pkg', 'src/platform_native/sqlite/moon.pkg',
   'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
