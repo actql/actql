@@ -210,8 +210,14 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
+  for (const target of ['js', 'wasm', 'native']) {
+    assert.equal(runInNewContext(jobs.core['timeout-minutes'].slice(3, -2),
+      {matrix: {target}}, {timeout: 100}), target === 'native' ? 40 : 30);
+  }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
+  assert.equal(jobs['native-macos']['timeout-minutes'], 30);
+  assert.equal(jobs['native-macos']['timeout-minutes'], jobs.native['timeout-minutes']);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
   for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);

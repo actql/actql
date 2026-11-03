@@ -94,6 +94,35 @@ function requireHeavy(classification, options) {
   }
 }
 
+// Resolve only the workflow's literal two-branch Native matrix budget. This
+// is not an Actions expression evaluator; unfamiliar expressions require an
+// explicit local budget, just like missing/non-numeric workflow values.
+function workflowMinutes(name, target) {
+  const value = workflow.jobs[name]?.['timeout-minutes'];
+  if (typeof value === 'number') return value;
+  if (name !== 'core' || typeof value !== 'string' || target === undefined) return undefined;
+  const match = /^\$\{\{\s*matrix\.target\s*==\s*'native'\s*&&\s*([1-9][0-9]*)\s*\|\|\s*([1-9][0-9]*)\s*\}\}$/u.exec(value);
+  if (!match) return undefined;
+  const minutes = Number(match[target === 'native' ? 1 : 2]);
+  return Number.isSafeInteger(minutes) ? minutes : undefined;
+}
+
+// A missing target uses Moon's ordinary non-Native default. Ambiguous or
+// unsupported target selections cannot infer one matrix row's time budget.
+function selectedMoonTarget(args) {
+  let target = null;
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === '--') break;
+    if (arg === '--target' || arg.startsWith('--target=')) {
+      if (target !== null) return undefined;
+      target = arg === '--target' ? args[++index] : arg.slice('--target='.length);
+      if (!['js', 'wasm', 'native'].includes(target)) return undefined;
+    }
+  }
+  return target;
+}
+
 async function execute(steps, classification, options, defaultMinutes) {
   const timeoutSeconds = checkBudget(options['--timeout-seconds'], defaultMinutes);
   const graceSeconds = options['--kill-grace-seconds'] === undefined ? 5 :
@@ -127,7 +156,7 @@ async function runJob(name, args) {
   return execute(selected.map(step => ({name: `${name}: ${step.name}`,
     command: 'bash', args: ['-eo', 'pipefail', '-c', step.run], scratch: step.scratch,
     env: {RUNNER_TEMP: step.scratch, ...step.env},
-  })), classification, options, workflow.jobs[name]['timeout-minutes']);
+  })), classification, options, workflowMinutes(name, target));
 }
 
 async function runSelected(command, kind, args) {
@@ -140,7 +169,7 @@ async function runSelected(command, kind, args) {
     {heavy: false, classification: 'focused'};
   requireHeavy(classification, options);
   const defaultMinutes = classification.heavy ? undefined :
-    workflow.jobs[kind === 'moon' ? 'core' : 'lint']?.['timeout-minutes'];
+    workflowMinutes(kind === 'moon' ? 'core' : 'lint', kind === 'moon' ? selectedMoonTarget(selected) : null);
   // Reuse the existing summary/evidence guard unchanged, in an owned child so
   // its synchronous test capture cannot block timeout or parent-death handling.
   const step = command === 'test' ? {name: `selected ${kind} tests`, command: process.execPath,
