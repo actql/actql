@@ -739,6 +739,8 @@ pub fn node_at(Prepared, Int) -> PreparedNode?
 
 pub fn node_can_split_carrier_transform(PreparedNode) -> Bool
 
+pub fn node_closed_item_count_bound(PreparedNode, Array[Int]) -> Int?
+
 pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
