@@ -36126,7 +36126,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78d2edc8eb851ad1dfaabd428285d494508da2093e1cb64d3c2f5e76df9a3a86",
+      "sha256": "6ec6fbfb21e155eda3978e0cc338b3d2d38d69ac637c09cf6cfc574984483911",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -36461,6 +36461,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/supportsCheckObservation/supportsCheckObservation",
+          "parameters": [
+            "intent"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientSubmission/unresolved/unresolved",
           "parameters": [
             "submissionRef",
@@ -36540,6 +36547,7 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/submitIntent/submitIntent/restartFields/restartFields",
             "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal",
+            "installNodeClientSubmission/supportsCheckObservation/supportsCheckObservation",
             "installNodeClientSubmission/unresolved/unresolved",
             "installNodeClientSubmission/withRestart/withRestart",
             "issueNodeClientSubmissionEpoch",

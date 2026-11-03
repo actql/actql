@@ -114,6 +114,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       acknowledgement: retained.unresolvedHistory.acknowledgement}});
   const storedOutcome = retained => withRestart(retained.outcome ?? immutable({kind: 'preparing',
     submissionRef: retained.submissionRef, intentCid: retained.intentCid}), retained);
+  // Match the existing SDK observation input contract. Other Source formats
+  // retain their actual preparation outcome without an unsupported report.
+  const supportsCheckObservation = intent => intent.kind === 'program' ||
+    intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format);
   const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind)) return outcome;
     const projectsProblem = ['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit',
@@ -123,7 +127,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
-    if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format))) {
+    if (!supportsCheckObservation(intent)) {
       if (originalObservation !== undefined) {
         const current = await authorize(value);
         if (current.authorityScopeCid !== fields.authorityScopeCid ||
@@ -334,7 +338,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         if (observeOriginalPreparationFailure !== undefined) {
           try {
             const report = await observeOriginalPreparationFailure(error, value);
-            if (validCheckOutcome(report)) return report;
+            // Keep the same original callback and its current/lifetime fences
+            // even when this input format has no public observation binding.
+            if (validCheckOutcome(report) && supportsCheckObservation(value)) return report;
           } catch {
             // Reporting cannot replace the primary failure or acknowledge its
             // original Request/physical cleanup. Missing is not a recheck port.
