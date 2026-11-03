@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, relative, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -89,8 +89,36 @@ test('external production cannot reuse a reviewed Core legacy context before com
   assert(reviewed);
   // Identical bytes/context have a different production owner. They cannot
   // inherit Core's reviewed source admission through a compiled token match.
-  writeFileSync(join(f.providers[0].root, 'src/copied.mbt'),
+  writeFileSync(join(f.providers[0].root, 'src/connectors/external_read/host_node/copied.mbt'),
     readFileSync(join(repository, reviewed.path)));
+  await assert.rejects(buildExternalLocalNodeRuntime({inputs,
+    destination: join(f.host, 'distribution'), compiledDirectory: join(f.host, 'compiled')}),
+  /Unadmitted external source contract contexts/u);
+});
+
+test('external contract checks follow owned adapter helpers without traversing unrelated package caches', async t => {
+  const f = fixture(t, {adapterImport: ({helper}) => helper});
+  const provider = f.providers[0].root;
+  const metadata = join(provider, 'moon.mod');
+  writeFileSync(metadata, readFileSync(metadata, 'utf8').replace('source = "src"', 'source = "."'));
+  cpSync(join(provider, 'src/connectors'), join(provider, 'connectors'), {recursive: true});
+  const packagePath = join(provider, 'connectors/external_read/host_node/moon.pkg');
+  writeFileSync(packagePath, readFileSync(packagePath, 'utf8') +
+    '\nimport { "fixture/external_read/unavailable_test", } for "test"\n');
+  // A source='.' package can coexist with cache/dependency trees and unrelated
+  // links. Only the compiler's declared package closure is production input.
+  for (const name of ['_build', '.mooncakes', 'node_modules']) symlinkSync('/unselected-cache', join(provider, name));
+  const inventory = JSON.parse(readFileSync(join(repository, 'scripts/owned-contract-version-legacy.json'), 'utf8'));
+  const token = inventory.entries.find(entry => entry.path.startsWith('src/') &&
+    entry.path.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/u.test(entry.path)).token;
+  writeFileSync(join(provider, 'adapters/connectors/external_read/host/helper.mjs'),
+    `export const originalVersion = ${JSON.stringify(token)};\n`);
+  const inputs = localNodePackageInputs(f.host, {buildInputs: resolveConnectorBuildInputs({
+    target: 'js', modules: f.inputs.modules.map(({namespace, version, root}) => ({namespace, version, root})),
+    host: f.inputs.host.namespace,
+    connectors: f.providers.map(entry => ({name: entry.name, module: `fixture/external_${entry.role}`,
+      directory: `src/connectors/${entry.name}`})),
+  })});
   await assert.rejects(buildExternalLocalNodeRuntime({inputs,
     destination: join(f.host, 'distribution'), compiledDirectory: join(f.host, 'compiled')}),
   /Unadmitted external source contract contexts/u);

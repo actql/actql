@@ -134,9 +134,9 @@ function moduleMetadata(root) {
 
 // Inspect only the selected package's metadata. The compiler still owns
 // parsing and type checking; no transitive source discovery happens here.
-function packageMetadata(path) {
+export function packageMetadata(path) {
   const input = reader(readFileSync(path, 'utf8'), path);
-  const imports = [];
+  const imports = [], productionImports = [];
   let target;
   let targets = null;
   while (!input.done()) {
@@ -146,6 +146,7 @@ function packageMetadata(path) {
       input.take('symbol', '=');
       target = input.take('string');
     } else if (directive === 'import') {
+      const first = imports.length;
       input.take('symbol', '{');
       while (!input.peek('}')) {
         imports.push(input.take('string'));
@@ -156,7 +157,7 @@ function packageMetadata(path) {
       if (input.peek('for')) {
         input.take('word', 'for');
         if (!['test', 'wbtest'].includes(input.take('string'))) throw new Error('Unsupported package import scope');
-      }
+      } else productionImports.push(...imports.slice(first));
     } else if (directive === 'options') {
       if (targets !== null) throw new Error('UnknownManifestOptions: duplicate targets');
       targets = readPackageTargetOptions(input);
@@ -180,7 +181,7 @@ function packageMetadata(path) {
     } else throw new Error(`Unsupported package metadata: ${directive}`);
   }
   supportsJS(target, path);
-  return {imports, targets};
+  return {imports, productionImports, targets};
 }
 
 export function resolveConnectorBuildInputs(configuration) {
