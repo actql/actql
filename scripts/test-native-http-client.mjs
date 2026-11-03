@@ -1340,12 +1340,26 @@ verification: try {
     // Package tests are independent consumers, not successive recoveries of
     // one Store. Keep retained files and capacity in their original namespace.
     const packageStoreRoot = nativePackageStoreRoot(root);
+    const walFixtureEnvironment = {};
+    if (packagePath === 'src/platform_native/remote_journal') {
+      // Same exec-only WAL producer as the Native core harness. In particular,
+      // macOS system SQLite must not be entered between fork and exec. Keep
+      // its executable in this invocation's owned namespace and pass it only
+      // to the Journal test child, never to preparation or other consumers.
+      const walFixture = join(root, 'unclosed-sqlite-fixture');
+      execFileSync('cc', ['-std=c11', '-O2', '-Wall', '-Wextra', '-Werror',
+        fileURLToPath(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url)),
+        '-o', walFixture,
+        ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
+      walFixtureEnvironment.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE = walFixture;
+    }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
       env: packagePath === 'src/platform_native/filesystem'
         ? {...testEnvironment, ...nativePrivateHostFixture(root),
           ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
         : {...testEnvironment,
+          ...walFixtureEnvironment,
           ...(packagePath === 'src/platform_native/signature'
             ? nativeOriginalSigningFixture(root) : {}),
           ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},

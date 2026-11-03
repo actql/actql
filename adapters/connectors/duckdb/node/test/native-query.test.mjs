@@ -152,12 +152,18 @@ test('native coordinator requires both exact settled receipts and revokes failed
 
     const dispatching = open => {
       const ref = {runDefinitionCid: 'physical-source-cleanup'};
+      const preparedProgram = {};
       const stopped = [];
       let computes = 0;
       let cancellationRequested = false, revision = 1, physicalCloseConfirmed = false;
       const access = {};
       const owner = installNodeClientDispatchOwner({
-        moon: {clientProgramAcquisitionCount: () => 1},
+        moon: {clientProgramAcquisitionCount: () => 1,
+          clientProgramRequiresAcquisitionResultPublication(actual) {
+            assert.strictEqual(actual, preparedProgram);
+            // Lifecycle-only fixture: acquisition never publishes a Result.
+            return false;
+          }},
         control: {runDefinitionRunId: () => 'physical-source-cleanup',
           runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
         journal: {reservePhysicalStart: () => true,
@@ -183,7 +189,7 @@ test('native coordinator requires both exact settled receipts and revokes failed
         return owner.cancel(ref);
       }}, ref, stopped, computes: () => computes,
         async start() {
-          assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner',
+          assert.equal(await owner.start({preparedProgram, principalId: 'owner',
             connection: {}, requestId: 'source-cleanup'}, {},
           {ref, runDefinition: {wire: 'definition'}, dispatchReserved: false},
           {preparedSourceAccess: access,

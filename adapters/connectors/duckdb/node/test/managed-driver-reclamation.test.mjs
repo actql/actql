@@ -21,7 +21,7 @@ import {registerManagedInput, withManagedInputFile} from '../../../../store-loca
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 import * as hostRuntime from '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {installNodeClientProgramPreparation} from '../../../../host-node/client-program-preparation.mjs';
+import {openFundedClientPreparation} from '../../../../host-node/funded-client-preparation.fixture.mjs';
 import {canonicalText} from '../../../../../scripts/check-canonical-json.mjs';
 
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
@@ -75,10 +75,14 @@ test('installed DuckDB cleanup retires large admission without another native at
       environment, JSON.parse(environment).evidence_bundle_cid,
       false, false, true, false, false, false, false);
     assert.ok(checkEnvironment);
-    const prepare = installNodeClientProgramPreparation({moon: hostRuntime,
+    const preparation = await openFundedClientPreparation({moon: hostRuntime,
       environment: checkEnvironment});
-    prepare({kind: 'aql', input: {text: JSON.stringify(program), format: 'json'},
-      parameters: {minimum: 1}});
+    try {
+      await preparation.prepare({kind: 'aql', input: {text: JSON.stringify(program), format: 'json'},
+        parameters: {minimum: 1}});
+    } finally {
+      await preparation.close();
+    }
     configured = fixture.strategyFixtureCreate(...args, JSON.stringify(program));
     const path = join(directory, 'source.duckdb');
     const database = await DuckDBInstance.create(path);

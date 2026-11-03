@@ -20,6 +20,11 @@ function fixture({decision = 'dispatch', selected = 'nativeQuery'} = {}) {
   const native = {}, broad = {};
   const moon = {
     clientProgramAcquisitionCount: () => 2,
+    clientProgramRequiresAcquisitionResultPublication(actual) {
+      assert.strictEqual(actual, preparedProgram);
+      // This fixture publishes a later Compute Result, never either input.
+      return false;
+    },
     clientProgramPrepareQueryAcquisition: () => ok({}),
     clientProgramEffectPrepareQueryAcquisition: () => ok({}),
     clientProgramPrepareLocalQueryRequirement: () => ok(requirement),

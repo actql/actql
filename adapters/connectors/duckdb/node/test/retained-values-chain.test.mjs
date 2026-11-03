@@ -12,7 +12,7 @@ import * as moon from '../../../../../_build/js/release/build/connectors_builtin
 import * as fixture from '../../../../../_build/js/release/build/connectors/duckdb/conformance/conformance.js';
 import {canonicalText} from '../../../../../scripts/check-canonical-json.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
-import {installNodeClientProgramPreparation} from '../../../../host-node/client-program-preparation.mjs';
+import {openFundedClientPreparation} from '../../../../host-node/funded-client-preparation.fixture.mjs';
 import {createNodeHostEntry} from '../../../../host-node/entry.mjs';
 import {installStrategyContributions} from '../../../../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../../../../host-common/runtime-result.mjs';
@@ -262,7 +262,7 @@ async function openCapturedRetained(prepared, contracts, installedContracts, dir
 async function retainedRun(document, use, mode = 'success', budgets, captureRows,
   fileInput = false, route = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
-  let retained, publication, owner, execution, captured, publicationFailure;
+  let retained, publication, owner, execution, captured, publicationFailure, preparation;
   let permitCleanup = mode !== 'finalize-failure' && !route.publicationFault;
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
@@ -311,10 +311,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       )
       : moon.clientProgramCheckEnvironment(...checkArguments);
     assert.ok(environment);
-    const prepare = installNodeClientProgramPreparation({moon, environment});
+    preparation = await openFundedClientPreparation({moon, environment});
     let prepared;
     try {
-      prepared = prepare({kind: 'aql', input: {text: document, format: 'json'},
+      prepared = await preparation.prepare({kind: 'aql', input: {text: document, format: 'json'},
         parameters: captureRows ? {minimum: 0} : null});
     } catch (error) {
       throw new Error(`${error.message}: ${inspect(error.cause, {depth: 4})}`,
@@ -858,6 +858,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         }
       }
     }
+    // Return the original Request preparation only after its retained users
+    // and captured input have completed their existing cleanup above.
+    await preparation?.close();
   }
 }
 
