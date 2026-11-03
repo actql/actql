@@ -190,12 +190,12 @@ async function capturedSet(t, {writes = [update, other],
   const state = join(installation.root, 'host');
   const first = await effectHost(t, installation, state,
     {stopBeforeApply: true});
-  const {accepted, started} = await first.run(
-    updateProgram(first.installed.mappings), 'restart-set');
+  const program = updateProgram(first.installed.mappings);
+  const {accepted, started} = await first.run(program, 'restart-set');
   assert.equal(started.value.status, 'captured');
   await first.close();
   assert.equal(writesOf(installation.org).length, 0);
-  return {installation, state, accepted,
+  return {installation, state, accepted, program,
     continuation: started.value.continuation};
 }
 
@@ -293,7 +293,7 @@ test('a restarted Set is refused before any write when one target changed',
           'External_Key__c']}];
         await installation.publish({writes});
         return {writes};
-      }, 'InstalledRowEffectMappingNotInstalled'],
+      }, 'ClientProgramRejected'],
       ['Site generation', async installation => {
         await installation.writeSite({...installation.siteDocument,
           siteGeneration: 2});
@@ -311,11 +311,30 @@ test('a restarted Set is refused before any write when one target changed',
       'InstalledRowEffectInstallationChanged'],
     ];
     for (const [label, change, code] of changes) {
-      const {installation, state, accepted, continuation} =
+      const {installation, state, accepted, continuation, program} =
         await capturedSet(t);
       const {options, ...overrides} = await change(installation);
       const second = await effectHost(t, installation, state,
         {effect: await installation.load(overrides, options)});
+      const seen = installation.org.seen.length;
+      if (label === 'Mapping') {
+        // The funded restart checks the SAME authored Program against the
+        // current installation before recovering its Set. The replacement
+        // Mapping has another identity; it cannot resolve the old reference.
+        const oldRef = program.stages[0].effects.save_1.update.mapping;
+        assert.equal(second.installed.mappings.some(mapping =>
+          mapping.mappingRef === oldRef), false);
+        const environmentWire = second.installed.environmentWire;
+        const environment = moon.clientProgramCheckEnvironment(environmentWire,
+          JSON.parse(environmentWire).evidence_bundle_cid,
+          false, false, true, false, false, false, false);
+        assert.ok(environment);
+        const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+          JSON.stringify(program), 'json', environment, undefined, []);
+        assert.equal(moon.clientProgramEffectPreparationReady(outcome), undefined);
+        assert.equal(moon.clientProgramEffectPreparationIssueCode(outcome),
+          'effect_static_rejected');
+      }
       const failure = await second.resume('restart-set',
         accepted.ref.runDefinitionCid, continuation).then(
         () => undefined, error => error);
@@ -324,6 +343,7 @@ test('a restarted Set is refused before any write when one target changed',
         ? failure.code : 'ExecutionAuthorizationDenied', code,
       `${label}: ${failure.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
+      if (label === 'Mapping') assert.equal(installation.org.seen.length, seen);
     }
   });
 
