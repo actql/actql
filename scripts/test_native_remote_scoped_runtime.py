@@ -158,6 +158,26 @@ class RemoteScopedComposition(unittest.TestCase):
         self.assertNotEqual(MODULE.canonical_c_arguments(relative),
                             MODULE.canonical_c_arguments([relative[0], '-o', './src/result.o', '-O2']))
 
+    def test_inside_checkout_outputs_and_exact_drivers_keep_the_same_selection(self):
+        original_root = MODULE.ROOT
+        MODULE.ROOT = Path('/owned')
+        self.addCleanup(setattr, MODULE, 'ROOT', original_root)
+        driver = Path('/owned/bin/cc')
+        commands = [[str(driver), *c[1:]] if c[0] == '/usr/bin/cc' else c
+                    for c in self.commands]
+        relative = [[p.replace('/owned/', './') if p.startswith('/owned/') else p
+                     for p in command] for command in commands]
+        selected = MODULE.commands_for('\n'.join(shlex.join(c) for c in relative),
+            self.home, self.emission, self.stage, self.clang, self.sdk,
+            cc_driver=driver, source_sha=self.source, resident_control_header=self.header)
+        self.assertEqual(selected, self.plan())
+        self.assertEqual(MODULE.canonical_c_arguments(
+            ['-o', './emission/test.o', './src/original.c'], self.emission),
+            ['-o', '/owned/emission/test.o', '/owned/src/original.c'])
+        with self.assertRaisesRegex(ValueError, 'escapes'):
+            self.plan([[*self.commands[0][:-1], './emission/../foreign.core'],
+                       *self.commands[1:]])
+
     def test_private_c_port_rejects_unplanned_invocation(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'plan.json'

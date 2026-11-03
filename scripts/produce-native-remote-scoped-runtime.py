@@ -72,6 +72,24 @@ def under(path: Path, root: Path) -> bool:
     return path.is_absolute() and path.resolve().is_relative_to(root.resolve())
 
 
+def selected_path_arguments(arguments: list[str], emission: Path,
+                            drivers: tuple[Path, ...] = ()) -> list[str]:
+    """Canonicalize only the selected emission and exact private drivers.
+
+    Pinned Moon prints in-checkout outputs relatively, then may invoke its C
+    port with absolute paths. Other inputs and compiler flags remain literal.
+    """
+    result = []
+    for index, argument in enumerate(arguments):
+        path = Path(argument)
+        if not path.is_absolute():
+            absolute = (ROOT / path).resolve()
+            if under(absolute, emission) or (index == 0 and absolute in drivers):
+                argument = str(absolute)
+        result.append(argument)
+    return result
+
+
 def resident_initial_control_header(source: str, destination: Path) -> dict[str, object]:
     return command_initial_control_header(source, destination, ENTRY)
 
@@ -212,6 +230,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         parts = [p.replace('$MOON_HOME', str(moon_home)) for p in parts]
         if any('$' in p for p in parts):
             raise ValueError('Unresolved build placeholder')
+        parts = selected_path_arguments(parts, emission,
+                    tuple(p for p in (cc_driver, ar_driver) if p is not None))
         archive_files = None
         if ar_driver is not None and parts[0] == str(ar_driver):
             if parts[1:4] == ['-r', '-c', '-s']:
@@ -335,10 +355,12 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
     return commands
 
 
-def canonical_c_arguments(arguments: list[str]) -> list[str]:
+def canonical_c_arguments(arguments: list[str], emission: Path | None = None) -> list[str]:
     # Moon prints checkout C and in-checkout toolchain members relatively, then
     # invokes cc with absolute spellings. Selection has already checked the exact
     # source/runtime/link members; flags and outputs still match unchanged.
+    if emission is not None:
+        arguments = selected_path_arguments(arguments, emission)
     selected = []
     for p in arguments:
         if p.startswith('-I./.toolchains/'):
@@ -353,9 +375,10 @@ def canonical_c_arguments(arguments: list[str]) -> list[str]:
 def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
     """Private cc port: accept only an exact step from this Moon invocation."""
     plan = json.loads(plan_path.read_text())
-    actual = canonical_c_arguments(arguments)
+    emission = Path(plan['emission']) if 'emission' in plan else None
+    actual = canonical_c_arguments(arguments, emission)
     matches = [step for step in plan['steps']
-               if canonical_c_arguments(step['original']) == actual]
+               if canonical_c_arguments(step['original'], emission) == actual]
     if len(matches) != 1:
         raise ValueError('Unplanned or ambiguous C compiler invocation')
     step = matches[0]
@@ -472,7 +495,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                             stock_file_control_bytes=(resident_control['selected']['stockFileControlBytes']
                                 if target == 'linux-x64' else None))
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
-    originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
+    originals = [selected_path_arguments(
+                    [p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)],
+                    emission, (cc_driver, ar_driver))
                  for line in dry.splitlines() if line.strip()]
     c_steps = [{'original': before[1:], 'selected': after,
                 'receipt': str(destination / ('cc-' + str(index) + '.json'))}
@@ -481,7 +506,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     command_include_inputs = ([original(ROOT / ENTRY / name) for name in
                                ('initial_control_stub.c', 'initial_control_capture.h')]
                               if entry == BUNDLE_ENTRY else [])
-    cc_plan.write_text(json.dumps({'steps': c_steps,
+    cc_plan.write_text(json.dumps({'steps': c_steps, 'emission': str(emission),
         'allocator_inputs': [original(p) for p in sorted(allocator.iterdir()) if p.is_file()]
             + ([resident_control['recipe'], resident_control['header']] if resident_control else [])
             + command_include_inputs}, indent=2) + '\n')
