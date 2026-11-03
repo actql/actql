@@ -70,3 +70,89 @@ pub fn original_keyed_lookup_dependents_retired(
   }
   true
 }
+
+///|
+// Whole-set barrier for exact plural originals. Assembly output follows all
+// distinct child holdings; original sources must already be physically settled.
+pub fn original_keyed_inputs_serialization_preparation_available(
+  identity : OriginalLedgerIdentity,
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+  prefix : Reservation,
+  assembly : Reservation,
+  children : Int,
+) -> Bool {
+  let count = originals.length()
+  guard count <= 2147483645 &&
+    children >= 0 &&
+    children <= 2147483645 - count &&
+    physical_equal(identity.ledger, ledger) &&
+    original_ledger_preparation_available(identity) &&
+    original_captured_inputs_live(ledger, originals, true) &&
+    ledger.original_inventory is Some(inventory) &&
+    inventory.reservations.length() == children + count + 2 &&
+    inventory.holdings.length() == children + count + 1 &&
+    inventory.delegations.is_empty() &&
+    ledger.next_capacity_serial == Some(-2) &&
+    original_prefix_attempt_count_is(inventory, children + count + 2) &&
+    physical_equal(inventory.reservations[count], prefix) &&
+    physical_equal(prefix.owner, ledger) &&
+    prefix.open &&
+    !prefix.cleanup_pending &&
+    physical_equal(inventory.reservations[count + 1], assembly) &&
+    physical_equal(assembly.owner, ledger) &&
+    !assembly.open &&
+    inventory.holdings[children + count].reservation_serial == assembly.serial else {
+    return false
+  }
+  for index in count..<inventory.holdings.length() {
+    if !holding_available(ledger, inventory.holdings[index]) {
+      return false
+    }
+  }
+  for index in 0..<children {
+    let reservation = inventory.reservations[index + count + 2]
+    if !physical_equal(reservation.owner, ledger) ||
+      reservation.open ||
+      inventory.holdings[index + count].reservation_serial != reservation.serial {
+      return false
+    }
+  }
+  true
+}
+
+///|
+// Cleanup does not require a usable phase. Exact original custody and the
+// assembly position are still required; a pending downstream token stays live.
+pub fn original_keyed_inputs_lookup_dependents_retired(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+  assembly : Reservation,
+  prefix? : Reservation? = None,
+) -> Bool {
+  guard originals.length() < 2147483647 &&
+    original_captured_inputs_match(ledger, originals) &&
+    ledger.original_inventory is Some(inventory) else {
+    return false
+  }
+  let assembly_index = originals.length() +
+    (if prefix is Some(_) { 1 } else { 0 })
+  guard inventory.reservations.length() > assembly_index &&
+    physical_equal(inventory.reservations[assembly_index], assembly) &&
+    physical_equal(assembly.owner, ledger) else {
+    return false
+  }
+  if prefix is Some(token) &&
+    (
+      !physical_equal(inventory.reservations[originals.length()], token) ||
+      !physical_equal(token.owner, ledger)
+    ) {
+    return false
+  }
+  for index in (assembly_index + 1)..<inventory.reservations.length() {
+    if inventory.reservations[index].open {
+      return false
+    }
+  }
+  true
+}
