@@ -2344,9 +2344,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>
       preparation.fundedPreparation(request, selectedEnvironment, originalVerifier, signal),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
-    restoreInferOriginal: (original, definition, request, evidence) =>
-      control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
-        [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits),
+    restoreInferOriginal: (original, definition, request, evidence, restorationRequest) =>
+      preparation.restoreManagedModelOriginal(moon, restorationRequest, original, definition, request,
+        () => control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
+          [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits)),
     allowEffects: effectInstallation !== undefined});
   // The same complete dispatch retirement predicate covers installed ordinary
   // Sources using this Host's managed parent. Other purposes keep their owner.
@@ -2993,6 +2994,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
         const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds,
+          ...(restoredRun === undefined ? {} : {restoredRun}),
           occurrence, computePrefix: runtimeOptionalField(segments, 0),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
@@ -5314,6 +5316,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             return checkpoints.journal.getRunState(runId)?.status === 'needs_reconciliation';
           };
           const runRestoredModel = async () => {
+            let recovery;
+            try {
             assertCurrent();
             const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);
             if (current === undefined || current.ref.runDefinitionCid !== ref.runDefinitionCid) {
@@ -5323,10 +5327,16 @@ async function openInstalledHost(originalInstallation, preparation) {
             if (submission.requestId !== current.requestId ||
                 !hostConnection(submission)) throw new Error('ModelResumeSubmissionMismatch');
             const inferOriginal = current.runAdmissionEvidence?.inferRunOriginal;
+            if (inferOriginal !== undefined) {
+              recovery = preparation.retainModelRecoveryInput(moon, submission,
+                current.requestIdentity, current.runDefinition, assertCurrent,
+                () => !restorationReclaimed());
+            }
             submission.preparedProgram = inferOriginal === undefined
               ? await prepareCapturedSubmission(submission, ref)
               : prepareSubmit.restoreInferOriginal(inferOriginal, current.runDefinition,
-                current.requestIdentity, current.runAdmissionEvidence);
+                current.requestIdentity, current.runAdmissionEvidence, submission);
+            if (recovery !== undefined) preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);
             const admitted = journal.resolveDefinition(requested.requested,
               {namespaceId}, moon, control);
@@ -5358,7 +5368,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               throw new Error('ModelResumeOriginalAdmissionChanged');
             }
             restorationDispatchEntered = true;
-            return dispatchOwner.track(ref, {
+            const result = await dispatchOwner.track(ref, {
               run: async ({signal, retainExecution, beginPhysicalWork}) => {
                 assertCurrent();
                 signal.throwIfAborted();
@@ -5374,6 +5384,13 @@ async function openInstalledHost(originalInstallation, preparation) {
                 restorationStopConfirmed = true;
               },
             });
+            recovery?.finish('returned');
+            recovery = undefined;
+            return result;
+            } catch (cause) {
+              if (recovery === undefined) throw cause;
+              throw retainInstalledHostRuntimeFailure(cause, () => recovery.finish('failed'));
+            }
           };
           const flight = runRestoredModel().then(async result => {
             if (leaseFailure !== undefined) throw leaseFailure;
@@ -6389,6 +6406,38 @@ async function openPreparedInstalledHost(options, initialEntry) {
       (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
+    },
+    retainModelRecoveryInput(runtime, request, identity, definition, assertCurrent, childrenPending) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.retainModelRecovery !== 'function') {
+        throw clientOperationError('InstalledModelRecoveryPreparationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      let settled;
+      const pending = new Promise(resolve => {settled = resolve;});
+      profiles.retainRequest(host, originalInstallation, host, request, pending);
+      let original, finished = false;
+      const finishProducer = manager.finishSourceProducer;
+      try {original = manager.retainModelRecovery(request, identity, definition, assertCurrent, childrenPending);}
+      catch (cause) {settled(); throw cause;}
+      return Object.freeze({finish(terminal) {
+        if (finished) return;
+        try {
+          Reflect.apply(finishProducer, manager, [original.receipt, terminal]);
+          finished = true;
+        } finally {settled();}
+      }});
+    },
+    restoreManagedModelOriginal(runtime, request, original, definition, identity, construct) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.restoreModelOriginal !== 'function') {
+        throw clientOperationError('InstalledModelRecoveryPreparationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.restoreModelOriginal(originalSourceManagedHostRequest(originals, request),
+        original, definition, identity, construct);
     },
     retainEffectRequestInput(runtime, request, intent, captured) {
       const manager = sourceManaged ?? computeManaged;

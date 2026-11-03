@@ -8015,12 +8015,18 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit/prepareSubmit",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit#2",
           "parameters": [
             "original",
             "definition",
             "request",
-            "evidence"
+            "evidence",
+            "restorationRequest"
           ],
           "async": false
         },
@@ -8691,7 +8697,7 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
           "parameters": [
             "signal",
             "retainExecution",
@@ -8700,9 +8706,19 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/terminal/terminal",
@@ -9825,6 +9841,18 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
+          "parameters": [
+            "runtime",
+            "request",
+            "original",
+            "definition",
+            "identity",
+            "construct"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
           "parameters": [
             "runtime",
@@ -9877,6 +9905,32 @@
             "runtime",
             "prepared",
             "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput",
+          "parameters": [
+            "runtime",
+            "request",
+            "identity",
+            "definition",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/init:finish/init:finish",
+          "parameters": [
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending",
+          "parameters": [
+            "resolve"
           ],
           "async": false
         },
@@ -10728,7 +10782,14 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit/prepareSubmit",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
+            "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput",
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/init:finish/init:finish",
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -11810,7 +11871,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -15611,7 +15672,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -18762,7 +18823,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -19564,12 +19625,12 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "2d160c65a63ef8f263b631ac21486670807ff0aade7cfc9f67032ba6ce3526bc"
+      "sha256": "439e702adca23aeae3b4a2a82f1aa6ee85a9045b488bc0de29aca070b7335625"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A — existing Host preparation input boundary",
+      "owner": "A \u2014 existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -21356,7 +21417,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -21654,7 +21715,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               }
             ]
           }
@@ -22175,7 +22236,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

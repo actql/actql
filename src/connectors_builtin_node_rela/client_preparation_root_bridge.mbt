@@ -66,6 +66,24 @@ pub fn client_program_reserve_request_effect_capture_recovery(
 }
 
 ///|
+#export_name("clientProgramReserveRequestModelRecoveryMaterials")
+pub fn client_program_reserve_request_model_recovery_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  count : Int,
+  wire_at : (Int) -> String,
+  containers : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_model_recovery_materials(
+    parent, input, request, definition, count, wire_at, containers,
+  )
+}
+
+///|
 #export_name("clientProgramBorrowRequestModelPlanInput")
 pub fn client_program_borrow_request_model_plan_input(
   parent : @client_local_host.ClientRequestPreparation[

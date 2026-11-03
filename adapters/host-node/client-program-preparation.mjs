@@ -199,9 +199,9 @@ export function installNodeClientProgramPreparation({moon, environment,
       return original;
     },
     originalInferRun(prepared) {return owned.get(prepared)?.inferRun;},
-    restoreInferOriginal(original, definition, request, evidence) {
+    restoreInferOriginal(original, definition, request, evidence, restorationRequest) {
       if (restoreInferOriginal === undefined) fail('ClientProgramUnsupported');
-      const restored = restoreInferOriginal(original, definition, request, evidence);
+      const restored = restoreInferOriginal(original, definition, request, evidence, restorationRequest);
       if (typeof restored?.then === 'function') {
         void Promise.resolve(restored).catch(() => {});
         fail('ClientProgramPreparationFailure');

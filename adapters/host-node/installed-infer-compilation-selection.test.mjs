@@ -96,7 +96,11 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
     node.declarations[0]?.id?.name === 'computeSuffix');
   assert(segment); assert(suffix);
   const deferred = declarations.find(node => node.declarations[0]?.id?.name === 'deferredModelInput');
-  const body = (deferred ? source.slice(deferred.start, deferred.end) : '') +
+  const acquisitionDeclaration = declarations.filter(node => node.declarations[0]?.id?.name === 'acquisitionCount' &&
+    node.end <= deferred.start).sort((a, b) => b.start - a.start)[0];
+  assert(acquisitionDeclaration);
+  const body = source.slice(acquisitionDeclaration.start, acquisitionDeclaration.end) +
+    (deferred ? source.slice(deferred.start, deferred.end) : '') +
     source.slice(segment.start, suffix.end) + ';return {segments, computeSuffix};';
   const prepared = {}, occurrence = {}, prefix = {}, suffixValue = {}, serializationGraph = serialized ? {} : undefined;
   const calls = [], error = new Error('OriginalUnbackedInputSegmentConstructor');

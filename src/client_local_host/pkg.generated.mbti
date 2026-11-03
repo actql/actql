@@ -930,6 +930,8 @@ pub fn[I] reserve_request_effect_capture_recovery(ClientRequestPreparation[I], I
 
 pub fn[I] reserve_request_effect_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
+pub fn[I] reserve_request_model_recovery_materials(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] reserve_request_program_plan(ClientRequestPreparation[I], I) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramPlanIssue]

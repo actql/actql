@@ -27255,7 +27255,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1d40e371419866cb48c39d057f8d13be636c6f7b01724129b97f7cbf723873ac",
+      "sha256": "db497d64cc29ca398dcabf9f0439424385ff5a7575db404e63388c4c9ce1771c",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -27344,7 +27344,8 @@
             "original",
             "definition",
             "request",
-            "evidence"
+            "evidence",
+            "restorationRequest"
           ],
           "async": false
         },
@@ -27902,7 +27903,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28065,7 +28066,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28697,7 +28698,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28816,8 +28817,7 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "../host-common/compiler-binding.generated.mjs",
-        "../host-common/runtime-result.mjs",
-        "./public-source-preparation.mjs"
+        "../host-common/runtime-result.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -109725,6 +109725,17 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/reserveModelRecovery",
+          "parameters": [
+            "producer",
+            "state",
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/retainedRunCurrent",
           "parameters": [
             "run"
@@ -110153,6 +110164,18 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
           "parameters": [],
           "async": false
         },
@@ -110312,12 +110335,66 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
+          "parameters": [
+            "request",
+            "original",
+            "definition",
+            "identity",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:retainContentPreparation/init:retainContentPreparation",
           "parameters": [
             "prepared",
             "request",
             "contentPreparation"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
+          "parameters": [
+            "request",
+            "identity",
+            "definition",
+            "assertRecoveryCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
+          "parameters": [
+            "state",
+            "original",
+            "assertCurrent",
+            "ownChildrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -110756,7 +110833,17 @@
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
-            "prepareOrdinaryProjectSourceManagedInstallation"
+            "prepareOrdinaryProjectSourceManagedInstallation",
+            "prepareOrdinaryManagedInstallation/reserveModelRecovery",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
+            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2"
           ],
           "exports": [
             "prepareOrdinaryProjectSourceManagedInstallation"
@@ -114022,7 +114109,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "7441d03f5abacc3688f2b94c49f9ac7e20275819af6879625525372b9919cf54"
+      "sha256": "7f554e0aea064d5ee50a054880d16011e3a57f33760eb6b0335445bf26835959"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -118296,7 +118383,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "7513c7005d632ef86956515ce2386060954234f42939a8a9ea4a0a25cf9aa8d4",
+      "sha256": "47abbe2cdd6d21f009870f70e701cd19fb67a20c7c066f8e8e41025f0e8cab44",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -121966,7 +122053,7 @@
       "sha256": "165562802b61bbfe5b4b8f9eafdbb4f84a437724eec0a7e82d67700421ac5a87",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -123107,7 +123194,7 @@
       "sha256": "400e99ff69ed9ac0c765c37691d7b7cca2f447d7692f698563b58249154914b1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -123909,7 +123996,7 @@
       "sha256": "1447473d2203e9c722ee438f95c2436ff1f7613a573d5bbb9e4ba731e08d8707",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",

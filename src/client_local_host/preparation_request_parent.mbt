@@ -20,6 +20,7 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyReady
   EffectBodyFailed
   EffectCaptureRecovery
+  ModelRecovery
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
@@ -40,6 +41,13 @@ priv enum ClientRequestDomainCompilationInputs {
   // Read-only recovery retains the existing journal-selected originals. It
   // never continues into a compiler, Source/Model/Effect Plan or send owner.
   RequestEffectCaptureRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
+  // A saved Model continuation keeps its Journal-selected pair while the
+  // existing Request reservation funds reconstruction. It cannot compile a
+  // new Program, admit another Run or replace the saved physical call scope.
+  RequestModelRecovery(
     @publication_host.ClientRequestIdentity,
     @publication.PublicationContract
   )

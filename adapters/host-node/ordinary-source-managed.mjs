@@ -369,6 +369,25 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       throw cause;
     } finally {state.preparing = false;}
   }
+  function reserveModelRecovery(producer, state, count, wireAt, containers) {
+    if (state.recovery === undefined || producer.finished || state.preparing || state.adopting ||
+        typeof wireAt !== 'function') fail('ForeignInstalledSourceProducer');
+    const moon = state.context.runtime;
+    const recovery = state.recovery;
+    const reserve = moon.clientProgramReserveRequestModelRecoveryMaterials;
+    if (typeof reserve !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+    try {
+      checked(Reflect.apply(reserve, moon, [state.parent, producer.receipt,
+        recovery.request, recovery.definition, count, wireAt, containers]));
+      current();
+      if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+      recovery.assertCurrent();
+      if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+    } catch (cause) {
+      state.preparationFailed = true; state.preparationFailure = cause;
+      throw cause;
+    }
+  }
   function registerRequestRun(run, construct) {
     // Synchronous reentry must see the same duplicate/capacity reservation
     // before Core adoption. This transient set owns no native Resource.
@@ -488,6 +507,47 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     // Only the installed Host supplies this Journal-retained opaque original.
     // It is a new physical-process input lifetime for the SAME logical Request,
     // not an SDK snapshot publication, semantic issuer or physical read grant.
+    retainModelRecovery(request, identity, definition, assertRecoveryCurrent, childrenPending) {
+      if (request === null || typeof request !== 'object' || requestProducers.has(request) ||
+          typeof assertRecoveryCurrent !== 'function' ||
+          typeof childrenPending !== 'function') fail('ForeignInstalledSourceProducer');
+      const receipt = beginProducer(undefined, (state, original, assertCurrent, ownChildrenPending) => {
+        openRequestPreparation(state, original, () => {assertCurrent(); assertRecoveryCurrent();},
+          () => ownChildrenPending() || childrenPending());
+        return true;
+      });
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (state === undefined) fail('NodeLocalPreparationAdmissionUnavailable');
+      state.recovery = {request: identity, definition, restored: undefined,
+        assertCurrent: assertRecoveryCurrent, childrenPending};
+      state.compilationFamily = 'model-recovery';
+      producer.request = request;
+      requestProducers.set(request, new WeakRef(producer));
+      return Object.freeze({receipt});
+    },
+    restoreModelOriginal(request, original, definition, identity, construct) {
+      current();
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state?.recovery === undefined || state.recovery.restored !== undefined ||
+          state.recovery.definition !== definition || state.recovery.request !== identity ||
+          typeof construct !== 'function') fail('ForeignInstalledSourceProducer');
+      const recovery = state.recovery;
+      reserveModelRecovery(producer, state, 3, index => index === 0 ? original.materialsWire
+        : index === 1 ? original.resultPolicyOriginal.wire : definition.wire, 3);
+      return constructRequestDomain(state, () => {
+        const restored = construct();
+        if (restored?.runDefinition !== definition || restored.prepared === undefined ||
+            restored.compiled === undefined || restored.graph === undefined) fail('ForeignInstalledSourceProducer');
+        recovery.restored = restored;
+        state.prepared = restored.prepared;
+        current();
+        if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+        recovery.assertCurrent();
+        if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+        return restored;
+      });
+    },
     retainRequestInput(request, intent, captured) {
       if (request === null || typeof request !== 'object' || requestProducers.has(request) ||
           (intent === undefined) === (captured === undefined)) {
@@ -875,6 +935,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
+      if (state?.recovery !== undefined) {
+        if (state.recovery.restored?.prepared !== prepared || state.prepared !== prepared) fail('ForeignInstalledSourceProducer');
+        try {return reserveModelRecovery(producer, state, count, wireAt, containerCount);}
+        catch (cause) {state.preparationFailed = true; state.preparationFailure = cause; throw cause;}
+      }
       if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelCompilation !== undefined || typeof wireAt !== 'function') fail('ForeignInstalledSourceProducer');
@@ -895,6 +960,22 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
+      if (state?.recovery !== undefined) {
+        if (state.recovery.restored?.prepared !== prepared || state.prepared !== prepared ||
+            state.modelProviderBinding !== undefined) fail('ForeignInstalledSourceProducer');
+        const recovery = state.recovery;
+        reserveModelRecovery(producer, state, 3,
+          index => index === 0 ? installation : index === 1 ? contract : configuration, 3);
+        return constructRequestDomain(state, () => {
+          state.modelProviderBinding = checked(state.context.runtime.clientProgramModelProviderBinding(
+            providerId, installation, contract, configuration));
+          current();
+          if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+          recovery.assertCurrent();
+          if (producer.finished || producer.preparation !== state || state.recovery !== recovery) fail('ForeignInstalledSourceProducer');
+          return state.modelProviderBinding;
+        });
+      }
       if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelCompilation !== undefined || state.modelProviderBinding !== undefined) fail('ForeignInstalledSourceProducer');
@@ -1534,6 +1615,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (terminal !== 'failed' && terminal !== 'returned') fail('ForeignInstalledSourceProducer');
       producer.finished = true; producer.body = undefined;
       if (producer.liveRuns === 0 && producer.preparation !== undefined) {
+        if (producer.preparation.recovery?.childrenPending() === true) fail('InstalledSourceRunCleanupPending');
         producer.request = producer.snapshotPublication = undefined;
         cleanupRequestInput(producer.preparation, retireInitialPreparation);
         producer.preparation = undefined;
@@ -1635,6 +1717,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // initial child, rather than stranding it behind the producer gate.
         for (const producer of producers) if (producer.finished && producer.liveRuns === 0) {
           if (producer.preparation !== undefined) {
+            if (producer.preparation.recovery?.childrenPending() === true) return status();
             cleanupRequestInput(producer.preparation, retireInitialPreparation);
             producer.preparation = undefined;
           }

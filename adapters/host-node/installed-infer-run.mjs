@@ -104,7 +104,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
-    const sourceFreeModel = !selected.localMock && selected.originalReadInstallation === undefined &&
+    const sourceFreeModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
       selected.occurrence !== undefined && selected.components === undefined &&
       selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) === 0;
     if (selected.localMock || sourceFreeModel) {
@@ -132,6 +132,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations, originalPreparation});
+    }
+    if (selected.restoredRun !== undefined) {
+      // The restored typed owner is the same Journal-selected compilation,
+      // not a fresh ordinary Request module or an unbacked legacy admission.
+      control.checkRestoredClientInferRunOwner(selected.restoredRun, preparedProgram);
+      if (selected.restoredRun.compiled !== plan.compiled || selected.restoredRun.graph !== selected.graph ||
+          selected.restoredRun.runDefinition !== plan.runDefinition || existingModel === undefined) {
+        throw new TypeError('ForeignRestoredInferOriginal');
+      }
     }
     const originalInstallation = selected.originalReadInstallation;
     const requestComposed = originalInstallation !== undefined && acquiredInfer !== undefined &&
