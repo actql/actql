@@ -30,7 +30,7 @@ CRYPTO = load('bundle_original_crypto', 'produce-native-crypto-component.py')
 
 def prepare(source: str, target: str, clang: Path, sdk: Path | None,
             openssl: Path, destination: Path, seconds: int) -> dict:
-    if target != 'darwin-arm64' or sdk is None:
+    if target not in ('darwin-arm64', 'linux-x64') or (target == 'darwin-arm64') != (sdk is not None):
         raise ValueError('No selected bundle component producer for this target')
     if type(seconds) is not int or not 0 < seconds <= 1800:
         raise ValueError('Explicit bounded component preparation required')
@@ -52,13 +52,19 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None,
         raise ValueError('Pinned original SQLite archive mismatch')
     with archive.open('xb') as stream:
         stream.write(raw)
-    sqlite = SQLITE.build_process_import(source, archive, clang, sdk,
-        destination / 'sqlite', max(1, int(deadline - time.monotonic())))
+    remaining = max(1, int(deadline - time.monotonic()))
+    sqlite = (SQLITE.build_process_import(source, archive, clang, sdk,
+        destination / 'sqlite', remaining) if target == 'darwin-arm64' else
+        SQLITE.build_linux_process_import(source, archive, clang,
+            destination / 'sqlite', remaining, process_target='linux-x64-gnu'))
     if time.monotonic() >= deadline:
         raise ValueError('Bundle component preparation budget exhausted')
-    crypto = CRYPTO.produce(destination / 'crypto', openssl, clang, sdk)
-    sqlite_path = destination / 'sqlite' / SQLITE.LIBRARY
-    crypto_path = destination / 'crypto/libactql_crypto_component.dylib'
+    crypto = (CRYPTO.produce(destination / 'crypto', openssl, clang, sdk)
+              if target == 'darwin-arm64' else CRYPTO.produce_linux(
+                  destination / 'crypto', openssl, clang, max(1, int(deadline - time.monotonic()))))
+    sqlite_path = destination / 'sqlite' / (SQLITE.LIBRARY if target == 'darwin-arm64' else SQLITE.LINUX_LIBRARY)
+    crypto_path = destination / 'crypto' / ('libactql_crypto_component.dylib'
+                  if target == 'darwin-arm64' else CRYPTO.LINUX_LIBRARY)
     result = {'source': source, 'target': target,
         'sqlite': {'path': str(sqlite_path), **sqlite['library']},
         'crypto': {'path': str(crypto_path), **crypto['library']},

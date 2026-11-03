@@ -25,7 +25,7 @@ export function prepareNativeRuntimeBundle(repository, destination, {
   assert.match(source, /^[0-9a-f]{40}$/u);
   assert.equal(run('git', ['status', '--porcelain']), '', 'Clean fixed bundle build Source required');
   const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
-    : run('sh', ['-c', 'command -v cc']).trim());
+    : run('sh', ['-c', 'command -v clang']).trim());
   const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
   run('python3', [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
     '--source', source, '--moon-home', realpathSync(moonHome), '--clang', clang,
@@ -52,7 +52,8 @@ export function prepareNativeRuntimeBundle(repository, destination, {
 
 export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
-  opensslPrefix = process.env.ACTQL_TEST_NATIVE_OPENSSL_PREFIX ?? '/opt/homebrew/opt/openssl@3',
+  opensslPrefix = process.env.ACTQL_TEST_NATIVE_OPENSSL_PREFIX ??
+    (platform === 'linux' ? '/usr' : '/opt/homebrew/opt/openssl@3'),
   seconds = 600,
 } = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
@@ -67,7 +68,7 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   assert.match(source, /^[0-9a-f]{40}$/u);
   assert.equal(run('git', ['status', '--porcelain']), '');
   const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
-    : run('sh', ['-c', 'command -v cc']).trim());
+    : run('sh', ['-c', 'command -v clang']).trim());
   const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
   run('python3', [join(repository, 'scripts/prepare-native-runtime-bundle-components.py'),
     '--source', source, '--target', target, '--clang', clang,

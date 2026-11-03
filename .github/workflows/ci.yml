@@ -1134,6 +1134,8 @@ jobs:
           python: 'true'
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Test scoped bundle producer source and image metadata refusals
+        run: python3 -B -m unittest scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
       - name: Test selected Linux x64 process-provider ABI and original physical custody
