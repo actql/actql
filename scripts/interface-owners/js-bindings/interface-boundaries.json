@@ -43653,7 +43653,8 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
           "parameters": [
-            "submission"
+            "submission",
+            "held"
           ],
           "async": false
         },
@@ -49048,6 +49049,10 @@
               {
                 "path": "adapters/host-node/client-submission.test.mjs",
                 "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('held resume forwards its one admitted ordinary Run through the physical-start handoff'"
               }
             ]
           }
@@ -58243,7 +58248,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "04ae28fafdbbf40c5b9ec388821b21f0bab1ee7ad488ce0a5c52f418a6d7b507"
+      "sha256": "480c722439d3ac4132e7609b439b50e2cbdcee2cddea60a0de6e96b8114328c0"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

@@ -4348,10 +4348,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       localPreparationCustody.adopt(await prepareCapturedSubmission(submission), submission));
     preparation.bindSourceRequest(submission, submission.preparedProgram);
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
+    const resolved = {submission, requested, resultNames, effectful, requestInput,
+      managedRun: undefined};
     // A restored non-Effect request needs the SAME pre-admitted Plan as a
     // fresh submission before Source preparation or publication reads it.
     // Effect definitions retain their existing constructor below.
-    if (!effectful) admitPreparedSubmission(submission);
+    if (!effectful) admitPreparedSubmission(submission, resolved);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
@@ -4368,7 +4370,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames, preparedSource, preparedSources, keyedSource, effectful, requestInput};
+    return Object.assign(resolved, {preparedSource, preparedSources, keyedSource});
     } catch (cause) {
       // The original failed producer remains owned if retirement refuses.
       // Preserve the primary cause and the SAME retry; no reprepare or ACK.
@@ -4481,7 +4483,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       throw error;
     }
-    const {submission, requested, resultNames, preparedSource, preparedSources, keyedSource,
+    const {submission, requested, resultNames, preparedSource, preparedSources, keyedSource, managedRun,
       effectful, requestInput} = resolved;
     let failed = false;
     try {
@@ -4524,7 +4526,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
       return await observedStart;
     }
-    const held = {preparedSource, preparedSources, keyedSource,
+    const held = {preparedSource, preparedSources, keyedSource, managedRun,
       preparedSourceAccess: preparedSource === undefined ? undefined :
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
@@ -4610,7 +4612,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const holderRefusal = preparation === undefined ? undefined :
     Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
   const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
-    function(submission) {
+    function(submission, held) {
       const {requested, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
       try {
         const selection = inferSelections.get(submission.preparedProgram);
@@ -4671,8 +4673,11 @@ async function openInstalledHost(originalInstallation, preparation) {
             control, early.plan, selection,
             () => preparation.modelPublicationCapacity(submission.preparedProgram));
         } else {
-          prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
+          const managedRun = prepareOrdinaryManagedRun({preparedProgram: submission.preparedProgram,
             requestIdentity: requested, acquisitionCount, model: selection, serializationCount});
+          // Resume consumes the Run issued by this SAME admission. Its local
+          // handoff is not the SDK callback's return value or another Plan.
+          if (held !== undefined) held.managedRun = managedRun;
         }
       } catch (error) {
         admissionFailures.set(submission, Object.freeze({error, requested,
