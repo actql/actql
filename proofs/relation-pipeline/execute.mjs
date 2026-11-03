@@ -192,7 +192,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal'), {t
       logPath: `.artifacts/relation-pipeline/${prefix}.log`,
       logDigest: digest(output), artifacts: actualArtifacts, archives,
       cases: entries.map((e, i) => ({ ...e, caseDigest: digest(JSON.stringify(e.testCase)), observation: observations[i] })) };
-    writeFileSync(join(directory, `${prefix}.json`), JSON.stringify(receipt, null, 2) + '\n');
+    writeFileSync(join(directory, `${prefix}.json`), JSON.stringify(receipt) + '\n');
     executions.push({ path: `.artifacts/relation-pipeline/${prefix}.json`, digest: digest(JSON.stringify(receipt)), receipt });
     const recorded = JSON.parse(readFileSync(join(directory, `${prefix}.json`)));
     return recorded.cases.map(e => e.observation);

@@ -10,7 +10,7 @@ import {validate} from './evidence.mjs';
 import {fixedCorpus} from './corpus.mjs';
 import {baseRegistry, registry} from './registry.mjs';
 import {registrations} from './obligations.mjs';
-import {canonicalJson, maxCapacityReportBytes, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
+import {canonicalJson, canonicalExecutionReceipt, maxCapacityReportBytes, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
 import {partIds, planDigest, partFamily} from './proof-parts.mjs';
 import {validateCapacityPart, unionCapacityParts} from './capacity/parts.mjs';
 import {inspectMutationPart, joinMutationParts} from './mutation-parts.mjs';
@@ -141,7 +141,7 @@ export function inspectPart(directory, partId, expected) {
     assert(execution.path.startsWith(prefix)); const path = safePath(execution.path.slice(prefix.length));
     assert(receiptPattern.test(path) && path.startsWith(`${partId}-`), 'Foreign part receipt namespace');
     assert(!paths.has(path),'Repeated receipt obligation'); paths.add(path);
-    const receipt = report(path);
+    const receipt = canonicalExecutionReceipt(join(directory, path));
     assert.deepEqual(receipt,execution.receipt,'Receipt bytes differ from report');
     assert.equal(hash(JSON.stringify(receipt)),execution.digest);
     assert(targets.includes(receipt.target)); assert.equal(receipt.boundary.target,receipt.target);
