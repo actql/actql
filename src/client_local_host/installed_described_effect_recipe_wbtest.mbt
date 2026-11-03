@@ -4,6 +4,7 @@ fn described_recipe_fixture(
   target_reads : Bool,
   request_original? : @execution.ExecutionCapacity? = None,
   request_output? : @source.ParseLimits? = None,
+  host_input_bytes? : Int? = None,
 ) -> Array[@execution.ExecutionCapacity] {
   let zero = @execution.execution_capacity(0L, 0L).unwrap()
   installed_described_effect_recipe_capacities(
@@ -34,6 +35,7 @@ fn described_recipe_fixture(
     64,
     4,
     0L,
+    host_input_bytes~,
   ).unwrap()
 }
 
@@ -67,12 +69,18 @@ test "described cold capture includes the same complete request and Host output 
     @execution.execution_capacity_retained_bytes(baseline[1]),
     @execution.execution_capacity_retained_bytes(complete),
   )
-  // Existing capture JSON decoding and the Native constructor are serial.
-  // Its original composer sums R and takes the maximum completed W; it does
-  // not add a second copy of scratch already covered by the Host parse peak.
-  assert_true(
+  // The existing adapter reconstructs rows synchronously. Returned request
+  // material remains per row; its private workspace lives once on the same
+  // fixed member beside completed Catalog/Preview decoding scratch.
+  assert_eq(
     @execution.execution_capacity_execution_bytes(selected[1]) -
-    @execution.execution_capacity_retained_bytes(selected[1]) >=
+    @execution.execution_capacity_retained_bytes(selected[1]),
+    @execution.execution_capacity_execution_bytes(baseline[1]) -
+    @execution.execution_capacity_retained_bytes(baseline[1]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(selected[0]) -
+    @execution.execution_capacity_retained_bytes(selected[0]) >=
     @execution.execution_capacity_execution_bytes(complete) -
     @execution.execution_capacity_retained_bytes(complete),
   )
@@ -163,11 +171,17 @@ test "described recipe keeps post-return request export on original control work
     @execution.execution_capacity_execution_bytes(baseline[4]),
   )
   assert_true(
-    @execution.execution_capacity_execution_bytes(selected[1]) -
-    @execution.execution_capacity_retained_bytes(selected[1]) >=
+    @execution.execution_capacity_execution_bytes(selected[0]) -
+    @execution.execution_capacity_retained_bytes(selected[0]) >=
     1000000000L - 17L,
   )
-  for index in [0, 3, 5, 6, 7] {
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(selected[1]) -
+    @execution.execution_capacity_retained_bytes(selected[1]),
+    @execution.execution_capacity_execution_bytes(baseline[1]) -
+    @execution.execution_capacity_retained_bytes(baseline[1]),
+  )
+  for index in [3, 5, 6, 7] {
     assert_eq(
       @execution.execution_capacity_execution_bytes(selected[index]),
       @execution.execution_capacity_execution_bytes(baseline[index]),

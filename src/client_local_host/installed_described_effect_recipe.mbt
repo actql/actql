@@ -58,8 +58,11 @@ pub fn installed_described_effect_recipe_capacities(
   }
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   // Cold recovery rebuilds requests inside the member capture, rather than
-  // invoking the warm row constructor child. Reuse this SAME constructor
-  // fold, including its Host output parse, before that capture can run.
+  // invoking the warm row constructor child. Each synchronous row returns
+  // before the next starts: keep every request/output R on the checked-row
+  // quantity, but keep one private constructor W on the SAME fixed member.
+  // Catalog/Preview decoding completes before these row constructors. Its
+  // returned material stays retained; only completed scratch can be shared.
   // An explicit zero Host input selects the existing warm path: its requests
   // already belong to base[2] and are only borrowed by capture. Actual cold
   // input and the maximum/unspecified recipe retain the complete constructor.
@@ -72,10 +75,21 @@ pub fn installed_described_effect_recipe_capacities(
   }
   let capture = capture.copy()
   if host_input_bytes != Some(0) {
-    guard @execution.add_execution_capacity(capture[1], request)
-      is Some(recovered_row) else {
+    let retained = @execution.execution_capacity_retained_bytes(request)
+    guard @execution.execution_capacity(retained, retained)
+      is Some(request_retained) &&
+      @execution.execution_capacity(
+        0L,
+        @execution.execution_capacity_execution_bytes(request) - retained,
+      )
+      is Some(request_workspace) &&
+      @execution.add_execution_capacity(capture[1], request_retained)
+      is Some(recovered_row) &&
+      standard_create_sequence_pair_capacity(capture[0], request_workspace)
+      is Some(recovered_fixed) else {
       return Err(Unsupported)
     }
+    capture[0] = recovered_fixed
     capture[1] = recovered_row
   }
   let adjusted = entries.copy()

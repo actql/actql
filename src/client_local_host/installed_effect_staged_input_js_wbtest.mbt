@@ -78,6 +78,115 @@ fn staged_effect_input_fixture(
 }
 
 ///|
+test "recovered member input keeps all row outputs and one sequential request workspace on the same quote" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs(
+    rows="[{\"id\":1},{\"id\":2}]",
+  )
+  let empty = @execution.execution_capacity(0L, 0L).unwrap()
+  // An original Native constructor with small returned material and a larger
+  // private workspace. Recovery maps these two requests synchronously, as the
+  // existing Salesforce recovery adapter does; both outputs remain retained.
+  let native = @execution.execution_capacity(17L, 100000000L).unwrap()
+  let warm = described_recipe_fixture(
+    empty,
+    true,
+    request_original=Some(native),
+    host_input_bytes=Some(0),
+  )
+  let cold = described_recipe_fixture(
+    empty,
+    true,
+    request_original=Some(native),
+    host_input_bytes=Some(32),
+  )
+  let maximum = described_recipe_fixture(
+    empty,
+    true,
+    request_original=Some(native),
+  )
+  let capture = (recipe : Array[@execution.ExecutionCapacity]) => {
+    prepare_installed_effect_host_input_capture_recipe_extent(
+      "capture",
+      [recipe[0], recipe[1], recipe[2], recipe[3], recipe[4], recipe[5]],
+      256,
+      16,
+      4,
+    ).unwrap()
+  }
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    prepared,
+    0,
+    "save",
+    [
+      prepare_installed_effect_staged_extent(capture(warm), capture(maximum)).unwrap(),
+    ],
+    [
+      prepare_installed_effect_operation_extent("request", warm[2], 0L, false).unwrap(),
+    ],
+    warm[4],
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let limits = @resources.ledger_limits(ledger)
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let selected = capture(cold)
+  match begin_installed_effect_operation_input(child, selected) {
+    Ok(_) => ()
+    Err(Ledger(@resources.ExecutionLimit)) =>
+      fail("recovered member InputBegin returned Ledger(ExecutionLimit)")
+    Err(_) => fail("recovered member InputBegin returned another refusal")
+  }
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  assert_eq(active.attempts, before.attempts)
+  assert_eq(active.reserved_attempts, before.reserved_attempts)
+  assert_eq(active.transferred_bytes, before.transferred_bytes)
+  assert_eq(active.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_true(active.reserved_retention_bytes > before.reserved_retention_bytes)
+  assert_true(
+    begin_installed_effect_operation_input(child, selected) is Err(AlreadyBound),
+  )
+  complete_installed_effect_operation_construction(child).unwrap()
+  let returned = @resources.ledger_usage(ledger)
+  assert_eq(returned.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_true(
+    returned.reserved_execution_bytes < active.reserved_execution_bytes,
+  )
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
 test "staged Effect input resolves the same two rows and grows one original constructor before work" {
   let calls = Ref(0)
   let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(current=() => {
