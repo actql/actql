@@ -1,6 +1,7 @@
 /* Native command-capture component only: no MoonBit Runtime, Site or Store. */
 #include "../../src/cmd/native_remote_resident_site/initial_control_capture.h"
 #include <assert.h>
+#include <stdio.h>
 #include <sys/wait.h>
 
 #if defined(ACTQL_RESIDENT_INITIAL_CONTROL_HEADER)
