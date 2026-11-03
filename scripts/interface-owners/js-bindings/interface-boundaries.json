@@ -58310,7 +58310,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5e6b796c6b3228600713c77eb44571248c1c6e9d19fe9d18a68cabc251fc5225"
+      "sha256": "bb12c33940a3ba1946ee1f7d161003b059ad3be58f62ef16a39d5ced4ead3555"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -64536,7 +64536,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9ea5b8d1a237317547b1c3f95a074b8020c078c6999e50572dda40f1688dd882",
+      "sha256": "bc01c178ddac871215aa263955cd338202dc9aa6fda246cdd2101c0335434321",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -65527,7 +65527,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2f2392d25e123affb4cd11387e631c8de05809018482985e501bcca01987fd5e",
+      "sha256": "89101f7e705750f0b436bd391ba22dbbc0bbc2b5cd9aa0d7650013c533257059",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

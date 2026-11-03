@@ -19507,7 +19507,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5e6b796c6b3228600713c77eb44571248c1c6e9d19fe9d18a68cabc251fc5225"
+      "sha256": "bb12c33940a3ba1946ee1f7d161003b059ad3be58f62ef16a39d5ced4ead3555"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

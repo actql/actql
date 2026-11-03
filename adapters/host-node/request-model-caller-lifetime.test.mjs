@@ -630,7 +630,8 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   let admission;
   const findAdmission = n => {
     if (!n || typeof n !== 'object') return;
-    if (n.type === 'FunctionExpression' && n.params.length === 1 && n.params[0].name === 'submission' &&
+    if (n.type === 'FunctionExpression' && n.params.length === 2 && n.params[0].name === 'submission' &&
+        n.params[1].name === 'held' &&
         hostSource.slice(n.start, n.end).includes('prepareInstalledRequestModelRun')) {assert(!admission); admission = n;}
     for (const v of Object.values(n)) {if (Array.isArray(v)) v.forEach(findAdmission); else if (v && typeof v === 'object') findAdmission(v);}
   };
