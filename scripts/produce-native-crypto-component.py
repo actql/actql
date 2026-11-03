@@ -46,6 +46,13 @@ def original(path: Path, maximum: int = 32 * 1024 * 1024) -> dict[str, object]:
         return {'bytes': before.st_size, 'sha256': checksum.hexdigest()}
 
 
+def verify_original_inputs(*inventories: dict) -> None:
+    for inventory in inventories:
+        for name, expected in inventory.items():
+            if original(Path(name), 512 * 1024 * 1024) != expected:
+                raise ValueError('Original Crypto build input changed: ' + name)
+
+
 def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, object]:
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise ValueError('Selected Crypto component target unavailable')
@@ -316,9 +323,7 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
                 raise ValueError('Unqualified Linux Crypto compiler input alias')
             aliases[name] = str(resolved)
         compiled[str(resolved)] = original(resolved, 16 * 1024 * 1024)
-    for name, expected in {**inputs, **compiled}.items():
-        if original(Path(name), 512 * 1024 * 1024) != expected:
-            raise ValueError('Original Linux Crypto input changed')
+    verify_original_inputs(inputs, compiled)
     if clean() != source:
         raise ValueError('Original Linux Crypto source changed')
     (output / 'OPENSSL-COPYRIGHT').write_bytes((openssl / selected['license']['path']).read_bytes())

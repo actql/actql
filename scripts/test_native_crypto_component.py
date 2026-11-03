@@ -118,6 +118,14 @@ class LinuxCryptoSources(unittest.TestCase):
         self.selected['header_census_sha256'] = '0' * 64
         with self.assertRaisesRegex(ValueError, 'header membership'): self.select()
 
+    def test_compiler_observation_cannot_replace_an_overlapping_original_header_pin(self):
+        header = self.root / 'include/openssl/original.h'
+        pinned = {str(header): P.original(header)}
+        header.write_bytes(b'changed during the original compiler invocation')
+        compiled = {str(header): P.original(header)}
+        with self.assertRaisesRegex(ValueError, 'Original Crypto build input changed'):
+            P.verify_original_inputs(pinned, compiled)
+
 
 if __name__ == '__main__':
     unittest.main()
