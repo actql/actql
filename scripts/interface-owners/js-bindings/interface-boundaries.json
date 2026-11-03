@@ -6144,7 +6144,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d0dda181c698b48096a07790eba91cb557f8007a8a3fbef5a6e0b39a1c6cb175",
+      "sha256": "f34866322a76f0192c54c0c75da987c4d78a6586f77819cb304ad69973123bf4",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -6269,20 +6269,6 @@
           "async": false
         },
         {
-          "name": "installedSalesforceEffect/rowEffect/rowEffect",
-          "parameters": [
-            "mappingCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
           "name": "installedSalesforceEffect/targetReadInventory/targetReadInventory",
           "parameters": [
             "runMoon",
@@ -6331,6 +6317,13 @@
           "name": "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -6394,6 +6387,51 @@
             "openCredentialJournal"
           ],
           "async": true
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver",
+          "parameters": [
+            "construction",
+            "moon",
+            "salesforceMoon",
+            "site",
+            "installed",
+            "nextOccurrence",
+            "siteBindingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver",
+          "parameters": [
+            "mappingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver/driver",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "publicationRecord/publicationRecord",
@@ -7122,9 +7160,13 @@
             "installedSalesforceEffect",
             "installedSalesforceEffect/installedSalesforceEffect",
             "installedSalesforceEffect/nextOccurrence/nextOccurrence",
-            "installedSalesforceEffect/rowEffect/rowEffect",
-            "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
-            "installedSalesforceEffect/targetReadInventory/targetReadInventory"
+            "installedSalesforceEffect/targetReadInventory/targetReadInventory",
+            "prepareInstalledSalesforceEffectDriver",
+            "prepareInstalledSalesforceEffectDriver/init:capacity/init:capacity",
+            "prepareInstalledSalesforceEffectDriver/init:project/init:project",
+            "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver",
+            "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver/driver",
+            "prepareInstalledSalesforceEffectDriver/method/method"
           ],
           "exports": [],
           "attributes": {
@@ -7237,7 +7279,8 @@
         {
           "operations": [
             "loadInstalledSalesforceEffect",
-            "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect"
+            "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
+            "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect#2"
           ],
           "exports": [
             "loadInstalledSalesforceEffect"
@@ -8831,13 +8874,16 @@
         "../../../host-common/effect-preparation-result.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/update-target-original-shape.mjs",
         "./installed-salesforce-site.mjs",
+        "./salesforce-effect-plan.mjs",
         "./salesforce-initialization-construction.mjs",
         "./salesforce-publication.mjs",
         "./salesforce-write-driver.mjs",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -10780,12 +10826,14 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "841d05c84832db0975e2761865c54d5ce3c4ed75e595aefc0cfd04b7462ec513",
+      "sha256": "818fe1c779963a8c45efb8b93866fc59191e9ebb6fb7d877cb8ce10a9d9f1fed",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
-        "salesforceWriteDriver"
+        "salesforceTargetReadOperation",
+        "salesforceWriteDriver",
+        "salesforceWriteOperations"
       ],
       "operations": [
         {
@@ -10920,7 +10968,8 @@
             "entries",
             "current",
             "authorizationForRow",
-            "signal"
+            "signal",
+            "readChild"
           ],
           "async": true
         },
@@ -10964,8 +11013,14 @@
           "name": "salesforceWriteDriver/init:recheckRequests/init:recheckRequests",
           "parameters": [
             "entries",
-            "current"
+            "current",
+            "controlConstruction"
           ],
+          "async": false
+        },
+        {
+          "name": "salesforceWriteDriver/init:recheckRequests/init:recheckRequests/recheck/recheck",
+          "parameters": [],
           "async": false
         },
         {
@@ -11030,7 +11085,9 @@
             "dispatchRequestCid",
             "label",
             "approval",
-            "signal"
+            "signal",
+            "readChild",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -11056,7 +11113,8 @@
             "current",
             "authorization",
             "credential",
-            "signal"
+            "signal",
+            "callResource"
           ],
           "async": false
         },
@@ -11429,6 +11487,7 @@
             "salesforceWriteDriver/init:prepareRequest/init:prepareRequest",
             "salesforceWriteDriver/init:project/init:project",
             "salesforceWriteDriver/init:recheckRequests/init:recheckRequests",
+            "salesforceWriteDriver/init:recheckRequests/init:recheckRequests/recheck/recheck",
             "salesforceWriteDriver/installedOf/installedOf",
             "salesforceWriteDriver/keyOf/keyOf",
             "salesforceWriteDriver/projectionOf/projectionOf",
@@ -11707,7 +11766,10 @@
           "operations": [
             "<module>"
           ],
-          "exports": [],
+          "exports": [
+            "salesforceTargetReadOperation",
+            "salesforceWriteOperations"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -58248,7 +58310,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "480c722439d3ac4132e7609b439b50e2cbdcee2cddea60a0de6e96b8114328c0"
+      "sha256": "c19437ec8bf47d9e22724f6e40fa37d0c0fecd6f91b0471e00746b3fe07a3627"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -70863,7 +70925,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "15871caf9fbf00f6dec92afbe428c98c02d37cc5aa55e4f7fed2793807b8a15f",
+      "sha256": "c8a542815adf3a296577b0600351f6fc307887f19b5c7f86c34d4912a6db3b9b",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70990,6 +71052,29 @@
           "name": "captureManagedPlanDefinition/fields/fields/fields",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes",
+          "parameters": [
+            "recipes",
+            "driver",
+            "maxOperations"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+          "parameters": [
+            "kind"
           ],
           "async": false
         },
@@ -71196,6 +71281,7 @@
             "issueOriginalCollectionReference",
             "managedPlanDefinition",
             "managedPlanRecipe",
+            "managedPlanRecipes",
             "managedPlanConstruction"
           ],
           "async": true
@@ -71334,7 +71420,8 @@
             "entries",
             "current",
             "runInvocationCid",
-            "dispatchRequestCid"
+            "dispatchRequestCid",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -71875,16 +71962,9 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/controlEntryBytes/controlEntryBytes",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/controlRecipes/controlRecipes",
           "parameters": [
-            "owner"
+            "recipe"
           ],
           "async": false
         },
@@ -71910,6 +71990,37 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
+          "parameters": [
+            "authorization",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/describeMember/describeMember",
+          "parameters": [
+            "member",
+            "physicalOperations",
+            "operationPhase",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "label",
+            "approval",
+            "signal",
+            "assertCurrent",
+            "controlConstruction"
+          ],
+          "async": true
+        },
+        {
           "name": "createRowEffectStage/entryOf/entryOf",
           "parameters": [
             "member",
@@ -71922,7 +72033,46 @@
           "name": "createRowEffectStage/footprintOf/footprintOf",
           "parameters": [
             "member",
-            "entries"
+            "entries",
+            "controlConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild",
+          "parameters": [
+            "member",
+            "phase",
+            "physicalOperations",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "originalAuthorization",
+            "input",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -71973,9 +72123,22 @@
             "current",
             "read",
             "signal",
-            "assertCurrent"
+            "assertCurrent",
+            "physicalOperations",
+            "operationPhase",
+            "runInvocationCid",
+            "dispatchRequestCid"
           ],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/observeRows/observeRows/observed/observed",
+          "parameters": [
+            "authorization",
+            "input",
+            "rowIndex"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
@@ -72238,7 +72401,8 @@
             "runInvocationCid",
             "dispatchRequestCid",
             "assertCurrent",
-            "signal"
+            "signal",
+            "maxResponseBytes"
           ],
           "async": true
         },
@@ -72269,13 +72433,6 @@
           "parameters": [
             "facts",
             "inputs"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
-          "parameters": [
-            "member"
           ],
           "async": false
         },
@@ -72462,6 +72619,33 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [
+            "managedEffect",
+            "requestChildren",
+            "retireRequestAliases",
+            "assertCurrent",
+            "signal",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/readDecision/readDecision",
           "parameters": [
             "member",
@@ -72471,6 +72655,20 @@
             "assertCurrent"
           ],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/recipeOf/recipeOf",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recipes/recipes",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries",
@@ -73696,7 +73894,6 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
-            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
           "exports": [],
@@ -73898,7 +74095,10 @@
             "captureManagedPlanDefinition",
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields",
-            "captureManagedPlanDefinition/fields/fields/fields"
+            "captureManagedPlanDefinition/fields/fields/fields",
+            "captureManagedPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes#2"
           ],
           "exports": [],
           "attributes": {
@@ -74227,12 +74427,12 @@
             "commandContentBorrower",
             "commandContentBorrower/init:borrow/init:borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",
             "commandContentBorrower/observe/observe",
@@ -74588,10 +74788,10 @@
             "createInstalledRowEffect/installed/installed",
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createInstalledRowEffect/storeMappings/storeMappings",
+            "createInstalledRowEffect/storeMappings/storeMappings#2",
             "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings#2"
+            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -74707,12 +74907,12 @@
           "operations": [
             "createRowEffectStage",
             "createRowEffectStage/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
             "createRowEffectStage/adapter/adapter#4",
+            "createRowEffectStage/adapter/adapter/adapter",
+            "createRowEffectStage/adapter/adapter/adapter#2",
+            "createRowEffectStage/adapter/adapter/adapter/adapter",
             "createRowEffectStage/adapter/init:close/init:close",
             "createRowEffectStage/adapter/init:close/init:close/init:close",
             "createRowEffectStage/admitCapability/admitCapability",
@@ -74729,9 +74929,6 @@
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
-            "createRowEffectStage/captureStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/captureStage#11",
             "createRowEffectStage/captureStage/captureStage#12",
@@ -74742,6 +74939,9 @@
             "createRowEffectStage/captureStage/captureStage#7",
             "createRowEffectStage/captureStage/captureStage#8",
             "createRowEffectStage/captureStage/captureStage#9",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
+            "createRowEffectStage/captureStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -74772,8 +74972,15 @@
             "createRowEffectStage/continuationOf/continuationOf/continuationOf",
             "createRowEffectStage/decideTargetRead/decideTargetRead",
             "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
+            "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
+            "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
+            "createRowEffectStage/describeMember/describeMember",
             "createRowEffectStage/entryOf/entryOf",
             "createRowEffectStage/footprintOf/footprintOf",
+            "createRowEffectStage/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
@@ -74781,6 +74988,7 @@
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
+            "createRowEffectStage/observeRows/observeRows/observed/observed",
             "createRowEffectStage/openLedger/openLedger",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
@@ -74808,11 +75016,11 @@
             "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
             "createRowEffectStage/prepareRecovered/dispatches/dispatches",
             "createRowEffectStage/prepareRecovered/finish/finish/finish",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
             "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
@@ -74821,7 +75029,13 @@
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
             "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/readDecision/readDecision",
+            "createRowEffectStage/recipeOf/recipeOf",
+            "createRowEffectStage/recipes/recipes",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
@@ -79456,7 +79670,6 @@
         {
           "operations": [
             "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
-            "createRowEffectStage/controlEntryBytes/controlEntryBytes",
             "createRowEffectStage/controlRecipes/controlRecipes",
             "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
@@ -81001,7 +81214,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5b6e7bde236731e808a78e4a7e30d556593ac427458aa299118f5178e7e4a746",
+      "sha256": "9a3f06fb6a3f7f7df8f5ecbc3c51020c9ea05df4debe5f2d0e8cbed9743dbb16",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -82062,7 +82275,8 @@
         {
           "name": "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
           "parameters": [
-            "site"
+            "site",
+            "originalBind"
           ],
           "async": false
         },
@@ -82678,7 +82892,8 @@
             "site",
             "custody",
             "identity",
-            "enabled"
+            "enabled",
+            "originalBind"
           ],
           "async": false
         },
@@ -83133,12 +83348,13 @@
             "createInstalledRowSource/acquire/issueGrant/issueGrant",
             "createInstalledRowSource/acquire/readerOptions/consumeObservation",
             "createInstalledRowSource/acquire/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
@@ -83156,7 +83372,6 @@
             "createInstalledRowSource/openKeyed",
             "createInstalledRowSource/openKeyed/observedMs/observedMs",
             "createInstalledRowSource/openKeyed/openKeyed",
-            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/openKeyed#2",
             "createInstalledRowSource/openKeyed/openKeyed#3",
             "createInstalledRowSource/openKeyed/openKeyed#4",
@@ -83165,6 +83380,7 @@
             "createInstalledRowSource/openKeyed/openKeyed#7",
             "createInstalledRowSource/openKeyed/openKeyed#8",
             "createInstalledRowSource/openKeyed/openKeyed#9",
+            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
             "createInstalledRowSource/openKeyedLookup",
             "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
@@ -83202,8 +83418,7 @@
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/init:prepare/init:prepare/init:prepare",
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
-            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#9"
+            "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets"
           ],
           "exports": [
             "createInstalledRowSource"
@@ -83760,6 +83975,10 @@
             "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
             "createInstalledRowSource/sourceBody/sourceBody",
+            "openRowSourceCredentialCustody/custody/custody",
+            "openRowSourceCredentialCustody/custody/custody#2",
+            "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
             "openRowSourceCredentialCustody/readChildCredential",
             "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
             "openRowSourceCredentialCustody/retainRunBinding/init:bindRunAcquisition/init:bindRunAcquisition",
@@ -83774,11 +83993,7 @@
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:close/init:close",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:bindRunAcquisition/init:bindRunAcquisition/acquisition/init:retire/init:retire",
             "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:readChildCredential/init:readChildCredential",
-            "retainCredentialOperationSite/retainCredentialOperationSite#3",
-            "openRowSourceCredentialCustody/custody/custody",
-            "openRowSourceCredentialCustody/custody/custody#2",
-            "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
-            "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite"
+            "retainCredentialOperationSite/retainCredentialOperationSite#3"
           ],
           "exports": [],
           "attributes": {

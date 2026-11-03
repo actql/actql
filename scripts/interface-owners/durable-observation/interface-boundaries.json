@@ -6373,6 +6373,7 @@
         "closeHttpsCredentialBinding",
         "exchangeHttpsCredentialAuthentication",
         "httpsCredentialAuthorizationPrefix",
+        "httpsCredentialDefaultRequestBytes",
         "httpsCredentialResponseHeaderByteLimit",
         "httpsCredentialResponseReadQuantum",
         "httpsCredentialResponseWindowBytes",
@@ -7681,7 +7682,9 @@
           "operations": [
             "<module>"
           ],
-          "exports": [],
+          "exports": [
+            "httpsCredentialDefaultRequestBytes"
+          ],
           "attributes": {
             "responsibility": [
               {
@@ -8247,7 +8250,7 @@
           }
         }
       ],
-      "sha256": "8e02cc0ba1d2a501f16e3da0792e0e53bdb919e0645edab946ca2e3d351b4cce",
+      "sha256": "3b118555698b288977363a87b15ada23a8b84f1477eaaafd74df81a17b06a72e",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/credential-scope-fields.generated.mjs",

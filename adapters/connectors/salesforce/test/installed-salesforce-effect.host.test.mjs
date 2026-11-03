@@ -94,9 +94,11 @@ async function remoteHost(t, installation, directory, {configuration,
   const effect = await installation.load({
     accountConfigurationWire: configuration});
   const hooks = salesforceEffectSiteHooks(effect);
+  // The real Host's original key installation owns persisted private
+  // evidence across these restarts; an arbitrary fixture Buffer cannot
+  // replace the Result constructor's independently selected original key.
   const site = createInstalledEffectSite({
-    ...(instrument?.hooks?.(hooks) ?? hooks),
-    privateEvidenceKey: Buffer.alloc(32, 7)});
+    ...(instrument?.hooks?.(hooks) ?? hooks)});
   const effectInstallation = {...site,
     async execute(facts) {
       try {
@@ -114,7 +116,9 @@ async function remoteHost(t, installation, directory, {configuration,
       throw error;
     }
   }};
-  const host = await openInstalledRemoteHttpHost({
+  let host;
+  try {
+    host = await openInstalledRemoteHttpHost({
     directory: join(directory, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     beforeDispatch, effectInstallation,
@@ -124,6 +128,16 @@ async function remoteHost(t, installation, directory, {configuration,
         detail: detail?.stack ?? detail?.code ?? detail}),
       reviewReaders: [], resumeAfterAnswer,
       hostKey: {keyId: 'host-key', privateKey: pem(hostKeys.privateKey)}}});
+  } catch (failure) {
+    // Observe only this fresh fixture's original initializer refusal; no
+    // retained input, credential, Store payload or previous state is read.
+    t.diagnostic(JSON.stringify({fixture: 'Salesforce Remote Host original initialization',
+      code: failure?.code, primaryCode: failure?.primaryFailure?.code,
+      primaryStack: failure?.primaryFailure?.stack,
+      causeCode: failure?.cause?.code, cleanupPending: failure?.cleanupPending,
+      cleanup: failure?.cleanupErrors?.map(({owner, error}) => ({owner, code: error?.code}))}));
+    throw failure;
+  }
   let dropped = false;
   const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
     if (loseResolveReply && !dropped && request.url === '/actql/client/0.1/resolve') {

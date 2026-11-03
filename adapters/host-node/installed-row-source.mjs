@@ -301,9 +301,10 @@ export function installedRowCredentialOperationSite(credential) {
   return original;
 }
 
-function retainCredentialOperationSite(site, custody, identity, enabled) {
+function retainCredentialOperationSite(site, custody, identity, enabled, originalBind) {
   if (enabled) {
-    const bind = custody.bindRunAcquisition;
+    const bind = originalBind ?? custody.bindRunAcquisition;
+    const bindReceiver = originalBind === undefined ? custody : site;
     const purpose = custody.authorizationPurpose;
     const child = custody.readChildCredential;
     const bindResourceChild = custody.bindReadResourceChild;
@@ -313,7 +314,7 @@ function retainCredentialOperationSite(site, custody, identity, enabled) {
       construction: custody.construction,
       referenceCurrent: custody.referenceCurrent,
       bindRunAcquisition: (authorization, current) =>
-        Reflect.apply(bind, custody, [authorization, current]),
+        Reflect.apply(bind, bindReceiver, [authorization, current]),
       authorizationPurpose: authorization => Reflect.apply(purpose, custody, [authorization]),
       readChildCredential: (acquisition, authorization) => Reflect.apply(child, custody, [acquisition, authorization]),
       bindReadResourceChild: bindResourceChild,
@@ -745,10 +746,13 @@ export function openRowSourceCredentialCustody({profile, principalId,
   }
   const custody = Object.freeze({credential, sign, signInstallationMetadata,
     ...(construction === undefined ? {} : {construction}),
-    ...(construction === undefined ? {} : {retainOperationSite(site) {
+    ...(construction === undefined ? {} : {retainOperationSite(site, originalBind) {
       ensureOpen();
       if (this !== custody || site === null || typeof site !== 'object' ||
-          nodeTypes.isProxy(site) || !Object.isFrozen(site)) fail('ForeignInstalledCredentialOperationSite');
+          nodeTypes.isProxy(site) || !Object.isFrozen(site) || originalBind !== undefined &&
+          (typeof originalBind !== 'function' || nodeTypes.isProxy(originalBind) || nodeTypes.isAsyncFunction(originalBind))) {
+        fail('ForeignInstalledCredentialOperationSite');
+      }
       const fields = Object.getOwnPropertyDescriptors(site);
       if (!Object.hasOwn(fields.credential ?? {}, 'value') || fields.credential.value !== credential ||
           !Object.hasOwn(fields.callResource ?? {}, 'value') || typeof fields.callResource.value !== 'function' ||
@@ -764,7 +768,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
       // replace the custody, credential, principal or immutable runtime facts.
       return retainCredentialOperationSite(site, custody,
         {connection: fields.connection.value, principalId, connectorRegistration,
-          connectorRevision, runtimeBundleCid}, true);
+          connectorRevision, runtimeBundleCid}, true, originalBind);
     }}),
     installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose, readChildCredential,
     bindReadResourceChild, readResourceChildCredential,

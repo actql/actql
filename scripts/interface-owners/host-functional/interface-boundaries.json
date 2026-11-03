@@ -64385,7 +64385,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1e37f7bb4a2d0c6def4dc0c380e000891694e8ce91823cfbc2afff0ccf95f472",
+      "sha256": "265b2179a10d408c9b31571a94fc14df2734fb295e4fb19149dda9ce1e0a8d62",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -64559,6 +64559,7 @@
             "environmentWire",
             "prepareCaptured",
             "prepareRecovered",
+            "prepareManagedPlan",
             "validateRecoveredInstallation",
             "privateEvidenceKey",
             "queryTableBindings",

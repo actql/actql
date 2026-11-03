@@ -1640,9 +1640,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   });
   function selectedInstalledEffect({prepared, compilation, updateTargetSelections}) {
     const selections = updateTargetSelections ?? updateTargetOriginals?.selectionsOf(prepared);
-    if (installedEffect?.effects === undefined) {
-      validateInstalledUpdateOwnerSelections(installedEffect, selections, prepared);
-      return installedEffect;
+    const implementation = installedEffect ?? effectInstallation;
+    if (implementation?.effects === undefined) {
+      validateInstalledUpdateOwnerSelections(implementation, selections, prepared);
+      return implementation;
     }
     let selected = effectSelections.get(prepared);
     if (selected === undefined) {
@@ -4617,7 +4618,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       try {
         const selection = inferSelections.get(submission.preparedProgram);
         if (effectful) {
-          if (installedEffect === undefined || typeof preparation.prepareManagedEffectPlanRun !== 'function') {
+          if (installedEffect === undefined && effectInstallation === undefined ||
+              typeof preparation.prepareManagedEffectPlanRun !== 'function') {
             throw clientOperationError('HostEffectRunPreparationUnavailable');
           }
           preparation.admitEffectResultPublicationRun(submission.preparedProgram);

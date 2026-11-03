@@ -323,3 +323,60 @@ test('response backing checks the same installed HTTP header bound before borrow
   f.controls.retiredAliases = true;
   assert.equal(await child.release(), true);
 });
+
+// A Describe is a member occurrence, even when a member contains many rows.
+// Its original Plan selector and atomic borrower must select the SAME domain.
+test('member credential occurrence selects and borrows its original member slot before TLS', async t => {
+  const f = await operationFixture(t), selections = [], borrows = [];
+  const select = f.runtime.clientProgramInstalledEffectManagedPlanOperation;
+  const borrow = f.runtime.clientProgramInstalledEffectOperationBorrow;
+  f.runtime.clientProgramInstalledEffectManagedPlanOperation = function (...args) {
+    assert.equal(this, f.runtime);
+    selections.push(args);
+    assert.deepEqual(args.slice(1), [2, false, 3, 'create']);
+    return Reflect.apply(select, this, args);
+  };
+  f.runtime.clientProgramInstalledEffectOperationBorrow = function (...args) {
+    assert.equal(this, f.runtime);
+    borrows.push(args);
+    assert.deepEqual(args.slice(4), [2, false, 3, 0, 'create']);
+    return Reflect.apply(borrow, this, args);
+  };
+  const children = [];
+  let child;
+  try {
+    const response = await prepareInstalledRowCaptureChild({children, create() {
+      child = f.create(f.send, {memberIndex: 2, perRow: false, operationIndex: 3});
+      return child;
+    }});
+    assert.equal(response.body.toString(), '{}');
+    assert.equal(selections.length, 1);
+    assert.equal(borrows.length, 1);
+    assert.equal(f.controls.bindings, 1);
+    assert.equal(f.controls.starts, 1);
+    assert.equal(f.server.seen().length, 1);
+    assert.equal(await child.release(), false);
+    assert.equal(f.controls.settles, 0);
+  } finally {
+    f.controls.retiredAliases = true;
+    if (child !== undefined) assert.equal(await child.retry(), true);
+  }
+  assert.equal(f.controls.settles, 1);
+  assert.equal(child.status().pending, false);
+});
+
+test('invalid credential occurrence domain refuses before selection, borrow or binding', async t => {
+  const f = await operationFixture(t);
+  let selections = 0;
+  f.runtime.clientProgramInstalledEffectManagedPlanOperation = () => {selections++; throw new Error('must not select');};
+  for (const perRow of [undefined, null, 0, 'member', {}]) {
+    // Omission preserves the existing row default; explicit undefined shares
+    // the JS default and is covered by the old row operation tests instead.
+    if (perRow === undefined) continue;
+    assert.throws(() => f.create(f.send, {perRow}), {code: 'InvalidInstalledEffectCredentialOperation'});
+  }
+  assert.equal(selections, 0);
+  assert.equal(f.controls.borrows, 0);
+  assert.equal(f.controls.bindings, 0);
+  assert.equal(f.server.seen().length, 0);
+});

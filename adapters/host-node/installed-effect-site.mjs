@@ -334,7 +334,7 @@ async function currentRunState(facts, result, stage) {
 // owners; neither hook may decide that an unknown send succeeded or restart
 // Compute. The recovered hook receives the exact durable capture only.
 export function createInstalledEffectSite({environmentWire,
-  prepareCaptured, prepareRecovered, validateRecoveredInstallation, privateEvidenceKey,
+  prepareCaptured, prepareRecovered, prepareManagedPlan, validateRecoveredInstallation, privateEvidenceKey,
   queryTableBindings,
   queryTableWriteAccesses,
   targetReadInventory, targetReadAuthorization,
@@ -342,6 +342,7 @@ export function createInstalledEffectSite({environmentWire,
   if (typeof environmentWire !== 'string' || !environmentWire ||
       typeof prepareCaptured !== 'function' ||
       typeof prepareRecovered !== 'function' ||
+      (prepareManagedPlan !== undefined && typeof prepareManagedPlan !== 'function') ||
       (validateRecoveredInstallation !== undefined && typeof validateRecoveredInstallation !== 'function') ||
       targetReadInventory !== undefined && typeof targetReadInventory !== 'function' ||
       (targetReadInventory === undefined) !== (targetReadAuthorization === undefined) ||
@@ -354,6 +355,9 @@ export function createInstalledEffectSite({environmentWire,
   }
   return Object.freeze({
     environmentWire,
+    // Retain the SAME installed implementation callback. Selection and its
+    // nominal Plan/current/capacity checks stay with the original Run owner.
+    prepareManagedPlan,
     queryTableBindings,
     queryTableWriteAccesses,
     targetReadInventory, targetReadAuthorization,

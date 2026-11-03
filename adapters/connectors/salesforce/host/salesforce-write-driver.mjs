@@ -37,6 +37,10 @@ const OBSERVE_OPERATION = 'salesforce:record:observe';
 const grantOperations = Object.freeze({create: 'salesforce:record:create',
   update: 'salesforce:record:update', upsert: 'salesforce:record:upsert'});
 const kindCodes = Object.freeze({create: 0, update: 1, upsert: 2});
+// The installing recipe names the SAME physical operations as this driver.
+// These immutable labels are not grants or operation-selection tokens.
+export {grantOperations as salesforceWriteOperations,
+  OBSERVE_OPERATION as salesforceTargetReadOperation};
 // The installed write kind of each Effect kind (a create is installed from a
 // Result).
 const installedKinds = Object.freeze({create: 'createFromResult',
@@ -127,9 +131,9 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
 
     // The Resource's current describe, bound to the member's dispatch.
     describe: ({member, runInvocationCid, dispatchRequestCid, label,
-      approval, signal}) => site.describeEffectCatalog({
+      approval, signal, readChild, controlConstruction}) => site.describeEffectCatalog({
       resources: [member.resource], runInvocationCid, dispatchRequestCid,
-      occurrence: nextOccurrence(label), approval, signal}),
+      occurrence: nextOccurrence(label), approval, signal, readChild, controlConstruction}),
 
     // A target read approved through the Host's resumed Checkpoint covers
     // only the physical binding of exactly this member of this installation.
@@ -180,21 +184,25 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
 
     // A refusal by a fully described current Catalog is definitive; an
     // outage or incomplete describe is not.
-    recheckRequests({entries, current}) {
-      for (const entry of entries) {
-        checkedSalesforceCatalogPreparation(
-          salesforceMoon.salesforceRecheckSingleWriteRequest(entry.request,
-            current.observation), salesforceMoon, current.observation);
-      }
+    recheckRequests({entries, current, controlConstruction}) {
+      const recheck = () => {
+        for (const entry of entries) {
+          checkedSalesforceCatalogPreparation(
+            salesforceMoon.salesforceRecheckSingleWriteRequest(entry.request,
+              current.observation), salesforceMoon, current.observation);
+        }
+      };
+      return controlConstruction === undefined ? recheck()
+        : controlConstruction(undefined, recheck, []);
     },
 
     // Each row's target, read now, as its observed Preview row: the target
     // identity, the whole-response guard version and the typed before value.
-    async observeTargets({entries, current, authorizationForRow, signal}) {
+    async observeTargets({entries, current, authorizationForRow, signal, readChild}) {
       const requests = entries.map(entry => entry.request);
       const [observed] = await observeSalesforceTargetSet({
         moon: salesforceMoon, members: [{requests,
-          currentCatalog: current.observation, authorizationForRow,
+          currentCatalog: current.observation, authorizationForRow, readChild,
           credential: site.credential, limits: limits.target}],
         maxMembers: 1, maxRows: limits.maxRows,
         maxTotalResponseBytes: limits.maxTotalResponseBytes, signal});
@@ -257,10 +265,10 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
     // installation's global member positions are decoded by its vendor owner.
     recoverMemberRequests: recoverRequests,
 
-    send: ({request, current, authorization, credential, signal}) =>
+    send: ({request, current, authorization, credential, signal, callResource}) =>
       sendRawSalesforceSingleRecord({moon: salesforceMoon, request,
         currentObservation: current.observation, authorization, credential,
-        limits: limits.write, signal}),
+        limits: limits.write, signal, callResource}),
 
     // The typed reply as the common `effect_outcome`, projected by the
     // Salesforce owner against the admitted Preview row.

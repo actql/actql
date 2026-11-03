@@ -65,6 +65,20 @@ const runtimeBundleCid = `sha256:${createHash('sha256').update(
     '../../../../_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js', import.meta.url))).digest('hex')}`;
 const secret = async () => 'test-only-secret';
+
+// The real Host acquires this namespace only when a physical snapshot lease
+// starts. Check no residual files in either state; absence is not a cleanup
+// ACK and never replaces the original resource/child/close assertions below.
+async function assertNoSnapshotFiles(t, root) {
+  let entries;
+  try { entries = await readdir(join(root, 'state', 'carrier-snapshots')); }
+  catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    t.diagnostic('Snapshot namespace was not acquired; no namespace ACK inferred');
+    return;
+  }
+  assert.deepEqual(entries, []);
+}
 // Checkpoint review for Hosts installed with Run-acceptance protection.
 const reviewerKeys = generateKeyPairSync('ed25519');
 const hostKeys = generateKeyPairSync('ed25519');
@@ -232,13 +246,26 @@ async function installation(t, {readable = ['Test_Record__c'],
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    let closed = false;
+    let closed = false, serverClosed = false;
     const close = async () => {
       if (closed) return;
+      if (!serverClosed) {
+        server.closeAllConnections?.();
+        await new Promise(resolve => server.close(resolve));
+        serverClosed = true;
+      }
+      try { await host.close(); }
+      catch (failure) {
+        // Observe this fresh original's supplied failure receipt only. Never
+        // open a failed Store or turn this diagnostic into cleanup success.
+        t.diagnostic(JSON.stringify({phase: 'original Host close', code: failure?.code,
+          failures: failure?.failures?.map(item => Object.fromEntries(
+            ['primary', 'close', 'cleanup', 'finish', 'release', 'preparation']
+              .map(name => [name, item[name] === undefined ? undefined
+                : {name: item[name].name, code: item[name].code, message: item[name].message}])))}));
+        throw failure;
+      }
       closed = true;
-      server.closeAllConnections?.();
-      await new Promise(resolve => server.close(resolve));
-      await host.close();
     };
     closers.push(close);
     const as = async token => {
@@ -659,8 +686,7 @@ test('two-view capture stays owned when cancellation precedes the second read',
     assert.equal(setup.queries().length, 1);
     assert.equal(observations.filter(item => item.name ===
       'acquisition_cleanup_completed').length, 1);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
@@ -713,8 +739,7 @@ test('second Salesforce view failure releases the first retained capture',
       'uncertainTransferBytes']) {
       assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
     }
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
@@ -765,8 +790,7 @@ test('two-view failure after both captures publishes nothing or reacquires',
       'uncertainTransferBytes']) {
       assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
     }
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
@@ -848,8 +872,7 @@ test('retained Salesforce acquisition failure publishes nothing or rereads',
     assert.equal(state.result_available, false);
     await assert.rejects(execution.result('records').all());
     assert.equal(setup.queries().length, 1);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     const resent = await client.startSource(program, {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 1);
@@ -890,8 +913,7 @@ test('retained Salesforce capture survives cancellation until cleanup',
     assert.equal(state.status, 'cancelled', JSON.stringify(state));
     assert.equal(state.result_available, false);
     await assert.rejects(execution.result('records').all());
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     assert.equal(setup.queries().length, 1);
     await close();
     const reopened = await setup.open({authorization});
@@ -1884,8 +1906,7 @@ test('retained Salesforce Events failure publishes no partial Result',
     assert.equal(state.result_available, false);
     await assert.rejects(execution.result('published').all());
     assert.equal(setup.queries().length, 1);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', submissionRef});
     assert.deepEqual(resent.ref, execution.ref);
@@ -1916,8 +1937,7 @@ test('retained Salesforce Events later filter failure keeps no Result',
     assert.equal(state.result_available, false);
     await assert.rejects(execution.result('published').all());
     assert.equal(setup.queries().length, 1);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
     await close();
     const reopened = await setup.open({authorization: checkpointAuthorization()});
     const attached = await reopened.client.attach(execution.ref);
@@ -1958,8 +1978,7 @@ test('retained Salesforce Events input stays owned through cancellation',
     assert.equal(state.result_available, false);
     await assert.rejects(execution.result('published').all());
     assert.equal(setup.queries().length, 1);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    await assertNoSnapshotFiles(t, setup.root);
   });
 
 test('Salesforce dates and UTC datetimes reach the Named Result as the same values',

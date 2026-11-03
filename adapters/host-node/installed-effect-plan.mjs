@@ -199,20 +199,35 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
     const values = fields.credentialOperations.value;
-    if (!Array.isArray(values) || values.length < 1 || values.length > 5) fail('InvalidInstalledEffectPlanRecipe');
+    // Five existing row phases plus three Describe/three target phases.
+    if (!Array.isArray(values) || values.length < 1 || values.length > 11) fail('InvalidInstalledEffectPlanRecipe');
     const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
-    const phases = new Set(), indexes = new Set(requestConstruction === undefined ? [] : [requestConstruction.operationIndex]);
+    const phases = new Set(), indexes = new Set([
+      ...(requestConstruction === undefined ? [] : [`row:${requestConstruction.operationIndex}`]),
+      ...(captureConstruction === undefined ? [] : [`member:${captureConstruction.operationIndex}`]),
+    ]);
     credentialOperations = Object.freeze(Array.from({length: values.length}, (_, index) => {
-      const entry = own(entries[String(index)].value, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes']);
+      const original = entries[String(index)].value;
+      if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original)) fail('InvalidInstalledEffectPlanRecipe');
+      const entry = own(original, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes',
+        ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : [])]);
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
+        perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
-      if (!['capture-check', 'apply-check', 'resume-check', 'write-check', 'write'].includes(phase) || phases.has(phase) ||
-          !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length ||
-          indexes.has(operationIndex) || ![maxRequestBytes,maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
+      const describe = ['capture-describe', 'apply-describe', 'resume-describe'].includes(phase);
+      const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write',
+        'capture-target', 'apply-target', 'resume-target'].includes(phase);
+      const selected = perRow ? rowOperations : memberOperations;
+      const key = `${perRow ? 'row' : 'member'}:${operationIndex}`;
+      if (typeof perRow !== 'boolean' || (!describe && !row) || describe === perRow || phases.has(phase) ||
+          !Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= selected.length ||
+          indexes.has(key) || ![maxRequestBytes,maxResponseBytes].every(value =>
+            Number.isSafeInteger(value) && value > 0)) {
         fail('InvalidInstalledEffectPlanRecipe');
       }
-      phases.add(phase); indexes.add(operationIndex);
-      return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes});
+      phases.add(phase); indexes.add(key);
+      return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
+        ...(entry.perRow === undefined ? {} : {perRow})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
   }
@@ -476,10 +491,10 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
 // One selected HTTP body operation and its binary response reader share one
 // native occurrence. Form reads and writes must select separate occurrences.
 export function prepareInstalledEffectCredentialChild({run, memberIndex, rowIndex,
-  operationIndex, operation, originalSite, originalAuthorization, useId, resource,
+  operationIndex, operation, perRow = true, originalSite, originalAuthorization, useId, resource,
   purpose, runInvocationCid, dispatchRequestCid, maxRequestBytes, maxResponseBytes,
   assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke}) {
-  if (run === undefined || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
+  if (run === undefined || typeof perRow !== 'boolean' || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
       .every(value => typeof value === 'function') || !text(useId) || !text(resource) ||
       !['read', 'target-read', 'effect'].includes(purpose) || !text(runInvocationCid) || !text(dispatchRequestCid) ||
       ![maxRequestBytes,maxResponseBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
@@ -523,7 +538,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
   try {
     // These original extent projections inspect immutable Plan DATA only.
     // The atomic borrow below owns the successful current/reservation boundary.
-    const extent=checked(Reflect.apply(select,runtime,[plan,memberIndex,true,operationIndex,operation]));
+    const extent=checked(Reflect.apply(select,runtime,[plan,memberIndex,perRow,operationIndex,operation]));
     const declaredTransfer=Reflect.apply(transfer,runtime,[extent]);
     if(Reflect.apply(isPhysical,runtime,[extent])!==true || typeof declaredTransfer!=='bigint' ||
         declaredTransfer<BigInt(maxRequestBytes)+httpsCredentialResponseWindowBytes(maxResponseBytes)) {
@@ -541,7 +556,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     throw error;
   }
   originalRecord();
-  let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,true,operationIndex,rowIndex,operation]));
+  let token=checked(Reflect.apply(borrow,runtime,[parent,prepared,request,plan,memberIndex,perRow,operationIndex,rowIndex,operation]));
   let state='fresh',preparing=false,closing=false,accountingFailed=false,callStarted=false;
   let acquisition,closeBinding,boundCredential,bindingClosed=false,pendingFence,fenceFlight,pendingClose,closeFlight,physicalFlight;
   const retainFence=value=>{

@@ -216,6 +216,65 @@ pub fn client_program_installed_standard_driver_recipe_capacities(
 }
 
 ///|
+#export_name("clientProgramInstalledDescribedEffectRecipeCapacities")
+pub fn client_program_installed_described_effect_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  capture_original : Array[@execution.ExecutionCapacity]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  target_reads : Bool,
+  target_request_bytes : Int,
+  target_response_bytes : Int,
+  metadata_request_bytes : Int,
+  metadata_response_bytes : Int,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+  response_read_quantum : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_described_effect_recipe_capacities(
+    original,
+    capture_original,
+    input_bytes,
+    input_nodes,
+    input_depth,
+    row_input_bytes,
+    row_input_nodes,
+    row_input_depth,
+    request_bytes,
+    response_bytes,
+    target_reads,
+    target_request_bytes,
+    target_response_bytes,
+    metadata_request_bytes,
+    metadata_response_bytes,
+    secret_bytes,
+    secret_prefix_units,
+    header_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    metadata_units,
+    response_read_quantum~,
+  )
+}
+
+///|
 // Pure same-Plan capture quantity. JavaScript forwards the native capacity
 // unchanged; Core supplies its checked row multiplicity, never an ABI tuple
 // or an independent caller estimate.

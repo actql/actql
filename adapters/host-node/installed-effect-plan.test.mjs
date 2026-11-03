@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {types as nodeTypes} from 'node:util';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
@@ -983,4 +984,56 @@ test('nested owned prepare cannot clear the outer physical cleanup fence', async
     f.retireAliases(); assert.equal(await child.release(), true);
     assert.equal(closes, 1); assert.equal(f.settlements(), 1);
   }
+});
+
+test('installed recipe keeps member Describe and row target occurrences distinct even at equal indexes', () => {
+  const operation = name => Object.freeze({operation: name, extent: {}});
+  const memberOperations = Object.freeze([operation('capture'), operation('describe')]);
+  const rowOperations = Object.freeze([operation('request'), operation('observe'), operation('write')]);
+  const occurrence = (phase, perRow, operationIndex) => Object.freeze({phase, perRow, operationIndex,
+    maxRequestBytes: 128, maxResponseBytes: 64});
+  const recipe = Object.freeze({memberOperations, rowOperations,
+    captureConstruction: Object.freeze({operationIndex: 0}),
+    requestConstruction: Object.freeze({operationIndex: 0}),
+    credentialOperations: Object.freeze([occurrence('capture-describe', false, 1),
+      occurrence('capture-target', true, 1), occurrence('write', true, 2)])});
+  const selected = captureInstalledEffectPlanRecipe(recipe, 5);
+  assert.deepEqual(selected.credentialOperations.map(value => [value.phase, value.perRow, value.operationIndex]),
+    [['capture-describe', false, 1], ['capture-target', true, 1], ['write', true, 2]]);
+  for (const entries of [
+    [occurrence('capture-describe', false, 0), occurrence('write', true, 2)],
+    [occurrence('capture-target', false, 1), occurrence('write', true, 2)],
+    [occurrence('capture-describe', true, 1), occurrence('write', true, 2)],
+    [occurrence('capture-describe', false, 1), occurrence('apply-describe', false, 1), occurrence('write', true, 2)],
+    [occurrence('write', false, 1)],
+  ]) assert.throws(() => captureInstalledEffectPlanRecipe(Object.freeze({...recipe,
+    credentialOperations: Object.freeze(entries)}), 5), {code: 'InvalidInstalledEffectPlanRecipe'});
+});
+
+test('same installed driver keeps create update and upsert recipes tied to their original checked kind', () => {
+  const source = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureManagedPlanRecipes');
+  assert(declaration);
+  const capture = Function('nodeTypes', 'captureInstalledEffectPlanRecipe', 'fail',
+    `return (${source.slice(declaration.start, declaration.end)});`)(nodeTypes, captureInstalledEffectPlanRecipe,
+      code => {throw Object.assign(new Error(code), {code});});
+  const kinds = Object.freeze(['create', 'update', 'upsert']);
+  const extents = kinds.map(() => ({}));
+  const recipes = Object.freeze(Object.fromEntries(kinds.map((kind, index) => [kind, Object.freeze({
+    memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+      Object.freeze({operation: `salesforce:record:${kind}`, extent: extents[index]})])})])));
+  const selected = capture(recipes, {kinds}, 1);
+  assert(Object.isFrozen(selected));
+  for (const [index, kind] of kinds.entries()) {
+    assert.equal(selected[kind].rowOperations[0].operation, `salesforce:record:${kind}`);
+    assert.strictEqual(selected[kind].rowOperations[0].extent, extents[index]);
+  }
+  let getters = 0;
+  for (const invalid of [recipes.create, Object.freeze({...recipes, delete: recipes.create}),
+    Object.freeze({create: recipes.create, update: recipes.update}),
+    Object.freeze({...recipes, get upsert() {getters++; return recipes.upsert;}})]) {
+    assert.throws(() => capture(invalid, {kinds}, 1), {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+  assert.equal(getters, 0);
 });

@@ -1542,6 +1542,8 @@ pub fn client_program_install_original_mock(@check_environment.ModelMockProfile,
 
 pub fn client_program_installed_composed_infer_plan_graph(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
+pub fn client_program_installed_described_effect_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_effect_capture_extent_prepare(String, @execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]

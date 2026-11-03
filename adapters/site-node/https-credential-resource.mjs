@@ -29,6 +29,10 @@ export const httpsCredentialResponseHeaderByteLimit = maxHeaderSize;
 // the same fixed prefix. No credential material is exposed by this DATA.
 export const httpsCredentialAuthorizationPrefix = 'Bearer ';
 
+// The unchanged default of the original request constructor below. Installed
+// recipe assembly consumes this same bound instead of copying its number.
+export const httpsCredentialDefaultRequestBytes = 1_048_576;
+
 // Acquisition custody stays in the Credential Owner, not in Connector-visible
 // fields. Scope equality is only identity; each operation still claims and
 // authorizes its own nominal use in the original journal.
@@ -900,7 +904,7 @@ async function callCredentialResource({
   cert,
   key,
   now = Date.now,
-  maxRequestBytes = 1_048_576,
+  maxRequestBytes = httpsCredentialDefaultRequestBytes,
   maxResponseBytes = 1_048_576,
   returnRejectedResponse = false,
   retainRunResponseOriginal = false,

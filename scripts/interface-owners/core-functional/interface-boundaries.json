@@ -32730,7 +32730,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "58424cacddfb9aca44f19b9c15d3a346826c9a9358dc4c7f922792f674ac0179",
+      "sha256": "89a210efda870f342b5727abbf6888365bac2de54100363462a1b9ecc9d55852",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -32754,6 +32754,10 @@
           "declaration": "installed_standard_create_constructor_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "installed_standard_create_constructor_capacity",
+          "declaration": "installed_standard_create_constructor_capacity ( native : @ execution . ExecutionCapacity , input : @ source . ParseLimits ? , output : @ source . ParseLimits ? , ) - > Result [ @ execution . ExecutionCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "installed_standard_host_capture_row_capacity",
           "declaration": "installed_standard_host_capture_row_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -32768,7 +32772,8 @@
             "<module>",
             "installed_json_effect_request_construction_capacity",
             "installed_json_effect_response_construction_capacity",
-            "installed_standard_create_constructor_capacities"
+            "installed_standard_create_constructor_capacities",
+            "installed_standard_create_constructor_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -48912,7 +48917,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "4a28b55744689ee6135132d9e20e4077b6677f48571225fc65ee973e9cfa549c",
+      "sha256": "e75f9f8d5d5a3de150cbdf33e1699ccb0faab2f437369dadec2a8c558d74a794",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -48920,12 +48925,28 @@
       "exports": [],
       "operations": [
         {
+          "name": "client_program_installed_described_effect_recipe_capacities",
+          "declaration": "client_program_installed_described_effect_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , target_reads : Bool , target_request_bytes : Int , target_response_bytes : Int , metadata_request_bytes : Int , metadata_response_bytes : Int , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_capture_extent_prepare",
           "declaration": "client_program_installed_effect_capture_extent_prepare ( operation : String , fixed_capacity : @ execution . ExecutionCapacity , capacity_per_checked_row : @ execution . ExecutionCapacity , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_capture_recipe_extent_prepare",
           "declaration": "client_program_installed_effect_capture_recipe_extent_prepare ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_content_managed_plan_prepare",
+          "declaration": "client_program_installed_effect_content_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand ] , content : @ client_local_host . ClientInstalledEffectContentPreparation , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_content_preparation_prepare",
+          "declaration": "client_program_installed_effect_content_preparation_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , component : @ publication_host . ClientSerializationPlanGraph , contracts : @ client_local_host . ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , workspace : @ client_local_host . ClientSerializationWorkspaceLimits , cancel : ( ) - > Bool , stopped : ( ) - > Bool , cleanup : ( ) - > Bool , retain : ( @ client_local_host . ClientLocalContentStep ) - > Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectContentPreparation , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_content_preparation_provider",
+          "declaration": "client_program_installed_effect_content_preparation_provider ( original : @ client_local_host . ClientInstalledEffectContentPreparation , ) - > @ local . ManagedProvider"
         },
         {
           "name": "client_program_installed_effect_managed_host_open",
@@ -48992,6 +49013,14 @@
           "declaration": "client_program_installed_effect_operation_extent_prepare ( operation : String , retained_bytes : Int64 , execution_bytes : Int64 , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_local_file_store_control_wire_bound",
+          "declaration": "client_program_installed_local_file_store_control_wire_bound ( ) - > Int"
+        },
+        {
+          "name": "client_program_installed_local_file_store_recipe_capacities",
+          "declaration": "client_program_installed_local_file_store_recipe_capacities ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , native_original_bytes : Int64 , path_bytes : Int , name_bytes : Int , max_components : Int , native_depth : Int , content_read_window_bytes : Int , control_wire_bytes : Int ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_standard_create_recipe_capacities",
           "declaration": "client_program_installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -49013,6 +49042,9 @@
           "operations": [
             "<module>",
             "client_program_installed_effect_capture_extent_prepare",
+            "client_program_installed_effect_content_managed_plan_prepare",
+            "client_program_installed_effect_content_preparation_prepare",
+            "client_program_installed_effect_content_preparation_provider",
             "client_program_installed_effect_managed_host_open",
             "client_program_installed_effect_managed_operation_plan",
             "client_program_installed_effect_managed_plan_capture_children",
@@ -49030,8 +49062,8 @@
             "client_program_installed_effect_operation_extent_from_capacity_prepare",
             "client_program_installed_effect_operation_extent_prepare",
             "client_program_installed_standard_create_recipe_capacities",
-            "client_program_node_effect_managed_plan_cleanup",
-            "client_program_installed_standard_driver_recipe_capacities"
+            "client_program_installed_standard_driver_recipe_capacities",
+            "client_program_node_effect_managed_plan_cleanup"
           ],
           "exports": [],
           "attributes": {
@@ -49167,6 +49199,9 @@
         },
         {
           "operations": [
+            "client_program_installed_described_effect_recipe_capacities",
+            "client_program_installed_local_file_store_control_wire_bound",
+            "client_program_installed_local_file_store_recipe_capacities",
             "client_program_installed_standard_create_request_recipe_capacities"
           ],
           "exports": [],
@@ -67726,6 +67761,10 @@
       "exports": [],
       "operations": [
         {
+          "name": "named_describe_construction_capacity",
+          "declaration": "named_describe_construction_capacity ( describe : @ catalog . DescribeLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
           "name": "native_read_construction_capacity",
           "declaration": "native_read_construction_capacity ( describe : @ catalog . DescribeLimits , query : @ catalog . QueryPageLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , columns : Int , pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . ExecutionCapacity ?"
         },
@@ -67736,6 +67775,10 @@
         {
           "name": "sf_read_describe_parse_inventory",
           "declaration": "sf_read_describe_parse_inventory ( limits : @ catalog . DescribeLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "sf_read_metadata_construction_inventory",
+          "declaration": "sf_read_metadata_construction_inventory ( fields : Int64 , references : Int64 , ) - > @ shape . CollectionConstructionExtent ?"
         },
         {
           "name": "sf_read_observation_construction_inventory",
@@ -67750,9 +67793,11 @@
         {
           "operations": [
             "<module>",
+            "named_describe_construction_capacity",
             "native_read_construction_capacity",
             "sf_read_collection_units",
             "sf_read_describe_parse_inventory",
+            "sf_read_metadata_construction_inventory",
             "sf_read_observation_construction_inventory",
             "sf_read_query_construction_inventory"
           ],
@@ -67815,7 +67860,7 @@
           }
         }
       ],
-      "sha256": "559570cc1d7c2834be0b4ee9e44bdc94f53f7628a1fae56abe9a506a10a0d51e"
+      "sha256": "08526ff0dc21abf273dfe3321c5f430c802092e28c090e2013b4d7de9a8e6f7b"
     },
     {
       "module": "src/client_local_host/installed_effect_managed_run.mbt",
@@ -73396,6 +73441,563 @@
               {
                 "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
                 "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_described_effect_recipe.mbt",
+      "sha256": "2ea27977ddffa750798193e38638cfd15849787ccbdebd24adc15218e0352e75",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_described_effect_recipe_capacities",
+          "declaration": "installed_described_effect_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , target_reads : Bool , target_request_bytes : Int , target_response_bytes : Int , metadata_request_bytes : Int , metadata_response_bytes : Int , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum ? : Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_described_effect_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_described_effect_recipe.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/salesforce/host_node/effect_construction_profile.mbt",
+      "sha256": "5a8086162d0478a039db81fe2c63e779589f14afecc63bfaf77c89596cf0ad16",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "salesforce_effect_capture_construction_profile",
+          "declaration": "salesforce_effect_capture_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , list_bytes : Int , list_nodes : Int , list_depth : Int , list_resources : Int , list_selected : Int , list_names : Int , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , raw_bytes : Int , recovery_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        },
+        {
+          "name": "salesforce_effect_construction_profile",
+          "declaration": "salesforce_effect_construction_profile ( body_bytes : Int , body_nodes : Int , body_depth : Int , path_bytes : Int , target_bytes : Int , request_bytes : Int , target_response_bytes : Int , target_nodes : Int , target_depth : Int , identity_bytes : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "salesforce_effect_capture_construction_profile",
+            "salesforce_effect_construction_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/host_node/effect_construction_profile.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/salesforce/host_node/effect_construction.mbt",
+      "sha256": "8e17e9a50c782930e8e2d7ebc3cadaf17c3f5db9f20823ddb1c093215e9bf506",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "salesforce_effect_driver_construction_capacity",
+          "declaration": "salesforce_effect_driver_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "salesforce_effect_metadata_construction_capacity",
+          "declaration": "salesforce_effect_metadata_construction_capacity ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_fields : Int , max_name_units : Int , max_observation_bytes : Int , binding_units : Int , resource_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "salesforce_effect_recovery_preview_construction_capacity",
+          "declaration": "salesforce_effect_recovery_preview_construction_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "salesforce_effect_request_construction_capacity",
+          "declaration": "salesforce_effect_request_construction_capacity ( body_bytes : Int , body_nodes : Int , body_depth : Int , path_bytes : Int , target_bytes : Int , request_bytes : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "salesforce_effect_response_construction_capacity",
+          "declaration": "salesforce_effect_response_construction_capacity ( response_bytes : Int , response_nodes : Int , response_depth : Int , identity_bytes : Int , fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "salesforce_effect_target_construction_capacity",
+          "declaration": "salesforce_effect_target_construction_capacity ( response_bytes : Int , response_nodes : Int , response_depth : Int , identity_bytes : Int , fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "salesforce_effect_driver_construction_capacity",
+            "salesforce_effect_metadata_construction_capacity",
+            "salesforce_effect_recovery_preview_construction_capacity",
+            "salesforce_effect_request_construction_capacity",
+            "salesforce_effect_response_construction_capacity",
+            "salesforce_effect_target_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/host_node/effect_construction.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/salesforce/host/effect_capture_construction.mbt",
+      "sha256": "7b2ac8e44ac56603f1d1fd3aebb900054fb8e57f46735a1ccfa7e194eb07bcdf",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effect_capture_construction_profile",
+          "declaration": "effect_capture_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , preview : @ source . ParseLimits , list : @ catalog . ListLimits , describe : @ catalog . DescribeLimits , observation_bytes : Int , raw_bytes : Int , recovery_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        },
+        {
+          "name": "effect_construction_profile",
+          "declaration": "effect_construction_profile ( body : @ catalog . WriteBodyLimits , request : @ catalog . WriteRequestLimits , target : @ catalog . TargetObservationLimits , response : @ catalog . WriteCollectionResponseLimits , describe : @ catalog . DescribeLimits , observation_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        },
+        {
+          "name": "sf_effect_catalog_recovery_capacity",
+          "declaration": "sf_effect_catalog_recovery_capacity ( list : @ catalog . ListLimits , describe : @ catalog . DescribeLimits , raw_bytes : Int , observation_bytes : Int , binding_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effect_capture_construction_profile",
+            "effect_construction_profile",
+            "sf_effect_catalog_recovery_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/salesforce/host/effect_construction.mbt",
+      "sha256": "088a49b99ab8eff9a2759529f373ed6fcd6c726456b2af1080fd7143d3e68632",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effect_driver_construction_capacity",
+          "declaration": "effect_driver_construction_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_recovery_preview_construction_capacity",
+          "declaration": "effect_recovery_preview_construction_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_request_construction_capacity",
+          "declaration": "effect_request_construction_capacity ( body : @ catalog . WriteBodyLimits , request : @ catalog . WriteRequestLimits , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_response_construction_capacity",
+          "declaration": "effect_response_construction_capacity ( limits : @ catalog . WriteCollectionResponseLimits , identity_bytes : Int , fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "effect_target_construction_capacity",
+          "declaration": "effect_target_construction_capacity ( limits : @ catalog . TargetObservationLimits , fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "sf_effect_capacity",
+          "declaration": "sf_effect_capacity ( retained : @ execution . PreparationRepresentationUnits , workspace : @ execution . PreparationRepresentationUnits , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effect_driver_construction_capacity",
+            "effect_recovery_preview_construction_capacity",
+            "effect_request_construction_capacity",
+            "effect_response_construction_capacity",
+            "effect_target_construction_capacity",
+            "sf_effect_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/host/effect_construction.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication/effect_preview_construction.mbt",
+      "sha256": "d8c477df8e5ea650406532f695903078357728658e057ccf6baee6b678f640e1",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "effect_preview_identity_construction_inventory",
+          "declaration": "effect_preview_identity_construction_inventory ( bytes : Int , nodes : Int , depth : Int , ) - > EffectPreviewIdentityConstructionInventory ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "effect_preview_identity_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/run_publication/effect_preview_construction.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
               }
             ]
           }

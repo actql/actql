@@ -280,39 +280,55 @@ pub fn installed_standard_create_constructor_capacities(
   }
   let capacities = []
   for (native, input, output) in entries {
-    let combined = match output {
-      None => native
-      Some(output) => {
-        guard installed_standard_host_json_output_capacity(output) is Some(host) &&
-          // Native returns its original String before Host JSON.parse begins.
-          // Every returned native/Host holder stays summed; their private
-          // synchronous constructor scratch does not coexist. A failed phase
-          // still keeps this SAME complete combined peak until cleanup.
-          standard_create_sum_capacities(
-            [native, host],
-            sequential_workspace=true,
-          )
-          is Some(combined) else {
-          return Err(Unsupported)
-        }
-        combined
-      }
-    }
-    let capacity = match input {
-      None => combined
-      Some(limits) =>
-        match
-          installed_json_effect_response_construction_capacity(
-            combined,
-            limits.max_input_bytes,
-            limits.max_nodes,
-            limits.max_depth,
-          ) {
-          Some(value) => value
-          None => return Err(Unsupported)
-        }
+    let capacity = match
+      installed_standard_create_constructor_capacity(native, input, output) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     capacities.push(capacity)
   }
   Ok(capacities)
+}
+
+///|
+// The same per-entry constructor fold used by the profile reader. A caller
+// selecting one original entry must not rebuild every sibling's quote.
+fn installed_standard_create_constructor_capacity(
+  native : @execution.ExecutionCapacity,
+  input : @source.ParseLimits?,
+  output : @source.ParseLimits?,
+) -> Result[@execution.ExecutionCapacity, ClientInstalledManagedRunIssue] {
+  let combined = match output {
+    None => native
+    Some(output) => {
+      guard installed_standard_host_json_output_capacity(output) is Some(host) &&
+        // Native returns its original String before Host JSON.parse begins.
+        // Every returned native/Host holder stays summed; their private
+        // synchronous constructor scratch does not coexist. A failed phase
+        // still keeps this SAME complete combined peak until cleanup.
+        standard_create_sum_capacities(
+          [native, host],
+          sequential_workspace=true,
+        )
+        is Some(combined) else {
+        return Err(Unsupported)
+      }
+      combined
+    }
+  }
+  let capacity = match input {
+    None => combined
+    Some(limits) =>
+      match
+        installed_json_effect_response_construction_capacity(
+          combined,
+          limits.max_input_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Some(value) => value
+        None => return Err(Unsupported)
+      }
+  }
+  Ok(capacity)
 }

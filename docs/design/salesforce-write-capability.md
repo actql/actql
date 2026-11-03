@@ -63,6 +63,30 @@ does not acquire mutation authority merely to inspect saved outcomes. It still
 requires current evidence-read admission. Success and unknown are never made
 retryable by issuing a new capability.
 
+## Managed constructor placement
+
+The described-record recipe composes the existing Native constructor
+quantities with the same Host input, HTTP, credential and saved-response
+owners. Body DATA uses the preserving parser; only the existing external-ID
+URI constructor normalizes its target. A path refusal occurs after the
+original API/resource prefix was constructed and does not erase that work.
+
+Returned Describe metadata belongs once to the member capture. Its private
+parser/writer workspace belongs to the Run's existing synchronous control
+frame. The three member Describe HTTP occurrences retain their own bounded
+response and secret material; they do not each retain another metadata parser
+workspace. Targeted writes likewise preserve distinct capture, apply and
+resume target reads. A create does not select a target-read capacity.
+
+Provider capability, footprint and request recheck constructors use that same
+control frame. Request JSON projection occurs after the request child's Native
+constructor returns, so it also needs the control frame before parsing the
+returned value/target. It cannot borrow workspace already dropped by the
+completed child. The recipe retains the Native and Host results while reusing
+only completed synchronous scratch. Failed/async construction keeps its
+original prefix until the existing owner retires it; consumed attempts and
+work are never refunded by this placement.
+
 
 ## Multi-select value projection
 
@@ -154,6 +178,46 @@ byte/node/depth and caller lifetime bounds still apply; deriving the Object's
 comparison work from the observed component count is not a new capacity grant,
 normal numerical profile or claim that the entire whole-phase envelope is funded.
 
+
+## Salesforce managed operation recipe
+
+The installed Effect restores its original Mapping and Environment, then uses
+the existing Source initializer to construct the original driver and its three
+kind recipes. Native/Core recipe methods and their receivers are captured before
+the initializer's reserve/current boundary; only their builder runs inside the
+funded projection. The recipe's operation labels come from the same Describe and
+write implementations. Labels and implementation limits do not issue a grant,
+select a member, supply a row count or replace the current Account/Site check.
+
+The native provider returns one opaque request/target/response/metadata
+constructor quartet and its fixed/row capture quantities. The existing Core
+composer consumes those original values without a Host tuple or Option
+reconstruction. Core's checked Program supplies member and row multiplicity.
+Capture, apply and resume Describe reads are distinct member occurrences;
+target reads are distinct row occurrences for update/upsert. Each write retains
+its own physical occurrence. A create does not acquire target-read authority.
+
+Metadata output is retained once on its member. Synchronous constructor scratch
+uses the original control frame; an awaited HTTP child retains its own response,
+credential and physical cleanup. Returned material remains charged when scratch
+finishes. Failed or invalid asynchronous construction keeps the complete
+original prefix until its existing retirement confirms release.
+
+Cold reconstruction uses the same capture occurrence and the same complete
+request constructor, including Host output parsing. It preserves both named
+Describe and historical whole-Catalog recovery. Whole-Catalog metadata is
+bounded cumulatively by the original raw-byte inventory, rather than multiplying
+one full response by every Resource. The standard Node Store's object bound
+also bounds an authenticated inner recovery wire; that byte bound is not a
+memory allowance or a substitute for parser, Catalog and Preview construction.
+Provider-specific identity admission remains separate from current authority.
+
+The original initializer retains the driver and recipe projection before any
+later Run uses them. Original native refusals propagate before child creation.
+No replacement Ledger, submission, grant, mutation retry or physical ACK follows
+from reading the quantities. Store custody, Unknown, pending cleanup and Saved
+restoration remain with their original owners and must be exercised through the
+matching ordinary installation in addition to focused constructor/caller tests.
 
 ## Original DELETE metadata projection
 

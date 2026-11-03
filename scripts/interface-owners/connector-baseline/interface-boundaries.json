@@ -8974,7 +8974,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a094a76574985ef1c50e779873ee175eebbfb39a0c199f0ecae244a0dc2e79c",
+      "sha256": "7e2c1f1dc65c3076bbf8220b37b5036a8c83fe4e3905b2615e80cc8458c23fc5",
       "role": "connector-semantics",
       "owner": "Exact installed Host facts projected to the existing Salesforce captured/recovered Effect factory",
       "exports": [
@@ -9113,7 +9113,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/local-values-plan.mjs",
+        "./installed-salesforce-effect.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
@@ -9297,7 +9304,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1dbfc880b8197bba85fa88f4bd06ff1003c5e06514215621ba6669f2659bf256",
+      "sha256": "e2f76004aec731d7543cf18b68e4ef432e03ed52ea06c2869207185664328bef",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9408,6 +9415,14 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindManagedAcquisition",
+          "parameters": [
+            "authorization",
+            "current"
+          ],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/bindRecordAcquisition",
@@ -9567,7 +9582,9 @@
             "dispatchRequestCid",
             "occurrence",
             "approval",
-            "signal"
+            "signal",
+            "readChild",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -9580,7 +9597,8 @@
             "occurrence",
             "approval",
             "signal",
-            "readChild"
+            "readChild",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -9597,7 +9615,8 @@
             "approval",
             "signal",
             "retainPublicationOriginals",
-            "readChild"
+            "readChild",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -9619,6 +9638,16 @@
             "name"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue/issued/issued",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/generate/generate",
@@ -9886,8 +9915,8 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
+            "installedSalesforceSiteBinding",
             "loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead/admitCheckpointEffectTargetRead",
@@ -9895,6 +9924,7 @@
             "loadInstalledSalesforceSite/attestEffectCapability",
             "loadInstalledSalesforceSite/attestEffectCapability/init:current/init:current",
             "loadInstalledSalesforceSite/authorizeDescribe",
+            "loadInstalledSalesforceSite/bindManagedAcquisition",
             "loadInstalledSalesforceSite/bindRecordAcquisition",
             "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
             "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
@@ -9914,12 +9944,12 @@
             "loadInstalledSalesforceSite/custody/custody",
             "loadInstalledSalesforceSite/declarationLimits/declarationLimits",
             "loadInstalledSalesforceSite/declareCatalog",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
             "loadInstalledSalesforceSite/describeEffectCatalog",
             "loadInstalledSalesforceSite/describeForAcquisition",
             "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
             "loadInstalledSalesforceSite/generate/generate",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/issueGrant/issueGrant",
@@ -10234,15 +10264,17 @@
         },
         {
           "operations": [
+            "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource",
             "loadInstalledSalesforceSite/describeNamed/result/result",
+            "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue",
+            "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue/issued/issued",
             "loadInstalledSalesforceSite/init:observe/init:observe",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value",
             "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
-            "withInstalledSalesforceDeclarationOriginals",
-            "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource"
+            "withInstalledSalesforceDeclarationOriginals"
           ],
           "exports": [
             "observeInstalledSalesforcePublicationCurrent",
@@ -12357,13 +12389,14 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3d4ba135481f693667f68af63edd6a9876ad8a04b9e9795aa1f0681d99725ae3",
+      "sha256": "27ebeec739f2cafe940ff046d07142b53a62e18256c372868076214c2fb41bf8",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
         "NAMED_EVIDENCE_VERSION",
         "describeSalesforceResources",
         "recoverNamedSalesforceObservation",
+        "salesforceDescribeOperation",
         "withSalesforceNamedDescribeOriginals"
       ],
       "operations": [
@@ -12391,9 +12424,17 @@
             "retainPublicationOriginals",
             "maxRetainedBytes",
             "callResource",
-            "signal"
+            "signal",
+            "controlConstruction"
           ],
           "async": true
+        },
+        {
+          "name": "describeSalesforceResources/construct/construct",
+          "parameters": [
+            "callback"
+          ],
+          "async": false
         },
         {
           "name": "describeSalesforceResources/describeSalesforceResources",
@@ -12403,24 +12444,39 @@
           "async": false
         },
         {
-          "name": "describeSalesforceResources/outcomes/outcomes",
+          "name": "describeSalesforceResources/describeSalesforceResources/outcomes/outcomes",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "describeSalesforceResources/result/result",
+          "name": "describeSalesforceResources/describeSalesforceResources/result/result",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "describeSalesforceResources/result/result#2",
+          "name": "describeSalesforceResources/describeSalesforceResources/result/result#2",
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/describeSalesforceResources#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/describeSalesforceResources#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/sync/sync",
+          "parameters": [],
           "async": false
         },
         {
@@ -12508,8 +12564,14 @@
             "<module>",
             "count/count",
             "describeSalesforceResources",
+            "describeSalesforceResources/construct/construct",
             "describeSalesforceResources/describeSalesforceResources",
-            "describeSalesforceResources/outcomes/outcomes",
+            "describeSalesforceResources/describeSalesforceResources#2",
+            "describeSalesforceResources/describeSalesforceResources#3",
+            "describeSalesforceResources/describeSalesforceResources/outcomes/outcomes",
+            "describeSalesforceResources/describeSalesforceResources/result/result",
+            "describeSalesforceResources/describeSalesforceResources/result/result#2",
+            "describeSalesforceResources/sync/sync",
             "fail/fail",
             "recoverNamedSalesforceObservation",
             "recoverNamedSalesforceObservation/observation/observation",
@@ -12519,7 +12581,8 @@
           "exports": [
             "NAMED_EVIDENCE_VERSION",
             "describeSalesforceResources",
-            "recoverNamedSalesforceObservation"
+            "recoverNamedSalesforceObservation",
+            "salesforceDescribeOperation"
           ],
           "attributes": {
             "responsibility": [
@@ -12626,14 +12689,12 @@
         },
         {
           "operations": [
-            "describeSalesforceResources/result/result",
-            "describeSalesforceResources/result/result#2",
             "withSalesforceNamedDescribeOriginals",
             "withSalesforceNamedDescribeOriginals/operations/operations",
             "withSalesforceNamedDescribeOriginals/operations/operations/operations",
-            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals",
             "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals",
-            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals"
+            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals",
+            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals"
           ],
           "exports": [
             "withSalesforceNamedDescribeOriginals"
@@ -12925,7 +12986,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a39c896f7322edbdea8c57a684f24969010140e6d8514ff940716098bdef71ce",
+      "sha256": "e72802cef9ff21a5b155dfec5e43345c23f8f7753e4cd7ff106bc1efaa52d7c9",
       "role": "physical-io",
       "owner": "Separately authorized prospective target reads, not Preview/apply or absence proof; original owner admits guards",
       "exports": [
@@ -12970,9 +13031,23 @@
           "async": true
         },
         {
+          "name": "observeSalesforceTargetSet/observed/observed",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "observeSalesforceTargetSet/owned/owned",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeSalesforceTargetSet/owned/owned/owned",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -13061,7 +13136,9 @@
             "observeSalesforceAccountConditionalTarget",
             "observeSalesforceSingleTarget",
             "observeSalesforceTargetSet",
+            "observeSalesforceTargetSet/observed/observed",
             "observeSalesforceTargetSet/owned/owned",
+            "observeSalesforceTargetSet/owned/owned/owned",
             "observeSingleTarget",
             "retireSalesforceAccountTargetOriginal",
             "validLimits/validLimits",

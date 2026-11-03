@@ -352,6 +352,8 @@ pub fn effect_preview_footprint_target_cid(EffectPreviewFootprintIdentity, Int) 
 
 pub fn effect_preview_footprint_target_count(EffectPreviewFootprintIdentity) -> Int
 
+pub fn effect_preview_identity_construction_inventory(Int, Int, Int) -> EffectPreviewIdentityConstructionInventory?
+
 pub fn effect_preview_member_approval(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_authority_scope_cid(EffectPreviewIdentity, Int) -> String?
@@ -1571,6 +1573,14 @@ pub struct EffectPreviewIdentity {
   compiled_plan_cid : String
   check_environment_cid : String
 }
+
+pub(all) struct EffectPreviewIdentityConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+  owned_wire_bytes : Int64
+} derive(Eq, @debug.Debug)
 
 pub(all) enum EffectPreviewIdentityIssue {
   PreviewShape(PublicationContractIssue)

@@ -360,3 +360,21 @@ test('Host Effect Source actual preparedEffect field retains the same Plan paren
   assert.equal(reads, 3);
   assert.deepEqual(f.counts(), {preparations: 1, capacities: 1});
 });
+
+
+test('explicit Effect Host selects the same installed Site for its existing managed Plan callback', () => {
+  let declaration;
+  visit(ast, node => {if (node.type === 'FunctionDeclaration' && node.id?.name === 'selectedInstalledEffect') declaration = node;});
+  assert(declaration);
+  const prepared = {}, compilation = {}, plan = {}, calls = [];
+  const original = Object.freeze({prepareManagedPlan() {return plan;}});
+  const select = new Function('installedEffect', 'effectInstallation', 'updateTargetOriginals',
+    'validateInstalledUpdateOwnerSelections', source.slice(declaration.start, declaration.end) + '\nreturn selectedInstalledEffect;')(
+    undefined, original, undefined, (installation, selections, actual) => {
+      assert.strictEqual(installation, original); assert.equal(selections, undefined);
+      assert.strictEqual(actual, prepared); calls.push('same-owner-selection');
+    });
+  assert.strictEqual(select({prepared, compilation}), original);
+  assert.deepEqual(calls, ['same-owner-selection']);
+  assert.strictEqual(original.prepareManagedPlan(), plan);
+});

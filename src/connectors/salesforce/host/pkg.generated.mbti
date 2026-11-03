@@ -7,6 +7,7 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/query_planning",
+  "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
@@ -14,6 +15,20 @@ import {
 pub fn accept_managed_query_page(ManagedQuery, String, Bytes) -> Result[@catalog.QueryPage, ManagedQueryIssue]
 
 pub fn cancel_managed_query(ManagedQuery) -> Bool
+
+pub fn effect_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @source_value.ParseLimits, @catalog.ListLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+
+pub fn effect_construction_profile(@catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, @catalog.WriteCollectionResponseLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
+
+pub fn effect_driver_construction_capacity() -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_recovery_preview_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_request_construction_capacity(@catalog.WriteBodyLimits, @catalog.WriteRequestLimits, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_response_construction_capacity(@catalog.WriteCollectionResponseLimits, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_target_construction_capacity(@catalog.TargetObservationLimits, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -32,6 +47,8 @@ pub fn managed_query_complete(ManagedQuery) -> Bool
 pub fn managed_query_next_path(ManagedQuery) -> Result[String?, ManagedQueryIssue]
 
 pub fn managed_query_row_count(ManagedQuery) -> Int64
+
+pub fn named_describe_construction_capacity(@catalog.DescribeLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn native_read_construction_capacity(@catalog.DescribeLimits, @catalog.QueryPageLimits, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 

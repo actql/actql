@@ -3,6 +3,7 @@ import test from 'node:test';
 import './effect-cleanup-composition.test.mjs';
 import './effect-authorization-cleanup.test.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {salesforceEffectSiteHooks} from '../connectors/salesforce/host/installed-salesforce-effect-hooks.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
@@ -438,3 +439,38 @@ for (const changed of ['target binding', 'provider']) {
     assert.equal(authorizations, 0); assert.equal(dispatchStarts, 0);
   });
 }
+
+
+test('independent Salesforce Effect Site retains the same original managed Plan callback without preparing it', () => {
+  const originalPlan = {}, facts = {}, inputs = {};
+  let selections = 0;
+  const prepareManagedPlan = (actualFacts, actualInputs) => {
+    selections++;
+    assert.strictEqual(actualFacts, facts); assert.strictEqual(actualInputs, inputs);
+    return originalPlan;
+  };
+  const effect = Object.freeze({environmentWire: '{}', prepareManagedPlan,
+    targetReadAuthorization: {}, // Explicit unused paired metadata port; no read or grant.
+    prepareCaptured() {assert.fail('No execution at installation');},
+    prepareRecovered() {assert.fail('No recovery at installation');}});
+  const hooks = salesforceEffectSiteHooks(effect);
+  const site = createInstalledEffectSite(hooks);
+  assert.equal(selections, 0);
+  assert.strictEqual(hooks.prepareManagedPlan, prepareManagedPlan);
+  assert.strictEqual(site.prepareManagedPlan, prepareManagedPlan);
+  assert.strictEqual(site.prepareManagedPlan(facts, inputs), originalPlan);
+  assert.equal(selections, 1);
+  assert.equal(createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured() {}, prepareRecovered() {}}).prepareManagedPlan, undefined);
+});
+
+
+test('independent Effect Site refuses an invalid Plan callback without invoking execution or recovery', () => {
+  let called = 0;
+  for (const prepareManagedPlan of [null, {}, 0, 'callback']) {
+    assert.throws(() => createInstalledEffectSite({environmentWire: '{}', prepareManagedPlan,
+      prepareCaptured() {called++;}, prepareRecovered() {called++;}}),
+    {code: 'InvalidInstalledEffectSiteFactory'});
+  }
+  assert.equal(called, 0);
+});

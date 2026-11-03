@@ -15,6 +15,7 @@ export function salesforceEffectSiteHooks(effect) {
   }
   return Object.freeze({
     environmentWire: effect.environmentWire,
+    prepareManagedPlan: effect.prepareManagedPlan,
     targetReadAuthorization: effect.targetReadAuthorization,
     targetReadInventory: facts => effect.targetReadInventory({moon: facts.moon,
       prepared: facts.prepared,

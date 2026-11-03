@@ -23,7 +23,24 @@ const variable=name=>{
   const found=nodes.filter(({node})=>node.type==='VariableDeclarator'&&node.id.name===name);
   assert.equal(found.length,1,name);return found[0].node.init;
 };
-const expression=(name,ports)=>Function(...Object.keys(ports),`return (${source.slice(variable(name).start,variable(name).end)});`)(...Object.values(ports));
+const recipePort = ownerOf => expression('recipeOf', {ownerOf,
+  // Existing single-recipe fixtures have no codec-size substitution. Keep
+  // that explicit port while executing the actual shared kind selection.
+  controlRecipes: {get: original => original}});
+const readPorts = (ownerOf, resourceFields = () => ({})) => {
+  const recipeOf = recipePort(ownerOf);
+  const managedReadChild = expression('managedReadChild', {ownerOf, recipeOf, fail});
+  const describeMember = expression('describeMember', {ownerOf, managedReadChild, resourceFields});
+  return {recipeOf, managedReadChild, describeMember};
+};
+const expression=(name,ports)=>{
+  if (['checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
+      ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
+  if (name === 'physicalRoute' && ports.describeMember === undefined) {
+    ports = {...readPorts(ports.ownerOf, ports.resourceFields), ...ports};
+  }
+  return Function(...Object.keys(ports),`return (${source.slice(variable(name).start,variable(name).end)});`)(...Object.values(ports));
+};
 const capture=nodes.find(({node})=>node.type==='FunctionDeclaration'&&node.id.name==='captureStage').node;
 const loops=capture.body.body.filter(n=>n.type==='ForOfStatement'&&n.body.body.some(statement=>statement.type==='VariableDeclaration'&&statement.declarations.some(d=>d.id.name==='description')));
 assert.equal(loops.length,1);
@@ -32,6 +49,60 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
 const checked=value=>{if(value.error)throw value.error;return value.ok;};
 const cid=character=>`sha256:${character.repeat(64)}`;
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+
+test('managed capability uses the same original control frame before any provider constructor', () => {
+  const member = {}, entries = [], current = {}, receiver = {}, events = [];
+  let active = false, calls = 0;
+  receiver.issueCapability = function(facts) {
+    assert.strictEqual(this, receiver);
+    assert(active, 'constructor must be inside the original funded frame');
+    assert.strictEqual(facts.member, member);
+    assert.strictEqual(facts.entries, entries);
+    assert.strictEqual(facts.current, current);
+    calls++;
+    return {identity: cid('1'), route: 'single_serial', binding: {
+      connector_registration: 'original', connector_revision: '0.1', runtime_bundle_cid: cid('2')}};
+  };
+  const actual = expression('admitCapability', {ownerOf: original => {
+    assert.strictEqual(original, member);
+    return {owned: receiver, connectorRegistration: 'original', connectorRevision: '0.1', runtimeBundleCid: cid('2')};
+  }, commonCapability: () => assert.fail('existing provider capability must be used'),
+  cidPattern: /^sha256:[0-9a-f]{64}$/, fail});
+  const frame = (original, method, args) => {
+    assert.strictEqual(original, receiver);
+    assert.strictEqual(method, receiver.issueCapability);
+    events.push('begin');active = true;
+    try { return Reflect.apply(method, original, args); }
+    finally { active = false;events.push('end'); }
+  };
+  assert.deepEqual(actual(member, entries, current, cid('3'), cid('4'), frame),
+    {identity: cid('1'), route: 'single_serial'});
+  assert.deepEqual(events, ['begin', 'end']);
+  const refusal = new Error('same original control reservation refused');
+  assert.throws(() => actual(member, entries, current, cid('3'), cid('4'),
+    () => {throw refusal;}), error => error === refusal);
+  assert.equal(calls, 1, 'a refused frame invokes no provider constructor');
+});
+
+test('managed footprint uses the same original control frame and original request inventory', () => {
+  const member = {}, entries = [{request: {}}], receiver = {};
+  let active = false, calls = 0;
+  receiver.footprint = function(facts) {
+    assert.strictEqual(this, receiver);assert(active);
+    assert.strictEqual(facts.member, member);assert.strictEqual(facts.entries, entries);calls++;
+    return {kind: 'exact_targets', provider_boundary_cid: cid('1'), provider_namespace: 'original',
+      resource_kind: 'Account', resource_identity_scheme_cid: cid('2'), provider_object_identity_cids: [cid('3')]};
+  };
+  const actual = expression('footprintOf', {ownerOf: () => ({owned: receiver}),
+    footprintKinds: ['exact_targets'], cidPattern: /^sha256:[0-9a-f]{64}$/,
+    text: value => typeof value === 'string' && value.length > 0, fail});
+  const result = actual(member, entries, (original, method, args) => {
+    assert.strictEqual(original, receiver);assert.strictEqual(method, receiver.footprint);
+    active = true;try {return Reflect.apply(method, original, args);} finally {active = false;}
+  });
+  assert.equal(result.provider_object_identity_cids[0], cid('3'));
+  assert.equal(calls, 1);assert.equal(active, false);
+});
 
 test('actual capture failure input callback retires only its pins after the shared child drain', async () => {
   const marker = new Error('stop after original cleanup retention'), children = [];
@@ -63,9 +134,10 @@ test('actual capture failure input callback retires only its pins after the shar
 const member=Object.freeze({kind:'create',effectId:'create',memberIndex:0});
 const input=[{label:'b'},{label:'a'},{label:'a'}];
 const issued=[{content_cid:cid('a'),occurrence:0},{content_cid:cid('a'),occurrence:1},{content_cid:cid('b'),occurrence:0}];
-function fixture({child=false,inventoryError,managed=false,constructorFailureAt}={}){
+function fixture({child=false,inventoryError,managed=false,constructorFailureAt,controlFrame=false}={}){
   const events=[],contexts=[],requests=[],requestChildren=[],workspaceEvents=[],runOriginal=Object.freeze({}),description=Object.freeze({original:true});
   let activeConstructor;
+  let projecting = false, projections = 0;
   let inventoryCalls=0;
   const moon={clientProgramEffectCreateRowInventory(wires,count,bytes,nodes,depth){
     inventoryCalls++;events.push('inventory');
@@ -86,7 +158,14 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt}
     const request=Object.freeze({value:context.value}),requestCid=cid(String(contexts.length));
     requests.push(request);return {request,requestCid};
   };
-  const owned={describe(){return description;},requestFacts:request=>({value:request.value,target:undefined}),
+  const owned={describe(){return description;},requestFacts:request=>{
+    if (controlFrame) {
+      assert(projecting, 'post-return JSON projection has its original control frame');
+      assert.equal(activeConstructor, undefined, 'the Native request constructor already completed');
+      projections++;
+    }
+    return {value:request.value,target:undefined};
+  },
     prepareRequest:prepare,
     ...(child?{prepareRequestChild(context){
       const result=prepare(context);let pending=true;
@@ -124,7 +203,11 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt}
   const resourceFields=value=>{assert.strictEqual(value,member);return {runOriginal};};
   const commandContentRow=()=>undefined;
   const requestsOf=expression('requestsOf',{ownerOf,requestEntry,resourceFields,commandContentRow});
-  const ports={moon,members:[member],ownerOf,assertCurrent(){events.push('current');},
+  const ports={...readPorts(ownerOf, resourceFields),controlConstruction:controlFrame ? (receiver, method, args) => {
+    assert.equal(projecting, false);projecting = true;
+    try {return Reflect.apply(method, receiver, args);} finally {projecting = false;}
+  } : undefined,physicalOperations:()=>assert.fail('No physical call in constructor-only fixture'),
+    moon,members:[member],ownerOf,assertCurrent(){events.push('current');},
     proposals:[input.map(value=>({changesWire:JSON.stringify({state:'present',value})}))],
     runInvocationCid:cid('c'),dispatches:[cid('d')],reads:[undefined],signal:undefined,
     resourceFields,currents:[],rowsOf:[],observations:[],commandContentBorrower:()=>assert.fail('No Command borrow'),
@@ -133,8 +216,19 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt}
     requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
     managedEffect,prepareInstalledEffectRequestChild,prepareInstalledEffectOwnedRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
-  return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
+  return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,projections:()=>projections,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
+
+test('managed request JSON export uses the same control frame after Native constructor completion', async () => {
+  const original = fixture({managed: true, controlFrame: true});
+  const result = await original.run();
+  assert.equal(original.projections(), 3);
+  assert.equal(result.rowsOf[0].length, 3);
+  assert.equal(original.activeConstructor(), undefined);
+  assert.deepEqual(original.workspaceEvents, [
+    ['begin', 0], ['complete', 0], ['begin', 1], ['complete', 1], ['begin', 2], ['complete', 2],
+  ]);
+});
 
 test('create original occurrence reaches synchronous provider before request and stays in canonical Preview frame',async()=>{
   const f=fixture();const result=await f.run();
@@ -494,7 +588,7 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
     publicationCleanupOwnerAction(index,count,checked,pending,available,attempted){
       return index>=count?'finished':!checked?'inspect':pending&&available&&!attempted?'retry':'advance';
     }};
-  const ports={moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
+  const ports={...readPorts(()=>owned),moon,prepared,identity,managedEffect,members,checkedHost:{},checked,fail,
     limits:{maxPinnedResults:2,maxRows:2,maxWork:100,maxFields:4,body:{maxBytes:100,maxNodes:20,maxDepth:5}},
     ownerOf:()=>owned,assertCurrent(){},own(){},ownChildren(value){assert.equal(children.length,0);children.push(value);},
     ownInputs(release,complete){releaseInputs=release;finish=complete;},control,
@@ -748,4 +842,148 @@ test('actual managed row loop composes the original owned request child without 
   for (const retained of f.requestChildren) await retained.prepared.retry();
   assert.deepEqual(f.settlements, f.debits);
   assert.equal(factories, 3, 'cleanup never invokes another request factory');
+});
+
+// Actual original dispatcher/target-read constructors; permission, Core
+// reservation and provider IO remain explicit ports in this source component.
+test('managed Salesforce read handoff retains exact issuer originals across member metadata and row target phases', async () => {
+  const member = {kind: 'update', memberIndex: 0, effectId: 'save', resource: 'Account'};
+  const grant = Object.freeze({grant: {}, scope: {operation: 'salesforce:record:observe'}});
+  const decision = {action: 'dispatch'}, approval = {}, credential = {}, calls = [];
+  const target = {id: 'original'}, versionCid = cid('a'), current = {};
+  const selectedRecipe = captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze([Object.freeze({operation: 'describe', extent: {}})]),
+    rowOperations: Object.freeze([Object.freeze({operation: 'observe', extent: {}}),
+      Object.freeze({operation: 'write', extent: {}})]),
+    credentialOperations: Object.freeze([
+      Object.freeze({phase: 'capture-describe', perRow: false, operationIndex: 0, maxRequestBytes: 128, maxResponseBytes: 64}),
+      Object.freeze({phase: 'capture-target', perRow: true, operationIndex: 0, maxRequestBytes: 128, maxResponseBytes: 64}),
+      Object.freeze({phase: 'write', operationIndex: 1, maxRequestBytes: 128, maxResponseBytes: 64}),
+    ])}), 3);
+  const site = {credential, issueReadGrant(facts) {
+    assert.equal(facts.operation, 'observe'); assert.strictEqual(facts.decision, approval);
+    return grant;
+  }};
+  let consumed, originalEnvelope;
+  const owned = {targetRead: {operation: 'observe'}, admitTargetReadApproval: () => approval,
+    describe: options => options.readChild(grant, {grant: grant.grant, useId: 'metadata-use',
+      maxResponseBytes: 32, operations: new Map()}),
+    async observeTargets(options) {
+      originalEnvelope = await options.authorizationForRow(0);
+      consumed = options.readChild;
+      await options.readChild(originalEnvelope, {grant: grant.grant, useId: originalEnvelope.useId,
+        maxResponseBytes: 16, operations: new Map()}, 0);
+      return [{identity: target, versionCid, before: {Name: 'before'}}];
+    }};
+  const owner = {connection: 'crm', site, owned, managedPlanRecipe: selectedRecipe};
+  const ownerOf = original => {assert.strictEqual(original, member); return owner;};
+  const recipeOf = expression('recipeOf', {ownerOf, controlRecipes: new Map([[selectedRecipe, selectedRecipe]])});
+  const physicalOperations = facts => {
+    assert.strictEqual(facts.originalAuthorization, grant);
+    assert.strictEqual(facts.site, site);
+    assert.strictEqual(facts.member, member);
+    assert.equal(facts.rowIndex, 0);
+    assert.equal(facts.runInvocationCid, 'run');
+    assert.equal(facts.dispatchRequestCid, 'dispatch');
+    calls.push([facts.phase, facts.purpose, facts.maxResponseBytes]);
+    return facts.invoke({authorization: {...grant, useId: facts.useId}, credential: {binding: credential},
+      callResource(input) {
+        assert.strictEqual(input.grant, grant.grant);
+        assert.strictEqual(input.binding, credential);
+        assert.equal(input.maxRequestBytes, 128);
+        return current;
+      }});
+  };
+  const managedReadChild = expression('managedReadChild', {recipeOf, ownerOf, fail});
+  const describe = expression('describeMember', {ownerOf, managedReadChild, resourceFields: () => ({})});
+  assert.strictEqual(await describe({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch',
+    physicalOperations, operationPhase: 'capture', label: 'original', assertCurrent() {}}), current);
+  const decide = expression('decideTargetRead', {ownerOf, recipeOf, fail});
+  const read = await decide({member, runInvocationCid: 'run', dispatchRequestCid: 'dispatch', subjectCid: 'subject',
+    targetReads: {authorize: () => decision}});
+  const observe = expression('observeRows', {ownerOf, managedReadChild, resourceFields: () => ({}),
+    fail, sameValue: same, cidPattern: /^sha256:[0-9a-f]{64}$/});
+  const observed = await observe({member, entries: [{target}], current, read, physicalOperations,
+    operationPhase: 'capture', runInvocationCid: 'run', dispatchRequestCid: 'dispatch'});
+  assert.deepEqual(observed, [{identity: target, state: 'present', versionCid, before: {Name: 'before'}}]);
+  assert.deepEqual(calls, [['capture-describe', 'read', 32], ['capture-target', 'target-read', 16]]);
+  assert.throws(() => consumed(originalEnvelope, {}, 0), {code: 'ForeignInstalledEffectReadChild'});
+  assert.equal(calls.length, 2, 'consumed original never grants another operation');
+});
+
+function recoveredConstructorFixture({refuseSecond = false, failure = false} = {}) {
+  const parent = {}, prepared = {}, request = {}, plan = {}, events = [], children = [];
+  const members = [{memberIndex: 0}, {memberIndex: 1}], active = new Set(), tokens = [];
+  let aliasesRetired = false, constructions = 0;
+  const original = Object.freeze({entries: Object.freeze([[], []]), currents: Object.freeze([{}, {}])});
+  const runtime = {
+    clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
+    clientProgramInstalledEffectOperationConstructionRetain(p, v, r, selected, member, perRow, slot, row, operation) {
+      assert.deepEqual([p, v, r, selected], [parent, prepared, request, plan]);
+      assert.deepEqual([perRow, slot, row, operation], [false, 0, 0, 'capture']);
+      events.push(`retain-${member}`);
+      if (refuseSecond && member === 1) throw undefined;
+      const token = {member};tokens.push(token);return {$tag: 1, _0: token};
+    },
+    clientProgramInstalledEffectOperationConstructionBegin(token) {
+      assert.equal(tokens.length, 2, 'every original member is retained before any constructor');
+      active.add(token.member);events.push(`begin-${token.member}`);return {$tag: 1, _0: undefined};
+    },
+    clientProgramInstalledEffectOperationConstructionComplete(token) {
+      assert(active.has(token.member));active.delete(token.member);events.push(`complete-${token.member}`);
+      return {$tag: 1, _0: undefined};
+    },
+    clientProgramInstalledEffectOperationRetire(token, acknowledgement) {
+      assert.equal(acknowledgement, true);assert(aliasesRetired);
+      events.push(`retire-${token.member}`);return {$tag: 1, _0: true};
+    },
+  };
+  const run = {runtime, value: parent, prepared, request, operationPlan: plan,
+    readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
+  const recipe = {captureConstruction: {operationIndex: 0}, memberOperations: [{operation: 'capture'}]};
+  const facts = {members, body: {}, durable: {}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
+  const actual = expression('prepareRecoveredEntries', {moon: runtime, recipeOf: () => recipe, fail,
+    retainInstalledRowCaptureChild, prepareInstalledEffectRequestChild,
+    recoveredEntries(input) {
+      assert.strictEqual(input.body, facts.body);assert.strictEqual(input.members, members);
+      assert.deepEqual([...active], [0, 1]);constructions++;events.push('rebuild');
+      if (failure) throw undefined;
+      return original;
+    }});
+  const invoke = () => actual({...facts, managedEffect: run, requestChildren: children,
+    retireRequestAliases: () => aliasesRetired, assertCurrent() {}});
+  return {invoke, original, events, children, constructions: () => constructions, retire() {aliasesRetired = true;}};
+}
+
+test('cold request rebuilding enters every same-Plan member workspace before the single original provider constructor', async () => {
+  const f = recoveredConstructorFixture();
+  assert.strictEqual(f.invoke(), f.original);
+  assert.equal(f.constructions(), 1);
+  assert.deepEqual(f.events, ['retain-0', 'retain-1', 'begin-0', 'begin-1', 'rebuild', 'complete-1', 'complete-0']);
+  for (const child of f.children) {await child.prepared.release();assert.equal(child.prepared.status().pending, true);}
+  f.retire();
+  for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
+  assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
+});
+
+test('cold member reservation refusal preserves the exact undefined cause before any provider reconstruction', async () => {
+  const f = recoveredConstructorFixture({refuseSecond: true});
+  let caught = false;
+  try {f.invoke();} catch (error) {caught = true;assert.strictEqual(error, undefined);}
+  assert(caught);assert.equal(f.constructions(), 0);
+  assert.deepEqual(f.events, ['retain-0', 'retain-1']);assert.equal(f.children.length, 1);
+  await f.children[0].prepared.release();assert.equal(f.children[0].prepared.status().pending, true);
+  f.retire();await f.children[0].prepared.retry();assert.equal(f.children[0].prepared.status().pending, false);
+});
+
+test('cold provider constructor failure retains every original member prefix until the same alias retirement', async () => {
+  const f = recoveredConstructorFixture({failure: true});
+  let caught = false;
+  try {f.invoke();} catch (error) {caught = true;assert.strictEqual(error, undefined);}
+  assert(caught);assert.equal(f.constructions(), 1);
+  assert.deepEqual(f.events, ['retain-0', 'retain-1', 'begin-0', 'begin-1', 'rebuild']);
+  for (const child of f.children) {await child.prepared.release();assert.equal(child.prepared.status().pending, true);}
+  f.retire();
+  for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
+  assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
 });

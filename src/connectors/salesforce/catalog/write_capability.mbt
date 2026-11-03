@@ -82,6 +82,28 @@ fn capability_field(
 }
 
 ///|
+let write_capability_nodes : Int = 100000
+
+///|
+let write_capability_depth : Int = 8
+
+///|
+/// Original writer limits, shared with its constructor inventory. This pure
+/// metadata projects no capability, current authority or caller allowance.
+pub fn write_capability_construction_limits(
+  max_bytes : Int,
+) -> @source.ParseLimits? {
+  if max_bytes < 1 || max_bytes > 1000000 {
+    return None
+  }
+  Some({
+    max_input_bytes: max_bytes,
+    max_nodes: write_capability_nodes,
+    max_depth: write_capability_depth,
+  })
+}
+
+///|
 pub fn prepare_write_capability_evidence(
   request : SingleWriteRequest,
   runtime_bundle_cid : String,
@@ -98,7 +120,9 @@ pub fn prepare_write_capability_evidence(
   }
   let plan = request.projection
   let binding = plan.binding
-  let writer = @encode.writer(max_bytes, 100000, 8) catch {
+  let writer = @encode.writer(
+    max_bytes, write_capability_nodes, write_capability_depth,
+  ) catch {
     _ => return Err(OutputLimit)
   }
   try {

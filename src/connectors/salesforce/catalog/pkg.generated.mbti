@@ -2,6 +2,8 @@
 package "actql/actql/connectors/salesforce/catalog"
 
 import {
+  "actql/actql/encode_core",
+  "actql/actql/source_value",
   "actql/actql/value_admission",
   "actql/actql/value_contract",
   "moonbitlang/core/debug",
@@ -306,6 +308,8 @@ pub fn write_body_value_refusal_json(WriteBodyIssue, WriteProjection) -> String?
 
 pub fn write_capability_body(WriteCapabilityEvidence) -> String
 
+pub fn write_capability_construction_limits(Int) -> @source_value.ParseLimits?
+
 pub fn write_capability_identity(WriteCapabilityEvidence) -> String
 
 pub fn write_capability_route(WriteCapabilityEvidence) -> WriteCapabilityRoute
@@ -373,6 +377,8 @@ pub fn write_single_response_sha256(WriteSingleResponse) -> String
 pub fn write_single_result(WriteSingleResponse) -> WriteRowResult
 
 pub fn write_target_boundary_cid(WriteTargetIdentity) -> String
+
+pub fn write_target_digest_construction_inventory() -> @encode_core.HashWriterConstructionInventory?
 
 pub fn write_target_object_cid(WriteTargetIdentity) -> String
 
