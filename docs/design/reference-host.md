@@ -3168,8 +3168,13 @@ validation and the original snapshot remain unchanged. The original captured
 Program/data strings are not normalized or reinterpreted by the Host.
 
 The prepared alias is bound to this actual pending request before deriving its
-Request identity. Complete capture and Result-inventory comparisons still run
-independently. The pending input survives definition admission and the awaited
+Request identity. A non-Effect restoration then uses the existing submission
+admission on that same Request before Source preparation and publication reads.
+Its checked Plan is adopted once; the publication getter reads that original
+rather than creating a Publisher or reconstructing a Plan. Effect restoration
+keeps its existing definition-owned constructor. Complete capture and
+Result-inventory comparisons still run independently. The pending input
+survives definition admission and the awaited
 physical-start handoff; only that caller's finish returns its preparation input.
 An adopted Run retains its own actual parent/children after that handoff. A
 failed reconstruction preserves its primary cause and same cleanup retry.

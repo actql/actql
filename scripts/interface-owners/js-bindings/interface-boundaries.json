@@ -57716,6 +57716,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('held request reconstruction retains its actual pending original before funded preparation'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('held resume adopts the same Request Plan before its original publication consumer'"
               }
             ]
           }
@@ -57904,7 +57908,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "1ab15f5d475814e2da118590be0611793eaeae94ad4b01402cb6746a5b9ec2d8"
+      "sha256": "569ea17c6c62654f568162d249d54848a66647c918771322cd72a5405df44268"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
