@@ -1,12 +1,86 @@
 import './native-preparation-originals.test.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {execFileSync as executeChild,spawn as spawnChild} from 'node:child_process';
+import {once} from 'node:events';
+import {runInNewContext} from 'node:vm';
 import {createHash} from 'node:crypto';
 import {lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
+
+function residentLaunchSource() {
+  const source=readFileSync(new URL('./test-native-resident-site.mjs',import.meta.url),'utf8');
+  const declaration=/^const siteProcessEnvironment = .*;$/mu.exec(source)?.[0]??'';
+  const start=source.indexOf('  const startSite = '),end=source.indexOf('  const waitFor = ',start);
+  assert(start>=0 && end>start);
+  const install=source.indexOf('  execFileSync(bundleTool, [...bundleCommon, \'install\'');
+  const installed=source.indexOf('  const [registry, values, fragment]',install);
+  assert(install>=0 && installed>install);
+  return {declaration,startSite:source.slice(start,end),install:source.slice(install,installed)};
+}
+
+function assertSelectedChildEnvironment(value) {
+  assert.equal(value.PATH,'/usr/bin:/bin');assert.equal(value.LANG,'C');
+  assert.equal(value.ACTQL_PRODUCER_ONLY,undefined);
+  assert(!Object.keys(value).some(name=>name.startsWith('LD_') || name==='GLIBC_TUNABLES'));
+}
+
+test('Resident original process launch does not inherit the Python producer loader environment',async t=>{
+  const f=fixture(t,'linux');
+  const parent={PATH:'/original-python-tools',LANG:'producer-language',
+    LD_LIBRARY_PATH:'/hosted/python/lib',ACTQL_PRODUCER_ONLY:'original-producer'};
+  const running=new Set(),source=residentLaunchSource(),calls=[];
+  const start=runInNewContext(source.declaration+'\n'+source.startSite+'\nstartSite;',{
+    root:f.root,common:['--publication-root','original-publication','--journal','original-journal',
+      '--poll-url','original-poll','--observation-url','original-observation'],
+    executable:'original-Resident',receiver:{origin:'https://receiver.invalid'},
+    gateway:{origin:'https://gateway.invalid'},siteKey:'original-site',join,once,running,
+    spawn:(command,args,options)=>{
+      calls.push({command,args});
+      if(options.env)assert.deepEqual(Object.keys(options.env).sort(),['LANG','PATH']);
+      // The real OS child observes the ORIGINAL caller options; no Native
+      // Runtime or authority is supplied by this explicit process port.
+      return spawnChild(process.execPath,['-e',
+        'console.log(JSON.stringify({kind:"environment",value:process.env}))'],
+        {...options,env:options.env??parent});
+    },
+  });
+  const original=start();
+  const closed=once(original.child,'close');
+  await original.exited;await closed;
+  assert.equal(original.child.exitCode,0,original.stderr());
+  assert.equal(original.child.signalCode,null);
+  assert.equal(original.child.stdout.readableEnded,true);
+  assert.equal(original.child.stderr.readableEnded,true);
+  assert.equal(running.size,0);
+  assert.equal(calls[0].command,'original-Resident');
+  assert.equal(calls[0].args[0],'run');
+  assertSelectedChildEnvironment(original.lines[0].value);
+  assert.equal(parent.LD_LIBRARY_PATH,'/hosted/python/lib');
+});
+
+test('Resident bundle install and activation use the same explicit original child environment',t=>{
+  const source=residentLaunchSource(),observed=[];
+  const parent={PATH:'/producer-tools',LANG:'producer-language',LD_LIBRARY_PATH:'/hosted/python/lib'};
+  runInNewContext(source.declaration+'\n'+source.install,{
+    bundleTool:'original-installer',bundleCommon:['--store-root','original-root'],
+    envelope:{runtimeBundleCid:'original-bundle'},bundleInput:'original-input',
+    execFileSync:(command,args,options)=>{
+      assert.equal(command,'original-installer');
+      if(options.env)assert.deepEqual(Object.keys(options.env).sort(),['LANG','PATH']);
+      const wire=executeChild(process.execPath,['-e','console.log(JSON.stringify(process.env))'],
+        {...options,env:options.env??parent,stdio:'pipe',encoding:'utf8'});
+      observed.push({args,environment:JSON.parse(wire)});
+    },
+  });
+  assert.equal(observed.length,2);
+  assert.equal(observed[0].args[2],'install');assert.equal(observed[1].args[2],'activate');
+  for(const call of observed)assertSelectedChildEnvironment(call.environment);
+  assert.equal(parent.LD_LIBRARY_PATH,'/hosted/python/lib');
+});
 
 function fixture(t, platform, entry = 'native_runtime_bundle', preparation = false) {
   const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-bundle-producer-port-')));
