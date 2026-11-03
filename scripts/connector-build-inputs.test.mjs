@@ -364,6 +364,7 @@ test('shared target reader retains both actual selected Core package target clau
       ['installed_whole_source_plan_js_wbtest.mbt', ['js']],
       ['installed_whole_source_dispatch_js_wbtest.mbt', ['js']],
       ['installed_kintone_create_plan_js_wbtest.mbt', ['js']],
+      ['installed_kintone_whole_source_js_wbtest.mbt', ['js']],
       ['installed_effect_operation_borrow_js_wbtest.mbt', ['js']],
       ['installed_effect_operation_index_js_wbtest.mbt', ['js']],
       ['preparation_parameter_source_current_wbtest.mbt', ['js']],
