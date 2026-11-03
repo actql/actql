@@ -12,10 +12,8 @@ fn[T, E] preparation_module_call(
 ///|
 // Only the JS boundary can receive an untyped foreign throw. Portable typed
 // callbacks cannot raise one; retain the same nominal failure slot unused.
-#warnings("-struct_never_constructed")
-pub struct QueryBindingForeignFailure {
-  cause : Error
-}
+#external
+pub type QueryBindingForeignFailure
 
 ///|
 fn[T] query_binding_protected_call(
