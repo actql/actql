@@ -83,3 +83,35 @@ test "original multirow input retains its independent text and row demand" {
   assert_true(plan.values.max_text_bytes < 500000)
   assert_true(client_local_capacity_plan_matches(plan, plan.sequences, 100))
 }
+
+///|
+test "contextual weighted inventory preserves input rows without multiplying one Content output" {
+  let one = installed_content_text_plan(
+    installed_effect_content_fixture(keep_content=true),
+  )
+  for count in [3, 100] {
+    let content = installed_effect_content_fixture(
+      rows="[" + Array::make(count, "{\"id\":1}").join(",") + "]",
+      keep_content=true,
+    )
+    let plan = installed_content_text_plan(content)
+    assert_eq(plan.execution.rows.max_rows, count)
+    assert_eq(plan.demand_inventory.unwrap().closed_rows, Some(count))
+    assert_eq(
+      client_serialization_input_row_bound(content.component),
+      Some(count),
+    )
+    // Two source nodes per original row remain; the one Content row does not
+    // acquire that multiplicity merely because a different relation has it.
+    assert_eq(plan.values.max_nodes - one.values.max_nodes, 2 * (count - 1))
+    assert_true(plan.values.max_text_bytes < one.values.max_text_bytes * 2)
+    let proof = plan.demand_inventory.unwrap()
+    assert_true(proof.closed_value_nodes is Some(_))
+    let fallback = { ..proof, closed_value_nodes: None, }
+    assert_true(
+      client_local_inventory_nodes(fallback, count).unwrap() >
+      plan.values.max_nodes,
+    )
+    assert_true(client_local_capacity_plan_matches(plan, plan.sequences, 100))
+  }
+}

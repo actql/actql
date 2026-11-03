@@ -36,8 +36,10 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
 fn client_local_value_node_proof_retained_bytes() -> Int64? {
   @execution.preparation_representation_cost({
     record_headers: 2L,
-    reference_slots: 3L,
-    scalar_words: 4L,
+    // One optional weighted scalar in each coheld Compute/Effect-endpoint
+    // inventory; no row table escapes the existing constructor traversal.
+    reference_slots: 5L,
+    scalar_words: 6L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })

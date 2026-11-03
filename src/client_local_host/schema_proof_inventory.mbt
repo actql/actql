@@ -8,6 +8,8 @@ priv struct ClientLocalSchemaProofInventory {
   _observed_owner_count : Int
   _observed_work_used : Int
   max_node_width : Int64
+  // Same contextual owner: actual per-node cardinalities, not global rows.
+  closed_value_nodes : Int64?
   max_name_width : Int64
   fields : Int
   names : Int
@@ -99,6 +101,11 @@ fn client_local_schema_proof_inventory(
   let mut ports = 0
   let mut bindings = 0
   let mut closed_rows : Int? = Some(0)
+  let mut weighted_total : Int64? = if content is Some(_) && leaf_only {
+    Some(0L)
+  } else {
+    None
+  }
   let mut selected_sources = 0
   for index, sequence in sequences {
     if remaining < 1 {
@@ -154,6 +161,13 @@ fn client_local_schema_proof_inventory(
     let mut output_nodes = 0L
     let mut input_names = 0L
     let mut output_names = 0L
+    let mut weighted_inputs : Int64? = if weighted_total is Some(_) &&
+      inputs == 0 {
+      Some(0L)
+    } else {
+      None
+    }
+    let mut weighted_outputs : Int64? = weighted_inputs
     for input in 0..<inputs {
       guard @lower.preparation_input_schema(prepared, input) is Some(schema) else {
         return None
@@ -266,6 +280,15 @@ fn client_local_schema_proof_inventory(
       fields = Int::max(fields, width)
       names = Int::max(names, name_bytes)
       output_nodes += node_width
+      weighted_outputs = match (weighted_outputs, bound) {
+        (Some(total), Some(count)) =>
+          @execution.checked_preparation_add_product(
+            total,
+            node_width,
+            count.to_int64(),
+          )
+        _ => None
+      }
       output_names += name_bytes.to_int64()
       let count = @lower.node_input_count(node)
       ports = Int::max(ports, count)
@@ -309,8 +332,26 @@ fn client_local_schema_proof_inventory(
           return None
         }
         input_nodes += node_width
+        let count = match target {
+          @pipeline.Step(step) => rows.get(step).bind(value => value)
+          _ => None
+        }
+        weighted_inputs = match (weighted_inputs, count) {
+          (Some(total), Some(count)) =>
+            @execution.checked_preparation_add_product(
+              total,
+              node_width,
+              count.to_int64(),
+            )
+          _ => None
+        }
         input_names += name_bytes.to_int64()
       }
+    }
+    weighted_total = match (weighted_total, weighted_inputs, weighted_outputs) {
+      (Some(previous), Some(inputs), Some(outputs)) =>
+        Some(Int64::max(previous, Int64::max(inputs, outputs)))
+      _ => None
     }
     nodes = Int64::max(nodes, Int64::max(input_nodes, output_nodes))
     names_total = Int64::max(names_total, Int64::max(input_names, output_names))
@@ -356,6 +397,7 @@ fn client_local_schema_proof_inventory(
     _observed_owner_count: seen.length(),
     _observed_work_used: max_work - remaining,
     max_node_width: nodes,
+    closed_value_nodes: weighted_total,
     max_name_width: names_total,
     fields,
     names,
@@ -370,5 +412,14 @@ fn client_local_inventory_nodes(
   inventory : ClientLocalSchemaProofInventory,
   max_rows : Int,
 ) -> Int? {
-  client_local_scalar_product(inventory.max_node_width, max_rows, 3)
+  let ordinary = client_local_scalar_product(
+    inventory.max_node_width,
+    max_rows,
+    3,
+  )
+  match (ordinary, inventory.closed_value_nodes) {
+    (Some(previous), Some(total)) if total >= 0L && total <= 2147483644L =>
+      Some(Int::min(previous, total.to_int()))
+    _ => ordinary
+  }
 }

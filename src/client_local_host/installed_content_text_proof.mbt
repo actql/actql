@@ -39,7 +39,17 @@ fn installed_content_text_bound(
     @publication.content_serialization_name(profile).length().to_int64()
   let media = 3L *
     @publication.content_serialization_media_type(profile).length().to_int64()
-  let mut text = demand.original.max_name_width
+  // Pre-issuer schemas/expressions retain the original global row envelope.
+  // The proven unary suffix cannot expand the serializer's single output.
+  guard @execution.checked_preparation_add_product(
+      0L,
+      demand.original.max_name_width,
+      demand.rows.to_int64(),
+    )
+    is Some(names) else {
+    return None
+  }
+  let mut text = names
   for index in 0..<@lower.node_count(prepared) {
     if remaining < 1 {
       return None
@@ -122,7 +132,8 @@ fn installed_content_text_bound(
           }
         _ => return None
       }
-      guard @execution.checked_preparation_add_product(text, bytes, 1L)
+      let copies = if index >= step { 1L } else { demand.rows.to_int64() }
+      guard @execution.checked_preparation_add_product(text, bytes, copies)
         is Some(next) else {
         return None
       }
@@ -187,7 +198,14 @@ fn installed_content_text_bound(
               if bytes < 0L {
                 return None
               }
-              guard @execution.checked_preparation_add_product(text, bytes, 1L)
+              let copies = if slot.step > step {
+                1L
+              } else {
+                demand.rows.to_int64()
+              }
+              guard @execution.checked_preparation_add_product(
+                  text, bytes, copies,
+                )
                 is Some(next) else {
                 return None
               }
@@ -200,7 +218,7 @@ fn installed_content_text_bound(
       }
     }
   }
-  guard client_local_scalar_product(text, demand.rows, 0) is Some(total) else {
+  guard client_local_scalar_product(text, 1, 0) is Some(total) else {
     return None
   }
   Some(Int::min(ceiling, total))
