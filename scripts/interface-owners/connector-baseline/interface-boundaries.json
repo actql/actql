@@ -9309,7 +9309,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "42b288328733d8df71c6436198b5f627f7ceb473d8177a5953853e7607d9712d",
+      "sha256": "57bef982974e4356c291e18c5ddacb6e92844e80b60099db599c5db8f166e4f0",
       "role": "connector-semantics",
       "owner": "Exact installed Host facts projected to the existing Salesforce captured/recovered Effect factory",
       "exports": [
@@ -9328,6 +9328,16 @@
           "parameters": [
             "facts"
           ],
+          "async": false
+        },
+        {
+          "name": "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -9352,7 +9362,9 @@
             "salesforceEffectSiteHooks",
             "salesforceEffectSiteHooks/salesforceEffectSiteHooks",
             "salesforceEffectSiteHooks/salesforceEffectSiteHooks#2",
-            "salesforceEffectSiteHooks/salesforceEffectSiteHooks#3"
+            "salesforceEffectSiteHooks/salesforceEffectSiteHooks#3",
+            "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks",
+            "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks#2"
           ],
           "exports": [
             "salesforceEffectSiteHooks"

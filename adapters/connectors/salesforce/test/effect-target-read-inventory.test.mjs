@@ -36,15 +36,25 @@ test('Salesforce Site hooks forward the same managed Effect owner through captur
     prepareRecovered(facts) {selected.push(facts);return 'recovered';}});
   const publicationPlan = {invocationOwner: {}, contractLimits: {
     maxWireBytes: 1024, maxNodes: 128, maxDepth: 16}};
-  assert.equal(hooks.prepareCaptured({moon, compilation, publicationPlan, managedEffect,
-    updateTargetSelections, assertUpdateSelectionCurrent}), 'captured');
-  assert.equal(hooks.prepareRecovered({moon, managedEffect,
-    recovered: {updateTargetSelections, assertUpdateSelectionCurrent}}), 'recovered');
+  let observations = 0;
+  const captureFacts = {moon, compilation, publicationPlan, managedEffect,
+    updateTargetSelections, assertUpdateSelectionCurrent,
+    assertContinuationCurrent() {assert.strictEqual(this, captureFacts);observations++;}};
+  const recoveryFacts = {moon, managedEffect,
+    recovered: {updateTargetSelections, assertUpdateSelectionCurrent},
+    assertContinuationCurrent() {assert.strictEqual(this, recoveryFacts);observations++;}};
+  assert.equal(hooks.prepareCaptured(captureFacts), 'captured');
+  assert.equal(hooks.prepareRecovered(recoveryFacts), 'recovered');
+  assert.equal(observations, 0, 'projection must not observe current early');
+  captureFacts.assertContinuationCurrent = recoveryFacts.assertContinuationCurrent =
+    () => assert.fail('The original method must already be retained');
   for (const facts of selected) {
     assert.strictEqual(facts.managedEffect, managedEffect);
     assert.strictEqual(facts.updateTargetSelections, updateTargetSelections);
     assert.strictEqual(facts.assertUpdateSelectionCurrent, assertUpdateSelectionCurrent);
+    facts.assertContinuationCurrent();
   }
+  assert.equal(observations, 2);
 });
 
 function actualDriverConstructor(createDriver, limits,
