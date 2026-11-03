@@ -44610,6 +44610,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/model",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
           "parameters": [
             "preparedProgram",
@@ -56602,7 +56607,8 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#3",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4"
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/model"
           ],
           "exports": [],
           "attributes": {
@@ -65824,6 +65830,54 @@
             "settlement"
           ],
           "async": true
+        },
+        {
+          "name": "sourceFreeModelPreparation",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "plan",
+            "selected",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -66176,6 +66230,80 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeModelPreparation",
+            "sourceFreeModelPreparation/current/current",
+            "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
+            "sourceFreeModelPreparation/init:retain/init:retain",
+            "sourceFreeModelPreparation/init:retire/init:retire",
+            "sourceFreeModelPreparation/publicationCapacity/publicationCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "const original = managed?.value, request = managed?.request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "model.originalReadInstallation !== undefined || model.managed !== managed"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "model.taken = true;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "catch (cause) {model.readFailure = cause; throw cause;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "retireNodeInferOriginalRead(model);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "configured source-free Model uses its original Run and defers its one read until the component consumes it"
               }
             ]
           }
@@ -148812,8 +148940,8 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 4117,
+    "operations": 4125,
     "exports": 609,
-    "explicitContractGroups": 894
+    "explicitContractGroups": 895
   }
 }

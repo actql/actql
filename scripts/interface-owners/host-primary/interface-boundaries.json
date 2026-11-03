@@ -7991,6 +7991,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/model",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
           "parameters": [
             "preparedProgram",
@@ -17071,7 +17076,8 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#3",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4"
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/model"
           ],
           "exports": [],
           "attributes": {
@@ -23092,7 +23098,7 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 921,
+    "operations": 922,
     "exports": 102,
     "explicitContractGroups": 97
   }

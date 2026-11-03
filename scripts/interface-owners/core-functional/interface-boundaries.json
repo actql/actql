@@ -18091,6 +18091,54 @@
             "settlement"
           ],
           "async": true
+        },
+        {
+          "name": "sourceFreeModelPreparation",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "plan",
+            "selected",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
+          "parameters": [],
+          "async": false
         }
       ],
       "owner": "Existing checked Model/Run publication and per-call journal custody",
@@ -18445,6 +18493,80 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeModelPreparation",
+            "sourceFreeModelPreparation/current/current",
+            "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
+            "sourceFreeModelPreparation/init:retain/init:retain",
+            "sourceFreeModelPreparation/init:retire/init:retire",
+            "sourceFreeModelPreparation/publicationCapacity/publicationCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "const original = managed?.value, request = managed?.request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "model.originalReadInstallation !== undefined || model.managed !== managed"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "model.taken = true;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "catch (cause) {model.readFailure = cause; throw cause;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "retireNodeInferOriginalRead(model);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-infer-run.mjs",
+                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "configured source-free Model uses its original Run and defers its one read until the component consumes it"
               }
             ]
           }
