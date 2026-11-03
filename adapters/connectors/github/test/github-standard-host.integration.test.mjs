@@ -67,6 +67,15 @@ const accountConfiguration = connection => canonicalJson({
     principal: {all: true}, connection: {any_of: [connection]},
     resource: {any_of: ['issues']}, operation: {any_of: ['read']}}]});
 
+// The Source Account above still authorizes provider reads only. Public Run
+// observation and these named Results use their separate explicit Host read.
+const hostReadEntry = {entry_id:'host-original-observations',outcome:'allow',exclusions:[],
+  principal:{all:true},connection:{any_of:['actql-remote-host']},
+  resource:{any_of:['run',...['issues','audit','grouped','windowed','consumed','consumed_a','consumed_b','joined']
+    .map(name=>'result/'+name)]},operation:{any_of:['read']}};
+const sourceHostAuthorization = {accountConfiguration:canonicalJson({
+  version:'actql-execution-account-config/0.1',account_id:'github-source-host',entries:[hostReadEntry]})};
+
 const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
   stages: [{id: 'acquire',
     inputs: {remote: {connector: 'gh-hello', resource: 'issues'}},
@@ -99,7 +108,9 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`GitHub standard Host custody retained: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
@@ -180,7 +191,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
       account_id: 'github-retained-host', entries: [{entry_id: 'query',
         outcome: 'allow', principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']},
-        exclusions: []}]}),
+        exclusions: []},hostReadEntry]}),
     hostKey: {keyId: 'host', privateKey: hostKeys.privateKey.export({
       type: 'pkcs8', format: 'pem'})},
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
@@ -204,7 +215,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
         secondSource ? secondProfilePath : mixedProfilePath]}
         : {sourceProfilePath: profilePath}),
       resolveSourceSecret: secret,
-      retainedRelationOutput, authorization: hostAuthorization});
+      retainedRelationOutput, authorization: hostAuthorization ?? sourceHostAuthorization});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -244,7 +255,13 @@ const onlyGraphql = api => api.seen().every(entry =>
 test('public Client reads published GitHub Issues to a Named Result', async t => {
   const setup = await installation(t);
   // A Host start without a publication refuses before any provider I/O.
-  await assert.rejects(setup.open(), {code: 'GitHubPublicationMissing'});
+  await assert.rejects(setup.open(), error => {
+    assert.equal(error.code,'InstalledHostInitializationFailed');
+    assert.equal(error.primaryFailure?.code,'GitHubPublicationMissing');
+    assert.strictEqual(error.cause,error.primaryFailure);
+    assert.equal(error.cleanupHandle.status().pending,false);
+    return true;
+  });
   assert.equal(setup.api.seen().length, 0);
   const published = await setup.publish();
   // The publication stores the node ID in the form the reads compare.
