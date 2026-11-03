@@ -88,10 +88,13 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
             fingerprints.append(fields[9])
             primary = False
     HTTP.require(fingerprints == [upstream['signerFingerprint']], 'Selected curl release key fingerprint differs')
-    run('public-key-import', base + ['--import', str(release_key)])
     keyring = destination / 'release-key.gpg'
+    # The exact public packets suffice for gpgv. Import/export would consult
+    # an agent even for this public key and can exceed private socket bounds.
+    packets = run('public-key-dearmor', base + ['--output', '-', '--dearmor', str(release_key)])
+    HTTP.require(packets, 'Selected curl public key packets are empty')
     with keyring.open('xb') as stream:
-        stream.write(run('public-key-export', base + ['--export', upstream['signerFingerprint']]))
+        stream.write(packets)
     tls = HTTP.TLS.build(source, tls_archive, destination / 'owned-tls', clang, sdk, make, perl,
                          remaining(), target, '11.0' if sdk else None)
     HTTP.build(source, curl_archive, curl_signature, keyring, Path(tls['stage']), clang, sdk,

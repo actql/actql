@@ -41,7 +41,10 @@ class ExistingProducerComposition(unittest.TestCase):
                 self.assertIn('--no-autostart',command)
                 self.assertIn('--no-auto-key-retrieve',command)
                 output=(('pub:-\nfpr:::::::::'+key_fingerprint+':\nsub:-\nfpr:::::::::'+'C'*40+':\n').encode() if '--with-colons' in command
-                        else b'public key bytes' if '--export' in command else b'')
+                        else b'public key bytes' if '--dearmor' in command else b'')
+                if '--dearmor' in command:
+                    self.assertEqual(command[command.index('--output')+1],'-')
+                else:self.assertIn('show-only',command)
                 return subprocess.CompletedProcess(command,0,output,b'')
             def build_tls(*args):
                 calls.append(('tls',args));destination=args[2];destination.mkdir()
