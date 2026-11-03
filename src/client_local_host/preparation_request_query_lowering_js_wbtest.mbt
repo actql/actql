@@ -333,15 +333,16 @@ test "source-free SQL capacity is refused before module completion on its origin
     ),
   )
   // Component fixture with an explicit empty provider port, not public runtime
-  // acceptance. Compare its same complete Plan quote, not a language branch limit;
-  // the untouched-main installed ledger rejects these same over-budget cases.
+  // acceptance. Keep the original policy and exact original Plan comparison.
+  // Bounded leaf constructors reduce the quote: use longer same-form inputs
+  // for the independent over-budget controls, not a language branch limit.
   for
     (aggregate, count, fits) in [
       (false, 4, true),
-      (false, 5, false),
+      (false, 9, false),
       (true, 2, true),
-      (true, 3, false),
-      (true, 4, false),
+      (true, 6, false),
+      (true, 8, false),
     ] {
     let branches = []
     for i in 0..<count {
@@ -410,6 +411,9 @@ test "source-free SQL capacity is refused before module completion on its origin
     )
     let plan = parent.program_source_free.unwrap()
     let available = preparation_initial_limits(parent.initial, input).unwrap()
+    println(
+      "SQL_PLAN_CAPACITY aggregate=\{aggregate} branches=\{count} retained=\{plan.limits.retained_bytes} execution=\{plan.limits.execution_bytes} available=\{available.execution_bytes}",
+    )
     assert_true(plan.limits.retained_bytes <= available.retained_bytes)
     if fits {
       result.unwrap()

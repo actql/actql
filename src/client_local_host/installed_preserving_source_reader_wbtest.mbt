@@ -1,5 +1,7 @@
 ///|
 test "preserving Source reader keeps the generic recipe and same retained response and request" {
+  // The original current-pair and bound-reader links add 136 retained bytes;
+  // the same selected request still contributes its independent 17 bytes.
   let limits = [4, 6, 3, 4, 2, 3, 2, 2, 5, 7, 8, 2, 9, 10, 11, 4]
   let request = @execution.execution_capacity(17L, 23L).unwrap()
   let normalized = installed_json_source_reader_capacity_with_request(
@@ -14,8 +16,8 @@ test "preserving Source reader keeps the generic recipe and same retained respon
     3,
     Some(request),
   ).unwrap()
-  assert_eq(@execution.execution_capacity_retained_bytes(preserving), 3505L)
-  assert_eq(@execution.execution_capacity_retained_bytes(normalized), 3505L)
+  assert_eq(@execution.execution_capacity_retained_bytes(preserving), 3641L)
+  assert_eq(@execution.execution_capacity_retained_bytes(normalized), 3641L)
   // Keep the normalizing recipe's original complete execution envelope. Its
   // Unicode construction is owned by the pinned canonical Owner, not another
   // numeric NFC expansion expectation in this request-composition test.
@@ -53,7 +55,7 @@ test "preserving Source reader keeps the generic recipe and same retained respon
     @execution.execution_capacity_execution_bytes(large_request) +
     @execution.execution_capacity_retained_bytes(reader),
   )
-  assert_eq(@execution.execution_capacity_retained_bytes(request_first), 3505L)
+  assert_eq(@execution.execution_capacity_retained_bytes(request_first), 3641L)
   assert_true(
     @execution.execution_capacity_execution_bytes(preserving) <
     @execution.execution_capacity_execution_bytes(normalized),
