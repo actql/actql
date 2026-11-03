@@ -65,6 +65,100 @@ test('packed INFER original preparation evidence excludes opaque values getters 
   assert.equal(getterReads, 0);
 });
 
+test('packed INFER dispatch evidence retains only original code and tags without observing opaque fields', () => {
+  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'inferDispatchFailureData');
+  assert(definition);
+  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
+    ';return inferDispatchFailureData;')(nodeTypes);
+  let reads = 0;
+  const detail = {code: 'MoonBitHostFailure', primaryCode: 'NodeManagedRunRuntimeUnavailable',
+    issueTag: 7, nestedIssueTag: 2, ref: {private: true}, input: 'never disclose'};
+  for (const key of ['message', 'stack', 'cause']) Object.defineProperty(detail, key,
+    {get() {reads++; throw new Error('private');}});
+  assert.deepEqual(project(detail), {code: 'MoonBitHostFailure',
+    primaryCode: 'NodeManagedRunRuntimeUnavailable', issueTag: 7, nestedIssueTag: 2});
+  assert(Object.isFrozen(project(detail)));
+  const accessors = {};
+  for (const key of ['code', 'primaryCode', 'issueTag', 'nestedIssueTag']) Object.defineProperty(accessors, key,
+    {get() {reads++; throw new Error('private');}});
+  assert.equal(project(accessors), undefined);
+  const proxy = new Proxy({}, {get() {reads++; throw new Error('private');},
+    getOwnPropertyDescriptor() {reads++; throw new Error('private');}});
+  assert.equal(project(proxy), undefined);
+  assert.equal(project({code: 'not a typed code', primaryCode: 'x'.repeat(129),
+    issueTag: -1, nestedIssueTag: 65536}), undefined);
+  assert.equal(reads, 0);
+});
+
+test('packed INFER terminal failure context excludes Run references rows and opaque values', () => {
+  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'inferTerminalFailureData');
+  assert(definition);
+  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
+    ';return inferTerminalFailureData;')(nodeTypes);
+  let reads = 0;
+  const terminal = {status: 'failed', next_action: {kind: 'none'},
+    terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN'}, run_id: 'never disclose',
+    ref: {private: true}, rows: ['never disclose']};
+  for (const key of ['message', 'stack', 'cause']) Object.defineProperty(terminal, key,
+    {get() {reads++; throw new Error('private');}});
+  assert.deepEqual(project(terminal), {status: 'failed', nextAction: 'none',
+    terminalCode: 'ACTQL_E_UNPUBLISHED_RUN'});
+  const proxy = new Proxy({}, {getOwnPropertyDescriptor() {reads++; throw new Error('private');}});
+  assert.deepEqual(project(proxy), {});
+  assert.deepEqual(project({status: 'failed', next_action: proxy, terminal_error: proxy}),
+    {status: 'failed'});
+  const accessors = {};
+  for (const key of ['status', 'next_action', 'terminal_error']) Object.defineProperty(accessors, key,
+    {get() {reads++; throw new Error('private');}});
+  assert.deepEqual(project(accessors), {});
+  assert.equal(reads, 0);
+});
+
+test('Effect fixture diagnostics preserve original throws and avoid opaque values', () => {
+  const script = readFileSync(new URL('../adapters/host-node/fixtures/installed-row-effect.fixture.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const host = tree.body.find(node => node.type === 'ExportNamedDeclaration' && node.declaration?.id?.name === 'effectHost');
+  const definition = host.declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'prepareDefinition'));
+  assert(definition);
+  const instantiate = new Function('prepareInstalledEffectManagedPlanRun', 't', 'nodeTypes',
+    'const funded={manager:{}}, managedRuns={}, liveManagedRuns={}, moon={}, requests=new Map(),' +
+    'installed={}, registry={}, values={}, installedContracts={}, assertCurrent=()=>{}, checked=x=>x;' +
+    script.slice(definition.start, definition.end) + ';return prepareDefinition;');
+  let reads = 0;
+  const original = Object.assign(new Error('private'), {code: 'MoonBitHostFailure', cause: {$tag: 7}});
+  for (const name of ['message', 'stack']) Object.defineProperty(original, name,
+    {get() {reads++; throw new Error('private');}});
+  const proxy = new Proxy({}, {getOwnPropertyDescriptor() {reads++; throw new Error('private');}});
+  for (const cause of [original, undefined, proxy]) {
+    for (const diagnosticThrows of [false, true]) {
+      let calls = 0;
+      const diagnostics = [];
+      const prepare = instantiate(() => {calls++; throw cause;}, {diagnostic(value) {
+        diagnostics.push(JSON.parse(value));
+        if (diagnosticThrows) throw new Error('authored diagnostic failure');
+      }}, nodeTypes);
+      let rejected = false;
+      try {prepare({prepared: {}, identity: {}});} catch (observed) {
+        rejected = true;
+        assert.equal(observed, cause);
+      }
+      assert(rejected);
+      assert.equal(calls, 1);
+      assert.deepEqual(diagnostics, [{phase: 'effect_definition_preparation',
+        ...(cause === original ? {code: 'MoonBitHostFailure', issueTag: 7} : {}),
+        limitsObserved: false}]);
+    }
+  }
+  assert.equal(reads, 0);
+});
+
 test('packed INFER keeps at most its first original admission event in existing stderr evidence', () => {
   const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
   const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
@@ -74,16 +168,19 @@ test('packed INFER keeps at most its first original admission event in existing 
     node.expression.left.property?.name === 'observe');
   assert(assignment);
   const lines = [], detail = Object.freeze({boundary: 'model_provider'});
-  const observe = new Function('authorization', 'inferPreparationFailureData', 'console',
-    'let inferFailureObserved=false;' + script.slice(assignment.start, assignment.end) +
+  const observe = new Function('authorization', 'inferPreparationFailureData', 'inferDispatchFailureData', 'console',
+    'let inferFailureObserved=false,dispatchFailureObserved=false;const calls=0,inferFailureObservations=[];' + script.slice(assignment.start, assignment.end) +
     ';return authorization.observe;')({}, value => {
     assert.equal(value, detail); return value;
-  }, {error: line => lines.push(line)});
+  }, value => ({code: value.code, issueTag: value.issueTag}), {error: line => lines.push(line)});
   observe('other_event', detail);
   observe('infer_preparation_rejected', detail);
   observe('infer_preparation_rejected', detail);
+  observe('dispatch_failed', {code: 'MoonBitHostFailure', issueTag: 7});
+  observe('dispatch_failed', {code: 'second', issueTag: 8});
   assert.deepEqual(lines.map(line => JSON.parse(line)),
-    [{event: 'infer_preparation_rejected', boundary: 'model_provider'}]);
+    [{event: 'infer_preparation_rejected', boundary: 'model_provider'},
+      {event: 'dispatch_failed', code: 'MoonBitHostFailure', issueTag: 7, calls: 0}]);
 });
 
 test('packed INFER metadata uses the same installed Local policy without reidentifying its Model', async () => {

@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
+import {types as nodeTypes} from 'node:util';
 import * as moon from '../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../host-common/runtime-result.mjs';
 import {runtimeCore} from '../../host-common/runtime-core.mjs';
@@ -93,12 +94,31 @@ export async function effectHost(t, installation, state, {effect,
   const readManaged = (prepared, request) => readInstalledEffectManagedPlanRun({
     runs: managedRuns, liveRuns: liveManagedRuns, runtime: moon,
     prepared, request, assertCurrent, checked});
-  const prepareDefinition = funded === undefined ? undefined : facts =>
-    prepareInstalledEffectManagedPlanRun({runs: managedRuns, liveRuns: liveManagedRuns,
-      runtime: moon, manager: funded.manager, prepared: facts.prepared,
-      request: facts.identity, requestInput: requests.get(facts.prepared),
-      selection: installed, facts, inputs: Object.freeze({registry, values, installedContracts}),
-      assertCurrent, checked});
+  const prepareDefinition = funded === undefined ? undefined : facts => {
+    try {
+      return prepareInstalledEffectManagedPlanRun({runs: managedRuns, liveRuns: liveManagedRuns,
+        runtime: moon, manager: funded.manager, prepared: facts.prepared,
+        request: facts.identity, requestInput: requests.get(facts.prepared),
+        selection: installed, facts, inputs: Object.freeze({registry, values, installedContracts}),
+        assertCurrent, checked});
+    } catch (cause) {
+      try {
+        const own = (value, name) => {
+          if (value === null || !['object', 'function'].includes(typeof value) || nodeTypes.isProxy(value)) return undefined;
+          const field = Object.getOwnPropertyDescriptor(value, name);
+          return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+        };
+        const issue = own(cause, 'cause');
+        const tag = Number.isSafeInteger(issue) ? issue : own(issue, '$tag');
+        const code = own(cause, 'code');
+        t.diagnostic(JSON.stringify({phase: 'effect_definition_preparation',
+          code: typeof code === 'string' && /^[A-Za-z0-9_]{1,96}$/u.test(code) ? code : undefined,
+          issueTag: Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535 ? tag : undefined,
+          limitsObserved: false}));
+      } catch { /* Diagnostics cannot replace the original failure or cleanup. */ }
+      throw cause;
+    }
+  };
   const requestPath = requestId => join(state, `fixture-input-${
     createHash('sha256').update(requestId).digest('hex')}.json`);
   const now = () => new Date().toISOString();
