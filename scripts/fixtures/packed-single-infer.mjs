@@ -171,7 +171,7 @@ authorization.faultInjection = async name => {
       JSON.stringify({calls, boundary: name}));
     process.exit(0);
   }
-  if (mode === 'cancel' && name === 'infer_execution_advanced' &&
+  if (mode === 'cancel' && name === 'infer_model_settlement_committed' &&
       calls === 1 && !cancelled) {
     cancelled = true;
     await ready;
