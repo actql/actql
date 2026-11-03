@@ -67,6 +67,15 @@ const accountConfiguration = connection => canonicalJson({
     principal: {all: true}, connection: {any_of: [connection]},
     resource: {any_of: ['issues']}, operation: {any_of: ['read']}}]});
 
+// The Source Account above still authorizes provider reads only. Public Run
+// observation and these named Results use their separate explicit Host read.
+const hostReadEntry = {entry_id:'host-original-observations',outcome:'allow',exclusions:[],
+  principal:{all:true},connection:{any_of:['actql-remote-host']},
+  resource:{any_of:['run',...['issues','audit','grouped','windowed','consumed','consumed_a','consumed_b','joined']
+    .map(name=>'result/'+name)]},operation:{any_of:['read']}};
+const sourceHostAuthorization = {accountConfiguration:canonicalJson({
+  version:'actql-execution-account-config/0.1',account_id:'github-source-host',entries:[hostReadEntry]})};
+
 const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
   stages: [{id: 'acquire',
     inputs: {remote: {connector: 'gh-hello', resource: 'issues'}},
@@ -182,7 +191,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
       account_id: 'github-retained-host', entries: [{entry_id: 'query',
         outcome: 'allow', principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']},
-        exclusions: []}]}),
+        exclusions: []},hostReadEntry]}),
     hostKey: {keyId: 'host', privateKey: hostKeys.privateKey.export({
       type: 'pkcs8', format: 'pem'})},
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
@@ -206,7 +215,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
         secondSource ? secondProfilePath : mixedProfilePath]}
         : {sourceProfilePath: profilePath}),
       resolveSourceSecret: secret,
-      retainedRelationOutput, authorization: hostAuthorization});
+      retainedRelationOutput, authorization: hostAuthorization ?? sourceHostAuthorization});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

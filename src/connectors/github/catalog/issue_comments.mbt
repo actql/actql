@@ -1,4 +1,16 @@
 ///|
+let comment_subject_read_query_prefix : String = "query ActqlCommentSubjects($id: ID!, $first: Int!, $after: String) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner "
+
+///|
+let comment_subject_read_query_suffix : String = "(first: $first, after: $after) { pageInfo { hasNextPage endCursor } nodes { __typename id number updatedAt } } } } }"
+
+///|
+let comment_read_query_prefix : String = "query ActqlIssueComments($id: ID!, $first: Int!, $after: String) { node(id: $id) { __typename ... on "
+
+///|
+let comment_read_query_suffix : String = " { id number updatedAt repository { __typename id databaseId nameWithOwner } comments(first: $first, after: $after) { pageInfo { hasNextPage endCursor } nodes { __typename id fullDatabaseId author { login } body createdAt updatedAt repository { __typename id databaseId nameWithOwner } } } } } }"
+
+///|
 /// A comment's public numeric key and its separate opaque provider identity.
 /// Neither is permission; the Source projection exports only the six declared
 /// comment columns. The opaque ID remains with the original acquisition.
@@ -51,9 +63,9 @@ pub fn issue_comments_request(
   if subject.native_type != "Issue" && subject.native_type != "PullRequest" {
     return Err(InvalidState)
   }
-  let query = "query ActqlIssueComments($id: ID!, $first: Int!, $after: String) { node(id: $id) { __typename ... on " +
+  let query = comment_read_query_prefix +
     subject.native_type +
-    " { id number updatedAt repository { __typename id databaseId nameWithOwner } comments(first: $first, after: $after) { pageInfo { hasNextPage endCursor } nodes { __typename id fullDatabaseId author { login } body createdAt updatedAt repository { __typename id databaseId nameWithOwner } } } } } }"
+    comment_read_query_suffix
   Ok(
     (
       {
@@ -258,9 +270,9 @@ pub fn issue_comment_subjects_request(
     "PullRequest" => "pullRequests"
     _ => return Err(InvalidState)
   }
-  let query = "query ActqlCommentSubjects($id: ID!, $first: Int!, $after: String) { node(id: $id) { __typename ... on Repository { id databaseId nameWithOwner " +
+  let query = comment_subject_read_query_prefix +
     connection +
-    "(first: $first, after: $after) { pageInfo { hasNextPage endCursor } nodes { __typename id number updatedAt } } } } }"
+    comment_subject_read_query_suffix
   Ok(
     (
       {
@@ -349,4 +361,18 @@ pub fn project_issue_comment_subjects_response(
     subjects.push({ node_id, number, native_type, updated_at, repository, })
   }
   Ok({ repository, subjects, has_next_page, end_cursor, })
+}
+
+///|
+// Quantity of the SAME fixed fragments used by both original request builders.
+// No request or response is constructed to obtain this immutable geometry.
+pub fn comment_read_query_units() -> Int {
+  Int::max(
+    comment_read_query_prefix.length() +
+    "PullRequest".length() +
+    comment_read_query_suffix.length(),
+    comment_subject_read_query_prefix.length() +
+    "pullRequests".length() +
+    comment_subject_read_query_suffix.length(),
+  )
 }
