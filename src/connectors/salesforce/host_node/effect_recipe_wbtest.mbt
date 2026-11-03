@@ -270,3 +270,47 @@ test "Salesforce warm capture does not reconstruct its already-owned row request
     @execution.execution_capacity_retained_bytes(larger_cold[1]),
   )
 }
+
+///|
+test "Salesforce cold capture bounds nested observation and saved wire by the original input" {
+  let original = salesforce_effect_construction_profile(
+    100000, 10000, 16, 2048, 1024, 100000, 100000, 10000, 16, 4096, 100000, 1000,
+    16, 4000000, 400000, 32, 1000, 200000, 8000000, 1024, 3, 22, 5, 15,
+  )
+  let capture = (observation_bytes, describe_bytes, input_bytes) => {
+    salesforce_effect_input_capture_construction_profile(
+      original, 1000000, 100000, 64, 4000000, 100000, 32, 2000, 200, 100000, describe_bytes,
+      400000, 32, 1000, 200000, observation_bytes, 8000000, 10000000, 1024, 3, 22,
+      5, 15, input_bytes,
+    )
+  }
+  let cold = capture(8000000, 4000000, 8192).unwrap()
+  let larger_limits = capture(16000000, 8000000, 8192).unwrap()
+  let larger_input = capture(8000000, 4000000, 16384).unwrap()
+  let maximum = capture(8000000, 4000000, -1).unwrap()
+  let larger_maximum = capture(16000000, 8000000, -1).unwrap()
+  for index in 0..<3 {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(cold[index]),
+      @execution.execution_capacity_retained_bytes(larger_limits[index]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(cold[index]),
+      @execution.execution_capacity_execution_bytes(larger_limits[index]),
+    )
+  }
+  assert_true(
+    @execution.execution_capacity_retained_bytes(larger_input[0]) >
+    @execution.execution_capacity_retained_bytes(cold[0]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(larger_input[0]) >
+    @execution.execution_capacity_execution_bytes(cold[0]),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(larger_maximum[0]) >
+    @execution.execution_capacity_retained_bytes(maximum[0]),
+  )
+  assert_true(capture(0, 4000000, 8192) is None)
+  assert_true(capture(8000000, 0, 8192) is None)
+}

@@ -74676,7 +74676,7 @@
     },
     {
       "module": "src/connectors/salesforce/host/effect_capture_construction.mbt",
-      "sha256": "bb754d323aa122750a4fed15eec66f73f616f3cf872b96cb6fb32387da3001b5",
+      "sha256": "e66c9e5c75b7e97db3061f0c71de1dd35ac476cce74ba3f2a475079b3c3e269a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",

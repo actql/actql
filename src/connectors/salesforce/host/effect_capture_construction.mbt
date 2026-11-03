@@ -242,6 +242,14 @@ pub fn effect_capture_construction_profile(
   }
   let recovery_bytes = Int::min(recovery_bytes, actual)
   let raw_bytes = Int::min(raw_bytes, actual)
+  // In recovery, observationJson is an inner String of the already-owned
+  // saved wire. Its decoded spelling cannot exceed that wire's encoded bytes.
+  // Preserve the configured codec limit; only this constructor uses the bound.
+  let observation_bytes = if recovery_input_bytes > 0 {
+    Int::min(observation_bytes, actual)
+  } else {
+    observation_bytes
+  }
   let preview = if recovery_input_bytes > 0 {
     {
       ..preview,
@@ -348,7 +356,7 @@ pub fn effect_capture_construction_profile(
   )
   // Base64 characters do not acquire JSON escapes. observationJson is an
   // independently escaped String; names/API/resource remain original DATA.
-  let saved_wire = 4096L +
+  let generated_saved_wire = 4096L +
     4L * ((describe.max_bytes.to_int64() + 2L) / 3L) +
     6L *
     (
@@ -357,6 +365,13 @@ pub fn effect_capture_construction_profile(
       api_units.to_int64() +
       resource_units.to_int64()
     )
+  // Warm capture generates this wire from metadata. Cold recovery borrows the
+  // original entry.wire inside the same input instead of generating it again.
+  let saved_wire = if recovery_input_bytes > 0 {
+    Int64::min(generated_saved_wire, actual.to_int64())
+  } else {
+    generated_saved_wire
+  }
   let retained : @execution.PreparationRepresentationUnits = {
     record_headers: controls.record_headers + 8L,
     reference_slots: controls.reference_slots,
