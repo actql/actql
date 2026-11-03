@@ -690,6 +690,7 @@ fn prepare_installed_managed_acquisitions_owned(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -704,12 +705,35 @@ fn prepare_installed_managed_acquisitions_owned(
   if declarations.length() != captured {
     return Err(Unsupported)
   }
+  if captured == 0 {
+    return Ok([])
+  }
+  let selected = match direct_occurrences {
+    Some(value) => value
+    None =>
+      match installed_direct_occurrences_owned(owner) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  if !installed_direct_occurrences_match_owner(selected, owner) ||
+    @publication_host.client_direct_acquisition_occurrence_count(selected) !=
+    captured {
+    return Err(ForeignOriginal)
+  }
   let acquisitions = []
   for index in 0..<captured {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        selected, index,
+      )
+      is Some((stage, input, task)) &&
+      task == index else {
+      return Err(ForeignOriginal)
+    }
     guard prepare_local_query_requirement_owned(
         owner,
-        index,
-        0,
+        stage,
+        input,
         installed_contracts,
         values_body,
         fragment_body,
@@ -991,6 +1015,29 @@ pub fn begin_installed_managed_run_source_read(
   value : ClientInstalledManagedRun,
   occurrence : Int,
 ) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue] {
+  begin_installed_managed_run_source_read_owned(value, occurrence, None)
+}
+
+///|
+pub fn begin_installed_managed_run_source_read_at(
+  value : ClientInstalledManagedRun,
+  stage : Int,
+  input : Int,
+  task : Int,
+) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue] {
+  begin_installed_managed_run_source_read_owned(
+    value,
+    task,
+    Some((stage, input, task)),
+  )
+}
+
+///|
+fn begin_installed_managed_run_source_read_owned(
+  value : ClientInstalledManagedRun,
+  occurrence : Int,
+  expected : (Int, Int, Int)?,
+) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue] {
   let ledger = match require_installed_managed_run(value) {
     Err(issue) => return Err(issue)
     Ok(ledger) => ledger
@@ -1004,6 +1051,11 @@ pub fn begin_installed_managed_run_source_read(
   let owner = match installed_managed_run_owner(value) {
     Err(issue) => return Err(issue)
     Ok(owner) => owner
+  }
+  if expected is Some(coordinate) &&
+    installed_managed_run_direct_occurrence(value, occurrence) !=
+    Some(coordinate) {
+    return Err(ForeignOriginal)
   }
   let read : ClientInstalledSourceRead = {
     original: None,

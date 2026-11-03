@@ -401,6 +401,14 @@ pub fn client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientPro
 
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_direct_acquisition_occurrence_at(ClientDirectAcquisitionOccurrences, Int) -> (Int, Int, Int)?
+
+pub fn client_direct_acquisition_occurrence_count(ClientDirectAcquisitionOccurrences) -> Int
+
+pub fn client_direct_acquisition_occurrences_match_effect_program(ClientDirectAcquisitionOccurrences, PreparedClientEffectComputation) -> Bool
+
+pub fn client_direct_acquisition_occurrences_match_program(ClientDirectAcquisitionOccurrences, PreparedClientProgram) -> Bool
+
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
 
 pub fn client_direct_result_root_plan_cid(ClientDirectResultRoot) -> String
@@ -2221,6 +2229,10 @@ pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_
 
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
 
+pub fn select_client_direct_acquisition_occurrences(PreparedClientProgram, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
+
+pub fn select_client_effect_direct_acquisition_occurrences(PreparedClientEffectComputation, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
+
 pub fn select_client_project_model_task(ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[ClientProjectModelTaskSelection, ClientProjectModelTaskSelectionIssue]
 
 pub fn select_client_project_profile(ClientProjectConfiguration?, String?, Int) -> Result[ClientProjectProfileSelection, ClientProjectProfileIssue]
@@ -2471,6 +2483,17 @@ pub(all) enum ClientCompiledRunPlanIssue {
   UnsupportedCompilation
   Projection(ClientInteractivePlanIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ClientDirectAcquisitionOccurrenceIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignRequest
+  UnsupportedShape
+  DuplicateCapture
+  MissingCapture
+}
+
+type ClientDirectAcquisitionOccurrences
 
 pub struct ClientDirectResultRoot {
   wire : String

@@ -601,6 +601,7 @@ fn prepare_installed_managed_whole_source_plan_owned(
     _observed_query_time: query_time,
     captures: [],
     whole_input: Some(source),
+    direct_occurrences: None,
     model_input_prefix: None,
     model_input_suffix: None,
     graph,

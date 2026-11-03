@@ -77,6 +77,19 @@ fn[I] request_effect_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
+    guard owner.compiled_effect is Some(prepared) &&
+      installed_direct_occurrences_layout(
+        @strategy.graph_captured_prefix(
+          installed_managed_owner_graph(Effect(prepared)),
+        ),
+      )
+      is Some((selector_retained, selector_execution)) &&
+      @execution.checked_preparation_add_product(r, selector_retained, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, selector_execution, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
     // The captured Effect's existing schema walk also resolves its SAME
     // checked Result endpoints. Back the additional fixed scratch before
     // that call; no new graph, proof arrays or caller-selected bounds.

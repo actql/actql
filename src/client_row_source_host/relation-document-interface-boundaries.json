@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f126b075fd9fe1c84513fad293ab900c7de1856ba8823e896f2d133b5a6a899a",
+      "sha256": "81fd005d7ba451b3336b274a864430c42c41cf3299c53e0b7bb6d00a7ad90ead",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -12,6 +12,10 @@
         {
           "name": "accept_charged_relation_document",
           "declaration": "accept_charged_relation_document ( run : RowRun , charge : RowPageCharge , acquisition : RowAcquisition , document : RelationTargetDocument , max_work : Int , ) - > Result [ Int , RowHostIssue ]"
+        },
+        {
+          "name": "admit_relation_document",
+          "declaration": "admit_relation_document ( bytes : Bytes , limits : RowPageLimits , max_work : Int , ) - > Result [ RelationDocument , RowSourceIssue ]"
         },
         {
           "name": "admit_relation_target_document",
@@ -34,6 +38,10 @@
           "declaration": "prepare_relation_target_update ( document : RelationTargetDocument , row : RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , RowSourceIssue ]"
         },
         {
+          "name": "project_relation_target_document",
+          "declaration": "project_relation_target_document ( backing : RelationDocument , declaration : RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] ? , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ RelationTargetDocument , RowSourceIssue ]"
+        },
+        {
           "name": "relation_document_field",
           "declaration": "relation_document_field ( object : @ decode . ObjectView , name : String , ) - > @ decode . Cursor raise RelationDocumentStop"
         },
@@ -42,8 +50,16 @@
           "declaration": "relation_document_integer ( cell : @ decode . Cursor , bytes : Bytes , limits : @ admitted . Limits , ) - > @ decode . Cursor raise RelationDocumentStop"
         },
         {
+          "name": "relation_document_original",
+          "declaration": "relation_document_original ( document : RelationDocument ) - > Bool"
+        },
+        {
           "name": "relation_document_path",
           "declaration": "relation_document_path ( root : @ decode . Cursor , path : Array [ String ] , ) - > @ decode . Cursor raise RelationDocumentStop"
+        },
+        {
+          "name": "relation_document_usage",
+          "declaration": "relation_document_usage ( document : RelationDocument , ) - > RelationDocumentUsage ?"
         },
         {
           "name": "relation_document_value",
@@ -91,14 +107,18 @@
           "operations": [
             "<module>",
             "accept_charged_relation_document",
+            "admit_relation_document",
             "admit_relation_target_document",
             "emit_relation_document_value",
             "emit_relation_target_row",
             "observe_relation_target",
             "prepare_relation_target_update",
+            "project_relation_target_document",
             "relation_document_field",
             "relation_document_integer",
+            "relation_document_original",
             "relation_document_path",
+            "relation_document_usage",
             "relation_document_value",
             "relation_document_work",
             "relation_target_before",
@@ -179,7 +199,7 @@
     {
       "module": "src/connectors_builtin_node/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "79d5f43653ee529c126777118726c7710ccbb815ac9632bc30360c7dfa8dd368",
+      "sha256": "87f954d791984e7faeafad31301efce244c0ae5dd72e3b0de037b96375f27a9a",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -189,8 +209,16 @@
           "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
         },
         {
+          "name": "client_program_relation_admit_document",
+          "declaration": "client_program_relation_admit_document ( bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
           "name": "client_program_relation_admit_target_document",
           "declaration": "client_program_relation_admit_target_document ( declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_document_usage",
+          "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
         },
         {
           "name": "client_program_relation_observe_target",
@@ -199,6 +227,10 @@
         {
           "name": "client_program_relation_prepare_target_update",
           "declaration": "client_program_relation_prepare_target_update ( document : @ client_row_source_host . RelationTargetDocument , row : @ client_row_source_host . RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
+        },
+        {
+          "name": "client_program_relation_project_target_document",
+          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
           "name": "client_program_relation_target_before",
@@ -234,9 +266,12 @@
           "operations": [
             "<module>",
             "client_program_relation_accept_charged_document",
+            "client_program_relation_admit_document",
             "client_program_relation_admit_target_document",
+            "client_program_relation_document_usage",
             "client_program_relation_observe_target",
             "client_program_relation_prepare_target_update",
+            "client_program_relation_project_target_document",
             "client_program_relation_target_before",
             "client_program_relation_target_row_count",
             "client_program_relation_target_row_identity",
@@ -314,7 +349,7 @@
     {
       "module": "src/connectors_builtin_node_rela/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a1314119323646ed3d2f5ace59c51463e7f6b5a701c48ecafe537b911326a49e",
+      "sha256": "c8cc95711ab11c49f60512f3e7b5c5a8f5fcd6898dc858b5b0eb6b0d6a235499",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -324,8 +359,16 @@
           "declaration": "client_program_relation_accept_charged_document ( run : @ client_row_source_host . RowRun , charge : @ client_row_source_host . RowPageCharge , acquisition : @ client_row_source_host . RowAcquisition , document : @ client_row_source_host . RelationTargetDocument , max_work : Int , ) - > Result [ Int , @ client_row_source_host . RowHostIssue ]"
         },
         {
+          "name": "client_program_relation_admit_document",
+          "declaration": "client_program_relation_admit_document ( bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
           "name": "client_program_relation_admit_target_document",
           "declaration": "client_program_relation_admit_target_document ( declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , bytes : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , max_work : Int , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
+        },
+        {
+          "name": "client_program_relation_document_usage",
+          "declaration": "client_program_relation_document_usage ( original : @ client_row_source_host . RelationDocument , ) - > Array [ Int64 ] ?"
         },
         {
           "name": "client_program_relation_observe_target",
@@ -334,6 +377,10 @@
         {
           "name": "client_program_relation_prepare_target_update",
           "declaration": "client_program_relation_prepare_target_update ( document : @ client_row_source_host . RelationTargetDocument , row : @ client_row_source_host . RelationTargetRow , expected_version : String , value_wire : String , max_work : Int , ) - > Result [ Bytes , @ client_row_source_host . RowSourceIssue ]"
+        },
+        {
+          "name": "client_program_relation_project_target_document",
+          "declaration": "client_program_relation_project_target_document ( original : @ client_row_source_host . RelationDocument , declaration : @ client_row_source_host . RowDeclaration , resource : String , items_path : Array [ String ] , key_path : Array [ String ] , primary_identity : String , writable_fields : Array [ String ] , ) - > Result [ @ client_row_source_host . RelationTargetDocument , @ client_row_source_host . RowSourceIssue , ]"
         },
         {
           "name": "client_program_relation_target_before",
@@ -369,9 +416,12 @@
           "operations": [
             "<module>",
             "client_program_relation_accept_charged_document",
+            "client_program_relation_admit_document",
             "client_program_relation_admit_target_document",
+            "client_program_relation_document_usage",
             "client_program_relation_observe_target",
             "client_program_relation_prepare_target_update",
+            "client_program_relation_project_target_document",
             "client_program_relation_target_before",
             "client_program_relation_target_row_count",
             "client_program_relation_target_row_identity",

@@ -9112,8 +9112,47 @@ pub fn client_program_row_source_prepare_mapping(
   resource : String,
   sources_json : String,
 ) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, false,
+  )
+}
+
+///|
+/// The same installed Mapping continuation for a declared full Relation UPDATE.
+/// Closed write facts carry no replacement schema or current authority.
+#export_name("clientProgramRowSourcePrepareUpdateMapping")
+pub fn client_program_row_source_prepare_update_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+) -> String {
+  client_row_source_prepare_mapping(
+    declaration, writes_json, resource, sources_json, true,
+  )
+}
+
+///|
+fn client_row_source_prepare_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+  sources_json : String,
+  update : Bool,
+) -> String {
   let refused = (name : String) => {
     ({ "issue": name.to_json() } : Json).stringify()
+  }
+  // Keep the established CREATE entry unchanged. The new UPDATE entrance
+  // validates the bounded complete source map before stdlib reconstruction.
+  if update &&
+    @source.parse_json(sources_json, {
+      max_input_bytes: 4000000,
+      max_nodes: 400000,
+      max_depth: 64,
+    })
+    is Err(_) {
+    return refused("InvalidSpecification")
   }
   let parsed = @json.parse(sources_json) catch {
     _ => return refused("InvalidSpecification")
@@ -9134,10 +9173,16 @@ pub fn client_program_row_source_prepare_mapping(
         @client_row_source_host.RowMappingSource),
     )
   }
-  match
+  let prepared = if update {
+    @client_row_source_host.prepare_row_update_mapping(
+      declaration, writes_json, resource, sources,
+    )
+  } else {
     @client_row_source_host.prepare_row_mapping(
       declaration, writes_json, resource, sources,
-    ) {
+    )
+  }
+  match prepared {
     Ok(mapping) =>
       (
         {

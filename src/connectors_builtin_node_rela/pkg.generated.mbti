@@ -957,6 +957,8 @@ pub fn client_program_installed_managed_run_compilation_original(@client_local_h
 
 pub fn client_program_installed_managed_run_invocation_original(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
 
+pub fn client_program_installed_managed_run_source_read_at(@client_local_host.ClientInstalledManagedRun, Int, Int, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_managed_source_input_kind(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_whole_source_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledWholeSourceCapacity, Int64, Int64) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1767,11 +1769,17 @@ pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.
 
 pub fn client_program_relation_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_relation_admit_document(Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocument, @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_admit_target_document(@client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String], Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_document_usage(@client_row_source_host.RelationDocument) -> Array[Int64]?
 
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_target_before(@client_row_source_host.RelationTargetRow) -> String?
 
@@ -1946,6 +1954,8 @@ pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.Row
 pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @query_planning.QueryEvidenceContracts, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
+pub fn client_program_row_source_prepare_update_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_project_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
 

@@ -1,8 +1,40 @@
 ///|
+/// One bounded original JSON document. The shared work counter covers initial
+/// admission and every projection attempt; it is DATA, not a lifetime owner.
+pub struct RelationDocument {
+  priv mut original : RelationDocument?
+  priv bytes : Bytes
+  priv root : @decode.Cursor
+  priv limits : RowPageLimits
+  priv usage : @decode.AdmissionUsage
+  priv work : Ref[Int]
+  priv mut projection_attempts : Int
+  priv mut projections : Int
+  priv mut projected_rows : Int64
+  priv mut projected_cells : Int64
+}
+
+///|
+/// Bounded cumulative observations, not a capacity quotation or retirement
+/// receipt. Construction must be funded before receiving the original bytes.
+pub(all) struct RelationDocumentUsage {
+  raw_bytes : Int
+  raw_nodes : Int
+  raw_depth : Int
+  raw_text_bytes : Int
+  projection_attempts : Int
+  projections : Int
+  projected_rows : Int64
+  projected_cells : Int64
+  remaining_work : Int
+} derive(Eq, Debug)
+
+///|
 /// Owned, schema-admitted relation DATA from a JSON document. This supplies no
 /// file identity, current grant, read receipt, approval or dispatch claim.
 pub struct RelationTargetDocument {
   priv mut original : RelationTargetDocument?
+  priv backing : RelationDocument
   priv declaration : RowDeclaration
   priv view : RowDeclaredView
   priv bytes : Bytes
@@ -169,8 +201,15 @@ fn relation_document_value(
 }
 
 ///|
-fn relation_target_original(document : RelationTargetDocument) -> Bool {
+fn relation_document_original(document : RelationDocument) -> Bool {
   document.original is Some(original) && physical_equal(document, original)
+}
+
+///|
+fn relation_target_original(document : RelationTargetDocument) -> Bool {
+  document.original is Some(original) &&
+  physical_equal(document, original) &&
+  relation_document_original(document.backing)
 }
 
 ///|
@@ -181,35 +220,83 @@ fn relation_target_row_original(row : RelationTargetRow) -> Bool {
 }
 
 ///|
-/// Admit every selected relation row under the original declared closed schema.
-/// The explicit path and Text identity come from installed model DATA, never
-/// inference from observed rows. Other model relations must be admitted by
-/// their own declarations. The complete document still receives structural
-/// JSON validation, and all untouched bytes remain owned and unchanged.
-pub fn admit_relation_target_document(
+/// Admit one owned original from explicit caller bytes, without model data or
+/// a schema cache. Later projections share this exact byte/cursor backing.
+pub fn admit_relation_document(
+  bytes : Bytes,
+  limits : RowPageLimits,
+  max_work : Int,
+) -> Result[RelationDocument, RowSourceIssue] {
+  if limits.max_bytes < 1 ||
+    limits.max_nodes < 1 ||
+    limits.max_depth < 1 ||
+    limits.max_rows < 0 ||
+    bytes.length() > limits.max_bytes {
+    return Err(InvalidPage)
+  }
+  try {
+    let work = Ref(max_work)
+    relation_document_work(work, bytes.length())
+    let original = Bytes::makei(bytes.length(), index => bytes[index])
+    let node = @source.parse_json_bytes_preserving(original, {
+      max_input_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let root = @decode.admit(node, {
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+      max_string_bytes: limits.max_bytes,
+      max_total_string_bytes: limits.max_bytes,
+    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
+    let usage = @decode.admission_usage(root)
+    relation_document_work(work, usage.nodes)
+    let document : RelationDocument = {
+      original: None,
+      bytes: original,
+      root,
+      limits,
+      usage,
+      work,
+      projection_attempts: 0,
+      projections: 0,
+      projected_rows: 0L,
+      projected_cells: 0L,
+    }
+    document.original = Some(document)
+    Ok(document)
+  } catch {
+    RelationDocumentStop(issue) => Err(issue)
+  }
+}
+
+///|
+/// Admit every selected relation row under its original declared closed
+/// schema. All projections, including failures and repeated requests, spend
+/// the same original's finite work budget. Paths and keys are explicit model
+/// DATA; sibling relations require their own projection of this same backing.
+pub fn project_relation_target_document(
+  backing : RelationDocument,
   declaration : RowDeclaration,
   resource : String,
   items_path : Array[String],
   key_path : Array[String]?,
   primary_identity : String,
   writable_fields : Array[String],
-  bytes : Bytes,
-  limits : RowPageLimits,
-  max_work : Int,
 ) -> Result[RelationTargetDocument, RowSourceIssue] {
-  if limits.max_bytes < 1 ||
-    limits.max_nodes < 1 ||
-    limits.max_depth < 1 ||
-    limits.max_rows < 0 ||
-    bytes.length() > limits.max_bytes ||
-    items_path.length() > limits.max_depth ||
-    (key_path is Some(path) && path.length() > limits.max_depth) ||
-    writable_fields.length() > limits.max_nodes {
-    return Err(InvalidPage)
+  if !relation_document_original(backing) {
+    return Err(ForeignSource)
   }
   try {
-    let work = Ref(max_work)
-    relation_document_work(work, bytes.length())
+    let work = backing.work
+    relation_document_work(work, 1)
+    backing.projection_attempts += 1
+    let limits = backing.limits
+    if items_path.length() > limits.max_depth ||
+      (key_path is Some(path) && path.length() > limits.max_depth) ||
+      writable_fields.length() > limits.max_nodes {
+      raise RelationDocumentStop(InvalidPage)
+    }
     for
       name in [
         resource,
@@ -261,20 +348,9 @@ pub fn admit_relation_target_document(
     let view = declaration.views[declaration.views
       .search_by(view => view.resource == resource)
       .unwrap()]
-    let original = Bytes::makei(bytes.length(), index => bytes[index])
-    let node = @source.parse_json_bytes_preserving(original, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
-    let root = @decode.admit(node, {
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-      max_string_bytes: limits.max_bytes,
-      max_total_string_bytes: limits.max_bytes,
-    }).unwrap_or_else(() => raise RelationDocumentStop(InvalidPage))
-    let usage = @decode.admission_usage(root)
-    relation_document_work(work, usage.nodes)
+    let original = backing.bytes
+    let root = backing.root
+    let usage = backing.usage
     if key_path is Some(path) {
       let keys = @decode.elements(relation_document_path(root, path)).unwrap_or_else(() => {
           raise RelationDocumentStop(InvalidPage)
@@ -331,6 +407,7 @@ pub fn admit_relation_target_document(
     }
     let document : RelationTargetDocument = {
       original: None,
+      backing,
       declaration,
       view,
       bytes: original,
@@ -344,10 +421,55 @@ pub fn admit_relation_target_document(
       usage,
     }
     document.original = Some(document)
+    backing.projections += 1
+    backing.projected_rows += rows.length().to_int64()
+    backing.projected_cells += rows.length().to_int64() *
+      columns.length().to_int64()
     Ok(document)
   } catch {
     RelationDocumentStop(issue) => Err(issue)
   }
+}
+
+///|
+/// Compatibility convenience for a single projection. Multi-relation callers
+/// must admit once and project every declared relation from that same original.
+pub fn admit_relation_target_document(
+  declaration : RowDeclaration,
+  resource : String,
+  items_path : Array[String],
+  key_path : Array[String]?,
+  primary_identity : String,
+  writable_fields : Array[String],
+  bytes : Bytes,
+  limits : RowPageLimits,
+  max_work : Int,
+) -> Result[RelationTargetDocument, RowSourceIssue] {
+  admit_relation_document(bytes, limits, max_work).bind(backing => {
+    project_relation_target_document(
+      backing, declaration, resource, items_path, key_path, primary_identity, writable_fields,
+    )
+  })
+}
+
+///|
+pub fn relation_document_usage(
+  document : RelationDocument,
+) -> RelationDocumentUsage? {
+  if !relation_document_original(document) {
+    return None
+  }
+  Some({
+    raw_bytes: document.bytes.length(),
+    raw_nodes: document.usage.nodes,
+    raw_depth: document.usage.depth,
+    raw_text_bytes: document.usage.total_string_bytes,
+    projection_attempts: document.projection_attempts,
+    projections: document.projections,
+    projected_rows: document.projected_rows,
+    projected_cells: document.projected_cells,
+    remaining_work: document.work.val,
+  })
 }
 
 ///|

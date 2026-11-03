@@ -429,3 +429,174 @@ test "generic relation document checks explicit key metadata on the original adm
     )
   }
 }
+
+///|
+fn relation_document_test_project_warehouse(
+  original : RelationDocument,
+  declaration : RowDeclaration,
+) -> Result[RelationTargetDocument, RowSourceIssue] {
+  project_relation_target_document(
+    original,
+    declaration,
+    "usage_30d",
+    ["snowflake", "usage_30d", "rows"],
+    Some(["snowflake", "usage_30d", "key"]),
+    "account_id",
+    [],
+  )
+}
+
+///|
+fn relation_document_test_project_account(
+  original : RelationDocument,
+  declaration : RowDeclaration,
+) -> Result[RelationTargetDocument, RowSourceIssue] {
+  project_relation_target_document(
+    original,
+    declaration,
+    "Account",
+    ["salesforce", "Account", "rows"],
+    Some(["salesforce", "Account", "key"]),
+    "id",
+    ["Churn_Risk__c", "Risk_Reason__c"],
+  )
+}
+
+///|
+test "relation projections share one admitted original and retain exact external data" {
+  let bytes = @utf8.encode(mock_document_text(count="9007199254740993"))
+  let original = admit_relation_document(
+    bytes,
+    relation_document_test_limits(),
+    10000000,
+  ).unwrap()
+  let before = relation_document_usage(original).unwrap()
+  assert_eq(before.raw_bytes, bytes.length())
+  assert_eq(before.projection_attempts, 0)
+  assert_eq(before.projected_cells, 0L)
+  assert_false(physical_equal(original.bytes, bytes))
+  let salesforce = mock_update_declaration()
+  let warehouse = mock_document_warehouse()
+  let accounts = relation_document_test_project_account(original, salesforce).unwrap()
+  let usage = relation_document_test_project_warehouse(original, warehouse).unwrap()
+  assert_true(physical_equal(accounts.backing, original))
+  assert_true(physical_equal(usage.backing, original))
+  assert_true(physical_equal(accounts.bytes, usage.bytes))
+  assert_true(physical_equal(accounts.bytes, original.bytes))
+  assert_true(
+    @decode.tree_index(original.root, accounts.row_cursors[0]) is Some(_),
+  )
+  assert_true(
+    @decode.tree_index(original.root, usage.row_cursors[0]) is Some(_),
+  )
+  let after = relation_document_usage(original).unwrap()
+  assert_eq(after.raw_nodes, before.raw_nodes)
+  assert_eq(after.raw_text_bytes, before.raw_text_bytes)
+  assert_eq(after.projection_attempts, 2)
+  assert_eq(after.projections, 2)
+  assert_eq(after.projected_rows, 4L)
+  assert_eq(after.projected_cells, 16L)
+  assert_true(after.remaining_work < before.remaining_work)
+  let row = observe_relation_target(usage, warehouse, "001Acme").unwrap()
+  assert_true(
+    relation_target_before(row)
+    .unwrap()
+    .contains("\"active_users\":\"9007199254740993\""),
+  )
+  let other = admit_relation_document(
+    @utf8.encode(mock_document_text(count="4")),
+    relation_document_test_limits(),
+    10000000,
+  ).unwrap()
+  let changed = relation_document_test_project_warehouse(other, warehouse).unwrap()
+  assert_true(
+    relation_target_version(row) !=
+    relation_target_version(
+      observe_relation_target(changed, warehouse, "001Acme").unwrap(),
+    ),
+  )
+  assert_eq(
+    @utf8.decode(original.bytes),
+    mock_document_text(count="9007199254740993"),
+  )
+  assert_true(
+    relation_document_test_project_warehouse({ ..original, }, warehouse)
+    is Err(ForeignSource),
+  )
+  assert_eq(relation_document_usage({ ..original, }), None)
+}
+
+///|
+test "relation projections share cumulative work across successful and failed attempts" {
+  let original = admit_relation_document(
+    @utf8.encode(mock_document_text()),
+    relation_document_test_limits(),
+    100000,
+  ).unwrap()
+  let warehouse = mock_document_warehouse()
+  relation_document_test_project_warehouse(original, warehouse).unwrap()
+  |> ignore
+  let after_first = relation_document_usage(original).unwrap()
+  assert_eq(after_first.projections, 1)
+  assert_true(after_first.remaining_work < 50000)
+  assert_true(
+    relation_document_test_project_account(original, mock_update_declaration())
+    is Err(_),
+  )
+  let after_failure = relation_document_usage(original).unwrap()
+  assert_eq(after_failure.projection_attempts, 2)
+  assert_eq(after_failure.projections, 1)
+  assert_eq(after_failure.projected_rows, 2L)
+  assert_eq(after_failure.projected_cells, 6L)
+  assert_true(after_failure.remaining_work < after_first.remaining_work)
+  assert_true(
+    relation_document_test_project_warehouse(original, warehouse) is Err(_),
+  )
+  assert_true(
+    relation_document_usage(original).unwrap().remaining_work <=
+    after_failure.remaining_work,
+  )
+  // No per-projection max_work argument can reset this original's budget.
+  let fresh = admit_relation_document(
+    @utf8.encode(mock_document_text()),
+    relation_document_test_limits(),
+    100000,
+  ).unwrap()
+  relation_document_test_project_warehouse(fresh, warehouse).unwrap() |> ignore
+}
+
+///|
+test "shared relation original preserves key and typed failures without accepting siblings by implication" {
+  let warehouse = mock_document_warehouse()
+  for
+    invalid in [
+      mock_document_text().replace(
+        old="\"key\":[\"account_id\"]",
+        new="\"key\":[\"trend\"]",
+      ),
+      mock_document_text(count="4.0"),
+      mock_document_text(count="4e0"),
+      mock_document_text(count="9223372036854775808"),
+      mock_document_text().replace(
+        old="\"trend\":\"down\"",
+        new="\"trend\":null",
+      ),
+    ] {
+    let original = admit_relation_document(
+      @utf8.encode(invalid),
+      relation_document_test_limits(),
+      10000000,
+    ).unwrap()
+    relation_document_test_project_account(original, mock_update_declaration()).unwrap()
+    |> ignore
+    let before = relation_document_usage(original).unwrap()
+    assert_true(
+      relation_document_test_project_warehouse(original, warehouse) is Err(_),
+    )
+    let after = relation_document_usage(original).unwrap()
+    assert_eq(after.projection_attempts, 2)
+    assert_eq(after.projections, 1)
+    assert_true(after.remaining_work < before.remaining_work)
+    assert_eq(@utf8.decode(original.bytes), invalid)
+  }
+}

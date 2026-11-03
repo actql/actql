@@ -8,6 +8,7 @@ struct ClientInstalledManagedCapturePlan {
   // context while this original also retains the definition/sample binding.
   _observed_query_time : @publication_host.ClientQueryTimePreparation?
   captures : Array[ClientInstalledCaptureCapacity]
+  direct_occurrences : @publication_host.ClientDirectAcquisitionOccurrences?
   whole_input : ClientInstalledWholeSourceCapacity?
   graph : @strategy.CheckedDAG
   transport_bytes : Array[Int64]
@@ -81,6 +82,7 @@ fn prepare_installed_managed_capture_plan_owned(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   model? : @publication_host.ClientInferPlanGraph? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
@@ -103,11 +105,31 @@ fn prepare_installed_managed_capture_plan_owned(
     transport_execution_bytes.length() != count {
     return Err(Unsupported)
   }
+  let direct = match direct_occurrences {
+    Some(value) => value
+    None =>
+      match installed_direct_occurrences_owned(Pure(prepared)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+  }
+  if !installed_direct_occurrences_match_owner(direct, Pure(prepared)) ||
+    @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+    count {
+    return Err(ForeignOriginal)
+  }
   for index, original in captures {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        direct, index,
+      )
+      is Some((stage, input, task)) &&
+      task == index else {
+      return Err(ForeignOriginal)
+    }
     if !@publication_host.client_query_requirement_matches_original_query_time(
         prepared,
-        index,
-        0,
+        stage,
+        input,
         original.requirement,
         query_time,
         request,
@@ -156,12 +178,30 @@ fn prepare_installed_managed_capture_plan_owned(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
+  guard installed_direct_occurrences_layout(count)
+    is Some((selector_retained, _)) &&
+    @execution.checked_preparation_add_product(
+      compute.limits.retained_bytes,
+      selector_retained,
+      1L,
+    )
+    is Some(retained_bytes) &&
+    @execution.checked_preparation_add_product(
+      compute.limits.execution_bytes,
+      selector_retained,
+      1L,
+    )
+    is Some(execution_bytes) else {
+    return Err(InsufficientCapacity)
+  }
+  let limits = { ..compute.limits, retained_bytes, execution_bytes, }
   Ok({
     prepared,
     request,
     _observed_query_time: query_time,
     captures: captures.copy(),
     whole_input: None,
+    direct_occurrences: Some(direct),
     graph: @publication_host.prepared_client_graph(prepared),
     transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(),
@@ -176,7 +216,7 @@ fn prepare_installed_managed_capture_plan_owned(
     model_input_prefix: None,
     model_input_suffix: None,
     compilation: None,
-    limits: compute.limits,
+    limits,
   })
 }
 

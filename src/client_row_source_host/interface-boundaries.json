@@ -174,7 +174,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "5f0dd88d6cc268e14601b9958d55b7a88f44d6ddd934734a040ff7ceb511f4c3",
+      "sha256": "b4c67bce83e7e2aaf9a8ba2ff6ccfa2e26c1415b673f1b0dd80120a3ce3b83c1",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -188,6 +188,7 @@
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
         "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
         "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
+        "pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]",
         "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
         "pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]",
@@ -267,9 +268,17 @@
         "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
+        "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String]) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
         "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]",
+        "pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn relation_document_mapping_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn relation_document_projection_construction_inventory(RelationDocumentProjectionConstruction, RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
+        "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",
         "pub fn relation_target_before(RelationTargetRow) -> String?",
         "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
         "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
@@ -282,6 +291,7 @@
         "pub fn restored_row_original_read(RowRestoredOriginalInput) -> @execution_relation.SuppliedRelationRead?",
         "pub fn retain_keyed_row_run(RowRun) -> Result[RowKeyedSourceCapture, RowHostIssue]",
         "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
+        "pub fn retain_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
         "pub fn retire_row_run_response_workspace(RowRunResponseBorrow) -> Result[Unit, RowHostIssue]",
         "pub fn row_acquisition_column_contract(RowAcquisition, Int) -> @value_contract.Contract?",
         "pub fn row_acquisition_columns(RowAcquisition) -> Array[String]",
@@ -296,6 +306,16 @@
         "pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> @query_planning.QueryRequirement?",
         "pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?",
         "pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]",
+        "pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?",
+        "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?",
+        "pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?",
+        "pub fn row_captured_inputs_count(RowCapturedInputs) -> Int",
+        "pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool",
+        "pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool",
+        "pub fn row_captures_original_keyed_prefix_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation) -> Bool",
+        "pub fn row_captures_original_keyed_preparation_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, prefix? : @physical_resources.Reservation?) -> Bool",
+        "pub fn row_captures_original_keyed_serialization_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, @physical_resources.Reservation, Int) -> Bool",
+        "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool",
         "pub fn row_declaration_catalog_cid(RowDeclaration) -> String",
         "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure",
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
@@ -336,6 +356,7 @@
         "pub struct MockChurnRiskCatalogue {",
         "pub struct MockTargetDocument {",
         "pub struct MockTargetRow {",
+        "pub struct RelationDocument {",
         "pub struct RelationTargetDocument {",
         "pub struct RelationTargetRow {",
         "pub struct RowDeclaration {",
@@ -385,6 +406,10 @@
         {
           "name": "admit_mock_churn_risk_target_document",
           "declaration": "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]"
+        },
+        {
+          "name": "admit_relation_document",
+          "declaration": "pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]"
         },
         {
           "name": "admit_relation_target_document",
@@ -703,6 +728,14 @@
           "declaration": "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]"
         },
         {
+          "name": "prepare_row_update_mapping",
+          "declaration": "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "project_relation_target_document",
+          "declaration": "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String]) -> Result[RelationTargetDocument, RowSourceIssue]"
+        },
+        {
           "name": "project_row_declaration",
           "declaration": "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]"
         },
@@ -713,6 +746,30 @@
         {
           "name": "project_row_source_typed_json_page",
           "declaration": "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]"
+        },
+        {
+          "name": "relation_document_construction_inventory",
+          "declaration": "pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "relation_document_mapping_construction_inventory",
+          "declaration": "pub fn relation_document_mapping_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "relation_document_projection_construction_inventory",
+          "declaration": "pub fn relation_document_projection_construction_inventory(RelationDocumentProjectionConstruction, RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "relation_document_projection_contract",
+          "declaration": "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]"
+        },
+        {
+          "name": "relation_document_raw_construction_inventory",
+          "declaration": "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "relation_document_usage",
+          "declaration": "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?"
         },
         {
           "name": "relation_target_before",
@@ -761,6 +818,10 @@
         {
           "name": "retain_row_capture_task",
           "declaration": "pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "retain_row_captured_inputs",
+          "declaration": "pub fn retain_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?"
         },
         {
           "name": "retire_row_run_response_workspace",
@@ -817,6 +878,46 @@
         {
           "name": "row_capture_source",
           "declaration": "pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]"
+        },
+        {
+          "name": "row_captured_input_at",
+          "declaration": "pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?"
+        },
+        {
+          "name": "row_captured_input_requirement_at",
+          "declaration": "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?"
+        },
+        {
+          "name": "row_captured_inputs_construction_inventory",
+          "declaration": "pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?"
+        },
+        {
+          "name": "row_captured_inputs_count",
+          "declaration": "pub fn row_captured_inputs_count(RowCapturedInputs) -> Int"
+        },
+        {
+          "name": "row_captures_original_keyed_child_available",
+          "declaration": "pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool"
+        },
+        {
+          "name": "row_captures_original_keyed_lookup_dependents_retired",
+          "declaration": "pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool"
+        },
+        {
+          "name": "row_captures_original_keyed_prefix_dependents_retired",
+          "declaration": "pub fn row_captures_original_keyed_prefix_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation) -> Bool"
+        },
+        {
+          "name": "row_captures_original_keyed_preparation_available",
+          "declaration": "pub fn row_captures_original_keyed_preparation_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, prefix? : @physical_resources.Reservation?) -> Bool"
+        },
+        {
+          "name": "row_captures_original_keyed_serialization_available",
+          "declaration": "pub fn row_captures_original_keyed_serialization_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, @physical_resources.Reservation, Int) -> Bool"
+        },
+        {
+          "name": "row_captures_original_prefix_available",
+          "declaration": "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool"
         },
         {
           "name": "row_declaration_catalog_cid",
@@ -2779,9 +2880,12 @@
         {
           "operations": [
             "accept_charged_relation_document",
+            "admit_relation_document",
             "admit_relation_target_document",
             "observe_relation_target",
             "prepare_relation_target_update",
+            "project_relation_target_document",
+            "relation_document_usage",
             "relation_target_before",
             "relation_target_row_count",
             "relation_target_row_identity",
@@ -2791,15 +2895,19 @@
           ],
           "exports": [
             "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
+            "pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]",
             "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
             "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
             "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
+            "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String]) -> Result[RelationTargetDocument, RowSourceIssue]",
+            "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",
             "pub fn relation_target_before(RelationTargetRow) -> String?",
             "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
             "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
             "pub fn relation_target_text(RelationTargetRow, String) -> String?",
             "pub fn relation_target_text_bytes(RelationTargetRow, String) -> Bytes?",
             "pub fn relation_target_version(RelationTargetRow) -> String?",
+            "pub struct RelationDocument {",
             "pub struct RelationTargetDocument {",
             "pub struct RelationTargetRow {"
           ],
@@ -2861,6 +2969,244 @@
             "verification": [
               {
                 "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepare_row_update_mapping"
+          ],
+          "exports": [
+            "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "retain_row_captured_inputs",
+            "row_captured_input_at",
+            "row_captured_input_requirement_at",
+            "row_captured_inputs_construction_inventory",
+            "row_captured_inputs_count",
+            "row_captures_original_keyed_child_available",
+            "row_captures_original_keyed_lookup_dependents_retired",
+            "row_captures_original_keyed_prefix_dependents_retired",
+            "row_captures_original_keyed_preparation_available",
+            "row_captures_original_keyed_serialization_available",
+            "row_captures_original_prefix_available"
+          ],
+          "exports": [
+            "pub fn retain_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
+            "pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?",
+            "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?",
+            "pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn row_captured_inputs_count(RowCapturedInputs) -> Int",
+            "pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool",
+            "pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool",
+            "pub fn row_captures_original_keyed_prefix_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation) -> Bool",
+            "pub fn row_captures_original_keyed_preparation_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, prefix? : @physical_resources.Reservation?) -> Bool",
+            "pub fn row_captures_original_keyed_serialization_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, @physical_resources.Reservation, Int) -> Bool",
+            "pub fn row_captures_original_prefix_available(RowCapturedInputs, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> Bool"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "relation_document_construction_inventory",
+            "relation_document_mapping_construction_inventory",
+            "relation_document_projection_construction_inventory",
+            "relation_document_projection_contract",
+            "relation_document_raw_construction_inventory"
+          ],
+          "exports": [
+            "pub fn relation_document_construction_inventory(RowPageLimits, Array[RelationDocumentProjectionConstruction]) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn relation_document_mapping_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn relation_document_projection_construction_inventory(RelationDocumentProjectionConstruction, RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?",
+            "pub fn relation_document_projection_contract(RowDeclaration, String, String, RowPageLimits) -> Result[@value_contract.Contract, RowMappingIssue]",
+            "pub fn relation_document_raw_construction_inventory(RowPageLimits) -> @execution_relation.PreparationRepresentationUnits?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
                 "anchor": "- Verification:"
               }
             ]

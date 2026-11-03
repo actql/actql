@@ -250,6 +250,7 @@ struct ClientInstalledEffectManagedPlan {
   query_time : @publication_host.ClientQueryTimePreparation?
   model : ClientInstalledEffectModelDemand?
   declarations : Array[@row_source_host.RowDeclaration]
+  direct_occurrences : @publication_host.ClientDirectAcquisitionOccurrences?
   acquisitions : Array[@row_source_host.RowAcquisition]
   captures : Array[ClientInstalledCaptureCapacity]
   transport_bytes : Array[Int64]
@@ -449,6 +450,16 @@ pub fn prepare_installed_effect_managed_plan(
   } else {
     None
   }
+  let direct_occurrences = if @strategy.graph_captured_prefix(graph) == 0 {
+    None
+  } else {
+    Some(
+      match installed_direct_occurrences_owned(Effect(prepared)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      },
+    )
+  }
   let acquisitions = match
     prepare_installed_managed_acquisitions_owned(
       Effect(prepared),
@@ -460,6 +471,7 @@ pub fn prepare_installed_effect_managed_plan(
       fragment_body,
       ordered_body,
       query_time=invocation,
+      direct_occurrences~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -860,7 +872,16 @@ pub fn prepare_installed_effect_managed_plan(
     temporary > 9223372036854775807L - phase_workspace {
     return Err(Unsupported)
   }
-  let controls = controls + phase_retained
+  guard installed_direct_occurrences_layout(
+      @strategy.graph_captured_prefix(graph),
+    )
+    is Some((selector_retained, _)) &&
+    @execution.checked_preparation_add_product(controls, selector_retained, 1L)
+    is Some(controls) &&
+    @execution.checked_preparation_add_product(controls, phase_retained, 1L)
+    is Some(controls) else {
+    return Err(InsufficientCapacity)
+  }
   let temporary = temporary + phase_workspace
   if retained > 9223372036854775807L - controls ||
     execution > 9223372036854775807L - controls - temporary {
@@ -926,6 +947,7 @@ pub fn prepare_installed_effect_managed_plan(
     model,
     declarations: declarations.copy(),
     acquisitions,
+    direct_occurrences,
     captures,
     transport_bytes: transport_bytes.copy(),
     transport_execution_bytes: transport_execution_bytes.copy(),

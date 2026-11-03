@@ -1,4 +1,72 @@
 ///|
+// One DATA original shared by all explicitly declared physical relations.
+#export_name("clientProgramRelationAdmitDocument")
+pub fn client_program_relation_admit_document(
+  bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  max_work : Int,
+) -> Result[
+  @client_row_source_host.RelationDocument,
+  @client_row_source_host.RowSourceIssue,
+] {
+  @client_row_source_host.admit_relation_document(
+    bytes,
+    { max_bytes, max_nodes, max_depth, max_rows, },
+    max_work,
+  )
+}
+
+///|
+#export_name("clientProgramRelationProjectTargetDocument")
+pub fn client_program_relation_project_target_document(
+  original : @client_row_source_host.RelationDocument,
+  declaration : @client_row_source_host.RowDeclaration,
+  resource : String,
+  items_path : Array[String],
+  key_path : Array[String],
+  primary_identity : String,
+  writable_fields : Array[String],
+) -> Result[
+  @client_row_source_host.RelationTargetDocument,
+  @client_row_source_host.RowSourceIssue,
+] {
+  @client_row_source_host.project_relation_target_document(
+    original,
+    declaration,
+    resource,
+    items_path,
+    Some(key_path),
+    primary_identity,
+    writable_fields,
+  )
+}
+
+///|
+// Cumulative observation DATA: bytes/nodes/depth/text, attempts/projections,
+// rows/cells and remaining work. This is not a pre-I/O capacity quotation.
+#export_name("clientProgramRelationDocumentUsage")
+pub fn client_program_relation_document_usage(
+  original : @client_row_source_host.RelationDocument,
+) -> Array[Int64]? {
+  @client_row_source_host.relation_document_usage(original).map(usage => {
+    [
+      usage.raw_bytes.to_int64(),
+      usage.raw_nodes.to_int64(),
+      usage.raw_depth.to_int64(),
+      usage.raw_text_bytes.to_int64(),
+      usage.projection_attempts.to_int64(),
+      usage.projections.to_int64(),
+      usage.projected_rows,
+      usage.projected_cells,
+      usage.remaining_work.to_int64(),
+    ]
+  })
+}
+
+///|
 // Shared relation-document DATA codec. Installation, grants, physical backing,
 // conditional writes and cleanup stay with the existing Host owners.
 #export_name("clientProgramRelationAdmitTargetDocument")

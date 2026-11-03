@@ -86,6 +86,19 @@ fn[I] request_program_plan_quote(
       Err(issue) => return Err(issue)
       Ok(value) => value
     }
+    guard owner.compiled_program is Some(prepared) &&
+      installed_direct_occurrences_layout(
+        @strategy.graph_captured_prefix(
+          @publication_host.prepared_client_graph(prepared),
+        ),
+      )
+      is Some((selector_retained, selector_execution)) &&
+      @execution.checked_preparation_add_product(r, selector_retained, 1L)
+      is Some(r) &&
+      @execution.checked_preparation_add_product(e, selector_execution, 1L)
+      is Some(e) else {
+      return Err(Policy)
+    }
     // The shared Compute constructor now retains its original tail execution
     // aggregate. This is one fixed scalar, not another Plan or policy knob.
     if e > 9223372036854775807L - installed_compute_tail_inventory_bytes {

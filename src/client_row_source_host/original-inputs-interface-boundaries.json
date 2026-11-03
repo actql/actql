@@ -1,0 +1,145 @@
+{
+  "qualification": "Source-scoped semantic correspondence; no complete shared execution, Host funding, artifact or release claim",
+  "declarations": [
+    {
+      "module": "src/client_row_source_host/original_captured_inputs.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "f512be0e425bd58d92dd91e5c3948ac8f40303101939185f6fb7b0e272ee6dad",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "retain_row_captured_inputs",
+          "declaration": "retain_row_captured_inputs ( captures : Array [ RowSourceCapture ] , ledger : @ resources . Ledger , max_work : Int , ) - > RowCapturedInputs ?"
+        },
+        {
+          "name": "row_captured_input_at",
+          "declaration": "row_captured_input_at ( value : RowCapturedInputs , index : Int , ) - > RowSourceCapture ?"
+        },
+        {
+          "name": "row_captured_input_requirement_at",
+          "declaration": "row_captured_input_requirement_at ( value : RowCapturedInputs , index : Int , ) - > @ planning . QueryRequirement ?"
+        },
+        {
+          "name": "row_captured_inputs_construction_inventory",
+          "declaration": "row_captured_inputs_construction_inventory ( count : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "row_captured_inputs_count",
+          "declaration": "row_captured_inputs_count ( value : RowCapturedInputs ) - > Int"
+        },
+        {
+          "name": "row_captured_inputs_current",
+          "declaration": "row_captured_inputs_current ( value : RowCapturedInputs ) - > Bool"
+        },
+        {
+          "name": "row_captures_original_keyed_child_available",
+          "declaration": "row_captures_original_keyed_child_available ( value : RowCapturedInputs , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , assembly : @ resources . Reservation , children : Int , prefix ? : @ resources . Reservation ?"
+        },
+        {
+          "name": "row_captures_original_keyed_lookup_dependents_retired",
+          "declaration": "row_captures_original_keyed_lookup_dependents_retired ( value : RowCapturedInputs , ledger : @ resources . Ledger , assembly : @ resources . Reservation , prefix ? : @ resources . Reservation ?"
+        },
+        {
+          "name": "row_captures_original_keyed_prefix_dependents_retired",
+          "declaration": "row_captures_original_keyed_prefix_dependents_retired ( value : RowCapturedInputs , ledger : @ resources . Ledger , prefix : @ resources . Reservation , ) - > Bool"
+        },
+        {
+          "name": "row_captures_original_keyed_preparation_available",
+          "declaration": "row_captures_original_keyed_preparation_available ( value : RowCapturedInputs , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , prefix ? : @ resources . Reservation ?"
+        },
+        {
+          "name": "row_captures_original_keyed_serialization_available",
+          "declaration": "row_captures_original_keyed_serialization_available ( value : RowCapturedInputs , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , prefix : @ resources . Reservation , assembly : @ resources . Reservation , children : Int , ) - > Bool"
+        },
+        {
+          "name": "row_captures_original_prefix_available",
+          "declaration": "row_captures_original_prefix_available ( value : RowCapturedInputs , ledger : @ resources . Ledger , prefix ? : @ resources . Reservation ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "retain_row_captured_inputs",
+            "row_captured_input_at",
+            "row_captured_input_requirement_at",
+            "row_captured_inputs_construction_inventory",
+            "row_captured_inputs_count",
+            "row_captured_inputs_current",
+            "row_captures_original_keyed_child_available",
+            "row_captures_original_keyed_lookup_dependents_retired",
+            "row_captures_original_keyed_prefix_dependents_retired",
+            "row_captures_original_keyed_preparation_available",
+            "row_captures_original_keyed_serialization_available",
+            "row_captures_original_prefix_available"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/original-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
