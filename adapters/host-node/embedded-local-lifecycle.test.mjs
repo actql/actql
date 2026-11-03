@@ -601,7 +601,8 @@ test('prepared Client pending request index preserves original close drain and r
 // The actual held caller uses the real Host registry with explicit native and
 // Journal/Checkpoint ports. No synthetic packet below issues capacity, a Run,
 // approval or a physical cleanup acknowledgement.
-function heldRequestOriginalFixture({changed = false, failure, failPreparation = false, finishFailure} = {}) {
+function heldRequestOriginalFixture({changed = false, failure, failPreparation = false, finishFailure,
+  finishFailures = 1} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let entry;
@@ -626,7 +627,7 @@ function heldRequestOriginalFixture({changed = false, failure, failPreparation =
   let finishAttempts = 0;
   const input = Object.freeze({finish(terminal) {
     calls.push('finish:' + terminal);
-    if (++finishAttempts === 1 && finishFailure !== undefined) throw finishFailure;
+    if (++finishAttempts <= finishFailures && finishFailure !== undefined) throw finishFailure;
     pending.resolve();
   }});
   const preparation = {
@@ -717,4 +718,68 @@ test('held resume retains its original input until the actual physical-start han
   start.resolve();assert.equal(await pending,'started');
   assert.equal(f.calls.at(-1),'finish:returned');await Promise.resolve();await Promise.resolve();
   assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+});
+
+function heldControl(name, ports) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === name) {
+      assert.equal(entry, undefined); entry = node;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(entry, name);
+  return new Function(...Object.keys(ports), 'const ' + source.slice(entry.start, entry.end) +
+    ';return ' + name + ';')(...Object.values(ports));
+}
+
+test('held resume successful start retains the same failed input return retry without restarting', async () => {
+  const cleanup = new Error('original input return pending');
+  const f = heldRequestOriginalFixture({finishFailure:cleanup, finishFailures:2});
+  let starts = 0;
+  const resume = heldControl('resumeHeld', {heldSubmission:()=>f.held(), retainInstalledHostRuntimeFailure,
+    effectRun:{checkSupported(){assert.fail('No Effect');}},
+    installedSourceFor(){assert.fail('No Source');}, sourceProfile:undefined,
+    async admitDefinition(submission){assert.equal(f.original(submission),submission);return {};},
+    definitionOf:()=>undefined, runIdOf:()=> 'original-component-run', settleHeldRun(){},
+    cancelHeldRun(){assert.fail('No cancellation');},
+    async startDispatch(submission){assert.equal(f.original(submission),submission);starts++;return 'started';}});
+  let failure;
+  await assert.rejects(resume({captured:f.captured,step:async()=>{},renew(){},
+    preparationCancelled:()=>false,beforePhysicalStart(){},started(){}}), error => {
+    failure = error; return error.cause === cleanup && error.cleanupHandle.status().pending === true;
+  });
+  assert.equal(starts,1);
+  assert.equal(f.original(f.prepared).preparedProgram,f.prepared);
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  assert.equal(starts,1,'Retry only returns the SAME input; physical start is never retried');
+  await Promise.resolve(); await Promise.resolve();
+  assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+});
+
+test('held abandonment keeps the original start failure including undefined and its same input retry', async () => {
+  for (const primary of [new Error('original start failure'), undefined]) {
+    const f = heldRequestOriginalFixture({finishFailure:new Error('original input return pending'), finishFailures:2});
+    let starts = 0, failure;
+    const abandon = heldControl('abandonHeld', {heldSubmission:()=>f.held(), retainInstalledHostRuntimeFailure,
+      definitionOf:()=>({physicalStartReserved:false,preDispatchFailureConfirmed:false,dispatchReserved:false}),
+      namespaceId:'original-namespace',
+      async startRun(){starts++;throw primary;},
+      journal:{markPreDispatchFailure(){assert.fail('No failure marker after failed admission');}}});
+    await assert.rejects(abandon(f.captured), error => {
+      failure=error; return Object.hasOwn(error,'primaryFailure') && error.primaryFailure === primary &&
+        error.cause === primary && error.cleanupHandle.status().pending === true;
+    });
+    assert.equal(starts,1);
+    await assert.rejects(failure.cleanupHandle.retry(), error => error === failure);
+    assert.equal(failure.cleanupHandle.status().pending,true);
+    assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(starts,1,'Retry owns only the original input return');
+    await Promise.resolve(); await Promise.resolve();
+    assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+  }
 });

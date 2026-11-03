@@ -4536,7 +4536,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     } catch (cause) {
       failed = true;
       throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('failed'));
-    } finally {if (!failed) requestInput.finish('returned');}
+    } finally {
+      if (!failed) {
+        try {requestInput.finish('returned');}
+        catch (cause) {
+          // Start already returned. Retry only this SAME input retirement;
+          // never replay the physical-start handoff or infer cleanup ACK.
+          throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('returned'));
+        }
+      }
+    }
   };
   // A held request whose authorization no longer holds before any physical
   // start: its Run (if already defined) fails before dispatch; nothing runs.
@@ -4546,11 +4555,20 @@ async function openInstalledHost(originalInstallation, preparation) {
         accepted.preDispatchFailureConfirmed) return;
     if (accepted.dispatchReserved !== true) {
       const restored = await heldSubmission(captured);
+      let start;
       try {
-        const start = await startRun({identity: restored.requested,
+        start = await startRun({identity: restored.requested,
           namespaceId, principalId: captured.principalId, connection: captured.connection});
-        if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
-      } finally {restored.requestInput.finish('returned');}
+      } catch (cause) {
+        // A failed admission (even `throw undefined`) remains the primary.
+        // Input cleanup belongs to its original retry, not another startRun.
+        throw retainInstalledHostRuntimeFailure(cause, () => restored.requestInput.finish('failed'));
+      }
+      try {restored.requestInput.finish('returned');}
+      catch (cause) {
+        throw retainInstalledHostRuntimeFailure(cause, () => restored.requestInput.finish('returned'));
+      }
+      if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
     }
     journal.markPreDispatchFailure(accepted.ref);
   };
