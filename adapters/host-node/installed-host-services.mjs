@@ -1971,8 +1971,27 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const limits = implementation.value.limits, sequence = implementation.readSequenceConstruction;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
+      // Optional separately bound Resources are declared by this SAME complete
+      // native sequence recipe. Names bound construction; only each original
+      // Site-issued decision/grant authorizes the actual child.
+      let resourceChildren;
+      const sequences = sequence?.sequences === undefined ? [sequence?.sequence]
+        : Object.values(sequence.sequences);
+      for (const originalSequence of sequences) {
+        for (const child of originalSequence?.children ?? []) {
+          const resource = Object.getOwnPropertyDescriptor(child, 'resource');
+          if (resource === undefined) continue;
+          if (!Object.hasOwn(resource, 'value') || typeof resource.value !== 'string' || resource.value.length === 0) {
+            fail('InvalidInstalledSourceResourceChildren');
+          }
+          resourceChildren ??= [];
+          if (!resourceChildren.includes(resource.value)) resourceChildren.push(resource.value);
+        }
+      }
+      if (resourceChildren !== undefined) Object.freeze(resourceChildren);
       const factory = createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
+        ...(resourceChildren === undefined ? {} : {resourceChildren}),
         maxResponses: limits.maxPages,
         ...(standard ? {operation: fields.operation.value,
           ...(implementation.requestConstruction === undefined ? {} : {maxRequestBytes:implementation.requestConstruction.maxRequestBytes}),

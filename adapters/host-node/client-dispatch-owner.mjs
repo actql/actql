@@ -385,7 +385,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       entry.retirePreparation = undefined;
       entry.preparationRetirementFailure = undefined;
-      entries.delete(keyOf(entry.ref));
+      const removed = entries.delete(keyOf(entry.ref));
+      // This diagnostic describes the complete original owner, not just its
+      // physical children. Preparation/finished and acquisition release have
+      // now completed under the unchanged retirement predicate above.
+      if (removed && entry.acquisitionLedger !== undefined) {
+        try {diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
+          resourceUsage: resourceUsage(entry.acquisitionLedger)});}
+        catch { /* Optional observation cannot restore or prevent retirement. */ }
+      }
     }
   }
 
@@ -496,10 +504,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     }
     observation?.emit('cleanup', 'cleanup_completed', {ref: entry.ref,
       physicalStop: entry.stopObserved ? 'confirmed' : undefined});
-    if (entry.acquisitionLedger !== undefined) {
-      diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
-        resourceUsage: resourceUsage(entry.acquisitionLedger)});
-    }
   }
 
   async function finishRun(entry) {

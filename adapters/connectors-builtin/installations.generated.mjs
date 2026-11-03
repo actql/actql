@@ -117,6 +117,7 @@ export const installedConnectors = Object.freeze([
     revision: "kintone/0.1",
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/kintone/host/installed-kintone-source.mjs", href: new URL("../connectors/kintone/host/installed-kintone-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/site/kintone-managed-sequence.mjs", href: new URL("../connectors/kintone/site/kintone-managed-sequence.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/site/kintone-record-read.mjs", href: new URL("../connectors/kintone/site/kintone-record-read.mjs", import.meta.url).href}),
     ]),
     responseHeaders: Object.freeze([]),

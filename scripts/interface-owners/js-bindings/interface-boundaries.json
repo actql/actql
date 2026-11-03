@@ -35482,6 +35482,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "inputsOutputs": [
@@ -35492,6 +35496,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "identity": [
@@ -35510,6 +35518,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "## Source observation and Result publication policies"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "ownership": [
@@ -35524,6 +35536,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "clientProgramInstalledManagedRunPrepareLedger("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "synchronization": [
@@ -35534,6 +35550,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "failure": [
@@ -35544,6 +35564,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "cancellation": [
@@ -35554,6 +35578,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "resources": [
@@ -35568,6 +35596,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "borrow that same Ledger internally. The existing physical Ledger equality at"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "extension": [
@@ -35582,6 +35614,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "verification": [
@@ -35612,6 +35648,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -36805,7 +36849,8 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "4b370b9c8bab4c44447603a0e4c0bafb6c7d6f1dcd3a972a5bdf1227f4469004"
+      "sha256": "a3dec30f61c50cee83059079822193abdc1a315d00481eebedecbf039a63f210",
+      "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
       "module": "adapters/host-node/client-source-operation.mjs",
@@ -79556,7 +79601,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "299d2ad6a7358e362b7d456fe4be65cbe59a28ef15fcd6351d3be565a4b92a31",
+      "sha256": "520fc796039c114cae2b722e204c51d17ef442e724f92bc3e83927ce04dfc8bc",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -80020,6 +80065,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "inputsOutputs": [
@@ -80038,6 +80087,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "identity": [
@@ -80060,6 +80113,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "ownership": [
@@ -80086,6 +80143,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "synchronization": [
@@ -80112,6 +80173,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "failure": [
@@ -80134,6 +80199,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "cancellation": [
@@ -80156,6 +80225,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "resources": [
@@ -80182,6 +80255,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "extension": [
@@ -80200,6 +80277,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "verification": [
@@ -80230,6 +80311,18 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "native response constructor grows the SAME original RowRun after charge and before projection"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -80897,12 +80990,13 @@
         "node:timers/promises"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "rationale": "The existing one-shot preparation slot retains the same Query or WholeInput response borrow. The private fourth constructor argument exposes that original after cleanup binding; capacity growth precedes decoding without a second RowRun or acquisition."
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "da8e5b3d6eff18efea6e8fbb76433c5697a76b3ae6131f09da03f035c3db837d",
+      "sha256": "5b6e7bde236731e808a78e4a7e30d556593ac427458aa299118f5178e7e4a746",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -81858,6 +81952,30 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild",
+          "parameters": [
+            "parent",
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild/assertParent/assertParent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "openRowSourceCredentialCustody/bindRunAcquisition",
           "parameters": [
             "authorization",
@@ -82029,11 +82147,27 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/readResourceChildCredential",
+          "parameters": [
+            "parent",
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/readResourceParent",
+          "parameters": [
+            "acquisition"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/retainRunBinding",
           "parameters": [
             "authorization",
-            "assertCurrent",
-            "observeCurrent"
+            "current",
+            "resourceParent"
           ],
           "async": false
         },
@@ -83086,6 +83220,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "inputsOutputs": [
@@ -83104,6 +83242,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "identity": [
@@ -83134,6 +83276,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "ownership": [
@@ -83164,6 +83310,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "synchronization": [
@@ -83198,6 +83348,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "failure": [
@@ -83220,6 +83374,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "cancellation": [
@@ -83242,6 +83400,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "await currentRead(prepared, access, signal);"
               }
             ],
             "resources": [
@@ -83272,6 +83434,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "extension": [
@@ -83294,6 +83460,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "verification": [
@@ -83356,6 +83526,14 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization spends each ordinal once within its existing page budget"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks"
               }
             ]
           }
@@ -84943,6 +85121,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "inputsOutputs": [
@@ -84973,6 +85155,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "identity": [
@@ -85003,6 +85189,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "ownership": [
@@ -85033,6 +85223,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "synchronization": [
@@ -85063,6 +85257,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "failure": [
@@ -85093,6 +85291,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "cancellation": [
@@ -85123,6 +85325,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "resources": [
@@ -85157,6 +85363,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "extension": [
@@ -85187,6 +85397,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
               }
             ],
             "verification": [
@@ -85269,6 +85483,30 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -85905,8 +86143,210 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openRowSourceCredentialCustody/bindReadResourceChild",
+            "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/bindReadResourceChild/assertParent/assertParent",
+            "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/readResourceChildCredential",
+            "openRowSourceCredentialCustody/readResourceParent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
@@ -148152,8 +148592,8 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 4089,
-    "exports": 607,
-    "explicitContractGroups": 893
+    "operations": 4117,
+    "exports": 609,
+    "explicitContractGroups": 894
   }
 }
