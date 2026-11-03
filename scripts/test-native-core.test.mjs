@@ -615,7 +615,7 @@ test('Native Core selects the admitted Darwin arm64 runner without dropping targ
   // The runner keeps both the focused prerequisite and the complete Native
   // campaign. The existing harness selects the original platform libraries.
   assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -p platform_native\/trusted_clock/u);
-  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -j/u);
+  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn --strip -j/u);
   assert.doesNotMatch(coreStep.run, /ACTQL_TEST_NATIVE_SQLITE_LIBRARY/u);
 });
 
@@ -980,4 +980,70 @@ test('native journal inspection declares required interfaces', () => {
   assert.ifError(result.error);
   assert.equal(result.signal, null, result.stderr);
   assert.equal(result.status, 0, result.stderr);
+});
+
+
+test('full Native Core strips only debug information while retaining the complete strict parallel selection and failures', t => {
+  const root=mkdtempSync(join(tmpdir(),'actql-core-strip-routing-'));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const bin=join(root,'bin');mkdirSync(bin);
+  for(const name of ['node','moon']){
+    const command=join(bin,name);
+    writeFileSync(command,`#!${process.execPath}
+console.log(JSON.stringify(process.argv.slice(2)));
+if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))process.exit(7);
+`);
+    chmodSync(command,0o755);
+  }
+  writeFileSync(join(bin,'getconf'),'#!/bin/sh\nprintf "3\\n"\n');
+  chmodSync(join(bin,'getconf'),0o755);
+  for(const target of ['native','js','wasm']){
+    const command=coreStep.run.replaceAll('${{ matrix.target }}',target);
+    const result=spawnSync('bash',['-eo','pipefail','-c',command],{
+      cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH},
+    });
+    assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.status,0,result.stderr);
+    const calls=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
+    if(target==='native'){
+      assert.deepEqual(calls,[
+        ['scripts/test-native-core.mjs','--deny-warn','-p','platform_native/trusted_clock'],
+        ['scripts/test-native-core.mjs','--deny-warn','--strip','-j','3','--verbose'],
+      ]);
+      const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
+        cwd:root,encoding:'utf8',timeout:5000,
+        env:{...process.env,PATH:bin+':'+process.env.PATH,ACTQL_FIXTURE_FAIL_FULL:'1'},
+      });
+      assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
+    }else{
+      assert.equal(calls.length,target==='js'?1:4);
+      assert(calls.every(args=>!args.includes('--strip')));
+      assert.deepEqual(calls[0],['test','--target',target,'--deny-warn','-j','3']);
+    }
+  }
+});
+
+
+test('Native checkpoint producers retain the selected debug mode before the same full Core command', () => {
+  const source=readFileSync(new URL('native-client-checkpoint-fixture.mjs',import.meta.url),'utf8');
+  const before=source.indexOf('function originalReference(');
+  const after=source.indexOf('export function nativeClientCheckpointFixture(',before);
+  assert(before>=0&&after>before);
+  for(const strip of [false,true]){
+    const calls=[];
+    const original=runInNewContext('('+source.slice(before,after).trim()+')',{
+      spawnSync(node,args,options){
+        assert.equal(node,process.execPath);assert.equal(options.cwd,'/original/root');
+        const prefix='import {runFocusedTests} from "./scripts/test-execution.mjs"; ';
+        assert(args[2].startsWith(prefix));
+        const execution={argv:['node',...args.slice(3)],cwd:()=>'/original/root'};
+        runInNewContext(args[2].slice(prefix.length),{process:execution,
+          runFocusedTests(kind,argv,settings){assert.equal(kind,'moon');
+            calls.push(Array.from(argv));assert.equal(settings.cwd,'/original/root');return 0;}});
+        assert.equal(execution.exitCode,0);
+        return {status:0,signal:null,stdout:'ACTQL_CLIENT_CHECKPOINT original-reference\n',stderr:''};
+      },process:{execPath:process.execPath,stdout:{write(){}},stderr:{write(){}}},
+    });
+    assert.equal(original('/original/root',{},'original_wbtest.mbt',strip),'original-reference');
+    assert.deepEqual(calls,[['--target','native',...(strip?['--strip']:[]),'original_wbtest.mbt','--index','0']]);
+  }
 });
