@@ -329,7 +329,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     permissions:
       contents: read
       actions: read

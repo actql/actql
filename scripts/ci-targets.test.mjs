@@ -173,6 +173,7 @@ test('active main finishes while pending work coalesces; branches and performanc
   }
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
+  assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
