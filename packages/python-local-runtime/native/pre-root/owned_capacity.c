@@ -2,6 +2,11 @@
 /* Explicit process-only profile; the same POSIX implementation below owns
  * mappings, original loans, current scopes and child-first retirement. */
 #include "owned_linux_x64_process_profile.h"
+#elif defined(__linux__) && defined(__x86_64__) && \
+      defined(ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY)
+/* Separate selected command entry; the default process-only exclusion above
+ * remains unchanged. The same owned region and Read implementation follow. */
+#include "owned_linux_x64_bundle_profile.h"
 #elif defined(__APPLE__) && defined(__aarch64__)
 /* Existing selected Darwin provider. */
 #elif defined(__linux__) && defined(__aarch64__) && \

@@ -1,3 +1,4 @@
+import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
@@ -58,9 +59,8 @@ try {
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
   ], {cwd: repositoryRoot, stdio: 'inherit'});
-  execFileSync(moon, [
-    'build', '--target', 'native', 'src/cmd/native_runtime_bundle',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
+  const executable = prepareNativeRuntimeBundle(repositoryRoot,
+    join(root, 'runtime-bundle-producer'));
   const moonModule = await import(pathToFileURL(join(
     repositoryRoot,
     '_build/js/release/build/connectors_builtin_node/' +
@@ -160,11 +160,7 @@ try {
     'key-a',
     keysA.privateKey,
   );
-  const executable = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_runtime_bundle/' +
-      'native_runtime_bundle.exe',
-  );
+
   const common = [
     '--store-root', storeRoot,
     '--sqlite-library', sqliteLibrary,

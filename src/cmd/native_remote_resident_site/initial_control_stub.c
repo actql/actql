@@ -74,7 +74,9 @@ MOONBIT_FFI_EXPORT int64_t actql_resident_initial_entry_quantity(
 MOONBIT_FFI_EXPORT int32_t actql_resident_retire_initial_entry(resident_entry_handle *handle) {
     if (!handle || handle->entry != &original_entry || !handle->entry->attempted ||
         handle->entry->retired) return 0;
-#if defined(__APPLE__)
+#if defined(ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT)
+    if (!ACTQL_BUNDLE_ENTRY_CLEANUP_CURRENT(handle->entry)) return 0;
+#elif defined(__APPLE__)
     /* Normal argv/image/loader currentness must not block same-original cleanup. */
     if (handle->entry->process != getpid() || !pthread_main_np() ||
         !pthread_equal(handle->entry->thread, pthread_self())) return 0;

@@ -41,6 +41,15 @@ typedef struct actql_read_context actql_read_context;
 #endif
 #endif
 
+#if defined(ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY)
+/* Same provider's actual static records, co-counted inside the existing
+ * command control envelope. This observes layout, never issues byte capacity. */
+_Static_assert(sizeof(struct stock_file_record) == 24 && sizeof(stock_file_entry) == 8,
+               "Selected Linux bundle stock-File layout");
+_Static_assert(sizeof(stock_files) + sizeof(stock_file_entry) <= ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES,
+               "Selected Linux bundle stock-File control page");
+#endif
+
 typedef struct {
     actql_owned_capacity *lease;
     int status;

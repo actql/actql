@@ -361,5 +361,55 @@ class BundleInstallerComposition(unittest.TestCase):
                 self.assertEqual(arguments.count('--release'), 1)
 
 
+
+
+class LinuxBundleComposition(unittest.TestCase):
+    def setUp(self):
+        self.fixture = BundleInstallerComposition()
+        self.fixture.setUp()
+
+    def test_linux_bundle_keeps_one_original_provider_header_and_runtime(self):
+        planned = self.fixture.plan(target='linux-x64', stock_file_control_bytes=4096)
+        c = [step for step in planned if step[0] == str(self.fixture.fixture.clang)]
+        self.assertTrue(c)
+        for step in c:
+            self.assertIn('-D_GNU_SOURCE', step)
+            self.assertIn('-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', step)
+            self.assertIn('-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=170', step)
+            self.assertNotIn('-isysroot', step)
+            self.assertFalse(any(arg.startswith('-mmacosx-') for arg in step))
+        self.assertEqual(sum(any(arg.startswith('-DACTQL_SCOPED_READ_PROVIDER=') for arg in step)
+                             for step in c), 1)
+        self.assertEqual(sum(any(arg.startswith('-DACTQL_BUNDLE_INITIAL_CONTROL_HEADER=') for arg in step)
+                             for step in c), 1)
+        self.assertFalse(any(arg.startswith('-DACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN')
+                             for step in c for arg in step))
+
+    def test_linux_bundle_requires_the_exact_control_page_and_target(self):
+        for size in (None, 0, 1, 4095, 4097, 8192):
+            with self.subTest(size=size), self.assertRaisesRegex(ValueError, 'control page'):
+                self.fixture.plan(target='linux-x64', stock_file_control_bytes=size)
+        for entry in (MODULE.ENTRY, MODULE.LOCAL_ENTRY):
+            with self.subTest(entry=entry), self.assertRaisesRegex(ValueError, 'target/entry'):
+                MODULE.commands_for('', Path('/moon'), Path('/owned/emission'), Path('/owned/allocator'),
+                                    Path('/cc'), None, target='linux-x64', entry=entry,
+                                    stock_file_control_bytes=4096)
+
+    def test_linux_recipe_retains_all_old_quantities_and_own_target_pin(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            record = MODULE.command_initial_control_header(self.fixture.fixture.source,
+                Path(temporary) / 'linux.h', MODULE.BUNDLE_ENTRY, 'linux-x64')
+            old = json.loads((MODULE.ROOT / MODULE.BUNDLE_ENTRY / 'initial_control_recipe.json').read_bytes())
+            selected = record['selected'].copy()
+            self.assertEqual(selected.pop('target'), 'linux-x64')
+            self.assertEqual(selected.pop('stockFileControlBytes'), 4096)
+            old.pop('target')
+            self.assertEqual(selected, old)
+            text = Path(record['header']['path']).read_text()
+            self.assertIn('#define ACTQL_RESIDENT_TARGET_LINUX_X64 1\n', text)
+            self.assertIn('#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n', text)
+            self.assertFalse(record['permission'])
+            self.assertFalse(record['physicalAcquired'])
+
 if __name__ == '__main__':
     unittest.main()

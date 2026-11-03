@@ -18,8 +18,8 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 28852,
-      "sha256": "b75b7a412278b141bd07855da5ae09b02ec11e539bfa8d5186aa9077ee9bf2fe"
+      "bytes": 29156,
+      "sha256": "e8f145e8561a5ad9771471aae0fcfaf87121f76d9be6e483afbfee0034b92add"
     },
     {
       "root": "provider",
@@ -167,6 +167,13 @@
       "output": "owned_inventory.inc",
       "bytes": 3410,
       "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
+    },
+    {
+      "root": "provider",
+      "path": "owned_linux_x64_bundle_profile.h",
+      "output": "owned_linux_x64_bundle_profile.h",
+      "bytes": 2219,
+      "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     }
   ],
   "outputs": {
@@ -207,8 +214,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 29773,
-      "sha256": "5a7a8f28136bbc46c24d38d94383fb10a70aa119defdd7ec360f5d53da906359"
+      "bytes": 30077,
+      "sha256": "ed20fa68e86255b5b9760aa1d93fd8a0baff998d5d6cffcfffd6c6a4a2dde863"
     },
     "owned_capacity.h": {
       "bytes": 6288,
@@ -265,6 +272,10 @@
     "owned_inventory.inc": {
       "bytes": 3410,
       "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
+    },
+    "owned_linux_x64_bundle_profile.h": {
+      "bytes": 2219,
+      "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     }
   },
   "normal_profile": null,
@@ -286,6 +297,29 @@
         "lib/libbacktrace.a": {
           "bytes": 956034,
           "sha256": "7ce3aedd32e1e08f3e32e1a6ef38398e8d6f943806ad1a617f69d8f25c8c5a17"
+        }
+      },
+      "required_source_parameters": [
+        "ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS"
+      ]
+    },
+    "x86_64-unknown-linux-gnu": {
+      "deployment_target": null,
+      "required_defines": [
+        "MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC",
+        "ACTQL_SCOPED_READ_ALLOCATOR",
+        "_GNU_SOURCE",
+        "ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN",
+        "ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY"
+      ],
+      "binary_inputs": {
+        "lib/libmoonbitrun.o": {
+          "bytes": 183752,
+          "sha256": "a5e00ff1cb24c75311c56d4b53341d72c0145c0127d3571d889de72e951e4966"
+        },
+        "lib/libbacktrace.a": {
+          "bytes": 691938,
+          "sha256": "1cdb27a3a058513b9a9efac3416e47365c8aa91daa9ec4e7b4a77ccac9c9fb36"
         }
       },
       "required_source_parameters": [

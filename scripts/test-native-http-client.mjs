@@ -1,3 +1,4 @@
+import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import assert from 'node:assert/strict';
@@ -2002,14 +2003,8 @@ verification: try {
     mkdir(productTransferRoot),
   ]);
 
-  execFileSync(moon, [
-    'build', '--target', 'native', 'src/cmd/native_runtime_bundle',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
-  const runtimeBundleExecutable = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_runtime_bundle/' +
-      'native_runtime_bundle.exe',
-  );
+  const runtimeBundleExecutable = prepareNativeRuntimeBundle(repositoryRoot,
+    join(root, 'runtime-bundle-producer'));
   const applicationComponent = await readFile(applicationExecutable);
   const applicationComponentCid = physicalCid(applicationComponent);
   const duckdbLibrary = join(

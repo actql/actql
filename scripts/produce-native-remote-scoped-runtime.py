@@ -76,13 +76,17 @@ def resident_initial_control_header(source: str, destination: Path) -> dict[str,
     return command_initial_control_header(source, destination, ENTRY)
 
 
-def command_initial_control_header(source: str, destination: Path, entry: str) -> dict[str, object]:
+def command_initial_control_header(source: str, destination: Path, entry: str,
+                                   target: str = 'darwin-arm64') -> dict[str, object]:
     """Pin a private physical entry, not a public Host/Run budget profile."""
     if re.fullmatch(r'[0-9a-f]{40}', source) is None:
         raise ValueError('Exact Resident source pin is required')
     if entry not in (ENTRY, BUNDLE_ENTRY):
         raise ValueError('No private command recipe for this entry')
-    path = ROOT / entry / 'initial_control_recipe.json'
+    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry != BUNDLE_ENTRY):
+        raise ValueError('No selected command recipe for this target/entry')
+    path = ROOT / entry / ('initial_control_recipe.linux-x64.json' if target == 'linux-x64'
+                           else 'initial_control_recipe.json')
     raw = path.read_bytes()
     recipe = json.loads(raw)
     quantities = {
@@ -102,10 +106,12 @@ def command_initial_control_header(source: str, destination: Path, entry: str) -
                              'cryptoHeapBytes': 'CRYPTO_HEAP',
                              'maximumDiagnosticBytes': 'DIAGNOSTIC_BYTES'}
                             if entry == BUNDLE_ENTRY else {})
+    if target == 'linux-x64':
+        installer_quantities['stockFileControlBytes'] = 'STOCK_FILE_CONTROL_BYTES'
     if (set(recipe) != {'kind', 'target', 'ledger', *quantities, *resident_quantities, *installer_quantities}
             or recipe['kind'] != ('private-resident-command-initial-control' if entry == ENTRY
                                   else 'private-runtime-bundle-command-initial-control')
-            or recipe['target'] != 'darwin-arm64'
+            or recipe['target'] != target
             or set(recipe['ledger']) != {'planning_work', 'attempts', 'holdings',
                                          'transfer_bytes', 'retained_bytes'}
             or any(type(recipe[k]) is not int or not 0 < recipe[k] <= 2**31-1
@@ -118,7 +124,9 @@ def command_initial_control_header(source: str, destination: Path, entry: str) -
             or recipe['maximumArgumentStorageBytes'] > 1048576
             or recipe['maximumEnvironmentEntries'] > 10000
             or recipe['maximumArgumentBytes'] > recipe['maximumArgumentStorageBytes']
-            or recipe['capacityBytes'] % 16384):
+            or recipe['capacityBytes'] % (4096 if target == 'linux-x64' else 16384)
+            or (target == 'linux-x64' and (recipe['stockFileControlBytes'] != 4096
+                or recipe['stockFileControlBytes'] >= recipe['controlEnvelopeBytes']))):
         raise ValueError('Incomplete Resident initial-control recipe')
     if entry == ENTRY and (
             recipe['sqliteHeapBytes'] % 16384 or recipe['cryptoHeapBytes'] % 16384
@@ -132,7 +140,8 @@ def command_initial_control_header(source: str, destination: Path, entry: str) -
     digest = hashlib.sha256(raw).hexdigest()
     lines = ['/* Private selected Resident entry DATA; not authority or capacity. */',
              '#define ACTQL_RESIDENT_SOURCE_SHA "' + source + '"',
-             '#define ACTQL_RESIDENT_RECIPE_SHA "' + digest + '"']
+             '#define ACTQL_RESIDENT_RECIPE_SHA "' + digest + '"',
+             '#define ACTQL_RESIDENT_TARGET_' + ('LINUX_X64' if target == 'linux-x64' else 'DARWIN_ARM64') + ' 1']
     lines += ['#define ACTQL_RESIDENT_' + macro + ' ' + str(recipe[key])
               for key, macro in quantities.items()]
     lines += ['#define ACTQL_RESIDENT_' + key.upper() + ' ' + str(recipe['ledger'][key])
@@ -167,9 +176,15 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  source_sha: str | None = None,
                  package_version: str | None = None,
                  resident_control_header: Path | None = None,
-                 bundle_control_header: Path | None = None) -> list[list[str]]:
+                 bundle_control_header: Path | None = None,
+                 target: str = 'darwin-arm64',
+                 stock_file_control_bytes: int | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
+    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry != BUNDLE_ENTRY):
+        raise ValueError('No selected scoped command for this target/entry')
+    if target == 'linux-x64' and stock_file_control_bytes != 4096:
+        raise ValueError('Exact bundle stock-File control page required')
     if package_version is not None:
         from python_release_cohort import select_release_version
         if entry != LOCAL_ENTRY:
@@ -276,8 +291,14 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             # Every generated Core, original FFI, and runtime source sees the
             # same derived header first. There is exactly one provider below.
             parts[0] = str(clang)
-            parts[1:1] = ['-isysroot', str(sdk), '-mmacosx-version-min=11.0',
-                          '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR',
+            parts[1:1] = (["-isysroot", str(sdk), "-mmacosx-version-min=11.0"]
+                          if target == 'darwin-arm64' else [
+                              '-D_GNU_SOURCE', '-DACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
+                              '-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', '-include', str(control_header),
+                              # Original LP64 {pointer,size_t,unsigned} record is24; its
+                              # same compiled provider checks that layout and total page.
+                              '-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=' + str((stock_file_control_bytes - 8) // 24),
+                          ]) + ['-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR',
                           *(['-DACTQL_RUNTIME_MANAGED_VALUES=1'] if entry == LOCAL_ENTRY else [])]
         elif ar_driver is not None and parts[0] == str(ar_driver):
             members = [p if p.is_absolute() else ROOT / p for p in map(Path, archive_files)]
@@ -354,8 +375,11 @@ def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
 
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           destination: Path, seconds: int, *, plan_only: bool,
-          entry: str = ENTRY, package_version: str | None = None) -> dict[str, object]:
+          entry: str = ENTRY, package_version: str | None = None,
+          target: str = 'darwin-arm64') -> dict[str, object]:
     entry_package = selected_entry(entry)
+    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry != BUNDLE_ENTRY):
+        raise ValueError('No selected scoped command for this target/entry')
     if package_version is not None:
         from python_release_cohort import select_release_version
         if entry != LOCAL_ENTRY:
@@ -365,7 +389,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         raise ValueError('Explicit positive preparation budget required')
     deadline = time.monotonic() + seconds
     environment = {**os.environ, 'MOON_HOME': str(moon_home), 'MOONBIT_NEW_NATIVE': '0',
-                   'SDKROOT': str(sdk), 'MACOSX_DEPLOYMENT_TARGET': '11.0',
+                   **({'SDKROOT': str(sdk), 'MACOSX_DEPLOYMENT_TARGET': '11.0'} if target == 'darwin-arm64' else {}),
                    'PATH': str(moon_home / 'bin') + ':/usr/bin:/bin:/usr/sbin:/sbin'}
 
     def run(command: list[str], *, capture: bool = False) -> str:
@@ -383,18 +407,20 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             raise
         return result.stdout if capture else ''
 
-    if platform.system() != 'Darwin' or platform.machine() != 'arm64':
-        raise ValueError('This explicit recipe selects darwin-arm64 only')
+    actual = ('darwin-arm64' if platform.system() == 'Darwin' and platform.machine() == 'arm64'
+              else 'linux-x64' if platform.system() == 'Linux' and platform.machine() == 'x86_64' else None)
+    if actual != target:
+        raise ValueError('Selected command target does not match the actual producer')
     if (run(['git', 'rev-parse', 'HEAD'], capture=True).strip() != source
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Exact clean committed build source required')
     pin = json.loads((ROOT / 'toolchain.json').read_text())
-    if json.loads((moon_home / 'installed.json').read_text()) != {'pin': pin, 'platform': 'darwin-arm64'}:
+    if json.loads((moon_home / 'installed.json').read_text()) != {'pin': pin, 'platform': target}:
         raise ValueError('Original toolchain marker mismatch')
     if (run([str(moon_home / 'bin/moonc'), '-v'], capture=True).strip() != pin['moonc']
             or run([str(moon_home / 'bin/moon'), 'version'], capture=True).splitlines()[0] != 'moon ' + pin['moon']):
         raise ValueError('Original compiler mismatch')
-    if not sdk.is_dir() or sdk.is_symlink() or not clang.is_file():
+    if (target == 'darwin-arm64' and (sdk is None or not sdk.is_dir() or sdk.is_symlink())) or not clang.is_file():
         raise ValueError('Original compiler/SDK unavailable')
     destination.mkdir(parents=True, exist_ok=False)
     recipe = ROOT / 'packages/python-local-runtime/native/pre-root/prepare_scoped_read.py'
@@ -403,9 +429,10 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     allocator = destination / 'derived-read-source'
-    selection = module.prepare(moon_home, allocator)
+    selection = module.prepare(moon_home, allocator,
+                               target='x86_64-unknown-linux-gnu' if target == 'linux-x64' else None)
     resident_control = (command_initial_control_header(source, destination /
-                        ('resident-initial-control.h' if entry == ENTRY else 'bundle-initial-control.h'), entry)
+                        ('resident-initial-control.h' if entry == ENTRY else 'bundle-initial-control.h'), entry, target)
                         if entry in (ENTRY, BUNDLE_ENTRY) else None)
     emission = destination / 'emission'
     cc_driver = destination / 'bin/cc'
@@ -413,7 +440,11 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     ar_driver = cc_driver.parent / 'ar'
     # Moon resolves this sibling for an explicitly selected compiler directory.
     # Delegate the real selected archiver; no archive bytes are synthesized.
-    ar_driver.write_text('#!/bin/sh\nexec /Library/Developer/CommandLineTools/usr/bin/ar "$@"\n')
+    original_ar = (Path('/Library/Developer/CommandLineTools/usr/bin/ar') if target == 'darwin-arm64'
+                   else Path(shutil.which('ar') or '/missing-selected-ar').resolve())
+    if not original_ar.is_file():
+        raise ValueError('Original selected archiver unavailable')
+    ar_driver.write_text('#!/bin/sh\nexec ' + shlex.quote(str(original_ar)) + ' "$@"\n')
     ar_driver.chmod(0o755)
     cc_plan = destination / 'cc-plan.json'
     # Only the C port is redirected. Ordinary Moon retains dependency/registry
@@ -437,7 +468,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                             resident_control_header=(Path(resident_control['header']['path'])
                                                      if resident_control and entry == ENTRY else None),
                             bundle_control_header=(Path(resident_control['header']['path'])
-                                                   if resident_control and entry == BUNDLE_ENTRY else None))
+                                                   if resident_control and entry == BUNDLE_ENTRY else None), target=target,
+                            stock_file_control_bytes=(resident_control['selected']['stockFileControlBytes']
+                                if target == 'linux-x64' else None))
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
     originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
                  for line in dry.splitlines() if line.strip()]
@@ -459,14 +492,14 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                 for c in commands if c[0] == str(moon_home / 'bin/moonc') and c[1] == 'build-package']
     paths = {ROOT / 'toolchain.json', ROOT / 'moon.mod', Path(__file__), clang,
              cc_driver, ar_driver, cc_plan, python,
-             Path('/Library/Developer/CommandLineTools/usr/bin/ar'),
-             Path('/Library/Developer/CommandLineTools/usr/bin/libtool'),
-             sdk / 'SDKSettings.json', moon_home / 'installed.json',
+             original_ar, moon_home / 'installed.json',
              moon_home / 'bin/moon', moon_home / 'bin/moonc',
              moon_home / 'lib/libmoonbitrun.o', moon_home / 'lib/libbacktrace.a'}
+    if target == 'darwin-arm64':
+        paths.update((Path('/Library/Developer/CommandLineTools/usr/bin/libtool'), sdk / 'SDKSettings.json'))
     paths.update(moon_home / 'lib' / name for name in RELEASE_UTF_OBJECTS)
     if resident_control:
-        paths.update((ROOT / entry / 'initial_control_recipe.json', Path(resident_control['header']['path'])))
+        paths.update((Path(resident_control['recipe']['path']), Path(resident_control['header']['path'])))
         if entry == BUNDLE_ENTRY:
             # The installer compiles these exact private capture helpers into
             # its OWN image. Preserve their include closure, not a Resident handle.
@@ -488,7 +521,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     inputs = [original(p) for p in sorted(paths)]
     (destination / 'inputs.json').write_text(json.dumps(inputs, indent=2) + '\n')
     receipt: dict[str, object] = {
-        'source': source, 'entry': entry, 'target': 'darwin-arm64',
+        'source': source, 'entry': entry, 'target': target,
         'compiler_backend': 'pinned ordinary C (MOONBIT_NEW_NATIVE=0)',
         'package_registry': 'Generated by ordinary pinned Moon; no compiler arguments omitted',
         'compiler_profile': 'ordinary Moon --release' + (' --strip' if entry != LOCAL_ENTRY else ''),
@@ -537,7 +570,8 @@ if __name__ == '__main__':
     parser.add_argument('--source', required=True)
     parser.add_argument('--moon-home', type=Path, required=True)
     parser.add_argument('--clang', type=Path, required=True)
-    parser.add_argument('--sdk', type=Path, required=True)
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--plan-only', action='store_true')
@@ -547,4 +581,4 @@ if __name__ == '__main__':
     print(json.dumps(build(args.source, args.moon_home.resolve(), args.clang,
                            args.sdk, args.destination.resolve(), args.seconds,
                            plan_only=args.plan_only, entry=args.entry,
-                           package_version=args.package_version), sort_keys=True))
+                           package_version=args.package_version, target=args.target), sort_keys=True))

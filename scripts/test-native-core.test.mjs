@@ -15,6 +15,7 @@ import {runFocusedTests} from './test-execution.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
+import './native-runtime-bundle-fixture.test.mjs';
 import './native-sqlite-link-driver.test.mjs';
 import './native-signature-linux-declarations.test.mjs';
 
