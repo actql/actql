@@ -11,6 +11,7 @@ import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
+import {runFocusedTests} from './test-execution.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
@@ -88,7 +89,81 @@ test('Reader custody injection loads on the supported Native host profile', () =
     assert.equal(loaded.error, undefined);
     assert.equal(loaded.signal, null, loaded.stderr);
     assert.equal(loaded.status, 0, loaded.stderr);
+    for (const root of [undefined, 'relative-root', '/' + 'x'.repeat(8192)]) {
+      const env = {...process.env, ...injected};
+      if (root === undefined) delete env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT;
+      else env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT = root;
+      const invalid = spawnSync(helper, [], {encoding: 'utf8', timeout: 10000, env});
+      assert.equal(invalid.error, undefined);
+      assert.notEqual(invalid.status, 0, 'invalid constructor scope was treated as an ordinary loaded fixture');
+    }
   }
+});
+
+test('Reader custody hooks retain the startup paths across a fork and later environment changes', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'captured-root-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const original = join(scratch, 'runtime-constructor-pending/local-runtime.json');
+  writeFileSync(original, 'same original read-only fixture');
+  const source = join(scratch, 'captured-root.c');
+  writeFileSync(source, `
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+  assert(argc == 2);
+  int descriptor = open(argv[1], O_RDONLY); assert(descriptor >= 0);
+  assert(setenv("ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT", "/foreign-root", 1) == 0);
+  pid_t child = fork(); assert(child >= 0);
+  if (child == 0) {
+    struct stat status;
+    errno = 0; assert(fstat(descriptor, &status) == -1 && errno == EIO);
+    assert(fcntl(descriptor, F_GETFD) >= 0);
+    errno = 0; assert(close(descriptor) == -1 && errno == EIO);
+    errno = 0; assert(fcntl(descriptor, F_GETFD) == -1 && errno == EBADF);
+    _exit(0);
+  }
+  int status; assert(waitpid(child, &status, 0) == child);
+  assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+  errno = 0; assert(close(descriptor) == -1 && errno == EIO);
+  errno = 0; assert(fcntl(descriptor, F_GETFD) == -1 && errno == EBADF);
+  return 0;
+}
+`);
+  const helper = join(scratch, 'captured-root');
+  const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
+    source, '-o', helper], {encoding: 'utf8', timeout: 30000});
+  assert.equal(built.status, 0, built.stderr);
+  const observed = spawnSync(helper, [original], {encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected}});
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+});
+
+test('Reader custody callbacks preserve the pinned Moon nested Native compiler and executed test', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'nested-moon-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const project = join(scratch, 'project');
+  mkdirSync(join(project, 'src'), {recursive: true});
+  writeFileSync(join(project, 'moon.mod'), 'name = "fixture/reader-custody"\nsource = "src"\npreferred_target = "native"\n');
+  writeFileSync(join(project, 'src/moon.pkg'), '\n');
+  writeFileSync(join(project, 'src/main_test.mbt'),
+    'test "original nested Native compiler" { assert_eq(1, 1) }\n');
+  assert.equal(runFocusedTests('moon', ['--target', 'native', '--deny-warn', '-j', '3', '--verbose'],
+    {cwd: project, env: {...process.env, ...injected}, timeout: 30000,
+      evidenceScratch: join(scratch, 'command-evidence')}), 0);
 });
 
 test('Reader custody callbacks preserve ordinary FDs and exact pending/acked behavior', () => {
