@@ -3150,7 +3150,7 @@ pub fn client_program_restore_effect_query_time_preparation(@run_publication_hos
 
 pub fn client_program_restore_infer_captured_input(@run_publication_host.ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
-pub fn client_program_restore_infer_prepared_call(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @model_execution.ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?) -> Result[Unit, @model_execution.ModelExecutionIssue]
+pub fn client_program_restore_infer_prepared_call(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @model_execution.ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?, @run_publication.RunEvidenceValue?) -> Result[Unit, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_restore_infer_prepared_unknown(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, @model_execution.ModelExecutionIssue]
 

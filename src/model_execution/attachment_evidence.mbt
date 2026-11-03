@@ -21,6 +21,22 @@ fn model_attachment_evidence_bytes(
 }
 
 ///|
+// Retain only the original inventory already authenticated by Store custody.
+// Its immutable body fits the same checked ContentRef evidence envelope; this
+// does not construct another physical plan or grant an attachment acquisition.
+fn restore_model_attachment_admission(
+  capture : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+  admission : @publication.RunEvidenceValue?,
+) -> Result[@publication.RunEvidenceValue?, ModelExecutionIssue] {
+  @publication.verify_model_slot_attachment_admission(
+    capture, authority, admission,
+  )
+  .map(_ => admission)
+  .map_err(issue => InvocationEvidence(issue))
+}
+
+///|
 /// Issue the ordered attachment inventory only from this physical owner's
 /// validated plans and actual dispatch authority. This record is observation
 /// evidence, not permission to dispatch again or a byte-custody lease.
@@ -29,11 +45,27 @@ pub fn model_execution_issued_attachment_admission(
   slot : Int,
 ) -> Result[@publication.RunEvidenceValue?, ModelExecutionIssue] {
   let state = execution.state
-  if state.reclaimed || state.restored_calls.get(slot) is Some(_) {
+  if state.reclaimed {
     return Err(OutputIdentity)
   }
   guard state.attempts.get(slot) is Some(trace) else {
     return Err(OutputIdentity)
+  }
+  if state.restored_calls.get(slot) is Some(saved) {
+    guard trace.evidence is Some(proof) &&
+      physical_equal(proof, saved.proof) &&
+      physical_equal(trace.authority, saved.proof.authority) &&
+      physical_equal(
+        @publication.bound_model_slot_capture_value(saved.binding),
+        saved.record,
+      ) else {
+      return Err(OutputIdentity)
+    }
+    return restore_model_attachment_admission(
+      saved.record,
+      saved.proof.authority,
+      saved.attachment_admission,
+    )
   }
   guard state.physical_plans.get(slot) is Some(plan) else { return Ok(None) }
   if plan.attachments.is_empty() {

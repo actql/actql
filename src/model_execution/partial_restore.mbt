@@ -6,6 +6,7 @@ priv struct RestoredModelCall {
   binding : @publication.BoundModelSlotCapture
   proof : ModelAttemptEvidence
   bundle : @publication.ModelCaptureBundleRead?
+  attachment_admission : @publication.RunEvidenceValue?
   outcome : String
 }
 
@@ -22,6 +23,7 @@ pub fn restore_prepared_model_call(
   record : @publication.RunEvidenceValue,
   records : ModelAttemptRecords,
   bundle : @publication.ModelCaptureBundleRead?,
+  attachment_admission : @publication.RunEvidenceValue?,
 ) -> Result[Unit, ModelExecutionIssue] {
   let state = prepared.owner.state
   guard prepared_model_current(prepared) &&
@@ -52,6 +54,15 @@ pub fn restore_prepared_model_call(
     )
     is Err(_) {
     return Err(RequestIdentity)
+  }
+  let attachment_admission = match
+    restore_model_attachment_admission(
+      record,
+      records.authority,
+      attachment_admission,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   guard @publication.bound_model_slot_capture_outcome(binding) is Some(outcome) else {
     return Err(OutputIdentity)
@@ -93,6 +104,7 @@ pub fn restore_prepared_model_call(
     record,
     binding,
     bundle: retained,
+    attachment_admission,
     outcome,
     proof: {
       attempt: records.attempt,
