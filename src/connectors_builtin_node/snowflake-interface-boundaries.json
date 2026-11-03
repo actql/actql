@@ -282,7 +282,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "59ea1fc2daf71a54c53d57962024e4f8b9a21a744884cf2a5dd3394d96fafd15",
+      "sha256": "13f8261e5cba65c1cc6e253e4c3140d5053f9b67051fb6ef333963de2d455d8b",
       "exports": [],
       "operations": [
         {
@@ -300,6 +300,10 @@
         {
           "name": "client_program_installed_table_source_reader_capacity",
           "declaration": "client_program_installed_table_source_reader_capacity ( columns : Int , profile : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_table_source_record_capacity",
+          "declaration": "client_program_installed_table_source_record_capacity ( previous : @ execution . ExecutionCapacity , record_bytes : Int , records : Int , ) - > Result [ @ execution . ExecutionCapacity , @ resources . PreparationCapacityIssue ]"
         },
         {
           "name": "client_program_installed_table_source_serialization_capacity",
@@ -752,7 +756,8 @@
             "client_program_installed_table_source_body_capacity",
             "client_program_installed_table_source_reader_capacity",
             "client_program_installed_table_source_serialization_capacity",
-            "client_program_row_source_charge_response_body"
+            "client_program_row_source_charge_response_body",
+            "client_program_installed_table_source_record_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -764,6 +769,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "inputsOutputs": [
@@ -778,6 +787,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "identity": [
@@ -788,6 +801,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "ownership": [
@@ -798,6 +815,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "synchronization": [
@@ -808,6 +829,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "failure": [
@@ -818,11 +843,22 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
-            "cancellation": {
-              "notApplicable": "Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation."
-            },
+            "cancellation": [
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation."
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
+              }
+            ],
             "resources": [
               {
                 "path": "src/client_local_host/installed_table_reader_capacity.mbt",
@@ -839,6 +875,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "extension": [
@@ -849,6 +889,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "verification": [
@@ -863,6 +907,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "Table catalog record constructor consumes original sideband ticket"
               }
             ]
           }

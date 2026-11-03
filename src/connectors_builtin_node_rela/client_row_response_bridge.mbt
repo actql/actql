@@ -170,3 +170,19 @@ pub fn client_program_row_source_charge_response_body(
 ] {
   @client_row_source_host.charge_row_run_response_body(run, body)
 }
+
+///|
+#export_name("clientProgramInstalledTableSourceRecordCapacity")
+pub fn client_program_installed_table_source_record_capacity(
+  previous : @execution.ExecutionCapacity,
+  record_bytes : Int,
+  records : Int,
+) -> Result[@execution.ExecutionCapacity, @resources.PreparationCapacityIssue] {
+  match
+    @client_local_host.installed_table_source_record_capacity(
+      previous, record_bytes, records,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(@resources.InvalidExtent)
+  }
+}

@@ -431,3 +431,67 @@ test "native Table protocol charges actual original body separately from project
     before.transferred_bytes + 280L,
   )
 }
+
+///|
+test "Table catalog record constructor consumes original sideband ticket and grows same RowRun without refund" {
+  let (_, acquisition) = row_page_acquisition()
+  let ledger = provider_capacity_ledger(
+    acquisition,
+    retained_short=-5000L,
+    execution_short=-5000L,
+  )
+  let run = provider_capacity_start(
+    acquisition, ledger, "table-record-original",
+  )
+  @row_host.begin_row_run(run, 128, 10, 10).unwrap()
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
+  let stopped = Ref(false)
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
+  let raw = @utf8.encode(
+    "{\"phase\":\"catalog-record\",\"bytes\":4,\"rows\":1,\"columns\":3}",
+  )
+  let original = @resources.ledger_usage(ledger)
+  let sideband = @row_host.charge_row_run_response_body(run, raw).unwrap()
+  @row_host.consume_row_run_observation_charge(run, sideband).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let quote = @client_local_host.installed_table_source_record_capacity(
+    @execution.execution_capacity(7L, 9L).unwrap(),
+    4,
+    1,
+  ).unwrap()
+  @row_host.grow_row_run_response_construction_capacity(borrow, quote).unwrap()
+  let held = @resources.ledger_usage(ledger)
+  assert_eq(
+    held.reserved_retention_bytes,
+    before.reserved_retention_bytes + 4048L,
+  )
+  assert_eq(
+    held.reserved_execution_bytes,
+    before.reserved_execution_bytes + 4048L,
+  )
+  assert_eq(
+    held.transferred_bytes,
+    original.transferred_bytes + raw.length().to_int64(),
+  )
+  let next = @client_local_host.installed_table_source_record_capacity(
+    quote, 4, 1,
+  ).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, next)
+    is Err(Physical(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
+  // Explicit original transport observation port only, not an ordinary Host
+  // or physical ACK. A failed constructor cannot release this still-live debt.
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  let closed = @resources.ledger_usage(ledger)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+  assert_eq(closed.transferred_bytes, held.transferred_bytes)
+  assert_eq(closed.attempts, held.attempts)
+}

@@ -576,3 +576,31 @@ continues through the existing failed-I/O path; it supplies no business
 noncommit, success or physical cleanup acknowledgement.
 
 Synchronous frozen-generation reader, not a writer stop observation or publication/cleanup authority. The managed process owner handles actual interruption.
+
+### Original Catalog record snapshot and retained checks
+
+An observed Catalog read projects UTF8 byte lengths for the original metadata
+location, receipt and request before fetching their text or parsing JSON. Both
+queries use the same SQLite read transaction. A reentrant constructor callback
+may commit a later head, but cannot change the generation selected by that
+snapshot. The installing caller must back the fixed two-row, three-scalar
+length probe before entering it. These cursor records are not business rows.
+Refusal closes the original read transaction before payload materialization.
+
+The record quantity uses the shared collection, JSON-tree, serialization and
+representation units for the original text, parsed trees and simultaneous
+canonical views. It is quantity DATA only: the caller must grow its same
+original RowRun before permitting payload construction. It supplies no new
+capacity policy, reservation owner or physical acknowledgement. Metadata,
+bootstrap and compressed-manifest construction retain their separate funding
+obligations.
+
+The frozen-generation resolver retains the original checked Mapping, logical
+schema wire and selected FileIO. Its existing Table wrapper receives the same
+metadata and FileIO objects; it does not repeat those checks or discard a
+constructed Table merely to obtain the checked schema. The two physical
+generation observations around actual metadata I/O remain independent and
+necessary. Reusing immutable validation results does not cache current file
+contents or weaken the original generation and identity refusals.
+
+Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation.

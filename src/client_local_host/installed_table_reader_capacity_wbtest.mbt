@@ -67,3 +67,47 @@ test "Table initial reader reuses common controls original profile stages and se
   assert_eq(@execution.execution_capacity_execution_bytes(body), 623L)
   assert_true(installed_table_source_serialization_capacity(profile, 0) is None)
 }
+
+///|
+test "Table publication record inventory keeps SQL rows distinct from business rows and uses shared constructors" {
+  let previous = @execution.execution_capacity(17L, 23L).unwrap()
+  let record = installed_table_source_record_capacity(previous, 4, 1).unwrap()
+  // Independent B4/cursor1 vector: fixed fetchmany(2) array + tuple/Strings
+  //7H22R2W/4UTF16. Two span-free tree envelopes add60H164R32W/4UTF16;
+  // combined67H186R34W/8UTF16=2848. Two original serializer views600 each.
+  assert_eq(@execution.execution_capacity_retained_bytes(record), 4065L)
+  assert_eq(@execution.execution_capacity_execution_bytes(record), 4071L)
+  let again = installed_table_source_record_capacity(record, 4, 1).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(again), 8113L)
+  assert_eq(@execution.execution_capacity_execution_bytes(again), 8119L)
+  assert_eq(@execution.execution_capacity_retained_bytes(previous), 17L)
+  assert_eq(@execution.execution_capacity_execution_bytes(previous), 23L)
+  // Cursor0 still owns3H19R2W=216. Cursor2 owns11H25R2W/4UTF16=400
+  // and refuses before receipt/request trees; neither means zero Table rows.
+  let empty = installed_table_source_record_capacity(previous, 0, 0).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(empty), 233L)
+  assert_eq(@execution.execution_capacity_execution_bytes(empty), 239L)
+  let duplicate = installed_table_source_record_capacity(previous, 4, 2).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(duplicate), 417L)
+  assert_eq(@execution.execution_capacity_execution_bytes(duplicate), 423L)
+  let invalid = installed_table_source_record_capacity(previous, 0, 1).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(invalid), 321L)
+  assert_eq(@execution.execution_capacity_execution_bytes(invalid), 327L)
+}
+
+///|
+test "Table publication record quantity rejects foreign cursor geometry and overflow without a new limit" {
+  let previous = @execution.execution_capacity(17L, 23L).unwrap()
+  assert_true(installed_table_source_record_capacity(previous, -1, 1) is None)
+  assert_true(installed_table_source_record_capacity(previous, 4, -1) is None)
+  assert_true(installed_table_source_record_capacity(previous, 4, 3) is None)
+  assert_true(installed_table_source_record_capacity(previous, 4, 0) is None)
+  let full = @execution.execution_capacity(
+    9223372036854775807L, 9223372036854775807L,
+  ).unwrap()
+  assert_true(installed_table_source_record_capacity(full, 4, 1) is None)
+  // Pure byte quotation creates no described trees, admission or policy cap.
+  assert_true(
+    installed_table_source_record_capacity(previous, 2147483647, 1) is Some(_),
+  )
+}

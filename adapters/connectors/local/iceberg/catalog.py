@@ -270,11 +270,27 @@ class TableCatalog(SqlCatalog):
             raise CatalogRefusal("TableReadSelectorIdentity")
         db = self.connection()
         try:
-            records = db.execute("""SELECT t.metadata_location,c.receipt_wire,c.request_wire
-                FROM iceberg_tables t LEFT JOIN actql_table_commits c
+            source = """FROM iceberg_tables t LEFT JOIN actql_table_commits c
                 ON c.metadata_location=t.metadata_location
-                WHERE t.catalog_name=? AND t.table_namespace=? AND t.table_name=?""",
-                                 (self.name, ".".join(namespace), name)).fetchmany(2)
+                WHERE t.catalog_name=? AND t.table_namespace=? AND t.table_name=?"""
+            parameters = (self.name, ".".join(namespace), name)
+            if self.before_materialization is not None:
+                # The geometry and original material belong to ONE SQLite
+                # read snapshot. The original Host callback may reenter or
+                # commit a later head; it cannot retarget this transaction.
+                db.execute("BEGIN")
+                lengths = db.execute("""SELECT length(CAST(t.metadata_location AS BLOB)),
+                    length(CAST(c.receipt_wire AS BLOB)),length(CAST(c.request_wire AS BLOB)) """ +
+                    source, parameters).fetchmany(2)
+                self._observe_material("catalog-record",
+                                       sum(size or 0 for row in lengths for size in row),
+                                       len(lengths), 3)
+            # At most two fixed three-scalar rows precede the callback; the
+            # installing caller backs those controls before entry. Payload text
+            # and receipt/request JSON trees are constructed below. Binding and
+            # value validation still run once on these same original bytes.
+            records = db.execute("SELECT t.metadata_location,c.receipt_wire,c.request_wire " +
+                                 source, parameters).fetchmany(2)
         finally:
             db.close()
         if not records:
@@ -311,9 +327,7 @@ class TableCatalog(SqlCatalog):
         mapping = json.loads(metadata.properties.get("actql.storage-mapping", "null"))
         if not isinstance(mapping, dict):
             raise CatalogRefusal("ForeignTableStorageMapping")
-        check_mapping(mapping)
-        self.generation_table(receipt, mapping, metadata=metadata)
-        schema_wire = check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
+        _, _, schema_wire = self._generation_read_material(receipt, mapping, metadata=metadata, io=io)
         return {"receipt": receipt, "mapping": mapping, "schema_wire": schema_wire}
 
     def write_claimed(self, request, mapping, rows, reservation, schema_wire):
@@ -490,13 +504,21 @@ class TableCatalog(SqlCatalog):
         """Physical staging boundary for stop/concurrent-commit diagnostics."""
 
     def generation_table(self, receipt, mapping, metadata=None):
+        metadata, io, _ = self._generation_read_material(receipt, mapping, metadata=metadata)
+        return Table(("immutable", "read"), metadata, receipt["metadata_location"], io, self)
+
+    def _generation_read_material(self, receipt, mapping, metadata=None, io=None):
+        # One original Mapping/schema validation and selected FileIO. The two
+        # physical generation observations remain around actual metadata I/O;
+        # a retained check result does not replace current external bytes.
         check_mapping(mapping)
         if receipt["catalog_identity_cid"] != self.catalog_cid or \
                 receipt["storage_mapping_cid"] != mapping["mapping_cid"] or \
                 receipt["schema_cid"] != mapping["schema_cid"] or \
                 self.generation(receipt["metadata_location"]) != receipt["generation_cid"]:
             raise CatalogRefusal("ReadGenerationBinding")
-        io = self._load_file_io({}, receipt["metadata_location"])
+        if io is None:
+            io = self._load_file_io({}, receipt["metadata_location"])
         if metadata is None:
             metadata = FromInputFile.table_metadata(io.new_input(receipt["metadata_location"]))
         if str(metadata.table_uuid) != receipt["table_uuid"] or \
@@ -506,8 +528,8 @@ class TableCatalog(SqlCatalog):
                                            if metadata.current_snapshot_id is not None else None) or \
                 type(receipt["row_count"]) is not int or not 0 <= receipt["row_count"] <= 9007199254740991:
             raise CatalogRefusal("ReadTableIdentity")
-        check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
-        return Table(("immutable", "read"), metadata, receipt["metadata_location"], io, self)
+        schema_wire = check_logical_schema(mapping, metadata.properties.get("actql.logical-schema"))
+        return metadata, io, schema_wire
 
     def _observe_material(self, phase, size, rows=0, columns=0):
         if self.before_materialization is None:

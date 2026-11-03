@@ -11,7 +11,8 @@ import pyarrow.parquet as pq
 from pathlib import Path
 
 from catalog import CatalogRefusal, TableCatalog, _parquet_thrift_limits
-from physical import seal, PhysicalRefusal
+import catalog as catalog_module
+from physical import seal, PhysicalRefusal, canonical_envelope
 from physical_test import mapping, schema_wire
 
 
@@ -152,6 +153,157 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(_parquet_thrift_limits(2147483647), tuple(original))
         for footer in (1, 512, 2_000_000):
             self.assertEqual(_parquet_thrift_limits(footer), tuple(min(footer, value) for value in original))
+
+    def test_published_record_geometry_precedes_material_and_keeps_same_read_snapshot(self):
+        root = tempfile.mkdtemp(prefix="actql-table-record-construction-")
+        print("Retained original record fixture:", root)
+        writer = self.open(root)
+        reader = None
+        try:
+            writer.create_namespace("test")
+            operation = request("create", "rôws", "7")
+            receipt = self.write(writer, operation, [{"id": 1}])
+            selector = {"catalog_identity_cid": writer.catalog_cid, "namespace": ["test"],
+                        "table_name": "rôws", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            expected_bytes = sum(len(value.encode("utf-8")) for value in
+                                 (receipt["metadata_location"], canonical_envelope(receipt), canonical_envelope(operation)))
+            seen = []
+            replacements = []
+            def before(geometry):
+                if geometry["phase"] != "catalog-record":
+                    return
+                seen.append(dict(geometry))
+                # This original callback can reenter the same Catalog before
+                # row materialization. A new committed head cannot retarget
+                # the original length observation/read transaction.
+                replacement = request("replace", "rôws", "8", expected(receipt))
+                replacements.append(self.write(writer, replacement, [{"id": 2}]))
+            reader = TableCatalog(Path(root) / "catalog.db", Path(root) / "warehouse",
+                                  "sha256:" + "3" * 64,
+                                  {"bytes": 16777216, "files": 256, "operations": 32},
+                                  before_materialization=before)
+            frozen = reader.resolve_generation(selector)
+            self.assertEqual(seen, [{"phase": "catalog-record", "bytes": expected_bytes,
+                                     "rows": 1, "columns": 3}])
+            self.assertEqual(len(replacements), 1)
+            self.assertNotEqual(replacements[0]["generation_cid"], receipt["generation_cid"])
+            self.assertEqual(frozen, {"receipt": receipt, "mapping": mapping(), "schema_wire": schema_wire()})
+        finally:
+            if reader is not None:
+                reader.engine.dispose()
+            writer.engine.dispose()
+
+    def test_original_record_refusal_closes_snapshot_before_payload_or_json_materialization(self):
+        root = tempfile.mkdtemp(prefix="actql-table-record-refusal-")
+        print("Retained original record refusal fixture:", root)
+        writer = self.open(root)
+        reader = None
+        try:
+            writer.create_namespace("test")
+            receipt = self.write(writer, request("create", "rows", "9"), [{"id": 1}])
+            selector = {"catalog_identity_cid": writer.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            primary = RuntimeError("OriginalRecordBackingRefusal")
+            def before(geometry):
+                self.assertEqual(geometry["phase"], "catalog-record")
+                raise primary
+            reader = TableCatalog(Path(root) / "catalog.db", Path(root) / "warehouse",
+                                  "sha256:" + "3" * 64,
+                                  {"bytes": 16777216, "files": 256, "operations": 32},
+                                  before_materialization=before)
+            connection = reader.connection
+            connections, statements = [], []
+            def original_connection():
+                db = connection()
+                connections.append(db)
+                db.set_trace_callback(statements.append)
+                return db
+            reader.connection = original_connection
+            with patch("catalog.json.loads", side_effect=AssertionError("unfunded JSON material")):
+                with self.assertRaises(RuntimeError) as failed:
+                    reader.resolve_generation(selector)
+            self.assertIs(failed.exception, primary)
+            self.assertEqual(len(connections), 1)
+            self.assertTrue(any("length(CAST(t.metadata_location AS BLOB))" in query for query in statements))
+            self.assertFalse(any(query.startswith("SELECT t.metadata_location,c.receipt_wire,c.request_wire ")
+                                 for query in statements))
+            # Exact local SQLite handle closure, not a Resource/Run/child ACK.
+            with self.assertRaises(sqlite3.ProgrammingError):
+                connections[0].execute("SELECT 1")
+        finally:
+            if reader is not None:
+                reader.engine.dispose()
+            writer.engine.dispose()
+
+    def test_resolved_original_reuses_checked_mapping_schema_and_selected_io_once(self):
+        root = tempfile.mkdtemp(prefix="actql-table-original-checks-")
+        print("Retained original checked material fixture:", root)
+        catalog = self.open(root)
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "a"), [{"id": 1}])
+            selector = {"catalog_identity_cid": catalog.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            original_mapping = catalog_module.check_mapping
+            original_schema = catalog_module.check_logical_schema
+            original_io = catalog._load_file_io
+            original_generation = catalog.generation
+            counts = {"mapping": 0, "schema": 0, "io": 0, "generation": 0}
+            checked_wires = []
+            def check_mapping(*args, **kwargs):
+                counts["mapping"] += 1
+                return original_mapping(*args, **kwargs)
+            def check_schema(*args, **kwargs):
+                counts["schema"] += 1
+                result = original_schema(*args, **kwargs)
+                checked_wires.append(result)
+                return result
+            def load_io(*args, **kwargs):
+                counts["io"] += 1
+                return original_io(*args, **kwargs)
+            def generation(*args, **kwargs):
+                counts["generation"] += 1
+                return original_generation(*args, **kwargs)
+            with patch.object(catalog_module, "check_mapping", check_mapping), \
+                    patch.object(catalog_module, "check_logical_schema", check_schema), \
+                    patch.object(catalog, "_load_file_io", load_io), \
+                    patch.object(catalog, "generation", generation):
+                frozen = catalog.resolve_generation(selector)
+            self.assertEqual(counts, {"mapping": 1, "schema": 1, "io": 1, "generation": 2})
+            self.assertIs(frozen["schema_wire"], checked_wires[0])
+            self.assertEqual(frozen, {"receipt": receipt, "mapping": mapping(), "schema_wire": schema_wire()})
+        finally:
+            catalog.engine.dispose()
+
+    def test_existing_generation_table_preserves_original_materials_and_refusal_after_shared_check(self):
+        root = tempfile.mkdtemp(prefix="actql-table-original-materials-")
+        print("Retained original material wrapper fixture:", root)
+        catalog = self.open(root)
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "b"), [{"id": 1, "p": None}])
+            material = catalog._generation_read_material
+            originals = []
+            def selected(*args, **kwargs):
+                result = material(*args, **kwargs)
+                originals.append(result)
+                return result
+            with patch.object(catalog, "_generation_read_material", selected):
+                table = catalog.generation_table(receipt, mapping())
+                self.assertIs(table.metadata, originals[0][0])
+                self.assertIs(table.io, originals[0][1])
+                self.assertIs(table.catalog, catalog)
+                self.assertEqual(table.metadata_location, receipt["metadata_location"])
+                self.assertEqual(catalog.read_generation(receipt, mapping()), [{"id": 1, "p": None}])
+            bad = dict(mapping())
+            bad["schema_cid"] = "sha256:" + "9" * 64
+            with self.assertRaisesRegex(PhysicalRefusal, "StorageMappingIdentity"):
+                catalog.generation_table(receipt, bad)
+        finally:
+            catalog.engine.dispose()
 
     def test_unsupported_carrier_refuses_before_any_staging_or_reservation(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-kind-") as root:

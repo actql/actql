@@ -7966,7 +7966,7 @@
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
       "responsibilityFacet": "primary",
-      "sha256": "d54dfb45de3f5ba66c1cb2d5ac4632a30528557739ce378d7ce87addd8013957",
+      "sha256": "921474898be43ea974655c93eddc7cea8ec2668486e975133ad0d5bea6c0a569",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
       "exports": [
@@ -8025,6 +8025,17 @@
             "catalog_cid",
             "limits",
             "before_materialization"
+          ]
+        },
+        {
+          "async": false,
+          "name": "TableCatalog/_generation_read_material",
+          "parameters": [
+            "self",
+            "receipt",
+            "mapping",
+            "metadata",
+            "io"
           ]
         },
         {
@@ -8396,7 +8407,8 @@
             "TableCatalog/resolve_generation",
             "TableCatalog/_observe_material",
             "TableCatalog/_read_generation_file",
-            "_parquet_thrift_limits"
+            "_parquet_thrift_limits",
+            "TableCatalog/_generation_read_material"
           ],
           "exports": [],
           "attributes": {
@@ -8408,6 +8420,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Parquet and flat-row constructor geometry"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "inputsOutputs": [
@@ -8418,6 +8434,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "{\"phase\": phase, \"bytes\": size, \"rows\": rows, \"columns\": columns}"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "identity": [
@@ -8428,6 +8448,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "metadata.num_rows != task.file.record_count"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "ownership": [
@@ -8438,6 +8462,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog.py",
                 "anchor": "with path.open(\"rb\") as original:"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "synchronization": [
@@ -8448,6 +8476,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/physical.py",
                 "anchor": "before_materialization({\"phase\": \"arrow-rows\""
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "failure": [
@@ -8458,6 +8490,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "self.assertIs(failed.exception, primary)"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "cancellation": [
@@ -8468,6 +8504,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "physical cleanup acknowledgement."
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "resources": [
@@ -8478,6 +8518,10 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "def test_observed_footer_keeps_original_pinned_native_parser_defaults"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "extension": [
@@ -8488,6 +8532,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "Explicit physical diagnostics may omit the observer"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
               }
             ],
             "verification": [
@@ -8498,6 +8546,14 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "def test_same_read_observes_parquet_and_row_material_before_original_constructors"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "test_resolved_original_reuses_checked_mapping_schema_and_selected_io_once"
               }
             ]
           }

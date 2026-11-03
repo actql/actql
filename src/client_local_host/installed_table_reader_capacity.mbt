@@ -206,3 +206,93 @@ pub fn installed_table_source_serialization_capacity(
   }
   @execution.add_execution_capacity(previous, capacity)
 }
+
+///|
+/// The SAME Catalog snapshot's at-most-two three-field publication records.
+/// Records count SQL rows, NOT business Table rows. Original UTF8 text, the
+/// receipt/request trees and canonical hash views coexist. This quotes DATA
+/// only; the original Source caller funds its fixed length-probe controls
+/// before entry and grows its SAME RowRun before fetching/decoding payloads.
+pub fn installed_table_source_record_capacity(
+  previous : @execution.ExecutionCapacity,
+  bytes : Int,
+  records : Int,
+) -> @execution.ExecutionCapacity? {
+  if bytes < 0 || records < 0 || records > 2 || (records == 0 && bytes != 0) {
+    return None
+  }
+  let count = records.to_int64()
+  guard @shape.collection_construction_extent({
+      // Original tuples and their three original String headers per record.
+      records: 4L * count,
+      record_references: 3L * count,
+      record_words: 0L,
+      // fetchmany(2) owns its bounded growing result, including spare/old
+      // backing. Its scalar length rows belong to the prior fixed prelude.
+      reference_arrays: 1L,
+      reference_items: 2L,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(original) else {
+    return None
+  }
+  let text : @execution.PreparationRepresentationUnits = {
+    record_headers: original.record_headers,
+    reference_slots: original.reference_slots,
+    scalar_words: original.scalar_words,
+    owned_utf16_units: bytes.to_int64(),
+    owned_wire_bytes: 0L,
+  }
+  // Zero/two records refuse before JSON. Empty invalid text also creates no
+  // successful tree. Preserve their real tuple/control holdings nonetheless.
+  let inventory = if records == 1 && bytes > 0 {
+    guard @source.json_tree_retained_construction_extent(
+        bytes,
+        bytes - 1,
+        bytes,
+        0,
+        bytes.to_int64(),
+        keep_spans=false,
+      )
+      is Some(tree) else {
+      return None
+    }
+    let decoded : @execution.PreparationRepresentationUnits = {
+      record_headers: tree.record_headers,
+      reference_slots: tree.reference_slots,
+      scalar_words: tree.scalar_words,
+      owned_utf16_units: tree.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    }
+    // Aggregate wire bytes bound BOTH original JSON inputs. Keep a second
+    // complete structural envelope for filtered identity views and bounded
+    // traversal/sort/failed-prefix alternatives, borrowing scalar text once.
+    let views = { ..decoded, owned_utf16_units: 0L, }
+    match
+      @execution.compose_preparation_representation([text, decoded, views]) {
+      Some(value) => value
+      None => return None
+    }
+  } else {
+    text
+  }
+  guard @execution.preparation_representation_cost(inventory) is Some(cost) &&
+    @execution.execution_capacity(cost, cost) is Some(record) &&
+    @execution.add_execution_capacity(previous, record) is Some(held) else {
+    return None
+  }
+  if records != 1 || bytes == 0 {
+    return Some(held)
+  }
+  // The existing two canonical identity computations own distinct output
+  // String/encoded-Bytes views. Reuse their shared serializer quantity rather
+  // than introducing another byte tariff or treating equal content as free.
+  guard installed_table_source_serialization_capacity(held, bytes)
+    is Some(receipt) else {
+    return None
+  }
+  installed_table_source_serialization_capacity(receipt, bytes)
+}
