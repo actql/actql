@@ -677,18 +677,31 @@ test('retained Source input problems recheck original intent and current disclos
 test('submission disclosure retains an admitted partial invalid report across original lookup', async t => {
   const failed = JSON.parse(await readFile(new URL(
     '../../packages/client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
-  const f = await fixture(t, {prepare() {
-    throw Object.assign(new Error('typed input fixture'), {code: 'ClientProgramInvalidInput'});
-  }, async check(value) {
-    const completed = await checkValues(value);
+  const failure = Object.assign(new Error('typed input fixture'), {code: 'ClientProgramInvalidInput'});
+  const partialInvalid = async value => {
+    const completed = await checkValues({...value, kind: 'text', scope: 'bound_input'});
     const partial = {...failed, partial_report: completed.report};
     assert.equal(validCheckOutcome(partial), true);
     return partial;
-  }});
+  };
+  let originals = 0, disclosureChecks = 0;
+  const f = await fixture(t, {prepare() {throw failure;}, originalObservation(error, value) {
+    assert.strictEqual(error, failure);
+    originals++;
+    return partialInvalid(value);
+  }, check(value) {disclosureChecks++; return partialInvalid(value);}});
   const first = await f.service.submitIntent(f.body('SELECT missing AS n'));
+  // The original exception already identifies input invalidity. This case
+  // does not promote a generic Source refusal from partial reporting.
   assert.deepEqual(first.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+  assert.equal(first.checkObservation.outcome, 'failed');
+  assert.equal(first.checkObservation.partial_report.verdict, 'invalid');
+  assert.equal(originals, 2);
+  assert.equal(disclosureChecks, 0, 'initial disclosure uses only the same original observation');
   f.restart();
   assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assert.equal(originals, 2, 'lookup cannot reconstruct the original observation');
+  assert.equal(disclosureChecks, 1, 'lookup keeps its separate current disclosure check');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
