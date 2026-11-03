@@ -32,12 +32,8 @@
 //   `close()`.
 import {createHash, randomUUID} from 'node:crypto';
 import {isAbsolute} from 'node:path';
-import {readFile} from 'node:fs/promises';
-import {checked} from '../host-common/runtime-result.mjs';
-import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
-import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure}
@@ -45,17 +41,14 @@ import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFail
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
-  beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization, finishInstalledSourceInitialization,
   bindInstalledSourceConstruction, retainBoundInstalledSourceFailure,
   reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity,
   withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
-import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
+import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile, checkInstalledDuckDBSourceProfile, createInstalledDuckDBSource} from
   './installed-duckdb-source.mjs';
-import {openCapturedDuckDBSource, prepareCapturedDuckDBSource,
-  capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
-  capturedDuckDBPendingCapacity, capturedDuckDBRequirement} from
-  './captured-duckdb-source.mjs';
+
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
 import {installedConnectorFor, installedConnectorForTable, installedConnectorTable,
@@ -65,19 +58,21 @@ import {installedConnectorFor, installedConnectorForTable, installedConnectorTab
 // DuckDB is the Host's built-in source binding: it needs no provider bundle
 // or credential Site. It enters the same table as every declared connector;
 // moving it behind its own manifest is a separate change.
+const duckdbSourceModule = Object.freeze({
+  check: checkInstalledDuckDBSourceProfile,
+  // Logical profile canonicalization must not alias distinct provider names.
+  identityParts: profile => [profile, duckDBPhysicalTarget(profile)],
+  load: async (profile, {root, principalId, moon, construction, sourceInitialization}) => {
+    if (construction !== undefined) return construction.createDuckDBSource();
+    if (sourceInitialization !== undefined) throw new TypeError('InstalledSourceConstructorUnavailable');
+    return createInstalledDuckDBSource(await installDuckDBSourceProfile(profile, {root, principalId}), moon, {root, principalId});
+  },
+});
 const duckdbInstallation = Object.freeze({
   name: 'builtin_source',
   source: Object.freeze({
     profileVersion: INSTALLED_DUCKDB_SOURCE_VERSION,
-    load: async () => Object.freeze({
-      check: profile => profile,
-      // Logical profile canonicalization must not alias distinct provider
-      // names: the exact physical target is its own identity part.
-      identityParts: profile => [profile, duckDBPhysicalTarget(profile)],
-      load: async (profile, {root, principalId, moon}) => duckdbAdapter(
-        await installDuckDBSourceProfile(profile, {root, principalId}), moon,
-        {root, principalId}),
-    }),
+    load: async () => duckdbSourceModule,
   }),
 });
 const installations = installedConnectorTable([duckdbInstallation,
@@ -229,76 +224,6 @@ function sourceIdentityFromParts(parts, queryAliases) {
   return `sha256:${hash.digest('hex')}`;
 }
 
-async function duckdbAdapter(profile, moon, {root, principalId}) {
-  await loadDuckDBNativeRuntime();
-  const capacityContracts = await Promise.all([
-    'actql-query-acquisition.json', 'actql-query-process-evidence.json',
-    'actql-query-two-receipt.json',
-  ].map(name => readFile(new URL('../../spec/contracts/' + name, import.meta.url), 'utf8')));
-  const common = {moon, database: profile.database, schema: profile.schema,
-    table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
-  const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs
-    .map(catalog => catalog.connector_id);
-  return Object.freeze({
-    realizationKey: 'duckdb-acquired',
-    supportsRetainedRelationOutput: true,
-    environmentWire: profile.environmentWire,
-    connectorBindings: Object.freeze(catalogIds.map(connectorId =>
-      Object.freeze({connectorId, bindingCid: contentCid({
-        version: 'actql-installed-duckdb-source-binding/0.1',
-        root, principalId, physicalBinding: duckDBPhysicalTarget(profile),
-        sourceRef: profile.sourceRef,
-      })}))),
-    readAuthorization: profile.readAuthorization,
-    sourceAccess: profile.sourceAccess,
-    admitsSource: sourceRef => sourceRef === profile.sourceRef,
-    managedCaptureCapacity(requirement) {
-      if (moon.clientProgramQueryRequirementSourceRef(requirement) !== profile.sourceRef) {
-        throw new TypeError('InstalledSourceProgramMismatch');
-      }
-      const pending = checked(moon.clientProgramPrepareDuckDBCaptureCapacity(
-        requirement, profile.schema, profile.table, ...capacityContracts));
-      const capacity = moon.clientProgramInstalledPendingDuckDBCaptureCapacity(pending);
-      if (capacity === undefined) throw new TypeError('InstalledSourceCapacityUnavailable');
-      const physical = computePhysicalCapacity(profile.transportLimits);
-      return Object.freeze({capacity, transferBytes: physical.transferBytes,
-        executionBytes: physical.executionBytes});
-    },
-    retainedCapture(prepared) {
-      return Object.freeze({requirement: capturedDuckDBRequirement(prepared),
-        capacity: moon.clientProgramInstalledPendingDuckDBCaptureCapacity(
-          capturedDuckDBPendingCapacity(prepared))});
-    },
-    ledgerCapacity(prepared) {
-      const physical = capturedDuckDBPhysicalCapacity(prepared);
-      const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(
-        capturedDuckDBConfiguration(prepared));
-      if (capacity === undefined) {
-        throw new TypeError('InstalledSourceCapacityUnavailable');
-      }
-      return Object.freeze({
-        capacity,
-        transferBytes: physical.transferBytes,
-        executionBytes: physical.executionBytes,
-      });
-    },
-    prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, occurrence, requireImmediateReadAuthorization,
-      queryTimePreparation, requestIdentity}) => prepareCapturedDuckDBSource({...common,
-      preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      queryTimePreparation, requestIdentity,
-      sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits}),
-    open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger,
-      retainedRelationOutput}) =>
-      openCapturedDuckDBSource({
-      ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, transportLimits: profile.transportLimits, signal,
-      preparedSource, reportAcquisitionFailure, occurrence, ledger,
-      retainedRelationOutput}),
-    close: () => {},
-  });
-}
 
 async function readProfile(path, read = readSourceProfileJson) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
@@ -402,7 +327,10 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
   const runtime = await providerRuntime(entry, runtimeUrl, readRuntimeIdentity);
   retainInstalledHostServiceInstallation(installationServices, entry, runtime.runtimeBundleCid);
   const sourceInitialization = installationServices === undefined ? undefined
-    : beginInstalledSourceInitialization(installationServices, entry, checked.connectorId, baseEnvironmentWire);
+    : module === duckdbSourceModule
+      ? beginInstalledPublishedSourceInitialization(installationServices, entry,
+        checked.sourceRef, checked.checkEnvironmentWire, baseEnvironmentWire)
+      : beginInstalledSourceInitialization(installationServices, entry, checked.connectorId, baseEnvironmentWire);
   let adapter;
   try {
     adapter = await module.load(checked, {root, principalId, moon,
