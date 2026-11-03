@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import {readFileSync} from 'node:fs';
+import {executableMoonSource, checkedInputFunction} from '../relation-chain/evidence.mjs';
 import { modelExecution, modelObservationUnits, bindings, checkBindings, coverage, fixture, identityFixture, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 function evidence(target = 'js') {
@@ -98,6 +99,9 @@ test('current retained quote refuses substituted dimensions inside the real cons
   for (const [from, to] of [
     ['rows.retained_entries.to_int64()', 'rows.operation_entries.to_int64()'],
     ['rows.metadata_entries.to_int64()', 'rows.operation_entries.to_int64()'],
+    ['count: retained_roots', 'count: metadata_scratch'],
+    ['count: metadata_scratch', 'count: retained_roots'],
+    ['limits.rows.metadata_entries.to_int64(),\n    false,', 'limits.rows.metadata_entries.to_int64(),\n    true,'],
     ['rows.output_values.max_nodes.to_int64()', 'rows.input_values.max_nodes.to_int64()'],
     ['rows.output_values.max_text_bytes.to_int64()', 'rows.input_values.max_text_bytes.to_int64()'],
     ['retained_bytes: retained, execution_bytes: execution', 'retained_bytes: execution, execution_bytes: execution'],
@@ -113,9 +117,10 @@ test('current retained quote refuses substituted dimensions inside the real cons
 test('retained quote comments or another function cannot replace its actual connection', () => {
   const path = 'src/execution_relation/execution_capacity.mbt';
   const original = readFileSync(root + path, 'utf8');
-  const from = 'count: rows.retained_entries.to_int64()';
-  const unrelated = original.slice(original.indexOf('pub fn generated_sequence_capacity('))
-    .replace('fn generated_sequence_capacity(', 'fn unrelated_capacity_quote(');
+  const from = 'count: retained_roots';
+  const unrelated = 'fn unrelated_capacity_quote() ' + checkedInputFunction(
+    executableMoonSource(original), 'generated_sequence_capacity_with_roots')
+    .replaceAll('count:', 'count: ');
   for (const extra of ['\n// ' + original.replaceAll('\n', '\n// ') + '\n',
     '\n' + unrelated]) {
     const changed = original.replace(from, 'count: rows.operation_entries.to_int64()') + extra;
