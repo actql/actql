@@ -453,7 +453,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return preparation => {
             const before = target.strategyCapturedRunFixturePhase(preparation);
             const result = target[property](preparation,
-              ['snapshot-inventory', 'root-check'].includes(route.cancelCapturePhase) &&
+              ['snapshot-inventory', 'root-check', 'rows-check'].includes(route.cancelCapturePhase) &&
                 before === route.cancelCapturePhase ? 1 : 32);
             const complete = checked(result);
             const phase = target.strategyCapturedRunFixturePhase(preparation);
@@ -477,6 +477,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               assert.ok(route.capturePolls > 1);
               scheduled = true;
               if (route.cancelCapturePhase === 'root-check') cancellation.abort();
+              else if (route.cancelCapturePhase === 'rows-check') {
+                // Cancel while the original row checker is still pending;
+                // a timer can otherwise arrive after retained completion.
+                assert.equal(phase, 'rows-check');
+                cancellation.abort();
+              }
               else setTimeout(() => cancellation.abort(), 0);
             }
             return result;
