@@ -205,10 +205,10 @@ test('actual Host acquires its same Journal before Compute and before publishing
   assert.deepEqual(log, ['journal', 'result', 'compute', 'receiver']);
 });
 
-test('legacy unprepared and existing Mock Source entries do not acquire a Compute replacement', async () => {
+test('prepared Mock Source entry retains its original receiver without a Compute replacement', async () => {
   const journal = {}, source = {}, open = opening();
-  assert.deepEqual(await open(undefined, undefined, async () => journal, {}),
-    {journal, originalRequestPreparation: undefined});
+  // Both public entries now use openPreparedInstalledHost. The private Host
+  // opener receives its actual preparation even when Source owns the purpose.
   const preparation = {
     prepareResultPublication() {},
     prepareManagedCompute() {assert.fail('Source must retain its original joint purpose');},
@@ -221,7 +221,7 @@ test('legacy unprepared and existing Mock Source entries do not acquire a Comput
 function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, retire = () => {},
   runtime = {}, source, capturePlan = () => assert.fail('No capture Plan constructor selected'),
   originalRequest = value => value, controlClose = async () => ({pending: false}), invocationControl}) {
-  const declarations = declared('connectEmbeddedLocal').body.body
+  const declarations = declared('openPreparedInstalledHost').body.body
     .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
   const initial = declarations.find(node => node.id.name === 'initialControl');
   const preparation = declarations.find(node => node.id.name === 'preparation');
@@ -454,7 +454,7 @@ test('managed usage reader selects only the same admitted Run and releases its i
 });
 
 test('installed static contract aliases survive pending child cleanup and cut at actual retirement', async () => {
-  const connect = declared('connectEmbeddedLocal');
+  const connect = declared('openPreparedInstalledHost');
   const retirement = connect.body.body.find(node => node.type === 'FunctionDeclaration' &&
     node.id.name === 'retirePreparationReferences');
   assert(retirement);
@@ -841,6 +841,21 @@ function sourceFreeOpening() {
   return new Function('held', 'moon', 'preparedProgram', 'requested', 'retainedRelationOutput', 'checked', 'preparationLease', `
     ${helper('releaseDispatchPreparationHost')}
     ${helper('retainDispatchPreparationHost')}
+    // Explicit original Core borrow ports isolate the actual dispatcher arm.
+    // These are not physical admission or a generated Common qualification.
+    const holder={};
+    Object.assign(moon, {
+      clientProgramInstalledManagedPreparationBorrow(owner,prepared,request){
+        if(owner!==held.managedRun||prepared!==preparedProgram||request!==requested)throw Error('ForeignFixtureBorrow');
+        return holder;
+      },
+      clientProgramPreparationBorrowRead(original){
+        if(original!==holder)throw Error('ForeignFixtureBorrow');return preparedProgram;
+      },
+      clientProgramPreparationBorrowReturn(original){
+        if(original!==holder)throw Error('ForeignFixtureBorrow');
+      },
+    });
     const acquiring=false, inferring=false, serializing=false;
     const managedComputeRequired=true;
     const registry='registry',values='values',fragment='fragment',ordered='ordered',entry={};let setup;
@@ -856,7 +871,7 @@ test('actual dispatcher opens its opaque Run without the legacy accounting const
       return setup;
     }, clientProgramOpenSourceFreeLocalHost() {assert.fail('accounting fallback');},
     clientProgramOpenSourceFreeLocalRetainedHost() {assert.fail('accounting fallback');}};
-    const result = open({managedRun: original}, moon, prepared, request, retained, value => value);
+    const result = open({managedRun: original}, moon, prepared, request, retained, value => value, {});
     assert.strictEqual(result.setup, setup); assert.strictEqual(result.entry.pendingSetup, setup);
   }
 });
@@ -865,11 +880,11 @@ test('actual dispatcher propagates missing/foreign/parked original refusal witho
   const marker = new Error('OriginalResourceParked'), original = {}, open = sourceFreeOpening();
   const legacy = () => assert.fail('accounting fallback');
   assert.throws(() => open({}, {clientProgramOpenSourceFreeLocalHost: legacy}, {}, {}, false,
-    value => value), /InstalledManagedComputeRunUnavailable/);
+    value => value, {}), /InstalledManagedComputeRunUnavailable/);
   assert.throws(() => open({managedRun: original}, {clientProgramOpenSourceFreeLocalHost: legacy}, {}, {}, false,
-    value => value), /InstalledManagedComputeHostUnavailable/);
+    value => value, {}), /InstalledManagedComputeHostUnavailable/);
   assert.throws(() => open({managedRun: original}, {clientProgramOpenSourceFreeLocalHost: legacy,
-    clientProgramOpenInstalledManagedSourceFreeHost() {throw marker;}}, {}, {}, false, value => value),
+    clientProgramOpenInstalledManagedSourceFreeHost() {throw marker;}}, {}, {}, false, value => value, {}),
     error => error === marker);
 });
 
@@ -1288,22 +1303,36 @@ test('captured Host constructor keeps the same QueryTime requirement without con
 async function modelEffectLifecycle({failure} = {}) {
   const prepared = {}, identity = {}, requestInput = {}, plan = {}, parent = {}, original = {}, scope = {}, demand = {};
   const model = Object.freeze({kind: 'local-mock', compiled: {}, definition: {}, occurrence: {}, graph: {}});
+  const modelSelection = Object.freeze({localMock: true, occurrence: model.occurrence, graph: model.graph});
+  const runDefinition = {};
   const facts = Object.freeze({prepared, identity, compilation: {}, allowed: {}, definition: model.definition,
-    modelCompiled: model.compiled, queryTimePreparation: undefined});
+    modelCompiled: model.compiled, queryTimePreparation: undefined, runDefinition});
   const calls = []; let pending = true, f;
   const runtime = {
-    clientProgramInstalledEffectModelDemandPrepare() {return demand;},
+    clientProgramEffectAcquisitionCount(actual) {assert.equal(actual, prepared); return 0;},
+    clientProgramComposedInferLocalProvider(occurrence) {
+      assert.equal(occurrence, model.occurrence); return Object.freeze({});
+    },
     clientProgramInstalledEffectPlanMatchesModelDemand(p, selected) {return p === plan && selected === demand;},
-    clientProgramInstalledEffectOperationControlsBegin() {return plan;},
+    clientProgramInstalledEffectOperationControlsRetain() {return plan;},
+    clientProgramInstalledEffectOperationControlConstructionBegin() {assert.fail('No physical operation construction');},
+    clientProgramInstalledEffectOperationControlConstructionComplete() {assert.fail('No physical operation construction');},
     clientProgramInstalledEffectManagedOperationPlan(value, actual, request) {
       assert.equal(value, parent); assert.equal(actual, prepared); assert.equal(request, identity); return plan;
     },
-    clientProgramFinishInferOriginalReadScope(value, compiled, definition, graph, complete) {
-      assert.equal(this, runtime); assert.equal(value, scope); assert.equal(compiled, model.compiled);
-      assert.equal(definition, model.definition); assert.equal(graph, model.graph); assert.equal(complete, true);
+    clientProgramInstalledManagedRunRetire(value) {assert.equal(value, parent); assert.equal(pending, false); calls.push('retire-parent');},
+  };
+  const publicationControl = {
+    prepareCheckedClientEffectModelDemand(p, compiled, compilation, definition, occurrence, graph) {
+      assert.equal(this, publicationControl); assert.equal(p, prepared); assert.equal(compiled, model.compiled);
+      assert.equal(compilation, facts.compilation); assert.equal(definition, runDefinition);
+      assert.equal(occurrence, model.occurrence); assert.equal(graph, model.graph); return demand;
+    },
+    finishCheckedClientInferOriginalReadScope(compiled, definition, graph, value, complete) {
+      assert.equal(this, publicationControl); assert.equal(value, scope); assert.equal(compiled, model.compiled);
+      assert.equal(definition, runDefinition); assert.equal(graph, model.graph); assert.equal(complete, true);
       calls.push('scope'); return !pending;
     },
-    clientProgramInstalledManagedRunRetire(value) {assert.equal(value, parent); assert.equal(pending, false); calls.push('retire-parent');},
   };
   const manager = {
     adoptEffectModelPreparation(actual, input, request, selected, run) {
@@ -1325,13 +1354,13 @@ async function modelEffectLifecycle({failure} = {}) {
     retireRun() {assert.fail('partial same Request has no separate manager Run');},
     close() {assert.equal(pending, false); calls.push('manager-close'); return {pending: false};},
   };
-  f = lifecycle({runtime, factory: async () => manager,
+  f = lifecycle({runtime, factory: async () => manager, invocationControl: publicationControl,
     originalRequest(value) {assert.equal(value, prepared); return requestInput;}});
   await f.preparation.prepareManagedCompute();
   const selected = Object.freeze({prepareManagedPlan(actual, inputs) {
     assert.equal(actual, facts); assert.equal(inputs.modelDemand, demand); return plan;
   }});
-  return {...f, calls, prepared, parent, runtime, facts, selected, model,
+  return {...f, calls, prepared, parent, runtime, facts, selected, model: modelSelection,
     settle() {pending = false;}};
 }
 
@@ -1744,12 +1773,12 @@ test('timed whole Source caller refuses an absent typed port and retains exact C
 });
 
 test('timed whole Source installing closure forwards manager Option transiently without retaining a second carrier',async()=>{
-  const p=managedRunPorts(),prepared={},request={},sdkRequest={},artifact={},original={},scope={},time={},view=Object.freeze({queryTimePreparation:time}),opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
-  let planCalls=0;
+  const p=managedRunPorts(),prepared={},request={},sdkRequest={},artifact={},original={},scope={},time={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
+  let planCalls=0,view;
   const manager={adoptCapturePreparation(a,b,c,plan,construct){assert.equal(a,prepared);assert.equal(b,sdkRequest);assert.equal(c,request);const invocation=construct(artifact);assert.equal(invocation,opaque);assert.equal(plan(invocation),scope);return {original,value:p.value};},severPreparation(){},retireSeveredPreparation(){},close(){return {pending:false};}};
   const f=lifecycle({runtime:p.runtime,factory:async()=>manager,originalRequest:a=>{assert.equal(a,prepared);return sdkRequest;},capturePlan(run,invocation){planCalls++;assert.equal(run.queryTimePreparation,time);assert.equal(invocation,opaque);return scope;}});
   await f.preparation.prepareManagedCompute();
-  assert.equal(f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,scope,(a,b,c)=>{assert.equal(a,prepared);assert.equal(b,request);assert.equal(c,artifact);return {original:opaque,retained:view};}),p.value);
+  assert.equal(f.preparation.prepareManagedComputeRun(p.runtime,prepared,request,scope,(a,b,c,retained)=>{assert.equal(a,prepared);assert.equal(b,request);assert.equal(c,artifact);assert.equal(f.record.computeRuns.get(prepared).queryInvocation,retained);view=Object.freeze(Object.assign(retained,{queryTimePreparation:time}));return {original:opaque,retained:view};}),p.value);
   const run=f.record.computeRuns.get(prepared);assert.equal(run.queryInvocation,view);assert.equal(Object.values(run).includes(opaque),false);assert.equal(planCalls,1);
   const finish=f.preparation.retireManagedComputeRun(prepared);assert.equal(run.queryInvocation,undefined);finish();await f.initialControl.close();
 });

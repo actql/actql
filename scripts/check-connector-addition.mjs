@@ -183,8 +183,10 @@ const tests = {};
 for (const target of ['js', 'wasm', 'native']) {
   tests[target] = run('third-' + target, ['test', '--target', target,
     'src/query_integration/standard_subset_wbtest.mbt']);
-  if (!tests[target].some(total => total === 'Total tests: 1, passed: 1, failed: 0.')) {
-    throw new Error(`Independent connector test was not executed on ${target}`);
+  // The selected file includes both the reference/both-implementation case
+  // and the Local-only retention refusal. Require both original cases.
+  if (!tests[target].some(total => total === 'Total tests: 2, passed: 2, failed: 0.')) {
+    throw new Error(`Both independent connector cases were not executed on ${target}`);
   }
 }
 tests.node = run('standard-node', ['--test', '--test-name-pattern=standard native and broad Node Hosts',

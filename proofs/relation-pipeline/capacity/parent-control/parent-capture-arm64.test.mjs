@@ -5,13 +5,13 @@ const parent='__M0FP45actql5actql10connectors5local42bounded__relation__chain__e
 const owner='__M0FP45actql5actql10connectors5local54managed__provider__execution__with__child__work__issue';
 const roles=['startNext','advance','cancel','stopped','cleanup','childWorkIssue'];
 // Independent source/ABI fixture; never import the verifier's expected fields.
-const fields=[[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'measurement',8],[32,'maxValueBytes',4],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
- [[8,'startNext',8],[16,'reclaimsScratch',4],[24,'terminal',8],[32,'cancelled',8],[40,'used',8],[48,'maxValueBytes',4],[56,'execution',8],[64,'inputs',8],[72,'state',8],[80,'sequence',8],[88,'count',4]],
+const fields=[[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'maxValueBytes',4],[32,'measurement',8],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
+ [[8,'startNext',8],[16,'reclaimedPrefix',4],[24,'terminal',8],[32,'cancelled',8],[40,'used',8],[48,'execution',8],[56,'inputs',8],[64,'state',8],[72,'sequence',8],[80,'count',4]],
  [[8,'terminal',8],[16,'cancelled',8],[24,'state',8]],[[8,'terminal',8]],
  [[8,'cleanupIndex',8],[16,'reclaimed',8],[24,'terminal',8],[32,'state',8]],[[8,'state',8]]];
-const sizes=[72,96,32,16,40,16],bases=['x23','x24','x23','x25','x26','x27'];
+const sizes=[72,88,32,16,40,16],bases=['x23','x24','x23','x25','x26','x27'];
 const slots={state:'0x40',used:'0x48',cancelled:'0x50',terminal:'0x58',reclaimed:'0x60',cleanupIndex:'0x68',sequence:'0x18',inputs:'0x20',execution:'0x28',measurement:'0x30',maxValueBytes:'0x34'};
-const sources={family:'x20',numeric:'x19',count:'w21',reclaimsScratch:'w22'};
+const sources={family:'x20',numeric:'x19',count:'w21',reclaimedPrefix:'w22'};
 const symbols=new Map([['_moonbit_malloc',0x7000],['_moonbit_incref',0x7100],['_moonbit_decref',0x7200],[owner,0x8000],['_actql_proof_current_chain_start',0x8100],...roles.slice(1).map((r,k)=>[parent+'C'+(k+1),0x9000+k*0x100])]);
 const nm=[...symbols].map(([n,a])=>a.toString(16)+' T '+n).join('\n');
 const load=(role,w,r=w===8?'x16':'w16')=>slots[role]?`ldur ${r}, [x29, #-${slots[role]}]`:`mov ${r}, ${sources[role]}`;
@@ -26,7 +26,7 @@ for(const [k,role] of roles.entries()) {
 }
 ops.push('mov x0, x24','mov x1, x23','mov x2, x25','mov x3, x26','mov x4, x27',{call:owner},'mov x28, x0');
 for(const r of ['x24','x23','x25','x26','x27'])ops.push('mov x0, '+r,{call:'_moonbit_decref'});
-for(const [r,at,w] of [['inputs',0,8],['execution',8,8],['measurement',16,8],['numeric',24,8],['family',32,8],['count',40,4],['maxValueBytes',44,4],['reclaimsScratch',48,4]]) {
+for(const [r,at,w] of [['inputs',0,8],['execution',8,8],['measurement',16,8],['numeric',24,8],['family',32,8],['count',40,4],['maxValueBytes',44,4],['reclaimedPrefix',48,4]]) {
  ops.push(load(r,w));ops.push(`str ${w===8?'x16':'w16'}, [sp${at?', #0x'+at.toString(16):''}]`);
 }
 ops.push('mov x0, x28',...['state','used','cancelled','terminal','reclaimed','cleanupIndex','sequence'].map((r,k)=>load(r,8,'x'+(k+1))),{call:'_actql_proof_current_chain_start'},'ret');
@@ -50,7 +50,7 @@ function observation() {
 const check=(objectOps=ops,linkedOps=objectOps,start=observation(),table=nm)=>inspectParentCaptureArm64(start,table,assembly(objectOps,true),assembly(linkedOps,false));
 test('ARM64 six requests bind each ordered pointer/scalar field and observer role',()=>{
  const r=check();assert.equal(r.captureRolesEstablished,true);assert.equal(r.completePhysicalLifetimeUpper,false);
- assert.deepEqual(r.points.map(p=>p.requestedBytes),[80,104,40,24,48,24]);
+ assert.deepEqual(r.points.map(p=>p.requestedBytes),[80,96,40,24,48,24]);
  assert.deepEqual(r.points[1].fields.filter(([,r])=>['terminal','cancelled'].includes(r)),[[24,'terminal',8],[32,'cancelled',8]]);
 });
 test('ARM64 unchanged identity sets cannot hide swapped callback/environment captures',()=>{

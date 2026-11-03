@@ -451,11 +451,12 @@ test "Model construction input preserves grown Program backing and funds its act
   let before = calls.val
   let model = borrow_request_model_plan_input(parent, input).unwrap()
   assert_eq(calls.val, before + 1)
-  // Independent record inventory: header16 + nine references72 + three words24.
+  // Independent record inventory: header16 + ten references80 + three words24.
+  // The references include the retained optional Content prefix and Limits.
   // No Model Plan, compilation, Scope, provider or IO is constructed here.
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((r + 129L + 112L, e + 257L + 112L)),
+    Ok((r + 129L + 120L, e + 257L + 120L)),
   )
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(parent.program_model is None)
@@ -722,7 +723,10 @@ fn request_model_ordinary_entry_refusal(captured : Bool) -> Unit raise {
       )
       is Err(WrongPhase),
     )
-    assert_true(parent.program_source_free is None)
+    assert_true(
+      parent.program_source_free is Some(original) &&
+      physical_equal(original, plan.source_free.unwrap()),
+    )
   }
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(

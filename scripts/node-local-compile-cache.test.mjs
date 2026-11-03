@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readFile, symlink, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {createOwnedScratch} from './owned-scratch.mjs';
@@ -13,7 +14,9 @@ let owner;
 async function fixture({missing = false, provider, privateExport} = {}) {
   // One test-file Owner retains every child installation until all synchronous
   // children have ended; any failed test preserves the whole original scratch.
-  owner ??= await createOwnedScratch({parent: join(repository, '_build'),
+  // Keep an absent-provider installation outside this checkout: the root's
+  // declared development Local provider must not satisfy its module lookup.
+  owner ??= await createOwnedScratch({parent: process.env.RUNNER_TEMP || tmpdir(),
     prefix: 'node-local-cache-', label: 'public Local optional cache boundary'});
   const scratch = owner, directory = await mkdtemp(join(scratch.path, 'installation-'));
   const packages = join(directory, 'node_modules/@actql');

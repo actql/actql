@@ -1,8 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {startInstalledRowRun} from './installed-row-run.mjs';
 
 const ok = value => ({$tag: 1, _0: value});
+
+const rowSource = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+const rowSourceProgram = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const rowSourceConstructor = rowSourceProgram.body.map(node => node.declaration ?? node)
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createInstalledRowSource');
+assert(rowSourceConstructor);
+const prepareDeclaration = rowSourceConstructor.body.body.find(node =>
+  node.type === 'FunctionDeclaration' && node.id.name === 'prepare');
+const sourceBodyDeclaration = rowSourceConstructor.body.body.find(node =>
+  node.type === 'VariableDeclaration' && node.declarations.some(value => value.id.name === 'sourceBody'));
+const sourceBody = sourceBodyDeclaration?.declarations.find(value => value.id.name === 'sourceBody').init;
+const closeMethod = sourceBody?.properties.find(value => value.type === 'Property' && value.key.name === 'close');
+assert(prepareDeclaration && sourceBody?.type === 'ObjectExpression' && closeMethod?.method);
 
 test('whole input consumes the same Run/reader/evidence originals without Query or output transfer', async () => {
   const acquisition = {}, originalRead = {}, ledger = {}, provider = {}, capacity = {};
@@ -99,16 +114,14 @@ test('whole input cannot select a bare, keyed or listing RowRun', () => {
 });
 
 async function failedPreparationFixture({pendingRetirement = false, validFacts = false, identity, authorization} = {}) {
-  const {readFile} = await import('node:fs/promises');
   const {types} = await import('node:util');
   const {runtimeField, runtimeIsOk, runtimeIsBoxedSome} = await import('../host-common/compiler-binding.generated.mjs');
   const {checked} = await import('../host-common/runtime-result.mjs');
-  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('  async function prepare({preparedProgram, preparedEffect, registry, values,');
-  const end = source.indexOf('\n  async function open(options)', start);
-  const closeStart = source.lastIndexOf('    close() {');
-  const closeEnd = source.indexOf('\n  });', closeStart);
-  assert(start > 0 && end > start && closeStart > end && closeEnd > closeStart);
+  // Capture this constructor's actual prepare and public close methods. A
+  // later Credential/Site close in the same module is a different owner.
+  const source = rowSource;
+  const start = prepareDeclaration.start, end = prepareDeclaration.end;
+  const closeStart = closeMethod.start, closeEnd = closeMethod.end;
   const read = {}, managedRun = {}, preparedProgram = {}, declaration = {};
   let retireCalls = 0, siteCloses = 0;
   const moon = {
@@ -237,8 +250,7 @@ test('whole Source closes an original prepared read which was never given to a R
 
 
 test('whole Source transfers its original reference only after the RowRun constructor returns', async () => {
-  const {readFile} = await import('node:fs/promises');
-  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  const source = rowSource;
   const begin = source.indexOf('    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity,');
   const end = source.indexOf('    let externalClosed', begin);
   assert(begin > 0 && end > begin);

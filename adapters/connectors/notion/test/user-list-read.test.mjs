@@ -89,7 +89,11 @@ test('Notion repeated cursor page and total row bounds refuse incomplete capture
     if(mode==='rows')limits.maxTotalRows=1;
     const code={cursor:'NotionUserListRepeatedCursor',pages:'NotionUserListPageLimit',rows:'NotionUserListRowLimit'}[mode];
     await assert.rejects(f.create({limits}).read(),error=>error.cause.code===code);
-    assert.equal(f.state.requests.length,mode==='pages'?1:2);f.row.assertNoCapture();
+    // Both exhausted page and row inventories refuse before another send.
+    // A repeated cursor is learned only from the second original response.
+    const requests=mode==='cursor'?2:1;
+    assert.equal(f.state.requests.length,requests);
+    assert.equal(f.state.resolutions,requests);assert.equal(f.state.charges,requests);f.row.assertNoCapture();
   }
 });
 

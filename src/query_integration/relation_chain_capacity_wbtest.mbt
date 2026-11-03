@@ -78,15 +78,38 @@ test "capacity evidence actual Int64 guards reject child sum and handle overflow
   let handles = 2L * 256L
   let preparation = 512L
   let maximum = 9223372036854775807L
-  let get = fn(retained : Int64, execution : Int64) {
+  let get = fn(retained : Int64, execution : Int64) raise {
     let family = capacity_evidence_family(
       sequence,
       @execution.execution_capacity(retained, execution).unwrap(),
     )
-    @local_connector.managed_provider_capacity(
-      chain_evidence_provider(sequence, family),
-      sequence,
-    )
+    let registry = search_registry()
+    let limits = dispatch_test_limits()
+    match
+      @local_connector.prepare_local_compute_module(
+        registry,
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        [sequence],
+        limits.local_execution,
+        limits.guards,
+        limits.candidate_work,
+        1,
+        managed_providers=[family],
+      ) {
+      // The selected provider's capacity is checked before installation. A
+      // successful module must retain a finite quote, never a later None.
+      Err(ForeignPreparation) => None
+      Err(_) => fail("capacity fixture refused outside its overflow admission")
+      Ok(installed) =>
+        Some(
+          @local_connector.managed_provider_capacity(
+            @local_connector.local_module_managed_provider(
+              installed, 0, sequence,
+            ).unwrap(),
+            sequence,
+          ).unwrap(),
+        )
+    }
   }
   // Overflow inside a single child's retained+execution pair.
   assert_true(get(maximum, maximum) is None)

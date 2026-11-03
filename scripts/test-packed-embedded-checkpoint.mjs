@@ -32,6 +32,9 @@ function run(command, args, cwd = root, env = environment) {
     throw new Error(`${command} ${args.join(' ')} failed:\n` +
       `${result.stdout}\n${result.stderr}`, {cause: result.error});
   }
+  if (command === process.execPath && args[0] === 'embedded-client.mjs') {
+    process.stderr.write(result.stderr ?? '');
+  }
   return result.stdout;
 }
 

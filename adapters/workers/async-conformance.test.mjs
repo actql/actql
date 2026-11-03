@@ -5,6 +5,7 @@ import {buildConformance} from './build.mjs';
 import {createTestRuntime} from './runtime.mjs';
 import {runAsyncCase} from './async-conformance.mjs';
 import {checkWorkersArtifact,conformanceModules} from './artifact.mjs';
+import {ledgerUsageFields,ledgerUsageSpentFields} from '../host-common/ledger-contract.generated.mjs';
 
 test('real planning fetch bypassing phase spies fails the common runtime audit even if caught', async () => {
   const bundle = await buildConformance();
@@ -33,9 +34,17 @@ test('real planning fetch bypassing phase spies fails the common runtime audit e
 const jsonValue = value => JSON.parse(JSON.stringify(value, (_, item) =>
   typeof item === 'bigint' ? item.toString() : item));
 const cid = rows => 'sha256:' + createHash('sha256').update(JSON.stringify(rows)).digest('hex');
+const camel = name => name.replace(/_([a-z])/gu, (_, letter) => letter.toUpperCase());
 const zeroRetained = usage => {
-  for (const key of ['reservedTransferBytes','heldBytes','reservedRetentionBytes','reservedExecutionBytes']) {
-    assert.equal(usage[key],'0',key);
+  // Core distinguishes spent work from resources that cleanup must return.
+  for (const {name} of ledgerUsageFields) {
+    if (!ledgerUsageSpentFields.includes(name)) assert.equal(usage[camel(name)],'0',name);
+  }
+};
+const settledUsage = ({beforeCloseUsage,finalUsage}) => {
+  zeroRetained(finalUsage);
+  for (const name of ledgerUsageSpentFields) {
+    assert.equal(finalUsage[camel(name)],beforeCloseUsage[camel(name)],name);
   }
 };
 
@@ -59,7 +68,7 @@ test('asynchronous independent Connector preserves reservation completion and re
       assert.equal(worker.samples[0].usage.reservedRetentionBytes,'6400');
       assert.equal(worker.samples[0].usage.reservedExecutionBytes,'1946400');
       assert.equal(worker.samples[0].completed,false);
-      zeroRetained(worker.finalUsage);
+      settledUsage(worker);
       if (mode === 'complete') {
         assert.equal(worker.status,'completed');
         assert.equal(worker.published,true);
@@ -69,11 +78,13 @@ test('asynchronous independent Connector preserves reservation completion and re
         assert.equal(worker.waits,6);
         assert.equal(worker.stops,3);
         assert.equal(worker.finalUsage.attempts,'3');
-        assert.equal(worker.finalUsage.holdings,'3');
+        assert.equal(worker.finalUsage.holdings,'0');
       } else {
         assert.equal(worker.status,'failed');
         assert.equal(worker.published,false);
-        assert.equal(worker.finalUsage.attempts,'1');
+        // The first reserved wait precedes begin_task_execution_use.
+        // Only cancel-computed entered the payload and spent an attempt.
+        assert.equal(worker.finalUsage.attempts,mode === 'cancel-computed' ? '1' : '0');
         assert.equal(worker.finalUsage.holdings,'0');
         assert.equal(worker.waits,mode === 'cancel-computed' ? 2 : 1);
         assert.equal(worker.stops,mode === 'cleanup-failure' ? 2 : 1);
@@ -125,9 +136,9 @@ test('one asynchronous Run awaiting recovery does not invalidate another complet
     assert.equal(failed.recovered,true);
     assert.equal(completed.status,'completed');
     assert.equal(completed.outputs[2],cid([{id:3}]));
-    assert.equal(failed.finalUsage.attempts,'1');
+    assert.equal(failed.finalUsage.attempts,'0');
     assert.equal(completed.finalUsage.attempts,'3');
-    zeroRetained(failed.finalUsage);
-    zeroRetained(completed.finalUsage);
+    settledUsage(failed);
+    settledUsage(completed);
   } finally { await runtime.dispose(); }
 });

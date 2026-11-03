@@ -90,3 +90,37 @@ for (const [label, from, to] of [
     read: p => p === path ? changed : readFileSync(root + p),
   }), /capacity\/cleanup custody connection/);
 });
+
+
+test('current retained quote refuses substituted dimensions inside the real constructor', () => {
+  const path = 'src/execution_relation/execution_capacity.mbt';
+  const original = readFileSync(root + path, 'utf8');
+  for (const [from, to] of [
+    ['rows.retained_entries.to_int64()', 'rows.operation_entries.to_int64()'],
+    ['rows.metadata_entries.to_int64()', 'rows.operation_entries.to_int64()'],
+    ['rows.output_values.max_nodes.to_int64()', 'rows.input_values.max_nodes.to_int64()'],
+    ['rows.output_values.max_text_bytes.to_int64()', 'rows.input_values.max_text_bytes.to_int64()'],
+    ['retained_bytes: retained, execution_bytes: execution', 'retained_bytes: execution, execution_bytes: execution'],
+  ]) {
+    const changed = original.replace(from, to);
+    assert.notEqual(changed, original, 'actual selected mutation site');
+    assert.throws(() => checkBindings(root, bindings(), {
+      read: p => p === path ? changed : readFileSync(root + p),
+    }), /inventory connection|retained capacity quote connection/);
+  }
+});
+
+test('retained quote comments or another function cannot replace its actual connection', () => {
+  const path = 'src/execution_relation/execution_capacity.mbt';
+  const original = readFileSync(root + path, 'utf8');
+  const from = 'count: rows.retained_entries.to_int64()';
+  const unrelated = original.slice(original.indexOf('pub fn generated_sequence_capacity('))
+    .replace('fn generated_sequence_capacity(', 'fn unrelated_capacity_quote(');
+  for (const extra of ['\n// ' + original.replaceAll('\n', '\n// ') + '\n',
+    '\n' + unrelated]) {
+    const changed = original.replace(from, 'count: rows.operation_entries.to_int64()') + extra;
+    assert.throws(() => checkBindings(root, bindings(), {
+      read: p => p === path ? changed : readFileSync(root + p),
+    }), /retained capacity quote connection/);
+  }
+});

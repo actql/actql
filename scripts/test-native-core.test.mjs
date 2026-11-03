@@ -5,6 +5,7 @@ import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
@@ -56,6 +57,47 @@ test('Native Effect capture progress missing evidence remains unavailable', asyn
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+
+test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
+  const core = workflow.jobs.core;
+  const expression = core['runs-on'];
+  assert.equal(expression, "${{ matrix.target == 'native' && 'macos-14' || 'ubuntu-24.04' }}");
+  for (const [target, runner] of [['native', 'macos-14'], ['js', 'ubuntu-24.04'],
+    ['wasm', 'ubuntu-24.04']]) {
+    assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target}},
+      {timeout: 100}), runner);
+  }
+  assert.equal(core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
+  assert.equal(core.strategy['fail-fast'], false);
+  const platform = core.steps.find(step => step.name === 'Require the supported Core Native platform');
+  assert.ok(platform);
+  assert.equal(platform.if, "${{ matrix.target == 'native' }}");
+  assert.ok(core.steps.indexOf(platform) < core.steps.findIndex(step => step.name === 'Check common core'));
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-core-platform-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const uname = join(root, 'uname');
+  writeFileSync(uname, '#!/bin/sh\ncase "$1" in\n' +
+    '  -s) printf "%s\\n" "$ACTQL_FIXTURE_SYSTEM" ;;\n' +
+    '  -m) printf "%s\\n" "$ACTQL_FIXTURE_ARCH" ;;\n' +
+    '  *) exit 2 ;;\nesac\n');
+  chmodSync(uname, 0o755);
+  for (const [system, arch, accepted] of [['Darwin', 'arm64', true],
+    ['Darwin', 'x86_64', false], ['Linux', 'aarch64', false], ['Linux', 'x86_64', false]]) {
+    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', platform.run], {
+      encoding: 'utf8', timeout: 5000,
+      env: {...process.env, PATH: root + ':' + process.env.PATH,
+        ACTQL_FIXTURE_SYSTEM: system, ACTQL_FIXTURE_ARCH: arch},
+    });
+    assert.equal(result.error, undefined);
+    assert.equal(result.signal, null);
+    assert.equal(result.status === 0, accepted, `${system}/${arch}: ${result.stderr}`);
+  }
+  // The runner keeps both the focused prerequisite and the complete Native
+  // campaign. The existing harness selects the original platform libraries.
+  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -p platform_native\/trusted_clock/u);
+  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -j/u);
+  assert.doesNotMatch(coreStep.run, /ACTQL_TEST_NATIVE_SQLITE_LIBRARY/u);
+});
 
 test('common Core stack prerequisite is confined to Linux Native children', t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-native-stack-scope-'));

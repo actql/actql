@@ -9,11 +9,20 @@
       "objects": "original generated sequence retention/output/metadata envelope",
       "source": "src/execution_relation/execution_capacity.mbt",
       "symbols": [
-        "retention_nodes",
-        "retained +="
+        "generated_sequence_capacity(",
+        "execution_capacity_inventory_bytes([",
+        "count: rows.retained_entries.to_int64()",
+        "count: rows.metadata_entries.to_int64()",
+        "count: rows.output_values.max_nodes.to_int64()",
+        "count: rows.output_values.max_text_bytes.to_int64()",
+        "is Some(retained)",
+        "retained_bytes: retained"
       ],
       "bound": "base.retained_bytes",
-      "status": "assumed provider/container bound; not a measured allocation census"
+      "status": "assumed provider/container bound; not a measured allocation census",
+      "additionalSources": [
+        "src/execution_relation/capacity_inventory.mbt"
+      ]
     },
     {
       "id": "child-state",

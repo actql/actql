@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {reviewedFunction} from './provider-construction-source-review.mjs';
+import {hash} from '../../inventory.mjs';
 
 // Exact source-side capture inventory, not a general MoonBit free-variable
 // analysis. Native correspondence must bind these roles to actual closures.
@@ -30,6 +31,13 @@ function argumentsOf(source) {
   return args;
 }
 export function checkChainSource(source) {
+  // This original one-sequence query returns only the checked Int prefix.
+  // The reviewed body selects existing step metadata and support predicates;
+  // it issues no Owner/current operation and never receives the private Refs.
+  // Bind its body and arity before admitting its one generated custody call.
+  const prefix = clean(reviewedFunction(source, 'relation_chain_reclaimed_prefix')).replace(/\s+/g, ' ').trim();
+  assert.equal(hash(prefix), '12c360ec8be76849f037562208afde41113dbc6a682236ff77205a66dd57cd9b',
+    'Changed reviewed reclaimed-prefix source body or arity');
   const constructor = clean(reviewedFunction(source, 'bounded_relation_chain_execution_state'));
   const open = '  let start_next = fn(';
   const middle = '  Ok(\n    managed_provider_execution_with_child_work_issue(\n';
@@ -39,6 +47,8 @@ export function checkChainSource(source) {
   assert(constructor.endsWith(tail), 'Changed state-returning owner construction');
   const parts = argumentsOf(constructor.slice(constructor.indexOf(middle) + middle.length, -tail.length));
   assert.equal(parts.length, 5, 'Changed managed parent callback count');
+  assert.equal(constructor.split('relation_chain_reclaimed_prefix(').length, 2,
+    'Changed reviewed reclaimed-prefix call count');
   assert(constructor.includes('let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)'),
     'Changed audited prefix capture');
   const bindings = [...new Set([...parameterBindings, ...[...constructor.matchAll(/^  let (\w+)(?:\s*:[^=\n]+)?\s*=/gm)].map(m => m[1])])];

@@ -806,12 +806,29 @@ test "standard Host JSON output retains returned tree rather than parser constru
   }
   let original = @execution.execution_capacity(17L, 23L).unwrap()
   let peak = @source.json_literal_construction_extent(4096, 128, 8).unwrap()
-  // A Source tree including spans/Value/Field carriers is a conservative
-  // returned envelope for the bare Host JSON result, not another parser call.
+  // The bare Host JSON result has no Source path/coordinate Span records.
+  // Keep its conservative Value/Field/String tree, not another parser call.
   // All containers together fit N; this Owner uses their combined population.
   let returned = @source.json_tree_retained_construction_extent(
-    128, 127, 128, 0, 4096L,
+    128,
+    127,
+    128,
+    0,
+    4096L,
+    keep_spans=false,
   ).unwrap()
+  // Independent shared Array inventory: 383 Value/Field records, 128 growing
+  // containers (384H/2045R/256W), and 255 original String headers, without
+  // 255 Source Spans (255H/255R/1530W). Decoded text is still retained in full.
+  assert_eq(
+    (
+      returned.record_headers,
+      returned.reference_slots,
+      returned.scalar_words,
+      returned.owned_utf16_units,
+    ),
+    (1022L, 2810L, 512L, 4096L),
+  )
   let price = (value : @source.JsonConstructionExtent) => {
     @execution.preparation_representation_cost({
       record_headers: value.record_headers,

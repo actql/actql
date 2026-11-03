@@ -37723,7 +37723,7 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "13a6ba2a072a10693aa93e629059ea9854a2d8489989b48f099b8246051c7284",
+      "sha256": "505b4fbc90391119eb15867091aa0eaffca3cbf29460c9bf22208826dddc0449",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
