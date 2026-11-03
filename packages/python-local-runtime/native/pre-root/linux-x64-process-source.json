@@ -64,8 +64,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/moon.pkg",
-      "bytes": 398,
-      "sha256": "39d1e4c24568fe1c707d10906d8108d6afad1073df2c53188d85a5a899f11598"
+      "bytes": 381,
+      "sha256": "241bd39427dead44ebaefe46ae3b11515642bda96baf7e0a12b307058c1c372b"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
