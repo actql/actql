@@ -299,6 +299,7 @@ pub fn[I, T] start_captured_managed_execution(
       transfer,
       retention,
       execution_capacity,
+      quantities=@resources.quantity_neutral_amounts(run.ledger),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
@@ -444,6 +445,7 @@ fn[T] start_task_execution(
       transfer,
       retention,
       execution_capacity,
+      quantities=@resources.quantity_neutral_amounts(run.ledger),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))

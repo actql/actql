@@ -1585,6 +1585,7 @@ pub fn execute_captured_synchronous_task(
       0L,
       capacity.retained_bytes,
       capacity.execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(run.ledger),
     ) {
     Ok(reservation) => reservation
     Err(issue) => return Err(Physical(issue))

@@ -78,7 +78,13 @@ pub fn begin_resident_transfer(
     return Err(Physical(InvalidCharge))
   }
   let reservation = match
-    @resources.reserve_attempt(run.ledger, transfer_bytes, 0L, scratch_bytes) {
+    @resources.reserve_attempt(
+      run.ledger,
+      transfer_bytes,
+      0L,
+      scratch_bytes,
+      quantities=@resources.quantity_neutral_amounts(run.ledger),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
