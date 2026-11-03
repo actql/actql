@@ -173,6 +173,7 @@ test('active main finishes while pending work coalesces; branches and performanc
   }
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
+  assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
@@ -655,6 +656,7 @@ test('normal distribution keeps original Request resource and cleanup regression
     .scripts['check:distribution-client'];
   const selected = command.split(/\s+/u);
   for (const file of [
+  "adapters/host-node/installed-duckdb-source-owner.test.mjs",
   "adapters/host-node/table-owned-site-retirement.test.mjs",
   "adapters/host-node/table-original-metadata.test.mjs",
   "adapters/host-node/content-pre-record-retirement.test.mjs",

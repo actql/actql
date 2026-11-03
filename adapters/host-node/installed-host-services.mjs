@@ -9,6 +9,7 @@ import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
+import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {installedCheckEnvironmentInputs, composeInstalledCheckEnvironmentOriginal} from './installed-check-environment.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
@@ -447,6 +448,28 @@ function reserveInstalledTableConstruction(original, material, profile) {
   material.nodes += allNodes; material.text += allText; material.wire += allWire;
 }
 
+// The checked Environment owns its complete parse/native projection already.
+// Account admission occurs once; each existing connector-binding digest uses
+// the same physical-target projection. Keep their input-proportional controls,
+// UTF-8/hex strings and serialization overlap before either constructor. These
+// are the existing Source node/text/byte quantities, never numerical admission.
+function reserveInstalledDuckDBConstruction(original, material, profile, environment) {
+  const bindings = BigInt(environment.body.connector_catalogs.length);
+  const physicalUnits = BigInt(profile.database.length) + BigInt(profile.schema.length) + BigInt(profile.table.length);
+  // Physical target retains original names plus at most eight hex units per
+  // UTF-16 input unit. Root/principal/source names belong to each exact digest.
+  const bindingUnits = 9n * physicalUnits + BigInt(original.root.length) +
+    BigInt(original.principalId.length) + BigInt(profile.sourceRef.length);
+  const units = BigInt(profile.accountConfigurationWire.length) + bindings * bindingUnits;
+  const operations = 1n + bindings;
+  const nodes = 16n * (units + operations), text = 16n * units, wire = 8n * units;
+  reserveSource(original, material, nodes, text, wire);
+  // Failed constructors retain their complete admitted peak on this SAME
+  // Source successor. No return from a pure wrapper is a cleanup receipt.
+  material.inputs.push(profile, environment);
+  material.nodes += nodes; material.text += text; material.wire += wire;
+}
+
 export async function withInstalledSourceLoading(services, construct) {
   if (services === undefined) return construct();
   const original = installations.get(services);
@@ -474,6 +497,52 @@ export function beginInstalledSourceInitialization(services, installation, conne
   if (original.selected.get(installation) === undefined || typeof connectorId !== 'string' ||
       typeof baseEnvironmentWire !== 'string' || !['source', 'effect'].includes(role) ||
       role === 'effect' && installation.effect === undefined) fail('ForeignInstalledSourceInitialization');
+  return createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role);
+}
+
+// The existing builtin publishes its complete Environment, rather than a Row
+// declaration. Retain the SAME pending Source context before its checked
+// constructor; select the connector only from that admitted original Catalog.
+export function beginInstalledPublishedSourceInitialization(services, installation, sourceRef, wire, baseEnvironmentWire) {
+  const original = installations.get(services);
+  if (original === undefined) fail('ForeignInstalledHostServices');
+  const material = sourceMaterial(original);
+  if (material === undefined) return undefined;
+  if (material.phase !== 'working' || original.selected.get(installation) === undefined ||
+      typeof sourceRef !== 'string' || typeof wire !== 'string' || typeof baseEnvironmentWire !== 'string') {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source');
+  try {
+    const environment = context.preparePublishedEnvironment(wire);
+    // Catalog views carry their checked contract identity, not a source_ref.
+    // Join the SAME admitted snapshot selector to that exact catalog member;
+    // never infer a connector by parsing or repairing the URI-like spelling.
+    let snapshot;
+    for (const candidate of environment.body.schema_snapshots) {
+      if (candidate.source_ref !== sourceRef || candidate.read_mode !== 'snapshot') continue;
+      if (snapshot !== undefined) fail('InstalledSourceBindingAmbiguous');
+      snapshot = candidate;
+    }
+    if (snapshot === undefined) fail('InstalledSourceProgramMismatch');
+    let selected;
+    for (const catalog of environment.body.connector_catalogs) {
+      if (!catalog.source_views.some(view => view.contract_cid === snapshot.source_view_contract_cid)) continue;
+      if (selected !== undefined) fail('InstalledSourceBindingAmbiguous');
+      selected = catalog.connector_id;
+    }
+    if (typeof selected !== 'string' || selected.length === 0) fail('InstalledSourceProgramMismatch');
+    const retained = sourceContexts.get(context);
+    if (!retained.scope.active || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+    retained.scope.connectorId = selected;
+    return context;
+  } catch (cause) {
+    finishInstalledSourceInitialization(context, undefined, cause, true);
+    throw cause;
+  }
+}
+
+function createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role) {
   const scope = {installation, connectorId, baseEnvironmentWire, role, prepared: undefined,
     source: undefined, active: true};
   material.contexts.push(scope); material.constructors++;
@@ -1309,6 +1378,39 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       owned.reader = reader;
       current();
       return reader;
+    },
+    async createDuckDBSource() {
+      current();
+      if (scope.role !== 'source' || !scope.publishedEnvironment || scope.prepared?.environment === undefined ||
+          typeof scope.connectorId !== 'string' || owned.attempted || owned.constructing) {
+        fail('InstalledSourceConstructionUnavailable');
+      }
+      const prepared = scope.prepared;
+      owned.attempted = true; owned.constructing = true;
+      try {
+        reserveInstalledDuckDBConstruction(original, material, checkedProfile, prepared.environment);
+        current();
+        const profile = await installDuckDBSourceProfile(checkedProfile, {
+          root: original.root, principalId: original.principalId, runtime: original.moon,
+          retainAuthorization(authorization) {
+            // Retain before the installed profile can return or fail.
+            owned.authorization = authorization;
+            material.inputs.push(authorization);
+          },
+        });
+        material.inputs.push(profile);
+        current();
+        // This known constructor registers its SAME adapter before returning;
+        // connector DATA cannot supply a factory or register an arbitrary value.
+        const adapter = await createInstalledDuckDBSource(profile, original.moon, {
+          root: original.root, principalId: original.principalId,
+          sourceInitialization: context, environment: prepared.environment,
+        });
+        owned.adapter = adapter;
+        current();
+        if (scope.prepared !== prepared || scope.source !== adapter) fail('ForeignInstalledSourceConstruction');
+        return adapter;
+      } finally {owned.constructing = false;}
     },
     async createTableSource(options) {
       current();

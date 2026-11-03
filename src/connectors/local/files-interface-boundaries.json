@@ -2412,7 +2412,8 @@
             "assertCurrent",
             "resources",
             "limits",
-            "nativeFilesystem"
+            "nativeFilesystem",
+            "writerProfile"
           ],
           "async": false
         },
@@ -2628,7 +2629,8 @@
             "selected",
             "supplied",
             "signal",
-            "runOriginal"
+            "runOriginal",
+            "physicalOperation"
           ],
           "async": true
         },
@@ -3045,14 +3047,16 @@
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
+        "../site/root-file-writer-profile.mjs",
         "../site/root-stored-content-writer.mjs",
+        "./local-file-store-plan.mjs",
         "./local-file-store-target.mjs",
         "node:crypto",
         "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "bf30f1b276045879473ff0e67caceb9cac7d617951cba2f8e71bdeb8d65a2bb6"
+      "sha256": "6a875ab5cefa04a82905602dfc449ba7e1fa0230cc2acc6889ed8c4f4ee3aad9"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
@@ -3801,10 +3805,11 @@
     {
       "module": "adapters/connectors/local/site/root-file-writer.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f685564ef298166a595b6dd5a1cfaa70873ef2c23b0de4399558adcd34f34c00",
+      "sha256": "80a88b6c365696ed27f3139791d09841e9ce4cfb16e9614a235460d27440480c",
       "role": "physical-io",
       "owner": "Existing descriptor-relative Local Root write child, original staging/write/publication and close duties",
       "exports": [
+        "localFileWriteMaxComponents",
         "prepareLocalFileWrite"
       ],
       "operations": [
@@ -3825,7 +3830,9 @@
             "maxBytes",
             "overwrite",
             "assertCurrent",
-            "signal"
+            "signal",
+            "writeQuantumBytes",
+            "observeWriteBytes"
           ],
           "async": false
         },
@@ -4149,6 +4156,110 @@
               {
                 "path": "adapters/connectors/local/site/root-file-writer.mjs",
                 "anchor": "publishAttempted = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('actual Local write child defers acquisition"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "localFileWriteMaxComponents"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "localFileWriteMaxComponents"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -4488,6 +4599,279 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/connectors/local/host/local-file-store-plan.mjs",
+      "sha256": "95f0c6c8fbebeb0ab55fb7211923c5b5232275e780604ceed2cea0683a6b6ffe",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
+      "exports": [
+        "prepareLocalFileStorePlanRecipe"
+      ],
+      "operations": [
+        {
+          "name": "prepareLocalFileStorePlanRecipe",
+          "parameters": [
+            "moon",
+            "inputLimits",
+            "limits",
+            "writerProfile"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStorePlanRecipe/quote/quote",
+          "parameters": [
+            "controlWireBytes"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/effect-ledger-implementation-bounds.mjs",
+        "../../../host-node/installed-effect-plan.mjs",
+        "../../../store-local/publication-store.mjs",
+        "../site/root-file-writer.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepareLocalFileStorePlanRecipe",
+            "prepareLocalFileStorePlanRecipe/quote/quote"
+          ],
+          "exports": [
+            "prepareLocalFileStorePlanRecipe"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous inert construction DATA only; no physical child, request, admission or asynchronous work is started."
+            },
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.mjs",
+                "anchor": "prepareLocalFileStorePlanRecipe"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test('Local STORE recipe consumes actual constructor bounds in distinct original occurrences'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+      "sha256": "43b91aa98da212b849567bf47795ac86939a8c08e1bdef006cf4ffb2f45a8669",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Local file constructor DATA; common Effect Plan retains all admission and physical ownership",
+      "exports": [
+        "captureLocalFileWriteConstructionProfile"
+      ],
+      "operations": [
+        {
+          "name": "captureLocalFileWriteConstructionProfile",
+          "parameters": [
+            "native"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureLocalFileWriteConstructionProfile",
+            "fail/fail"
+          ],
+          "exports": [
+            "captureLocalFileWriteConstructionProfile"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous inert construction DATA only; no physical child, request, admission or asynchronous work is started."
+            },
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.mjs",
+                "anchor": "captureLocalFileWriteConstructionProfile"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.test.mjs",
+                "anchor": "test('normal selected Local native image supplies its actual descriptor and writer bounds'"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-file-writer-profile.test.mjs",
+                "anchor": "test('Local writer refuses missing, accessor, asynchronous and malformed construction DATA'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

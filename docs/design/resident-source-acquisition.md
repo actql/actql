@@ -68,6 +68,32 @@ payload cleanup retains capacity until physical deletion is confirmed. Export
 cancellation uses the existing captured-input owner. Durable outbound
 cancellation and restart guarantees remain separate contracts.
 
+## Builtin DuckDB installation custody
+
+The builtin profile supplies a complete checked Environment rather than a Row
+Site or restored RowDeclaration. Its normal loader enters the same initial
+Source owner before that Environment is checked. The profile's exact Source
+reference selects its snapshot member; that member's original view-contract CID
+selects the owning Catalog connector. A missing or ambiguous match refuses
+construction. URI spelling and connector DATA do not issue a declaration or a
+read grant.
+
+The bound builtin constructor reserves the Account input, proportional physical
+binding projections and retained wrappers on that same Source successor before
+Account admission. The checked Environment keeps its original construction and
+retained overlap. Static acquisition contracts use the same original FD reader,
+including pre-read extent reservation, decode overlap and close-only retry. The
+constructor registers its own adapter before returning; no provider callback
+can register another object or bypass the bound factory.
+
+A newly acquired authorization gate is retained before the installed-profile
+wrapper or native constructor can fail. Its original close method is captured
+before the first await. Closing prevents new preparation/acquisition immediately;
+a false or failed close keeps the same gate and Source live. Only that gate's
+true cleanup acknowledgement closes the registered Source construction. Query,
+capture, publication and physical acquisition retain their existing owners and
+checks; an initialization success does not authorize a read.
+
 ## Bounded installation documents
 
 Source profile, Site and publication document acquisition shares a bounded

@@ -9,6 +9,8 @@ import {beginInitialControlInstallation, assertInitialControlInstallationCurrent
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 import {sourcePreparationPort} from '../../packages/sdk/internal/private-source-preparation.mjs';
+import {checkedLocalOutputLimits, localOutputLimits} from './local-values-plan.mjs';
+import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
@@ -602,7 +604,7 @@ test('prepared Client pending request index preserves original close drain and r
 // Journal/Checkpoint ports. No synthetic packet below issues capacity, a Run,
 // approval or a physical cleanup acknowledgement.
 function heldRequestOriginalFixture({changed = false, failure, failPreparation = false, finishFailure,
-  finishFailures = 1} = {}) {
+  finishFailures = 1, preparePlan, effectful = false} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let entry;
@@ -650,7 +652,12 @@ function heldRequestOriginalFixture({changed = false, failure, failPreparation =
     },
     requestOf(request) {
       assert.equal(registry.originalSourceRequest(host, installation, host, prepared), request);
-      calls.push('request-original');return {requested,resultNames:['answer'],acquired:false,acquisitionCount:0,effectful:false};
+      calls.push('request-original');return {requested,resultNames:['answer'],acquired:false,acquisitionCount:0,effectful};
+    },
+    admitPreparedSubmission(request) {
+      assert.equal(registry.originalSourceRequest(host, installation, host, prepared), request);
+      calls.push('admit-plan');
+      return preparePlan?.({request, moon, prepared, requested, preparation, requestOf:ports.requestOf});
     },
     prepareAcquisitions() {assert.fail('No extra Source');}, prepareKeyedSources() {assert.fail('No keyed Source');},
     prepareAcquisition() {assert.fail('No Source');},
@@ -658,13 +665,13 @@ function heldRequestOriginalFixture({changed = false, failure, failPreparation =
     canonicalValueJson: JSON.stringify};
   const held = new Function(...Object.keys(ports),
     'const ' + source.slice(entry.start, entry.end) + ';return heldSubmission;')(...Object.values(ports));
-  return {held: () => held(captured), captured, calls, registry, host, installation, prepared, input,
+  return {held: () => held(captured), captured, calls, registry, host, installation, moon, prepared, requested, input,
     original(value) {return registry.originalSourceRequest(host, installation, host, value);}};
 }
 
 test('held request reconstruction retains its actual pending original before funded preparation', async () => {
   const f = heldRequestOriginalFixture(), resolved = await f.held();
-  assert.deepEqual(f.calls, ['retain-original','prepare-original','bind-original','request-original']);
+  assert.deepEqual(f.calls, ['retain-original','prepare-original','bind-original','request-original','admit-plan']);
   assert.equal(resolved.requestInput, f.input);
   assert.equal(f.original(resolved.submission), resolved.submission);
   assert.equal(f.original(f.prepared), resolved.submission);
@@ -736,6 +743,81 @@ function heldControl(name, ports) {
   return new Function(...Object.keys(ports), 'const ' + source.slice(entry.start, entry.end) +
     ';return ' + name + ';')(...Object.values(ports));
 }
+
+// Extract the actual route/getter rather than reproducing their branch logic.
+function heldSourceFunction(name, ports) {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  let entry;
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id.name === name ||
+        node.type === 'Property' && node.method && node.key.name === name) {
+      assert.equal(entry, undefined); entry = node.type === 'Property' ? node.value : node;
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(entry, name);
+  const body = source.slice(entry.start, entry.end);
+  return new Function(...Object.keys(ports), 'return (' +
+    (entry.type === 'FunctionExpression' ? 'function' : '') + body + ');')(...Object.values(ports));
+}
+
+test('held resume adopts the same Request Plan before its original publication consumer', async () => {
+  const record = {computeRuns:new WeakMap()}, run = {}, admitted = [];
+  const clientOperationError = code => Object.assign(new Error(code), {code});
+  const original = heldSourceFunction('managedComputePublicationOriginal', {record, clientOperationError});
+  const route = heldSourceFunction('captureInstalledManagedRunRoute', {clientOperationError});
+  const f = heldRequestOriginalFixture({preparePlan({request, moon, prepared, requested, preparation, requestOf}) {
+    Object.assign(moon, {
+      clientProgramSerializationOccurrences(actual) {assert.equal(actual,prepared);return [];},
+      clientProgramInstalledManagedPublicationLimits(actual, program, maxBytes) {
+        assert.equal(actual,run);assert.equal(program,prepared);assert.equal(maxBytes,localOutputLimits.maxWireBytes);
+        return resultOutputLimitFields.map(name => localOutputLimits[name]);
+      },
+    });
+    Object.assign(preparation, {
+      admitResultPublicationRun(actual) {assert.equal(actual,prepared);admitted.push(actual);},
+      prepareManagedComputeRun(runtime, program, identity, inference, invocation) {
+        assert.equal(runtime,moon);assert.equal(program,prepared);assert.equal(identity,requested);
+        assert.equal(inference,undefined);assert.equal(invocation,undefined);
+        assert.equal(f.original(program),request);
+        assert.equal(record.computeRuns.has(program),false,'No second Plan constructor');
+        record.computeRuns.set(program,{runtime,prepared:program,value:run,closed:false});
+      },
+    });
+    const admit = heldControl('admitPreparedSubmission', {preparation, requestOf, moon,
+      inferSelections:new WeakMap(), admissionFailures:new WeakMap(), holderRefusal:undefined,
+      prepareOrdinaryManagedRun:route({preparation,moon}), clientOperationError});
+    return admit(request);
+  }});
+  const restored = await f.held();
+  const publication = original(f.moon,f.prepared);
+  assert.deepEqual(checkedLocalOutputLimits(f.moon,f.prepared,publication),localOutputLimits);
+  assert.equal(publication.kind,'installed_run');assert.equal(publication.value,run);
+  assert.deepEqual(admitted,[f.prepared]);assert.equal(f.original(f.prepared),restored.submission);
+  assert.deepEqual(f.calls,['retain-original','prepare-original','bind-original','request-original','admit-plan','request-original']);
+  restored.requestInput.finish('returned');
+});
+
+test('held Effect keeps its existing definition-owned Plan constructor', async () => {
+  const f = heldRequestOriginalFixture({effectful:true,preparePlan(){assert.fail('No duplicate Effect admission');}});
+  const restored = await f.held();
+  assert.equal(restored.effectful,true);assert.equal(f.calls.includes('admit-plan'),false);
+  restored.requestInput.finish('returned');
+});
+
+test('held Plan admission failure preserves the same original input cleanup', async () => {
+  for (const primary of [new Error('original Plan admission failure'),undefined]) {
+    const f = heldRequestOriginalFixture({preparePlan(){throw primary;}});
+    let rejected = false;
+    try {await f.held();} catch (error) {rejected = true;assert.equal(error,primary);}
+    assert.equal(rejected,true);assert.equal(f.calls.at(-1),'finish:failed');
+    await Promise.resolve();await Promise.resolve();
+    assert.throws(()=>f.original(f.prepared),{code:'InstalledHostPreparationChanged'});
+  }
+});
 
 test('held resume successful start retains the same failed input return retry without restarting', async () => {
   const cleanup = new Error('original input return pending');

@@ -2,6 +2,14 @@
  * records. The backing and every child extent use the original C adapter.
  * There is no GC cleanup ACK: the MoonBit Host retains all records until explicit
  * child-first cleanup. Unreachable live records cannot release a reservation. */
+/* This package's default POSIX process implementation selects its actual
+ * compiler target. Scoped/imported providers keep their separate source and
+ * recipe. GNU visibility is selected by moon.pkg before any system header. */
+#if defined(__linux__) && defined(__x86_64__) && \
+    !defined(ACTQL_SCOPED_READ_ALLOCATOR) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+#define ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN 1
+#endif
 #include "moonbit.h"
 #include <stdint.h>
 #include <string.h>

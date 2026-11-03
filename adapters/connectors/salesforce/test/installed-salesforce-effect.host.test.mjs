@@ -44,7 +44,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-test.after(() => rm(tlsRoot, {recursive: true, force: true}));
+test.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Salesforce Effect Host TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 // The Host's principal and its one account configuration: the Host and the
 // installed Site decide under the same admitted text.
@@ -176,7 +178,9 @@ async function setup(t, {targets = ['Test_Record__c'], org = {}, ...options} = {
     // test. Its metadata permission is not retained as a target-read grant.
     principalId: owner, accountConfigurationWire: hostConfiguration({...options, read: 'allow'})});
   const directory = await mkdtemp(join(scratch, 'host-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+    ? t.diagnostic(`Retained Salesforce Effect Host fixture: ${directory}`)
+    : rm(directory, {recursive: true, force: true}));
   const effect = await installation.load();
   const program = JSON.stringify(effectProgram(Object.fromEntries(
     effect.mappings.map((mapping, index) => [`save_${index}`, {update: {
@@ -586,7 +590,9 @@ for (const targetRead of ['allow', 'delegate']) {
       org: {writableObjects: ['Other_Record__c'], loseWriteReplyOnce: true},
       principalId: owner, accountConfigurationWire: hostConfiguration()});
     const directory = await mkdtemp(join(scratch, 'host-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+    ? t.diagnostic(`Retained Salesforce Effect Host fixture: ${directory}`)
+    : rm(directory, {recursive: true, force: true}));
     const effect = await installation.load();
     const [mapping] = effect.mappings;
     effect.close();

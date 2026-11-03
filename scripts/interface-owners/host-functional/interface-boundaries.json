@@ -36126,7 +36126,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "78d2edc8eb851ad1dfaabd428285d494508da2093e1cb64d3c2f5e76df9a3a86",
+      "sha256": "6ec6fbfb21e155eda3978e0cc338b3d2d38d69ac637c09cf6cfc574984483911",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -36461,6 +36461,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/supportsCheckObservation/supportsCheckObservation",
+          "parameters": [
+            "intent"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientSubmission/unresolved/unresolved",
           "parameters": [
             "submissionRef",
@@ -36540,6 +36547,7 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/submitIntent/submitIntent/restartFields/restartFields",
             "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal",
+            "installNodeClientSubmission/supportsCheckObservation/supportsCheckObservation",
             "installNodeClientSubmission/unresolved/unresolved",
             "installNodeClientSubmission/withRestart/withRestart",
             "issueNodeClientSubmissionEpoch",
@@ -59186,7 +59194,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a9de4fcdde1d0560c936c5db94c577d1e90550fcf383727c08d9d037cc1ca45",
+      "sha256": "d4ded9502dec20223347c5f64160d6d72ce8bf248827447526d0dac110305e3d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -59217,7 +59225,8 @@
             "outputLimits",
             "faultInjection",
             "restored",
-            "retainCleanup"
+            "retainCleanup",
+            "managedOriginal"
           ],
           "async": false
         },
@@ -59248,6 +59257,13 @@
           "parameters": [
             "captured",
             "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/init:bindExecution/init:bindExecution",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -59364,13 +59380,6 @@
           "async": false
         },
         {
-          "name": "installEffectContentFamily/provider/provider",
-          "parameters": [
-            "step"
-          ],
-          "async": false
-        },
-        {
           "name": "installEffectContentFamily/releaseTemporary/releaseTemporary",
           "parameters": [],
           "async": true
@@ -59385,6 +59394,13 @@
         {
           "name": "installEffectContentFamily/selectedForContent/selectedForContent/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/selectedProvider/selectedProvider",
+          "parameters": [
+            "step"
+          ],
           "async": false
         }
       ],
@@ -59413,7 +59429,6 @@
             "installEffectContentFamily/port/init:cancel/init:cancel",
             "installEffectContentFamily/port/port",
             "installEffectContentFamily/port/port#2",
-            "installEffectContentFamily/provider/provider",
             "installEffectContentFamily/releaseTemporary/releaseTemporary",
             "installEffectContentFamily/selectedForContent/selectedForContent",
             "installEffectContentFamily/selectedForContent/selectedForContent/current/current"
@@ -60048,6 +60063,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installEffectContentFamily/init:bindExecution/init:bindExecution",
+            "installEffectContentFamily/selectedProvider/selectedProvider"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('early managed Content keeps its same provider and binds physical execution only once'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "test('Content provider constructor failure retains its original cleanup before throwing'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -60060,7 +60184,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3bdbea58fd8a6bce690837f5e281dded97ac49c01c2caa8bebf7798c5114573d",
+      "sha256": "bdbb58a735c6d83a857098edc3ad2200be52bb45dc80df8b6ba94b93170f2114",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -60302,6 +60426,15 @@
           "async": false
         },
         {
+          "name": "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
+          "parameters": [
+            "workspace",
+            "physical",
+            "retain"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeContentRun/installNodeContentRun/recheck/recheck",
           "parameters": [],
           "async": false
@@ -60319,6 +60452,13 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#10",
           "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
+          "parameters": [
             "preparedProgram",
             "plan",
             "sourceCapacity"
@@ -60326,7 +60466,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#11",
+          "name": "installNodeContentRun/installNodeContentRun#12",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -60338,7 +60478,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#12",
+          "name": "installNodeContentRun/installNodeContentRun#13",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -60414,12 +60554,9 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
-            "prepared",
-            "plan",
+            "facts",
             "store",
             "principalId",
-            "signal",
-            "restored",
             "retainCleanup"
           ],
           "async": false
@@ -60427,7 +60564,14 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#9",
           "parameters": [
-            "options"
+            "prepared",
+            "plan",
+            "store",
+            "principalId",
+            "signal",
+            "restored",
+            "retainCleanup",
+            "managedOriginal"
           ],
           "async": false
         },
@@ -62247,6 +62391,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
+            "installNodeContentRun/installNodeContentRun#13"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('source-free Content family uses its checked Values input without inventing Source proof'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "test('retained Content cleanup joins the same pending append before reporting completion'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -62269,15 +62522,38 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aa55e280a03dc54654e0e8bc6acb107c11c79ae3453f87d8d0a03a5356ae8eee",
+      "sha256": "615941c020d72583a51e9f5cc999b199e359d21314e1cf7150b75084662d27e6",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
         "INSTALLED_DUCKDB_SOURCE_VERSION",
+        "checkInstalledDuckDBSourceProfile",
+        "createInstalledDuckDBSource",
         "installDuckDBSourceProfile",
         "loadInstalledDuckDBSource"
       ],
       "operations": [
+        {
+          "name": "checkInstalledDuckDBSourceProfile",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
         {
           "name": "cid",
           "parameters": [
@@ -62286,20 +62562,122 @@
           "async": false
         },
         {
-          "name": "installDuckDBSourceProfile",
+          "name": "createInstalledDuckDBSource",
           "parameters": [
             "profile",
+            "moon",
             "root",
-            "principalId"
+            "principalId",
+            "sourceInitialization",
+            "environment"
           ],
           "async": true
         },
         {
-          "name": "installDuckDBSourceProfile/installDuckDBSourceProfile",
+          "name": "createInstalledDuckDBSource/adapter/adapter",
           "parameters": [
-            "key"
+            "connectorId"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/adapter#2",
+          "parameters": [
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/adapter#3",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "sourceAccess",
+            "occurrence",
+            "requireImmediateReadAuthorization",
+            "queryTimePreparation",
+            "requestIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/adapter#4",
+          "parameters": [
+            "preparedProgram",
+            "preparedEffect",
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "sourceAccess",
+            "signal",
+            "preparedSource",
+            "reportAcquisitionFailure",
+            "occurrence",
+            "ledger",
+            "retainedRelationOutput"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
+          "parameters": [
+            "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/capacityContracts/capacityContracts",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/catalogIds/catalogIds",
+          "parameters": [
+            "catalog"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installDuckDBSourceProfile",
+          "parameters": [
+            "profile",
+            "root",
+            "principalId",
+            "runtime",
+            "retainAuthorization"
+          ],
+          "async": true
         },
         {
           "name": "loadInstalledDuckDBSource",
@@ -62314,13 +62692,18 @@
       "contracts": [
         {
           "operations": [
+            "checkInstalledDuckDBSourceProfile",
+            "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile",
+            "checkInstalledDuckDBSourceProfile/checkInstalledDuckDBSourceProfile#2",
             "cid",
+            "createInstalledDuckDBSource/current/current",
             "installDuckDBSourceProfile",
-            "installDuckDBSourceProfile/installDuckDBSourceProfile",
             "loadInstalledDuckDBSource"
           ],
           "exports": [
             "INSTALLED_DUCKDB_SOURCE_VERSION",
+            "checkInstalledDuckDBSourceProfile",
+            "createInstalledDuckDBSource",
             "installDuckDBSourceProfile",
             "loadInstalledDuckDBSource"
           ],
@@ -62435,6 +62818,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Builtin DuckDB installation custody"
               }
             ],
             "extension": [
@@ -62459,6 +62846,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
               }
             ]
           }
@@ -62606,15 +62997,245 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledDuckDBSource",
+            "createInstalledDuckDBSource/adapter/adapter",
+            "createInstalledDuckDBSource/adapter/adapter#2",
+            "createInstalledDuckDBSource/adapter/adapter#3",
+            "createInstalledDuckDBSource/adapter/adapter#4",
+            "createInstalledDuckDBSource/adapter/init:close/init:close",
+            "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
+            "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
+            "createInstalledDuckDBSource/catalogIds/catalogIds"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "export function installedSourcePublicationFacts(source) {"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "export function installedSourcePublicationFacts(source) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "// The standard Host's installed source binding, selected by the Host"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "// an unknown version is refused before any installation I/O."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "// adapter keeps its own physical I/O, grants and cleanup; the Host's Run,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "//   installed capacity for restoring that exact capture on the existing Run"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-source.mjs",
+                "anchor": "// The standard Host's installed source binding, selected by the Host"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-reference-recovery.test.mjs",
+                "anchor": "test('Source reference recovery requires current issuer and preserves original captured bytes', async () => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledDuckDBSource/adapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
+            "createInstalledDuckDBSource/capacityContracts/capacityContracts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "An ordinary installed Source uses the existing Host Source/Compute manager and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "opaque capture capacity for that actual QueryRequirement plus its existing"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Each real prepared Source is privately associated with its original checked"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "The existing dispatch retirement predicate first settles actual Source/Compute"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Program and parent after the preparation await and a second current fence."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Copied, foreign and cancelled preparations cannot supply that association."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "children and unresolved cleanup. Only then may its existing preparation holder"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Actual selected capacities must fit that original Ledger before dispatch; a"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Source-empty Program. Unsupported installations keep their existing refusal."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "Plural installations forward the same parent through every selected capacity;"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../connectors/duckdb/node/acquisition-planning.mjs",
+        "../connectors/duckdb/node/native-runtime.mjs",
+        "../connectors/duckdb/node/physical-capacity.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/runtime-result.mjs",
         "./authorization.mjs",
+        "./captured-duckdb-source.mjs",
+        "./duckdb-physical-target.mjs",
+        "./installed-host-services.mjs",
+        "./local-account-config.mjs",
         "node:crypto",
         "node:fs/promises",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -73747,7 +74368,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "758a572a628587d302001ee8dad1b8a465fc217601cfd136c8fe7b7dc8e9fba2",
+      "sha256": "66ee2d44e7f93e0b18d7579e00a087e3a861a991a901ec8ca7310ff75dd080c6",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -73774,131 +74395,26 @@
           "async": false
         },
         {
-          "name": "duckdbAdapter",
-          "parameters": [
-            "profile",
-            "moon",
-            "root",
-            "principalId"
-          ],
-          "async": true
-        },
-        {
-          "name": "duckdbAdapter/capacityContracts/capacityContracts",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/catalogIds/catalogIds",
-          "parameters": [
-            "catalog"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/duckdbAdapter",
-          "parameters": [
-            "connectorId"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/duckdbAdapter#2",
-          "parameters": [
-            "sourceRef"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/duckdbAdapter#3",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "sourceAccess",
-            "occurrence",
-            "requireImmediateReadAuthorization",
-            "queryTimePreparation",
-            "requestIdentity"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/duckdbAdapter#4",
-          "parameters": [
-            "preparedProgram",
-            "preparedEffect",
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "sourceAccess",
-            "signal",
-            "preparedSource",
-            "reportAcquisitionFailure",
-            "occurrence",
-            "ledger",
-            "retainedRelationOutput"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/duckdbAdapter#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/init:ledgerCapacity/init:ledgerCapacity",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
-          "parameters": [
-            "requirement"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbAdapter/init:retainedCapture/init:retainedCapture",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
           "name": "duckdbInstallation/duckdbInstallation",
           "parameters": [],
           "async": true
         },
         {
-          "name": "duckdbInstallation/duckdbInstallation/duckdbInstallation",
+          "name": "duckdbSourceModule/duckdbSourceModule",
           "parameters": [
             "profile"
           ],
           "async": false
         },
         {
-          "name": "duckdbInstallation/duckdbInstallation/duckdbInstallation#2",
-          "parameters": [
-            "profile"
-          ],
-          "async": false
-        },
-        {
-          "name": "duckdbInstallation/duckdbInstallation/duckdbInstallation#3",
+          "name": "duckdbSourceModule/duckdbSourceModule#2",
           "parameters": [
             "profile",
             "root",
             "principalId",
-            "moon"
+            "moon",
+            "construction",
+            "sourceInitialization"
           ],
           "async": true
         },
@@ -74155,19 +74671,9 @@
       "contracts": [
         {
           "operations": [
-            "duckdbAdapter",
-            "duckdbAdapter/catalogIds/catalogIds",
-            "duckdbAdapter/duckdbAdapter",
-            "duckdbAdapter/duckdbAdapter#2",
-            "duckdbAdapter/duckdbAdapter#3",
-            "duckdbAdapter/duckdbAdapter#4",
-            "duckdbAdapter/duckdbAdapter#5",
-            "duckdbAdapter/init:ledgerCapacity/init:ledgerCapacity",
-            "duckdbAdapter/init:retainedCapture/init:retainedCapture",
             "duckdbInstallation/duckdbInstallation",
-            "duckdbInstallation/duckdbInstallation/duckdbInstallation",
-            "duckdbInstallation/duckdbInstallation/duckdbInstallation#2",
-            "duckdbInstallation/duckdbInstallation/duckdbInstallation#3",
+            "duckdbSourceModule/duckdbSourceModule",
+            "duckdbSourceModule/duckdbSourceModule#2",
             "installedSourceFor",
             "installedSourceFor/matches/matches",
             "installedSourceIdentity",
@@ -74179,10 +74685,10 @@
             "loadInstalledSources",
             "loadInstalledSources/close/close",
             "loadInstalledSources/loadInstalledSources",
-            "loadInstalledSources/loadInstalledSources/loadInstalledSources",
             "loadInstalledSources/loadInstalledSources#2",
             "loadInstalledSources/loadInstalledSources#3",
             "loadInstalledSources/loadInstalledSources#4",
+            "loadInstalledSources/loadInstalledSources/loadInstalledSources",
             "providerRuntime",
             "publishInstalledSourceProfile",
             "readProfile",
@@ -74314,6 +74820,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Builtin DuckDB installation custody"
               }
             ],
             "extension": [
@@ -74338,6 +74848,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
               }
             ]
           }
@@ -74480,10 +74994,7 @@
           }
         },
         {
-          "operations": [
-            "duckdbAdapter/capacityContracts/capacityContracts",
-            "duckdbAdapter/init:managedCaptureCapacity/init:managedCaptureCapacity"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -74770,11 +75281,16 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../../_build/js/release/build/connectors/calendar/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/gcs/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/github/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/gmail/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/hubspot/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/notion/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/salesforce/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/sheets/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/slack/host_node/host_node.js",
         "../connectors-builtin/installations.generated.mjs",
-        "../connectors/duckdb/node/native-runtime.mjs",
-        "../connectors/duckdb/node/physical-capacity.mjs",
-        "../host-common/runtime-result.mjs",
-        "./captured-duckdb-source.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-check-environment.mjs",
         "./installed-connectors.mjs",
@@ -74786,13 +75302,10 @@
         "./source-alias-publication.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
-        "node:fs/promises",
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-table-source.mjs",
@@ -122497,7 +123010,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
+      "sha256": "400e99ff69ed9ac0c765c37691d7b7cca2f447d7692f698563b58249154914b1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -122607,6 +123120,7 @@
             "model",
             "modelSelection",
             "publicationControl",
+            "prepareContent",
             "assertCurrent",
             "checked"
           ],
@@ -122643,19 +123157,26 @@
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
           "parameters": [
-            "cause"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
           "parameters": [
-            "value"
+            "cause"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#8",
           "parameters": [
             "name"
           ],
@@ -122706,6 +123227,7 @@
       "imports": [
         "./acquired-effect-sources.mjs",
         "./infer-operation.mjs",
+        "./installed-effect-plan.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -123181,17 +123703,122 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#8"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
+                "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "b8f490bb0156a791e40c84b9e4816b4b53c420aac147935fad46e561e2047c1f",
+      "sha256": "cff2480a073ff613f9c5ce341917319244860d18b6d4c2dbdb610dc9cb59e181",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
+        "beginInstalledPublishedSourceInitialization",
         "beginInstalledSourceInitialization",
         "bindInstalledSourceConstruction",
         "borrowInstalledSourceInitialization",
@@ -123233,6 +123860,24 @@
           "async": false
         },
         {
+          "name": "beginInstalledPublishedSourceInitialization",
+          "parameters": [
+            "services",
+            "installation",
+            "sourceRef",
+            "wire",
+            "baseEnvironmentWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "beginInstalledPublishedSourceInitialization/beginInstalledPublishedSourceInitialization",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
           "name": "beginInstalledSourceInitialization",
           "parameters": [
             "services",
@@ -123240,263 +123885,6 @@
             "connectorId",
             "baseEnvironmentWire",
             "role"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/captureDeclarationViews",
-          "parameters": [
-            "views"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-          "parameters": [
-            "viewsWire",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
-          "parameters": [
-            "views",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-          "parameters": [
-            "viewsWire",
-            "projection",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
-          "parameters": [
-            "other"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
-          "parameters": [
-            "declaration",
-            "declaredWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
-          "parameters": [
-            "initialViews",
-            "derivation",
-            "projection",
-            "expectedCatalogCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
-          "parameters": [
-            "declaration",
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
-          "parameters": [
-            "writesJson",
-            "writes"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/environment/environment",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/field/field",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareNativeInput/init:prepareNativeInput",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect",
-          "parameters": [
-            "site",
-            "provider",
-            "mappingOriginals"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
-          "parameters": [
-            "projection"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/prepareInitialNativeConstruction",
-          "parameters": [
-            "projection",
-            "attempt"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/prepareOriginalDeclaration",
-          "parameters": [
-            "restore",
-            "originalInput",
-            "basis",
-            "makeWire",
-            "expectedCatalogCid",
-            "finish"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/prepareProviderConstruction",
-          "parameters": [
-            "projection",
-            "role",
-            "withMappings"
-          ],
-          "async": false
-        },
-        {
-          "name": "beginInstalledSourceInitialization/prepareSourceEnvironment",
-          "parameters": [
-            "declared",
-            "mappings"
           ],
           "async": false
         },
@@ -123525,6 +123913,18 @@
           "name": "bindInstalledSourceConstruction/bound/bound#3",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createDuckDBSource/init:createDuckDBSource",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createDuckDBSource/init:createDuckDBSource/profile/init:retainAuthorization/init:retainAuthorization",
+          "parameters": [
+            "authorization"
           ],
           "async": false
         },
@@ -123870,6 +124270,275 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceContext",
+          "parameters": [
+            "original",
+            "material",
+            "installation",
+            "connectorId",
+            "baseEnvironmentWire",
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/captureDeclarationViews",
+          "parameters": [
+            "views"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+          "parameters": [
+            "viewsWire",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration",
+          "parameters": [
+            "views",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "viewsWire",
+            "projection",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
+          "parameters": [
+            "other"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+          "parameters": [
+            "declaration",
+            "declaredWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
+          "parameters": [
+            "initialViews",
+            "derivation",
+            "projection",
+            "expectedCatalogCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
+          "parameters": [
+            "declaration",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareInputConstruction/init:prepareInputConstruction",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
+          "parameters": [
+            "writesJson",
+            "writes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/field/field",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+          "parameters": [
+            "write"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "site",
+            "provider",
+            "mappingOriginals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareInitialNativeConstruction",
+          "parameters": [
+            "projection",
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareOriginalDeclaration",
+          "parameters": [
+            "restore",
+            "originalInput",
+            "basis",
+            "makeWire",
+            "expectedCatalogCid",
+            "finish"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareProviderConstruction",
+          "parameters": [
+            "projection",
+            "role",
+            "withMappings"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/prepareSourceEnvironment",
+          "parameters": [
+            "declared",
+            "mappings"
+          ],
+          "async": false
+        },
+        {
           "name": "fail/fail",
           "parameters": [
             "code"
@@ -124051,6 +124720,16 @@
           "parameters": [
             "result",
             "failed"
+          ],
+          "async": false
+        },
+        {
+          "name": "reserveInstalledDuckDBConstruction",
+          "parameters": [
+            "original",
+            "material",
+            "profile",
+            "environment"
           ],
           "async": false
         },
@@ -124252,6 +124931,7 @@
         "../host-common/runtime-result.mjs",
         "./installed-check-environment.mjs",
         "./installed-credential-source-reader.mjs",
+        "./installed-duckdb-source.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
@@ -124456,42 +125136,15 @@
           "operations": [
             "assertInstalledSourceConstruction",
             "assertInstalledSourceConstruction/empty/empty",
+            "beginInstalledPublishedSourceInitialization",
+            "beginInstalledPublishedSourceInitialization/beginInstalledPublishedSourceInitialization",
             "beginInstalledSourceInitialization",
-            "beginInstalledSourceInitialization/captureDeclarationViews",
-            "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
-            "beginInstalledSourceInitialization/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
-            "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
-            "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
-            "beginInstalledSourceInitialization/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
-            "beginInstalledSourceInitialization/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/environment/environment",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/field/field",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
-            "beginInstalledSourceInitialization/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-            "beginInstalledSourceInitialization/context/init:prepareNativeInput/init:prepareNativeInput",
-            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect",
-            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
-            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
-            "beginInstalledSourceInitialization/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
-            "beginInstalledSourceInitialization/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
-            "beginInstalledSourceInitialization/context/init:prepareReadTarget/init:prepareReadTarget",
-            "beginInstalledSourceInitialization/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
-            "beginInstalledSourceInitialization/prepareOriginalDeclaration",
-            "beginInstalledSourceInitialization/prepareProviderConstruction",
-            "beginInstalledSourceInitialization/prepareSourceEnvironment",
             "bindInstalledSourceConstruction",
             "bindInstalledSourceConstruction/bound/bound",
             "bindInstalledSourceConstruction/bound/bound#2",
             "bindInstalledSourceConstruction/bound/bound#3",
+            "bindInstalledSourceConstruction/bound/init:createDuckDBSource/init:createDuckDBSource",
+            "bindInstalledSourceConstruction/bound/init:createDuckDBSource/init:createDuckDBSource/profile/init:retainAuthorization/init:retainAuthorization",
             "bindInstalledSourceConstruction/bound/init:createSourceReader/init:createSourceReader",
             "bindInstalledSourceConstruction/bound/init:createTableEffect/init:createTableEffect",
             "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource",
@@ -124515,20 +125168,52 @@
             "borrowInstalledSourceInitialization/view/init:release/init:release",
             "closeInstalledSourceConstruction",
             "completeInstalledSourceInitialization",
+            "createInstalledSourceContext",
+            "createInstalledSourceContext/captureDeclarationViews",
+            "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+            "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
+            "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration",
+            "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration",
+            "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration/init:prepareDeclaration#2",
+            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands#2",
+            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands",
+            "createInstalledSourceContext/context/init:prepareDeclaredCommands/init:prepareDeclaredCommands/init:prepareDeclaredCommands/sourceScope/sourceScope",
+            "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands",
+            "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary",
+            "createInstalledSourceContext/context/init:prepareDerivedDeclaredCommands/init:prepareDerivedDeclaredCommands/preliminary/preliminary#2",
+            "createInstalledSourceContext/context/init:prepareEffectDriverConstruction/init:prepareEffectDriverConstruction",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/field/field",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
+            "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
+            "createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput",
+            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect",
+            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/init:prepareProviderEffect",
+            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappingWires/mappingWires",
+            "createInstalledSourceContext/context/init:prepareProviderEffect/init:prepareProviderEffect/mappings/mappings",
+            "createInstalledSourceContext/context/init:preparePublishedEnvironment/init:preparePublishedEnvironment",
+            "createInstalledSourceContext/context/init:prepareReadTarget/init:prepareReadTarget",
+            "createInstalledSourceContext/context/init:prepareReadTargetWithMappings/init:prepareReadTargetWithMappings",
+            "createInstalledSourceContext/prepareOriginalDeclaration",
+            "createInstalledSourceContext/prepareProviderConstruction",
+            "createInstalledSourceContext/prepareSourceEnvironment",
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
             "installedSourceConfigurationReader",
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
             "installedSourceConfigurationReader/read/read",
+            "installedSourceConfigurationReader/readOriginal",
+            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
+            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
             "installedSourceConfigurationReader/reader/init:parseJsonText/init:parseJsonText",
             "installedSourceConfigurationReader/reader/init:readJson/init:readJson",
             "installedSourceConfigurationReader/reader/init:readOriginalBytes/init:readOriginalBytes",
             "installedSourceConfigurationReader/reader/init:readOriginalText/init:readOriginalText",
             "installedSourceConfigurationReader/reader/init:readText/init:readText",
-            "installedSourceConfigurationReader/readOriginal",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeDecode/init:beforeDecode",
-            "installedSourceConfigurationReader/readOriginal/value/init:beforeRead/init:beforeRead",
             "prepareInstalledSourceAcquisitionContracts",
             "reconcileSource",
             "releaseFinishedSourceWorkspaces",
@@ -124537,6 +125222,7 @@
             "requireSynchronousSourceConstruction/joined/joined",
             "requireSynchronousSourceConstruction/joined/joined#2",
             "requireSynchronousSourceConstruction/settle/settle",
+            "reserveInstalledDuckDBConstruction",
             "reserveInstalledSourceEnvironment",
             "reserveInstalledSourceRuntimeIdentity",
             "reserveInstalledSourceRuntimeIdentity/readOriginalRuntimeIdentity",
@@ -124562,6 +125248,7 @@
           ],
           "exports": [
             "assertInstalledSourceConstruction",
+            "beginInstalledPublishedSourceInitialization",
             "beginInstalledSourceInitialization",
             "bindInstalledSourceConstruction",
             "borrowInstalledSourceInitialization",
@@ -124656,6 +125343,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "## Builtin DuckDB installation custody"
               }
             ],
             "extension": [
@@ -124688,14 +125379,18 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
+                "anchor": "test('builtin Source enters its original checked Environment before native construction'"
               }
             ]
           }
         },
         {
           "operations": [
-            "beginInstalledSourceInitialization/context/init:prepareInputConstruction/init:prepareInputConstruction",
-            "beginInstalledSourceInitialization/prepareInitialNativeConstruction"
+            "createInstalledSourceContext/context/init:prepareInputConstruction/init:prepareInputConstruction",
+            "createInstalledSourceContext/prepareInitialNativeConstruction"
           ],
           "exports": [],
           "attributes": {
@@ -124767,8 +125462,8 @@
         },
         {
           "operations": [
-            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
-            "beginInstalledSourceInitialization/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration"
+            "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration",
+            "createInstalledSourceContext/context/init:prepareNativeDeclaration/init:prepareNativeDeclaration/init:prepareNativeDeclaration"
           ],
           "exports": [],
           "attributes": {

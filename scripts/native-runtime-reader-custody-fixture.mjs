@@ -16,8 +16,11 @@ export function nativeRuntimeReaderCustodyFixture(root, scratch) {
   }
   const library = join(scratch, process.platform === 'darwin'
     ? 'runtime-reader-custody.dylib' : 'runtime-reader-custody.so');
+  // The injected test library also reaches Apple's arm64e compiler/launcher
+  // helpers. Both slices serve the same existing Darwin arm64 test profile.
   const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
-    ...(process.platform === 'darwin' ? ['-dynamiclib'] : ['-shared', '-fPIC']),
+    ...(process.platform === 'darwin'
+      ? ['-dynamiclib', '-arch', 'arm64', '-arch', 'arm64e'] : ['-shared', '-fPIC']),
     join(root, 'scripts/fixtures/native-runtime-reader-custody.c'), '-o', library,
     ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
   if (built.error || built.signal || built.status !== 0) {

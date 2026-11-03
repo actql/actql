@@ -9,11 +9,11 @@ import {tmpdir} from 'node:os';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {createNodeHostEntry} from './entry.mjs';
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
 import {inspect} from 'node:util';
 import * as cancellationMoon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {runtimeCore, ledgerUsageSnapshotHasPendingResources} from '../host-common/runtime-core.mjs';
 import {createInProcessExecutionSite, executionSiteDescription,
   installExecutionSites, prepareExecutionSitePolicy} from '../host-common/execution-sites.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
@@ -768,6 +768,7 @@ async function preflightDispatchFixture(t, {
     readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
   ]);
+  let funded, owner, physicalStore, directory;
   let setup, stopCalls = 0, stopped = 0, closeCalls = 0, closed = 0;
   let custodyTransfers = 0, capacityChecks = 0, originalFailure, retainedCleanupOwner;
   const cleanupFailure = new Error('exact setup cleanup pending');
@@ -818,7 +819,24 @@ async function preflightDispatchFixture(t, {
   const environment = runtime.clientProgramCheckEnvironment(environmentWire.trimEnd(),
     'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904',
     false, false, true, false, false, false, false);
-  const preparedProgram = installNodeClientProgramPreparation({moon: runtime, environment})(
+  assert.ok(environment);
+  t.after(async () => {
+    if (owner !== undefined) {
+      if (unowned && setup !== undefined) {
+        // The original dispatch catch already stopped this SAME pending setup.
+        // Its missing execution handoff still cannot certify a public stop.
+        await owner.operation(ref);
+        assert.equal(stopped, 1);
+        assert.equal(closed, 1);
+        assert.equal(ledgerUsageSnapshotHasPendingResources(runtimeCore(runtime).usage(setup)), false);
+      } else await owner.drain();
+    }
+    await physicalStore?.close();
+    await funded?.close();
+    if (directory !== undefined) await rm(directory, {recursive: true});
+  });
+  funded = await openFundedClientPreparation({moon: runtime, environment});
+  const preparedProgram = await funded.prepare(
     {kind: 'program', input: JSON.parse(document), parameters: null});
   const authorityScopeCid = `sha256:${'a'.repeat(64)}`;
   const namespaceId = 'preflight-custody';
@@ -839,12 +857,11 @@ async function preflightDispatchFixture(t, {
     },
     markPreDispatchFailure() { assert.fail('physical start was already reserved'); },
   };
-  const directory = await mkdtemp(join(tmpdir(), 'actql-preflight-custody-'));
-  const physicalStore = await openLocalPublicationStore({directory,
+  directory = await mkdtemp(join(tmpdir(), 'actql-preflight-custody-'));
+  physicalStore = await openLocalPublicationStore({directory,
     storeAuthorityCid: `sha256:${'7'.repeat(64)}`, maxObjects: 20,
     capacityBytes: 512 * 1024 * 1024, maxObjectBytes: 10000000,
     maxContractNodes: 10000, maxContractDepth: 64}, control);
-  t.after(async () => { await physicalStore.close(); await rm(directory, {recursive: true}); });
   const requirement = {objectCount: 19, requiredBytes: 190000000, maxObjectBytes: 10000000};
   await physicalStore.putBytes(Buffer.from('independent retained object A'));
   assert.equal(physicalStore.publicationCapacitySupports(requirement), true);
@@ -875,7 +892,7 @@ async function preflightDispatchFixture(t, {
   const entry = createNodeHostEntry(async () => runtime, async () => contributions);
   const unownedFailure = Object.assign(new Error('unowned capacity-shaped error'),
     {code: 'RunPublicationCapacityUnsupported'});
-  const owner = installNodeClientDispatchOwner({moon: runtime, control, journal, store,
+  owner = installNodeClientDispatchOwner({moon: runtime, control, journal, store,
     namespaceId, registry, values: JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']),
     startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
     planFor: () => plan,

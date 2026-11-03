@@ -82,3 +82,57 @@ test "selected sequence capacity charges only reachable fragment contexts" {
     scratch + traversal + 10000L * 264L,
   )
 }
+
+///|
+test "bounded selected capacity funds exact completion metadata and preserves operation workspace" {
+  let sequence = prepared_sequence(row_owner(",{\"select\":[\"a\"]}"))
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [],
+    ["select_1"],
+    100000,
+    10000,
+  ).unwrap()
+  let selected = select_generated_sequence_step(generated, 1).unwrap()
+  let values : ValueLimits = {
+    max_nodes: 100,
+    max_text_bytes: 100,
+    max_depth: 10,
+    max_work: 10000,
+  }
+  let limits : SequenceExecutionLimits = {
+    rows: {
+      max_rows: 3,
+      retained_entries: 10000,
+      metadata_entries: 10000,
+      operation_entries: 10000,
+      input_values: values,
+      output_values: values,
+    },
+    max_work: 10000,
+    max_frames: 100,
+  }
+  let measurement : FixedInputGuardMeasureLimits = {
+    max_work: 10000,
+    max_bytes: 100,
+    max_nodes: 100,
+    max_depth: 10,
+  }
+  let ordinary = generated_sequence_capacity(selected, limits, measurement).unwrap()
+  let bounded = generated_bounded_sequence_capacity(
+    selected, limits, measurement,
+  ).unwrap()
+  // One output field and one input identity, not a legacy whole-owner table.
+  assert_eq(ordinary.retained_bytes - bounded.retained_bytes, 19998L * 256L)
+  assert_eq(ordinary.execution_bytes - bounded.execution_bytes, 9998L * 256L)
+  let more = { ..limits, rows: { ..limits.rows, operation_entries: 10001, }, }
+  let larger = generated_bounded_sequence_capacity(selected, more, measurement).unwrap()
+  assert_eq(larger.execution_bytes - bounded.execution_bytes, 256L)
+  let fallback = generated_bounded_sequence_capacity(
+    generated, limits, measurement,
+  ).unwrap()
+  let original = generated_sequence_capacity(generated, limits, measurement).unwrap()
+  assert_eq(fallback.retained_bytes, original.retained_bytes)
+  assert_eq(fallback.execution_bytes, original.execution_bytes)
+}

@@ -1,3 +1,4 @@
+import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned-operation.mjs';
 // The standard Host's provider-neutral installed Effect for connectors whose
 // writes change one provider object per row through a checked execution
 // Mapping or a checked Command contract (see installed-row-source.mjs for the
@@ -91,7 +92,7 @@
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -174,6 +175,9 @@ const defaultLimits = Object.freeze({
   locator: Object.freeze({maxBytes: 4096, maxNodes: 64, maxDepth: 8}),
   body: Object.freeze({maxBytes: 100_000, maxNodes: 10_000, maxDepth: 16}),
 });
+
+// The same constructor limits used by the installed owner and its pure recipe.
+export const installedRowEffectConstructionLimits = supplied => Object.freeze({...defaultLimits, ...supplied});
 
 const fail = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
@@ -859,7 +863,7 @@ export async function createInstalledRowEffect({moon, providerMoon, mappings = [
     if (environment?.wire !== environmentWire) fail('ForeignInstalledSourceConstruction');
   }
   const resources = captureEffectResources(effectResources);
-  const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
+  const limits = installedRowEffectConstructionLimits(suppliedLimits);
   if (write !== undefined && driver !== undefined) fail('InvalidInstalledRowEffectDriver');
   const standard = write === undefined ? undefined : deriveInstalledRowWrite(write, connectorRegistration);
   const owned = checkDriver(standard === undefined ? driver : standard.driver);
@@ -1045,6 +1049,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // every retained owner before a composed stage can be constructed.
   const {moon, ledgerRoot} = owners[0];
   const limits = retainedLimits ?? owners[0].limits;
+  const controlEntryBytes = installedEffectSavedControlEntryLimit(owners.map(owner => owner.managedPlanRecipe));
+  const controlRecipes = new Map(owners.map(owner => [owner,
+    installedEffectRecipeForControlEntryLimit(owner.managedPlanRecipe, controlEntryBytes)]));
   const singular = routes === undefined ? owners[0] : undefined;
   const assertPrepared = ({moon: runMoon, compilation}) => {
     if (singular !== undefined) return;
@@ -1165,7 +1172,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const options = {moon, root: ledgerRoot,
       authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
       callerRequestId: moon.clientRequestCallerId(identity),
-      maxEntryBytes: effectLedgerImplementationBounds.maxEntryBytes,
+      maxEntryBytes: controlEntryBytes,
       ...(controlConstruction === undefined ? {} : {controlConstruction})};
     return controlConstruction === undefined ? openEffectLedger(options)
       : controlConstruction(undefined, openEffectLedger, [options]);
@@ -1233,7 +1240,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const unit = installedRowEffectUnit(moon, facts.compilation);
     const members = membersOf(facts.prepared, unit);
     return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
-      recipeFor: member => ownerOf(member).managedPlanRecipe});
+      recipeFor: member => controlRecipes.get(ownerOf(member))});
   };
 
   const memberDispatch = (runInvocationCid, member) => cid({
@@ -1355,6 +1362,17 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     managedEffect, requestChildren, retireRequestAliases, runInvocationCid,
     dispatchRequestCid, assertCurrent, signal}) => {
     const recipe = ownerOf(member).managedPlanRecipe;
+    if (recipe?.physicalWrite !== undefined) {
+      const selected = recipe.physicalWrite;
+      if (phase !== 'write' || recipe.rowOperations[selected.operationIndex].operation !== operation ||
+          managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
+          typeof retireRequestAliases !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
+      return prepareInstalledRowCaptureChild({children: requestChildren,
+        create: () => prepareInstalledEffectOwnedPhysicalChild({run: managedEffect,
+          memberIndex: member.memberIndex, rowIndex, operationIndex: selected.operationIndex, operation,
+          transferBytes: selected.transferBytes, invoke, requestsRetired: retireRequestAliases}),
+        assertCurrent, signal});
+    }
     const selected = recipe?.credentialOperations?.find(entry => entry.phase === phase);
     if (selected === undefined || recipe.rowOperations[selected.operationIndex].operation !== operation ||
         managedEffect?.runtime !== moon || !Array.isArray(requestChildren) ||
@@ -1562,7 +1580,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     // A saved route cannot borrow the fresh capture's parent merely from its
     // recipe or CID. The recovery owner must supply its actual retainer first.
     if (typeof physicalOperations !== 'function' && members.some(member =>
-      ownerOf(member).managedPlanRecipe?.credentialOperations !== undefined)) {
+      (ownerOf(member).managedPlanRecipe?.credentialOperations !== undefined ||
+        ownerOf(member).managedPlanRecipe?.physicalWrite !== undefined))) {
       fail('InstalledEffectPhysicalPlanUnavailable');
     }
     // Once the durable claim exists, selection drift does not establish an
@@ -1708,6 +1727,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
             execute: () => {
               assertClaimedCurrent();
               const useId = `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`;
+              if (managedPlanRecipe?.physicalWrite !== undefined) {
+                if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
+                return physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
+                  operation: owned.writeOperation(member), assertCurrent: assertClaimedCurrent, signal,
+                  invoke: physicalOperation => owned.send({member, request: entry.request, current: now[memberIndex],
+                    authorization: {...grant, useId}, credential: site.credential, signal, physicalOperation,
+                    ...resourceFields(member)})});
+              }
               if (managedPlanRecipe?.credentialOperations !== undefined) {
                 if (typeof physicalOperations !== 'function') fail('InstalledEffectPhysicalPlanUnavailable');
                 const send = () => physicalOperations({member, rowIndex: sourceIndex, phase: 'write',
@@ -2217,9 +2244,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
         fail('ForeignInstalledEffectManagedRun');
       }
-      if (constructor !== undefined && owned.prepareRequestChild !== undefined) {
-        fail('InstalledEffectConstructorChildUnavailable');
-      }
       if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
@@ -2237,10 +2261,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               {authorizationForRow: reads[index]?.authorizationForRow})};
           const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
             create: () => constructor === undefined ? owned.prepareRequestChild(context) :
-              prepareInstalledEffectRequestChild({run: managedEffect, memberIndex: member.memberIndex,
+              (owned.prepareRequestChild === undefined ? prepareInstalledEffectRequestChild :
+                prepareInstalledEffectOwnedRequestChild)({run: managedEffect, memberIndex: member.memberIndex,
                 rowIndex, operationIndex: constructor.operationIndex,
                 operation: recipe.rowOperations[constructor.operationIndex].operation,
-                construct: () => owned.prepareRequest(context), requestsRetired: retireRequestAliases}),
+                ...(owned.prepareRequestChild === undefined
+                  ? {construct: () => owned.prepareRequest(context)}
+                  : {constructChild: () => owned.prepareRequestChild(context)}),
+                requestsRetired: retireRequestAliases}),
             assertCurrent, signal});
           preparedEntries.push(requestEntry(member, row, preparedRequest));
         }
@@ -2733,14 +2761,16 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       // Keep this same Owner/flight before any child method can reenter it.
       const flight = Promise.resolve().then(async () => {
         if (!retireRequestAliases()) return false;
+        // The recovered Content child owns the original physical writer.
+        // Let it acknowledge close before the operation token checks that
+        // same writer; neither pending child may release the parent Ledger.
+        for (const child of recoveryChildren) await child.release();
         for (const child of requestChildren) {
           const retry = child.recoveryReleaseAttempted === true;
           child.recoveryReleaseAttempted = true;
           await (retry ? child.prepared.retry() : child.prepared.release());
         }
-        if (requestsPending()) return false;
-        for (const child of recoveryChildren) await child.release();
-        if (recoveryPending()) return false;
+        if (requestsPending() || recoveryPending()) return false;
         releaseLedger();
         return true;
       }).finally(() => {if (cleanupFlight === flight) cleanupFlight = undefined;});

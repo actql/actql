@@ -3172,9 +3172,12 @@ async function exerciseStrategyGraph(
       consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
     },
   };
-  const rankingPublicationFixture = fixture.strategyFixtureVecaCreate(
+  // This success fixture keeps every output and its publication evidence.
+  // Select the existing accounted profile before capture, retaining all other
+  // graph limits rather than weakening the actual capacity quote or cleanup.
+  const rankingPublicationFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureVecaCreate(
     ...args, JSON.stringify(rankingPublicationProgram), orderedContract,
-  );
+  ));
   const rankingCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(rankingPublicationFixture),
@@ -3401,7 +3404,9 @@ async function exerciseStrategyGraph(
                   rankingAdvanced = true;
                   if (!cancellationScheduled) {
                     cancellationScheduled = true;
-                    setTimeout(() => scoredAbort.abort(), 0);
+                    // Abort while this original operation is still observed
+                    // incomplete; a later timer can run after it has finished.
+                    scoredAbort.abort();
                   }
                 }
                 return value;
@@ -3640,9 +3645,11 @@ async function exerciseStrategyGraph(
     ['nearest-query-vectors-filter', nearestWithVectors(false, true)],
     ['nearest-both-vectors-filter', nearestWithVectors(true, true)],
   ]) {
-    const nearestPublicationFixture = fixture.strategyFixtureVecaCreate(
+    // Like ranking publication, each successful nearest variant retains the
+    // original three Result occurrences and their full publication evidence.
+    const nearestPublicationFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureVecaCreate(
       ...args, JSON.stringify(program), orderedContract,
-    );
+    ));
     const nearestCapture = await runNativeHostQuery(
       grant,
       fixture.strategyFixtureAcquisition(nearestPublicationFixture),
@@ -4909,7 +4916,7 @@ async function exerciseStrategyGraph(
     constructionProgress:80,constructionStarts:[1],
     managedStarts:1,cancelTask:2,completedTasks:[1],
     step:{from:'g',degree:{direction:'both'},as:'out'},
-    fields:['node','degree'],
+    fields:['node_id','degree'],
   }, {
     name: 'current-degree-selected-in-flight',
     selectedStructural:true,
@@ -4918,7 +4925,7 @@ async function exerciseStrategyGraph(
     cancelOnManagedStart:2,managedStarts:2,cancelTask:3,
     completedTasks:[1,2],
     step:{from:'g',degree:{direction:'both'},as:'out'},
-    fields:['node','degree'],
+    fields:['node_id','degree'],
   }, {
     name: 'current-components-strong-fused-in-flight',
     retainedOutput:true,rows:40,advanceQuantum:1,
@@ -6502,7 +6509,9 @@ async function exerciseStrategyGraph(
                         cancellationCase.minimumCompletedRows ?? 0)) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
-                    setTimeout(() => graphCancellation.abort(), 0);
+                    // This named task is still incomplete here. Deliver its
+                    // cancellation before a later managed task can start.
+                    graphCancellation.abort();
                   } else if (constructionStarts.includes(start) &&
                       observation !== undefined &&
                       !constructionComplete) {
@@ -6519,7 +6528,9 @@ async function exerciseStrategyGraph(
                       observation.work > 0n && !cancellationScheduled) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
-                    setTimeout(() => graphCancellation.abort(), 0);
+                    // Cancel this observed incomplete original operation before
+                    // a timer can allow the next managed task to start.
+                    graphCancellation.abort();
                   }
                   return result;
                 };
@@ -9055,7 +9066,9 @@ async function exerciseStrategyGraph(
                     }
                     if (!crossJoinCancellationScheduled) {
                       crossJoinCancellationScheduled = true;
-                      setTimeout(() => crossJoinCancellation.abort(), 0);
+                      // Keep cancellation at this observed incomplete join,
+                      // before later tasks can consume a completed output.
+                      crossJoinCancellation.abort();
                     }
                   }
                   return result;

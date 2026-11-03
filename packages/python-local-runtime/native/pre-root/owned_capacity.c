@@ -1,4 +1,8 @@
-#if defined(__APPLE__) && defined(__aarch64__)
+#if defined(ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN)
+/* Explicit process-only profile; the same POSIX implementation below owns
+ * mappings, original loans, current scopes and child-first retirement. */
+#include "owned_linux_x64_process_profile.h"
+#elif defined(__APPLE__) && defined(__aarch64__)
 /* Existing selected Darwin provider. */
 #elif defined(__linux__) && defined(__aarch64__) && \
       defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)

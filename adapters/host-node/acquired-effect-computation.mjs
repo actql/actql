@@ -20,7 +20,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   observe, sourceContinuation, computeConfigurations = {}, withComputePauseHandler, modelController,
   submission, existingModel, modelClaim, parentResume, modelJournalPort, contentRun,
   assertUpdateSelectionCurrent, assertContinuationCurrent, originalPreparation, originalModelPlan,
-  originalModelComponent, originalModelSelection}) {
+  originalModelComponent, originalModelSelection, originalContent}) {
   const preparedOriginal = acquired.prepared, requestOriginal = acquired.requestIdentity;
   const count = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared);
   const sourceFree = count === 0;
@@ -250,7 +250,15 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     let captureCompletedAt;
     const evidence = [];
     let component;
-    if (serializations.length > 0) {
+    if (serializations.length > 0 && originalContent !== undefined) {
+      if (!sourceFree || infer !== undefined || serializations.length !== 1) {
+        throw new TypeError('UnsupportedInstalledContentEffectClosure');
+      }
+      contentPlan = originalContent.plan;
+      contentFamily = originalContent.family;
+      contentFamilyCleanup = contentFamily;
+      contentFamily.bindExecution({prepared: acquired.prepared, plan: contentPlan, store, principalId, signal});
+    } else if (serializations.length > 0) {
       if (multiple || serializations.length !== 1 ||
           typeof contentRun?.effectFamily !== 'function' ||
           !sourceFree && typeof sources[0]?.adapter.ledgerCapacity !== 'function') {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -10,6 +10,7 @@ import * as commonMoon from
 import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {createClientHttpHandler} from '../../../host-node/client-http.mjs';
+import {openFundedClientPreparation} from '../../../host-node/funded-client-preparation.fixture.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {connect} from '../../../../packages/sdk/index.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION, installSalesforceAuthorization,
@@ -31,12 +32,18 @@ async function discoveryHost(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-salesforce-discovery-'));
   const sites = [];
   const servers = [];
+  const requestPreparations = [];
   t.after(async () => {
     for (const server of servers) {
       await new Promise(resolve => server.close(resolve));
     }
+    for (const preparation of requestPreparations.reverse()) await preparation.close();
     for (const site of sites) site.close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      t.diagnostic(`Retained Salesforce discovery fixture: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
@@ -77,7 +84,18 @@ async function discoveryHost(t) {
     sites.push(site);
     const service = installSalesforceResourceService({salesforceMoon,
       sites: [site]});
+    // Metadata operations use the same real HTTP Request registry/Resource
+    // owner as existing Host caller fixtures, without granting provider I/O.
+    const environmentWire = (await readFile(new URL(
+      '../../../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+    const environment = commonMoon.clientProgramCheckEnvironment(environmentWire,
+      JSON.parse(environmentWire).evidence_bundle_cid,
+      false, false, true, true, false, false, false);
+    assert.ok(environment);
+    const funded = await openFundedClientPreparation({moon: commonMoon, environment, http: true});
+    requestPreparations.push(funded);
     const server = createServer(createClientHttpHandler({
+      prepareRequest: funded.prepareRequest,
       authenticate: header => ({'Bearer owner-token': 'owner-principal',
         'Bearer other-token': 'other-principal'})[header],
       authorizeConnection: facts => facts.connection.mode === 'local' &&

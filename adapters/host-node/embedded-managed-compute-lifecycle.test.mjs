@@ -841,21 +841,6 @@ function sourceFreeOpening() {
   return new Function('held', 'moon', 'preparedProgram', 'requested', 'retainedRelationOutput', 'checked', 'preparationLease', `
     ${helper('releaseDispatchPreparationHost')}
     ${helper('retainDispatchPreparationHost')}
-    // Explicit original Core borrow ports isolate the actual dispatcher arm.
-    // These are not physical admission or a generated Common qualification.
-    const holder={};
-    Object.assign(moon, {
-      clientProgramInstalledManagedPreparationBorrow(owner,prepared,request){
-        if(owner!==held.managedRun||prepared!==preparedProgram||request!==requested)throw Error('ForeignFixtureBorrow');
-        return holder;
-      },
-      clientProgramPreparationBorrowRead(original){
-        if(original!==holder)throw Error('ForeignFixtureBorrow');return preparedProgram;
-      },
-      clientProgramPreparationBorrowReturn(original){
-        if(original!==holder)throw Error('ForeignFixtureBorrow');
-      },
-    });
     const acquiring=false, inferring=false, serializing=false;
     const managedComputeRequired=true;
     const registry='registry',values='values',fragment='fragment',ordered='ordered',entry={};let setup;
@@ -863,10 +848,24 @@ function sourceFreeOpening() {
     return {setup,entry,release:()=>releaseDispatchPreparationHost(entry)};`);
 }
 
+// Only the two older opener fixtures need these explicit Core ports. The
+// actual extraction helper above never installs or replaces caller methods.
+function sourceFreeBorrowPorts(owner, prepared, request) {
+  const holder={};
+  return {
+    clientProgramInstalledManagedPreparationBorrow(actualOwner,actualPrepared,actualRequest) {
+      assert.equal(actualOwner,owner);assert.equal(actualPrepared,prepared);assert.equal(actualRequest,request);
+      return holder;
+    },
+    clientProgramPreparationBorrowRead(original) {assert.equal(original,holder);return prepared;},
+    clientProgramPreparationBorrowReturn(original) {assert.equal(original,holder);},
+  };
+}
+
 test('actual dispatcher opens its opaque Run without the legacy accounting constructor', () => {
   const original = {}, prepared = {}, request = {}, setup = {}, open = sourceFreeOpening();
   for (const retained of [false, true]) {
-    const moon = {clientProgramOpenInstalledManagedSourceFreeHost(...args) {
+    const moon = {...sourceFreeBorrowPorts(original,prepared,request),clientProgramOpenInstalledManagedSourceFreeHost(...args) {
       assert.deepEqual(args, [original, prepared, request, 'registry', 'values', 'fragment', 'ordered', retained]);
       return setup;
     }, clientProgramOpenSourceFreeLocalHost() {assert.fail('accounting fallback');},
@@ -877,14 +876,16 @@ test('actual dispatcher opens its opaque Run without the legacy accounting const
 });
 
 test('actual dispatcher propagates missing/foreign/parked original refusal without fallback', () => {
-  const marker = new Error('OriginalResourceParked'), original = {}, open = sourceFreeOpening();
+  const marker = new Error('OriginalResourceParked'), original = {}, prepared = {}, request = {}, open = sourceFreeOpening();
   const legacy = () => assert.fail('accounting fallback');
   assert.throws(() => open({}, {clientProgramOpenSourceFreeLocalHost: legacy}, {}, {}, false,
     value => value, {}), /InstalledManagedComputeRunUnavailable/);
-  assert.throws(() => open({managedRun: original}, {clientProgramOpenSourceFreeLocalHost: legacy}, {}, {}, false,
+  assert.throws(() => open({managedRun: original}, {...sourceFreeBorrowPorts(original,prepared,request),
+    clientProgramOpenSourceFreeLocalHost: legacy}, prepared, request, false,
     value => value, {}), /InstalledManagedComputeHostUnavailable/);
-  assert.throws(() => open({managedRun: original}, {clientProgramOpenSourceFreeLocalHost: legacy,
-    clientProgramOpenInstalledManagedSourceFreeHost() {throw marker;}}, {}, {}, false, value => value, {}),
+  assert.throws(() => open({managedRun: original}, {...sourceFreeBorrowPorts(original,prepared,request),
+    clientProgramOpenSourceFreeLocalHost: legacy,
+    clientProgramOpenInstalledManagedSourceFreeHost() {throw marker;}}, prepared, request, false, value => value, {}),
     error => error === marker);
 });
 

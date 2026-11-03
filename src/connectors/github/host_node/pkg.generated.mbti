@@ -76,6 +76,8 @@ pub fn github_request_headers_json() -> String
 
 pub fn github_response_headers_json() -> String
 
+pub fn github_source_read_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_standard_create_construction_profile() -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 
 pub fn installed_standard_create_http_limits() -> Array[Int]

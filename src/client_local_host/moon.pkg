@@ -19,6 +19,7 @@ import {
   "actql/actql/check_environment" @environment,
   "actql/actql/relation_results" @results,
   "actql/actql/relation_schema" @schema,
+  "actql/actql/relation_typing" @relation,
   "actql/actql/value_contract" @contract,
   "actql/actql/connectors_builtin" @builtin,
   "actql/actql/physical_host_dispatch" @host_driver,

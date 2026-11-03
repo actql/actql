@@ -86,7 +86,10 @@ fn[I] request_effect_plan_quote(
             @publication_host.prepared_client_effect_computation_graph(prepared),
           ),
         ) >
-        0 => installed_effect_source_result_bound_scratch_bytes()
+        0 ||
+        !@publication_host.prepared_client_effect_serialization_occurrences(
+          prepared,
+        ).is_empty() => installed_effect_source_result_bound_scratch_bytes()
       _ => 0L
     }
     let control_phase = installed_effect_control_phase_quote_capacity()

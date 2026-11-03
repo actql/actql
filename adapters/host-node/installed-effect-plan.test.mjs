@@ -3,7 +3,7 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild,
+  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
   prepareInstalledEffectControlConstruction}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
@@ -882,4 +882,105 @@ test('standard native JSON projection returns before Host parsing and keeps its 
   assert.equal(ownedSheetsRequestCid(projected,binding),'original-request-cid');
   assert.deepEqual(events,['native.enter','native.return','host.parse','native.body','native.cid']);
   assert.throws(()=>ownedSheetsRequestCid({...projected},binding),{code:'ForeignSheetsRangeRequest'});
+});
+
+
+test('owned Content request child keeps one constructor token until its exact physical cleanup ACK', async () => {
+  const f = constructorControlFixture(undefined), output = {}, calls = [];
+  let cleanup = false;
+  const original = {prepare() {assert.strictEqual(this, original); calls.push('prepare'); return output;},
+    release() {assert.strictEqual(this, original); calls.push('release'); return cleanup;},
+    retry() {assert.strictEqual(this, original); calls.push('retry'); return cleanup;},
+    status() {assert.strictEqual(this, original); return {pending: !cleanup};}};
+  const child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+    assert.equal(f.entries(), 1, 'actual child factory follows same constructor entry');
+    calls.push('factory'); return original;
+  }});
+  assert.equal(f.debits(), 1); assert.deepEqual(calls, []);
+  assert.strictEqual(child.prepare(), output);
+  assert.deepEqual(calls, ['factory', 'prepare']);
+  f.retireAliases();
+  assert.equal(await child.release(), false); assert.equal(f.settlements(), 0);
+  assert.equal(child.status().pending, true);
+  // Method replacement cannot replace the original pending child's cleanup.
+  original.retry = () => assert.fail('replacement cleanup');
+  cleanup = true; assert.equal(await child.retry(), true);
+  assert.equal(f.settlements(), 1); assert.equal(child.status().pending, false);
+  assert.deepEqual(calls, ['factory', 'prepare', 'release', 'retry']);
+  assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildRetired'});
+});
+
+test('owned request failure and reentrant close preserve the same child without repeating its factory', async () => {
+  for (const mode of ['undefined failure', 'reentrant close']) {
+    const f = constructorControlFixture(undefined); let child, factories = 0, closes = 0;
+    const original = {prepare() {if (mode === 'undefined failure') throw undefined; return {};},
+      release() {closes++; return true;}, retry() {closes++; return true;}, status: () => ({pending: closes === 0})};
+    child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+      factories++; if (mode === 'reentrant close') assert.equal(child.release(), false);
+      return original;
+    }});
+    let caught = false;
+    try {child.prepare();} catch (error) {caught = true;
+      if (mode === 'undefined failure') assert.equal(error, undefined);
+      else assert.equal(error.code, 'InstalledEffectRequestChildRetired');}
+    assert(caught); assert.equal(f.settlements(), 0);
+    f.retireAliases(); await child.release();
+    assert.equal(factories, 1); assert.equal(closes, 1); assert.equal(f.settlements(), 1);
+  }
+});
+
+test('owned request cleanup retains native backing on rejected or pending original release', async () => {
+  const f = constructorControlFixture(undefined), failure = new Error('original physical close');
+  let ack = false, resolve;
+  const pending = new Promise(yes => {resolve = yes;});
+  const original = {prepare: () => ({}), release: () => pending,
+    retry() {if (!ack) throw failure; return true;}, status: () => ({pending: !ack})};
+  const child = prepareInstalledEffectOwnedRequestChild({...f, constructChild: () => original});
+  child.prepare(); f.retireAliases();
+  const release = child.release(); assert.equal(child.retry(), release);
+  assert.equal(f.settlements(), 0); resolve(false); assert.equal(await release, false);
+  await assert.rejects(child.retry(), error => error === failure); assert.equal(f.settlements(), 0);
+  ack = true; await child.retry(); assert.equal(f.settlements(), 1);
+});
+
+
+test('owned request retries only unread cleanup methods on the same failed child', async () => {
+  const f = constructorControlFixture(undefined), failure = new Error('original status observation');
+  let observes = 0, closed = false, releases = 0;
+  const original = {prepare: () => assert.fail('failed observation precedes preparation'),
+    release() {releases++; closed = true; return true;}, retry() {closed = true; return true;},
+    get status() {if (++observes === 1) throw failure; return () => ({pending: !closed});}};
+  const child = prepareInstalledEffectOwnedRequestChild({...f, constructChild: () => original});
+  assert.throws(() => child.prepare(), error => error === failure);
+  original.release = () => assert.fail('captured successful method must not be reread');
+  f.retireAliases(); await child.release();
+  assert.equal(observes, 2); assert.equal(releases, 1); assert.equal(f.settlements(), 1);
+});
+
+test('nested owned prepare cannot clear the outer physical cleanup fence', async () => {
+  for (const point of ['factory', 'getter', 'status', 'prepare']) {
+    const f = constructorControlFixture(undefined); let child, closed = false, closes = 0, nested = false;
+    const reenter = () => {
+      if (nested) return;
+      nested = true;
+      assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildReentrantPrepare'});
+      assert.equal(child.release(), false, 'outer construction still owns the physical child');
+      assert.equal(closes, 0);
+    };
+    const original = {
+      get prepare() {if (point === 'getter') reenter(); return () => {
+        if (point === 'prepare') reenter(); return {};
+      };},
+      release() {closes++; closed = true; return true;},
+      retry() {closes++; closed = true; return true;},
+      status() {if (point === 'status') reenter(); return {pending: !closed};},
+    };
+    child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+      if (point === 'factory') reenter(); return original;
+    }});
+    assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildRetired'});
+    assert.equal(closes, 0); assert.equal(f.settlements(), 0);
+    f.retireAliases(); assert.equal(await child.release(), true);
+    assert.equal(closes, 1); assert.equal(f.settlements(), 1);
+  }
 });

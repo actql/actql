@@ -105,7 +105,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) test(`parent ${signal} waits for chi
     const {directory, file, mode} = fixture(t);
     const closed = join(directory, 'child-closed');
     const ready = join(directory, 'ready');
-    const childCode = `process.on('${signal}',()=>{require('node:fs').writeFileSync(${JSON.stringify(closed)},'closed');console.log('Total tests: 1, passed: 0, failed: 1.');process.exit(1)});require('node:fs').writeFileSync(${JSON.stringify(ready)},'ready');setInterval(()=>{},1000);`;
+    const childCode = `process.on('${signal}',()=>{require('node:fs').writeFileSync(${JSON.stringify(closed)},'closed');console.log('Total tests: 1, passed: 0, failed: 1.');process.exit(1)});require('node:fs').writeFileSync(${JSON.stringify(ready + '.pending')},'ready');require('node:fs').renameSync(${JSON.stringify(ready + '.pending')},${JSON.stringify(ready)});setInterval(()=>{},1000);`;
     const parentCode = `import {runRestoredMutation} from ${JSON.stringify(helper)};
 const result=await runRestoredMutation(${JSON.stringify(file)},Buffer.from(${JSON.stringify([...source])}),Buffer.from(${JSON.stringify([...mutant])}),process.execPath,['-e',${JSON.stringify(childCode)}],${JSON.stringify(options)});
 console.log(JSON.stringify({status:result.status,signal:result.signal,interrupted:result.interrupted,output:result.stdout}));
@@ -122,7 +122,8 @@ process.exitCode=result.interrupted||result.signal||result.error?1:0;`;
       actual.once('error', reject);
       actual.once('close', (code, stopped) => resolve({code, stopped}));
     });
-    // Readiness is emitted by the actual child after installing its handler.
+    // The child installs its handler before publishing a complete marker by
+    // rename. The parent cannot observe the intermediate empty pending file.
     const deadline = Date.now() + 5000;
     while (true) {
       try { assert.equal(readFileSync(ready, 'utf8'), 'ready'); break; }
