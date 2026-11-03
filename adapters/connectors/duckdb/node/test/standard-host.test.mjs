@@ -10716,6 +10716,8 @@ async function exerciseStrategyGraph(
       maxFrameBytes: 1024 * 1024,
     });
     let leases = 0, failedAppends = 0, failedFinalizations = 0;
+    let failedCleanups = 0;
+    const cleanupFailure = new Error('InjectedRetainedCleanupPending');
     let failurePublicationStore;
     let permitCleanup = mode !== 'finalize-failure' &&
       mode !== 'compute-cleanup-failure';
@@ -10761,7 +10763,8 @@ async function exerciseStrategyGraph(
         },
         async cleanup() {
           if (failThisOutput && !permitCleanup) {
-            throw new Error('InjectedRetainedCleanupPending');
+            failedCleanups++;
+            throw cleanupFailure;
           }
           await writer?.cleanupHandle?.retry?.();
         },
@@ -10903,14 +10906,14 @@ async function exerciseStrategyGraph(
         assert.equal(arithmeticFailure(execution.failure.cause), true);
         if (mode === 'compute-cleanup-failure') {
           await assert.rejects(async () => execution.close(),
-            /InjectedRetainedCleanupPending/);
+            error => assertCarrierRetainedCleanupFailure(error, {cleanupFailure}));
           failedCloseObserved = true;
           assert.equal(execution.cleanupPending(), true,
             'failed close must retain the mixed input cleanup owner');
-          await assert.rejects(execution.cleanup(), error =>
-            error instanceof AggregateError &&
-            error.errors.some(cause =>
-              cause.message === 'InjectedRetainedCleanupPending'));
+          const failuresBeforeRetry = failedCleanups;
+          assert.equal(await execution.cleanup(), false);
+          assert(failedCleanups > failuresBeforeRetry,
+            'pending cleanup must retry the original retained output');
           assert.equal(execution.cleanupPending(), true);
           assert(execution.usage().reservedExecutionBytes > 0n ||
             execution.usage().heldBytes > 0n);
