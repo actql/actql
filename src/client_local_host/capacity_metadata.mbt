@@ -8,7 +8,8 @@ fn client_local_scalar_metadata_envelope(
   max_rows : Int,
   result_envelope : ClientLocalResultEnvelope,
 ) -> (Int64, Int)? {
-  if inventory.original_count != @strategy.graph_task_count(graph) ||
+  if inventory.carrier_values ||
+    inventory.original_count != @strategy.graph_task_count(graph) ||
     max_rows < 1 {
     return None
   }

@@ -11,6 +11,7 @@ fn materialization_test_inventory() -> ClientLocalSchemaProofInventory {
     ports: 0,
     bindings: 0,
     closed_rows: Some(100000),
+    carrier_values: false,
   }
 }
 

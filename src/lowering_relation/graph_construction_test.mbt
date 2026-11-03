@@ -51,6 +51,32 @@ fn keyed_lowering_constructor_owner(
 }
 
 ///|
+test "closed Graph bound counts both repeated original definition inputs" {
+  let prepared = @lowering_relation.bound_preparation(
+    keyed_lowering_constructor_owner(),
+  )
+  let node = @lowering_relation.node_at(prepared, 1).unwrap()
+  assert_true(@lowering_relation.node_relation_schema(node) is None)
+  assert_eq(
+    @lowering_relation.node_closed_item_count_bound(node, [3, 3]),
+    Some(6),
+  )
+  assert_eq(
+    @lowering_relation.node_closed_item_count_bound(node, [2, 4]),
+    Some(6),
+  )
+  assert_eq(@lowering_relation.node_closed_item_count_bound(node, [3]), None)
+  assert_eq(
+    @lowering_relation.node_closed_item_count_bound(node, [-1, 3]),
+    None,
+  )
+  assert_eq(
+    @lowering_relation.node_closed_item_count_bound(node, [2147483647, 1]),
+    None,
+  )
+}
+
+///|
 test "keyed constructor retains distinct repeated producer roles and independent edge key" {
   let sequence = @lowering_relation.prepare_sequence(
     keyed_lowering_constructor_owner(),

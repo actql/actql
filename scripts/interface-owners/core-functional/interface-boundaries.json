@@ -30393,7 +30393,7 @@
           }
         }
       ],
-      "sha256": "b11da24e1d03744c20b31e6e86fb2e655d4c5cd8d651575f2c7cf072bd60ae5c",
+      "sha256": "bc17fd0eae09f12f5ecaab0756b832eb6e8b75adee45bc96e64f350975eba9db",
       "exports": [],
       "operations": [
         {
@@ -42921,7 +42921,7 @@
     },
     {
       "module": "src/client_local_host/schema_proof_inventory.mbt",
-      "sha256": "0d3a98f4764fd588e7c0a0eb13155ba1251c9513d05fa756f0b8e551e099daeb",
+      "sha256": "e9737a6270abad628a0f7eb92d15763fde9864fd95aaf44f89042e37996f2660",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -43200,7 +43200,7 @@
     },
     {
       "module": "src/client_local_host/value_node_demand.mbt",
-      "sha256": "643b49701543b224551170301ef64a29d1901faebf69c553a7021ad280c5eeda",
+      "sha256": "6b0380219906b871e369dd12a2a0450555f2cf7b1b794ecd7c4c301546ec9a49",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -72388,6 +72388,279 @@
         }
       ],
       "exports": []
+    },
+    {
+      "module": "src/client_local_host/closed_carrier_capacity.mbt",
+      "sha256": "bec5c768eb1511414b91929c7f9a449235e93925b79fb7890c699cff95f04502",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Local capacity Plan and original typed Carrier provider boundary",
+      "referenceQualification": "Checked source demand/configuration only; no execution, physical backing or normal acceptance from a count.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_closed_carrier_bound",
+          "declaration": "client_local_closed_carrier_bound ( sequences : Array [ @ execution . GeneratedSequence ] , graph : @ strategy . CheckedDAG , work : Ref [ Int ] , ) - > Int ?"
+        },
+        {
+          "name": "client_local_closed_carrier_proof_scratch_bytes",
+          "declaration": "client_local_closed_carrier_proof_scratch_bytes ( ) - > Int64 ?"
+        },
+        {
+          "name": "client_local_closed_item_bound",
+          "declaration": "client_local_closed_item_bound ( graph : @ strategy . CheckedDAG , owner : @ lower . BoundPrepared , target : @ pipeline . Target , work : Ref [ Int ] , depth : Int , ) - > Int ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_closed_carrier_bound",
+            "client_local_closed_carrier_proof_scratch_bytes",
+            "client_local_closed_item_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"closed Carrier facts configure every original task without replacing provider storage\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/lowering_relation/carrier_capacity.mbt",
+      "sha256": "fd39e3c6e84a06e581a79872aa54e4e2376429ba269c363c9e6c80ec80f5641e",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Local capacity Plan and original typed Carrier provider boundary",
+      "referenceQualification": "Checked source demand/configuration only; no execution, physical backing or normal acceptance from a count.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "node_closed_item_count_bound",
+          "declaration": "node_closed_item_count_bound ( node : PreparedNode , inputs : Array [ Int ] , ) - > Int ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "node_closed_item_count_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"closed Carrier facts configure every original task without replacing provider storage\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/capacity_metadata.mbt",
+      "sha256": "a0d3add41bde13924eae798fcc484ffd716fd58f4d1d860ea6e9b0e7163eb2a1",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Local capacity Plan and original typed Carrier provider boundary",
+      "referenceQualification": "Checked source demand/configuration only; no execution, physical backing or normal acceptance from a count.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_result_metadata_retained",
+          "declaration": "client_local_result_metadata_retained ( envelope : ClientLocalResultEnvelope , max_rows : Int , schema_bytes : Int , ) - > Int64 ?"
+        },
+        {
+          "name": "client_local_scalar_metadata_envelope",
+          "declaration": "client_local_scalar_metadata_envelope ( inventory : ClientLocalSchemaProofInventory , graph : @ strategy . CheckedDAG , max_rows : Int , result_envelope : ClientLocalResultEnvelope , ) - > ( Int64 , Int ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_result_metadata_retained",
+            "client_local_scalar_metadata_envelope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"closed Carrier facts configure every original task without replacing provider storage\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
