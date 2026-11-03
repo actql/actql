@@ -733,10 +733,12 @@ function integratedFault(t, selected) {
   };
   const wrapOwner = (owner, name) => {
     const calls = {name, close: 0, cleanup: 0, completed: false};
+    let closeEntered = false;
     state.owners.push(calls);
     return {...owner, async close() {
       calls.close++;
       if (blocked(name)) fail(name);
+      closeEntered = true;
       const result = await owner.close();
       // A Compute close and its reclamation are distinct obligations.
       calls.completed = name !== 'computeClose' && result !== false &&
@@ -745,10 +747,18 @@ function integratedFault(t, selected) {
     }, async cleanup() {
       calls.cleanup++;
       if (blocked(name)) fail(name);
+      // Our injection can refuse before the original close is entered.
+      // Strategy cleanup retries known releases; it does not initiate close.
+      // Retain and enter that SAME original call before claiming its cleanup.
+      if (!closeEntered) {
+        closeEntered = true;
+        await owner.close();
+      }
       const result = await owner.cleanup();
       calls.completed = result !== false && owner.cleanupPending?.() !== true;
       return result;
-    }, cleanupPending: () => owner.cleanupPending?.() ?? !calls.completed};
+    }, cleanupPending: () => !closeEntered ||
+      (owner.cleanupPending?.() ?? !calls.completed)};
   };
   const stageOf = stage => ({...stage,
     ...(stage.releaseInputs === undefined ? {} : {releaseInputs() {
