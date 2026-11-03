@@ -2914,14 +2914,18 @@ async function openInstalledHost(originalInstallation, preparation) {
         // lowering after the same Request debit. Do not allocate an early
         // standalone prefix/suffix before that backed constructor.
         const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
-        const deferredModelInput = preparation !== undefined &&
+        const deferredModelInput = restoredInfer === undefined && preparation !== undefined &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
           (acquisitionCount === 1 &&
             (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) ||
             acquisitionCount === 0 && physical.originalReadInstallation === undefined &&
               physical.originalReadRecipe === undefined);
-        const segments = deferredModelInput || occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
+        // A restored input already owns its original prefix. Its checked
+        // suffix still has to run before the compiled Result can consume the
+        // completion; select only that same occurrence's native suffix.
+        const segments = deferredModelInput || restoredInfer !== undefined ||
+          occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
@@ -2930,7 +2934,10 @@ async function openInstalledHost(originalInstallation, preparation) {
             occurrence, registry, values, fragment, ordered))
           : occurrence === undefined
           ? checked(moon.clientProgramPrepareInferComputeSuffix(preparedProgram,
-            step, registry, values, fragment, ordered)) : runtimeField(segments, 1);
+            step, registry, values, fragment, ordered))
+          : restoredInfer !== undefined
+          ? checked(moon.clientProgramPrepareComposedInferComputeSuffix(preparedProgram,
+            occurrence, registry, values, fragment, ordered)) : runtimeField(segments, 1);
         admissionBoundary = 'egress';
         let egressAdmission;
         let egressFailure;

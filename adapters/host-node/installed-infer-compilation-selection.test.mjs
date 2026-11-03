@@ -79,7 +79,8 @@ test('Host Model admission forwards the same original Request artifact into its 
 
 // Actual physical selection statements, explicit immutable occurrence/runtime
 // ports. No Common ABI, parent funding, provider IO or normal Host is supplied.
-function inputSelectionFixture({acquisitions = 1, managed = true, physical = true, serialized = false} = {}) {
+function inputSelectionFixture({acquisitions = 1, managed = true, physical = true, serialized = false,
+  restored = false} = {}) {
   const nodes = [];
   const walk = node => {
     if (!node || typeof node !== 'object') return;
@@ -107,14 +108,16 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
   const moon = {clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return acquisitions;},
     clientProgramPrepareComposedInferSegments(...args) {
       assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('segments');
+      if (restored) assert.fail('Saved input must not prepare another prefix');
       if (acquisitions === 1 && managed && physical && !serialized) throw error;
       return {prefix, suffix: suffixValue};
     },
     clientProgramPrepareComposedInferComputeSuffix(...args) {
-      assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('Content suffix'); return suffixValue;
+      assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('checked suffix'); return suffixValue;
     }};
   const ports = {preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
     preparedProgram: prepared, occurrence, serializationGraph, effectGraph: undefined, step: 2,
+    restoredInfer: restored ? {graph: {}} : undefined,
     prepareSubmit: {kindOf: () => 'effect_free'}, moon, registry: {}, values: {}, fragment: {}, ordered: {},
     checked: value => value, runtimeField: (value, index) => index === 1 ? value.suffix : value.prefix,
     runtimeOptionalField: (value, index) => value === undefined ? undefined : index === 0 ? value.prefix : value.suffix};
@@ -136,5 +139,12 @@ test('existing sourcefree legacy and serialized Model segment selection keep the
   }
   const content = inputSelectionFixture({serialized: true});
   assert.equal(content.select.segments, undefined); assert.equal(content.select.computeSuffix, content.suffix);
-  assert.deepEqual(content.calls, ['Content suffix']);
+  assert.deepEqual(content.calls, ['checked suffix']);
+});
+
+test('restored Model selects its original checked Result suffix without preparing saved input again', () => {
+  const f = inputSelectionFixture({acquisitions: 0, physical: false, restored: true});
+  assert.equal(f.select.segments, undefined);
+  assert.equal(f.select.computeSuffix, f.suffix);
+  assert.deepEqual(f.calls, ['checked suffix']);
 });

@@ -11252,6 +11252,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "        // A restored input already owns its original prefix. Its checked"
               }
             ],
             "synchronization": [
@@ -11871,7 +11875,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -12028,6 +12032,14 @@
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
                 "anchor": "test('Remote ordinary materialization retains its original Local selector without an independent Effect'"
+              },
+              {
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs",
+                "anchor": "test('restored Model selects its original checked Result suffix without preparing saved input again'"
+              },
+              {
+                "path": "src/client_infer_host/compute_boundary_wbtest.mbt",
+                "anchor": "test \"Infer execution owns the suffix across completion and cancellation\""
               }
             ]
           }
@@ -15672,7 +15684,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -18823,7 +18835,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/initial-control-environment-source.test.mjs",
@@ -19625,12 +19637,12 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "439e702adca23aeae3b4a2a82f1aa6ee85a9045b488bc0de29aca070b7335625"
+      "sha256": "796fbd2bf7ca7b90e25263efc78a05dc517fb4585f0ef113ccb436a2dd794c1f"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -21417,7 +21429,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -21715,7 +21727,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               }
             ]
           }
@@ -22236,7 +22248,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
