@@ -4506,7 +4506,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "c8a542815adf3a296577b0600351f6fc307887f19b5c7f86c34d4912a6db3b9b",
+      "sha256": "9d7dc0d485992ca23581e52587fa89ab025a5e7bdd9646c1b7434defc61595f7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -6223,6 +6223,11 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
           "parameters": [],
           "async": false
@@ -7223,6 +7228,7 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recipeOf/recipeOf",
@@ -19679,8 +19685,25 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/invoke/invoke",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "inputWire"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
+          "parameters": [
+            "wire"
+          ],
           "async": false
         },
         {
@@ -19750,7 +19773,8 @@
             "assertCurrent",
             "observeCurrent",
             "requestsRetired",
-            "originalInvoke"
+            "originalInvoke",
+            "originalResponseExtent"
           ],
           "async": false
         },
@@ -19786,6 +19810,13 @@
           "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
           "parameters": [
             "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -20025,6 +20056,7 @@
             "operation",
             "perRow",
             "originalConstruct",
+            "originalInputExtent",
             "requestsRetired"
           ],
           "async": false
@@ -20130,7 +20162,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "25a0ecdcb40cff28c63cb88b72a04df07824f7e91039afe41b3f54be2d241690",
+      "sha256": "e83f19ae2db78a09fee1c29a7e165b8f80685111a58dfd6b60607c78ef1febfe",
       "contracts": [
         {
           "operations": [
@@ -20152,6 +20184,7 @@
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#2",
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#3",
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
             "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
             "prepareInstalledEffectCredentialChild/chargeBytes/chargeBytes",
             "prepareInstalledEffectCredentialChild/check/check",
@@ -20547,6 +20580,79 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('owned request cleanup retains native backing on rejected or pending original release'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectControlConstruction/invoke/invoke",
+            "prepareInstalledEffectControlConstruction/parsePreview/parsePreview"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
               }
             ]
           }
@@ -21221,7 +21327,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "a86ca65e89065a48b90c92000f0e83d24b4741cc5c1fb228c736d8fa331d0291",
+      "sha256": "287729885831b7f03d0c8d75ca86810abf4b629007717a26e3411b6705bc114b",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -21249,6 +21355,14 @@
           "async": false
         },
         {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
+          "parameters": [
+            "previewWire",
+            "recovery"
+          ],
+          "async": false
+        },
+        {
           "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/names/names",
           "parameters": [
             "source"
@@ -21263,7 +21377,16 @@
             "selectedOperation",
             "capacity",
             "requestBytes",
-            "responseBytes"
+            "responseBytes",
+            "maximumCapacity",
+            "originalResponseExtent"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical/extent/extent",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -21279,6 +21402,30 @@
           "parameters": [
             "sum",
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/quantities/quantities",
+          "parameters": [
+            "inputProfile",
+            "capture",
+            "controlBytes",
+            "hostInputBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/responseExtent/responseExtent",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/targetResponseExtent/targetResponseExtent",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -21316,10 +21463,15 @@
             "<module>",
             "captureSalesforceEffectPlanRecipeBuilder",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/names/names",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical/extent/extent",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes",
             "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes#2",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/quantities/quantities",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/responseExtent/responseExtent",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/targetResponseExtent/targetResponseExtent",
             "fail/fail",
             "integer/integer",
             "originalMethod",

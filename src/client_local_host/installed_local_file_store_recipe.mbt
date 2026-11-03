@@ -177,44 +177,8 @@ pub fn installed_local_file_store_recipe_capacities(
 /// The same installed codec limit must reject larger saved prefixes before
 /// parsing. This is not a bound on arbitrary provider outcomes.
 pub fn installed_local_file_store_control_wire_bound() -> Int {
-  let ledger_keys = [
-    "attempt_sequence", "canonical_request_cid", "capability", "dispatch_key", "effect_preview_cid",
-    "fence", "intent_fingerprint_cid", "logical_item_locator_cid", "logical_request_scope_cid",
-    "original_membership_cid", "outcome_receipt_cid", "prior_entry_cid", "recovery_contract_cid",
-    "reservation_evidence_cid", "retention_contract_cid", "self_cid", "state", "unit_definition_cid",
-    "version",
-  ]
-  // Braces, commas, quoted keys/colons, fourteen quoted CIDs (nullable ones
-  // are smaller), two safe integers, longest capability/state and version.
-  let mut ledger = 2 +
-    18 +
-    3 * 19 +
-    14 * 73 +
-    2 * 16 +
-    13 +
-    13 +
-    "actql-logical-item-ledger-entry/0.1".length() +
-    2
-  for key in ledger_keys {
-    ledger += key.length()
-  }
-  let receipt_keys = [
-    "credential_use_cid", "dispatch_entry_cid", "effect_member_preview_cid", "effect_preview_cid",
-    "http_status_code", "response_byte_count", "response_physical_sha256", "row_preview_cid",
-    "typed_outcome", "typed_outcome_cid", "version", "self_cid",
-  ]
-  let mut receipt = 2 +
-    11 +
-    3 * 12 +
-    7 * 73 +
-    66 +
-    3 +
-    16 +
-    "{\"result\":{},\"state\":\"applied\"}".length() +
-    "actql-effect-row-outcome-receipt/0.1".length() +
-    2
-  for key in receipt_keys {
-    receipt += key.length()
-  }
-  Int::max(ledger, receipt)
+  installed_effect_control_wire_bound(
+    "{\"result\":{},\"state\":\"applied\"}".length(),
+    1000000,
+  ).unwrap()
 }

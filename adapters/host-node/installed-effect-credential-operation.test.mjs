@@ -380,3 +380,24 @@ test('invalid credential occurrence domain refuses before selection, borrow or b
   assert.equal(f.controls.bindings, 0);
   assert.equal(f.server.seen().length, 0);
 });
+
+test('same original TLS response grows before decoding and keeps its failed child until original retirement',async t=>{
+  for(const refused of [false,true]){
+    const f=await operationFixture(t,{reply:()=>({body:'{"ok":true}'})}),extent={},events=[],failure=new Error('actual body capacity refused');
+    f.runtime.clientProgramInstalledEffectOperationInputBegin=function(token,input){
+      assert.equal(this,f.runtime);assert.equal(input,extent);events.push('grow');
+      if(refused)throw failure;return {$tag:1,_0:undefined};
+    };
+    const child=f.create(async context=>{
+      const response=await f.send(context);events.push('decode');return response;
+    },{responseExtent(bytes){assert.equal(bytes,11);events.push('input');return extent;}});
+    if(refused)await assert.rejects(child.prepare(),error=>error===failure);
+    else assert.equal((await child.prepare()).body.toString(),'{"ok":true}');
+    assert.deepEqual(events,refused?['input','grow']:['input','grow','decode']);
+    assert.equal(f.controls.starts,1);assert.equal(f.controls.borrows,1);
+    assert.deepEqual(f.controls.charges,[2n,11n]);assert.equal(f.server.seen().length,1);
+    assert.equal(await child.release(),false);
+    f.controls.retiredAliases=true;assert.equal(await child.release(),true);
+    assert.equal(f.controls.settles,1);
+  }
+});

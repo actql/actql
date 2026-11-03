@@ -3,7 +3,8 @@
 /// for targeted writes, three distinct row reads. Its Native constructors use
 /// the SAME four-entry request/target/response/metadata profile as the standard
 /// composer. Metadata output lives once per member; its synchronous workspace
-/// lives on the existing Run control frame, never on every HTTP child.
+/// lives on the existing Run control frame by default. Input-staged metadata
+/// instead lives on its SAME physical child through native decode/projection.
 /// No provider policy, authority, new allocation Owner or tariff is selected.
 pub fn installed_described_effect_recipe_capacities(
   original : Array[
@@ -31,6 +32,9 @@ pub fn installed_described_effect_recipe_capacities(
   stored_depth : Int,
   metadata_units : Int64,
   response_read_quantum? : Int = 1,
+  metadata_on_child? : Bool = false,
+  control_wire_bytes? : Int? = None,
+  host_input_bytes? : Int? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     entries.length() == 4 &&
@@ -101,15 +105,22 @@ pub fn installed_described_effect_recipe_capacities(
       stored_depth,
       metadata_units,
       response_read_quantum~,
+      control_wire_bytes~,
+      host_input_bytes~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let metadata_retained = @execution.execution_capacity_retained_bytes(metadata)
-  let metadata_workspace = @execution.execution_capacity_execution_bytes(
-      metadata,
-    ) -
-    metadata_retained
+  let metadata_retained = if metadata_on_child {
+    0L
+  } else {
+    @execution.execution_capacity_retained_bytes(metadata)
+  }
+  let metadata_workspace = if metadata_on_child {
+    0L
+  } else {
+    @execution.execution_capacity_execution_bytes(metadata) - metadata_retained
+  }
   guard @execution.execution_capacity(metadata_retained, metadata_retained)
     is Some(retained) &&
     @execution.add_execution_capacity(base[0], retained) is Some(fixed) &&
@@ -143,7 +154,14 @@ pub fn installed_described_effect_recipe_capacities(
     is Some(receive) &&
     standard_create_secret_capacity(secret_bytes, secret_prefix_units)
     is Some(secret) &&
-    standard_create_sum_capacities([receive, secret]) is Some(metadata_physical) else {
+    standard_create_sum_capacities(
+      if metadata_on_child {
+        [receive, secret, metadata]
+      } else {
+        [receive, secret]
+      },
+    )
+    is Some(metadata_physical) else {
     return Err(Unsupported)
   }
   let mut controls = controls

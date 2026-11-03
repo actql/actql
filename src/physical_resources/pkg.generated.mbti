@@ -254,6 +254,8 @@ pub fn grow_platform_vm_working_capacity(PlatformVMWorkingCapacity, Int64, Int64
 
 pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn[P, E] grow_prepared_run_operation_capacity(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 
 pub fn[T] handoff_funded_read_capacity(FundedReadClaim[T], T, Int64, Int64) -> Result[(Ledger, CapacityReservation), OriginalReadIssue]

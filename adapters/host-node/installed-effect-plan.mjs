@@ -189,12 +189,16 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   }
   let captureConstruction;
   if (fields.captureConstruction !== undefined) {
-    const selected = own(fields.captureConstruction.value, ['operationIndex']);
+    const selected = own(fields.captureConstruction.value, ['operationIndex',
+      ...(Object.hasOwn(fields.captureConstruction.value, 'inputExtent') ? ['inputExtent'] : [])]);
     const operationIndex = selected.operationIndex.value;
     if (!Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= memberOperations.length) {
       fail('InvalidInstalledEffectPlanRecipe');
     }
-    captureConstruction = Object.freeze({operationIndex});
+    const inputExtent = selected.inputExtent?.value;
+    if (inputExtent !== undefined && (typeof inputExtent !== 'function' || nodeTypes.isProxy(inputExtent) ||
+        nodeTypes.isAsyncFunction(inputExtent))) fail('InvalidInstalledEffectPlanRecipe');
+    captureConstruction = Object.freeze({operationIndex, ...(inputExtent === undefined ? {} : {inputExtent})});
   }
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
@@ -210,7 +214,8 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       const original = entries[String(index)].value;
       if (original === null || typeof original !== 'object' || nodeTypes.isProxy(original)) fail('InvalidInstalledEffectPlanRecipe');
       const entry = own(original, ['phase', 'operationIndex', 'maxRequestBytes', 'maxResponseBytes',
-        ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : [])]);
+        ...(Object.hasOwn(original, 'perRow') ? ['perRow'] : []),
+        ...(Object.hasOwn(original, 'responseExtent') ? ['responseExtent'] : [])]);
       const phase = entry.phase.value, operationIndex = entry.operationIndex.value,
         perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
@@ -225,9 +230,13 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
             Number.isSafeInteger(value) && value > 0)) {
         fail('InvalidInstalledEffectPlanRecipe');
       }
+      const responseExtent = entry.responseExtent?.value;
+      if (responseExtent !== undefined && (typeof responseExtent !== 'function' || nodeTypes.isProxy(responseExtent) ||
+          nodeTypes.isAsyncFunction(responseExtent))) fail('InvalidInstalledEffectPlanRecipe');
       phases.add(phase); indexes.add(key);
       return Object.freeze({phase, operationIndex, maxRequestBytes, maxResponseBytes,
-        ...(entry.perRow === undefined ? {} : {perRow})});
+        ...(entry.perRow === undefined ? {} : {perRow}),
+        ...(responseExtent === undefined ? {} : {responseExtent})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
   }
@@ -388,7 +397,7 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
 }
 
 export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
-  operationIndex, operation, perRow = true, construct: originalConstruct, requestsRetired}) {
+  operationIndex, operation, perRow = true, construct: originalConstruct, inputExtent: originalInputExtent, requestsRetired}) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
       typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run;
@@ -396,6 +405,10 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   const begin = runtime?.clientProgramInstalledEffectOperationConstructionBegin;
   const retire = runtime?.clientProgramInstalledEffectOperationRetire;
   const complete = runtime?.clientProgramInstalledEffectOperationConstructionComplete;
+  const beginInput = runtime?.clientProgramInstalledEffectOperationInputBegin;
+  if (originalInputExtent !== undefined && (typeof originalInputExtent !== 'function' || typeof beginInput !== 'function')) {
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
   if (![retain, begin, complete, retire, readPlan].every(method => typeof method === 'function')) {
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
@@ -411,8 +424,8 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   originalRecord();
   let token = checked(Reflect.apply(retain, runtime,
     [parent, prepared, request, plan, memberIndex, perRow, operationIndex, rowIndex, operation]));
-  let construct = originalConstruct;
-  originalConstruct = undefined;
+  let construct = originalConstruct, inputExtent = originalInputExtent;
+  originalConstruct = originalInputExtent = undefined;
   let state = 'fresh';
   let preparing = false;
   let pendingConstructor;
@@ -421,7 +434,7 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
     if (preparing || requestsRetired() !== true) return false;
     // Clear this child's last input/callback references BEFORE the same native
     // body token may settle. The enclosing capture has already severed output.
-    construct = undefined;
+    construct = inputExtent = undefined;
     if (checked(Reflect.apply(retire, runtime, [token, true])) !== true) return false;
     token = undefined;
     state = 'retired';
@@ -437,7 +450,12 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
         originalRecord();
         // Atomic Core entry grows this SAME original backing to its captured
         // extent and observes current once, before any constructor allocation.
-        checked(Reflect.apply(begin, runtime, [token]));
+        if (inputExtent === undefined) checked(Reflect.apply(begin, runtime, [token]));
+        else {
+          const extent = inputExtent();
+          originalRecord();
+          checked(Reflect.apply(beginInput, runtime, [token, extent]));
+        }
         originalRecord();
         const value = construct();
         if (nodeTypes.isPromise(value)) {
@@ -493,7 +511,7 @@ export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
 export function prepareInstalledEffectCredentialChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, originalSite, originalAuthorization, useId, resource,
   purpose, runInvocationCid, dispatchRequestCid, maxRequestBytes, maxResponseBytes,
-  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke}) {
+  assertCurrent, observeCurrent, requestsRetired, invoke: originalInvoke, responseExtent: originalResponseExtent}) {
   if (run === undefined || typeof perRow !== 'boolean' || ![originalInvoke, assertCurrent, observeCurrent, requestsRetired]
       .every(value => typeof value === 'function') || !text(useId) || !text(resource) ||
       !['read', 'target-read', 'effect'].includes(purpose) || !text(runInvocationCid) || !text(dispatchRequestCid) ||
@@ -507,10 +525,10 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     return field.value;
   };
   const method = (value,name) => {const fn=own(value,name);if(typeof fn!=='function')fail('InstalledEffectCredentialOperationUnavailable');return fn;};
-  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke;
+  let site=originalSite,authorization=originalAuthorization,invoke=originalInvoke,responseExtent=originalResponseExtent;
   let bind=method(site,'bindRunAcquisition'),readPurpose=method(site,'authorizationPurpose'),
     referenceCurrent=method(site,'referenceCurrent'),physical=method(site,'callResource');
-  originalSite=originalAuthorization=originalInvoke=undefined;
+  originalSite=originalAuthorization=originalInvoke=originalResponseExtent=undefined;
   const {runtime,value:parent,prepared,request,operationPlan:plan,readPlan}=run;
   const select=runtime?.clientProgramInstalledEffectManagedPlanOperation,
     isPhysical=runtime?.clientProgramInstalledEffectOperationExtentPhysical,
@@ -518,9 +536,13 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     responseBackingFits=runtime?.clientProgramInstalledEffectOperationResponseBackingFits,
     borrow=runtime?.clientProgramInstalledEffectOperationBorrow,
     start=runtime?.clientProgramInstalledEffectOperationStart,
+    beginInput=runtime?.clientProgramInstalledEffectOperationInputBegin,
     charge=runtime?.clientProgramInstalledEffectOperationCharge,
     retire=runtime?.clientProgramInstalledEffectOperationRetire;
   if (![readPlan,select,isPhysical,transfer,responseBackingFits,borrow,start,charge,retire].every(value=>typeof value==='function')) {
+    fail('InstalledEffectOperationRuntimeUnavailable');
+  }
+  if(responseExtent!==undefined&&(typeof responseExtent!=='function'||typeof beginInput!=='function')){
     fail('InstalledEffectOperationRuntimeUnavailable');
   }
   const originalRecord=()=>{
@@ -614,8 +636,19 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
     // Join the SAME call even if a provider omits its await or throws after
     // starting it. The envelope keeps rejection handled without discarding it;
     // prepare below still reports it when no earlier failure was thrown.
-    physicalFlight=Promise.resolve(result).then(value=>({ok:true,value}),error=>({ok:false,error}));
-    return result;
+    // Grow before the SAME response escapes to any provider decoder. The
+    // received body remains in this already-retained physical child's custody
+    // if quantity selection, current or resize refuses.
+    const response = responseExtent === undefined ? result : Promise.resolve(result).then(value=>{
+      originalRecord();
+      if(!Buffer.isBuffer(value?.body)&&!(value?.body instanceof Uint8Array))fail('InvalidInstalledEffectResponseBody');
+      const extent=responseExtent(value.body.byteLength);
+      originalRecord();
+      checked(Reflect.apply(beginInput,runtime,[token,extent]));
+      originalRecord();return value;
+    });
+    physicalFlight=Promise.resolve(response).then(value=>({ok:true,value}),error=>({ok:false,error}));
+    return response;
   };
   const drain=()=>{
     if(state==='retired')return true;
@@ -640,7 +673,7 @@ export function prepareInstalledEffectCredentialChild({run, memberIndex, rowInde
       }
     }
     if(preparing||accountingFailed||(acquisition!==undefined&&!bindingClosed)||requestsRetired()!==true)return false;
-    invoke=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=physicalFlight=undefined;
+    invoke=responseExtent=authorization=acquisition=boundCredential=closeBinding=bind=readPurpose=referenceCurrent=physical=site=physicalFlight=undefined;
     if(checked(Reflect.apply(retire,runtime,[token,true]))!==true)return false;
     token=undefined;state='retired';return true;
   };
@@ -687,6 +720,10 @@ export function prepareInstalledEffectControlConstruction(run) {
   const {runtime, value: parent, prepared, request, operationPlan: plan, readPlan} = run ?? {};
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
+  const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
+  const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
+  const parseJson = JSON.parse;
+  const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
@@ -714,7 +751,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     Reflect.apply(nativePromiseThen, joined, [settled, settled]);
     fail('InvalidInstalledEffectControlConstruction');
   };
-  work = (receiver, method, args) => {
+  const invoke = (receiver, method, args, inputWire) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
@@ -725,7 +762,8 @@ export function prepareInstalledEffectControlConstruction(run) {
     run.selecting = true;
     try {
       originalRecord();
-      checked(Reflect.apply(begin, runtime, [parent, prepared, request, plan]));
+      checked(Reflect.apply(inputWire === undefined ? begin : beginInput, runtime,
+        [parent, prepared, request, plan, ...(inputWire === undefined ? [] : [inputWire])]));
       originalRecord();
       const value = Reflect.apply(method, receiver, args);
       retainInvalid(value);
@@ -742,6 +780,26 @@ export function prepareInstalledEffectControlConstruction(run) {
       if (pending === undefined) run.selecting = false;
     }
   };
+  work = (receiver, method, args) => invoke(receiver, method, args);
+  const parsePreview = wire => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
+    originalRecord();
+    if (typeof wire !== 'string' || typeof hasHostInput !== 'function') {
+      fail('InstalledEffectControlRuntimeUnavailable');
+    }
+    // Other installed recipes retain their unchanged fixed parser envelope.
+    // Only the typed opted-in Plan can refine this existing control token.
+    const selected = Reflect.apply(hasHostInput, runtime, [plan]);
+    if (typeof selected !== 'boolean') fail('InvalidHostRuntimeResult');
+    if (!selected) {
+      originalRecord();
+      return Reflect.apply(parseJson, jsonReceiver, [wire]);
+    }
+    if (typeof beginInput !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    return invoke(jsonReceiver, parseJson, [wire], wire);
+  };
   const retire = () => {
     if (retired) return true;
     if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
@@ -752,7 +810,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire}));
+  return Object.freeze(Object.assign(work, {retire, parsePreview}));
 }
 
 // A composed generic owner keeps its original codec and full control quote.

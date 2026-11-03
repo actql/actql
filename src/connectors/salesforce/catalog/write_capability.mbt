@@ -104,6 +104,29 @@ pub fn write_capability_construction_limits(
 }
 
 ///|
+/// Constructor-only bound for this writer's generated schema. The original
+/// writer limits still govern acceptance. One possible external target adds
+/// one field; each field emits fewer than32 fixed nodes plus reference names.
+/// The root and either existing binding emit fewer than64 nodes.
+pub fn write_capability_generated_construction_limits(
+  original : @source.ParseLimits,
+  fields : Int,
+  references_per_field : Int,
+) -> @source.ParseLimits? {
+  if fields < 1 || references_per_field < 0 {
+    return None
+  }
+  let nodes = Int64::min(
+    original.max_nodes.to_int64(),
+    64L + (fields.to_int64() + 1L) * (32L + references_per_field.to_int64()),
+  )
+  if nodes < 1L || nodes > 2147483647L {
+    return None
+  }
+  Some({ ..original, max_nodes: nodes.to_int(), })
+}
+
+///|
 pub fn prepare_write_capability_evidence(
   request : SingleWriteRequest,
   runtime_bundle_cid : String,

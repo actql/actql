@@ -71161,7 +71161,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c8a542815adf3a296577b0600351f6fc307887f19b5c7f86c34d4912a6db3b9b",
+      "sha256": "9d7dc0d485992ca23581e52587fa89ab025a5e7bdd9646c1b7434defc61595f7",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -72873,6 +72873,11 @@
         },
         {
           "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create#2",
           "parameters": [],
           "async": false
         },
@@ -75268,6 +75273,7 @@
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create#2",
             "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recipeOf/recipeOf",

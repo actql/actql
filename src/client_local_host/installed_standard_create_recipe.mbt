@@ -435,8 +435,13 @@ fn installed_standard_recipe_capacities(
   stored_depth : Int,
   metadata_units : Int64,
   response_read_quantum? : Int = 1,
+  control_wire_bytes? : Int? = None,
+  host_input_bytes? : Int? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
-  guard original is Some(entries) &&
+  let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
+  guard control_bytes > 0 &&
+    control_bytes <= stored_bytes &&
+    original is Some(entries) &&
     input_bytes > 0 &&
     input_nodes > 0 &&
     input_depth > 0 &&
@@ -471,21 +476,8 @@ fn installed_standard_recipe_capacities(
       row_input_bytes, row_input_nodes, row_input_depth,
     )
     is Some(capture_rows) &&
-    @source.json_literal_construction_extent(
-      input_bytes, input_nodes, input_depth,
-    )
-    is Some(tree) &&
-    installed_host_json_retained_roles(
-      {
-        record_headers: tree.record_headers,
-        reference_slots: tree.reference_slots,
-        scalar_words: tree.scalar_words,
-        owned_utf16_units: tree.owned_utf16_units,
-        owned_wire_bytes: 0L,
-      },
-      input_bytes,
-      input_nodes,
-      keep_full_text=true,
+    installed_standard_host_preview_input_parts(
+      input_bytes, input_nodes, input_depth, host_input_bytes,
     )
     is Some((host_retained, host_workspace)) &&
     @execution.compose_preparation_representation([
@@ -524,7 +516,7 @@ fn installed_standard_recipe_capacities(
     is Some(secret) &&
     standard_create_grant_capacity() is Some(grant) &&
     standard_create_saved_control_capacity(
-      stored_bytes, stored_nodes, stored_depth,
+      control_bytes, stored_nodes, stored_depth,
     )
     is Some(stored) &&
     standard_create_representation_capacity(
@@ -647,4 +639,123 @@ fn installed_standard_recipe_capacities(
     capacities.push(if capture.length() == 3 { capture[2] } else { empty })
   }
   Ok(capacities)
+}
+
+///|
+// The original wire/text envelope remains prepaid. Only the Host forest and
+// its private parser workspace wait for the same already-owned Preview wire.
+// Some(0) denotes an absent parser phase, never an invented JSON document.
+fn installed_standard_host_preview_input_parts(
+  policy_bytes : Int,
+  policy_nodes : Int,
+  policy_depth : Int,
+  input_bytes : Int?,
+) -> (
+  @execution.PreparationRepresentationUnits,
+  @execution.PreparationRepresentationUnits,
+)? {
+  guard @source.json_literal_construction_extent(
+      policy_bytes, policy_nodes, policy_depth,
+    )
+    is Some(policy) else {
+    return None
+  }
+  let bytes = input_bytes.unwrap_or(policy_bytes)
+  if bytes < 0 || bytes > policy_bytes {
+    return None
+  }
+  let empty : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  if bytes == 0 {
+    return Some(
+      ({ ..empty, owned_utf16_units: policy.owned_utf16_units, }, empty),
+    )
+  }
+  let nodes = if input_bytes is Some(_) {
+    Int::min(policy_nodes, bytes)
+  } else {
+    policy_nodes
+  }
+  guard @source.json_literal_construction_extent(bytes, nodes, policy_depth)
+    is Some(tree) &&
+    installed_host_json_retained_roles(
+      {
+        record_headers: tree.record_headers,
+        reference_slots: tree.reference_slots,
+        scalar_words: tree.scalar_words,
+        owned_utf16_units: tree.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      bytes,
+      nodes,
+      keep_full_text=true,
+    )
+    is Some((retained, workspace)) else {
+    return None
+  }
+  Some(
+    ({ ..retained, owned_utf16_units: policy.owned_utf16_units, }, workspace),
+  )
+}
+
+///|
+/// Existing original Ledger/Receipt envelope with the selected native outcome
+/// writer's byte ceiling. Larger foreign prefixes are refused by the SAME
+/// selected codec before parsing; no valid selected outcome is removed. Other
+/// composed implementations retain their existing full-codec fallback.
+pub fn installed_effect_control_wire_bound(
+  outcome_bytes : Int,
+  maximum_bytes : Int,
+) -> Result[Int, ClientInstalledManagedRunIssue] {
+  if outcome_bytes < 1 || maximum_bytes < 1 {
+    return Err(Unsupported)
+  }
+  let ledger_keys = [
+    "attempt_sequence", "canonical_request_cid", "capability", "dispatch_key", "effect_preview_cid",
+    "fence", "intent_fingerprint_cid", "logical_item_locator_cid", "logical_request_scope_cid",
+    "original_membership_cid", "outcome_receipt_cid", "prior_entry_cid", "recovery_contract_cid",
+    "reservation_evidence_cid", "retention_contract_cid", "self_cid", "state", "unit_definition_cid",
+    "version",
+  ]
+  // Braces, commas, quoted keys/colons, fourteen quoted CIDs (nullable ones
+  // are smaller), two safe integers, longest capability/state and version.
+  let mut ledger = 2 +
+    18 +
+    3 * 19 +
+    14 * 73 +
+    2 * 16 +
+    13 +
+    13 +
+    "actql-logical-item-ledger-entry/0.1".length() +
+    2
+  for key in ledger_keys {
+    ledger += key.length()
+  }
+  let receipt_keys = [
+    "credential_use_cid", "dispatch_entry_cid", "effect_member_preview_cid", "effect_preview_cid",
+    "http_status_code", "response_byte_count", "response_physical_sha256", "row_preview_cid",
+    "typed_outcome", "typed_outcome_cid", "version", "self_cid",
+  ]
+  let mut receipt = 2 +
+    11 +
+    3 * 12 +
+    7 * 73 +
+    66 +
+    3 +
+    16 +
+    0 +
+    "actql-effect-row-outcome-receipt/0.1".length() +
+    2
+  for key in receipt_keys {
+    receipt += key.length()
+  }
+  let receipt = receipt.to_int64() + outcome_bytes.to_int64()
+  Ok(
+    Int64::min(maximum_bytes.to_int64(), Int64::max(ledger.to_int64(), receipt)).to_int(),
+  )
 }

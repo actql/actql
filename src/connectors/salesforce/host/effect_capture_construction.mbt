@@ -227,7 +227,36 @@ pub fn effect_capture_construction_profile(
   field_name_units : Int,
   api_units : Int,
   resource_units : Int,
+  recovery_input_bytes? : Int = -1,
 ) -> Array[@execution.ExecutionCapacity]? {
+  if recovery_input_bytes < -1 {
+    return None
+  }
+  let warm = recovery_input_bytes == 0
+  // This is the original already-owned wire extent, not a replacement codec
+  // limit. Every nested JSON spelling and retained base64 body fits inside it.
+  let actual = if recovery_input_bytes > 0 {
+    recovery_input_bytes
+  } else {
+    recovery_bytes
+  }
+  let recovery_bytes = Int::min(recovery_bytes, actual)
+  let raw_bytes = Int::min(raw_bytes, actual)
+  let preview = if recovery_input_bytes > 0 {
+    {
+      ..preview,
+      max_input_bytes: Int::min(preview.max_input_bytes, actual),
+      max_nodes: Int::min(preview.max_nodes, actual),
+    }
+  } else {
+    preview
+  }
+  let zero : @source.JsonLiteralConstructionExtent = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+  }
   guard original is Some(entries) &&
     entries.length() == 4 &&
     recovery_bytes > 0 &&
@@ -238,6 +267,15 @@ pub fn effect_capture_construction_profile(
     binding_units >= 0 &&
     @catalog.write_capability_construction_limits(preview.max_input_bytes)
     is Some(capability_limits) &&
+    // The writer emits only its fixed root/binding and selected field
+    // metadata. Each field has at most describe.max_fields reference names.
+    // Retain the writer's original byte/depth ceilings and rejection policy.
+    @catalog.write_capability_generated_construction_limits(
+      capability_limits,
+      fields,
+      describe.max_fields,
+    )
+    is Some(capability_limits) &&
     @encode.text_writer_construction_inventory(
       capability_limits.max_input_bytes,
       capability_limits.max_nodes,
@@ -246,9 +284,13 @@ pub fn effect_capture_construction_profile(
     is Some(capability_writer) &&
     @catalog.write_target_digest_construction_inventory() is Some(target_hash) &&
     @encode.hash_writer_live_key_inventory(0, 0) is Some(body_hash) &&
-    @source.json_literal_construction_extent(
-      recovery_bytes, recovery_bytes, recovery_bytes,
-    )
+    (if warm {
+      Some(zero)
+    } else {
+      @source.json_literal_construction_extent(
+        recovery_bytes, recovery_bytes, recovery_bytes,
+      )
+    })
     is Some(recovery_json) &&
     @source.json_literal_construction_extent(
       capability_limits.max_input_bytes,
@@ -256,21 +298,33 @@ pub fn effect_capture_construction_profile(
       capability_limits.max_depth,
     )
     is Some(capability_json) &&
-    @source.json_literal_construction_extent(
-      preview.max_input_bytes,
-      preview.max_nodes,
-      preview.max_depth,
-    )
+    (if warm {
+      Some(zero)
+    } else {
+      @source.json_literal_construction_extent(
+        preview.max_input_bytes,
+        preview.max_nodes,
+        preview.max_depth,
+      )
+    })
     is Some(preview_json) &&
-    effect_recovery_preview_construction_capacity(
-      preview.max_input_bytes,
-      preview.max_nodes,
-      preview.max_depth,
-    )
+    (if warm {
+      @execution.execution_capacity(0L, 0L)
+    } else {
+      effect_recovery_preview_construction_capacity(
+        preview.max_input_bytes,
+        preview.max_nodes,
+        preview.max_depth,
+      )
+    })
     is Some(preview_capacity) &&
-    sf_effect_catalog_recovery_capacity(
-      list, describe, raw_bytes, observation_bytes, binding_units,
-    )
+    (if warm {
+      @execution.execution_capacity(0L, 0L)
+    } else {
+      sf_effect_catalog_recovery_capacity(
+        list, describe, raw_bytes, observation_bytes, binding_units,
+      )
+    })
     is Some(catalog_capacity) &&
     @shape.collection_construction_extent({
       // Original CapabilityEvidence/field Map, Host owner/attestation/scope
@@ -343,7 +397,11 @@ pub fn effect_capture_construction_profile(
     body_hash.owned_utf16_units +
     2L * saved_wire +
     4L * 71L,
-    owned_wire_bytes: preview.max_input_bytes.to_int64() +
+    owned_wire_bytes: (if warm {
+      0L
+    } else {
+      preview.max_input_bytes.to_int64()
+    }) +
     target_hash.owned_wire_bytes +
     body_hash.owned_wire_bytes,
   }
@@ -387,4 +445,89 @@ pub fn effect_capture_construction_profile(
   // are borrowed from the common checked member. This provider
   // neither encodes them again nor gives their spelling a second byte rate.
   Some([fixed, row, effect_id])
+}
+
+///|
+/// Grow the SAME metadata occurrence for its already-owned HTTP response.
+/// Actual bytes bound the parser's forest, as in the existing Source reader;
+/// field/name/depth policy and all other original constructors stay unchanged.
+pub fn effect_metadata_input_construction_profile(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  describe : @catalog.DescribeLimits,
+  observation_bytes : Int,
+  binding_units : Int,
+  resource_units : Int,
+  response_bytes : Int,
+) -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+]? {
+  if response_bytes < 0 || response_bytes > describe.max_bytes {
+    return None
+  }
+  guard original is Some(entries) && entries.length() == 4 else { return None }
+  let bytes = Int::max(1, response_bytes)
+  guard named_describe_construction_capacity(
+      {
+        ..describe,
+        max_bytes: bytes,
+        max_nodes: Int::min(describe.max_nodes, bytes),
+      },
+      observation_bytes,
+      binding_units,
+      resource_units,
+    )
+    is Some(capacity) else {
+    return None
+  }
+  let (_, input, output) = entries[3]
+  let selected = entries.copy()
+  selected[3] = (capacity, input, output)
+  Some(selected)
+}
+
+///|
+pub fn effect_target_input_construction_profile(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  target : @catalog.TargetObservationLimits,
+  fields : Int,
+  response_bytes : Int,
+) -> Array[
+  (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+]? {
+  if response_bytes < 0 || response_bytes > target.max_bytes {
+    return None
+  }
+  guard original is Some(entries) &&
+    entries.length() == 4 &&
+    entries[1].2 is Some(output) else {
+    return None
+  }
+  let bytes = Int::max(1, response_bytes)
+  let nodes = Int::min(target.max_nodes, bytes)
+  guard effect_target_construction_capacity(
+      { ..target, max_bytes: bytes, max_nodes: nodes, },
+      fields,
+    )
+    is Some(capacity) else {
+    return None
+  }
+  let output_bytes = Int64::min(
+    output.max_input_bytes.to_int64(),
+    bytes.to_int64() + 6L * target.max_identity_bytes.to_int64() + 130L,
+  )
+  let selected = entries.copy()
+  selected[1] = (
+    capacity,
+    None,
+    Some({
+      ..output,
+      max_input_bytes: output_bytes.to_int(),
+      max_nodes: Int::min(output.max_nodes, nodes + 4),
+    }),
+  )
+  Some(selected)
 }

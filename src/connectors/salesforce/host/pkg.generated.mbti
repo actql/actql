@@ -16,11 +16,13 @@ pub fn accept_managed_query_page(ManagedQuery, String, Bytes) -> Result[@catalog
 
 pub fn cancel_managed_query(ManagedQuery) -> Bool
 
-pub fn effect_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @source_value.ParseLimits, @catalog.ListLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int, Int, Int) -> Array[@execution_relation.ExecutionCapacity]?
+pub fn effect_capture_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @source_value.ParseLimits, @catalog.ListLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int, Int, Int, recovery_input_bytes? : Int) -> Array[@execution_relation.ExecutionCapacity]?
 
 pub fn effect_construction_profile(@catalog.WriteBodyLimits, @catalog.WriteRequestLimits, @catalog.TargetObservationLimits, @catalog.WriteCollectionResponseLimits, @catalog.DescribeLimits, Int, Int, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 
 pub fn effect_driver_construction_capacity() -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_metadata_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @catalog.DescribeLimits, Int, Int, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 
 pub fn effect_recovery_preview_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
@@ -29,6 +31,8 @@ pub fn effect_request_construction_capacity(@catalog.WriteBodyLimits, @catalog.W
 pub fn effect_response_construction_capacity(@catalog.WriteCollectionResponseLimits, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn effect_target_construction_capacity(@catalog.TargetObservationLimits, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn effect_target_input_construction_profile(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, @catalog.TargetObservationLimits, Int, Int) -> Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?
 
 pub fn execution_mapping_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @catalog.DeclarationLimits) -> @execution_relation.ExecutionCapacity?
 

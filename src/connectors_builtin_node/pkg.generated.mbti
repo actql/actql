@@ -1542,6 +1542,8 @@ pub fn client_program_install_original_mock(@check_environment.ModelMockProfile,
 
 pub fn client_program_installed_composed_infer_plan_graph(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
+pub fn client_program_installed_described_effect_input_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_described_effect_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int64, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
@@ -1556,6 +1558,10 @@ pub fn client_program_installed_effect_content_preparation_prepare(@run_publicat
 
 pub fn client_program_installed_effect_content_preparation_provider(@client_local_host.ClientInstalledEffectContentPreparation) -> @local.ManagedProvider
 
+pub fn client_program_installed_effect_control_wire_bound(Int, Int) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_host_input_capture_recipe_extent_prepare(String, Array[@execution_relation.ExecutionCapacity], Int, Int, Int) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_http_response_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_effect_managed_host_open(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource]) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1563,6 +1569,8 @@ pub fn client_program_installed_effect_managed_host_open(@client_local_host.Clie
 pub fn client_program_installed_effect_managed_operation_plan(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_plan_capture_children(@client_local_host.ClientInstalledEffectManagedPlan) -> Int
+
+pub fn client_program_installed_effect_managed_plan_has_host_input(@client_local_host.ClientInstalledEffectManagedPlan) -> Bool
 
 pub fn client_program_installed_effect_managed_plan_operation(@client_local_host.ClientInstalledEffectManagedPlan, Int, Bool, Int, String) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1610,6 +1618,8 @@ pub fn client_program_installed_effect_operation_control_construction_begin(@cli
 
 pub fn client_program_installed_effect_operation_control_construction_complete(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_operation_control_input_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, String) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_controls_begin(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_controls_retain(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1628,9 +1638,13 @@ pub fn client_program_installed_effect_operation_extent_prepare(String, Int64, I
 
 pub fn client_program_installed_effect_operation_extent_transfer(@client_local_host.ClientInstalledEffectOperationExtent) -> Int64
 
+pub fn client_program_installed_effect_operation_input_begin(@client_local_host.ClientInstalledEffectOperationBorrow, @client_local_host.ClientInstalledEffectOperationExtent) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_operation_response_backing_fits(@client_local_host.ClientInstalledEffectOperationExtent, Int, Int, Int) -> Bool
 
 pub fn client_program_installed_effect_operation_retire(@client_local_host.ClientInstalledEffectOperationBorrow, Bool) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_operation_staged_extent_prepare(@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledEffectOperationExtent) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_operation_start(@client_local_host.ClientInstalledEffectOperationBorrow) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 

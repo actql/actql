@@ -1426,6 +1426,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         operationIndex: selected.operationIndex, operation, perRow, originalSite,
         originalAuthorization, useId, resource, purpose, runInvocationCid, dispatchRequestCid,
         maxRequestBytes: selected.maxRequestBytes, maxResponseBytes: responseBytes,
+        responseExtent: selected.responseExtent,
         assertCurrent, observeCurrent: async () => {assertCurrent();},
         requestsRetired: retireRequestAliases, invoke}), assertCurrent, signal});
   };
@@ -2411,7 +2412,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         compiledPlan: previewContext.compiledPlan,
         storeAuthorityCid: store.storeAuthorityCid},
       requestScope, members, rowsOf, capabilities, footprints, payloads});
-    const body = JSON.parse(preview.wire);
+    const body = managedEffect === undefined ? JSON.parse(preview.wire)
+      : managedEffect.controlConstruction.parsePreview(preview.wire);
     // The admitted Preview must state exactly the rows its requests write.
     body.effects.forEach((member, index) => {
       if (member.changes.length !== entries[index].length ||
@@ -2742,6 +2744,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           original = prepareInstalledEffectRequestChild({run: managedEffect,
             memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
             operationIndex: selected.operationIndex, operation,
+            ...(selected.inputExtent === undefined ? {} : {inputExtent: () =>
+              selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery)}),
             construct: () => index + 1 === members.length ? recoveredEntries(facts) : calls[index + 1](),
             requestsRetired: retireRequestAliases});
           return original;
@@ -2795,7 +2799,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {requestIdentity, requestScope, computation: durable} = recovered;
     const {computation, preview, storedResults} = durable;
     const previewWire = control.effectComputationPreviewWire(preview);
-    const body = JSON.parse(previewWire);
+    const body = managedEffect === undefined ? JSON.parse(previewWire)
+      : managedEffect.controlConstruction.parsePreview(previewWire);
     const members = recoveredMembers(body, provider, selected);
     bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);

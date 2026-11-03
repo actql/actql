@@ -247,7 +247,7 @@
     },
     {
       "module": "src/connectors/salesforce/catalog/write_capability.mbt",
-      "sha256": "9ef448f431efe214fd599001f52202b02d090f1962b3e5ff5c79c4ae9b62176b",
+      "sha256": "482b8ad54d911f00d6af0a09dc1dba1a3a92f1ddfdbe8702f5d7898d3e738650",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -282,6 +282,10 @@
           "declaration": "write_capability_construction_limits ( max_bytes : Int , ) - > @ source . ParseLimits ?"
         },
         {
+          "name": "write_capability_generated_construction_limits",
+          "declaration": "write_capability_generated_construction_limits ( original : @ source . ParseLimits , fields : Int , references_per_field : Int , ) - > @ source . ParseLimits ?"
+        },
+        {
           "name": "write_capability_identity",
           "declaration": "write_capability_identity ( value : WriteCapabilityEvidence ) - > String"
         },
@@ -301,6 +305,7 @@
             "recheck_write_capability",
             "write_capability_body",
             "write_capability_construction_limits",
+            "write_capability_generated_construction_limits",
             "write_capability_identity",
             "write_capability_route"
           ],

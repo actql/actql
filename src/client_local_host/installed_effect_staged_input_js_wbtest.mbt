@@ -1,0 +1,253 @@
+///|
+// Real typed Plan/preparation/operation owners with explicit no-I/O Resource
+// ports. This is not ordinary Host, HTTP, Store or physical ACK evidence.
+fn staged_effect_input_fixture(
+  current? : () -> Unit = () => (),
+) -> (
+  @publication_host.PreparedClientEffectComputation,
+  @publication_host.ClientRequestIdentity,
+  ClientInstalledEffectManagedPlan,
+  ClientInstalledManagedRun,
+  @resources.Ledger,
+) raise {
+  let (prepared, request, contracts) = effect_operation_plan_inputs(
+    rows="[{\"id\":1},{\"id\":2}]",
+  )
+  let capture = prepare_installed_effect_staged_extent(
+    prepare_installed_effect_capture_extent(
+      "capture",
+      @execution.execution_capacity(10L, 20L).unwrap(),
+      @execution.execution_capacity(2L, 3L).unwrap(),
+    ).unwrap(),
+    prepare_installed_effect_capture_extent(
+      "capture",
+      @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
+      @execution.execution_capacity(1000000L, 2000000L).unwrap(),
+    ).unwrap(),
+  ).unwrap()
+  let send = prepare_installed_effect_staged_extent(
+    prepare_installed_effect_operation_extent(
+      "send",
+      @execution.execution_capacity(5L, 8L).unwrap(),
+      7L,
+      true,
+    ).unwrap(),
+    prepare_installed_effect_operation_extent(
+      "send",
+      @execution.execution_capacity(1000000000L, 2000000000L).unwrap(),
+      7L,
+      true,
+    ).unwrap(),
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [capture],
+    [send],
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  assert_true(quote[4] < 1000000000L)
+  assert_true(quote[5] < 2000000000L)
+  quote[4] += 512L
+  quote[5] += 512L
+  let (input, initial, _, capacity) = effect_parent_test_preparation(
+    plan,
+    quote,
+    current~,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, capacity, prepared, request, plan,
+  ).unwrap()
+  (prepared, request, plan, owner, owner.ledger.unwrap())
+}
+
+///|
+test "staged Effect input resolves the same two rows and grows one original constructor before work" {
+  let calls = Ref(0)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(current=() => {
+    calls.val += 1
+  })
+  assert_eq(plan.rows, 2)
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 30L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let observations = calls.val
+  begin_installed_effect_operation_input(child, input).unwrap()
+  assert_eq(calls.val, observations + 1)
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(
+    grown.reserved_retention_bytes - before.reserved_retention_bytes,
+    12L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes - before.reserved_execution_bytes,
+    26L,
+  )
+  assert_eq(grown.attempts, before.attempts)
+  assert_eq(grown.reserved_attempts, before.reserved_attempts)
+  assert_eq(grown.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_true(
+    begin_installed_effect_operation_input(child, input) is Err(AlreadyBound),
+  )
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    grown.reserved_execution_bytes - 14L,
+  )
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_true(
+    begin_installed_effect_operation_input(child, input) is Err(Retired),
+  )
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "staged Effect input preserves the same physical attempt and rejects a foreign purpose or ceiling" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = borrow_installed_effect_operation(
+    owner, prepared, request, plan, 0, true, 0, 0, "send",
+  ).unwrap()
+  let input = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(9L, 14L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, input) is Err(ForeignOriginal),
+  )
+  start_installed_effect_operation(child).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let foreign = prepare_installed_effect_operation_extent(
+    "other",
+    @execution.execution_capacity(9L, 14L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, foreign)
+    is Err(ForeignOriginal),
+  )
+  let too_large = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(1000000001L, 2000000001L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, too_large)
+    is Err(InsufficientCapacity),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(grown.attempts, before.attempts)
+  assert_eq(grown.reserved_attempts, before.reserved_attempts)
+  assert_eq(grown.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_eq(
+    grown.reserved_retention_bytes - before.reserved_retention_bytes,
+    4L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes - before.reserved_execution_bytes,
+    6L,
+  )
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "staged Effect input retains original backing on refusal and reentrant retirement" {
+  let selected : Ref[ClientInstalledEffectOperationBorrow?] = Ref(None)
+  let retire = Ref(false)
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture(current=() => {
+    if retire.val {
+      retire.val = false
+      retire_installed_effect_operation(selected.val.unwrap(), true).unwrap()
+      |> ignore
+    }
+  })
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(20L, 30L).unwrap(),
+    @execution.execution_capacity(3L, 5L).unwrap(),
+  ).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let occupied = @resources.reserve_capacity(
+    ledger,
+    0L,
+    @resources.ledger_limits(ledger).execution_bytes -
+    usage.reserved_execution_bytes,
+  ).unwrap()
+  let full = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_input(child, input)
+    is Err(Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), full)
+  assert_true(!child.input_selected)
+  @resources.settle_capacity(ledger, occupied).unwrap()
+  selected.val = Some(child)
+  retire.val = true
+  assert_true(
+    begin_installed_effect_operation_input(child, input) is Err(Retired),
+  )
+  assert_true(child.retired)
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "selected outcome control wire bound preserves the original Local envelope and full fallback" {
+  let empty = "{\"result\":{},\"state\":\"applied\"}".length()
+  assert_eq(
+    installed_effect_control_wire_bound(empty, 1000000).unwrap(),
+    installed_local_file_store_control_wire_bound(),
+  )
+  assert_eq(
+    installed_effect_control_wire_bound(100000, 1000000).unwrap(),
+    // Receipt envelope is881 bytes; the smaller empty receipt previously
+    // selected the1510-byte Ledger maximum instead.
+    100881,
+  )
+  assert_eq(
+    installed_effect_control_wire_bound(1000000, 1000000).unwrap(),
+    1000000,
+  )
+  assert_eq(
+    installed_effect_control_wire_bound(2147483647, 1000000).unwrap(),
+    1000000,
+  )
+  assert_true(
+    installed_effect_control_wire_bound(0, 1000000) is Err(Unsupported),
+  )
+  assert_true(
+    installed_effect_control_wire_bound(100000, 0) is Err(Unsupported),
+  )
+}

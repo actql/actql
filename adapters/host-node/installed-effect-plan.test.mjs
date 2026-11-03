@@ -711,13 +711,14 @@ test('constructor entry refusal and reentry retain the same original backing wit
 });
 
 
-function controlWorkFixture() {
+function controlWorkFixture(overrides = {}) {
   const parent={},prepared={},request={},plan={},events=[];
   const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
     clientProgramInstalledEffectOperationControlConstructionBegin(owner,p,r,selected){
       assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('begin');return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationControlConstructionComplete(owner,p,r,selected){
-      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('complete');return {$tag:1,_0:undefined};}};
+      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('complete');return {$tag:1,_0:undefined};},
+    ...overrides};
   const run={runtime,value:parent,prepared,request,operationPlan:plan,readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan,
     closed:false,selecting:false};
   const work=prepareInstalledEffectControlConstruction(run);run.controlConstruction=work;run.retireControlConstruction=work.retire;
@@ -731,6 +732,69 @@ test('control construction enters once before the same original callback and kee
   assert.deepEqual(f.events,['begin','work','complete']);assert.equal(f.run.selecting,false);
   f.work(receiver,()=>{f.events.push('second');},[]);
   assert.deepEqual(f.events,['begin','work','complete','begin','second','complete']);
+});
+
+test('Host Preview input refines the same control before parsing and retains the original parser', () => {
+  const wire = '{"same":"original"}', events = [];
+  const spent = new Error('original input already selected');
+  let selected = false;
+  const parse = JSON.parse;
+  let f;
+  try {
+    JSON.parse = function (input) {
+      assert.equal(this, JSON);assert.equal(input, wire);events.push('parse');
+      return Reflect.apply(parse, JSON, [input]);
+    };
+    f = controlWorkFixture({
+      clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+      clientProgramInstalledEffectOperationControlInputBegin(owner, prepared, request, plan, input) {
+        assert.deepEqual([owner, prepared, request, plan],
+          [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan]);
+        if (selected) throw spent;
+        selected = true;
+        assert.equal(input, wire);events.push('input');return {$tag: 1, _0: undefined};
+      },
+    });
+  } finally { JSON.parse = parse; }
+  assert.deepEqual(f.work.parsePreview(wire), {same: 'original'});
+  assert.deepEqual(events, ['input', 'parse']);
+  assert.deepEqual(f.events, ['complete']);
+  assert.equal(f.run.selecting, false);
+  assert.throws(() => f.work.parsePreview(wire), error => error === spent);
+  assert.deepEqual(events, ['input', 'parse']);
+  assert.deepEqual(f.events, ['complete']);
+});
+
+test('Host Preview capacity refusal preserves its original failure before parsing or another attempt', () => {
+  const original = new Error('original input capacity refusal');let entries = 0;
+  const f = controlWorkFixture({
+    clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {entries++;throw original;},
+  });
+  assert.throws(() => f.work.parsePreview('{'), error => error === original);
+  assert.throws(() => f.work.parsePreview('{}'), error => error === original);
+  assert.equal(entries, 1);assert.deepEqual(f.events, []);
+  assert.equal(f.run.selecting, false);assert.equal(f.work.retire(), true);
+});
+
+test('Host Preview parse failure keeps the same active prefix and rejects a foreign Run before refinement', () => {
+  let entries = 0;
+  const f = controlWorkFixture({
+    clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {entries++;return {$tag: 1, _0: undefined};},
+  });
+  let primary;
+  assert.throws(() => f.work.parsePreview('{'), error => {
+    primary = error;return error instanceof SyntaxError;
+  });
+  assert.throws(() => f.work.parsePreview('{}'), error => error === primary);
+  assert.equal(entries, 1);assert.deepEqual(f.events, []);
+  const foreign = controlWorkFixture({
+    clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {assert.fail('foreign input');},
+  });
+  foreign.run.value = {};
+  assert.throws(() => foreign.work.parsePreview('{}'), {code: 'ForeignInstalledEffectManagedRun'});
 });
 
 test('control construction retains same thrown undefined and performs no completion or later callback', () => {
@@ -1036,4 +1100,22 @@ test('same installed driver keeps create update and upsert recipes tied to their
     assert.throws(() => capture(invalid, {kinds}, 1), {code: 'InvalidInstalledEffectPlanRecipe'});
   }
   assert.equal(getters, 0);
+});
+
+test('original recovery input grows the retained constructor before its only work and preserves failure cleanup', () => {
+  for (const refused of [false,true]) {
+    const events=[], extent={}, output={}, failure=new Error('same input capacity refused');
+    const f=constructorControlFixture(()=>{events.push('construct');return output;});
+    f.run.runtime.clientProgramInstalledEffectOperationInputBegin=function(token,input){
+      assert.equal(this,f.run.runtime);assert.equal(token,f.originalToken);assert.equal(input,extent);
+      events.push('grow');if(refused)throw failure;return {$tag:1,_0:undefined};
+    };
+    const child=prepareInstalledEffectRequestChild({...f,inputExtent(){events.push('input');return extent;}});
+    if(refused)assert.throws(()=>child.prepare(),error=>error===failure);
+    else assert.equal(child.prepare(),output);
+    assert.deepEqual(events,refused?['input','grow']:['input','grow','construct']);
+    assert.equal(f.entries(),0,'input entry replaces the old begin instead of repeating its current');
+    assert.equal(child.release(),false);f.retireAliases();assert.equal(child.release(),true);
+    assert.equal(f.settlements(),1);assert.equal(f.debits(),1);
+  }
 });

@@ -70,6 +70,10 @@ function hostConfiguration({commit = 'delegate', read = 'allow', denied = []} = 
       connection: {any_of: ['actql-remote-host']},
       resource: {any_of: ['source-free-values']},
       operation: {any_of: ['write']}, exclusions: []},
+    {entry_id: 'host-observation', outcome: 'allow', principal: {any_of: [owner]},
+      connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['run', 'result/answer']},
+      operation: {any_of: ['read']}, exclusions: []},
   ].sort((a, b) => a.entry_id < b.entry_id ? -1 : 1);
   return canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'salesforce-effect-host', entries});

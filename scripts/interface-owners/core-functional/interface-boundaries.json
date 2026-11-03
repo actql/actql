@@ -32297,7 +32297,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "49faa586f1641690ad0a0bafc2835f742cf86f0d2f081fb9f24eaad53d9c0ebf",
+      "sha256": "b2a087bd612cf9976774ee1ee5cf346be83434ae9ffe7d37f58e03ecabfe496e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -32313,12 +32313,20 @@
           "declaration": "begin_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "begin_installed_effect_operation_control_input",
+          "declaration": "begin_installed_effect_operation_control_input ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , wire : String , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "begin_installed_effect_operation_controls",
           "declaration": "begin_installed_effect_operation_controls ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_installed_effect_operation_controls_original",
           "declaration": "begin_installed_effect_operation_controls_original ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , construction_deferred : Bool , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_input",
+          "declaration": "begin_installed_effect_operation_input ( value : ClientInstalledEffectOperationBorrow , input : ClientInstalledEffectOperationExtent , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "borrow_installed_effect_operation",
@@ -32337,6 +32345,10 @@
           "declaration": "check_installed_effect_construction_original ( value : ClientInstalledEffectOperationBorrow , owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , backing : @ resources . NodeManagedRunOperationBacking , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "check_installed_effect_operation_backing_original",
+          "declaration": "check_installed_effect_operation_backing_original ( value : ClientInstalledEffectOperationBorrow , owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , backing : @ resources . NodeManagedRunOperationBacking , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "check_installed_effect_operation_original",
           "declaration": "check_installed_effect_operation_original ( owner : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , control : ClientEffectOperationControls ? , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
@@ -32349,8 +32361,16 @@
           "declaration": "complete_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "installed_effect_control_capacity",
+          "declaration": "installed_effect_control_capacity ( control : ClientEffectOperationControls ? , plan : ClientInstalledEffectManagedPlan , input ? : ( String , @ execution . ExecutionCapacity ) ?"
+        },
+        {
           "name": "installed_effect_control_execution",
-          "declaration": "installed_effect_control_execution ( control : ClientEffectOperationControls ? , plan : ClientInstalledEffectManagedPlan , ) - > Int64"
+          "declaration": "installed_effect_control_execution ( control : ClientEffectOperationControls ? , capacity : @ execution . ExecutionCapacity , idle : Int64 , ) - > Int64"
+        },
+        {
+          "name": "installed_effect_host_preview_input_capacity",
+          "declaration": "installed_effect_host_preview_input_capacity ( plan : ClientInstalledEffectManagedPlan , wire : String , ) - > Result [ @ execution . ExecutionCapacity , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_effect_operation_control_capacity",
@@ -32378,7 +32398,7 @@
         },
         {
           "name": "resize_installed_effect_operation_control_construction",
-          "declaration": "resize_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , active : Bool , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "resize_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , active : Bool , input_wire ? : String ?"
         },
         {
           "name": "retain_installed_effect_operation_construction",
@@ -32496,7 +32516,9 @@
             "begin_installed_effect_operation_construction",
             "begin_installed_effect_operation_control_construction",
             "begin_installed_effect_operation_controls_original",
+            "begin_installed_effect_operation_input",
             "check_installed_effect_construction_original",
+            "check_installed_effect_operation_backing_original",
             "check_installed_effect_operation_original",
             "complete_installed_effect_operation_construction",
             "complete_installed_effect_operation_control_construction",
@@ -32574,14 +32596,92 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "begin_installed_effect_operation_control_input",
+            "installed_effect_control_capacity",
+            "installed_effect_host_preview_input_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "3db67722ce9215e8901e94682d832c57102aefb32e0a3348e96aee014a9b3d6c",
+      "sha256": "b0b62d8aa3c1e25b540c96a57a65ca066b975f98a82f17da8d7beffa542b494f",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_effect_capacity_within",
+          "declaration": "installed_effect_capacity_within ( required : @ execution . ExecutionCapacity , maximum : @ execution . ExecutionCapacity , ) - > Bool"
+        },
         {
           "name": "installed_effect_control_phase_quote_capacity",
           "declaration": "installed_effect_control_phase_quote_capacity ( ) - > @ execution . ExecutionCapacity"
@@ -32589,6 +32689,10 @@
         {
           "name": "installed_effect_limits_fit",
           "declaration": "installed_effect_limits_fit ( required : @ resources . LedgerLimits , admitted : @ resources . LedgerLimits , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_managed_plan_has_host_input",
+          "declaration": "installed_effect_managed_plan_has_host_input ( plan : ClientInstalledEffectManagedPlan , ) - > Bool"
         },
         {
           "name": "installed_effect_operation_extent_capacity",
@@ -32623,6 +32727,10 @@
           "declaration": "prepare_installed_effect_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "prepare_installed_effect_host_input_capture_recipe_extent",
+          "declaration": "prepare_installed_effect_host_input_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "prepare_installed_effect_managed_plan",
           "declaration": "prepare_installed_effect_managed_plan ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
@@ -32637,6 +32745,10 @@
         {
           "name": "prepare_installed_effect_operation_extent",
           "declaration": "prepare_installed_effect_operation_extent ( operation : String , capacity : @ execution . ExecutionCapacity , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_staged_extent",
+          "declaration": "prepare_installed_effect_staged_extent ( initial : ClientInstalledEffectOperationExtent , maximum : ClientInstalledEffectOperationExtent , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepared_installed_effect_managed_capture_children",
@@ -32675,6 +32787,7 @@
         {
           "operations": [
             "<module>",
+            "installed_effect_capacity_within",
             "installed_effect_limits_fit",
             "installed_effect_operation_extent_capacity",
             "installed_effect_operation_extent_physical",
@@ -32686,6 +32799,7 @@
             "prepare_installed_effect_operation_demand",
             "prepare_installed_effect_operation_demand_with_controls",
             "prepare_installed_effect_operation_extent",
+            "prepare_installed_effect_staged_extent",
             "prepared_installed_effect_managed_capture_children",
             "prepared_installed_effect_managed_operation",
             "prepared_installed_effect_managed_requirements",
@@ -32901,6 +33015,79 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_managed_plan_has_host_input",
+            "prepare_installed_effect_host_input_capture_recipe_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
               }
             ]
           }
@@ -34771,13 +34958,17 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "90dd13c3770aae6e3c9623bd10bac27ec4da484ac6b14a27bfca8b4e3aa9d047",
+      "sha256": "4ab3028c6acde388ed6e8f4303e4fb762bd4c5e5529971091ef8856feb919897",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and named component evidence only; full constructor funding, current candidate normal artifacts and ordinary acceptance remain separate.",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_effect_control_wire_bound",
+          "declaration": "installed_effect_control_wire_bound ( outcome_bytes : Int , maximum_bytes : Int , ) - > Result [ Int , ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "installed_standard_create_recipe_capacities",
           "declaration": "installed_standard_create_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum ? : Int"
@@ -34789,6 +34980,10 @@
         {
           "name": "installed_standard_driver_recipe_capacities",
           "declaration": "installed_standard_driver_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , check_request_bytes : Int , check_response_bytes : Int , before_send : Bool , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum ? : Int"
+        },
+        {
+          "name": "installed_standard_host_preview_input_parts",
+          "declaration": "installed_standard_host_preview_input_parts ( policy_bytes : Int , policy_nodes : Int , policy_depth : Int , input_bytes : Int ? , ) - > ( @ execution . PreparationRepresentationUnits , @ execution . PreparationRepresentationUnits , ) ?"
         },
         {
           "name": "installed_standard_recipe_capacities",
@@ -34824,12 +35019,12 @@
           "operations": [
             "<module>",
             "installed_standard_create_recipe_capacities",
+            "installed_standard_driver_recipe_capacities",
+            "installed_standard_recipe_capacities",
             "standard_create_grant_capacity",
             "standard_create_representation_capacity",
             "standard_create_secret_capacity",
-            "standard_create_sum_capacities",
-            "installed_standard_driver_recipe_capacities",
-            "installed_standard_recipe_capacities"
+            "standard_create_sum_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -34894,6 +35089,7 @@
         },
         {
           "operations": [
+            "installed_effect_control_wire_bound",
             "standard_create_saved_control_capacity",
             "standard_create_sequence_pair_capacity"
           ],
@@ -35025,6 +35221,78 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_standard_host_preview_input_parts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
               }
             ]
           }
@@ -48993,7 +49261,8 @@
             "client_program_installed_effect_operation_construction_retain",
             "client_program_installed_effect_operation_control_construction_begin",
             "client_program_installed_effect_operation_control_construction_complete",
-            "client_program_installed_effect_operation_controls_retain"
+            "client_program_installed_effect_operation_controls_retain",
+            "client_program_installed_effect_operation_input_begin"
           ],
           "exports": [],
           "attributes": {
@@ -49058,9 +49327,81 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_operation_control_input_begin"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
         }
       ],
-      "sha256": "f6392290d6286a999eae40f3723a8980742d53e7d0f1a7b659f2e8096b1a8d74",
+      "sha256": "ddfa14bd8c92e856ffa71d71c3d6bcffe5ba30e9473354614d9880cb2078c888",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -49095,6 +49436,10 @@
           "declaration": "client_program_installed_effect_operation_control_construction_complete ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "client_program_installed_effect_operation_control_input_begin",
+          "declaration": "client_program_installed_effect_operation_control_input_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , wire : String , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_controls_begin",
           "declaration": "client_program_installed_effect_operation_controls_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -49113,6 +49458,10 @@
         {
           "name": "client_program_installed_effect_operation_extent_transfer",
           "declaration": "client_program_installed_effect_operation_extent_transfer ( original : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Int64"
+        },
+        {
+          "name": "client_program_installed_effect_operation_input_begin",
+          "declaration": "client_program_installed_effect_operation_input_begin ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , input : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_operation_response_backing_fits",
@@ -49150,13 +49499,17 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "e75f9f8d5d5a3de150cbdf33e1699ccb0faab2f437369dadec2a8c558d74a794",
+      "sha256": "56129842540027b1b9b40d8862e9ef9da802076fdc56e6b682ec0dff6ba988a3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
       "referenceQualification": "Existing typed Plan bridge plus new opaque fixed/per-checked-row capture DATA projection; source and type qualification only, not current Common/ordinary/full backing",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_installed_described_effect_input_recipe_capacities",
+          "declaration": "client_program_installed_described_effect_input_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , target_reads : Bool , target_request_bytes : Int , target_response_bytes : Int , metadata_request_bytes : Int , metadata_response_bytes : Int , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
         {
           "name": "client_program_installed_described_effect_recipe_capacities",
           "declaration": "client_program_installed_described_effect_recipe_capacities ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , capture_original : Array [ @ execution . ExecutionCapacity ] ? , input_bytes : Int , input_nodes : Int , input_depth : Int , row_input_bytes : Int , row_input_nodes : Int , row_input_depth : Int , request_bytes : Int , response_bytes : Int , target_reads : Bool , target_request_bytes : Int , target_response_bytes : Int , metadata_request_bytes : Int , metadata_response_bytes : Int , secret_bytes : Int , secret_prefix_units : Int , header_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , metadata_units : Int64 , response_read_quantum : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
@@ -49182,6 +49535,14 @@
           "declaration": "client_program_installed_effect_content_preparation_provider ( original : @ client_local_host . ClientInstalledEffectContentPreparation , ) - > @ local . ManagedProvider"
         },
         {
+          "name": "client_program_installed_effect_control_wire_bound",
+          "declaration": "client_program_installed_effect_control_wire_bound ( outcome_bytes : Int , maximum_bytes : Int , ) - > Result [ Int , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_host_input_capture_recipe_extent_prepare",
+          "declaration": "client_program_installed_effect_host_input_capture_recipe_extent_prepare ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_managed_host_open",
           "declaration": "client_program_installed_effect_managed_host_open ( owner : @ client_local_host . ClientInstalledManagedRun , bound : @ publication_host . PreparedClientEffectRun , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ClientLocalEffectHost ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -49192,6 +49553,10 @@
         {
           "name": "client_program_installed_effect_managed_plan_capture_children",
           "declaration": "client_program_installed_effect_managed_plan_capture_children ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Int"
+        },
+        {
+          "name": "client_program_installed_effect_managed_plan_has_host_input",
+          "declaration": "client_program_installed_effect_managed_plan_has_host_input ( plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Bool"
         },
         {
           "name": "client_program_installed_effect_managed_plan_operation",
@@ -49246,6 +49611,10 @@
           "declaration": "client_program_installed_effect_operation_extent_prepare ( operation : String , retained_bytes : Int64 , execution_bytes : Int64 , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_effect_operation_staged_extent_prepare",
+          "declaration": "client_program_installed_effect_operation_staged_extent_prepare ( initial : @ client_local_host . ClientInstalledEffectOperationExtent , maximum : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_local_file_store_control_wire_bound",
           "declaration": "client_program_installed_local_file_store_control_wire_bound ( ) - > Int"
         },
@@ -49294,6 +49663,7 @@
             "client_program_installed_effect_operation_demand_with_controls_prepare",
             "client_program_installed_effect_operation_extent_from_capacity_prepare",
             "client_program_installed_effect_operation_extent_prepare",
+            "client_program_installed_effect_operation_staged_extent_prepare",
             "client_program_installed_standard_create_recipe_capacities",
             "client_program_installed_standard_driver_recipe_capacities",
             "client_program_node_effect_managed_plan_cleanup"
@@ -49432,7 +49802,9 @@
         },
         {
           "operations": [
+            "client_program_installed_described_effect_input_recipe_capacities",
             "client_program_installed_described_effect_recipe_capacities",
+            "client_program_installed_effect_control_wire_bound",
             "client_program_installed_local_file_store_control_wire_bound",
             "client_program_installed_local_file_store_recipe_capacities",
             "client_program_installed_standard_create_request_recipe_capacities"
@@ -49497,6 +49869,79 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_host_input_capture_recipe_extent_prepare",
+            "client_program_installed_effect_managed_plan_has_host_input"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
               }
             ]
           }
@@ -58703,12 +59148,16 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Resource original reservation owner",
-      "sha256": "e9ef6ee5bc0b6a868b0eee5aacb3e8df5eaf2044293c8179c654e909979e18eb",
+      "sha256": "63929539f9493633bd6e4c919e80e9a4beb34f404f269bfeaf74c8a671e19e51",
       "exports": [],
       "operations": [
         {
           "name": "grow_execution_reservation_capacity",
           "declaration": "grow_execution_reservation_capacity ( ledger : Ledger , reservation : Reservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "grow_execution_reservation_capacity_current",
+          "declaration": "grow_execution_reservation_capacity_current ( ledger : Ledger , reservation : Reservation , retained : Int64 , execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
         },
         {
           "name": "reduce_execution_reservation",
@@ -58786,7 +59235,8 @@
         },
         {
           "operations": [
-            "grow_execution_reservation_capacity"
+            "grow_execution_reservation_capacity",
+            "grow_execution_reservation_capacity_current"
           ],
           "exports": [],
           "attributes": {
@@ -69405,7 +69855,7 @@
     },
     {
       "module": "src/physical_resources/node_managed_run_operation.mbt",
-      "sha256": "4a7f8efc0739bfc1b5e0ca90bf7ea0e709e7c47a25cfbbdb2e4f02bebeb7ada0",
+      "sha256": "d3a8d079d012ed4b120efaf26eb86d5c92ec35ce5cd98685cc979bf87e04ac0d",
       "exports": [],
       "operations": [
         {
@@ -69423,6 +69873,10 @@
         {
           "name": "[P,E]complete_prepared_run_operation_construction",
           "declaration": "[ P , E ] complete_prepared_run_operation_construction ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
+        },
+        {
+          "name": "[P,E]grow_prepared_run_operation_capacity",
+          "declaration": "[ P , E ] grow_prepared_run_operation_capacity ( value : PreparedRunAdmission [ P ] , prepared : P , ledger : Ledger , original : ( ) - > Result [ Unit , E ] , backing : NodeManagedRunOperationBacking , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , NodeManagedRunOperationIssue [ E ] ]"
         },
         {
           "name": "[P,E]reserve_node_managed_run_operation",
@@ -69464,6 +69918,7 @@
             "[P,E]begin_prepared_run_operation_construction",
             "[P,E]complete_node_managed_run_operation_construction",
             "[P,E]complete_prepared_run_operation_construction",
+            "[P,E]grow_prepared_run_operation_capacity",
             "[P,E]reserve_node_managed_run_operation",
             "[P,E]reserve_node_managed_run_operation_controls",
             "[P,E]reserve_prepared_run_operation",
@@ -73682,7 +74137,7 @@
     },
     {
       "module": "src/client_local_host/installed_described_effect_recipe.mbt",
-      "sha256": "2ea27977ddffa750798193e38638cfd15849787ccbdebd24adc15218e0352e75",
+      "sha256": "5bc198c778df7db000ecb69c4ac0e15677bbe70a25ca1afb9c5e87878e4ff3ef",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -73764,7 +74219,7 @@
     },
     {
       "module": "src/connectors/salesforce/host_node/effect_construction_profile.mbt",
-      "sha256": "5a8086162d0478a039db81fe2c63e779589f14afecc63bfaf77c89596cf0ad16",
+      "sha256": "ba042b0ebd81367d4a11051760ff98c400f067f951cc430f52b940570bf08c1b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -73777,6 +74232,18 @@
         {
           "name": "salesforce_effect_construction_profile",
           "declaration": "salesforce_effect_construction_profile ( body_bytes : Int , body_nodes : Int , body_depth : Int , path_bytes : Int , target_bytes : Int , request_bytes : Int , target_response_bytes : Int , target_nodes : Int , target_depth : Int , identity_bytes : Int , response_bytes : Int , response_nodes : Int , response_depth : Int , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        },
+        {
+          "name": "salesforce_effect_input_capture_construction_profile",
+          "declaration": "salesforce_effect_input_capture_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , list_bytes : Int , list_nodes : Int , list_depth : Int , list_resources : Int , list_selected : Int , list_names : Int , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , raw_bytes : Int , recovery_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , input_bytes : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+        },
+        {
+          "name": "salesforce_effect_metadata_input_construction_profile",
+          "declaration": "salesforce_effect_metadata_input_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , describe_bytes : Int , describe_nodes : Int , describe_depth : Int , describe_fields : Int , describe_names : Int , observation_bytes : Int , binding_units : Int , resource_units : Int , response_bytes : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        },
+        {
+          "name": "salesforce_effect_target_input_construction_profile",
+          "declaration": "salesforce_effect_target_input_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , max_bytes : Int , max_nodes : Int , max_depth : Int , max_identity_bytes : Int , fields : Int , response_bytes : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
         }
       ],
       "contracts": [
@@ -73784,7 +74251,10 @@
           "operations": [
             "<module>",
             "salesforce_effect_capture_construction_profile",
-            "salesforce_effect_construction_profile"
+            "salesforce_effect_construction_profile",
+            "salesforce_effect_input_capture_construction_profile",
+            "salesforce_effect_metadata_input_construction_profile",
+            "salesforce_effect_target_input_construction_profile"
           ],
           "exports": [],
           "attributes": {
@@ -73958,7 +74428,7 @@
     },
     {
       "module": "src/connectors/salesforce/host/effect_capture_construction.mbt",
-      "sha256": "7b2ac8e44ac56603f1d1fd3aebb900054fb8e57f46735a1ccfa7e194eb07bcdf",
+      "sha256": "bb754d323aa122750a4fed15eec66f73f616f3cf872b96cb6fb32387da3001b5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -73966,11 +74436,19 @@
       "operations": [
         {
           "name": "effect_capture_construction_profile",
-          "declaration": "effect_capture_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , preview : @ source . ParseLimits , list : @ catalog . ListLimits , describe : @ catalog . DescribeLimits , observation_bytes : Int , raw_bytes : Int , recovery_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ @ execution . ExecutionCapacity ] ?"
+          "declaration": "effect_capture_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , preview : @ source . ParseLimits , list : @ catalog . ListLimits , describe : @ catalog . DescribeLimits , observation_bytes : Int , raw_bytes : Int , recovery_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , recovery_input_bytes ? : Int"
         },
         {
           "name": "effect_construction_profile",
           "declaration": "effect_construction_profile ( body : @ catalog . WriteBodyLimits , request : @ catalog . WriteRequestLimits , target : @ catalog . TargetObservationLimits , response : @ catalog . WriteCollectionResponseLimits , describe : @ catalog . DescribeLimits , observation_bytes : Int , binding_units : Int , fields : Int , field_name_units : Int , api_units : Int , resource_units : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        },
+        {
+          "name": "effect_metadata_input_construction_profile",
+          "declaration": "effect_metadata_input_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , describe : @ catalog . DescribeLimits , observation_bytes : Int , binding_units : Int , resource_units : Int , response_bytes : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        },
+        {
+          "name": "effect_target_input_construction_profile",
+          "declaration": "effect_target_input_construction_profile ( original : Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ? , target : @ catalog . TargetObservationLimits , fields : Int , response_bytes : Int , ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
         },
         {
           "name": "sf_effect_catalog_recovery_capacity",
@@ -73983,6 +74461,8 @@
             "<module>",
             "effect_capture_construction_profile",
             "effect_construction_profile",
+            "effect_metadata_input_construction_profile",
+            "effect_target_input_construction_profile",
             "sf_effect_catalog_recovery_capacity"
           ],
           "exports": [],
@@ -74050,7 +74530,7 @@
     },
     {
       "module": "src/connectors/salesforce/host/effect_construction.mbt",
-      "sha256": "088a49b99ab8eff9a2759529f373ed6fcd6c726456b2af1080fd7143d3e68632",
+      "sha256": "b17bb2fd8e7f88ff8bd397a2f4e9eb9da8e2821130ed0e58046ef9f3328a63d6",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",

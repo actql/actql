@@ -166,5 +166,6 @@ export function effectProgram(effects, rows, schema = {id: {type: 'string',
 // Compatibility name retains the original Salesforce unit projection; the
 // neutral test helper contains the same capture/recovery/cleanup assembly.
 export async function effectHost(t, installation, state, options = {}) {
-  return createRowEffectHost(t, installation, state, {...options, unitOf: salesforceEffectUnit});
+  return createRowEffectHost(t, installation, state, {...options, managed: true,
+    unitOf: salesforceEffectUnit});
 }

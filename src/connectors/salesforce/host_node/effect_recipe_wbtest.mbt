@@ -68,3 +68,117 @@ test "installed Salesforce native profiles compose directly into the original ca
     )
   }
 }
+
+///|
+test "Salesforce staged metadata and warm capture keep maxima as bounds until original input exists" {
+  let original = salesforce_effect_construction_profile(
+    100000, 10000, 16, 2048, 1024, 100000, 100000, 10000, 16, 4096, 100000, 1000,
+    16, 4000000, 400000, 32, 1000, 200000, 8000000, 1024, 3, 22, 5, 15,
+  )
+  let profile = bytes => {
+    salesforce_effect_metadata_input_construction_profile(
+      original, 4000000, 400000, 32, 1000, 200000, 8000000, 1024, 15, bytes,
+    )
+  }
+  let capture = bytes => {
+    salesforce_effect_input_capture_construction_profile(
+      original, 1000000, 100000, 64, 4000000, 100000, 32, 2000, 200, 100000, 4000000,
+      400000, 32, 1000, 200000, 8000000, 8000000, 10000000, 1024, 3, 22, 5, 15, bytes,
+    )
+  }
+  let compose = (profile, capture) => {
+    @local.installed_described_effect_recipe_capacities(
+      profile,
+      capture,
+      1000000,
+      100000,
+      64,
+      1000000,
+      100000,
+      64,
+      100000,
+      100000,
+      true,
+      1048576,
+      100000,
+      1048576,
+      4000000,
+      65536,
+      7,
+      16384,
+      1000000,
+      512,
+      16,
+      8000L,
+      response_read_quantum=16384,
+      metadata_on_child=true,
+      control_wire_bytes=Some(
+        @local.installed_effect_control_wire_bound(100000, 1000000).unwrap(),
+      ),
+    ).unwrap()
+  }
+  let target = bytes => {
+    salesforce_effect_target_input_construction_profile(
+      profile(0),
+      100000,
+      10000,
+      16,
+      4096,
+      3,
+      bytes,
+    )
+  }
+  let initial = compose(target(0), capture(0))
+  let response = compose(profile(2048), capture(0))
+  let target_response = compose(target(2048), capture(0))
+  assert_true(
+    @execution.execution_capacity_execution_bytes(target_response[6]) >
+    @execution.execution_capacity_execution_bytes(initial[6]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(target_response[6]) <
+    @execution.execution_capacity_execution_bytes(
+      compose(original, capture(0))[6],
+    ),
+  )
+  assert_true(target(100001) is None)
+  let recovered = compose(profile(0), capture(8192))
+  let maximum = compose(original, capture(-1))
+  // Actual two-row caller geometry, not the configured1000-field ceiling.
+  let retention = @execution.execution_capacity_retained_bytes(initial[0]) +
+    2L * @execution.execution_capacity_retained_bytes(initial[1]) +
+    3L * @execution.execution_capacity_retained_bytes(initial[7])
+  assert_true(retention < 536870912L)
+  for index in [0, 1, 7] {
+    assert_true(
+      @execution.execution_capacity_retained_bytes(initial[index]) <=
+      @execution.execution_capacity_retained_bytes(maximum[index]),
+    )
+    assert_true(
+      @execution.execution_capacity_execution_bytes(initial[index]) <=
+      @execution.execution_capacity_execution_bytes(maximum[index]),
+    )
+  }
+  assert_true(
+    @execution.execution_capacity_execution_bytes(response[7]) >
+    @execution.execution_capacity_execution_bytes(initial[7]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(recovered[0]) >
+    @execution.execution_capacity_execution_bytes(initial[0]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(recovered[0]) <=
+    @execution.execution_capacity_execution_bytes(maximum[0]),
+  )
+  // The typed native profile changes only metadata. Logical decode limits
+  // still belong to the actual original caller, not this quantity.
+  let before = original.unwrap()
+  let after = profile(2048).unwrap()
+  for index in 0..<3 {
+    assert_true(physical_equal(before[index].0, after[index].0))
+  }
+  assert_eq(before[3].2, after[3].2)
+  assert_true(profile(4000001) is None)
+  assert_true(capture(-2) is None)
+}

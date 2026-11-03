@@ -307,6 +307,31 @@ pub fn client_program_installed_effect_capture_recipe_extent_prepare(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare")
+pub fn client_program_installed_effect_host_input_capture_recipe_extent_prepare(
+  operation : String,
+  recipe : Array[@execution.ExecutionCapacity],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_host_input_capture_recipe_extent(
+    operation, recipe, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedPlanHasHostInput")
+pub fn client_program_installed_effect_managed_plan_has_host_input(
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Bool {
+  @client_local_host.installed_effect_managed_plan_has_host_input(plan)
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationDemandPrepare")
 pub fn client_program_installed_effect_operation_demand_prepare(
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -749,4 +774,99 @@ pub fn client_program_installed_effect_content_managed_plan_prepare(
 #export_name("clientProgramInstalledLocalFileStoreControlWireBound")
 pub fn client_program_installed_local_file_store_control_wire_bound() -> Int {
   @client_local_host.installed_local_file_store_control_wire_bound()
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationStagedExtentPrepare")
+pub fn client_program_installed_effect_operation_staged_extent_prepare(
+  initial : @client_local_host.ClientInstalledEffectOperationExtent,
+  maximum : @client_local_host.ClientInstalledEffectOperationExtent,
+) -> Result[
+  @client_local_host.ClientInstalledEffectOperationExtent,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_staged_extent(initial, maximum)
+}
+
+///|
+#export_name("clientProgramInstalledDescribedEffectInputRecipeCapacities")
+pub fn client_program_installed_described_effect_input_recipe_capacities(
+  original : Array[
+    (@execution.ExecutionCapacity, @source.ParseLimits?, @source.ParseLimits?),
+  ]?,
+  capture_original : Array[@execution.ExecutionCapacity]?,
+  input_bytes : Int,
+  input_nodes : Int,
+  input_depth : Int,
+  row_input_bytes : Int,
+  row_input_nodes : Int,
+  row_input_depth : Int,
+  request_bytes : Int,
+  response_bytes : Int,
+  target_reads : Bool,
+  target_request_bytes : Int,
+  target_response_bytes : Int,
+  metadata_request_bytes : Int,
+  metadata_response_bytes : Int,
+  secret_bytes : Int,
+  secret_prefix_units : Int,
+  header_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  metadata_units : Int64,
+  response_read_quantum : Int,
+  control_wire_bytes : Int,
+  host_input_bytes : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_described_effect_recipe_capacities(
+    original,
+    capture_original,
+    input_bytes,
+    input_nodes,
+    input_depth,
+    row_input_bytes,
+    row_input_nodes,
+    row_input_depth,
+    request_bytes,
+    response_bytes,
+    target_reads,
+    target_request_bytes,
+    target_response_bytes,
+    metadata_request_bytes,
+    metadata_response_bytes,
+    secret_bytes,
+    secret_prefix_units,
+    header_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    metadata_units,
+    response_read_quantum~,
+    metadata_on_child=true,
+    control_wire_bytes=if control_wire_bytes == 0 {
+      None
+    } else {
+      Some(control_wire_bytes)
+    },
+    host_input_bytes=if host_input_bytes < 0 {
+      None
+    } else {
+      Some(host_input_bytes)
+    },
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectControlWireBound")
+pub fn client_program_installed_effect_control_wire_bound(
+  outcome_bytes : Int,
+  maximum_bytes : Int,
+) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.installed_effect_control_wire_bound(
+    outcome_bytes, maximum_bytes,
+  )
 }

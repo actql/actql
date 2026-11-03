@@ -8,10 +8,44 @@ import {observeSalesforceTargetSet} from '../site/salesforce-target-observation.
 import {salesforceWriteDriver} from '../host/salesforce-write-driver.mjs';
 import {captureSalesforceEffectPlanRecipeBuilder} from '../host/salesforce-effect-plan.mjs';
 import {localOutputLimits} from '../../../host-node/local-values-plan.mjs';
+import {salesforceEffectSiteHooks} from '../host/installed-salesforce-effect-hooks.mjs';
 import {salesforceEffectTargetReadInventory, loadInstalledSalesforceEffect, INSTALLED_SALESFORCE_EFFECT_VERSION} from
   '../host/installed-salesforce-effect.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
+
+test('Salesforce Site hooks forward the same managed Effect owner through capture and recovery', () => {
+  const managedEffect = Object.freeze({original: 'managed Effect'});
+  const compilation = Object.freeze({original: 'compilation'});
+  const updateTargetSelections = Object.freeze([Object.freeze({original: 'target selection'})]);
+  const assertUpdateSelectionCurrent = () => {};
+  const selected = [];
+  const moon = {
+    clientProgramEffectCompilationPlanWire(actual) {
+      assert.strictEqual(actual, compilation);
+      return JSON.stringify({execution_material: {program: {id: 'program',
+        stages: [{id: 'stage', effects: {save: {}}}]}}});
+    },
+    clientProgramEffectCompilationCompiledPlanWire(actual) {
+      assert.strictEqual(actual, compilation);return 'compiled Plan';
+    },
+    strategyPublicationAdmit() {return {$tag: 1, _0: {original: 'compiled Plan'}};},
+  };
+  const hooks = salesforceEffectSiteHooks({environmentWire: 'environment',
+    prepareCaptured(facts) {selected.push(facts);return 'captured';},
+    prepareRecovered(facts) {selected.push(facts);return 'recovered';}});
+  const publicationPlan = {invocationOwner: {}, contractLimits: {
+    maxWireBytes: 1024, maxNodes: 128, maxDepth: 16}};
+  assert.equal(hooks.prepareCaptured({moon, compilation, publicationPlan, managedEffect,
+    updateTargetSelections, assertUpdateSelectionCurrent}), 'captured');
+  assert.equal(hooks.prepareRecovered({moon, managedEffect,
+    recovered: {updateTargetSelections, assertUpdateSelectionCurrent}}), 'recovered');
+  for (const facts of selected) {
+    assert.strictEqual(facts.managedEffect, managedEffect);
+    assert.strictEqual(facts.updateTargetSelections, updateTargetSelections);
+    assert.strictEqual(facts.assertUpdateSelectionCurrent, assertUpdateSelectionCurrent);
+  }
+});
 
 function actualDriverConstructor(createDriver, limits,
   captureRecipes = () => () => Object.freeze({})) {
@@ -44,17 +78,22 @@ function managedRecipeFixture() {
   const calls = [], extents = [];
   const ok = value => ({$tag: 1, _0: value});
   const moon = {
-    clientProgramInstalledDescribedEffectRecipeCapacities(...args) {
+    clientProgramInstalledEffectControlWireBound(outcome,maximum) {assert.equal(maximum,1000000);return ok(outcome+1510);},
+    clientProgramInstalledDescribedEffectInputRecipeCapacities(...args) {
       assert.strictEqual(this, moon);assert.strictEqual(args[0], profile);assert.strictEqual(args[1], capture);
+      assert.deepEqual(args.slice(5,8),[128,32,8],
+        'same actual proposal body limit, not the whole Preview limit');
       calls.push(args);return ok(capacities);
     },
+    clientProgramInstalledEffectOperationStagedExtentPrepare(initial,maximum) {return ok(Object.freeze({initial,maximum}));},
     clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transferBytes, physical) {
       assert.strictEqual(this, moon);
       const original = Object.freeze({operation, capacity, transferBytes, physical});
       extents.push(original);return ok(original);
     },
-    clientProgramInstalledEffectCaptureRecipeExtentPrepare(operation, original) {
+    clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation, original, bytes, nodes, depth) {
       assert.strictEqual(this, moon);assert.deepEqual(original, capacities.slice(0, 6));
+      assert.deepEqual([bytes, nodes, depth], [1024, 128, 16]);
       return ok(Object.freeze({operation, original}));
     },
   };
@@ -62,13 +101,16 @@ function managedRecipeFixture() {
     salesforceEffectConstructionProfile(...args) {
       assert.strictEqual(this, provider);assert.equal(args[20], 1);assert.equal(args[21], 4);
       // Both original methods were captured before the first callback.
-      provider.salesforceEffectCaptureConstructionProfile = () => assert.fail('replacement');
+      provider.salesforceEffectInputCaptureConstructionProfile = () => assert.fail('replacement');
+      provider.salesforceEffectMetadataInputConstructionProfile = () => assert.fail('replacement');
       return profile;
     },
-    salesforceEffectCaptureConstructionProfile(...args) {
+    salesforceEffectInputCaptureConstructionProfile(...args) {
       assert.strictEqual(this, provider);assert.strictEqual(args[0], profile);
       assert.equal(args[17], localOutputLimits.maxWireBytes);return capture;
     },
+    salesforceEffectTargetInputConstructionProfile(original) {assert.equal(this,provider);assert.equal(original,profile);return profile;},
+    salesforceEffectMetadataInputConstructionProfile(original) {assert.equal(this,provider);assert.equal(original,profile);return profile;},
   };
   const write = Object.freeze({resource: 'Account', fields: Object.freeze(['Name'])});
   const installed = Object.freeze({mappings: Object.freeze([Object.freeze({write})])});
@@ -93,7 +135,9 @@ test('Salesforce managed recipes retain original native profiles and distinct me
   options.moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare = () => assert.fail('changed during Source reserve');
   const recipes = build(options);
   assert(Object.isFrozen(recipes));assert.deepEqual(Object.keys(recipes), ['create', 'update', 'upsert']);
-  assert.deepEqual(calls.map(args => args[10]), [false, true, true]);
+  assert.deepEqual(calls.map(args => args[10]), [false, false, false, true, true, true, true, true, true]);
+  assert.deepEqual(calls.map(args => args.at(-1)), [0, -1, 0, 0, -1, 0, 0, -1, 0],
+    'only the original maximum prequotes the full Host parser; warm input has not been built');
   for (const [kind, recipe] of Object.entries(recipes)) {
     assert.strictEqual(recipe.controlsPerRow, capacities[4]);
     assert.equal(recipe.memberOperations.length, 4);
@@ -102,14 +146,16 @@ test('Salesforce managed recipes retain original native profiles and distinct me
     assert.deepEqual(descriptions.map(entry => entry.operationIndex), [1, 2, 3]);
     for (const entry of descriptions) {
       assert.equal(entry.perRow, false);
-      const extent = recipe.memberOperations[entry.operationIndex].extent;
+      const staged = recipe.memberOperations[entry.operationIndex].extent;
+      assert(Object.isFrozen(staged));assert.equal(typeof entry.responseExtent,'function');
+      const extent = staged.initial;
       assert.strictEqual(extent.capacity, capacities[7]);assert.equal(extent.physical, true);
       assert.equal(extent.operation, 'salesforce:catalog:describe');
     }
     const targets = recipe.credentialOperations.filter(entry => entry.phase.endsWith('-target'));
     assert.equal(targets.length, kind === 'create' ? 0 : 3);
     for (const entry of targets) {
-      assert.equal(entry.perRow, true);assert.strictEqual(recipe.rowOperations[entry.operationIndex].extent.capacity, capacities[6]);
+      assert.equal(entry.perRow, true);assert.strictEqual(recipe.rowOperations[entry.operationIndex].extent.initial.capacity, capacities[6]);
     }
     const write = recipe.credentialOperations.find(entry => entry.phase === 'write');
     assert.equal(write.perRow, true);assert.strictEqual(recipe.rowOperations[write.operationIndex].extent.capacity, capacities[3]);

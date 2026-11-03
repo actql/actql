@@ -13,6 +13,13 @@ struct ClientInstalledEffectOperationExtent {
   checked_row_capacity : @execution.ExecutionCapacity?
   // Resolved once from the SAME checked effect_id, never a caller name amount.
   checked_effect_id_capacity : @execution.ExecutionCapacity?
+  // An optional immutable upper bound for later original-input construction.
+  // The Plan admits capacity now; only an actually owned input can grow this
+  // SAME token toward maximum before its callback, within the original Root.
+  maximum : ClientInstalledEffectOperationExtent?
+  // The same member's Host Preview parser is selected later from its owned
+  // wire. Its immutable codec limits remain a bound, not initial tree storage.
+  host_input_limits : @source.ParseLimits?
 }
 
 ///|
@@ -37,7 +44,56 @@ pub fn prepare_installed_effect_operation_extent(
     physical_attempt,
     checked_row_capacity: None,
     checked_effect_id_capacity: None,
+    maximum: None,
+    host_input_limits: None,
   })
+}
+
+///|
+/// Stage an existing operation, not a new occurrence or authority. Both
+/// original templates retain their same operation, purpose and transfer.
+/// Checked row/id multiplicities are resolved by the same existing traversal.
+pub fn prepare_installed_effect_staged_extent(
+  initial : ClientInstalledEffectOperationExtent,
+  maximum : ClientInstalledEffectOperationExtent,
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  let host_input_changed = match
+    (initial.host_input_limits, maximum.host_input_limits) {
+    (None, None) => false
+    (Some(a), Some(b)) =>
+      a.max_input_bytes != b.max_input_bytes ||
+      a.max_nodes != b.max_nodes ||
+      a.max_depth != b.max_depth
+    _ => true
+  }
+  if initial.maximum is Some(_) ||
+    maximum.maximum is Some(_) ||
+    initial.operation != maximum.operation ||
+    initial.physical_attempt != maximum.physical_attempt ||
+    initial.transfer_bytes != maximum.transfer_bytes ||
+    (initial.checked_row_capacity is Some(_)) !=
+    (maximum.checked_row_capacity is Some(_)) ||
+    (initial.checked_effect_id_capacity is Some(_)) !=
+    (maximum.checked_effect_id_capacity is Some(_)) ||
+    host_input_changed ||
+    !installed_effect_capacity_within(initial.capacity, maximum.capacity) {
+    return Err(Unsupported)
+  }
+  Ok({ ..initial, maximum: Some(maximum), })
+}
+
+///|
+fn installed_effect_capacity_within(
+  required : @execution.ExecutionCapacity,
+  maximum : @execution.ExecutionCapacity,
+) -> Bool {
+  @execution.execution_capacity_retained_bytes(required) <=
+  @execution.execution_capacity_retained_bytes(maximum) &&
+  @execution.execution_capacity_execution_bytes(required) <=
+  @execution.execution_capacity_execution_bytes(maximum)
 }
 
 ///|
@@ -63,6 +119,8 @@ pub fn prepare_installed_effect_capture_extent(
     physical_attempt: false,
     checked_row_capacity: Some(capacity_per_checked_row),
     checked_effect_id_capacity: None,
+    maximum: None,
+    host_input_limits: None,
   })
 }
 
@@ -87,10 +145,60 @@ pub fn prepare_installed_effect_capture_recipe_extent(
 }
 
 ///|
+/// Bind a closed installing parser's original limits to this same capture.
+/// Actual input construction remains on the existing Run control reservation.
+pub fn prepare_installed_effect_host_input_capture_recipe_extent(
+  operation : String,
+  recipe : Array[@execution.ExecutionCapacity],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  ClientInstalledEffectOperationExtent,
+  ClientInstalledManagedRunIssue,
+] {
+  if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(Unsupported)
+  }
+  prepare_installed_effect_capture_recipe_extent(operation, recipe).map(original => {
+    ..original,
+    host_input_limits: Some({
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    }),
+  })
+}
+
+///|
+pub fn installed_effect_managed_plan_has_host_input(
+  plan : ClientInstalledEffectManagedPlan,
+) -> Bool {
+  plan.operations.any(demand => {
+    demand.member_extents.any(extent => extent.host_input_limits is Some(_))
+  })
+}
+
+///|
 fn resolve_installed_effect_id_extent(
   original : ClientInstalledEffectOperationExtent,
   effect_id : String,
 ) -> ClientInstalledEffectOperationExtent? {
+  let original = match original.maximum {
+    None => original
+    Some(value) => {
+      guard resolve_installed_effect_id_extent(value, effect_id)
+        is Some(resolved) else {
+        return None
+      }
+      if physical_equal(value, resolved) {
+        original
+      } else {
+        { ..original, maximum: Some(resolved), }
+      }
+    }
+  }
+  let maximum = original.maximum
   guard original.checked_effect_id_capacity is Some(rate) else {
     return Some(original)
   }
@@ -114,6 +222,10 @@ fn resolve_installed_effect_id_extent(
     @execution.execution_capacity(retained, execution) is Some(capacity) else {
     return None
   }
+  if maximum is Some(bound) &&
+    !installed_effect_capacity_within(capacity, bound.capacity) {
+    return None
+  }
   Some({ ..original, capacity, checked_effect_id_capacity: None, })
 }
 
@@ -122,6 +234,21 @@ fn resolve_installed_effect_capture_extent(
   original : ClientInstalledEffectOperationExtent,
   rows : Int,
 ) -> ClientInstalledEffectOperationExtent? {
+  let original = match original.maximum {
+    None => original
+    Some(value) => {
+      guard resolve_installed_effect_capture_extent(value, rows)
+        is Some(resolved) else {
+        return None
+      }
+      if physical_equal(value, resolved) {
+        original
+      } else {
+        { ..original, maximum: Some(resolved), }
+      }
+    }
+  }
+  let maximum = original.maximum
   guard original.checked_row_capacity is Some(per_row) else {
     return Some(original)
   }
@@ -143,6 +270,10 @@ fn resolve_installed_effect_capture_extent(
     )
     is Some(execution) &&
     @execution.execution_capacity(retained, execution) is Some(capacity) else {
+    return None
+  }
+  if maximum is Some(bound) &&
+    !installed_effect_capacity_within(capacity, bound.capacity) {
     return None
   }
   Some({ ..original, capacity, checked_row_capacity: None, })
@@ -623,6 +754,7 @@ pub fn prepare_installed_effect_managed_plan(
   let mut execution = compute_limits.execution_bytes
   let mut constructor_workspace = 0L
   let mut extent_count = 0L
+  let mut staged_extents = 0L
   let mut controlled_members = 0L
   let mut implementation_control_retained = 0L
   let mut implementation_control_workspace = 0L
@@ -666,6 +798,9 @@ pub fn prepare_installed_effect_managed_plan(
       remaining -= extents.length()
       extent_count += extents.length().to_int64()
       for extent in extents {
+        if extent.maximum is Some(_) {
+          staged_extents += 1L
+        }
         let count = multiplicity.to_int64()
         if count < 0L || held_children > 2147483647L - count {
           return Err(Unsupported)
@@ -799,6 +934,8 @@ pub fn prepare_installed_effect_managed_plan(
   // the full per-Source overlap until that Source's original preparation ends.
   // Existing generated sequences and acquisition bodies remain charged by
   // their original Compute/capture components, not decoded/copied here.
+  // Each staged maximum retains its resolved extent/capacity and Some pair
+  // beside the initial extent (4H8R8W). Immutable installation inputs are borrowed.
   let controls = @execution.preparation_representation_cost({
     record_headers: 17L +
     5L * members +
@@ -806,7 +943,8 @@ pub fn prepare_installed_effect_managed_plan(
     sources +
     time_holder +
     3L * model_holder +
-    3L * provider_sources.to_int64(),
+    3L * provider_sources.to_int64() +
+    4L * staged_extents,
     reference_slots: 27L +
     members +
     sources +
@@ -818,7 +956,8 @@ pub fn prepare_installed_effect_managed_plan(
     2L * sources +
     time_holder +
     9L * model_holder +
-    7L * provider_sources.to_int64(),
+    7L * provider_sources.to_int64() +
+    8L * staged_extents,
     scalar_words: 26L -
     model_holder +
     controlled_members +
@@ -826,7 +965,8 @@ pub fn prepare_installed_effect_managed_plan(
     4L * members +
     time_holder +
     12L * model_holder +
-    provider_sources.to_int64(),
+    provider_sources.to_int64() +
+    8L * staged_extents,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()

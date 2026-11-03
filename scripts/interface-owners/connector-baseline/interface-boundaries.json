@@ -8974,7 +8974,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7e2c1f1dc65c3076bbf8220b37b5036a8c83fe4e3905b2615e80cc8458c23fc5",
+      "sha256": "d967193c2767b3d964e33ab9f16e3b35f5e4e990151048c28bc40792238e25b5",
       "role": "connector-semantics",
       "owner": "Exact installed Host facts projected to the existing Salesforce captured/recovered Effect factory",
       "exports": [

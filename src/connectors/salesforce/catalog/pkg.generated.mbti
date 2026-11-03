@@ -310,6 +310,8 @@ pub fn write_capability_body(WriteCapabilityEvidence) -> String
 
 pub fn write_capability_construction_limits(Int) -> @source_value.ParseLimits?
 
+pub fn write_capability_generated_construction_limits(@source_value.ParseLimits, Int, Int) -> @source_value.ParseLimits?
+
 pub fn write_capability_identity(WriteCapabilityEvidence) -> String
 
 pub fn write_capability_route(WriteCapabilityEvidence) -> WriteCapabilityRoute

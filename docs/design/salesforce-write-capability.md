@@ -63,6 +63,12 @@ does not acquire mutation authority merely to inspect saved outcomes. It still
 requires current evidence-read admission. Success and unknown are never made
 retryable by issuing a new capability.
 
+The Salesforce-specific Site hooks forward the same managed Effect owner to
+both capture and recovery. Projecting the Host facts must not discard its
+Request/Plan association: the installed row owner checks that original before
+constructing requests or starting credential children. An equal Plan, a copied
+record or the continued existence of saved capture DATA cannot replace it.
+
 ## Managed constructor placement
 
 The described-record recipe composes the existing Native constructor
@@ -197,9 +203,10 @@ Capture, apply and resume Describe reads are distinct member occurrences;
 target reads are distinct row occurrences for update/upsert. Each write retains
 its own physical occurrence. A create does not acquire target-read authority.
 
-Metadata output is retained once on its member. Synchronous constructor scratch
-uses the original control frame; an awaited HTTP child retains its own response,
-credential and physical cleanup. Returned material remains charged when scratch
+Metadata output and decode workspace stay on the same input-staged Describe
+child. Synchronous constructor scratch for other operations uses the original
+control frame; an awaited HTTP child retains its own response, credential and
+physical cleanup. Returned material remains charged when scratch
 finishes. Failed or invalid asynchronous construction keeps the complete
 original prefix until its existing retirement confirms release.
 
@@ -266,3 +273,41 @@ projection retains its existing behavior.
   native identity, scope and current metadata changes, both Site and Local
   bindings, and unchanged existing Catalog identities. These boundaries do not
   establish a provider send, approved Preview, recovery or installed service.
+
+
+### Input-staged constructor backing
+
+The Salesforce recipe retains an initial extent and an immutable maximum for
+its existing member capture and Describe occurrences. The maximum preserves
+all installed codec limits; it is neither an up-front reservation nor a grant.
+The checked Plan resolves both templates with the same original Effect ID and
+row inventory. Its control quote includes the original maximum holders and one
+fixed synchronous quantity frame before any input-dependent growth.
+
+Warm capture excludes cold JSON/Catalog reconstruction. Its generated
+capability inventory follows the original writer's fixed root and selected
+field schema, including the possible external target and bounded reference
+names. This changes constructor quantities without changing writer acceptance.
+The original HTTP child already holds the complete receive window. After its
+exact response arrives, the original native metadata quantity uses that owned
+byte extent and the unchanged logical field/name/depth limits. The same child
+grows before the response reaches provider decode, and keeps that backing
+through its original release.
+
+Cold reconstruction sizes its nested JSON/Preview/Catalog work from the exact
+authenticated retained wire and Preview before the existing native callback.
+The original capture child grows on the same parent, with no new occurrence,
+attempt, transfer, Ledger or cleanup owner. Capacity refusal keeps that child
+and all consumed work. Completing a synchronous constructor returns only its
+workspace; currentness, failed-prefix duties and physical cleanup remain with
+the original owners.
+
+
+Target reads use the same input-staged physical child before their original
+native observation/Host projection. Salesforce's selected outcome writer also
+bounds the embedded typed outcome. The existing common Ledger/Receipt envelope
+adds its original fixed fields to that byte bound; the existing codec refuses
+larger foreign prefixes before parse. Other composed implementations select the
+existing full-control fallback. This preserves the selected writer's complete
+accepted output and the original maximum-codec path, without granting extra
+bytes or treating arbitrary provider messages as a closed outcome.

@@ -2957,6 +2957,25 @@ buffers, native projection results and distinct Grants remain additive.
 
 ### Request-owned execution preparation
 
+Host Preview input construction stays on the same managed Effect control reservation.
+An opted-in installed capture extent retains its original parser limits. The
+initial capture keeps the existing wire and text envelope; its Host forest and
+parser workspace are selected only after that same producer owns the Preview
+wire. The control measures exact raw UTF-8 length without encoding, parsing,
+checking or compiling it again, and atomically grows its original reservation
+before Host JSON parsing. Warm capture and cold recovery use this same entry.
+The original policy, schema checks and Native member construction remain in
+force, including overlapping cold Preview, Catalog and request material.
+
+The returned Host forest remains on that control through later child borrows
+and retirement. A failed resize changes neither usage nor selected input; a
+failed parse retains its original failure and active prefix. Another wire
+cannot replace the selected input, and the same successful input selection
+cannot issue another parse. Only the existing child and parent cleanup
+protocols return capacity; a parse, settled Promise or retired control callback
+does not acknowledge physical cleanup. The focused input controls verify these
+identity, growth, refusal and pending-cleanup boundaries on the same Ledger.
+
 The shared Source binding reads the same retained Plan getter for an Effect
 record and the original current check for a Pure record. These alternatives
 construct no second Plan or execution permit. After that callback, original

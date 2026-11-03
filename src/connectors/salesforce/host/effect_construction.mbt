@@ -30,14 +30,17 @@ pub fn effect_driver_construction_capacity() -> @execution.ExecutionCapacity? {
       // Three closed kind recipes: eight returned capacities, nine possible
       // typed operation extents, seven credential selections, nine JS
       // operation entries, root/selectors and their original typed carriers.
-      records: 2L * 20L + 3L + 3L * (8L + 9L + 7L + 9L + 3L + 16L),
-      record_references: 20L * 14L +
+      // Staging keeps both initial/maximum capacity sets, eight extra extent
+      // alternatives/four Some maxima, and four original callback/context
+      // pairs per kind. Five added captured native methods share one owner.
+      records: 2L * 25L + 3L + 3L * (24L + 17L + 7L + 9L + 3L + 16L + 4L + 8L),
+      record_references: 25L * 14L +
       19L +
-      3L * (9L * 4L + 7L * 2L + 9L * 2L + 48L),
-      record_words: 1L + 3L * (8L * 2L + 9L * 2L + 7L * 3L + 32L),
+      3L * (17L * 8L + 7L * 3L + 9L * 2L + 48L + 4L + 4L * 14L),
+      record_words: 1L + 3L * (24L * 2L + 17L * 4L + 7L * 3L + 32L + 4L),
       // The three original immutable kind labels borrow module Strings.
-      reference_arrays: 1L + 3L * 7L,
-      reference_items: 3L + 3L * (8L + 4L + 5L + 7L + 4L),
+      reference_arrays: 4L + 3L * 9L,
+      reference_items: 3L + 22L + 8L + 6L + 3L * (24L + 4L + 5L + 7L + 4L + 24L),
       scalar_arrays: 0L,
       scalar_items: 0L,
       maps: 0L,

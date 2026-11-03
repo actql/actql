@@ -43,4 +43,6 @@ priv struct ClientEffectOperationControls {
   coordinates : Map[ClientEffectOperationCoordinate, Int]
   construction_deferred : Bool
   mut construction_active : Bool
+  // One same-Run Preview input; its existing producer retains wire storage.
+  mut host_input : (String, @execution.ExecutionCapacity)?
 }
