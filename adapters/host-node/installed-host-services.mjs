@@ -4,7 +4,7 @@
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry}
+import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
   from './installed-source-construction-geometry.mjs';
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
@@ -1642,18 +1642,16 @@ export function reserveInstalledSourceEnvironment(services, ...wires) {
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = original.material;
   if (material === undefined) return;
-  let basis = 0n;
   const selected = installedCheckEnvironmentInputs(wires[0], wires[1], wires[2]);
-  for (let index = 0; index < wires.length; index++) {
-    const wire = index < selected.length ? selected[index] : wires[index];
-    if (wire !== undefined) {
-      if (typeof wire !== 'string') fail('InvalidInstalledSourceEnvironment');
-      basis += BigInt(Buffer.byteLength(wire));
-    }
-  }
-  // Existing merge parses each input, builds canonical identities and emits
-  // the whole output while the old Source/declaration prefix stays retained.
-  reserveSource(original, material, 16n * basis, 16n * basis, 8n * basis);
+  const geometry = sourceEnvironmentCompositionGeometry(wires.map((wire, index) => {
+    const value = index < selected.length ? selected[index] : wire;
+    if (value !== undefined && typeof value !== 'string') fail('InvalidInstalledSourceEnvironment');
+    return value;
+  }));
+  // Reserve before the original parser/composer, separating its synchronous
+  // scratch from admitted output while all earlier Source material stays live.
+  reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire,
+    undefined, geometry.retained);
 }
 
 export function reserveInstalledSourceRuntimeIdentity(services) {
