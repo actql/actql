@@ -66,6 +66,7 @@ pub fn generated_sequence_capacity(
     limits.rows.retained_entries.to_int64() +
     limits.rows.metadata_entries.to_int64(),
     limits.rows.metadata_entries.to_int64(),
+    false,
   )
 }
 
@@ -103,7 +104,7 @@ pub fn generated_bounded_sequence_capacity(
   let roots = @schema.field_count(schema).to_int64() +
     @lower.node_input_count(node).to_int64()
   generated_sequence_capacity_with_roots(
-    generated, limits, measurement, roots, roots,
+    generated, limits, measurement, roots, roots, true,
   )
 }
 
@@ -114,6 +115,7 @@ fn generated_sequence_capacity_with_roots(
   measurement : FixedInputGuardMeasureLimits,
   retained_roots : Int64,
   metadata_scratch : Int64,
+  bounded_single : Bool,
 ) -> ExecutionCapacity? {
   let rows = limits.rows
   if rows.retained_entries < 0 || rows.metadata_entries < 0 {
@@ -199,6 +201,22 @@ fn generated_sequence_capacity_with_roots(
       physical.max_body_depth < 0 {
       return None
     }
+    // Only the selected bounded constructor can use the borrowed-leaf proof.
+    // Unknown expressions and all generic sequence paths retain the original
+    // live-value envelope; neither case changes its actual logical guards.
+    let leaf = if bounded_single {
+      bounded_leaf_fragment_capacity(generated, context, limits)
+    } else {
+      None
+    }
+    let live_capacity = match leaf {
+      Some(bytes) => Some(bytes)
+      None => execution_capacity_inventory_bytes([
+        { unit: ValueNodeSlots, count: live, copies: 1, },
+        { unit: CanonicalWireBytes, count: live, copies: 1, },
+      ])
+    }
+    guard live_capacity is Some(live_capacity) else { return None }
     guard execution_capacity_inventory_bytes([
         {
           unit: ValueNodeSlots,
@@ -215,10 +233,7 @@ fn generated_sequence_capacity_with_roots(
           count: physical.max_body_bytes.to_int64(),
           copies: 1,
         },
-        // The existing live-byte envelope allows at most one node/root and
-        // its wire allowance per logical byte; no observed-row reduction.
-        { unit: ValueNodeSlots, count: live, copies: 1, },
-        { unit: CanonicalWireBytes, count: live, copies: 1, },
+        { unit: QuotedBytes, count: live_capacity, copies: 1, },
       ])
       is Some(required) else {
       return None
