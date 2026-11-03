@@ -140,3 +140,20 @@ test('current Native census transfers original completion through the selected f
   assert(fixture.includes('cancel_relation_chain_inputs(transferred_preparation)'));
   assert(fixture.includes('@execution.producer_read_available(final_read)'));
 });
+
+// Machine-code admission must recognize this same reviewed query, not any
+// equal-named helper with an unreviewed body, arity or new mutable owner.
+test('current reclaimed-prefix helper retains reviewed body and original sequence arity',()=>{
+  checkChainSource(source);
+  const start=source.indexOf('fn relation_chain_reclaimed_prefix(');
+  const end=source.indexOf('\n///|',start);
+  const original=source.slice(start,end);
+  for(const [before,after] of [
+    ['sequence : @execution.GeneratedSequence,','sequence : @execution.GeneratedSequence, extra : Int,'],
+    ['return index','return index + 1'],
+    [') -> Int {',') -> Int {\n  let new_owner = Ref(0)'],
+  ]) {
+    const changed=original.replace(before,after);assert.notEqual(changed,original);
+    assert.throws(()=>checkChainSource(source.slice(0,start)+changed+source.slice(end)),/reviewed reclaimed-prefix/);
+  }
+});
