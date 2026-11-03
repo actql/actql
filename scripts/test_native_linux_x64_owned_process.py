@@ -100,13 +100,13 @@ class LinuxX64OwnedProcess(unittest.TestCase):
             json.dumps(manifest, indent=2) + '\n')
 
     @classmethod
-    def invoke(cls, label, command, *, timeout=60):
+    def invoke(cls, label, command, *, timeout=60, stdin=None):
         cls.sequence += 1
         stem = cls.directory / f'{cls.sequence:02d}-{label}'
         started = time.monotonic()
         try:
             result = subprocess.run(command, capture_output=True, text=True,
-                                    timeout=timeout, cwd=ROOT,
+                                    timeout=timeout, cwd=ROOT, stdin=stdin,
                                     env={**os.environ, 'CC': cls.compiler})
         except subprocess.TimeoutExpired as error:
             def output(value):
@@ -133,6 +133,7 @@ class LinuxX64OwnedProcess(unittest.TestCase):
         dependencies = executable.with_suffix('.d')
         command = [self.compiler,
             '-std=c11', '-O0', '-Wall', '-Wextra', '-D_GNU_SOURCE', '-pthread',
+            '-I', str(PROVIDER),
             '-MD', '-MF', str(dependencies),
             *(['-DACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN=1'] if selected else []),
             *extra, str(PROVIDER / 'fixtures' / (name + '.c')), '-o', str(executable)]
@@ -189,7 +190,29 @@ class LinuxX64OwnedProcess(unittest.TestCase):
                 self.assertEqual(symbols.returncode, 0, symbols.stderr)
                 self.assertNotIn('actql_native_owned_capture_image_fd', symbols.stdout)
                 self.assertNotIn('actql_native_owned_rust_', symbols.stdout)
-                result = self.invoke(name + '-execute', [str(executable)], timeout=30)
+                if name == 'domain_span':
+                    # This ORIGINAL fixture consumes an already-open private
+                    # 64-page regular FD at stdin, not a terminal or a pipe.
+                    # The harness retains its own descriptor until child exit;
+                    # its close is separate from all fixture domain/loan ACKs.
+                    with tempfile.TemporaryFile(dir=self.directory) as backing:
+                        os.fchmod(backing.fileno(), 0o600)
+                        os.ftruncate(backing.fileno(), 64 * os.sysconf('SC_PAGE_SIZE'))
+                        before = os.fstat(backing.fileno())
+                        result = self.invoke(name + '-execute', [str(executable)],
+                                             timeout=30, stdin=backing)
+                        after = os.fstat(backing.fileno())
+                        self.assertEqual((before.st_dev, before.st_ino, before.st_size),
+                                         (after.st_dev, after.st_ino, after.st_size))
+                        self.records.append({'fixture_stdin': name,
+                            'device': before.st_dev, 'inode': before.st_ino,
+                            'bytes': before.st_size, 'mode': before.st_mode,
+                            'original_open_after_child': not backing.closed})
+                    self.records.append({'fixture_stdin': name,
+                                         'caller_descriptor_closed': backing.closed})
+                    self.persist()
+                else:
+                    result = self.invoke(name + '-execute', [str(executable)], timeout=30)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 facts = json.loads(result.stdout.strip().splitlines()[-1])
                 self.assertEqual(facts[field], expected)

@@ -149,8 +149,8 @@
     },
     {
       "path": "scripts/test_native_linux_x64_owned_process.py",
-      "bytes": 12285,
-      "sha256": "c8d3d5476126d6fba726221c5ef574c77f4e33f15a49324f6dafbce2cbefcf37"
+      "bytes": 13884,
+      "sha256": "db2c6412a10517178eddea20ed27b8a6c8fe3e8be2f8bacd74a9c229f6ee2d9a"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/linux_x64_process_abi.c",
@@ -164,8 +164,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/region_range.c",
-      "bytes": 4802,
-      "sha256": "da7dc21034b64a9a01d0e7cbaa9fb292a12f96c49f1eb426da38fd57f03de7e2"
+      "bytes": 4794,
+      "sha256": "e1187b62fd1723e7878bb0c35d65a4a682186de0de2986f444e1ec83486cc1a8"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/extent_domain.c",
@@ -174,13 +174,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_borrow.c",
-      "bytes": 9482,
-      "sha256": "23fbf36771f8e66e8fe6299772cbbadc51d1859354a72d6e64057de9c1ff1159"
+      "bytes": 9474,
+      "sha256": "72f8c42e5da9580917ed0581a9392b91cbb72ce016249b44b265e5e8fff61a80"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_record.c",
-      "bytes": 6283,
-      "sha256": "183937882ac5c683245f53bd7dec17b3a736e306c755e86426702f40588a9001"
+      "bytes": 6275,
+      "sha256": "5684d77a99f2f688c63079c3d370eae867934415d2eae409ea83d83aca28f508"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/domain_span.c",
@@ -189,8 +189,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/stopped_region.c",
-      "bytes": 7601,
-      "sha256": "0c79037c2b0e798e788e801d3567700ebdfe046fb7872a6aff5f0125e750ed60"
+      "bytes": 7593,
+      "sha256": "9196520dea3f07d6d9bc15401fdef06fc404575decd2ad3a8702e57ecc44f6e1"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/in_process_domain.c",
