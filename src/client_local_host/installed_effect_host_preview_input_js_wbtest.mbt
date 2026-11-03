@@ -138,17 +138,27 @@ test "Host Preview grows same original control before parse and keeps its return
   let child = borrow_installed_effect_operation(
     owner, prepared, request, plan, 0, true, 2, 0, "operation",
   ).unwrap()
+  let child_usage = @resources.ledger_usage(ledger)
+  assert_true(
+    child_usage.reserved_retention_bytes > held.reserved_retention_bytes,
+  )
+  assert_true(child_usage.peak_retention_bytes > held.peak_retention_bytes)
   assert_true(retire_installed_effect_operation(child, false) is Ok(false))
   assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
   assert_true(retire_installed_effect_operation(child, true) is Ok(true))
-  assert_eq(@resources.ledger_usage(ledger), held)
+  // Retirement returns the live reservation, not its historical high-water mark.
+  let returned = {
+    ..held,
+    peak_retention_bytes: child_usage.peak_retention_bytes,
+  }
+  assert_eq(@resources.ledger_usage(ledger), returned)
   assert_true(
     begin_installed_effect_operation_control_input(
       owner, prepared, request, plan, "{\"different\":true}",
     )
     is Err(ForeignOriginal),
   )
-  assert_eq(@resources.ledger_usage(ledger), held)
+  assert_eq(@resources.ledger_usage(ledger), returned)
   retire_installed_managed_run(owner).unwrap()
   assert_true(owner.effect_operation_controls is None)
 }
