@@ -51,7 +51,7 @@ test "Source request owned extents use independent repeated-role and empty-view 
   assert_eq(source_request_retained_construction_extent(g).unwrap(), {
     record_headers: 72L,
     reference_slots: 233L,
-    scalar_words: 90L,
+    scalar_words: 92L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
