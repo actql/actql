@@ -2078,6 +2078,10 @@ pub fn client_program_keyed_row_target(@client_row_source_host.RowKeyedAcquisiti
 
 pub fn client_program_kintone_accept_read_page(@actql/actql/connectors/kintone/host.RecordRead, Bytes) -> Result[Int, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_adopt_managed_query(@actql/actql/connectors/kintone/host.RecordDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int) -> Result[@actql/actql/connectors/kintone/host.ManagedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_adopt_managed_whole(@actql/actql/connectors/kintone/host.RecordDeclaration, @client_row_source_host.RowInputAcquisition, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int) -> Result[@actql/actql/connectors/kintone/host.ManagedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
 pub fn client_program_kintone_bind_read_cleanup(@actql/actql/connectors/kintone/host.RecordRead, () -> Bool) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_borrow_read(@actql/actql/connectors/kintone/host.PreparedRecordRead, @client_row_source_host.RowRun, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int) -> Result[@actql/actql/connectors/kintone/host.RecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
@@ -2245,6 +2249,24 @@ pub fn client_program_kintone_lookup_request(@actql/actql/connectors/kintone/cat
 pub fn client_program_kintone_lookup_response(@actql/actql/connectors/kintone/catalog.RecordLookupRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupIssue]
 
 pub fn client_program_kintone_lookup_uses_request(@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> Bool
+
+pub fn client_program_kintone_managed_columns(@actql/actql/connectors/kintone/host.ManagedRecordRead) -> Array[String]
+
+pub fn client_program_kintone_managed_complete(@actql/actql/connectors/kintone/host.ManagedRecordRead) -> Bool
+
+pub fn client_program_kintone_managed_form_request(@actql/actql/connectors/kintone/host.ManagedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_page_request(@actql/actql/connectors/kintone/host.ManagedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_project_page(@actql/actql/connectors/kintone/host.ManagedRecordRead, Bytes) -> Result[Array[Array[@value_admission.CheckedValue]], @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_query_matches(@actql/actql/connectors/kintone/host.ManagedRecordRead, @client_row_source_host.RowAcquisition) -> Bool
+
+pub fn client_program_kintone_managed_recheck_form(@actql/actql/connectors/kintone/host.ManagedRecordRead, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_retire(@actql/actql/connectors/kintone/host.ManagedRecordRead) -> Unit
+
+pub fn client_program_kintone_managed_whole_matches(@actql/actql/connectors/kintone/host.ManagedRecordRead, @client_row_source_host.RowInputAcquisition) -> Bool
 
 pub fn client_program_kintone_mutation_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordMutationLimits
 

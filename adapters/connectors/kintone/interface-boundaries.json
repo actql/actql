@@ -7373,6 +7373,271 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/kintone/host/managed_record_read.mbt",
+      "sha256": "7150c84d08638fdc90ddb9080943c3ff8a644b06a6865e925c5ee9c2ffcec9bf",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]refuse_managed_record",
+          "declaration": "[ T ] refuse_managed_record ( read : ManagedRecordRead , issue : RecordReadIssue , ) - > Result [ T , RecordReadIssue ]"
+        },
+        {
+          "name": "adopt_managed_record_query",
+          "declaration": "adopt_managed_record_query ( original : RecordDeclaration , acquisition : @ rows . RowAcquisition , page_limits : @ catalog . RecordPageLimits , value_limits : @ catalog . RecordValueLimits , max_contract_pairs : Int , per_page : Int , ) - > Result [ ManagedRecordRead , RecordReadIssue ]"
+        },
+        {
+          "name": "adopt_managed_record_whole",
+          "declaration": "adopt_managed_record_whole ( original : RecordDeclaration , acquisition : @ rows . RowInputAcquisition , page_limits : @ catalog . RecordPageLimits , value_limits : @ catalog . RecordValueLimits , max_contract_pairs : Int , per_page : Int , ) - > Result [ ManagedRecordRead , RecordReadIssue ]"
+        },
+        {
+          "name": "managed_record_columns",
+          "declaration": "managed_record_columns ( read : ManagedRecordRead ) - > Array [ String ]"
+        },
+        {
+          "name": "managed_record_complete",
+          "declaration": "managed_record_complete ( read : ManagedRecordRead ) - > Bool"
+        },
+        {
+          "name": "managed_record_form_request",
+          "declaration": "managed_record_form_request ( read : ManagedRecordRead , max_bytes : Int , ) - > Result [ String , RecordReadIssue ]"
+        },
+        {
+          "name": "managed_record_page_request",
+          "declaration": "managed_record_page_request ( read : ManagedRecordRead , max_bytes : Int , ) - > Result [ String , RecordReadIssue ]"
+        },
+        {
+          "name": "managed_record_project_page",
+          "declaration": "managed_record_project_page ( read : ManagedRecordRead , bytes : Bytes , ) - > Result [ Array [ Array [ @ admitted . CheckedValue ] ] , RecordReadIssue ]"
+        },
+        {
+          "name": "managed_record_query_matches",
+          "declaration": "managed_record_query_matches ( read : ManagedRecordRead , original : @ rows . RowAcquisition , ) - > Bool"
+        },
+        {
+          "name": "managed_record_read",
+          "declaration": "managed_record_read ( original : RecordDeclaration , selection : ManagedRecordSelection , page_limits : @ catalog . RecordPageLimits , value_limits : @ catalog . RecordValueLimits , max_contract_pairs : Int , per_page : Int , ) - > Result [ ManagedRecordRead , RecordReadIssue ]"
+        },
+        {
+          "name": "managed_record_recheck_form",
+          "declaration": "managed_record_recheck_form ( read : ManagedRecordRead , bytes : Bytes , limits : @ catalog . FormFieldLimits , ) - > Result [ Unit , RecordReadIssue ]"
+        },
+        {
+          "name": "managed_record_whole_matches",
+          "declaration": "managed_record_whole_matches ( read : ManagedRecordRead , original : @ rows . RowInputAcquisition , ) - > Bool"
+        },
+        {
+          "name": "retire_managed_record",
+          "declaration": "retire_managed_record ( read : ManagedRecordRead ) - > Unit"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]refuse_managed_record",
+            "adopt_managed_record_query",
+            "adopt_managed_record_whole",
+            "managed_record_columns",
+            "managed_record_complete",
+            "managed_record_form_request",
+            "managed_record_page_request",
+            "managed_record_project_page",
+            "managed_record_query_matches",
+            "managed_record_read",
+            "managed_record_recheck_form",
+            "managed_record_whole_matches",
+            "retire_managed_record"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA-only native protocol adopted by the already-accounted generic reader."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Exact CheckedValues carry the adopted input contracts into the generic"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Query(value) => physical_equal(value, original)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn managed_record_complete(read : ManagedRecordRead) -> Bool {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "read.failed = true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Aggregate row/response/attempt ceilings remain with the generic reader and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_whole("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
+                "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_request.mbt",
+      "sha256": "fdbde233a53436cc63fd3c0ce8001fca4902c7ac75692f34245765a3eebc09bd",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_form_body",
+          "declaration": "record_form_body ( app : String , max_bytes : Int , ) - > Result [ String , RecordReadIssue ]"
+        },
+        {
+          "name": "record_form_request_body",
+          "declaration": "record_form_request_body ( prepared : PreparedRecordRead , max_bytes : Int , ) - > Result [ String , RecordReadIssue ]"
+        },
+        {
+          "name": "record_id_after",
+          "declaration": "record_id_after ( value : String , prior : String ) - > Bool"
+        },
+        {
+          "name": "record_page_body",
+          "declaration": "record_page_body ( app : String , names : Array [ String ] , cursor : String ? , per_page : Int , max_bytes : Int , ) - > Result [ String , RecordReadIssue ]"
+        },
+        {
+          "name": "record_page_next_cursor",
+          "declaration": "record_page_next_cursor ( read : RecordRead , prior : String ? , per_page : Int , ) - > Result [ String ? , RecordReadIssue ]"
+        },
+        {
+          "name": "record_page_request_body",
+          "declaration": "record_page_request_body ( prepared : PreparedRecordRead , cursor : String ? , per_page : Int , max_bytes : Int , ) - > Result [ String , RecordReadIssue ]"
+        },
+        {
+          "name": "record_request_cursor",
+          "declaration": "record_request_cursor ( fields : Array [ String ] , ) - > Result [ String ? , RecordReadIssue ]"
+        },
+        {
+          "name": "record_request_id",
+          "declaration": "record_request_id ( value : String ) - > Bool"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_form_body",
+            "record_form_request_body",
+            "record_id_after",
+            "record_page_body",
+            "record_page_next_cursor",
+            "record_page_request_body",
+            "record_request_cursor",
+            "record_request_id"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/record_request.mbt",
+                "anchor": "Fixed JSON parameters for the documented POST + GET method-override form."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/record_request.mbt",
+                "anchor": "fn record_page_body("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/record_request.mbt",
+                "anchor": "Selection comes from the same original acquisition, not a caller-supplied"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/host/record_request.mbt",
+                "anchor": "A short original page ends this seek traversal."
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/record_request.mbt",
+                "anchor": "Err(RequestEncoding(issue))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/record_request.mbt",
+                "anchor": "original response and request byte reservations remain caller obligations."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_whole("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
+                "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

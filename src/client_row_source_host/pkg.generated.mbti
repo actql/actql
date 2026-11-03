@@ -89,6 +89,8 @@ pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
+pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
+
 pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]
@@ -246,6 +248,8 @@ pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array
 pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
 
 pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
+pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?
 
 pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]
 

@@ -553,12 +553,20 @@
     },
     {
       "module": "src/connectors_builtin_node/client_kintone_read_bridge.mbt",
-      "sha256": "be02d3273eddc242961b58032e59cc35a1c85bba6f8f0b90dd8d6eaf1d344986",
+      "sha256": "f76f8fa9e2e7a71a9badbb832924395ebcf34b871e640ca7f5afd973dd0641eb",
       "exports": [],
       "operations": [
         {
           "name": "client_program_kintone_accept_read_page",
           "declaration": "client_program_kintone_accept_read_page ( read : @ kintone_host . RecordRead , body : Bytes , ) - > Result [ Int , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_query",
+          "declaration": "client_program_kintone_adopt_managed_query ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_whole",
+          "declaration": "client_program_kintone_adopt_managed_whole ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowInputAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
         },
         {
           "name": "client_program_kintone_bind_read_cleanup",
@@ -583,6 +591,42 @@
         {
           "name": "client_program_kintone_form_request_body",
           "declaration": "client_program_kintone_form_request_body ( prepared : @ kintone_host . PreparedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_columns",
+          "declaration": "client_program_kintone_managed_columns ( read : @ kintone_host . ManagedRecordRead , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_program_kintone_managed_complete",
+          "declaration": "client_program_kintone_managed_complete ( read : @ kintone_host . ManagedRecordRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_form_request",
+          "declaration": "client_program_kintone_managed_form_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_page_request",
+          "declaration": "client_program_kintone_managed_page_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_project_page",
+          "declaration": "client_program_kintone_managed_project_page ( read : @ kintone_host . ManagedRecordRead , body : Bytes , ) - > Result [ Array [ Array [ @ admitted . CheckedValue ] ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_query_matches",
+          "declaration": "client_program_kintone_managed_query_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_recheck_form",
+          "declaration": "client_program_kintone_managed_recheck_form ( read : @ kintone_host . ManagedRecordRead , body : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_retire",
+          "declaration": "client_program_kintone_managed_retire ( read : @ kintone_host . ManagedRecordRead , ) - > Unit"
+        },
+        {
+          "name": "client_program_kintone_managed_whole_matches",
+          "declaration": "client_program_kintone_managed_whole_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
         },
         {
           "name": "client_program_kintone_page_limits",
@@ -733,17 +777,103 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_kintone_adopt_managed_query",
+            "client_program_kintone_adopt_managed_whole",
+            "client_program_kintone_managed_columns",
+            "client_program_kintone_managed_complete",
+            "client_program_kintone_managed_form_request",
+            "client_program_kintone_managed_page_request",
+            "client_program_kintone_managed_project_page",
+            "client_program_kintone_managed_query_matches",
+            "client_program_kintone_managed_recheck_form",
+            "client_program_kintone_managed_retire",
+            "client_program_kintone_managed_whole_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA-only native protocol adopted by the already-accounted generic reader."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Exact CheckedValues carry the adopted input contracts into the generic"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Query(value) => physical_equal(value, original)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn managed_record_complete(read : ManagedRecordRead) -> Bool {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "read.failed = true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Aggregate row/response/attempt ceilings remain with the generic reader and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_whole("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
+                "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/connectors_builtin_node_rela/client_kintone_read_bridge.mbt",
-      "sha256": "360006cd10cbacffc90689b3345980d0b656edc2e798b38f76a3f9f0d71c7d2f",
+      "sha256": "ddc5f175de827448aa1cd2b1e2e8ab2eb9f4aacb11da040c7acba91592c9159f",
       "exports": [],
       "operations": [
         {
           "name": "client_program_kintone_accept_read_page",
           "declaration": "client_program_kintone_accept_read_page ( read : @ kintone_host . RecordRead , body : Bytes , ) - > Result [ Int , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_query",
+          "declaration": "client_program_kintone_adopt_managed_query ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_adopt_managed_whole",
+          "declaration": "client_program_kintone_adopt_managed_whole ( original : @ kintone_host . RecordDeclaration , acquisition : @ client_row_source_host . RowInputAcquisition , pages : @ kintone_catalog . RecordPageLimits , values : @ kintone_catalog . RecordValueLimits , pairs : Int , per_page : Int , ) - > Result [ @ kintone_host . ManagedRecordRead , @ kintone_host . RecordReadIssue ]"
         },
         {
           "name": "client_program_kintone_bind_read_cleanup",
@@ -768,6 +898,42 @@
         {
           "name": "client_program_kintone_form_request_body",
           "declaration": "client_program_kintone_form_request_body ( prepared : @ kintone_host . PreparedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_columns",
+          "declaration": "client_program_kintone_managed_columns ( read : @ kintone_host . ManagedRecordRead , ) - > Array [ String ]"
+        },
+        {
+          "name": "client_program_kintone_managed_complete",
+          "declaration": "client_program_kintone_managed_complete ( read : @ kintone_host . ManagedRecordRead , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_form_request",
+          "declaration": "client_program_kintone_managed_form_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_page_request",
+          "declaration": "client_program_kintone_managed_page_request ( read : @ kintone_host . ManagedRecordRead , max_bytes : Int , ) - > Result [ String , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_project_page",
+          "declaration": "client_program_kintone_managed_project_page ( read : @ kintone_host . ManagedRecordRead , body : Bytes , ) - > Result [ Array [ Array [ @ admitted . CheckedValue ] ] , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_query_matches",
+          "declaration": "client_program_kintone_managed_query_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowAcquisition , ) - > Bool"
+        },
+        {
+          "name": "client_program_kintone_managed_recheck_form",
+          "declaration": "client_program_kintone_managed_recheck_form ( read : @ kintone_host . ManagedRecordRead , body : Bytes , limits : @ kintone_catalog . FormFieldLimits , ) - > Result [ Unit , @ kintone_host . RecordReadIssue ]"
+        },
+        {
+          "name": "client_program_kintone_managed_retire",
+          "declaration": "client_program_kintone_managed_retire ( read : @ kintone_host . ManagedRecordRead , ) - > Unit"
+        },
+        {
+          "name": "client_program_kintone_managed_whole_matches",
+          "declaration": "client_program_kintone_managed_whole_matches ( read : @ kintone_host . ManagedRecordRead , original : @ client_row_source_host . RowInputAcquisition , ) - > Bool"
         },
         {
           "name": "client_program_kintone_page_limits",
@@ -915,6 +1081,84 @@
               {
                 "path": "src/client_row_source_host/initialization-construction-interface.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_kintone_adopt_managed_query",
+            "client_program_kintone_adopt_managed_whole",
+            "client_program_kintone_managed_columns",
+            "client_program_kintone_managed_complete",
+            "client_program_kintone_managed_form_request",
+            "client_program_kintone_managed_page_request",
+            "client_program_kintone_managed_project_page",
+            "client_program_kintone_managed_query_matches",
+            "client_program_kintone_managed_recheck_form",
+            "client_program_kintone_managed_retire",
+            "client_program_kintone_managed_whole_matches"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA-only native protocol adopted by the already-accounted generic reader."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Exact CheckedValues carry the adopted input contracts into the generic"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Query(value) => physical_equal(value, original)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn managed_record_complete(read : ManagedRecordRead) -> Bool {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "read.failed = true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Aggregate row/response/attempt ceilings remain with the generic reader and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_whole("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
+                "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
               }
             ]
           }

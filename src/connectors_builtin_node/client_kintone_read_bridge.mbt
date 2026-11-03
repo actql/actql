@@ -250,3 +250,112 @@ pub fn client_program_kintone_read_declaration_construction_capacity(
     connector_units, revision_units, form, values, declaration,
   )
 }
+
+///|
+#export_name("clientProgramKintoneAdoptManagedQuery")
+pub fn client_program_kintone_adopt_managed_query(
+  original : @kintone_host.RecordDeclaration,
+  acquisition : @client_row_source_host.RowAcquisition,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  pairs : Int,
+  per_page : Int,
+) -> Result[@kintone_host.ManagedRecordRead, @kintone_host.RecordReadIssue] {
+  @kintone_host.adopt_managed_record_query(
+    original, acquisition, pages, values, pairs, per_page,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneManagedQueryMatches")
+pub fn client_program_kintone_managed_query_matches(
+  read : @kintone_host.ManagedRecordRead,
+  original : @client_row_source_host.RowAcquisition,
+) -> Bool {
+  @kintone_host.managed_record_query_matches(read, original)
+}
+
+///|
+#export_name("clientProgramKintoneAdoptManagedWhole")
+pub fn client_program_kintone_adopt_managed_whole(
+  original : @kintone_host.RecordDeclaration,
+  acquisition : @client_row_source_host.RowInputAcquisition,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  pairs : Int,
+  per_page : Int,
+) -> Result[@kintone_host.ManagedRecordRead, @kintone_host.RecordReadIssue] {
+  @kintone_host.adopt_managed_record_whole(
+    original, acquisition, pages, values, pairs, per_page,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneManagedWholeMatches")
+pub fn client_program_kintone_managed_whole_matches(
+  read : @kintone_host.ManagedRecordRead,
+  original : @client_row_source_host.RowInputAcquisition,
+) -> Bool {
+  @kintone_host.managed_record_whole_matches(read, original)
+}
+
+///|
+#export_name("clientProgramKintoneManagedRecheckForm")
+pub fn client_program_kintone_managed_recheck_form(
+  read : @kintone_host.ManagedRecordRead,
+  body : Bytes,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[Unit, @kintone_host.RecordReadIssue] {
+  @kintone_host.managed_record_recheck_form(read, body, limits)
+}
+
+///|
+#export_name("clientProgramKintoneManagedProjectPage")
+pub fn client_program_kintone_managed_project_page(
+  read : @kintone_host.ManagedRecordRead,
+  body : Bytes,
+) -> Result[Array[Array[@admitted.CheckedValue]], @kintone_host.RecordReadIssue] {
+  @kintone_host.managed_record_project_page(read, body)
+}
+
+///|
+#export_name("clientProgramKintoneManagedColumns")
+pub fn client_program_kintone_managed_columns(
+  read : @kintone_host.ManagedRecordRead,
+) -> Array[String] {
+  @kintone_host.managed_record_columns(read)
+}
+
+///|
+#export_name("clientProgramKintoneManagedComplete")
+pub fn client_program_kintone_managed_complete(
+  read : @kintone_host.ManagedRecordRead,
+) -> Bool {
+  @kintone_host.managed_record_complete(read)
+}
+
+///|
+#export_name("clientProgramKintoneManagedRetire")
+pub fn client_program_kintone_managed_retire(
+  read : @kintone_host.ManagedRecordRead,
+) -> Unit {
+  @kintone_host.retire_managed_record(read)
+}
+
+///|
+#export_name("clientProgramKintoneManagedFormRequest")
+pub fn client_program_kintone_managed_form_request(
+  read : @kintone_host.ManagedRecordRead,
+  max_bytes : Int,
+) -> Result[String, @kintone_host.RecordReadIssue] {
+  @kintone_host.managed_record_form_request(read, max_bytes)
+}
+
+///|
+#export_name("clientProgramKintoneManagedPageRequest")
+pub fn client_program_kintone_managed_page_request(
+  read : @kintone_host.ManagedRecordRead,
+  max_bytes : Int,
+) -> Result[String, @kintone_host.RecordReadIssue] {
+  @kintone_host.managed_record_page_request(read, max_bytes)
+}

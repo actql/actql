@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/input_contract.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6c310ac4ee69ade54d34f68e1daa0f67deb19ef6ce105d1c28ca354b63c35505",
+      "sha256": "4635ada19ff77176378d7e65774d3c566811ba867af335606a9207159f0a9f52",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [],
@@ -12,6 +12,10 @@
         {
           "name": "row_acquisition_column_contract",
           "declaration": "row_acquisition_column_contract ( value : RowAcquisition , index : Int , ) - > @ contract . Contract ?"
+        },
+        {
+          "name": "row_input_acquisition_column_contract",
+          "declaration": "row_input_acquisition_column_contract ( value : RowInputAcquisition , index : Int , ) - > @ contract . Contract ?"
         }
       ],
       "contracts": [
@@ -38,6 +42,74 @@
               {
                 "path": "src/client_row_source_host/README.md",
                 "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_column_contract"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/input_contract.mbt",
+                "anchor": "Borrow the exact WholeInput carrier contract, never an equal re-admission."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/input_contract.mbt",
+                "anchor": "pub fn row_input_acquisition_column_contract("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "input buffer still checks exact contract identity."
               }
             ],
             "ownership": [
@@ -174,7 +246,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "5d0cb07dff1fbd618116672d4dbea5bf4561b58423ceef779b79947dec954f4d",
+      "sha256": "219e63b27d81769720c1edf0b3bf9770c191b9871f07b145822d101931445737",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -211,6 +283,7 @@
         "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
         "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
+        "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_compute_binding(RowSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, RowHostIssue]",
@@ -290,6 +363,7 @@
         "pub fn row_declaration_evidence_members(RowDeclaration) -> (Array[String], Array[String]) raise @encode_core.EncodeFailure",
         "pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?",
         "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?",
+        "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?",
         "pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]",
         "pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts",
         "pub fn row_input_acquisition_matches_source(RowInputAcquisition, @sourceview_resolution.SourceAcquisition) -> Bool",
@@ -465,6 +539,10 @@
         {
           "name": "check_row_acquisition_original",
           "declaration": "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "check_row_input_acquisition_declaration",
+          "declaration": "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "check_row_input_acquisition_original",
@@ -781,6 +859,10 @@
         {
           "name": "row_input_acquisition_capacity",
           "declaration": "pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?"
+        },
+        {
+          "name": "row_input_acquisition_column_contract",
+          "declaration": "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?"
         },
         {
           "name": "row_input_acquisition_columns",
@@ -2723,6 +2805,146 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "row_input_acquisition_column_contract"
+          ],
+          "exports": [
+            "pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/input_contract.mbt",
+                "anchor": "Borrow the exact WholeInput carrier contract, never an equal re-admission."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/input_contract.mbt",
+                "anchor": "pub fn row_input_acquisition_column_contract("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "input buffer still checks exact contract identity."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "check_row_input_acquisition_declaration"
+          ],
+          "exports": [
+            "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/input_declaration.mbt",
+                "anchor": "Observe the stored original declaration association without reconstructing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/input_declaration.mbt",
+                "anchor": "pub fn check_row_input_acquisition_declaration("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/input_declaration.mbt",
+                "anchor": "physical_equal(value.preparation.view, view)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ]
     },
@@ -4465,6 +4687,91 @@
             "verification": [
               {
                 "path": "src/client_row_source_host/initialization-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_row_source_host/input_declaration.mbt",
+      "sha256": "550c81c8a883ba025a848a8fb98bf6d58b3b0aafce0812564ece8a50159ca87f",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_row_input_acquisition_declaration",
+          "declaration": "check_row_input_acquisition_declaration ( value : RowInputAcquisition , declaration : RowDeclaration , ) - > Result [ Unit , RowHostIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_row_input_acquisition_declaration"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/input_declaration.mbt",
+                "anchor": "Observe the stored original declaration association without reconstructing"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/input_declaration.mbt",
+                "anchor": "pub fn check_row_input_acquisition_declaration("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/input_declaration.mbt",
+                "anchor": "physical_equal(value.preparation.view, view)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
                 "anchor": "- Verification:"
               }
             ]
