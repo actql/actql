@@ -6229,7 +6229,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6ddd9b7e260c53220d4a992ae6e4c22459a86415f95b8a7c814b7d22f8301a0a",
+      "sha256": "d70116e7ef234443257f485fbeaaac806f1285d07015074652817dfbac4c5ebe",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6308,23 +6308,20 @@
         {
           "name": "loadInstalledGitHubSource/loadInstalledGitHubSource",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/loadInstalledGitHubSource#2",
+          "parameters": [
             "resource",
-            "authorizationFor",
-            "chargePage",
-            "consumeObservation",
-            "consumePage",
+            "nonce",
+            "runInvocationCid",
+            "dispatchRequestCid",
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
-          "parameters": [
-            "rows",
-            "_page",
-            "admission"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledGitHubSource/opened/opened",
@@ -6335,10 +6332,38 @@
           "async": false
         },
         {
+          "name": "loadInstalledGitHubSource/originalBounds/originalBounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledGitHubSource/physicalTarget/physicalTarget",
           "parameters": [
             "resource",
             "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/readerBounds/readerBounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/responseCapacity/responseCapacity",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -6467,9 +6492,13 @@
             "installedGitHubSourceIdentityParts",
             "loadInstalledGitHubSource",
             "loadInstalledGitHubSource/loadInstalledGitHubSource",
-            "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
+            "loadInstalledGitHubSource/loadInstalledGitHubSource#2",
             "loadInstalledGitHubSource/opened/opened",
+            "loadInstalledGitHubSource/originalBounds/originalBounds",
             "loadInstalledGitHubSource/physicalTarget/physicalTarget",
+            "loadInstalledGitHubSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+            "loadInstalledGitHubSource/readerBounds/readerBounds",
+            "loadInstalledGitHubSource/responseCapacity/responseCapacity",
             "openSite",
             "openSite/configuration/configuration",
             "publishGitHubRepository",
@@ -6509,48 +6538,80 @@
               {
                 "path": "src/connectors/github/source-views.json",
                 "anchor": "issue_comments"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "loadInstalledGitHubSource"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "readGitHubPublication"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "publishGitHubRepository"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "refused"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "maxPageBytes"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "extension": [
@@ -6561,6 +6622,10 @@
               {
                 "path": "scripts/connector-host-bundles.mjs",
                 "anchor": "generateInstallations"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "verification": [
@@ -6587,6 +6652,14 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "Effect Site uses the same Host factory and provider binding"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement'"
               }
             ]
           }
@@ -6595,10 +6668,12 @@
       "imports": [
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
         "../site/github-issue-graphql-read.mjs",
         "../site/github-issue-read.mjs",
         "node:crypto",
@@ -7094,12 +7169,13 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cb18080c7112153854ea230bd4d9088fc39b995cb26431df00cba9b25d6a3179",
+      "sha256": "505d8e4ce05c394a0669f36981fb1aeb6ac3d549da6d80fdfcd459778f403ff6",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
         "GITHUB_GRAPHQL_PATH",
         "GITHUB_GRAPHQL_READ_OPERATION",
+        "prepareGitHubSourceReadSequence",
         "readGitHubIssueCommentsByNode",
         "readGitHubIssuesByNode",
         "readGitHubPullRequestsByNode"
@@ -7128,6 +7204,22 @@
           "async": false
         },
         {
+          "name": "githubReadField",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "githubReadMethod",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "pairs/pairs",
           "parameters": [
             "headers"
@@ -7146,6 +7238,59 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read",
+          "parameters": [
+            "context",
+            "initialAuthorization"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#2",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#4",
+          "parameters": [
+            "rows"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -7184,7 +7329,8 @@
             "consumePage",
             "signal",
             "pullRequests",
-            "comments"
+            "comments",
+            "managed"
           ],
           "async": true
         },
@@ -7231,7 +7377,22 @@
           "async": false
         },
         {
+          "name": "readGitHubRowsByNode/invoke/invoke",
+          "parameters": [
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "readGitHubRowsByNode/readGitHubRowsByNode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubRowsByNode/remember/remember",
           "parameters": [
             "value"
           ],
@@ -7244,6 +7405,34 @@
             "details"
           ],
           "async": false
+        },
+        {
+          "name": "readGitHubSourceChild",
+          "parameters": [
+            "context",
+            "originalAuthorization",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubSourceChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readGitHubSourceChild/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubSourceChild/readGitHubSourceChild",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -7253,9 +7442,19 @@
             "checkLimits",
             "count/count",
             "fail/fail",
+            "githubReadField",
+            "githubReadMethod",
             "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
+            "prepareGitHubSourceReadSequence",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#2",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#3",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#4",
+            "prepareGitHubSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity",
+            "prepareGitHubSourceReadSequence/sequence/init:retire/init:retire",
             "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode",
@@ -7266,12 +7465,19 @@
             "readGitHubRowsByNode/exchange/exchange",
             "readGitHubRowsByNode/exchange/exchange/facts/facts",
             "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
+            "readGitHubRowsByNode/invoke/invoke",
             "readGitHubRowsByNode/readGitHubRowsByNode",
-            "readGitHubRowsByNode/stopped/stopped"
+            "readGitHubRowsByNode/remember/remember",
+            "readGitHubRowsByNode/stopped/stopped",
+            "readGitHubSourceChild",
+            "readGitHubSourceChild/init:prepare/init:prepare",
+            "readGitHubSourceChild/init:prepare/init:prepare/init:prepare",
+            "readGitHubSourceChild/readGitHubSourceChild"
           ],
           "exports": [
             "GITHUB_GRAPHQL_PATH",
             "GITHUB_GRAPHQL_READ_OPERATION",
+            "prepareGitHubSourceReadSequence",
             "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode"
@@ -7289,12 +7495,20 @@
               {
                 "path": "src/connectors/github/catalog/issue_comments_read.mbt",
                 "anchor": "begin_issue_comments_read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "consumeObservation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "identity": [
@@ -7317,30 +7531,50 @@
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "defineOwnData(labels, index"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "accepted pages"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "authorizationFor"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "refusalCodes"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "signal?.throwIfAborted"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "resources": [
@@ -7359,12 +7593,20 @@
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "prefix.responses.push"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/github/catalog/graphql.mbt",
                 "anchor": "issues_query"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "verification": [
@@ -7399,6 +7641,14 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
                 "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement'"
               }
             ]
           }
@@ -7407,7 +7657,8 @@
       "imports": [
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../site-node/https-credential-resource.mjs"
+        "../../../site-node/https-credential-resource.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

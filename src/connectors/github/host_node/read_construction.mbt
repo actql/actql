@@ -68,7 +68,9 @@ pub fn github_source_read_construction_capacity(
     max_subjects < 1 ||
     max_depth > 2147483643 ||
     response_bytes < 0 ||
-    response_bytes > max_bytes || header_bytes < 1 || header_bytes > 2147483647 / 12 {
+    response_bytes > max_bytes ||
+    header_bytes < 1 ||
+    header_bytes > 2147483647 / 12 {
     return None
   }
   let bytes = Int::max(1, response_bytes)
@@ -147,6 +149,14 @@ pub fn github_source_read_construction_capacity(
   // Rate-limit/error JSON also exports the original declared header values.
   // Their SAME physical HTTPS Owner supplies header_bytes before any call;
   // an empty body cannot stand in for that independently bounded Text input.
+  // A completed Issue/PullRequest has two original text connections, each
+  // initial first:100; every extra child shares the SAME pages ceiling and
+  // first<=100. Invalid larger arrays refuse before any finished row export.
+  // Keep their possible temporary arrays in total_nodes above, not output.
+  let output_items = Int64::min(
+    total_nodes,
+    2L * rows * 100L + pages.to_int64() * 100L,
+  )
   guard @execution.checked_preparation_add_product(
       1024L + 512L * rows + 6L * header_bytes.to_int64(),
       6L,
@@ -157,7 +167,7 @@ pub fn github_source_read_construction_capacity(
     @execution.checked_preparation_add_product(
       32L + 64L * rows,
       4L,
-      total_nodes,
+      output_items,
     )
     is Some(output_nodes) &&
     output_nodes <= 2147483647L else {
@@ -184,10 +194,25 @@ pub fn github_source_read_construction_capacity(
   guard @execution.compose_preparation_representation([
       github_read_collection_units(typed),
       {
+        // JS accumulated completed rows survive beside native closed pages.
+        // This complete Source constructor conservatively bounds that same
+        // plain JSON forest and backing; it is NOT another admission or parse.
+        record_headers: output.record_headers,
+        reference_slots: output.reference_slots,
+        scalar_words: output.scalar_words,
+        owned_utf16_units: output.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      {
         record_headers: 2L * total_nodes + 4L * pages.to_int64(),
         reference_slots: 0L,
         scalar_words: 0L,
-        owned_utf16_units: total_bytes + pages.to_int64() * header_bytes.to_int64() +
+        // Native canonical timestamps own24 units (four possible fields
+        // in the Issue+PullRequest family), while Host exports additionally
+        // own the two original Signed64 decimal spellings (<=20 each).
+        owned_utf16_units: total_bytes +
+        (4L * 24L + 2L * 20L) * rows +
+        pages.to_int64() * header_bytes.to_int64() +
         pages.to_int64() * request.owned_utf16_units +
         2L * pages.to_int64() * 1024L,
         owned_wire_bytes: 0L,

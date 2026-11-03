@@ -1,11 +1,35 @@
 ///|
 test "GitHub Source backs initial requests then grows only actual native response geometry" {
   let initial = github_source_read_construction_capacity(
-    4000000, 400000, 32, 100, 10, 100, 0, original_node_http_header_bound(),).unwrap()
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    0,
+    original_node_http_header_bound(),
+  ).unwrap()
   let small = github_source_read_construction_capacity(
-    4000000, 400000, 32, 100, 10, 100, 512, original_node_http_header_bound(),).unwrap()
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    512,
+    original_node_http_header_bound(),
+  ).unwrap()
   let full = github_source_read_construction_capacity(
-    4000000, 400000, 32, 100, 10, 100, 4000000, original_node_http_header_bound(),).unwrap()
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    4000000,
+    original_node_http_header_bound(),
+  ).unwrap()
   assert_true(@execution.execution_capacity_retained_bytes(initial) > 0L)
   assert_true(
     @execution.execution_capacity_retained_bytes(small) >
@@ -21,22 +45,54 @@ test "GitHub Source backs initial requests then grows only actual native respons
   )
   assert_true(
     github_source_read_construction_capacity(
-      4000000, 400000, 32, 100, 10, 100, 4000001, original_node_http_header_bound(),)
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      4000001,
+      original_node_http_header_bound(),
+    )
     is None,
   )
   assert_true(
     github_source_read_construction_capacity(
-      4000000, 400000, 32, 100, 10, 100, -1, original_node_http_header_bound(),)
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      -1,
+      original_node_http_header_bound(),
+    )
     is None,
   )
   assert_true(
     github_source_read_construction_capacity(
-      4000000, 400000, 32, 100, 0, 100, 1, original_node_http_header_bound(),)
+      4000000,
+      400000,
+      32,
+      100,
+      0,
+      100,
+      1,
+      original_node_http_header_bound(),
+    )
     is None,
   )
   assert_true(
     github_source_read_construction_capacity(
-      2147483647, 2147483647, 32, 2147483647, 2147483647, 2147483647, 2147483647, original_node_http_header_bound(),)
+      2147483647,
+      2147483647,
+      32,
+      2147483647,
+      2147483647,
+      2147483647,
+      2147483647,
+      original_node_http_header_bound(),
+    )
     is None,
   )
 }

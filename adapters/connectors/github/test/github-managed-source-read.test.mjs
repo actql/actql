@@ -40,7 +40,7 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
     githubPullRequestPageReadClose:methods.githubIssuePageReadClose,
     githubIssueCommentsReadBegin(){return {$tag:1,_0:{}};},
     githubIssueCommentsReadNextRequestJson(){return {$tag:1,_0:commentReplies===2 ? '{"body":null}' : '{"body":"original native request"}'};},
-    githubIssueCommentsReadAccept(){commentReplies++;},
+    githubIssueCommentsReadAccept(){commentReplies++;return {$tag:1,_0:undefined};},
     githubIssueCommentsReadPageJson(){return {$tag:1,_0:commentReplies===1 ? '{"page":null}' : '{"page":{"rows":[{"id":"original"}]}}'};},
     githubIssueCommentsReadClose:methods.githubIssuePageReadClose,
   });
