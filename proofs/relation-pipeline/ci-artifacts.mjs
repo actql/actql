@@ -20,10 +20,11 @@ const digestPattern = /^[0-9a-f]{64}$/u;
 const shaPattern = /^[0-9a-f]{40}$/u;
 const maxFiles = 50000, maxFileBytes = 4 * 1024 ** 3, maxTotalBytes = 16 * 1024 ** 3;
 const maxManifestBytes = 32 * 1024 ** 2;
-// The existing whole capacity report is about 159 MiB (535 observations plus
-// repeated correspondence). Give only that named report a bounded allowance;
-// manifests and individual receipts keep the smaller cap.
-const maxCapacityReportBytes = 256 * 1024 ** 2;
+// Capacity reports retain complete original observations and correspondence.
+// The current L-C0 report is 314,094,990 bytes. Only the named whole/part
+// reports receive this allowance; manifests and individual receipts keep the
+// smaller cap. This is a transport bound, not a product resource allowance.
+export const maxCapacityReportBytes = 512 * 1024 ** 2;
 const manifestName = 'ci-seal.json';
 const prefix = '.artifacts/relation-pipeline/';
 export const requiredStages = Object.freeze({

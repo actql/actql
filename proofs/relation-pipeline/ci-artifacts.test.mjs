@@ -399,7 +399,7 @@ test('aggregate allowance stays bounded and does not expand receipt or manifest 
   const options = joinFixture(t), directory = options.inputs[1].directory;
   const aggregate = join(directory, 'capacity/all.json');
   const original = readFileSync(aggregate);
-  truncateSync(aggregate, 256 * 1024 ** 2 + 1);
+  truncateSync(aggregate, 512 * 1024 ** 2 + 1);
   assert.throws(() => inspectProducerEvidence(directory, 'capacity', options.expected), /Oversized JSON evidence/);
   writeFileSync(aggregate, original);
   const receipt = join(directory, '1790000000001-456-0000-capacity-js.json');

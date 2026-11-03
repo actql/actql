@@ -10,7 +10,7 @@ import {validate} from './evidence.mjs';
 import {fixedCorpus} from './corpus.mjs';
 import {baseRegistry, registry} from './registry.mjs';
 import {registrations} from './obligations.mjs';
-import {canonicalJson, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
+import {canonicalJson, maxCapacityReportBytes, safePath, noLinks, inventory, fileDigest, sourceState, packArchive, verifyArchive, outputs} from './ci-artifacts.mjs';
 import {partIds, planDigest, partFamily} from './proof-parts.mjs';
 import {validateCapacityPart, unionCapacityParts} from './capacity/parts.mjs';
 import {inspectMutationPart, joinMutationParts} from './mutation-parts.mjs';
@@ -33,7 +33,7 @@ function reader(directory) {
   };
   const read = path => readFileSync(path.startsWith(prefix) ? local(path) : join(fileURLToPath(new URL('../../',import.meta.url)),safePath(path)));
   const report = path => canonicalJson(join(directory, safePath(path)),
-    /^capacity\/parts\/L-C[01]\.json$/u.test(path) ? 256 * 1024 ** 2 : 32 * 1024 ** 2);
+    /^capacity\/parts\/L-C[01]\.json$/u.test(path) ? maxCapacityReportBytes : 32 * 1024 ** 2);
   return {local, read, report};
 }
 export function partState(root, env = process.env) {
