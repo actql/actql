@@ -19,7 +19,8 @@ import {compositionProgram, compositionTemplate, compositionExpectations, compos
   './fixtures/composed-infer-effect-input.mjs';
 import {configuration as inferConfiguration, canonical as inferCanonical, cid as inferCid} from
   './fixtures/installed-infer-fixture.mjs';
-import {selectInstalledLocalMaterializationEnvironment} from '../adapters/host-node/installed-host-policy.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from
+  '../adapters/host-node/installed-host-policy.mjs';
 import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-check-environment.mjs';
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
@@ -153,7 +154,7 @@ test('public check Source fixture keeps original declarations under the actual L
   };
   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
   const construct=new AsyncFunction('environment','repository','readFile','join','contentCid','moon',
-    'selectInstalledLocalMaterializationEnvironment',
+    'selectInstalledLocalMaterializationEnvironment','hostEnvironmentWire',
     producer.body.body.slice(0,end).map(n=>script.slice(n.start,n.end)).join('\n')+'\nreturn environment;');
   const document=await construct(source,'/repo',async path=>{
     assert.equal(path,join('/repo','spec/local-check-environment.json'));return wire;
@@ -165,6 +166,71 @@ test('public check Source fixture keeps original declarations under the actual L
     assert.strictEqual(document[name],source[name]);assert.deepEqual(document[name],before[name]);
   }
   assert.deepEqual(source,before);
+});
+
+test('public check Source fixture follows its independently supplied Remote Effect Host policy', async () => {
+  const script = readFileSync(new URL('../adapters/host-node/client-check.test.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const producer = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'installedSource');
+  const end = producer.body.body.findIndex(node => node.type === 'VariableDeclaration' &&
+    node.declarations[0]?.id.name === 'database');
+  assert.equal(end, 4);
+  const source = JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+  const original = structuredClone(source);
+  const wire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const policy = Object.freeze({}), moon = {
+    clientLocalResourcePolicyOriginal() {return policy;},
+    clientLocalResourcePolicyRowCeiling(value) {assert.equal(value, policy); return 203;},
+    clientProgramCheckEnvironment(value, cid) {assert.equal(JSON.parse(value).evidence_bundle_cid, cid); return {};},
+  };
+  const selected = selectInstalledHostEnvironment(moon, wire.trimEnd());
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const construct = new AsyncFunction('environment', 'repository', 'readFile', 'join', 'contentCid', 'moon',
+    'selectInstalledLocalMaterializationEnvironment', 'hostEnvironmentWire',
+    producer.body.body.slice(0, end).map(node => script.slice(node.start, node.end)).join('\n') + '\nreturn environment;');
+  const document = await construct(source, '/repo', async () => wire, join, contentCid, moon,
+    selectInstalledLocalMaterializationEnvironment, selected);
+  const composed = composeInstalledCheckEnvironment(moon, selected, canonicalText(document));
+  assert.deepEqual(JSON.parse(composed).host_policy_profile, JSON.parse(selected).host_policy_profile);
+  assert.deepEqual(source, original);
+  for (const key of Object.keys(original).filter(key => !['host_policy_profile', 'evidence_bundle_cid'].includes(key))) {
+    assert.equal(document[key], source[key]);
+  }
+  const http = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'httpClient');
+  const initialized = http.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations[0]?.id.name === 'sourceInstallation').declarations[0].init;
+  assert.equal(initialized.type, 'AwaitExpression');
+  assert.equal(initialized.argument.arguments[2]?.name, 'hostEnvironmentWire');
+  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'installedConfigurations');
+  const forwarded = [];
+  const configure = new Function('installedSource', 'mkdir', 'join',
+    script.slice(declaration.start, declaration.end) + ';return installedConfigurations;')(
+    async (root, configuration, originalWire) => {
+      forwarded.push({root, configuration, originalWire});
+      return join(root, 'source-profile.json');
+    }, async () => {}, join);
+  const configuration = {};
+  assert.deepEqual(await configure('/app', configuration, selected),
+    {sourceProfilePath: join('/app', 'source-profile.json')});
+  assert.deepEqual(await configure('/app', [configuration, configuration], selected),
+    {sourceProfilePaths: [join('/app', 'source-0', 'source-profile.json'),
+      join('/app', 'source-1', 'source-profile.json')]});
+  assert.equal(forwarded.length, 3);
+  assert(forwarded.every(call => call.configuration === configuration && call.originalWire === selected));
+  const selection = http.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations[0]?.id.name === 'hostEnvironmentWire').declarations[0].init;
+  const choose = new AsyncFunction('installed', 'moon', 'readFile', 'join', 'repository',
+    'selectInstalledHostEnvironment', 'return (' + script.slice(selection.start, selection.end) + ');');
+  let reads = 0;
+  const read = async path => {
+    assert.equal(path, join('/repo', 'spec/local-check-environment.json')); reads++; return wire;
+  };
+  assert.equal(await choose({}, moon, read, join, '/repo', selectInstalledHostEnvironment), undefined);
+  assert.equal(reads, 0);
+  assert.equal(await choose({effectInstallation: {}}, moon, read, join, '/repo',
+    selectInstalledHostEnvironment), selected);
+  assert.equal(reads, 1);
 });
 
 // Evaluate the existing CLI selection prelude, including its admission flags.

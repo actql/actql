@@ -26,7 +26,8 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {selectInstalledLocalMaterializationEnvironment} from './installed-host-policy.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from
+  './installed-host-policy.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -101,10 +102,10 @@ const configurations = Object.freeze({
 });
 
 async function installedSource(root, {readOutcome, aliases,
-  environment = sourceEnvironment, seedAuthoringRows = false}) {
+  environment = sourceEnvironment, seedAuthoringRows = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
-  const base = JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,
+  const base = JSON.parse(hostEnvironmentWire ?? selectInstalledLocalMaterializationEnvironment(moon,
     (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
   environment = {...environment, host_policy_profile: base.host_policy_profile};
   delete environment.evidence_bundle_cid;
@@ -132,16 +133,16 @@ async function installedSource(root, {readOutcome, aliases,
   return path;
 }
 
-async function installedConfigurations(root, configuration) {
+async function installedConfigurations(root, configuration, hostEnvironmentWire) {
   if (!Array.isArray(configuration)) {
-    return {sourceProfilePath: await installedSource(root, configuration)};
+    return {sourceProfilePath: await installedSource(root, configuration, hostEnvironmentWire)};
   }
   if (configuration.length === 0) return {};
   const paths = [];
   for (const [index, source] of configuration.entries()) {
     const directory = join(root, `source-${index}`);
     await mkdir(directory);
-    paths.push(await installedSource(directory, source));
+    paths.push(await installedSource(directory, source, hostEnvironmentWire));
   }
   return paths.length === 1 ? {sourceProfilePath: paths[0]}
     : {sourceProfilePaths: paths};
@@ -201,7 +202,13 @@ async function localClient(t, configuration, installed = {}) {
 
 async function httpClient(t, configuration, mutateCheckReply, installed = {}) {
   const root = await mkdtemp(join(scratch, 'http-'));
-  const sourceInstallation = await installedConfigurations(root, configuration);
+  // Match the existing Host branch for an independently supplied Remote
+  // Effect. Other Remote Source callers retain its ordinary Local selector.
+  const hostEnvironmentWire = installed.effectInstallation === undefined ? undefined
+    : selectInstalledHostEnvironment(moon,
+      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+      installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
+  const sourceInstallation = await installedConfigurations(root, configuration, hostEnvironmentWire);
   const observation = observeCheckOnly(t, root);
   const host = await openInstalledRemoteHttpHost({
     directory: join(root, 'state'), beforeDispatch: observation.beforeDispatch,
