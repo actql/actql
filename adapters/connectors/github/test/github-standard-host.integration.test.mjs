@@ -99,7 +99,9 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`GitHub standard Host custody retained: ${root}`);
+    } else await rm(root, {recursive: true, force: true});
   });
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
@@ -244,7 +246,13 @@ const onlyGraphql = api => api.seen().every(entry =>
 test('public Client reads published GitHub Issues to a Named Result', async t => {
   const setup = await installation(t);
   // A Host start without a publication refuses before any provider I/O.
-  await assert.rejects(setup.open(), {code: 'GitHubPublicationMissing'});
+  await assert.rejects(setup.open(), error => {
+    assert.equal(error.code,'InstalledHostInitializationFailed');
+    assert.equal(error.primaryFailure?.code,'GitHubPublicationMissing');
+    assert.strictEqual(error.cause,error.primaryFailure);
+    assert.equal(error.cleanupHandle.status().pending,false);
+    return true;
+  });
   assert.equal(setup.api.seen().length, 0);
   const published = await setup.publish();
   // The publication stores the node ID in the form the reads compare.
