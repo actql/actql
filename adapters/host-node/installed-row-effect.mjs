@@ -91,7 +91,7 @@
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -2217,9 +2217,6 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           managedEffect.prepared !== prepared || managedEffect.request !== identity)) {
         fail('ForeignInstalledEffectManagedRun');
       }
-      if (constructor !== undefined && owned.prepareRequestChild !== undefined) {
-        fail('InstalledEffectConstructorChildUnavailable');
-      }
       if (owned.prepareRequestChild !== undefined || constructor !== undefined) {
         const preparedEntries = [];
         for (const [rowIndex, row] of rows.entries()) {
@@ -2237,10 +2234,14 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               {authorizationForRow: reads[index]?.authorizationForRow})};
           const preparedRequest = await prepareInstalledRowCaptureChild({children: requestChildren,
             create: () => constructor === undefined ? owned.prepareRequestChild(context) :
-              prepareInstalledEffectRequestChild({run: managedEffect, memberIndex: member.memberIndex,
+              (owned.prepareRequestChild === undefined ? prepareInstalledEffectRequestChild :
+                prepareInstalledEffectOwnedRequestChild)({run: managedEffect, memberIndex: member.memberIndex,
                 rowIndex, operationIndex: constructor.operationIndex,
                 operation: recipe.rowOperations[constructor.operationIndex].operation,
-                construct: () => owned.prepareRequest(context), requestsRetired: retireRequestAliases}),
+                ...(owned.prepareRequestChild === undefined
+                  ? {construct: () => owned.prepareRequest(context)}
+                  : {constructChild: () => owned.prepareRequestChild(context)}),
+                requestsRetired: retireRequestAliases}),
             assertCurrent, signal});
           preparedEntries.push(requestEntry(member, row, preparedRequest));
         }

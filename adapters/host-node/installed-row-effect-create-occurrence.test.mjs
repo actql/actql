@@ -7,7 +7,7 @@ import {parse} from 'acorn';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledRowCaptureChild, retainInstalledRowCaptureChild, releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectRequestChild, prepareInstalledEffectCredentialChild, captureInstalledEffectPlanRecipe, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 
 // Actual enclosing row-stage loop/callees. Core inventory, checked Preview,
 // driver request/claim, Resource and physical ports are explicit here.
@@ -131,7 +131,7 @@ function fixture({child=false,inventoryError,managed=false,constructorFailureAt}
     control:{},prepared,identity,inputs:{},sourceSet:{members:[{payload:{}}]},limits,
     contentBorrowers:[],targeted:()=>false,guarded:()=>false,contentOwner:undefined,
     requestChildren,prepareInstalledRowCaptureChild,commandContentRow,requestEntry,requestsOf,prepareInstalledCreateRows,fail,
-    managedEffect,prepareInstalledEffectRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
+    managedEffect,prepareInstalledEffectRequestChild,prepareInstalledEffectOwnedRequestChild,retireRequestAliases(){aliasesRetired=true;ports.rowsOf.length=0;ports.currents.length=0;return true;}};
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${source.slice(loop.start,loop.end)};return {rowsOf,observations,currents};})();`)(...Object.values(ports));
   return {run,contexts,events,requestChildren,workspaceEvents,activeConstructor:()=>activeConstructor,inventoryCalls:()=>inventoryCalls,entryOf,ownerOf,owned,runOriginal,debits,settlements,managedEffect};
 }
@@ -721,4 +721,24 @@ test('actual claimed write and projection use their original control frame aroun
   await dispatch({memberIndex:0,rowIndex:0,claim,currentPreflight:current});
   assert.deepEqual(f.events,['begin','grant','complete','claim','send','store','begin','project','complete']);
   assert.equal(route.retire(),true);assert.equal(f.work.retire(),true);
+});
+
+
+test('actual managed row loop composes the original owned request child without replacing its factory', async () => {
+  const f = fixture({managed: true}); let cleanup = false, factories = 0, prepares = 0;
+  f.owned.prepareRequestChild = context => {
+    factories++;
+    const result = f.owned.prepareRequest(context);
+    return {prepare() {prepares++; return result;}, release: () => cleanup,
+      retry: () => cleanup, status: () => ({pending: !cleanup})};
+  };
+  await f.run();
+  assert.equal(factories, 3); assert.equal(prepares, 3);
+  assert.deepEqual(f.workspaceEvents, [['begin',0],['complete',0],['begin',1],['complete',1],['begin',2],['complete',2]]);
+  for (const retained of f.requestChildren) await retained.prepared.release();
+  assert.equal(f.settlements.length, 0);
+  cleanup = true;
+  for (const retained of f.requestChildren) await retained.prepared.retry();
+  assert.deepEqual(f.settlements, f.debits);
+  assert.equal(factories, 3, 'cleanup never invokes another request factory');
 });

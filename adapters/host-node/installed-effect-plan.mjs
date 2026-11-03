@@ -275,6 +275,73 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
 // Owner. The selected implementation's native occurrence is debited before the
 // constructor. Its output stays charged until the enclosing original route and
 // request aliases have actually retired, including failed constructor prefixes.
+// A driver may already own a Content-borrowing request child. Retain that
+// SAME child under the existing constructor token; do not replace its prepare
+// or physical cleanup with a second request or a successful-looking snapshot.
+export function prepareInstalledEffectOwnedRequestChild({constructChild, ...options}) {
+  if (typeof constructChild !== 'function' || options.construct !== undefined) {
+    fail('InstalledEffectConstructorUnavailable');
+  }
+  let child, methods, retired = false, opening = false, invoking = false, stopping = false, flight;
+  const requestsRetired = options.requestsRetired;
+  if (typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
+  const captureMethods = names => {
+    for (const name of names) {
+      if (!Object.hasOwn(methods, name)) methods[name] = child[name];
+      if (typeof methods[name] !== 'function') fail('InvalidInstalledRowRequestChild');
+    }
+  };
+  const managed = prepareInstalledEffectRequestChild({...options,
+    requestsRetired: () => retired && requestsRetired() === true,
+    construct() {
+      child = constructChild(); // Retain before even a fallible method getter.
+      constructChild = undefined;
+      if (child === null || !['object', 'function'].includes(typeof child)) {
+        fail('InvalidInstalledRowRequestChild');
+      }
+      methods = {};
+      captureMethods(['release', 'retry', 'status', 'prepare']);
+      if (typeof Reflect.apply(methods.status, child, [])?.pending !== 'boolean') {
+        fail('InvalidInstalledRowRequestChild');
+      }
+      if (stopping) fail('InstalledEffectRequestChildRetired');
+      const result = Reflect.apply(methods.prepare, child, []);
+      if (stopping) fail('InstalledEffectRequestChildRetired');
+      return result;
+    }});
+  const drain = retry => {
+    stopping = true;
+    if (opening || invoking) return false;
+    if (flight !== undefined) return flight;
+    opening = true;
+    try {
+      flight = (async () => {
+        if (!retired) {
+          if (child !== undefined) {
+            // Retry only still-unobserved methods on this same retained child;
+            // successfully captured cleanup methods can never be replaced.
+            if (methods === undefined) fail('InvalidInstalledRowRequestChild');
+            captureMethods([retry ? 'retry' : 'release', 'status']);
+            const release = retry ? methods.retry : methods.release;
+            const result = await Reflect.apply(release, child, []);
+            if (result === false || Reflect.apply(methods.status, child, [])?.pending !== false) return false;
+          }
+          child = methods = constructChild = undefined;
+          retired = true;
+        }
+        return managed.release();
+      })().finally(() => {flight = undefined;});
+    } finally {opening = false;}
+    return flight;
+  };
+  return Object.freeze({prepare() {
+    if (stopping) fail('InstalledEffectRequestChildRetired');
+    invoking = true;
+    try {return managed.prepare();} finally {invoking = false;}
+  }, checkOriginal: managed.checkOriginal,
+    release: () => drain(false), retry: () => drain(true), status: managed.status});
+}
+
 export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, construct: originalConstruct, requestsRetired}) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
