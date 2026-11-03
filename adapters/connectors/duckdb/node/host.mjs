@@ -1148,7 +1148,10 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
   });
   let sessionStarted = false;
   const accounting = capacity === undefined ? undefined : Object.freeze({
-    started() { sessionStarted = true; },
+    started() {
+      checked(moon.nativeHostPhysicalStart(capturedRun));
+      sessionStarted = true;
+    },
     chargeTransfer(bytes) { checked(moon.nativeHostPhysicalCharge(capturedRun, BigInt(bytes))); },
     settled(confirmed) { checked(moon.nativeHostPhysicalSettle(capturedRun, confirmed)); },
   });

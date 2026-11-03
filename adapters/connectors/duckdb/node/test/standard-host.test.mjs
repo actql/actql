@@ -12828,9 +12828,10 @@ async function exerciseStrategyGraph(
     for (const field of [0, 1, 2, 4, 5]) {
       assert.equal(fixture.strategyFixtureUsage(failed, field), 0n);
     }
-    // The chosen attempt was frozen before even a source-open failure, and
-    // releasing unused capacity never refunds that bounded attempt record.
-    assert.equal(fixture.strategyFixtureUsage(failed, 3), 1n);
+    // Authorization and pre-abort return an unused attempt reservation.
+    // Entering the physical session consumes it even if transfer then fails;
+    // cleanup must not refund that actual start.
+    assert.equal(fixture.strategyFixtureUsage(failed, 3), mode === 'transfer' ? 1n : 0n);
   }
   const accountedFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
   const retainedRootDirectory = await mkdtemp(join(root, '_build/duckdb-fixtures/retained-root-'));
