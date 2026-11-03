@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFile} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
-import {access, mkdir, readFile, stat, writeFile} from 'node:fs/promises';
+import {access, mkdir, readFile, readdir, stat, writeFile} from 'node:fs/promises';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -17,7 +17,34 @@ const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"so
 const source = "SELECT 1 AS id |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'one.jsonl') " +
   "|> RESULT answer |> EFFECT STORE local.files SET (path = 'copy.jsonl', content = content)";
 
-test('ordinary Project STORE retains its approved bytes and exact Result through separate-process Saved',
+// Equivalent public authored JSON uses the same installed Command and actual
+// Content family. Keep the SQL cases above/below: this isolates lowering cost,
+// not a replacement runtime, request or authority.
+const jsonSource = JSON.stringify({version: 'actql/0.1', id: 'ordinary-store-json', stages: [{
+  id: 'source', inputs: {}, steps: [
+    {values: {schema: {id: {type: 'number', nullable: false}}, rows: [{id: 1}]}, as: 'selected'},
+    {serialize: {format: 'jsonl', fields: ['id'], name: 'one.jsonl', preserve_order: true}, as: 'attachment'},
+  ], results: {answer: {from: 'attachment', fields: ['content', 'name', 'media_type', 'size_bytes', 'row_count']}},
+  effects: {save: {command: {contract: 'command:local.local.files.store.v1',
+    target: {published_store: {target_ref: 'connector://local/files', mapping_ref: 'mapping:local.local.files.store.v1'}},
+    from: {result: 'answer'}, input: {path: {literal: 'copy.jsonl'}, content: {field: 'content'}}}}},
+}], results: {answer: {from: {stage: 'source', result: 'answer'}}}});
+
+for (const variant of [
+  {name: 'approved JSON one-row', decision: 'approved', source: jsonSource, format: 'json', bytes: '{"id":1}\n'},
+  {name: 'approved JSON empty input', decision: 'approved',
+    source: jsonSource.replace('"rows":[{"id":1}]', '"rows":[]'), format: 'json', bytes: ''},
+  {name: 'approved JSON multirow single file', decision: 'approved',
+    source: jsonSource.replace('"rows":[{"id":1}]', '"rows":[{"id":1},{"id":2},{"id":3}]'),
+    format: 'json', bytes: '{"id":1}\n{"id":2}\n{"id":3}\n'},
+  {name: 'signed JSON rejection', decision: 'rejected', source: jsonSource, format: 'json'},
+  {name: 'approved one-row', decision: 'approved', source, bytes: '{"id":1}\n'},
+  {name: 'approved multirow single file', decision: 'approved',
+    source: source.replace('SELECT 1 AS id', 'SELECT id FROM (SELECT 3 AS id UNION ALL SELECT 1 AS id UNION ALL SELECT 2 AS id)'),
+    bytes: '{"id":1}\n{"id":2}\n{"id":3}\n'},
+  {name: 'approved empty input', decision: 'approved', source: source.replace('SELECT 1 AS id', 'SELECT 1 AS id WHERE FALSE'), bytes: ''},
+  {name: 'signed rejection', decision: 'rejected', source},
+]) test(`ordinary Project STORE ${variant.name} closes and preserves exact separate-process Saved without resend`,
   {timeout: 90_000}, async t => {
     const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
       prefix: 'ordinary-project-store-', label: 'ordinary Project STORE'});
@@ -53,14 +80,14 @@ test('ordinary Project STORE retains its approved bytes and exact Result through
     t.diagnostic(JSON.stringify({directory}));
     try {
       client = await step('connect ordinary Project Host', () => connectEmbeddedLocal(options));
-      const run = await step('start original STORE', () => client.startSource(source, {format: 'sql'}));
-      assert.equal((await step('await Preview', () => run.wait({signal: AbortSignal.timeout(15_000)}))).status,
-        'waiting_checkpoint');
+      const run = await step('start original STORE', () => client.startSource(variant.source, {format: variant.format ?? 'sql'}));
+      const previewState = await step('await Preview', () => run.wait({signal: AbortSignal.timeout(15_000)}));
+      assert.equal(previewState.status, 'waiting_checkpoint', inspect(previewState, {depth: 4}));
       await assert.rejects(access(join(data, 'copy.jsonl')), {code: 'ENOENT'});
       const checkpoint = (await client.checkpoints()).items.find(value => value.kind === 'effect_set');
       assert(checkpoint);
-      const resolved = await step('approve exact checkpoint', () => client.resolveCheckpoints([
-        {checkpoint, decision: 'approved'}], {signer: {keyId: 'reviewer', reviewerId: 'reviewer',
+      const resolved = await step(`${variant.decision} exact checkpoint`, () => client.resolveCheckpoints([
+        {checkpoint, decision: variant.decision}], {signer: {keyId: 'reviewer', reviewerId: 'reviewer',
         authorityScopeCid: run.ref.authorityScopeCid, sign: bytes => sign(null, bytes, keys.privateKey)}}));
       assert.equal(resolved.results[0].status, 'committed');
       phase = 'resume original Run';
@@ -70,15 +97,19 @@ test('ordinary Project STORE retains its approved bytes and exact Result through
         if (!['waiting_checkpoint', 'resuming', 'running'].includes(state.status)) break;
         await delay(20, undefined, {signal});
       } while (true);
-      assert.equal(state.status, 'succeeded', inspect(state));
-      const rows = await step('read exact authored Result', () => run.result('answer').all());
-      assert.equal(rows.length, 1); assert.equal(rows[0].name, 'one.jsonl');
-      const expected = Buffer.from('{"id":1}\n');
-      assert.deepEqual(await readFile(join(data, 'copy.jsonl')), expected);
-      assert.equal(rows[0].content.metadata.content_cid,
-        'sha256:' + createHash('sha256').update(expected).digest('hex'));
-      const before = await stat(join(data, 'copy.jsonl'), {bigint: true});
-      await writeFile(join(directory, 'saved.json'), JSON.stringify({options, ref: run.ref, rows}), {mode: 0o600});
+      const expectedStatus = variant.decision === 'approved' ? 'succeeded' : 'cancelled';
+      assert.equal(state.status, expectedStatus, inspect(state));
+      let rows, before;
+      const expected = Buffer.from(variant.bytes ?? '');
+      if (expectedStatus === 'succeeded') {
+        rows = await step('read exact authored Result', () => run.result('answer').all());
+        assert.equal(rows.length, 1); assert.equal(rows[0].name, 'one.jsonl');
+        assert.deepEqual(await readFile(join(data, 'copy.jsonl')), expected);
+        assert.equal(rows[0].content.metadata.content_cid,
+          'sha256:' + createHash('sha256').update(expected).digest('hex'));
+        before = await stat(join(data, 'copy.jsonl'), {bigint: true});
+      } else await assert.rejects(access(join(data, 'copy.jsonl')), {code: 'ENOENT'});
+      await writeFile(join(directory, 'saved.json'), JSON.stringify({options, ref: run.ref, rows, expectedStatus}), {mode: 0o600});
       await step('close original Host', () => client.close()); client = undefined;
       const hostUrl = new URL('./embedded-local.mjs', import.meta.url).href;
       await step('separate-process Saved reads same Result', () => execute(process.execPath,
@@ -90,17 +121,28 @@ test('ordinary Project STORE retains its approved bytes and exact Result through
           const client = await connectEmbeddedLocal(saved.options);
           try {
             const run = await client.attach(saved.ref);
-            assert.equal((await run.status()).status, 'succeeded');
-            assert.deepEqual(await run.result('answer').all(), saved.rows);
+            assert.equal((await run.status()).status, saved.expectedStatus);
+            if (saved.expectedStatus === 'succeeded') assert.deepEqual(await run.result('answer').all(), saved.rows);
           } finally {await client.close();}
         `], {cwd: directory, timeout: 20_000}));
-      const after = await stat(join(data, 'copy.jsonl'), {bigint: true});
-      assert.deepEqual([after.dev, after.ino, after.size, after.mtimeNs],
-        [before.dev, before.ino, before.size, before.mtimeNs], 'Saved must not rewrite the file');
-      assert.deepEqual(await readFile(join(data, 'copy.jsonl')), expected);
+      if (expectedStatus === 'succeeded') {
+        const after = await stat(join(data, 'copy.jsonl'), {bigint: true});
+        assert.deepEqual([after.dev, after.ino, after.size, after.mtimeNs],
+          [before.dev, before.ino, before.size, before.mtimeNs], 'Saved must not rewrite the file');
+        assert.deepEqual(await readFile(join(data, 'copy.jsonl')), expected);
+      }
+      assert.deepEqual(await readdir(data), expectedStatus === 'succeeded' ? ['copy.jsonl'] : [],
+        'closed writers leave no temporary files and rejected/Saved Runs never write');
     } catch (cause) {
       primary = cause;
       t.diagnostic(JSON.stringify({phase, code: cause.code, failure: inspect(cause, {depth: 5})}));
+      if (cause.code === 'SubmissionUnknown' && cause.submissionRef !== undefined) {
+        // Observe only this exact intent; a failed acknowledgement never
+        // authorizes a second startSource or replacement business Run.
+        const observed = await client.lookupSubmission(cause.submissionRef);
+        t.diagnostic(`original submission lookup: ${inspect(observed, {depth: 2})}`);
+        await assert.rejects(access(join(data, 'copy.jsonl')), {code: 'ENOENT'});
+      }
     } finally {
       try {await client?.close();}
       catch (cause) {primary = primary === undefined ? cause : new AggregateError([primary, cause],

@@ -3910,6 +3910,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                   }
                   return await openAcquiredEffectComputation({moon,
                     owner: facts.owner, acquired: facts.preparedExecution, managedRun,
+                    originalContent: managedEffect.contentOriginal,
                     originalModelComponent: managedEffect.modelComponent,
                     originalModelSelection: managedEffect.modelSelection,
                     sourceProfile, registry, values, fragment, ordered,
@@ -3980,7 +3981,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         const selected = selectedInstalledEffect(facts);
         selected.assertPrepared?.({moon, prepared: facts.prepared, compilation: facts.compilation});
         preparation.prepareManagedEffectPlanRun(moon, facts, selected,
-          {registry, values, fragment, ordered, sourceProfile}, inferSelections.get(facts.prepared));
+          {registry, values, fragment, ordered, sourceProfile}, inferSelections.get(facts.prepared),
+          moon.clientProgramEffectSerializationOccurrences(facts.prepared).length === 0 || inferSelections.has(facts.prepared) ? undefined
+            : retainCleanup => runContent.prepareEffectFamily({facts, store, principalId, retainCleanup}));
         if (mockEffectObservation !== undefined) retainMockEffectRunOriginal(facts);
       },
       updateTargetOriginals,
@@ -4706,13 +4709,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       const owned = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
         requestId:retained.requestId, runDefinitionCid:key}, moon, control);
       if (owned?.runDefinition?.identity !== key ||
-          typeof preparation?.prepareEffectCaptureRecovery !== 'function') {
+          typeof preparation?.prepareEffectCaptureRetirement !== 'function') {
         throw clientOperationError('EffectRetirementResourcesUnavailable');
       }
       let resources, result;
       try {
-        const selected = preparation.prepareEffectCaptureRecovery(moon, owned.requestIdentity,
-          owned.runDefinition, localContractLimits, undefined,
+        const selected = preparation.prepareEffectCaptureRetirement(moon, owned.requestIdentity,
+          owned.runDefinition, localContractLimits,
           () => preparation.assertResultPublicationCurrent(), original => {resources = original;});
         if (selected !== resources) throw clientOperationError('EffectRetirementResourcesUnavailable');
         result = await retireCompletedEffectfulCapture({store, control,
@@ -5903,6 +5906,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
     }
     for (const run of record.computeLiveRuns ?? []) {
       if (run.preparationKind === 'effect-capture-recovery') continue;
+      if (run.contentCleanup !== undefined) {
+        if (await run.contentCleanup.close() !== true || run.contentCleanup.cleanupPending()) {
+          throw clientOperationError('InstalledContentPhysicalCleanupPending');
+        }
+      }
       if (run.finishRetirement !== undefined) {run.finishRetirement(); continue;}
       if (run.closed) continue;
       if (run.preparationKind === 'model-plan' || run.preparationKind === 'serialization-plan' ||
@@ -6004,6 +6012,45 @@ async function openPreparedInstalledHost(options, initialEntry) {
     }
     return observed;
   }});
+  function prepareEffectCaptureFrame(runtime, request, definition, limits, managed, originalCurrent, retain, assertHost) {
+    assertHost(originals);
+    if (runtime !== moon || typeof originalCurrent !== 'function' || typeof retain !== 'function') {
+      throw clientOperationError('EffectRecoveryResourcesUnavailable');
+    }
+    const liveRuns = record.computeLiveRuns ??= new Set();
+    if (liveRuns.size >= 4096) throw clientOperationError('InstalledComputeRunLimit');
+    if (managed !== undefined && (record.computeRuns?.get(managed.prepared) !== managed ||
+        !liveRuns.has(managed) || managed.runtime !== runtime || managed.closed ||
+        runtime.clientRequestRelation(request, managed.request) !== 1 ||
+        runtime.strategyPublicationContractIdentity(managed.definitionOriginal?.definition) !== definition.identity)) {
+      throw clientOperationError('ForeignInstalledEffectManagedRun');
+    }
+    const managedParent = managed?.value, managedPrepared = managed?.prepared;
+    const managedRequest = managed?.request, managedDefinition = managed?.definitionOriginal?.definition;
+    const entry = {preparationKind:'effect-capture-recovery', resources:undefined,
+      selecting:true, closed:false};
+    liveRuns.add(entry);
+    const current = () => {
+      assertHost(originals);
+      originalCurrent();
+      if (record.computeLiveRuns !== liveRuns || !liveRuns.has(entry) || entry.closed) {
+        throw clientOperationError('ForeignEffectCaptureResources');
+      }
+      if (managed !== undefined && (preparation.effectManagedPlanRun(runtime,
+          managedPrepared, managedRequest) !== managed || managed.value !== managedParent ||
+          managed.prepared !== managedPrepared || managed.request !== managedRequest ||
+          managed.definitionOriginal?.definition !== managedDefinition)) {
+        throw clientOperationError('ForeignInstalledEffectManagedRun');
+      }
+    };
+    try {
+      return prepareEffectCaptureResources({moon:runtime,
+        control:runtimeCore(runtime).publicationControl, request, runDefinition:definition,
+        contractLimits:limits, managed, assertCurrent:current,
+        retain(view) {entry.resources = view; retain(view);},
+        retired:retireEffectCaptureResourceFrame.bind(undefined, record, liveRuns, entry)});
+    } finally {entry.selecting = false;}
+  }
   const preparation = Object.freeze({host, initialControl,
     sourceInitializationServices(runtime, root, principalId, hostCurrent) {
       assertInitialControlHostPreparation(originals);
@@ -6371,7 +6418,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
     },
-    prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection) {
+    prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent) {
       const manager = computeManaged ?? sourceManaged;
       if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
       const current = () => (computeManaged === undefined
@@ -6391,46 +6438,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
           evidenceContract: hasSources ? readInitialControlInstallationAsset(control, originals, 'spec/contracts/actql-query-process-evidence.json') : undefined,
           installedContracts: prepareInstalledSequenceContractOriginal(originals).admission}),
         sourceProfile: inputs.sourceProfile, model, modelSelection,
-        publicationControl: runtimeCore(runtime).publicationControl, assertCurrent: current, checked});
+        publicationControl: runtimeCore(runtime).publicationControl, prepareContent, assertCurrent: current, checked});
     },
     prepareEffectCaptureRecovery(runtime, request, definition, limits, managed, originalCurrent, retain) {
-      assertInitialControlHostPreparation(originals);
-      if (runtime !== moon || typeof originalCurrent !== 'function' || typeof retain !== 'function') {
-        throw clientOperationError('EffectRecoveryResourcesUnavailable');
-      }
-      const liveRuns = record.computeLiveRuns ??= new Set();
-      if (liveRuns.size >= 4096) throw clientOperationError('InstalledComputeRunLimit');
-      if (managed !== undefined && (record.computeRuns?.get(managed.prepared) !== managed ||
-          !liveRuns.has(managed) || managed.runtime !== runtime || managed.closed ||
-          runtime.clientRequestRelation(request, managed.request) !== 1 ||
-          runtime.strategyPublicationContractIdentity(managed.definitionOriginal?.definition) !== definition.identity)) {
-        throw clientOperationError('ForeignInstalledEffectManagedRun');
-      }
-      const managedParent = managed?.value, managedPrepared = managed?.prepared;
-      const managedRequest = managed?.request, managedDefinition = managed?.definitionOriginal?.definition;
-      const entry = {preparationKind:'effect-capture-recovery', resources:undefined,
-        selecting:true, closed:false};
-      liveRuns.add(entry);
-      const current = () => {
-        assertInitialControlHostPreparation(originals);
-        originalCurrent();
-        if (record.computeLiveRuns !== liveRuns || !liveRuns.has(entry) || entry.closed) {
-          throw clientOperationError('ForeignEffectCaptureResources');
-        }
-        if (managed !== undefined && (preparation.effectManagedPlanRun(runtime,
-            managedPrepared, managedRequest) !== managed || managed.value !== managedParent ||
-            managed.prepared !== managedPrepared || managed.request !== managedRequest ||
-            managed.definitionOriginal?.definition !== managedDefinition)) {
-          throw clientOperationError('ForeignInstalledEffectManagedRun');
-        }
-      };
-      try {
-        return prepareEffectCaptureResources({moon:runtime,
-          control:runtimeCore(runtime).publicationControl, request, runDefinition:definition,
-          contractLimits:limits, managed, assertCurrent:current,
-          retain(view) {entry.resources = view; retain(view);},
-          retired:retireEffectCaptureResourceFrame.bind(undefined, record, liveRuns, entry)});
-      } finally {entry.selecting = false;}
+      return prepareEffectCaptureFrame(runtime, request, definition, limits, managed,
+        originalCurrent, retain, assertInitialControlHostPreparation);
+    },
+    prepareEffectCaptureRetirement(runtime, request, definition, limits, originalCurrent, retain) {
+      // Only the terminal cleanup caller selects this path for its existing
+      // journal-owned Request/Definition. Closed ingress is not retirement of
+      // that same Host generation; normal recovery still requires open ingress.
+      return prepareEffectCaptureFrame(runtime, request, definition, limits, undefined,
+        originalCurrent, retain, assertRetainedSourceManagedHost);
     },
     effectManagedRun(runtime, prepared, request) {
       return preparation.effectManagedPlanRun(runtime, prepared, request).value;
@@ -6832,6 +6851,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
             throw clientOperationError('ForeignInstalledModelPreparation');
           }
         }
+        if (run.contentCleanup?.cleanupPending()) throw clientOperationError('InstalledContentPhysicalCleanupPending');
         finishInstalledEffectModelScope(run, true, checked);
         if (effectRetirement && (record.computeRuns.get(prepared) !== run || !record.computeLiveRuns.has(run) ||
             run.prepared !== prepared || run.runtime !== moon || run.closed ||
@@ -6922,6 +6942,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
             run.modelAliasesReleased = true;
           }
           run.modelScope=run.model=run.modelDemand=run.definitionOriginal=run.operationPlan=undefined;
+          run.contentOriginal=run.contentCleanup=undefined;
           run.modelSelection=run.modelComponent=run.modelComponents=run.sourceInputs=undefined;
           run.publicationControl=run.modelRunDefinition=run.modelPreparation=run.modelRead=undefined;
           run.mockSourceReads=undefined;

@@ -2874,6 +2874,16 @@ function publicationControl(moon) {
       compiledRunTokens.set(result, value);
       return result;
     },
+    prepareCheckedClientEffectContentOriginal(prepared, compiled, compilation, definition, graph,
+      bodies, workspace, physical, retain) {
+      const value = compiledContent(compiled), component = serializationPlanTokens.get(graph);
+      if (component === undefined || moon.clientProgramCompiledRunSerializationGraph(value) !== component) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
+      return checked(moon.clientProgramInstalledEffectContentPreparationPrepare(prepared,
+        value, compilation, token(definition), component, bodies.registry, bodies.values,
+        bodies.fragment, bodies.ordered, workspace, physical.cancel, physical.stopped, physical.cleanup, retain));
+    },
     compiledSerializationGraph(compiled) {
       const value = compiledContent(compiled);
       const graph = moon.clientProgramCompiledRunSerializationGraph(value);
@@ -2883,6 +2893,15 @@ function publicationControl(moon) {
         wire: moon.clientProgramSerializationPlanGraphWire(graph)});
       serializationPlanTokens.set(selected, graph);
       return selected;
+    },
+    checkedClientSerializationInputRows(compiled, selection) {
+      const value = compiledContent(compiled), graph = serializationPlanTokens.get(selection);
+      if (graph === undefined || moon.clientProgramCompiledRunSerializationGraph(value) !== graph) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
+      const rows = moon.clientProgramSerializationInputRowBound(graph);
+      if (!Number.isSafeInteger(rows) || rows < -1) throw new TypeError('Invalid Content input row bound');
+      return rows < 0 ? undefined : rows;
     },
     checkedClientSerializationGenerationLimits(compiled, selection) {
       const value = compiledContent(compiled);
@@ -6568,7 +6587,7 @@ export function contentGenerationControl(moon, publications) {
   };
   return Object.freeze({
     effectFamily(program, graph, bodies, {generation, reference, contract, output, identitySlots},
-      physical, retain, recovery) {
+      physical, retain, recovery, managedOriginal) {
       const fields = [generation?.maxBytes, generation?.maxValueNodes,
         generation?.maxValueDepth, generation?.maxFrames, identitySlots,
         reference?.maxBytes, reference?.maxNodes, reference?.maxDepth,
@@ -6583,13 +6602,20 @@ export function contentGenerationControl(moon, publications) {
         ...resultOutputLimitFields.map(name => output[name]));
       const workspace = exported === undefined ? undefined
         : moon.clientProgramContentStepWorkspace(...fields, exported);
+      const retainOriginal = active => {
+        familySteps.add(active);
+        return retain(active) === true;
+      };
+      if (managedOriginal !== undefined) {
+        if (recovery !== undefined || workspace === undefined) throw new TypeError('Invalid managed Content original');
+        const preparation = managedOriginal.prepare(workspace, physical, retainOriginal);
+        const provider = moon.clientProgramInstalledEffectContentPreparationProvider(preparation);
+        return Object.freeze({provider, preparation});
+      }
       const provider = workspace === undefined ? undefined
         : moon.clientProgramEffectContentLocalProvider(program, graph.task, graph.step,
           bodies.registry, bodies.values, bodies.fragment, bodies.ordered, workspace,
-          physical.cancel, physical.stopped, physical.cleanup, active => {
-            familySteps.add(active);
-            return retain(active) === true;
-          }, recovery);
+          physical.cancel, physical.stopped, physical.cleanup, retainOriginal, recovery);
       if (provider === undefined) throw new TypeError('Installed Content family unavailable');
       return provider;
     },

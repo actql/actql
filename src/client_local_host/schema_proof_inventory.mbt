@@ -47,6 +47,7 @@ fn client_local_schema_proof_inventory(
   leaf_only? : Bool = false,
   workspace? : ClientLocalSchemaProofWorkspace? = None,
   effect_sources? : @strategy.CheckedEffectComputationDAG? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> ClientLocalSchemaProofInventory? {
   if sequences.is_empty() || max_work < 1 || sequences.length() > max_work {
     return None
@@ -72,6 +73,14 @@ fn client_local_schema_proof_inventory(
         @strategy.checked_effect_computation_graph(effect),
       ))
     ) {
+    return None
+  }
+  if content is Some(selected) &&
+    !(graph is Some(original) &&
+    physical_equal(
+      original,
+      installed_managed_owner_graph(Effect(selected.prepared)),
+    )) {
     return None
   }
   let mut remaining = max_work
@@ -122,6 +131,17 @@ fn client_local_schema_proof_inventory(
       actual.owners = Int::max(actual.owners, seen.length())
     }
     let prepared = @lower.bound_preparation(owner)
+    let content_nodes = match content {
+      None => None
+      Some(selected) =>
+        match installed_content_schema_node_bound(selected, owner, remaining) {
+          None => return None
+          Some((contract, nodes, used)) => {
+            remaining -= used
+            Some((contract, nodes))
+          }
+        }
+    }
     let inputs = @lower.preparation_input_count(prepared)
     let rows : Array[Int?] = []
     let mut row_bounds = 0
@@ -220,7 +240,17 @@ fn client_local_schema_proof_inventory(
         return None
       }
       let node_width = if leaf_only {
-        guard client_local_json_schema_nodes(schema, remaining, value_depth)
+        guard client_local_json_schema_nodes(
+            schema,
+            remaining,
+            value_depth,
+            content=if content is Some(original) &&
+              node_index >= original.component.step {
+              content_nodes
+            } else {
+              None
+            },
+          )
           is Some((nodes, used)) else {
           return None
         }
@@ -255,7 +285,16 @@ fn client_local_schema_proof_inventory(
         }
         let node_width = if leaf_only {
           guard client_local_json_schema_nodes(
-              input_schema, remaining, value_depth,
+              input_schema,
+              remaining,
+              value_depth,
+              content=if content is Some(original) &&
+                target is @pipeline.Step(input_step) &&
+                input_step >= original.component.step {
+                content_nodes
+              } else {
+                None
+              },
             )
             is Some((nodes, used)) else {
             return None

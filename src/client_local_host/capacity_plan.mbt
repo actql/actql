@@ -41,6 +41,7 @@ fn client_local_capacity_plan(
   scalar_values? : Bool = false,
   graph? : @strategy.CheckedDAG? = None,
   graph_offset? : Int = 0,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> ClientLocalCapacityPlan {
   let inventory = if scalar_values {
     client_local_schema_proof_inventory(sequences, graph~, graph_offset~)
@@ -57,6 +58,7 @@ fn client_local_capacity_plan(
           graph_offset~,
           scalar_only=false,
           leaf_only=true,
+          content~,
         )
       } else {
         None

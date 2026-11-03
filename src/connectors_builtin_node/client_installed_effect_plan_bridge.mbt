@@ -548,3 +548,102 @@ pub fn client_program_installed_effect_managed_source_read(
     owner, declaration, occurrence,
   )
 }
+
+///|
+#export_name("clientProgramInstalledLocalFileStoreRecipeCapacities")
+pub fn client_program_installed_local_file_store_recipe_capacities(
+  body_bytes : Int,
+  body_nodes : Int,
+  body_depth : Int,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  request_bytes : Int,
+  recovery_bytes : Int,
+  response_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  native_original_bytes : Int64,
+  path_bytes : Int,
+  name_bytes : Int,
+  max_components : Int,
+  native_depth : Int,
+  content_read_window_bytes : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_local_file_store_recipe_capacities(
+    body_bytes, body_nodes, body_depth, preview_bytes, preview_nodes, preview_depth,
+    request_bytes, recovery_bytes, response_bytes, stored_bytes, stored_nodes, stored_depth,
+    native_original_bytes, path_bytes, name_bytes, max_components, native_depth,
+    content_read_window_bytes,
+  )
+}
+///|
+#export_name("clientProgramInstalledEffectContentPreparationPrepare")
+pub fn client_program_installed_effect_content_preparation_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compiled : @publication_host.ClientCompiledRun,
+  compilation : @publication_host.ClientEffectCompilation,
+  definition : @publication.PublicationContract,
+  component : @publication_host.ClientSerializationPlanGraph,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  workspace : @client_local_host.ClientSerializationWorkspaceLimits,
+  cancel : () -> Bool,
+  stopped : () -> Bool,
+  cleanup : () -> Bool,
+  retain : (@client_local_host.ClientLocalContentStep) -> Bool,
+) -> Result[
+  @client_local_host.ClientInstalledEffectContentPreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let (execution, measurement) = client_program_local_execution_limits()
+  @client_local_host.prepare_installed_effect_content(
+    prepared, compiled, compilation, definition, component, contracts,
+    values, fragment, ordered, execution, measurement, workspace,
+    { cancel, stopped, cleanup: () => Ok(cleanup()), }, retain,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectContentPreparationProvider")
+pub fn client_program_installed_effect_content_preparation_provider(
+  original : @client_local_host.ClientInstalledEffectContentPreparation,
+) -> @local.ManagedProvider {
+  @client_local_host.installed_effect_content_provider(original)
+}
+
+///|
+#export_name("clientProgramInstalledEffectContentManagedPlanPrepare")
+pub fn client_program_installed_effect_content_managed_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  operations : Array[@client_local_host.ClientInstalledEffectOperationDemand],
+  content : @client_local_host.ClientInstalledEffectContentPreparation,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_managed_plan(
+    prepared, request, declarations, query_contract_body, evidence_contract_body,
+    transport_bytes, transport_execution_bytes, installed_contracts,
+    values_body, fragment_body, ordered_body, operations,
+    content=Some(content), query_time~,
+    provider_factory=installed_client_family_providers,
+  )
+}

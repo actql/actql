@@ -208,3 +208,21 @@ pub fn client_serialization_json_leaf_field_count(
   }
   @schema.field_count(schema)
 }
+
+///|
+/// A fact of the SAME checked serialization input, not its one-row output.
+/// Unknown/external input preserves the existing installed producer ceiling.
+pub fn client_serialization_input_row_bound(
+  component : @publication_host.ClientSerializationPlanGraph,
+) -> Int? {
+  let prepared = @lower.bound_preparation(@lower.serialization_owner(component.barrier))
+  guard component.step == @lower.serialization_step(component.barrier) &&
+    @lower.node_at(prepared, component.step) is Some(node) &&
+    @lower.node_input_count(node) == 1 &&
+    @lower.node_input_target(node, 0) is Some(@pipeline.Step(input)) else {
+    return None
+  }
+  @lower.prepared_closed_row_bound(
+    prepared, client_local_schema_proof_work(), target_step=Some(input),
+  ).map(bound => bound.0)
+}

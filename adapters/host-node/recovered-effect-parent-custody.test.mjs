@@ -81,3 +81,35 @@ test('unselected recovery keeps synchronous validation and creates no Content ch
   assert.throws(()=>f.fn(f.facts),error=>error===f.stop);
   assert.equal(f.events.includes('construct child'),false);assert.equal(f.events.includes('prepare child'),false);
 });
+
+// Actual closeRecovery body with explicit child/ledger ports. The writer is
+// represented only by pending state; this is cleanup ordering, not file I/O.
+test('recovered physical operation waits for its original Content writer close without blocking that close', async () => {
+  const declarations=[];
+  const walk=value=>{
+    if(value===null||typeof value!=='object')return;
+    if(value.type==='VariableDeclarator'&&value.id.name==='closeRecovery')declarations.push(value.init);
+    for(const child of Object.values(value)){if(Array.isArray(child))child.forEach(walk);else walk(child);}
+  };
+  walk(ast);assert.equal(declarations.length,1);
+  const events=[];let physicalPending=true,ack=false,operationPending=true;
+  const recoveryChildren=[{async release(){events.push('close original writer');
+    if(ack)physicalPending=false;return !physicalPending;},status:()=>({pending:physicalPending})}];
+  const prepared={release(){events.push('release operation');if(!physicalPending)operationPending=false;
+    return !operationPending;},retry(){events.push('retry operation');return this.release();},
+    status:()=>({pending:operationPending})};
+  const requestChildren=[{prepared}];
+  const close=Function('recoveryChildren','requestChildren','events',`
+    let closed=false,closing=false,opening=false,cleanupFlight;
+    const retireRequestAliases=()=>{events.push('retire aliases');return true;};
+    const recoveryPending=()=>recoveryChildren.some(child=>child.status().pending);
+    const requestsPending=()=>requestChildren.some(child=>child.prepared.status().pending);
+    const releaseLedger=()=>{closed=true;events.push('close ledger');};
+    return (${source.slice(declarations[0].start,declarations[0].end)});
+  `)(recoveryChildren,requestChildren,events);
+  assert.equal(await close(),false);assert.equal(events.includes('close ledger'),false);
+  ack=true;assert.equal(await close(),true);
+  assert.deepEqual(events,['retire aliases','close original writer','release operation',
+    'retire aliases','close original writer','retry operation','release operation','close ledger']);
+  assert.equal(await close(),true);assert.equal(events.filter(event=>event==='close ledger').length,1);
+});

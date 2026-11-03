@@ -249,6 +249,7 @@ struct ClientInstalledEffectManagedPlan {
   request : @publication_host.ClientRequestIdentity
   query_time : @publication_host.ClientQueryTimePreparation?
   model : ClientInstalledEffectModelDemand?
+  content : ClientInstalledEffectContentPreparation?
   declarations : Array[@row_source_host.RowDeclaration]
   acquisitions : Array[@row_source_host.RowAcquisition]
   captures : Array[ClientInstalledCaptureCapacity]
@@ -293,7 +294,12 @@ fn installed_effect_plan_matches(
   request : @publication_host.ClientRequestIdentity,
 ) -> Bool {
   physical_equal(plan.prepared, prepared) &&
-  physical_equal(plan.request, request)
+  physical_equal(plan.request, request) &&
+  (match plan.content {
+    None => true
+    Some(original) =>
+      installed_effect_content_preparation_matches(original, prepared)
+  })
 }
 
 ///|
@@ -386,6 +392,7 @@ pub fn prepare_installed_effect_managed_plan(
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   source_providers? : Array[@execution.ExecutionCapacity]? = None,
   model? : ClientInstalledEffectModelDemand? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   if !installed_effect_managed_request_matches(prepared, request) {
     return Err(ForeignOriginal)
@@ -395,9 +402,17 @@ pub fn prepare_installed_effect_managed_plan(
   if model is Some(selected) && !physical_equal(selected.prepared, prepared) {
     return Err(ForeignOriginal)
   }
+  if content is Some(original) &&
+    (
+      !installed_effect_content_preparation_matches(original, prepared) ||
+      model is Some(_)
+    ) {
+    return Err(ForeignOriginal)
+  }
   if !installed_managed_owner_shape_supported(
       Effect(prepared),
       model is Some(_),
+      content~,
     ) {
     return Err(Unsupported)
   }
@@ -440,6 +455,7 @@ pub fn prepare_installed_effect_managed_plan(
           fragment_body,
           ordered_body,
           model is Some(_),
+          content~,
           query_time=invocation,
         ) {
         Ok(value) => value
@@ -502,7 +518,17 @@ pub fn prepare_installed_effect_managed_plan(
       transport_bytes,
       transport_execution_bytes,
       true,
-      provider_factory,
+      base => {
+        let providers = provider_factory(base)
+        match content {
+          None => providers
+          Some(original) => {
+            let selected = providers.copy()
+            selected.push(original.provider)
+            selected
+          }
+        }
+      },
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
@@ -546,14 +572,17 @@ pub fn prepare_installed_effect_managed_plan(
     input_rows: 0,
     row_bounds: 0,
   }
-  let proof = if source_free is Some(_) {
+  let proof = if source_free is Some(_) && content is None {
     // This branch retained exactly these sequences and this capacity Plan
     // from the same completed source-free preparation above. Reuse its
     // immutable inventory instead of traversing the same schemas again.
     capacity_plan.demand_inventory
   } else {
-    // The captured prefix is outside the Compute tail's graph offset. Keep
-    // its full original inventory; a tail-only proof cannot replace it.
+    // Select the exact checked Effect endpoints, not the largest intermediate
+    // Compute relation. SERIALIZE preserves its full input/sort demand in the
+    // Compute Plan while producing one row for the original STORE consumer.
+    // The same existing traversal retains unknown/foreign refusal and records
+    // its actual scratch alongside the already retained Compute inventory.
     client_local_schema_proof_inventory(
       sequences,
       graph=Some(graph),
@@ -814,7 +843,7 @@ pub fn prepare_installed_effect_managed_plan(
   // The Model limit addition retains one intermediate limits record and its
   // Some through this quote only (2H,1R,7W); it is not a second Run limit.
   let provider_scratch = if provider_sources > 0 { 1L } else { 0L }
-  let source_result_scratch = if source_free is None {
+  let source_result_scratch = if source_free is None || content is Some(_) {
     installed_effect_source_result_bound_scratch_bytes()
   } else {
     0L
@@ -924,6 +953,7 @@ pub fn prepare_installed_effect_managed_plan(
     request,
     query_time,
     model,
+    content,
     declarations: declarations.copy(),
     acquisitions,
     captures,

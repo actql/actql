@@ -12,7 +12,7 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
     }
   }
   match node.payload {
-    Values(_) => node_input_independent_row_count_bound(node)
+    Values(_) | Serialize(_) => node_input_independent_row_count_bound(node)
     InnerJoin(join) =>
       intrinsic_join_row_bound(
         @join.kind(join),
@@ -82,6 +82,9 @@ pub fn node_row_count_bound(node : PreparedNode, inputs : Array[Int]) -> Int? {
 pub fn node_input_independent_row_count_bound(node : PreparedNode) -> Int? {
   match node.payload {
     Values(values) => Some(@values.row_count(values))
+    // Successful serialization emits one Content metadata row, including for
+    // empty input. This does not bound the separate input/sort workload.
+    Serialize(_) => if node.input_targets.length() == 1 { Some(1) } else { None }
     InnerJoin(join) =>
       declared_join_row_bound(
         @join.output_guard(join),
@@ -103,7 +106,11 @@ pub fn node_input_independent_row_count_bound(node : PreparedNode) -> Int? {
 pub fn prepared_closed_row_bound(
   prepared : Prepared,
   max_work : Int,
+  target_step? : Int? = None,
 ) -> (Int, Int)? {
+  if target_step is Some(step) && (step < 0 || step >= node_count(prepared)) {
+    return None
+  }
   if max_work < 0 || preparation_input_count(prepared) != 0 {
     return None
   }
@@ -132,6 +139,9 @@ pub fn prepared_closed_row_bound(
     guard node_row_count_bound(node, inputs) is Some(rows) else { return None }
     bounds.push(rows)
     maximum = Int::max(maximum, rows)
+    if target_step == Some(index) {
+      return Some((rows, max_work - remaining))
+    }
   }
   Some((maximum, max_work - remaining))
 }
