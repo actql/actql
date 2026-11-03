@@ -743,11 +743,36 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // This configured source-free consumer opens the existing retained-output
     // Host. Quote that same choice before module/Model Scope construction,
     // rather than the installation's unrelated optional output hint.
-    const retainedModelOutput = physical === undefined && model.selection?.localMock !== true &&
-      model.serializationGraph === undefined ? true : retainedRelationOutput;
-    run.preparedSequences = model.control.prepareCheckedClientRequestModelSourceFreeModule(
-      parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      installed.admission, retainedModelOutput, run.queryTimePreparation);
+    const configuredSourceFree = physical === undefined && model.selection?.localMock !== true &&
+      model.serializationGraph === undefined;
+    const retainedModelOutput = configuredSourceFree ? true : retainedRelationOutput;
+    if (configuredSourceFree) {
+      if (typeof moon.clientProgramPrepareRequestModelSourceFreeComponentModule !== 'function' ||
+          typeof model.control.prepareCheckedClientRequestModelSourceFreeComponentModule !== 'function') {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      run.preparedSequences = model.control.prepareCheckedClientRequestModelSourceFreeComponentModule(
+        parent, input, run.request, model.compiled, model.runDefinition, compilation,
+        installed.admission, retainedModelOutput, run.queryTimePreparation, (_capacity, prefix, bindSuffix) => {
+          current();
+          if (model.component !== undefined || typeof bindSuffix !== 'function') {
+            throw clientOperationError('ForeignInstalledModelPreparation');
+          }
+          const component = openNodeComposedInferProvider({moon, selected: model.selection,
+            inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
+          if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
+              originals.installation.computeRuns?.get(run.prepared) !== run) {
+            throw clientOperationError('ForeignInstalledModelPreparation');
+          }
+          model.component = component;
+          current();
+          return component.provider;
+        });
+    } else {
+      run.preparedSequences = model.control.prepareCheckedClientRequestModelSourceFreeModule(
+        parent, input, run.request, model.compiled, model.runDefinition, compilation,
+        installed.admission, retainedModelOutput, run.queryTimePreparation);
+    }
     current();
     run.modelPlan = physical === undefined
       ? model.control.prepareCheckedClientRequestModelSourceFreePlan(parent, input,
@@ -2887,11 +2912,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         // This original installed Model's module now owns its actual input
         // lowering after the same Request debit. Do not allocate an early
         // standalone prefix/suffix before that backed constructor.
+        const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
         const deferredModelInput = preparation !== undefined &&
-          (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
-          moon.clientProgramAcquisitionCount(preparedProgram) === 1;
+          (acquisitionCount === 1 &&
+            (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) ||
+            acquisitionCount === 0 && physical.originalReadInstallation === undefined &&
+              physical.originalReadRecipe === undefined);
         const segments = deferredModelInput || occurrence === undefined || serializationGraph !== undefined ? undefined : checked(
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,

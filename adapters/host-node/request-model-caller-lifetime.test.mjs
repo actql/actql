@@ -4,6 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 
 // Run the original Local caller and cleanup with explicit Host/Core ports.
 // These observations are not a Common issuer, backing proof or physical ACK.
@@ -845,6 +846,7 @@ const sourceFreePreparation = Function('checked', 'retireNodeInferOriginalRead',
 function sourceFreePreparationFixture({readFailure} = {}) {
   const prepared = {}, selected = {graph: {}}, plan = {compiled: {}, runDefinition: {}}, scope = {}, read = {};
   const calls = [], host = {}, publication = {};
+  const component = Object.freeze({provider: {}, bindOriginal() {return component;}});
   let finished = false;
   const moon = {clientProgramAcquisitionCount: p => {assert.equal(p, prepared); return 0;},
     clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
@@ -865,18 +867,19 @@ function sourceFreePreparationFixture({readFailure} = {}) {
       calls.push('finish'); return finished;
     }};
   const managed = {runtime: moon, prepared, value: {}, request: {}}, model = {
-    prepared, selection: selected, graph: selected.graph, control, ...plan, scope, managed,
+    prepared, selection: selected, graph: selected.graph, control, ...plan, scope, managed, component,
     budget: {readRetainedBytes: 41n, readExecutionBytes: 42n, modelRetainedBytes: 43n, modelExecutionBytes: 44n},
     publicationCapacity: () => publication};
   managed.model = model;
   const make = () => sourceFreePreparation(moon, control, prepared, plan, selected, model);
-  return {make, model, managed, selected, scope, read, host, publication, calls,
+  return {make, model, managed, selected, scope, read, host, publication, component, calls,
     finish: () => {finished = true;}};
 }
 
 test('configured source-free Model uses its original Run and defers its one read until the component consumes it', async () => {
   const f = sourceFreePreparationFixture(), original = f.make();
   assert.equal(original.selection, f.selected); assert.equal(original.scope, f.scope);
+  assert.strictEqual(original.component, f.component);
   assert.throws(original.prepareRead, /InvalidInstalledRequestModelPreparation/);
   original.retain(); assert.throws(original.retain, /InvalidInstalledRequestModelPreparation/);
   assert.equal(original.openSourceFreeHost('registry', 'values', 'fragment', 'ordered', ['provider']), f.host);
@@ -905,6 +908,38 @@ test('configured source-free Model keeps a refused original read and rejects a s
   assert.throws(live.retain, /InvalidInstalledRequestModelPreparation/);
   await assert.rejects(live.retire(), /InvalidInstalledRequestModelPreparation/);
   assert.deepEqual(changed.calls, []);
+});
+
+test('configured source-free Host binds the retained module provider without constructing another provider', async () => {
+  const selected = {graph: {}, occurrence: {}}, plan = {compiled: {}, runDefinition: {wire: '{"run_id":"fixture"}'}};
+  const calls = [], provider = {}, primary = new Error('same original Host refusal');
+  let owner, component, original;
+  component = Object.freeze({provider, bindOriginal(context) {
+    assert.strictEqual(context.selected, selected);
+    assert.strictEqual(context.originalPreparation, original);
+    assert.strictEqual(context.plan, plan);
+    calls.push('bind'); return component;
+  }});
+  original = {selection: selected, control: {}, ...plan, component,
+    retain() {calls.push('retain');},
+    openSourceFreeHost(registry, values, fragment, ordered, providers) {
+      assert.deepEqual([registry, values, fragment, ordered], ['registry', 'values', 'fragment', 'ordered']);
+      assert.strictEqual(providers[0], provider); assert.equal(providers.length, 1);
+      calls.push('same provider'); throw primary;
+    },
+    async retire() {calls.push('retire'); return true;}};
+  await assert.rejects(runInstalledComposedInfers({
+    moon: {clientProgramAcquisitionCount: () => 0, clientProgramResultCount: () => 0,
+      clientProgramInferPlanBoundary: graph => {assert.strictEqual(graph, selected.graph); return [0];},
+      clientProgramComposedInferLocalProvider: () => assert.fail('Do not construct a second Model provider')},
+    control: original.control, preparedProgram: {}, plan, selected: {components: [selected]},
+    registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
+    modelController: {discover: () => []}, originalPreparation: original,
+    signal: new AbortController().signal, retainExecution(value) {owner = value;},
+  }), error => error === primary);
+  assert.deepEqual(calls, ['retain', 'bind', 'same provider']);
+  assert.equal(await owner.cleanup(), true);
+  assert.deepEqual(calls, ['retain', 'bind', 'same provider', 'retire']);
 });
 
 // Exercise the actual facade -> Host -> manager path. A facade carries no
@@ -1008,6 +1043,7 @@ test('Source-free Model module retains the output required by its existing confi
         assert.strictEqual(value, bounds); return [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n];
       },
       clientProgramPrepareRequestModelSourceFreeModule() {},
+      clientProgramPrepareRequestModelSourceFreeComponentModule() {},
     };
     const model = {compiled, runDefinition: definition, occurrence, graph, selection: {selectedBounds: bounds, localMock: mock}};
     if (physical) model.originalReadInstallation = {
@@ -1016,10 +1052,20 @@ test('Source-free Model module retains the output required by its existing confi
       bootstrap: {maxReservations: 7, maxHoldings: 8, maxDelegations: 9},
     };
     const run = {runtime: moon, prepared, request, model};
+    const prefix = {}, suffix = () => {}, provider = {};
+    const component = Object.freeze({provider, bindOriginal() {return component;}});
     const control = {
       prepareCheckedClientRequestModelSourceFreeModule(...args) {
         assert.deepEqual(args.slice(0, 7), [parent, input, request, compiled, definition, compilation, admission]);
         assert.strictEqual(args[7], expected);
+        moduleCalls++; return module;
+      },
+      prepareCheckedClientRequestModelSourceFreeComponentModule(...args) {
+        assert.equal(physical || serialized || mock, false);
+        assert.deepEqual(args.slice(0, 7), [parent, input, request, compiled, definition, compilation, admission]);
+        assert.strictEqual(args[7], true);
+        assert.strictEqual(args[9]({}, prefix, suffix), provider);
+        assert.strictEqual(model.component, component, 'Retain the same provider before module construction returns');
         moduleCalls++; return module;
       },
       prepareCheckedClientRequestModelSourceFreePlan(...args) {
@@ -1042,13 +1088,19 @@ test('Source-free Model module retains the output required by its existing confi
     const originals = {installation: {projectRuntime: moon, initialControl,
       retainedRelationOutput: retainedOutput, computeRuns: new WeakMap([[prepared, run]])}};
     const construct = Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
-      'prepareInstalledSequenceContractOriginal', 'runtimeCore', 'checked', 'clientOperationError',
+      'prepareInstalledSequenceContractOriginal', 'runtimeCore', 'checked', 'clientOperationError', 'openNodeComposedInferProvider',
       'return ' + hostSource.slice(modelModuleConstructor.start, modelModuleConstructor.end))(
       value => assert.strictEqual(value, originals),
       (value, actual) => {assert.strictEqual(value, originals); assert.strictEqual(actual, prepared); return request;},
       value => {assert.strictEqual(value, originals); return {moon, control: initialControl, contracts: {}, admission};},
       value => {assert.strictEqual(value, moon); return {publicationControl: control};},
-      value => value, code => Object.assign(new Error(code), {code}));
+      value => value, code => Object.assign(new Error(code), {code}), options => {
+        assert.strictEqual(options.selected, model.selection);
+        assert.strictEqual(options.inputPrefix, prefix);
+        assert.strictEqual(options.bindComputeSuffix, suffix);
+        assert.strictEqual(options.deferred, true);
+        return component;
+      });
     assert.strictEqual(construct(originals, run, model, compilation, parent, input), plan);
     assert.strictEqual(run.preparedSequences, module);
     assert.strictEqual(run.modelPlan, plan);

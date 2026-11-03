@@ -43,7 +43,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const children = selected.components.map(selection => ({selection}));
   const installedCaptured = originalPreparation !== undefined &&
     typeof originalPreparation.openCapturedHost === 'function';
-  if (installedCaptured && (children.length !== 1 ||
+  const installedSourceFree = sourceFree && selected.components[0].localMock !== true;
+  const installedComponent = installedCaptured || installedSourceFree;
+  if (installedComponent && (children.length !== 1 ||
       originalPreparation.selection !== children[0].selection ||
       typeof originalPreparation.component?.bindOriginal !== 'function')) {
     throw new TypeError('InvalidInstalledRequestModelPreparation');
@@ -253,7 +255,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
         child.capture = openNodeInferCaptureCustody({moon, control, operation, plan, store,
           storeAuthorityCid, sourceEvidence, faultInjection, durableCalls: true, captureOnly: true});
       }, retainCompleted: () => retainCompleted(child)};
-    if (installedCaptured) {
+    if (installedComponent) {
       child.component = originalPreparation.component;
       child.component.bindOriginal(context);
     } else child.component = openNodeComposedInferProvider(context);

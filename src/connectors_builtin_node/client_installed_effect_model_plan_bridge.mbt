@@ -537,3 +537,51 @@ pub fn client_program_prepare_request_model_provider_component_capture_module(
     }),
   ).map_err(issue => Preparation(issue))
 }
+
+///|
+// Bind the actual deferred Model provider before the one source-free module
+// configures its Local dispatch. The optional suffix remains native.
+#export_name("clientProgramPrepareRequestModelSourceFreeComponentModule")
+pub fn client_program_prepare_request_model_source_free_component_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  ).map_err(issue => Preparation(issue))
+}

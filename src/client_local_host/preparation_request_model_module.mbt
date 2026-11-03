@@ -67,6 +67,7 @@ fn[I] begin_request_model_module(
   installed_providers : Int,
   query_time : @publication_host.ClientQueryTimePreparation?,
   provider_captures? : Int = 0,
+  source_free_component? : Bool = false,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientRequestProgramPlanIssue,
@@ -136,7 +137,8 @@ fn[I] begin_request_model_module(
       captures,
       installed_providers,
       provider_captures~,
-      input_segments=if captures == 1 && graph.serialization is None {
+      input_segments=if (captures == 1 || source_free_component) &&
+        graph.serialization is None {
         if @publication_host.client_infer_occurrence_terminal(graph.occurrence) {
           1
         } else {
@@ -183,6 +185,11 @@ pub fn[I] prepare_request_model_source_free_module(
     @local.ManagedProvider,
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  component_factory? : ((
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider)? = None,
 ) -> Result[
   ClientInstalledManagedSourceFreePreparation,
   ClientRequestProgramPlanIssue,
@@ -191,11 +198,91 @@ pub fn[I] prepare_request_model_source_free_module(
     () => {
       let prepared = match
         begin_request_model_module(
-          owner, input, request, compiled, definition, compilation, contracts, 0,
-          installed_providers, query_time,
+          owner,
+          input,
+          request,
+          compiled,
+          definition,
+          compilation,
+          contracts,
+          0,
+          installed_providers,
+          query_time,
+          source_free_component=component_factory is Some(_),
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
+      }
+      let mut input_prefix = None
+      let mut input_suffix = None
+      if component_factory is Some(_) {
+        let graph = compilation.infers[0]
+        if graph.serialization is Some(_) {
+          return Err(Installed(Unsupported))
+        }
+        let input_calls = if @publication_host.client_infer_occurrence_terminal(
+            graph.occurrence,
+          ) {
+          1L
+        } else {
+          2L
+        }
+        guard owner.program_data is Some(data) &&
+          program_check_data_extent_cost(data) is Some(variable) &&
+          @execution.checked_preparation_add_product(0L, variable, input_calls)
+          is Some(bytes) else {
+          return Err(Preparation(Policy))
+        }
+        match
+          reserve_request_domain_graph_construction(
+            owner, input, prepared, bytes,
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+        // The actual Model input and suffix precede their one deferred
+        // provider. They replace the legacy early lowering, not its originals.
+        let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+          graph.occurrence,
+        )
+        let prefix = match
+          prepare_client_local_sequences_owned(
+            Pure(prepared),
+            contracts,
+            contracts.original.values_body,
+            contracts.original.fragment_body,
+            contracts.original.ordered_body,
+            selected_task=Some(task),
+            infer_prefix=Some((task, step - 1)),
+            query_time=query_time.map(original => (original, request)),
+          ) {
+          Err(issue) => return Err(Installed(issue))
+          Ok(value) => value
+        }
+        guard prefix.get(0) is Some(original_prefix) else {
+          return Err(Installed(Unsupported))
+        }
+        input_prefix = Some(original_prefix)
+        if input_calls == 2L {
+          let suffix = match
+            prepare_client_local_sequences_owned(
+              Pure(prepared),
+              contracts,
+              contracts.original.values_body,
+              contracts.original.fragment_body,
+              contracts.original.ordered_body,
+              selected_task=Some(task),
+              infer_suffix=Some((task, step)),
+              query_time=query_time.map(original => (original, request)),
+            ) {
+            Err(issue) => return Err(Installed(issue))
+            Ok(value) => value
+          }
+          guard suffix.get(0) is Some(original_suffix) else {
+            return Err(Installed(Unsupported))
+          }
+          input_suffix = Some(original_suffix)
+        }
       }
       let original = match
         prepare_installed_mock_model_source_free_with_contracts(
@@ -206,7 +293,14 @@ pub fn[I] prepare_request_model_source_free_module(
           contracts.original.fragment_body,
           contracts.original.ordered_body,
           retained_output~,
-          provider_factory~,
+          provider_factory=capacity => {
+            let providers = provider_factory(capacity)
+            if component_factory is Some(construct) &&
+              input_prefix is Some(prefix) {
+              providers.push(construct(capacity, prefix, input_suffix))
+            }
+            providers
+          },
           query_time=query_time.map(value => (value, request)),
         ) {
         Err(issue) => return Err(Installed(issue))

@@ -5747,6 +5747,22 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
           "parameters": [
             "parent",
@@ -12627,7 +12643,8 @@
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule"
           ],
           "exports": [],
           "attributes": {
@@ -12655,6 +12672,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "inputsOutputs": [
@@ -12681,6 +12702,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "identity": [
@@ -12707,6 +12732,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "ownership": [
@@ -12733,6 +12762,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "synchronization": [
@@ -12759,6 +12792,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "failure": [
@@ -12785,6 +12822,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "cancellation": [
@@ -12811,6 +12852,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "resources": [
@@ -12837,6 +12882,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "extension": [
@@ -12863,6 +12912,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ],
             "verification": [
@@ -12901,6 +12954,10 @@
               {
                 "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
                 "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
               }
             ]
           }
@@ -14268,7 +14325,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "a2d168b966ff2d0ef14734bf7fc38e3c6b865491b3aedb1860b778a79fad0336"
+      "sha256": "87bf84cf76083ba49ccbdeb3c522d26f082e255b9d628ae0fba1f40f849acec6"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -16796,7 +16853,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "bc01c178ddac871215aa263955cd338202dc9aa6fda246cdd2101c0335434321",
+      "sha256": "455b5f042d31987704440976830c49c14309d29879a3fa1774fd9ff877c9e90a",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -17795,7 +17852,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "89101f7e705750f0b436bd391ba22dbbc0bbc2b5cd9aa0d7650013c533257059",
+      "sha256": "cf27585e03c7a8334a1e580e0d8cec3a88dddd36dfef7e1ae3508c34387d139c",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -39533,7 +39590,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "5d2637efe3cb344ed2ae391d4ac915c94d36f6f0a42691a755ad5a54536b0347",
+      "sha256": "3411fff8f86582b2c4bc7fb885798dc0d59ca0d6e06c4fec24f9ab1525fbe752",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -48312,7 +48369,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "d7513d1f24e0e3d684b7d890a33eaf05e2c2537490cd9785b8f816815c938011",
+      "sha256": "6e0520760619500e7383ed4da9545e27203bce3985bf9889e44fe25d5ded6fdd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -48349,6 +48406,10 @@
         {
           "name": "client_program_prepare_request_model_provider_component_capture_module",
           "declaration": "client_program_prepare_request_model_provider_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Int64 , transport_execution_bytes : Int64 , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_source_free_component_module",
+          "declaration": "client_program_prepare_request_model_source_free_component_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedSourceFreePreparation , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_source_free_plan",
@@ -48392,7 +48453,8 @@
             "client_program_prepare_request_node_model_source_free_plan",
             "client_program_prepared_request_model_input_prefix",
             "client_program_prepared_request_model_input_suffix",
-            "installed_effect_model_plan_from_original_sources"
+            "installed_effect_model_plan_from_original_sources",
+            "client_program_prepare_request_model_source_free_component_module"
           ],
           "exports": [],
           "attributes": {
@@ -48428,6 +48490,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "inputsOutputs": [
@@ -48462,6 +48528,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "identity": [
@@ -48496,6 +48566,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "ownership": [
@@ -48530,6 +48604,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "synchronization": [
@@ -48564,6 +48642,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "failure": [
@@ -48598,6 +48680,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "cancellation": [
@@ -48632,6 +48718,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "resources": [
@@ -48666,6 +48756,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "extension": [
@@ -48700,6 +48794,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ],
             "verification": [
@@ -48754,6 +48852,10 @@
               {
                 "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
                 "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "client_program_prepare_request_model_source_free_component_module"
               }
             ]
           }

@@ -16,7 +16,7 @@ import {selectedInferOriginalCurrentStateCodec,
 // Borrow the existing Request's source-free Model Plan and Scope. This is the
 // same installed Run; configured providers keep their current/claim/stop owner.
 function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model) {
-  const managed = model?.managed, scope = model?.scope;
+  const managed = model?.managed, scope = model?.scope, component = model?.component;
   const original = managed?.value, request = managed?.request, graph = selected.graph,
     compiled = plan.compiled, definition = plan.runDefinition, budget = model?.budget,
     publication = model?.publicationCapacity;
@@ -26,6 +26,8 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
         model.control !== control || model.compiled !== compiled || plan.compiled !== compiled ||
         model.runDefinition !== definition || plan.runDefinition !== definition ||
         scope === undefined || model.scope !== scope || model.budget !== budget ||
+        component === undefined || model.component !== component ||
+        typeof component.bindOriginal !== 'function' ||
         typeof publication !== 'function' || model.publicationCapacity !== publication ||
         model.originalReadInstallation !== undefined || model.managed !== managed ||
         managed?.closed || managed?.model !== model || original === undefined ||
@@ -42,7 +44,7 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
     current();
     return Reflect.apply(publication, model, []);
   };
-  return Object.freeze({selection: selected, control, compiled: plan.compiled,
+  return Object.freeze({selection: selected, control, compiled: plan.compiled, component,
     runDefinition: plan.runDefinition, scope, publicationCapacity,
     readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
     modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
