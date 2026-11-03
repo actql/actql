@@ -1,6 +1,9 @@
 ///|
-// Ordinary Host JSON construction over bounded DATA. Reuse the existing JSON
-// tree/codec envelope; fixed JS/native call wrappers are runtime overhead.
+// Actual Local JS JSON.parse/stringify clones over bounded DATA. The ordinary
+// supported runtime owns its implementation scratch; this is not a Moon
+// Source Parser/JsonDocument constructor. Retain the full returned tree/text
+// plus wire/digest peak, including rejected request prefixes. The separate
+// native proposal parser remains in installed_standard_host_capture_row_capacity.
 fn local_file_store_json_capacity(
   bytes : Int,
   nodes : Int,
@@ -9,12 +12,24 @@ fn local_file_store_json_capacity(
   guard bytes > 0 &&
     nodes > 0 &&
     depth > 0 &&
-    installed_standard_host_json_output_capacity({
-      max_input_bytes: bytes,
-      max_nodes: nodes,
-      max_depth: depth,
+    @source.json_tree_retained_construction_extent(
+      nodes,
+      nodes - 1,
+      nodes,
+      0,
+      bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(returned) &&
+    @execution.preparation_representation_cost({
+      record_headers: returned.record_headers,
+      reference_slots: returned.reference_slots,
+      scalar_words: returned.scalar_words,
+      owned_utf16_units: returned.owned_utf16_units,
+      owned_wire_bytes: 0L,
     })
-    is Some(tree) &&
+    is Some(retained) &&
+    @execution.execution_capacity(retained, retained) is Some(tree) &&
     @execution.execution_capacity_inventory(
       [{ unit: DecodedTextBytes, count: bytes.to_int64(), copies: 1, }],
       // Canonical text and its digest/encoding input coexist with the returned
@@ -54,8 +69,12 @@ pub fn installed_local_file_store_recipe_capacities(
   max_components : Int,
   native_depth : Int,
   content_read_window_bytes : Int,
+  control_wire_bytes? : Int? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
-  if native_original_bytes <= 0L ||
+  let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
+  if control_bytes < 1 ||
+    control_bytes > stored_bytes ||
+    native_original_bytes <= 0L ||
     path_bytes < 1 ||
     name_bytes < 1 ||
     name_bytes > path_bytes ||
@@ -124,7 +143,7 @@ pub fn installed_local_file_store_recipe_capacities(
     )
     is Some(physical) &&
     standard_create_saved_control_capacity(
-      stored_bytes, stored_nodes, stored_depth,
+      control_bytes, stored_nodes, stored_depth,
     )
     is Some(saved) &&
     local_file_store_json_capacity(response_bytes, stored_nodes, stored_depth)
@@ -150,4 +169,52 @@ pub fn installed_local_file_store_recipe_capacities(
   Ok([
     capture_fixed, capture_row, request, physical, controls, no_additional_effect_id,
   ])
+}
+
+///|
+/// Closed existing Ledger fields and the Local driver's applied-empty-result
+/// receipt. All strings here are ASCII keys/enums or validated SHA256 CIDs.
+/// The same installed codec limit must reject larger saved prefixes before
+/// parsing. This is not a bound on arbitrary provider outcomes.
+pub fn installed_local_file_store_control_wire_bound() -> Int {
+  let ledger_keys = [
+    "attempt_sequence", "canonical_request_cid", "capability", "dispatch_key", "effect_preview_cid",
+    "fence", "intent_fingerprint_cid", "logical_item_locator_cid", "logical_request_scope_cid",
+    "original_membership_cid", "outcome_receipt_cid", "prior_entry_cid", "recovery_contract_cid",
+    "reservation_evidence_cid", "retention_contract_cid", "self_cid", "state", "unit_definition_cid",
+    "version",
+  ]
+  // Braces, commas, quoted keys/colons, fourteen quoted CIDs (nullable ones
+  // are smaller), two safe integers, longest capability/state and version.
+  let mut ledger = 2 +
+    18 +
+    3 * 19 +
+    14 * 73 +
+    2 * 16 +
+    13 +
+    13 +
+    "actql-logical-item-ledger-entry/0.1".length() +
+    2
+  for key in ledger_keys {
+    ledger += key.length()
+  }
+  let receipt_keys = [
+    "credential_use_cid", "dispatch_entry_cid", "effect_member_preview_cid", "effect_preview_cid",
+    "http_status_code", "response_byte_count", "response_physical_sha256", "row_preview_cid",
+    "typed_outcome", "typed_outcome_cid", "version", "self_cid",
+  ]
+  let mut receipt = 2 +
+    11 +
+    3 * 12 +
+    7 * 73 +
+    66 +
+    3 +
+    16 +
+    "{\"result\":{},\"state\":\"applied\"}".length() +
+    "actql-effect-row-outcome-receipt/0.1".length() +
+    2
+  for key in receipt_keys {
+    receipt += key.length()
+  }
+  Int::max(ledger, receipt)
 }

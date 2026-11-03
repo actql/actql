@@ -64,3 +64,92 @@ test "Local STORE quote preserves failed input envelope despite smaller accepted
     is Err(Unsupported),
   )
 }
+
+///|
+test "Local closed saved codec keeps original response buffers and generic fallback" {
+  let bytes = installed_local_file_store_control_wire_bound()
+  assert_eq(bytes, 1510)
+  let original = local_file_store_recipe_fixture().unwrap()
+  let narrow = installed_local_file_store_recipe_capacities(
+    100000,
+    10000,
+    16,
+    1000000,
+    100000,
+    64,
+    100000,
+    100000,
+    65536,
+    1000000,
+    512,
+    16,
+    6000L,
+    4096,
+    1024,
+    128,
+    130,
+    65536,
+    control_wire_bytes=Some(bytes),
+  ).unwrap()
+  for index in [0, 1, 2, 3, 5] {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(narrow[index]),
+      @execution.execution_capacity_retained_bytes(original[index]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(narrow[index]),
+      @execution.execution_capacity_execution_bytes(original[index]),
+    )
+  }
+  assert_true(
+    @execution.execution_capacity_retained_bytes(narrow[4]) >= 2000000L,
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(original[4]) -
+    @execution.execution_capacity_execution_bytes(narrow[4]) >
+    200000000L,
+  )
+}
+
+///|
+test "Local JS clones retain complete DATA without a nonexistent Source parser" {
+  let bytes = 100000
+  let nodes = 10000
+  let returned = @source.json_tree_retained_construction_extent(
+    nodes,
+    nodes - 1,
+    nodes,
+    0,
+    bytes.to_int64(),
+    keep_spans=false,
+  ).unwrap()
+  let tree = @execution.preparation_representation_cost({
+    record_headers: returned.record_headers,
+    reference_slots: returned.reference_slots,
+    scalar_words: returned.scalar_words,
+    owned_utf16_units: returned.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let capacity = local_file_store_json_capacity(bytes, nodes, 16).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(capacity),
+    tree + 8L * bytes.to_int64(),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(capacity),
+    tree + 16L * bytes.to_int64(),
+  )
+  // The real Source proposal parser is still a distinct, fully quoted owner.
+  let native = installed_standard_host_capture_row_capacity(bytes, nodes, 16).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(native) >
+    @execution.execution_capacity_execution_bytes(capacity),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(
+      local_file_store_json_capacity(bytes + 1, nodes, 16).unwrap(),
+    ) >
+    @execution.execution_capacity_execution_bytes(capacity),
+  )
+  assert_true(local_file_store_json_capacity(0, nodes, 16) is None)
+}

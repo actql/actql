@@ -2,6 +2,7 @@
 fn installed_effect_content_fixture(
   rows? : String = "[{\"id\":1}]",
   keep_content? : Bool = false,
+  suffix? : String = "",
 ) -> ClientInstalledEffectContentPreparation {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
@@ -31,6 +32,15 @@ fn installed_effect_content_fixture(
     )
   } else {
     document
+  }
+  let document = document.replace(
+    old="\"as\":\"attachment\"}",
+    new="\"as\":\"attachment\"}" + suffix,
+  )
+  let document = if suffix == "" {
+    document
+  } else {
+    document.replace(old="\"from\":\"attachment\"", new="\"from\":\"altered\"")
   }
   let prepared = @publication_host.prepare_client_effect_computation(
     document,
@@ -207,15 +217,34 @@ test "serialization output bound preserves empty and larger original input deman
       (hundred, 100),
     ] {
     let original = installed_effect_content_fixture(rows=input)
-    assert_eq(client_serialization_input_row_bound(original.component), Some(count))
+    assert_eq(
+      client_serialization_input_row_bound(original.component),
+      Some(count),
+    )
     let graph = installed_managed_owner_graph(Effect(original.prepared))
     let owner = @strategy.graph_task_owner(graph, 0).unwrap()
     let prepared = @lower.bound_preparation(owner)
     let node = @lower.node_at(prepared, 1).unwrap()
-    assert_eq(@lower.prepared_closed_row_bound(prepared, 10000, target_step=Some(0)).unwrap().0, count)
-    assert_eq(@lower.prepared_closed_row_bound(prepared, 0, target_step=Some(0)), None)
-    assert_eq(@lower.prepared_closed_row_bound(prepared, 10000, target_step=Some(-1)), None)
-    assert_eq(@lower.prepared_closed_row_bound(prepared, 10000, target_step=Some(@lower.node_count(prepared))), None)
+    assert_eq(
+      @lower.prepared_closed_row_bound(prepared, 10000, target_step=Some(0)).unwrap().0,
+      count,
+    )
+    assert_eq(
+      @lower.prepared_closed_row_bound(prepared, 0, target_step=Some(0)),
+      None,
+    )
+    assert_eq(
+      @lower.prepared_closed_row_bound(prepared, 10000, target_step=Some(-1)),
+      None,
+    )
+    assert_eq(
+      @lower.prepared_closed_row_bound(
+        prepared,
+        10000,
+        target_step=Some(@lower.node_count(prepared)),
+      ),
+      None,
+    )
     assert_eq(@lower.node_row_count_bound(node, [count]), Some(1))
     assert_eq(@lower.node_input_independent_row_count_bound(node), Some(1))
     assert_eq(@lower.node_row_count_bound(node, [-1]), None)

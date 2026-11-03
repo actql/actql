@@ -92,7 +92,7 @@ import {prepareInstalledEffectOwnedPhysicalChild} from './installed-effect-owned
 // installed connector table), or the common default. No provider name or
 // type appears here.
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
-import {captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
+import {installedEffectSavedControlEntryLimit, installedEffectRecipeForControlEntryLimit, captureInstalledEffectPlanRecipe, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild, prepareInstalledEffectCredentialChild} from './installed-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from './installed-row-source.mjs';
 import {createHash} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
@@ -1049,6 +1049,9 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // every retained owner before a composed stage can be constructed.
   const {moon, ledgerRoot} = owners[0];
   const limits = retainedLimits ?? owners[0].limits;
+  const controlEntryBytes = installedEffectSavedControlEntryLimit(owners.map(owner => owner.managedPlanRecipe));
+  const controlRecipes = new Map(owners.map(owner => [owner,
+    installedEffectRecipeForControlEntryLimit(owner.managedPlanRecipe, controlEntryBytes)]));
   const singular = routes === undefined ? owners[0] : undefined;
   const assertPrepared = ({moon: runMoon, compilation}) => {
     if (singular !== undefined) return;
@@ -1169,7 +1172,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const options = {moon, root: ledgerRoot,
       authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
       callerRequestId: moon.clientRequestCallerId(identity),
-      maxEntryBytes: effectLedgerImplementationBounds.maxEntryBytes,
+      maxEntryBytes: controlEntryBytes,
       ...(controlConstruction === undefined ? {} : {controlConstruction})};
     return controlConstruction === undefined ? openEffectLedger(options)
       : controlConstruction(undefined, openEffectLedger, [options]);
@@ -1237,7 +1240,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const unit = installedRowEffectUnit(moon, facts.compilation);
     const members = membersOf(facts.prepared, unit);
     return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
-      recipeFor: member => ownerOf(member).managedPlanRecipe});
+      recipeFor: member => controlRecipes.get(ownerOf(member))});
   };
 
   const memberDispatch = (runInvocationCid, member) => cid({

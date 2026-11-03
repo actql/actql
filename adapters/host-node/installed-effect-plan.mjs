@@ -142,6 +142,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   };
   const fields = own(recipe, ['memberOperations', 'rowOperations',
     ...(Object.hasOwn(recipe, 'controlsPerRow') ? ['controlsPerRow'] : []),
+    ...(Object.hasOwn(recipe, 'savedControlCodec') ? ['savedControlCodec'] : []),
     ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
@@ -164,6 +165,17 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   const controlsPerRow = fields.controlsPerRow?.value;
   if (fields.controlsPerRow !== undefined && (controlsPerRow === null || typeof controlsPerRow !== 'object' ||
       nodeTypes.isProxy(controlsPerRow))) fail('InvalidInstalledEffectPlanRecipe');
+  let savedControlCodec;
+  if (fields.savedControlCodec !== undefined) {
+    const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);
+    const maxEntryBytes = codec.maxEntryBytes.value, fallbackCapacity = codec.fallbackCapacity.value;
+    if (controlsPerRow === undefined || !Number.isSafeInteger(maxEntryBytes) || maxEntryBytes < 1 ||
+        maxEntryBytes > effectLedgerImplementationBounds.maxEntryBytes || fallbackCapacity === null ||
+        typeof fallbackCapacity !== 'object' || nodeTypes.isProxy(fallbackCapacity)) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    savedControlCodec = Object.freeze({maxEntryBytes, fallbackCapacity});
+  }
   if (memberOperations.length + rowOperations.length === 0 ||
       memberOperations.length + rowOperations.length > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
   let requestConstruction;
@@ -214,6 +226,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     physicalWrite = Object.freeze({operationIndex, transferBytes});
   }
   return Object.freeze({memberOperations, rowOperations,
+    ...(savedControlCodec === undefined ? {} : {savedControlCodec}),
     ...(controlsPerRow === undefined ? {} : {controlsPerRow}),
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
@@ -725,4 +738,14 @@ export function prepareInstalledEffectControlConstruction(run) {
     return true;
   };
   return Object.freeze(Object.assign(work, {retire}));
+}
+
+// A composed generic owner keeps its original codec and full control quote.
+export function installedEffectSavedControlEntryLimit(recipes) {
+  return Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??
+    effectLedgerImplementationBounds.maxEntryBytes));
+}
+export function installedEffectRecipeForControlEntryLimit(recipe, maxEntryBytes) {
+  return recipe?.savedControlCodec !== undefined && maxEntryBytes > recipe.savedControlCodec.maxEntryBytes
+    ? Object.freeze({...recipe, controlsPerRow: recipe.savedControlCodec.fallbackCapacity}) : recipe;
 }

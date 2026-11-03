@@ -215,7 +215,9 @@ pub fn client_serialization_json_leaf_field_count(
 pub fn client_serialization_input_row_bound(
   component : @publication_host.ClientSerializationPlanGraph,
 ) -> Int? {
-  let prepared = @lower.bound_preparation(@lower.serialization_owner(component.barrier))
+  let prepared = @lower.bound_preparation(
+    @lower.serialization_owner(component.barrier),
+  )
   guard component.step == @lower.serialization_step(component.barrier) &&
     @lower.node_at(prepared, component.step) is Some(node) &&
     @lower.node_input_count(node) == 1 &&
@@ -223,6 +225,8 @@ pub fn client_serialization_input_row_bound(
     return None
   }
   @lower.prepared_closed_row_bound(
-    prepared, client_local_schema_proof_work(), target_step=Some(input),
+    prepared,
+    client_local_schema_proof_work(),
+    target_step=Some(input),
   ).map(bound => bound.0)
 }

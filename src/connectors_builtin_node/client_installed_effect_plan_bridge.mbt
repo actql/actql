@@ -570,17 +570,34 @@ pub fn client_program_installed_local_file_store_recipe_capacities(
   max_components : Int,
   native_depth : Int,
   content_read_window_bytes : Int,
+  control_wire_bytes : Int?,
 ) -> Result[
   Array[@execution.ExecutionCapacity],
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.installed_local_file_store_recipe_capacities(
-    body_bytes, body_nodes, body_depth, preview_bytes, preview_nodes, preview_depth,
-    request_bytes, recovery_bytes, response_bytes, stored_bytes, stored_nodes, stored_depth,
-    native_original_bytes, path_bytes, name_bytes, max_components, native_depth,
+    body_bytes,
+    body_nodes,
+    body_depth,
+    preview_bytes,
+    preview_nodes,
+    preview_depth,
+    request_bytes,
+    recovery_bytes,
+    response_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    native_original_bytes,
+    path_bytes,
+    name_bytes,
+    max_components,
+    native_depth,
     content_read_window_bytes,
+    control_wire_bytes~,
   )
 }
+
 ///|
 #export_name("clientProgramInstalledEffectContentPreparationPrepare")
 pub fn client_program_installed_effect_content_preparation_prepare(
@@ -604,9 +621,20 @@ pub fn client_program_installed_effect_content_preparation_prepare(
 ] {
   let (execution, measurement) = client_program_local_execution_limits()
   @client_local_host.prepare_installed_effect_content(
-    prepared, compiled, compilation, definition, component, contracts,
-    values, fragment, ordered, execution, measurement, workspace,
-    { cancel, stopped, cleanup: () => Ok(cleanup()), }, retain,
+    prepared,
+    compiled,
+    compilation,
+    definition,
+    component,
+    contracts,
+    values,
+    fragment,
+    ordered,
+    execution,
+    measurement,
+    workspace,
+    { cancel, stopped, cleanup: () => Ok(cleanup()), },
+    retain,
   )
 }
 
@@ -640,10 +668,26 @@ pub fn client_program_installed_effect_content_managed_plan_prepare(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_installed_effect_managed_plan(
-    prepared, request, declarations, query_contract_body, evidence_contract_body,
-    transport_bytes, transport_execution_bytes, installed_contracts,
-    values_body, fragment_body, ordered_body, operations,
-    content=Some(content), query_time~,
+    prepared,
+    request,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    operations,
+    content=Some(content),
+    query_time~,
     provider_factory=installed_client_family_providers,
   )
+}
+
+///|
+#export_name("clientProgramInstalledLocalFileStoreControlWireBound")
+pub fn client_program_installed_local_file_store_control_wire_bound() -> Int {
+  @client_local_host.installed_local_file_store_control_wire_bound()
 }

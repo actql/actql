@@ -44,9 +44,9 @@ fn installed_content_schema_node_bound(
             copy.output is Some(name) else {
             return None
           }
-          if name == "content" {
+          if name == "content" || name == "name" || name == "media_type" {
             guard copy.input is Some(@relation.InputField(input)) &&
-              @schema.reference_name(input) == "content" else {
+              @schema.reference_name(input) == name else {
               return None
             }
           }
@@ -62,8 +62,9 @@ fn installed_content_schema_node_bound(
           guard @relation.projection_field_at(operation, index) is Some(field) else {
             return None
           }
-          if @schema.reference_name(field.output) == "content" &&
-            @schema.reference_name(field.input) != "content" {
+          let name = @schema.reference_name(field.output)
+          if (name == "content" || name == "name" || name == "media_type") &&
+            @schema.reference_name(field.input) != name {
             return None
           }
         }
