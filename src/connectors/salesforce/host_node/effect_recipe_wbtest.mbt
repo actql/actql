@@ -182,3 +182,91 @@ test "Salesforce staged metadata and warm capture keep maxima as bounds until or
   assert_true(profile(4000001) is None)
   assert_true(capture(-2) is None)
 }
+
+///|
+test "Salesforce warm capture does not reconstruct its already-owned row requests" {
+  let original = salesforce_effect_construction_profile(
+    100000, 10000, 16, 2048, 1024, 100000, 100000, 10000, 16, 4096, 100000, 1000,
+    16, 4000000, 400000, 32, 1000, 200000, 8000000, 1024, 3, 22, 5, 15,
+  )
+  let entries = original.unwrap()
+  let larger = entries.copy()
+  let (request, input, output) = entries[0]
+  larger[0] = (
+    @execution.add_execution_capacity(
+      request,
+      @execution.execution_capacity(64L, 128L).unwrap(),
+    ).unwrap(),
+    input,
+    output,
+  )
+  let capture = salesforce_effect_input_capture_construction_profile(
+    original, 1000000, 100000, 64, 4000000, 100000, 32, 2000, 200, 100000, 4000000,
+    400000, 32, 1000, 200000, 8000000, 8000000, 10000000, 1024, 3, 22, 5, 15, 0,
+  )
+  let compose = (profile, host_input_bytes) => {
+    @local.installed_described_effect_recipe_capacities(
+      profile,
+      capture,
+      1000000,
+      100000,
+      64,
+      1000000,
+      100000,
+      64,
+      100000,
+      100000,
+      true,
+      1048576,
+      100000,
+      1048576,
+      4000000,
+      65536,
+      7,
+      16384,
+      1000000,
+      512,
+      16,
+      8000L,
+      response_read_quantum=16384,
+      metadata_on_child=true,
+      control_wire_bytes=Some(
+        @local.installed_effect_control_wire_bound(100000, 1000000).unwrap(),
+      ),
+      host_input_bytes=if host_input_bytes < 0 {
+        None
+      } else {
+        Some(host_input_bytes)
+      },
+    ).unwrap()
+  }
+  let warm = compose(original, 0)
+  let larger_warm = compose(Some(larger), 0)
+  // The row constructor owns the change before capture; capture only borrows
+  // those SAME requests. Its retained material cannot grow a second copy.
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(warm[1]),
+    @execution.execution_capacity_retained_bytes(larger_warm[1]),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(warm[1]),
+    @execution.execution_capacity_execution_bytes(larger_warm[1]),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(larger_warm[2]) >
+    @execution.execution_capacity_retained_bytes(warm[2]),
+  )
+  // Authenticated cold input still reconstructs requests inside its capture
+  // child. Its original extent must retain the complete constructor instead.
+  let cold = compose(original, 8192)
+  let larger_cold = compose(Some(larger), 8192)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(larger_cold[1]) >
+    @execution.execution_capacity_retained_bytes(cold[1]),
+  )
+  let maximum = compose(Some(larger), -1)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(maximum[1]) >=
+    @execution.execution_capacity_retained_bytes(larger_cold[1]),
+  )
+}

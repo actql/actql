@@ -60,6 +60,9 @@ pub fn installed_described_effect_recipe_capacities(
   // Cold recovery rebuilds requests inside the member capture, rather than
   // invoking the warm row constructor child. Reuse this SAME constructor
   // fold, including its Host output parse, before that capture can run.
+  // An explicit zero Host input selects the existing warm path: its requests
+  // already belong to base[2] and are only borrowed by capture. Actual cold
+  // input and the maximum/unspecified recipe retain the complete constructor.
   let request = match
     installed_standard_create_constructor_capacity(
       native_request, request_input, request_output,
@@ -68,11 +71,13 @@ pub fn installed_described_effect_recipe_capacities(
     Err(issue) => return Err(issue)
   }
   let capture = capture.copy()
-  guard @execution.add_execution_capacity(capture[1], request)
-    is Some(recovered_row) else {
-    return Err(Unsupported)
+  if host_input_bytes != Some(0) {
+    guard @execution.add_execution_capacity(capture[1], request)
+      is Some(recovered_row) else {
+      return Err(Unsupported)
+    }
+    capture[1] = recovered_row
   }
-  capture[1] = recovered_row
   let adjusted = entries.copy()
   adjusted[3] = (empty, None, None)
   let base = match
