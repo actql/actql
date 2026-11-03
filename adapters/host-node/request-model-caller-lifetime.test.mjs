@@ -200,7 +200,7 @@ const hostEnd = hostSource.indexOf('    prepareManagedComputeRun(runtime,', host
 const retireStart = hostSource.indexOf('    retireManagedComputeRun(prepared) {');
 const retireEnd = hostSource.indexOf('    isOriginalManagedComputePreparationRefusal(', retireStart);
 assert(hostStart >= 0 && hostEnd > hostStart && retireStart >= 0 && retireEnd > retireStart);
-function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, onScopeFinish} = {}) {
+function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, configuredModel = false, onScopeFinish} = {}) {
   const prepared = {}, request = {}, sdkRequest = {}, original = {}, value = {}, parent = {}, input = {}, compilation = {};
   const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
   const record = {mockSourceProfile: {}}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
@@ -224,6 +224,7 @@ function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false,
   };
   model.control = control;
   if (nodeModel) model.originalReadInstallation = {};
+  if (nodeModel || configuredModel) model.selection = {graph: model.graph};
   model.releaseAliases = function() {
     assert.equal(this, model); calls.push('aliases');
     if (model.scopeFinished !== true || model.read !== undefined) throw new Error('OriginalChildrenPending');
@@ -802,6 +803,107 @@ test('actual acquired Model admission retains one Request compiler prefix and Sc
   plain.selected.originalReadInstallation = undefined;
   assert.throws(plain.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
   assert.equal(plain.early(), undefined);
+});
+
+test('source-free configured Model admission retains its generic Request Plan without inventing a Node read', () => {
+  const f = installedModelRequestFixture();
+  f.selected.originalReadInstallation = undefined;
+  f.admit(); f.admit();
+  assert.equal(f.early().model.selection, f.selected);
+  assert.equal(f.early().model.originalReadInstallation, undefined);
+  assert.equal(f.early().model.scope, f.scope);
+  assert.equal(f.early().managed, f.managed);
+  assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
+  assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  assert.throws(f.foreignRequest, {code: 'ForeignInstalledModelPreparation'});
+  const content = installedModelRequestFixture({serialized: true});
+  content.selected.originalReadInstallation = undefined;
+  assert.throws(content.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
+  assert.equal(content.early(), undefined);
+});
+
+test('a configured source-free Model cancelled before dispatch finishes its original untaken Scope before Run retirement', () => {
+  const f = hostFixture({configuredModel: true}), run = f.begin();
+  f.setFinish(false);
+  assert.throws(f.retire, {code: 'InstalledModelCleanupPending'});
+  assert.equal(run.model, f.model); assert.equal(f.model.scope, f.scope);
+  assert.equal(f.calls.includes('retire'), false);
+  f.setFinish(true); const finish = f.retire();
+  assert.equal(f.model.scopeFinished, true); assert.equal(f.calls.filter(value => value === 'scope').length, 2);
+  assert.deepEqual(f.calls.slice(-3), ['retire', 'aliases', 'sever']); finish();
+});
+
+const installedInferSource = readFileSync(new URL('./installed-infer-run.mjs', import.meta.url), 'utf8');
+const sourceFreePreparationNode = parse(installedInferSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'sourceFreeModelPreparation');
+assert(sourceFreePreparationNode);
+const sourceFreePreparation = Function('checked', 'retireNodeInferOriginalRead',
+  'return ' + installedInferSource.slice(sourceFreePreparationNode.start, sourceFreePreparationNode.end))(
+  value => value, retirementFor(() => true));
+
+function sourceFreePreparationFixture({readFailure} = {}) {
+  const prepared = {}, selected = {graph: {}}, plan = {compiled: {}, runDefinition: {}}, scope = {}, read = {};
+  const calls = [], host = {}, publication = {};
+  let finished = false;
+  const moon = {clientProgramAcquisitionCount: p => {assert.equal(p, prepared); return 0;},
+    clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
+      assert.deepEqual(args, [managed.value, prepared, managed.request, 'registry', 'values', 'fragment', 'ordered', ['provider']]);
+      calls.push('original Host'); return host;
+    }};
+  const control = {
+    prepareCheckedClientInferOriginalRead(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, scope, model.budget]);
+      calls.push('original read'); if (readFailure) throw readFailure; return read;
+    },
+    settleCheckedClientInferOriginalReadPreparation(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, read, true]);
+      calls.push('settle');
+    },
+    finishCheckedClientInferOriginalReadScope(...args) {
+      assert.deepEqual(args, [plan.compiled, plan.runDefinition, selected.graph, scope, true]);
+      calls.push('finish'); return finished;
+    }};
+  const managed = {runtime: moon, prepared, value: {}, request: {}}, model = {
+    prepared, selection: selected, graph: selected.graph, control, ...plan, scope, managed,
+    budget: {readRetainedBytes: 41n, readExecutionBytes: 42n, modelRetainedBytes: 43n, modelExecutionBytes: 44n},
+    publicationCapacity: () => publication};
+  managed.model = model;
+  const make = () => sourceFreePreparation(moon, control, prepared, plan, selected, model);
+  return {make, model, managed, selected, scope, read, host, publication, calls,
+    finish: () => {finished = true;}};
+}
+
+test('configured source-free Model uses its original Run and defers its one read until the component consumes it', async () => {
+  const f = sourceFreePreparationFixture(), original = f.make();
+  assert.equal(original.selection, f.selected); assert.equal(original.scope, f.scope);
+  assert.throws(original.prepareRead, /InvalidInstalledRequestModelPreparation/);
+  original.retain(); assert.throws(original.retain, /InvalidInstalledRequestModelPreparation/);
+  assert.equal(original.openSourceFreeHost('registry', 'values', 'fragment', 'ordered', ['provider']), f.host);
+  assert.throws(() => original.openSourceFreeHost(), /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(f.calls, ['original Host']);
+  const admitted = original.prepareRead();
+  assert.equal(admitted.read, f.read); assert.equal(admitted.scope, f.scope);
+  assert.equal(admitted.publicationCapacity(), f.publication);
+  assert.throws(original.prepareRead, /InvalidInstalledRequestModelPreparation/);
+  assert.equal(await original.retire(), false);
+  assert.equal(f.model.closed, undefined); assert.equal(f.model.read, undefined);
+  f.finish(); assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
+  assert.deepEqual(f.calls, ['original Host', 'original read', 'settle', 'finish', 'finish']);
+  assert.throws(admitted.publicationCapacity, /InvalidInstalledRequestModelPreparation/);
+});
+
+test('configured source-free Model keeps a refused original read and rejects a substituted managed Run', async () => {
+  const failure = new Error('original read refusal'), f = sourceFreePreparationFixture({readFailure: failure});
+  const original = f.make(); original.retain();
+  assert.throws(original.prepareRead, cause => cause === failure);
+  assert.throws(original.prepareRead, cause => cause === failure);
+  assert.deepEqual(f.calls, ['original read']);
+  assert.equal(await original.retire(), false); f.finish(); assert.equal(await original.retire(), true);
+  const changed = sourceFreePreparationFixture(), live = changed.make();
+  changed.model.managed = {...changed.managed};
+  assert.throws(live.retain, /InvalidInstalledRequestModelPreparation/);
+  await assert.rejects(live.retire(), /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(changed.calls, []);
 });
 
 // Exercise the actual facade -> Host -> manager path. A facade carries no

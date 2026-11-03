@@ -32,7 +32,10 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   }
   const multiple = acquiredInfer?.sources?.length === 2;
   const sourceFree = originalPreparation !== undefined && acquiredInfer === undefined &&
-    selected.components.length === 1 && selected.components[0].localMock === true &&
+    selected.components.length === 1 &&
+    (selected.components[0].localMock === true ||
+      originalPreparation.selection === selected.components[0]) &&
+    typeof originalPreparation.openSourceFreeHost === 'function' &&
     moon.clientProgramAcquisitionCount(preparedProgram) === 0;
   if (records.length === 0 && acquiredInfer?.captured === undefined && !multiple && !sourceFree) {
     throw new Error('InstalledComposedInferInputUnavailable');

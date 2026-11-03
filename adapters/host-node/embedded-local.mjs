@@ -3475,7 +3475,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     const acquisitionCount = moon.clientProgramAcquisitionCount(prepared);
     if (preparation === undefined || typeof preparation.prepareManagedModelRun !== 'function' ||
         inferSelections.get(prepared) !== selection || selection.localMock ||
-        selection.originalReadInstallation === undefined || selection.occurrence === undefined ||
+        selection.originalReadInstallation === undefined &&
+          (acquisitionCount !== 0 || selection.serializationGraph !== undefined) ||
+        selection.occurrence === undefined ||
         selection.components !== undefined || acquisitionCount > 1) {
       throw clientOperationError('HostResultPublicationPurposeUnavailable');
     }
@@ -3497,6 +3499,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       graph: selection.graph, occurrence: selection.occurrence, serializationGraph: selection.serializationGraph,
       originalReadInstallation: selection.originalReadInstallation, selection, component: undefined,
       scope: undefined, read: undefined,
+      publicationCapacity: () => preparation.modelPublicationCapacity(prepared),
       releaseAliases() {
         if (this !== model) throw clientOperationError('ForeignInstalledModelPreparation');
         if (early.aliasesReleased) return;
@@ -6898,7 +6901,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
           run.closed = true;
           return;
         }
-        if (modelRetirement && modelOriginal?.originalReadInstallation !== undefined &&
+        if (modelRetirement && modelOriginal?.selection !== undefined &&
             !modelOriginal.taken && modelOriginal.read === undefined &&
             modelOriginal.scope !== undefined && modelOriginal.scopeFinished !== true) {
           if (modelOriginal.control.finishCheckedClientInferOriginalReadScope(modelOriginal.compiled,
