@@ -7966,7 +7966,7 @@
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
       "responsibilityFacet": "primary",
-      "sha256": "4878fb8ecc54c2f95f9bfd57e2aaa5524b25c9478f05b418e3c05fc28e60aa62",
+      "sha256": "ed40469a82722ea6bc71c8b61981b627177a47a8f1c8ba9723c2bc8e4d16bd13",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
       "exports": [
@@ -8063,7 +8063,8 @@
           "name": "TableCatalog/_read_generation_file",
           "parameters": [
             "self",
-            "task"
+            "task",
+            "mapping"
           ]
         },
         {
@@ -8438,6 +8439,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "inputsOutputs": [
@@ -8456,6 +8461,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "identity": [
@@ -8474,6 +8483,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "ownership": [
@@ -8492,6 +8505,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "synchronization": [
@@ -8510,6 +8527,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "failure": [
@@ -8528,6 +8549,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "cancellation": [
@@ -8546,6 +8571,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "resources": [
@@ -8564,6 +8593,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "extension": [
@@ -8582,6 +8615,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
               }
             ],
             "verification": [
@@ -8608,6 +8645,14 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "def test_gzip_metadata_observes_full_concatenated_expansion_before_original_parser"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "def test_rejected_original_parquet_schema_refuses_before_native_data_read"
               }
             ]
           }

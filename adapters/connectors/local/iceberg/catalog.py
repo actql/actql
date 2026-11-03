@@ -21,7 +21,7 @@ from pyiceberg.table import CommitTableResponse, Table
 from pyiceberg.serializers import FromInputFile, FromByteStream as _FromByteStream, Compressor as _Compressor
 
 from physical import (PhysicalRefusal, canonical_envelope, check_mapping, decode_physical,
-                      encode_rows, envelope_cid, iceberg_schema, seal)
+                      encode_rows, envelope_cid, iceberg_schema, seal, _physical_schema_fields)
 from custody import CustodyIO, install_custody, reserve, claim_file, charge_file, cleanup_after_stop
 
 
@@ -589,7 +589,7 @@ class TableCatalog(SqlCatalog):
         if result is not None:
             raise ValueError("InvalidTableConstructorContinuation")
 
-    def _read_generation_file(self, task):
+    def _read_generation_file(self, task, mapping):
         path = self.local_path(task.file.file_path)
         # Keep the SAME open descriptor for footer, native metadata and data.
         # Footer parsing is funded before ParquetFile's native constructor;
@@ -612,6 +612,12 @@ class TableCatalog(SqlCatalog):
                 metadata = parquet.metadata
                 if metadata.num_rows != task.file.record_count:
                     raise ValueError("TableParquetRowCount")
+                # The flat-cell geometry below applies ONLY after the SAME
+                # original primitive/field-ID rule admits this file schema.
+                # Rejected nested/dictionary/extra carriers never enter data
+                # allocation. decode_physical keeps its original check of the
+                # actual returned Arrow schema after the external read.
+                _physical_schema_fields(mapping, parquet.schema_arrow)
                 size = sum(metadata.row_group(group).column(column).total_uncompressed_size
                            for group in range(metadata.num_row_groups)
                            for column in range(metadata.num_columns))
@@ -632,7 +638,7 @@ class TableCatalog(SqlCatalog):
             if self.before_materialization is None:
                 raw = pq.read_table(self.local_path(task.file.file_path))
             else:
-                raw = self._read_generation_file(task)
+                raw = self._read_generation_file(task, mapping)
             output.extend(decode_physical(
                 mapping, raw, before_materialization=self.before_materialization))
         if len(output) != receipt["row_count"]:

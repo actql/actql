@@ -184,11 +184,11 @@ def encode_rows(mapping, rows):
     return pa.Table.from_pylist(encoded, schema=schema)
 
 
-def decode_physical(mapping, table, before_materialization=None):
-    """Read an actual file, never a default-filled Iceberg projection."""
+def _physical_schema_fields(mapping, schema):
+    """The original field-ID/name/primitive rule, shared at both I/O boundaries."""
     expected = {field_id: (name, typ) for name, field_id, typ, _, _ in physical_fields(mapping)}
     actual = {}
-    for field in table.schema:
+    for field in schema:
         raw = (field.metadata or {}).get(b"PARQUET:field_id")
         try:
             field_id = int(raw) if raw is not None else None
@@ -202,6 +202,12 @@ def decode_physical(mapping, table, before_materialization=None):
         actual[field_id] = field.name
     if set(actual) != set(expected):
         raise PhysicalRefusal("PhysicalFieldMissing")
+    return actual
+
+
+def decode_physical(mapping, table, before_materialization=None):
+    """Read an actual file, never a default-filled Iceberg projection."""
+    actual = _physical_schema_fields(mapping, table.schema)
     if before_materialization is not None:
         # The original physical schema above excludes dictionary/nested
         # carriers. Its actual flat Arrow bytes and dimensions precede BOTH

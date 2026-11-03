@@ -635,3 +635,20 @@ must also fund the fixed stream/probe controls before entry. Manifest codecs,
 Catalog bootstrap, Parquet/Arrow and failed-prefix holdings retain their own
 obligations; this metadata connection does not retrospectively fund them or
 acknowledge physical cleanup.
+
+### Primitive Parquet schema before data allocation
+
+The observed data reader applies the original field-ID/name/primitive-type
+rule to the same Parquet file's Arrow schema before quoting flat data geometry
+or calling `ParquetFile.read`. Nested, Arrow dictionary, extra and missing
+fields keep their existing refusals, now before native data construction.
+Parquet dictionary encoding of an admitted primitive column remains accepted;
+it does not turn its Arrow field type into a dictionary carrier.
+
+The physical schema rule has one implementation shared with `decode_physical`.
+The latter still checks the actual returned Arrow schema after I/O and retains
+all original value, presence and no-default rules before materializing rows.
+These are observations on the file metadata and the returned data boundary,
+not two competing type policies. The prior Parquet row-count refusal remains
+ahead of the field-shape check. This connection grants no backing, permission,
+successful business evidence or physical return acknowledgement.

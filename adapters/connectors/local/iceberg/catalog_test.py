@@ -457,6 +457,47 @@ class CatalogTests(unittest.TestCase):
         finally:
             catalog.engine.dispose()
 
+    def test_rejected_original_parquet_schema_refuses_before_native_data_read(self):
+        for shape, code in (("nested", "PhysicalFieldType"), ("dictionary", "PhysicalFieldType"),
+                            ("extra", "PhysicalFieldId"), ("missing", "PhysicalFieldMissing")):
+            with self.subTest(shape=shape):
+                root = tempfile.mkdtemp(prefix="actql-table-rejected-parquet-" + shape + "-")
+                print("Retained rejected Parquet fixture:", root)
+                catalog = self.open(root)
+                try:
+                    catalog.create_namespace("test")
+                    receipt = self.write(catalog, request("create", "rows", "1"), [{"id": 1, "p": "one"}])
+                    task = next(iter(catalog.generation_table(receipt, mapping()).scan().plan_files()))
+                    original = pa.Table.from_pylist([{"id": 1.0, "p": "one", "__actql_presence_3": True}],
+                                                   schema=catalog_module.encode_rows(mapping(), []).schema)
+                    fields, arrays = list(original.schema), [original.column(index) for index in range(3)]
+                    if shape == "nested":
+                        fields[0] = pa.field("id", pa.list_(pa.float64()), metadata=fields[0].metadata)
+                        arrays[0] = pa.array([[1.0]], type=fields[0].type)
+                    elif shape == "dictionary":
+                        fields[1] = pa.field("p", pa.dictionary(pa.int8(), pa.string()), metadata=fields[1].metadata)
+                        arrays[1] = pa.array(["one"], type=fields[1].type)
+                    elif shape == "extra":
+                        fields.append(pa.field("unselected", pa.list_(pa.float64()),
+                                               metadata={b"PARQUET:field_id": b"99"}))
+                        arrays.append(pa.array([[1.0]], type=fields[-1].type))
+                    else:
+                        fields.pop()
+                        arrays.pop()
+                    # Authored corrupt physical material in this NEW fixture,
+                    # not a replay or mutation of any original failed Run.
+                    pq.write_table(pa.Table.from_arrays(arrays, schema=pa.schema(fields)),
+                                   catalog.local_path(task.file.file_path))
+                    observed = []
+                    catalog.before_materialization = lambda value: observed.append(dict(value))
+                    with patch.object(pq.ParquetFile, "read", side_effect=AssertionError("unfunded rejected carrier data")):
+                        with self.assertRaisesRegex(PhysicalRefusal, code):
+                            catalog.read_generation(receipt, mapping())
+                    self.assertIn("parquet-footer", [value["phase"] for value in observed])
+                    self.assertNotIn("parquet-read", [value["phase"] for value in observed])
+                finally:
+                    catalog.engine.dispose()
+
     def test_unsupported_carrier_refuses_before_any_staging_or_reservation(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-kind-") as root:
             catalog = self.open(root)
