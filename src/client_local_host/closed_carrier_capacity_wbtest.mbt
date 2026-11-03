@@ -13,11 +13,17 @@ let closed_vectors_demand_program : String =
   #|{"version":"actql/0.1","id":"closed-vectors","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"embedding":{"type":"vector","dimensions":2,"nullable":false}},"rows":[{"id":3,"embedding":[0,2]},{"id":1,"embedding":[0,2]},{"id":2,"embedding":[0,2]}]},"as":"seed"},{"from":"seed","to_vectors":{"id":"id","vector":"embedding"},"as":"carrier"},{"from":"carrier","normalize_vectors":true,"as":"computed"},{"from":"computed","vectors":true,"as":"rows"},{"from":"rows","filter":"id >= 1","as":"kept"},{"from":"kept","sort":[{"id":"desc"}],"as":"ordered"},{"from":"ordered","select":["id","embedding"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","embedding"]}}},{"id":"consumer_a","inputs":{"r":{"result":{"stage":"source","result":"out"}}},"steps":[{"from":"r","select":["id","embedding"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","embedding"]}}},{"id":"consumer_b","inputs":{"r":{"result":{"stage":"source","result":"out"}}},"steps":[{"from":"r","select":["id","embedding"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","embedding"]}}}],"results":{"published":{"from":{"stage":"source","result":"out"}},"consumed_a":{"from":{"stage":"consumer_a","result":"out"}},"consumed_b":{"from":{"stage":"consumer_b","result":"out"}}}}
 
 ///|
+// Same explicit Graph-construction Host policy used by the original retained
+// family fixture. These are checker inputs, never a replacement Resource budget.
+let closed_carrier_demand_environment : String =
+  #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:65b8e4316a5fdf0a0e8d67a38d8d676e915653929bfe1ecdc64d823d177c9261","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_construction_edges":1000,"max_graph_construction_input_rows":1000,"max_graph_construction_nodes":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"},"text_time_evaluation":{"max_input_codepoints":4096,"max_input_utf8_bytes":16384,"max_output_bytes":1048576,"max_pattern_bytes":4096,"max_replacements":4096,"version":"actql-text-time-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+
+///|
 test "closed Carrier facts configure every original task without replacing provider storage" {
   let assets = @publication_host.client_local_product_assets()
   let environment = @publication_host.admit_client_check_environment(
-    assets.environment,
-    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    closed_carrier_demand_environment,
+    "sha256:65b8e4316a5fdf0a0e8d67a38d8d676e915653929bfe1ecdc64d823d177c9261",
     { text_time: true, veca: true, },
     { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
     graph=true,
