@@ -62,7 +62,7 @@ test('real declared providers supply runtime, adapter and static asset inventory
     'BigQuery uses its original integrated Common, without a fabricated provider bundle');
   // Root entries and their transitive implementation inputs are distinct.
   const table = readFileSync(join(repository, 'adapters/connectors-builtin/installations.generated.mjs'), 'utf8');
-  for (const path of ['adapters/connectors/gcs/site/gcs-credential-site.mjs',
+  for (const path of ['adapters/connectors/gcs/site/gcs-file-listing.mjs',
     'adapters/connectors/gcs/host/gcs-collection-target.mjs',
     'adapters/connectors/gcs/host/gcs-upload-declaration.mjs',
     'adapters/connectors/snowflake/site/snowflake-sql-read.mjs']) {
