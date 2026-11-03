@@ -11,8 +11,8 @@ import {partSchema,partStages,capacityPartExecutions,validatePartEnvelope,valida
 import * as transport from './ci-parts.mjs';
 const digest='a'.repeat(64);
 const identity=path=>{
- const info=fs.statSync(path);
- return Object.fromEntries(['dev','ino','mode','size','mtimeMs','ctimeMs','nlink','blocks'].map(key=>[key,info[key]]));
+ const info=fs.statSync(path,{bigint:true});
+ return Object.fromEntries(['dev','ino','mode','size','mtimeNs','ctimeNs','nlink','blocks'].map(key=>[key,info[key]]));
 };
 // Real owned filesystem/TAR transport only; no Native execution is asserted.
 function stagedMember(t) {
@@ -38,8 +38,8 @@ test('verified union member consumes one extracted inode without duplicating pay
  transport.materializeVerifiedMember(f.from,f.to,f.sha256);
  assert.equal(fs.existsSync(f.from),false,'Verified staging allocation must transfer to the union');
  const after=identity(f.to);
- for(const key of ['dev','ino','size','mtimeMs','blocks'])assert.equal(after[key],before[key],key);
- assert.equal(after.nlink,1);assert.equal(after.mode&0o777,0o444);
+ for(const key of ['dev','ino','size','mtimeNs','blocks'])assert.equal(after[key],before[key],key);
+ assert.equal(after.nlink,1n);assert.equal(after.mode&0o777n,0o444n);
  assert.deepEqual(fs.readFileSync(f.to),f.bytes);
  originalArchiveUnchanged(f);
 });
@@ -50,7 +50,7 @@ function transferFaults(t,methods) {
 }
 function samePayloadIdentity(path,before) {
  const after=identity(path);
- for(const key of ['dev','ino','mode','size','mtimeMs','nlink','blocks'])assert.equal(after[key],before[key],key);
+ for(const key of ['dev','ino','mode','size','mtimeNs','nlink','blocks'])assert.equal(after[key],before[key],key);
 }
 test('verified union member refuses an existing destination without changing either original',t=>{
  const f=stagedMember(t);fs.writeFileSync(f.to,f.bytes);
@@ -102,7 +102,7 @@ test('verified union member reports both source removal and link cleanup failure
  assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),error=>{
   assert(error instanceof AggregateError);assert.equal(error.cause,failure);assert.deepEqual(error.errors,[failure,cleanup]);return true;
  });
- assert.equal(fs.statSync(f.from).ino,fs.statSync(f.to).ino);assert.equal(fs.statSync(f.to).nlink,2);
+ assert.equal(fs.statSync(f.from,{bigint:true}).ino,fs.statSync(f.to,{bigint:true}).ino);assert.equal(fs.statSync(f.to,{bigint:true}).nlink,2n);
  assert.deepEqual(fs.readFileSync(f.from),f.bytes);originalArchiveUnchanged(f);
 });
 test('verified union member detects same-byte source replacement during transfer',t=>{
@@ -111,7 +111,7 @@ test('verified union member detects same-byte source replacement during transfer
  try {
   transferFaults(t,{linkSync(from,to){fs.unlinkSync(from);fs.writeFileSync(from,f.bytes,{mode:0o444});replacement=identity(from);return Reflect.apply(link,fs,[from,to]);}});
   assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/Verified source identity changed/);
-  assert.notEqual(replacement.ino,before.ino);assert.equal(fs.statSync(f.from).ino,replacement.ino);
+  assert.notEqual(replacement.ino,before.ino);assert.equal(fs.statSync(f.from,{bigint:true}).ino,replacement.ino);
   assert.deepEqual(fs.readFileSync(f.from),f.bytes);originalArchiveUnchanged(f);
  }finally{fs.closeSync(held);}
 });
@@ -122,7 +122,7 @@ test('verified union member retains the final hash check after transfer',t=>{
   return Reflect.apply(unlink,fs,[path]);
  }});
  assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/Materialized member bytes changed/);
- assert.equal(fs.existsSync(f.from),false);assert.equal(fs.statSync(f.to).nlink,1);
+ assert.equal(fs.existsSync(f.from),false);assert.equal(fs.statSync(f.to,{bigint:true}).nlink,1n);
  originalArchiveUnchanged(f);
 });
 // Synthetic stat identities model values the Number API rounds together. The

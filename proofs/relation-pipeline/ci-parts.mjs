@@ -266,24 +266,24 @@ export function validatePartInputs(inputs) {
 export function materializeVerifiedMember(from,to,sha256) {
   // All part seals and scientific bindings are checked before this transfer.
   // Consume only the private extraction name; the original TAR stays exact.
-  const before=lstatSync(from);
-  assert(before.isFile()&&before.nlink===1,'Evidence must be an unlinked regular file');
+  const before=lstatSync(from,{bigint:true});
+  assert(before.isFile()&&before.nlink===1n,'Evidence must be an unlinked regular file');
   assert.equal(fileDigest(from),sha256,'Verified member bytes changed');
   noLinks(dirname(to));
   linkSync(from,to); // Exclusive, same-volume name creation; never copy on error.
   try {
-    const source=lstatSync(from),target=lstatSync(to);
-    for(const key of ['dev','ino','mode','size','mtimeMs']) {
+    const source=lstatSync(from,{bigint:true}),target=lstatSync(to,{bigint:true});
+    for(const key of ['dev','ino','mode','size','mtimeNs']) {
       assert.equal(source[key],before[key],'Verified source identity changed');
       assert.equal(target[key],before[key],'Verified target identity changed');
     }
-    assert.equal(source.nlink,2);assert.equal(target.nlink,2);
+    assert.equal(source.nlink,2n);assert.equal(target.nlink,2n);
     unlinkSync(from);
   } catch(cause) {
     // Remove our new link only while the original source name still owns the
     // SAME inode. An uncertain removal retains the canonical bytes for failure.
     let source,target;
-    try {source=lstatSync(from);target=lstatSync(to);} catch {}
+    try {source=lstatSync(from,{bigint:true});target=lstatSync(to,{bigint:true});} catch {}
     if(source?.dev===before.dev&&source.ino===before.ino&&
         target?.dev===before.dev&&target.ino===before.ino) {
       try {unlinkSync(to);}
