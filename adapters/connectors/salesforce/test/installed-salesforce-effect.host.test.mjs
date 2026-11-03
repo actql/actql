@@ -831,6 +831,26 @@ function exactValueProgram(x) {
   return ids.map(id => ({id, original}));
 }
 
+test('the injected Compute close owner retries its unentered original close before cleanup',
+  async t => {
+    const fault = integratedFault(t, 'computeClose');
+    let closes = 0, cleanups = 0;
+    const original = {close() {closes++;},
+      cleanup() {cleanups++; return true;},
+      // Strategy cleanup reports pending recoveries, not whether its close
+      // has been entered. The wrapping fault still owns that original call.
+      cleanupPending() {return false;}};
+    const projected = fault.facts({openComputation: () =>
+      ({execution: original})}, 'execute');
+    const {cleanupOwner} = await projected.openComputation({});
+    await assert.rejects(cleanupOwner.close(), {code: 'IntegratedcomputeCloseUnavailable'});
+    assert.equal(closes, 0);
+    fault.armed = false;
+    assert.equal(await cleanupOwner.cleanup(), true);
+    assert.equal(closes, 1);
+    assert.equal(cleanups, 1);
+  });
+
 for (const failed of ['targetClose', 'commitClose', 'inputs', 'computeClose',
   'stage', 'recoveredLedger', 'stopObservation']) {
   test(`integrated Run retains ${failed} custody across both approvals and exact-value restarts`,
