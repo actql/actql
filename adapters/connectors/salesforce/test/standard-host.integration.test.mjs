@@ -31,7 +31,7 @@ import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
-import {INSTALLED_SALESFORCE_SOURCE_VERSION, loadInstalledSalesforceSource,
+import {INSTALLED_SALESFORCE_SOURCE_VERSION,
   publishInstalledSalesforceSource} from
   '../host/installed-salesforce-source.mjs';
 import {numberText, openSalesforceEffectSiteFixture} from
@@ -1373,7 +1373,19 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
     await spec('spec/dependencies/aoa-pipeline-registry.json'),
     contracts.values, contracts.fragment, contracts.ordered));
   const common = {preparedProgram, registry, ...contracts};
-  return {adapter, common};
+  // These direct adapter components consume the same checked acquisition and
+  // its existing Core Ledger, just like the explicit accounted case below.
+  // This fixture is not a normal Host admission or a second provider grant.
+  const openAccounted = async facts => {
+    const preparedSource = facts.preparedSource ?? await adapter.prepare(facts);
+    const capacity = adapter.ledgerCapacity(preparedSource);
+    const ledger = runtime.clientProgramPrepareMultiCapturedLocalInstalledLedger(
+      facts.preparedProgram, [capacity.capacity], [capacity.transferBytes],
+      [capacity.executionBytes], facts.registry, facts.values, facts.fragment, facts.ordered);
+    assert.notEqual(ledger, undefined, 'original checked provider capture has an accounted Ledger');
+    return adapter.open({...facts, preparedSource, ledger});
+  };
+  return {adapter, common, openAccounted};
 }
 
 async function assertEndedRun(setup, client, requestId) {
@@ -1410,7 +1422,7 @@ test('a read denied when the acquisition opens is stated as not started',
   async t => {
     const setup = await installation(t);
     await setup.publish();
-    const {adapter, common} = await installedAdapter(setup, program);
+    const {adapter, common, openAccounted} = await installedAdapter(setup, program);
     try {
       // The read is allowed when prepared and revoked before the dispatch.
       let decisions = 0;
@@ -1421,7 +1433,7 @@ test('a read denied when the acquisition opens is stated as not started',
       const preparedSource = await adapter.prepare({...common,
         sourceAccess: access});
       const before = setup.org.seen.length;
-      await assert.rejects(adapter.open({...common, sourceAccess: access,
+      await assert.rejects(openAccounted({...common, sourceAccess: access,
         preparedSource}), error => error.outcome === 'not_started' &&
         error.code === 'ExecutionAuthorizationDenied');
       assert.equal(setup.org.seen.length, before);
@@ -2025,10 +2037,10 @@ test('a datetime outside its declared type fails the acquisition, typed',
     // The adapter states the failure: a typed value violation naming the
     // Resource, field, declared type and kind, never the value, after the
     // read stopped.
-    const {adapter, common} = await installedAdapter(setup, temporalProgram);
+    const {adapter, common, openAccounted} = await installedAdapter(setup, temporalProgram);
     try {
       const before = setup.queries().length;
-      const failure = await adapter.open(common).then(() => undefined,
+      const failure = await openAccounted(common).then(() => undefined,
         error => error);
       assert.equal(failure?.code, 'SalesforceValueViolation',
         String(failure?.code));
@@ -2046,9 +2058,9 @@ test('a datetime outside its declared type fails the acquisition, typed',
 test('a capture budget overrun is not a value violation', async t => {
   const setup = await installation(t, {storedRecords: records(100, 10000)});
   await setup.publish();
-  const {adapter, common} = await installedAdapter(setup, program);
+  const {adapter, common, openAccounted} = await installedAdapter(setup, program);
   try {
-    const failure = await adapter.open(common).then(() => undefined,
+    const failure = await openAccounted(common).then(() => undefined,
       error => error);
     assert.ok(failure);
     assert.notEqual(failure.code, 'SalesforceValueViolation');
@@ -2062,18 +2074,12 @@ test('a runtime without the value violation entry is refused before provider I/O
   async t => {
     const published = await installation(t);
     await published.publish();
-    const setup = {...published,
-      profile: splitSourceAliasProfile(published.profile).providerProfile};
-    const before = setup.org.seen.length;
+    const before = published.org.seen.length;
     const {clientProgramSalesforceQueryReadValueViolation: _omitted, ...moon} =
       commonMoon;
-    await assert.rejects(loadInstalledSalesforceSource(setup.profile, {
-      root: join(setup.root, 'runtime-check'), principalId: owner, moon,
-      providerMoon: salesforceMoon, runtimeBundleCid,
-      baseEnvironmentWire: (await readFile(join(repository,
-        'spec/local-check-environment.json'), 'utf8')).trimEnd(),
-      resolveSecret: secret}), {code: 'InvalidSalesforceSourceRuntime'});
-    assert.equal(setup.org.seen.length, before);
+    await assert.rejects(installedAdapter(published, program, moon),
+      error => (error.primaryFailure ?? error).code === 'InvalidSalesforceSourceRuntime');
+    assert.equal(published.org.seen.length, before);
   });
 
 // A Program reading the declared Number(15,2) `Amount__c` through the scan,
@@ -2224,9 +2230,9 @@ test('a Number beyond its declared scale fails the acquisition, typed',
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
     await close();
-    const {adapter, common} = await installedAdapter(setup, numberProgram);
+    const {adapter, common, openAccounted} = await installedAdapter(setup, numberProgram);
     try {
-      const failure = await adapter.open(common).then(() => undefined,
+      const failure = await openAccounted(common).then(() => undefined,
         error => error);
       assert.equal(failure?.code, 'SalesforceValueViolation',
         String(failure?.code));
@@ -2248,7 +2254,6 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   }
   const setup = await installation(t);
   await setup.publish();
-  let pages = 0;
   const acquisitions = [], captures = [];
   let legacyPreparations = 0;
   const runtime = {...commonMoon,
@@ -2256,14 +2261,10 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
       legacyPreparations++;
       return commonMoon.clientProgramPrepareSalesforceDeclaredRowAcquisition(...args);
     },
-    clientProgramRowSourcePrepareAcquisition(...args) {
-      const result = commonMoon.clientProgramRowSourcePrepareAcquisition(...args);
+    clientProgramRowSourcePrepareAcquisitionWithContracts(...args) {
+      const result = commonMoon.clientProgramRowSourcePrepareAcquisitionWithContracts(...args);
       acquisitions.push(result._0);
       return result;
-    },
-    clientProgramRowSourceAcceptChargedValues(...args) {
-      pages++;
-      return commonMoon.clientProgramRowSourceAcceptChargedValues(...args);
     },
     clientProgramRowSourceBegin(...args) {
       const result = commonMoon.clientProgramRowSourceBegin(...args);
@@ -2276,13 +2277,15 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
       assert.equal(commonMoon.clientProgramRowSourceCapture(...args).$tag, 0);
       return result;
     }};
-  const {adapter, common} = await installedAdapter(setup, program, runtime);
-  const first = await adapter.open(common);
-  const second = await adapter.open(common);
+  const {adapter, common, openAccounted} = await installedAdapter(setup, program, runtime);
+  const first = await openAccounted(common);
+  const second = await openAccounted(common);
   try {
     assert.equal(legacyPreparations, 0);
     assert.equal(acquisitions.length, 2);
-    assert.equal(pages, 2);
+    // The provider's original typed page is consumed inside Core. Observe the
+    // two actual physical queries, not the unselected Host Values callback.
+    assert.equal(setup.queries().length, 2);
     assert.equal(typeof await first.issueSourceEvidence({authorityScopeCid: cid('a'),
       effectiveDataPolicyCid: first.checkedSource.sourceDataPolicyCid}), 'string');
     const foreign = commonMoon.clientProgramRowSourceIssueSourceEvidence(
@@ -2358,9 +2361,9 @@ test('missing and null required fields remain distinct typed read failures', asy
       return body;
     }});
     await setup.publish();
-    const {adapter, common} = await installedAdapter(setup, program);
+    const {adapter, common, openAccounted} = await installedAdapter(setup, program);
     try {
-      await assert.rejects(adapter.open(common), error => {
+      await assert.rejects(openAccounted(common), error => {
         assert.equal(error.code, 'SalesforceValueViolation');
         assert.equal(error.outcome, 'stopped');
         assert.equal(error.cause.violation.kind, kind);
@@ -2405,7 +2408,7 @@ test('Salesforce preparation owns its occurrence across caller mutation', async 
       Object.assign(openingOccurrence, {stage: 1, task: 1});
       return commonMoon.clientProgramRowSourceFinish(run);
     }};
-  const {adapter, common} = await installedAdapter(setup, program, runtime);
+  const {adapter, common, openAccounted} = await installedAdapter(setup, program, runtime);
   let capture;
   try {
     let decisions = 0;
@@ -2417,7 +2420,7 @@ test('Salesforce preparation owns its occurrence across caller mutation', async 
       }}};
     const preparedSource = await adapter.prepare({...common,
       sourceAccess: access, occurrence: preparingOccurrence});
-    capture = await adapter.open({...common, preparedSource,
+    capture = await openAccounted({...common, preparedSource,
       sourceAccess: access, occurrence: openingOccurrence});
     assert.equal(preparingOccurrence.task, 1);
     assert.equal(openingOccurrence.task, 1);
@@ -2706,9 +2709,9 @@ test('a compound geolocation beyond original component scale fails typed without
   assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'failed');
   await assert.rejects(execution.result('records').all());
   await close();
-  const {adapter, common} = await installedAdapter(setup, program);
+  const {adapter, common, openAccounted} = await installedAdapter(setup, program);
   try {
-    const failure = await adapter.open(common).then(() => undefined, error => error);
+    const failure = await openAccounted(common).then(() => undefined, error => error);
     assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
     assert.equal(failure.outcome, 'stopped');
     assert.deepEqual(failure.cause.violation, {expected_type: 'object',
@@ -2795,9 +2798,9 @@ test('an Address beyond its original component scale fails typed without a Resul
   assert.equal((await execution.wait({signal: AbortSignal.timeout(20_000)})).status, 'failed');
   await assert.rejects(execution.result('records').all());
   await close();
-  const {adapter, common} = await installedAdapter(setup, program);
+  const {adapter, common, openAccounted} = await installedAdapter(setup, program);
   try {
-    const failure = await adapter.open(common).then(() => undefined, error => error);
+    const failure = await openAccounted(common).then(() => undefined, error => error);
     assert.equal(failure?.code, 'SalesforceValueViolation', String(failure?.code));
     assert.equal(failure.outcome, 'stopped');
     assert.deepEqual(failure.cause.violation, {expected_type: 'object',
