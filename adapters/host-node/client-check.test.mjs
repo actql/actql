@@ -5943,11 +5943,21 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: installed structured Program rejection invokes no Source Model or Effect`, async t => {
     let modelCalls = 0, effectCalls = 0, resumes = 0;
+    const effectEnvironment = JSON.parse(await readFile(join(repository,
+      'packages/sdk/fixtures/values.environment.json'), 'utf8'));
+    // The inert Effect publication extends this same installed Host policy.
+    // Remote Effect Hosts keep the generic selector; Local uses its own
+    // materialization policy, exactly as the Source fixture above does.
+    const hostEnvironment = (entrance === 'http' ? selectInstalledHostEnvironment
+      : selectInstalledLocalMaterializationEnvironment)(moon,
+      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
+    effectEnvironment.host_policy_profile = JSON.parse(hostEnvironment).host_policy_profile;
+    delete effectEnvironment.evidence_bundle_cid;
+    effectEnvironment.evidence_bundle_cid = contentCid(effectEnvironment);
     const installed = {registerModelProviders: () => [{providerId: 'models/diagnostic-fixture',
       validatePrompt: () => false,
       invoke() {modelCalls++; throw new Error('UnexpectedDiagnosticModelExecution');}}],
-    effectInstallation: {environmentWire: (await readFile(join(repository,
-      'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+    effectInstallation: {environmentWire: canonicalText(effectEnvironment),
       execute() {effectCalls++; throw new Error('UnexpectedDiagnosticEffectExecution');},
       resume() {resumes++; throw new Error('UnexpectedDiagnosticEffectResume');}}};
     const client = entrance === 'local'
