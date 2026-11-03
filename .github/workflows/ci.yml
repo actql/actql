@@ -687,7 +687,7 @@ jobs:
         id: bind
         run: node proofs/relation-pipeline/ci-parts.mjs validation
   pipeline-evidence:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
       !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-mutations-rest.result == 'skipped' &&
         needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped') }}
     needs: [pipeline-mutations, pipeline-mutations-rest, pipeline-capacity, pipeline-capacity-mutants, pipeline-validation]

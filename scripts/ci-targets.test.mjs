@@ -394,11 +394,27 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 });
 
 // Exercise the real GitHub job expressions, including always() behavior.
-const scheduled = (name, needs, inputs = {}) => {
+const scheduled = (name, needs, inputs = {}, isCancelled = false) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
-  return Function('needs', 'inputs', 'always', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true,
+  return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
     {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
 };
+test('pipeline evidence aggregates dependency failures but stops on workflow cancellation', () => {
+  const names = jobs['pipeline-evidence'].needs;
+  const healthy = Object.fromEntries(names.map(name => [name, {result: 'success'}]));
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    const needs = {...healthy, 'pipeline-capacity': {result}};
+    assert.equal(scheduled('pipeline-evidence', needs), true, `dependency ${result} must be aggregated`);
+    assert.equal(scheduled('pipeline-evidence', needs, {}, true), false,
+      `workflow cancellation must stop evidence work after dependency ${result}`);
+  }
+  const selection = selectTargets(['src/unregistered/engine.mbt']);
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    const candidate = results(selection);
+    candidate['pipeline-evidence'] = {result};
+    assert.throws(() => verifyGate(plan(selection), candidate, context), /pipeline-evidence/u);
+  }
+});
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
   for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
     ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {
