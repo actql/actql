@@ -15,6 +15,18 @@ function toolsFor(platform) {
 }
 const objectPath = '_build/native/debug/test/connectors/local/__moonbit_link_core__/local.whitebox_test.o';
 const exePath = '_build/native/debug/test/connectors/local/local.whitebox_test.exe';
+// Transport can relocate an immutable original without changing its report
+// path. Resolve through the SAME reader and bind the on-disk tool input to its
+// bytes; never copy an input back into the producer's namespace.
+export function nativeArtifactPath(root,read,path) {
+  const resolver=Object.getOwnPropertyDescriptor(read,'resolveArtifact');
+  assert(!resolver || (Object.hasOwn(resolver,'value') && typeof resolver.value==='function'),
+    'Invalid Native artifact path resolver');
+  const physical=resolver ? Reflect.apply(resolver.value,read,[path]) : join(root,path);
+  assert(typeof physical==='string' && physical.length>0,'Invalid Native artifact physical path');
+  assert.equal(hash(readFileSync(physical)),hash(read(path)),'Detached Native artifact physical input');
+  return physical;
+}
 function run(tool, args) {
   const r = spawnSync(tool, args, {encoding:'utf8', timeout:30000, maxBuffer:32*1024*1024});
   assert.equal(r.status, 0, r.stderr || `Code inspection failed: ${tool}`);
@@ -190,7 +202,8 @@ export function auditScalarCode(report, facts, root, read, providerNames) {
   assert.equal(hash(read(proof.archive)),proof.objectDigest,'Generated provider object changed');
   const exe=report.archives[exePath]; assert(exe,'Missing executed Native executable');
   assert.deepEqual(proof.tools,{nm:hash(readFileSync(nm)),objdump:hash(readFileSync(objdump))},'Code inspection tool changed');
-  const regenerated=generatedCode(root,join(root,proof.archive),join(root,exe),providerNames,proof.platform);
+  const regenerated=generatedCode(root,nativeArtifactPath(root,read,proof.archive),
+    nativeArtifactPath(root,read,exe),providerNames,proof.platform);
   assert.deepEqual(proof.constructors,regenerated.constructors,'Changed generated constructor selection');
   for(const key of ['symbols','disassembly','linkedDisassembly']) {
     assert.match(proof.logs[key].digest,/^[0-9a-f]{64}$/);

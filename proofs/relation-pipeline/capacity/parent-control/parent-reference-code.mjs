@@ -8,6 +8,7 @@ import {inspectParentCaptureCode} from './parent-capture-sites.mjs';
 import {inspectParentCaptureArm64} from './parent-capture-arm64.mjs';
 import {inspectParentReferenceArm64,arm64ReferenceHelpers} from './parent-reference-arm64.mjs';
 import {nativeFunctionEntries,disassembleNativeRanges} from './native-code-disassembly.mjs';
+import {nativeArtifactPath} from './provider-callback-code.mjs';
 
 const nm='/usr/bin/nm';
 const supported=['linux-x64','darwin-arm64'];
@@ -75,7 +76,8 @@ export function auditParentReferenceCode(report,start,root,read) {
   assert.equal(hash(read(proof.archive)),proof.objectDigest,'Primitive Ref object changed');
   assert.deepEqual(proof.tools,{nm:hash(readFileSync(nm)),objdump:hash(readFileSync(objdump))},'Ref inspection tool changed');
   const exe=report.archives['_build/native/debug/test/connectors/local/local.whitebox_test.exe'];assert(exe,'Missing executed Ref binary');
-  const regenerated=generated(join(root,proof.archive),join(root,exe),proof.platform);
+  const regenerated=generated(nativeArtifactPath(root,read,proof.archive),
+    nativeArtifactPath(root,read,exe),proof.platform);
   for(const key of ['symbols','object','linked']) {
     const text=regenerated[key];
     const entry=proof.logs[key];assert.match(entry.digest,/^[a-f0-9]{64}$/);
