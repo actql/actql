@@ -13,15 +13,6 @@ extern "js" fn closed_module_test_original(
   #|}
 
 ///|
-fn catalog_current_program() -> @syntax.Program {
-  @syntax.parse(
-    "{\"version\":\"actql/0.1\",\"id\":\"p\",\"stages\":[{\"id\":\"s\",\"inputs\":{},\"steps\":[],\"results\":{\"r\":{}}}],\"results\":{\"r\":{\"from\":{\"stage\":\"s\",\"result\":\"r\"}}}}",
-    funded_json_bounds(),
-    format=Json,
-  ).unwrap()
-}
-
-///|
 fn catalog_current_fixture(
   current : () -> Unit,
   entries : Array[@context.StageCapacityInput],
@@ -106,23 +97,7 @@ test "actual original binder current boundaries reject synchronous controller re
 
 ///|
 test "actual original current callback cannot allocate changed evidence under the captured binder quote" {
-  let witness = @binding_wire.check_mixed_claims([], [], {
-    max_entities: 0,
-    max_references: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
-  let claims = @binding_wire.check_mixed_program_claims(witness, [], {
-    max_witnesses: 0,
-    max_references: 0,
-  }).unwrap()
-  let sources = @binding_host.bind_claim_sources(claims, [], {
-    max_entries: 0,
-    max_bytes: 0,
-    max_nodes: 0,
-    max_depth: 0,
-  }).unwrap()
+  let sources = catalog_current_empty_sources()
   let entries : Array[@context.StageCapacityInput] = []
   let armed = Ref(false)
   let calls = Ref(0)
