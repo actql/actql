@@ -10,7 +10,7 @@ const roles = ['used', 'cancelled', 'terminal', 'reclaimed', 'cleanupIndex'];
 const helpers = [arm64ReferenceHelpers[0], ...Array(3).fill(arm64ReferenceHelpers[1]), arm64ReferenceHelpers[2]];
 const parentName = name => /connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(name);
 const ownerName = name => /connectors5local[0-9]+managed__provider__execution__with__child__work__issue$/.test(name);
-const reclaimsName = name => /connectors5local[0-9]+relation__chain__reclaims__completed__scratch$/.test(name);
+const reclaimedPrefixName = name => /connectors5local[0-9]+relation__chain__reclaimed__prefix$/.test(name);
 
 export function arm64Functions(text) {
   const result = new Map(); let current;
@@ -134,7 +134,7 @@ function sites(fn, symbols) {
       assert(k === e.storeIndex && write.start === e.start && write.width === 8n, 'ARM64 Ref custody overwritten');
     if (op.startsWith('bl ')) {
       const callee = callTarget(i, symbols);
-      assert(helpers.includes(callee) || ['_moonbit_malloc', '_moonbit_incref', '_moonbit_decref'].includes(callee) || reclaimsName(callee ?? '') || ownerName(callee ?? ''), 'Unreviewed ARM64 custody call');
+      assert(helpers.includes(callee) || ['_moonbit_malloc', '_moonbit_incref', '_moonbit_decref'].includes(callee) || reclaimedPrefixName(callee ?? '') || ownerName(callee ?? ''), 'Unreviewed ARM64 custody call');
     }
     if (op.startsWith('b.ne ')) {
       const target = BigInt(op.slice(5)), skip = ins[k + 1]?.op.match(/^b (0x[0-9a-f]+)$/);

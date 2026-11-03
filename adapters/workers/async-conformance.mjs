@@ -46,7 +46,7 @@ export async function runAsyncCase({mode = 'complete'} = {}) {
   };
   const entry = numericProbeContribution(moon,operations,setup,checked,port);
   const entries = [{...entry,run: (task,signal) => audit.during('execution',() => entry.run(task,signal))}];
-  let result;
+  let result, beforeCloseUsage;
   try {
     const outputs = await withScopedStrategy(setup,core,entries,report => {
       published = true;
@@ -59,6 +59,10 @@ export async function runAsyncCase({mode = 'complete'} = {}) {
     if (pending) await error.cleanupHandle.retry();
     result = {status:'failed', pending, beforeRecovery,
       recovered: !error.cleanupHandle?.status().pending};
-  } finally { operations.closeAsyncScenario(scenario); }
-  return {...result,published,waits,stops,samples,calls:audit.calls,violations:audit.violations,finalUsage:core.usage(setup)};
+  } finally {
+    try { beforeCloseUsage = core.usage(setup); }
+    finally { operations.closeAsyncScenario(scenario); }
+  }
+  return {...result,published,waits,stops,samples,calls:audit.calls,violations:audit.violations,
+    beforeCloseUsage,finalUsage:core.usage(setup)};
 }

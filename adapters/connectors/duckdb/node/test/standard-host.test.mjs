@@ -3215,7 +3215,11 @@ async function exerciseStrategyGraph(
       {store: rankingPublicationStore, plan},
       {local: rankingRetained.configuration},
       new AbortController().signal,
-    );
+    ).catch(cause => {
+      // Preserve the original execution/cleanup carrier as the cause while
+      // making this selected fixture's first typed failure visible in CI.
+      throw new Error(inspect(cause.primaryFailure ?? cause.cause, {depth: 5}), {cause});
+    });
     assert.equal(rankingPublicationOwner.status, 'published');
     assert.equal(rankingPublicationOwner.publication.publication.state,
       'succeeded');

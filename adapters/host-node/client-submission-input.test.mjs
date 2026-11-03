@@ -18,7 +18,7 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
@@ -74,7 +74,7 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
   const journal = openClientRequestJournal(directory);
   const submissionEpoch = journal.issueSubmissionEpoch({...scope, currentAuthorization: true}, moon);
   const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
-  let client, server, authorized = true, submits = 0, issues = 0;
+  let client, server, funded, authorized = true, submits = 0, issues = 0;
   let endpoint = 'actql:embedded';
   const operations = [], received = [];
   let credentials = 0, authentications = 0, preparations = 0, pause;
@@ -82,18 +82,42 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     const pending = pause; pause = undefined;
     if (pending) await pending;
   };
-  const prepare = installNodeClientProgramPreparation({moon, environment: checkingEnvironment});
-  const check = installNodeClientCheck({moon, environment: checkingEnvironment, publication, sourceAccesses});
+  // Register teardown before opening the actual Request preparation owner.
   t.after(async () => {
-    client?.close();
+    await client?.close();
     if (server) {
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
     }
+    // No ingress or original HTTP handler may outlive its Request parent.
+    await funded?.close();
     observer.close();
     journal.close();
     await rm(directory, {recursive: true, force: true});
   });
+  funded = await openFundedClientPreparation({moon, environment: checkingEnvironment,
+    http: entrance === 'https'});
+  const prepare = entrance === 'https' ? funded.prepareSubmit : funded.prepare;
+  // This routes DATA to the existing owner, never certifies a failure/report.
+  // The nested original SubmissionRef distinguishes concurrent calls even if
+  // a caller throws the same Error object; the manager still checks identity.
+  const failedRequests = new WeakMap();
+  const prepareSubmit = Object.freeze(Object.assign(async request => {
+    preparations++;
+    received.push(structuredClone({input: request.input, parameters: request.parameters}));
+    const originalRequest = entrance === 'https' ? funded.originalRequest(request) : request;
+    try {return await prepare(request);}
+    catch (failure) {
+      if (failure !== null && (typeof failure === 'object' || typeof failure === 'function') &&
+          request.submissionRef !== null && typeof request.submissionRef === 'object') {
+        let requests = failedRequests.get(failure);
+        if (requests === undefined) {requests = new WeakMap(); failedRequests.set(failure, requests);}
+        requests.set(request.submissionRef, originalRequest);
+      }
+      throw failure;
+    }
+  }, {assertSubmittedIntent: prepare.assertSubmittedIntent}));
+  const check = installNodeClientCheck({moon, environment: checkingEnvironment, publication, sourceAccesses});
   const configuration = {
     authenticate: async () => {
       authentications++;
@@ -102,11 +126,8 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     },
     authorizeConnection: () => authorized,
     negotiate: () => ({...profile, submissionEpoch}),
-    prepareSubmit: request => {
-      preparations++;
-      received.push(structuredClone({input: request.input, parameters: request.parameters}));
-      return prepare(request);
-    },
+    prepareSubmit,
+    ...(entrance === 'https' ? {prepareRequest: funded.prepareRequest} : {}),
     check: Object.assign(request => {
       received.push(structuredClone({input: request.input, parameters: request.parameters}));
       return check(request);
@@ -133,9 +154,24 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     maxRowBytes: 1024,
   };
   const submission = installNodeClientSubmission({journal, moon,
+    ...(entrance === 'https' ? funded.submission : {}),
     authorizedScope: () => authorized ? scope : undefined,
     prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
-    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check});
+    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check,
+    async observeOriginalPreparationFailure(failure, value) {
+      const request = failedRequests.get(failure)?.get(value.submissionRef);
+      if (request === undefined) return undefined;
+      const current = () => {
+        if (!authorized) throw Object.assign(new Error('ClientConnectionDenied'), {code: 'ClientConnectionDenied'});
+      };
+      current();
+      const outcome = await funded.manager.observeOriginalCheckOutcome(request, failure, project =>
+        check.projectOriginal({principalId: value.principalId, connection: value.connection,
+          kind: value.kind === 'program' ? 'program' : 'text', scope: 'bound_input',
+          input: value.input, parameters: value.parameters, signal: value.signal}, project));
+      current();
+      return outcome;
+    }});
   Object.assign(configuration, {submitIntent: submission.submitAttempt,
     lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;

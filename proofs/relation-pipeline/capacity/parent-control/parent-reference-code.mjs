@@ -27,7 +27,7 @@ function generated(object,exe,platform) {
   const exeEntries=nativeFunctionEntries(run(nm,['-n',exe])),objectEntries=nativeFunctionEntries(run(nm,['-n',object]));
   const parent=exeEntries.filter(m=>parentName(m[2]));assert.equal(parent.length,1,'Missing unique actual parent');
   const selected=[parent[0][2],...helpers,...calls,
-    ...(platform==='darwin-arm64'?exeEntries.filter(m=>/(?:relation__chain__reclaims__completed__scratch|managed__provider__execution__with__child__work__issue)$/.test(m[2])).map(m=>m[2]):[])];
+    ...(platform==='darwin-arm64'?exeEntries.filter(m=>/(?:relation__chain__reclaimed__prefix|managed__provider__execution__with__child__work__issue)$/.test(m[2])).map(m=>m[2]):[])];
   const symbols=selected.map(name=>{
     const matches=exeEntries.filter(m=>m[2]===name);assert.equal(matches.length,1,'Missing unique executed Ref code symbol');
     return `${matches[0][1]} T ${name}`;

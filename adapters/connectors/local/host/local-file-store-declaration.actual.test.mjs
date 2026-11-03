@@ -912,7 +912,8 @@ test('actual Local STORE cold capture refuses altered original source schema',as
     const changes=[
       {name:'foreign schema identity',code:'InvalidCompletedEffectSourceSchema',
         change:schema=>{schema.cid='sha256:'+'f'.repeat(64);}},
-      {name:'changed same-identity schema bytes',code:'PublicationPrivateEvidenceConflict',
+      // The Store hashes the complete schema wire before creating its holder.
+      {name:'changed same-identity schema bytes',code:'PublicationObjectIdentityMismatch',
         change:schema=>{schema.wire='{}';}},
     ];
     const selected=process.env.ACTQL_SCHEMA_NEGATIVE_SELECTION===undefined?changes:
@@ -924,12 +925,27 @@ test('actual Local STORE cold capture refuses altered original source schema',as
       // Only this fresh component's authenticated private-record DATA port is
       // deliberately changed. Every actual Common/Store check remains active;
       // neither a schema identity nor its holder is fabricated as authority.
-      const changedStore=Object.freeze({...store,readPrivateEvidence:async(...args)=>
-        args[0]==='effect_capture'?Buffer.from(JSON.stringify(changed)):
-          Reflect.apply(store.readPrivateEvidence,store,args)});
+      const changedBytes=Buffer.from(JSON.stringify(changed));
+      let consumers=0;
+      const changedStore=Object.freeze({...store,readPrivateEvidence:async(...args)=>{
+        if(args[0]!=='effect_capture')return Reflect.apply(store.readPrivateEvidence,store,args);
+        const [kind,semanticCid,holdingCid,consume,beforeRead]=args;
+        assert.equal(typeof consume,'function','recovery keeps the original Store consumer');
+        return Reflect.apply(store.readPrivateEvidence,store,[kind,semanticCid,holdingCid,(plaintext,read)=>{
+          assert.equal(++consumers,1,'one actual protected Store consumer');
+          assert(Buffer.isBuffer(plaintext));
+          assert(changedBytes.byteLength<=plaintext.byteLength,'mutation fits the SAME original byte extent');
+          // Alter only this fresh reader's authenticated DATA. Keep the actual
+          // reader/context, beforeRead, bounds and finally retirement intact.
+          plaintext.fill(0x20);
+          changedBytes.copy(plaintext);
+          return consume(plaintext,read);
+        },beforeRead]);
+      }});
       await assert.rejects(recoverCompletedEffectfulComputation({store:changedStore,control,runDefinition,
         contractLimits:{maxWireBytes:1000000,maxNodes:100000,maxDepth:100}}),
-        error=>error?.code===code,name);
+        error=>{assert.equal(error?.code,code,name);return true;});
+      assert.equal(consumers,1,name);
     }
     assert.deepEqual(JSON.parse((await store.readPrivateEvidence('effect_capture',
       stage.computation.capturedRun.identity,recordCid)).toString('utf8')),original,

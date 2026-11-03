@@ -11,9 +11,9 @@ import {freezeInput} from '../../packages/sdk/internal/private-source-preparatio
 // Only the installation identity/current port is supplied by this fixture;
 // no shaped preparation, standalone Root or fallback compiler is admitted.
 export async function fundedClientPreparation(t, {moon, environment, allowEffects = false, http = false,
-  valuesMaxRows}) {
+  valuesMaxRows, retainedRelationOutput = false}) {
   const fixture = await openFundedClientPreparation({moon, environment, allowEffects, http,
-    valuesMaxRows});
+    valuesMaxRows, retainedRelationOutput});
   t.after(fixture.close);
   return http ? Object.freeze({prepare: fixture.prepare, prepareRequest: fixture.prepareRequest,
     prepareSubmit: fixture.prepareSubmit, submission: fixture.submission}) : fixture.prepare;
@@ -22,7 +22,10 @@ export async function fundedClientPreparation(t, {moon, environment, allowEffect
 // Process fixtures have their own finally block, not a Node TestContext.
 // Both entrances use this SAME owner and its original teardown below.
 export async function openFundedClientPreparation({moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, sequenceContracts}) {
+  valuesMaxRows, sequenceContracts, retainedRelationOutput = false}) {
+  if (typeof retainedRelationOutput !== 'boolean') {
+    throw new TypeError('InvalidFixtureRetainedOutputProfile');
+  }
   if (valuesMaxRows !== undefined && (!Number.isSafeInteger(valuesMaxRows) ||
       valuesMaxRows < 1 || valuesMaxRows > 2147483647 || allowEffects)) {
     throw new TypeError('InvalidLocalValuesRowLimit');
@@ -43,7 +46,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
     installation: {sequenceContractOriginal: {moon, admission}}};
   const httpRegistry = http ? createEmbeddedHostRegistry((left, right) => left === right) : undefined;
   httpRegistry?.registerPreparation(host, originals.installation, host);
-  const context = Object.freeze({runtime: moon, environment, preparedEnvironment, retainedRelationOutput: false,
+  const context = Object.freeze({runtime: moon, environment, preparedEnvironment, retainedRelationOutput,
     ...(valuesMaxRows === undefined ? {} : {valuesMaxRows})});
   const connection = Object.freeze({mode: 'local', owner: 'local',
     consentRefs: Object.freeze([]), runners: Object.freeze([])});

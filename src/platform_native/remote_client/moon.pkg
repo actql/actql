@@ -17,6 +17,7 @@ import {
 } for "wbtest"
 
 options(
+  link: { "native": { "cc": "./scripts/native-sqlite-link-driver.sh" } },
   targets: {
     "effect_checkpoint_client_native_wbtest.mbt": [ "native" ],
     "client_native.mbt": [ "native" ],

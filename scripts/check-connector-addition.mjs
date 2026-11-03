@@ -135,8 +135,16 @@ function inventory(directory, prefix = '') {
 function run(label, args, executable = 'moon') {
   const testKind = args[0] === 'test' ? 'moon' : args.includes('--test') ? 'node' : null;
   if (testKind === 'node') args = nodeTestArguments(args);
-  console.log(JSON.stringify({phase: label, command: [executable, ...args], isolated}));
-  const result = spawnSync(executable, args, {
+  // Reuse Core CI's pinned Linux Native compiler soft-stack prerequisite.
+  // Keep the inherited hard limit; failure aborts before the original exec.
+  const nativeCompiler = process.platform === 'linux' && executable === 'moon' &&
+    args[0] === 'test' && args[1] === '--target' && args[2] === 'native';
+  const compilerProcess = nativeCompiler ? ['bash', '-e', '-c',
+    'ulimit -S -s 65536\nexec "$@"', 'actql-native-compiler', executable, ...args] : null;
+  console.log(JSON.stringify({phase: label, command: [executable, ...args], isolated,
+    ...(compilerProcess ? {compilerProcess} : {})}));
+  const result = spawnSync(compilerProcess ? compilerProcess[0] : executable,
+    compilerProcess ? compilerProcess.slice(1) : args, {
     cwd: isolated, env: process.env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
   });
   writeFileSync(join(isolated, label + '.log'), (result.stdout ?? '') + (result.stderr ?? ''));

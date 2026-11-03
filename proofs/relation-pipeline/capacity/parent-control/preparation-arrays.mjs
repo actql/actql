@@ -49,7 +49,7 @@ export function inspectPreparationStorage(facts) {
   const summaries=[];
   for(const f of facts) {
     assert.equal(f.ports,1);assert.equal(f.fields,1);token(f.preparation.id);token(f.read.id);
-    assert.equal(f.preparation.requestedBytes,112);assert.equal(f.read.requestedBytes,96);
+    assert.equal(f.preparation.requestedBytes,104);assert.equal(f.read.requestedBytes,96);
     assert.equal(pointer(f.preparation,32),f.selected.owner,'Selected Array detached from real preparation');
     assert.equal(pointer(f.read,16),f.columns.owner,'Columns Array detached from real metadata');
     const bound=preparationStorageEnvelope(f.ports,f.fields),unique=new Map();
