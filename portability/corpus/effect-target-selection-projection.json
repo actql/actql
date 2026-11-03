@@ -191,33 +191,5 @@
       "admitted_run_projection": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "accepted": false
     }
-  ],
-  "schema_pins": {
-    "compiled_plan": {
-      "before": "sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39",
-      "after": "sha256:25094bdc116c9edae1f9ea4123e182d9d898f718941527fe466f55bd448fe7b8"
-    },
-    "run_definition": {
-      "before": "sha256:62b4314c02685e9c685870abcc1eb690bff333e7e743ec81ae3ad87f7b3ac045",
-      "after": "sha256:fa0af630d657a970ca5bba7fe82fa2adb97076dd9c8ae12ad8fdff87d52953b6"
-    }
-  },
-  "artifact_registry_pins": {
-    "before": "sha256:a61846b237ac7ce9f58569f4ecd2aba1b6621c04458fac80c9ad29c4526240ac",
-    "after": "sha256:91eae8fde531981454099a7cd60fafd59818c38af947791d3c20566adb4ff8f4"
-  },
-  "publication_registry_pins": {
-    "before": "sha256:3d460099eee9a1a7bee3a5781b2762df8e6c720735450b62f5c05ca9ba9fed47",
-    "after": "sha256:d401c482962fd80c1389f2d88479de1602f441b73e818724d4f16da1f178fb4e"
-  },
-  "reference_pins": {
-    "reference_roles": {
-      "before": "sha256:fae98b9b12e5b472855170b0451d34fee34ee0fe7227341310fccaaca0775df7",
-      "after": "sha256:3458373ea99e5bc9bb22d3a7ecbbe801abe98875bf7c6c7e748924d8b92bad9c"
-    },
-    "reference_graph": {
-      "before": "sha256:2bdd46f5723bc33676ed46ac367cb26cb02f8d91a134c09c8b754dd7675a908b",
-      "after": "sha256:3078ae712b11a42f03eb5d8aedca521d942bed276c0e25f4fa231a1b7c8b2008"
-    }
-  }
+  ]
 }
