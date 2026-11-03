@@ -6509,7 +6509,9 @@ async function exerciseStrategyGraph(
                         cancellationCase.minimumCompletedRows ?? 0)) {
                     sawOperationWork = true;
                     cancellationScheduled = true;
-                    setTimeout(() => graphCancellation.abort(), 0);
+                    // This named task is still incomplete here. Deliver its
+                    // cancellation before a later managed task can start.
+                    graphCancellation.abort();
                   } else if (constructionStarts.includes(start) &&
                       observation !== undefined &&
                       !constructionComplete) {
