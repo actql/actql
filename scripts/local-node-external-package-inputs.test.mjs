@@ -9,6 +9,7 @@ import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
+import {buildExternalLocalNodeRuntime} from './build-runtime-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 function fixture(t, {collision = false, adapterImport, deferAdapterImport = false} = {}) {
@@ -78,6 +79,21 @@ test('external inventory separates exact provider build owners from stable distr
   assert.match(packaged, /\.\.\/connectors\/external_effect\/host\/installation\.mjs/);
   assert.throws(() => inputs.destinationForAdapter(join(f.providers[0].root, 'unlisted.mjs')),
     /UndeclaredLocalNodeAdapterInput/);
+});
+
+test('external production cannot reuse a reviewed Core legacy context before compilation', async t => {
+  const f = fixture(t), inputs = localNodePackageInputs(f.host, {buildInputs: f.inputs});
+  const inventory = JSON.parse(readFileSync(join(repository, 'scripts/owned-contract-version-legacy.json'), 'utf8'));
+  const reviewed = inventory.entries.find(entry => entry.path.startsWith('src/') &&
+    entry.path.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/u.test(entry.path));
+  assert(reviewed);
+  // Identical bytes/context have a different production owner. They cannot
+  // inherit Core's reviewed source admission through a compiled token match.
+  writeFileSync(join(f.providers[0].root, 'src/copied.mbt'),
+    readFileSync(join(repository, reviewed.path)));
+  await assert.rejects(buildExternalLocalNodeRuntime({inputs,
+    destination: join(f.host, 'distribution'), compiledDirectory: join(f.host, 'compiled')}),
+  /Unadmitted external source contract contexts/u);
 });
 
 test('external provider cannot replace an existing common Host runtime destination', t => {
