@@ -54,6 +54,8 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   opensslPrefix = process.env.ACTQL_TEST_NATIVE_OPENSSL_PREFIX ??
     (platform === 'linux' ? '/usr' : '/opt/homebrew/opt/openssl@3'),
+  darwinCryptoProfile = process.env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE ?? 'source-macos11',
+  opensslSourceArchive = process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE,
   seconds = 600,
 } = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
@@ -72,7 +74,11 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
   run('python3', [join(repository, 'scripts/prepare-native-runtime-bundle-components.py'),
     '--source', source, '--target', target, '--clang', clang,
-    ...(sdk === undefined ? [] : ['--sdk', sdk]), '--openssl-prefix', realpathSync(opensslPrefix),
+    ...(sdk === undefined ? [] : ['--sdk', sdk, '--darwin-crypto-profile', darwinCryptoProfile]),
+    ...(platform === 'linux' || darwinCryptoProfile === 'homebrew26'
+      ? ['--openssl-prefix', realpathSync(opensslPrefix)] : []),
+    ...(opensslSourceArchive === undefined || platform !== 'darwin' ? []
+      : ['--openssl-source-archive', realpathSync(opensslSourceArchive)]),
     '--destination', destination, '--seconds', String(seconds)]);
   const receipt = JSON.parse(readFileSync(join(destination, 'bundle-components.json'), 'utf8'));
   assert.equal(receipt.source, source); assert.equal(receipt.target, target);

@@ -6,6 +6,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import tarfile
+import io
+from unittest.mock import patch
 
 SPEC = importlib.util.spec_from_file_location('crypto_original',
     Path(__file__).with_name('produce-native-crypto-component.py'))
@@ -125,6 +128,57 @@ class LinuxCryptoSources(unittest.TestCase):
         compiled = {str(header): P.original(header)}
         with self.assertRaisesRegex(ValueError, 'Original Crypto build input changed'):
             P.verify_original_inputs(pinned, compiled)
+
+
+class CompatibleDarwinSource(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name).resolve()
+        self.archive = self.root / 'source.tar.gz'
+
+    def write_archive(self, members):
+        with tarfile.open(self.archive, 'w:gz') as output:
+            for name, data, kind in members:
+                item = tarfile.TarInfo(name); item.type = kind
+                item.size = len(data) if kind == tarfile.REGTYPE else 0
+                output.addfile(item, io.BytesIO(data) if item.size else None)
+        return P.original(self.archive)
+
+    def test_original_source_members_keep_their_bytes_without_a_build_or_install(self):
+        expected = self.write_archive([('openssl-original/crypto/original.c', b'original C', tarfile.REGTYPE)])
+        records = P.source_archive_members(self.archive, expected, 'openssl-original', self.root / 'stage')
+        self.assertEqual(records, [{'path': 'openssl-original/crypto/original.c',
+            'bytes': 10, 'sha256': hashlib.sha256(b'original C').hexdigest()}])
+        self.assertEqual((self.root / 'stage/openssl-original/crypto/original.c').read_bytes(), b'original C')
+
+    def test_archive_identity_and_links_or_escaping_members_refuse(self):
+        expected = self.write_archive([('openssl-original/crypto/original.c', b'original C', tarfile.REGTYPE)])
+        self.archive.write_bytes(self.archive.read_bytes() + b'changed')
+        with self.assertRaisesRegex(ValueError, 'source archive mismatch'):
+            P.source_archive_members(self.archive, expected, 'openssl-original', self.root / 'stage')
+        for name, kind in (('openssl-original/link', tarfile.SYMTYPE),
+                           ('openssl-original/../../foreign', tarfile.REGTYPE),
+                           ('/foreign', tarfile.REGTYPE)):
+            with self.subTest(name=name):
+                expected = self.write_archive([(name, b'foreign', kind)])
+                with self.assertRaisesRegex(ValueError, 'archive member'):
+                    P.source_archive_members(self.archive, expected, 'openssl-original', self.root / 'stage')
+
+    def test_compatible_profile_does_not_relabel_the_existing_homebrew_archive(self):
+        recipe = json.loads((P.SOURCE / 'source.json').read_bytes())
+        self.assertEqual(recipe['minimum_macos'], '26.0')
+        self.assertEqual(recipe['candidate_static_input']['sha256'],
+            '074d179c9a8361e8f9143eb89a07954f4a251061dfb98a06c53f84153ed8d1b7')
+        profile = recipe['source_builds']['darwin-arm64-macos11']
+        self.assertEqual(profile['minimum_macos'], '11.0')
+        self.assertEqual(profile['target'], 'aarch64-apple-darwin')
+        self.assertEqual(profile['configure'], ['darwin64-arm64-cc', 'no-shared', 'no-tests', 'no-module'])
+        self.assertEqual(recipe['upstream']['sha256'],
+            'aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f')
+        with patch.object(P.platform, 'system', return_value='Linux'):
+            with self.assertRaisesRegex(ValueError, 'selected Darwin arm64'):
+                P.produce_darwin_source(self.root / 'output', Path('/foreign/cc'), Path('/foreign/sdk'), 60)
 
 
 if __name__ == '__main__':

@@ -83,7 +83,7 @@ test('bundle libraries use the original component producers and verify their ori
       return '';
     };
     const prepare=()=>prepareNativeRuntimeBundleLibraries(f.root,destination,
-      {execute,platform:'darwin',arch:'arm64',opensslPrefix:f.tool});
+      {execute,platform:'darwin',arch:'arm64',opensslPrefix:f.tool,darwinCryptoProfile:'homebrew26'});
     if(corrupt)assert.throws(prepare,/Expected values to be strictly equal/u);
     else assert.deepEqual(prepare(),{sqliteLibrary:join(destination,'sqlite/original.dylib'),
       cryptoLibrary:join(destination,'crypto/original.dylib')});

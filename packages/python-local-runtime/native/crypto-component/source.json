@@ -7,7 +7,8 @@
   "upstream": {
     "version": "3.6.2",
     "url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.2/openssl-3.6.2.tar.gz",
-    "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f"
+    "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f",
+    "bytes": 54913556
   },
   "candidate_static_input": {
     "qualification": "selected installed Homebrew static archive, not an ActQL source rebuild",
@@ -92,6 +93,24 @@
           "sha256": "219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797"
         }
       }
+    }
+  },
+  "source_builds": {
+    "darwin-arm64-macos11": {
+      "qualification": "selected official OpenSSL source rebuilt privately for Darwin arm64 macOS11.0; same original process provider, no shared crypto loading",
+      "target": "aarch64-apple-darwin",
+      "minimum_macos": "11.0",
+      "configure": [
+        "darwin64-arm64-cc",
+        "no-shared",
+        "no-tests",
+        "no-module"
+      ],
+      "optimization": "-O2",
+      "cpu_threads": 2,
+      "make_target": "build_libs",
+      "installed_supplier": false,
+      "normal_profile": null
     }
   }
 }

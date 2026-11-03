@@ -15,7 +15,10 @@ import re
 import shlex
 import stat
 import subprocess
+import sys
+import tarfile
 import time
+import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'packages/python-local-runtime/native/crypto-component'
@@ -53,7 +56,8 @@ def verify_original_inputs(*inventories: dict) -> None:
                 raise ValueError('Original Crypto build input changed: ' + name)
 
 
-def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, object]:
+def produce(output: Path, openssl: Path, clang: Path, sdk: Path, *,
+            source_static: dict | None = None) -> dict[str, object]:
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
         raise ValueError('Selected Crypto component target unavailable')
     if subprocess.check_output(['git', 'status', '--porcelain', '--untracked-files=no'],
@@ -69,12 +73,31 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
         if observed != expected:
             raise ValueError('Stale Crypto source identity: ' + name)
         inputs[str(path)] = observed
-    selected = recipe['candidate_static_input']
-    for path, checksum in ((openssl / '.brew/openssl@3.rb', selected['formula_sha256']),
-                           (openssl / 'INSTALL_RECEIPT.json', selected['receipt_sha256'])):
-        inputs[str(path)] = original(path)
-        if inputs[str(path)]['sha256'] != checksum:
-            raise ValueError('Selected OpenSSL archive origin mismatch')
+    if source_static is None:
+        selected = recipe['candidate_static_input']
+        minimum_macos = recipe['minimum_macos']
+        qualification = selected['qualification']
+        for path, checksum in ((openssl / '.brew/openssl@3.rb', selected['formula_sha256']),
+                               (openssl / 'INSTALL_RECEIPT.json', selected['receipt_sha256'])):
+            inputs[str(path)] = original(path)
+            if inputs[str(path)]['sha256'] != checksum:
+                raise ValueError('Selected OpenSSL archive origin mismatch')
+    else:
+        profile = recipe['source_builds']['darwin-arm64-macos11']
+        if (source_static['source'] != head or source_static['profile'] != profile
+                or source_static['prefix'] != str(openssl)
+                or source_static['target'] != 'aarch64-apple-darwin'
+                or source_static['archive']['path'] != str(openssl / 'lib/libcrypto.a')):
+            raise ValueError('Original source-built Crypto profile differs')
+        selected = {**source_static['archive'], 'header_count': source_static['header_count'],
+                    'header_census_sha256': source_static['header_census_sha256']}
+        minimum_macos = profile['minimum_macos']
+        qualification = profile['qualification']
+        for inventory in (source_static['inputs'], source_static['compiled_inputs']):
+            for name, item in inventory.items():
+                if name in inputs and inputs[name] != item:
+                    raise ValueError('Original source-built Crypto input identities differ')
+                inputs[name] = item
     headers = []
     for path in sorted((openssl / 'include').rglob('*')):
         if path.is_symlink():
@@ -89,8 +112,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
         raise ValueError('Selected OpenSSL header membership mismatch')
     archive = openssl / 'lib/libcrypto.a'
     inputs[str(archive)] = original(archive)
-    if inputs[str(archive)] != {key: recipe['candidate_static_input'][key]
-                               for key in ('bytes', 'sha256')}:
+    if inputs[str(archive)] != {key: selected[key] for key in ('bytes', 'sha256')}:
         raise ValueError('Selected OpenSSL static archive mismatch')
     license_path = openssl / 'LICENSE.txt'
     inputs[str(license_path)] = original(license_path)
@@ -105,7 +127,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
         raise ValueError('OpenSSL archive deployment requirements unavailable')
     def version(value: str) -> tuple[int, ...]:
         return tuple((list(map(int, value.split('.'))) + [0, 0, 0])[:3])
-    if max(map(version, archive_minimums)) > version(recipe['minimum_macos']):
+    if max(map(version, archive_minimums)) > version(minimum_macos):
         raise ValueError('OpenSSL archive requires a newer deployment target')
     inputs[str(clang)] = original(clang, 512 * 1024 * 1024)
     output.mkdir(parents=True, exist_ok=False)
@@ -114,7 +136,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     library = output / 'libactql_crypto_component.dylib'
     dependencies = output / 'component.d'
     command = [str(clang), '-isysroot', str(sdk), '-std=c11', '-O2',
-               '-mmacosx-version-min=' + recipe['minimum_macos'],
+               '-mmacosx-version-min=' + minimum_macos,
                '-Wall', '-Wextra', '-Werror', '-dynamiclib', '-MD', '-MF', str(dependencies),
                '-I', str(openssl / 'include'),
                '-I', str(ROOT / 'packages/python-local-runtime/native/pre-root'),
@@ -146,7 +168,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
         ['/Library/Developer/CommandLineTools/usr/bin/otool', '-l', str(library)], text=True)
     observed_minimum = re.search(
         r'cmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos ([0-9.]+)', loads)
-    if not observed_minimum or version(observed_minimum[1]) != version(recipe['minimum_macos']):
+    if not observed_minimum or version(observed_minimum[1]) != version(minimum_macos):
         raise ValueError('Crypto component deployment identity mismatch')
     if 'cmd LC_RPATH' in loads:
         raise ValueError('Crypto component requires an ambient library search path')
@@ -163,7 +185,7 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
     (output / 'OPENSSL-LICENSE.txt').write_bytes(license_path.read_bytes())
     (output / 'CRYPTO-NOTICE').write_bytes((SOURCE / 'NOTICE').read_bytes())
     result = {'source': head, 'target': recipe['target'], 'recipe': inputs[str(recipe_path)],
-              'source_qualification': recipe['candidate_static_input']['qualification'],
+              'source_qualification': qualification,
               'provider_binding': 'existing process provider; actual original binding required before first allocation',
               'command': command, 'inputs': inputs, 'exports': sorted(names), 'links': links,
               'undefined': undefined, 'archive_minimum_macos': sorted(set(archive_minimums), key=version),
@@ -171,8 +193,176 @@ def produce(output: Path, openssl: Path, clang: Path, sdk: Path) -> dict[str, ob
               'compiler_header_aliases': header_aliases, 'library': original(library),
               'license': original(output / 'OPENSSL-LICENSE.txt'),
               'notice': original(output / 'CRYPTO-NOTICE')}
+    if source_static is not None:
+        result['static_source'] = source_static
     (output / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')
     return result
+
+
+def source_archive_members(archive: Path, expected: dict, prefix: str, destination: Path) -> list[dict]:
+    observed = original(archive, 128 * 1024 * 1024)
+    if observed != {key: expected[key] for key in ('bytes', 'sha256')}:
+        raise ValueError('Pinned original OpenSSL source archive mismatch')
+    members = []
+    with tarfile.open(archive, 'r:gz') as container:
+        seen = set()
+        for member in container:
+            path = Path(member.name)
+            if (member.name in seen or path.is_absolute() or '..' in path.parts
+                    or path.parts[0] != prefix or not (member.isfile() or member.isdir())):
+                raise ValueError('Unselected OpenSSL source archive member')
+            seen.add(member.name)
+            if member.isdir():
+                continue
+            if member.size > 16 * 1024 * 1024:
+                raise ValueError('Oversized OpenSSL source member')
+            raw = container.extractfile(member).read(member.size + 1)
+            if len(raw) != member.size:
+                raise ValueError('Incomplete original OpenSSL source member')
+            target = destination / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with target.open('xb') as output:
+                output.write(raw)
+            members.append({'path': member.name, 'bytes': len(raw),
+                            'sha256': hashlib.sha256(raw).hexdigest()})
+    return members
+
+
+def produce_darwin_source(output: Path, clang: Path, sdk: Path, seconds: int, *,
+                          source_archive: Path | None = None,
+                          component_output: Path | None = None) -> dict:
+    """Build the selected compatible static source; keep the Homebrew recipe separate."""
+    if platform.system() != 'Darwin' or platform.machine() != 'arm64':
+        raise ValueError('Source-built Crypto requires the selected Darwin arm64 target')
+    if type(seconds) is not int or not 0 < seconds <= 1800:
+        raise ValueError('Explicit bounded source-built Crypto preparation required')
+    if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT, text=True):
+        raise ValueError('Source-built Crypto requires exact clean committed source')
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
+    recipe_path = SOURCE / 'source.json'
+    recipe = json.loads(recipe_path.read_bytes())
+    profile = recipe['source_builds']['darwin-arm64-macos11']
+    if (profile['configure'] != ['darwin64-arm64-cc', 'no-shared', 'no-tests', 'no-module']
+            or profile['minimum_macos'] != '11.0' or profile['target'] != 'aarch64-apple-darwin'
+            or profile['optimization'] != '-O2' or profile['cpu_threads'] != 2
+            or profile['make_target'] != 'build_libs' or profile['installed_supplier'] is not False
+            or profile['normal_profile'] is not None):
+        raise ValueError('Unselected compatible Crypto source build profile')
+    output.mkdir(parents=True, exist_ok=False)
+    deadline = time.monotonic() + seconds
+    if source_archive is None:
+        source_archive = output / 'openssl-original.tar.gz'
+        with urllib.request.urlopen(recipe['upstream']['url'], timeout=min(seconds, 60)) as response:
+            raw = response.read(recipe['upstream']['bytes'] + 1)
+        with source_archive.open('xb') as stream:
+            stream.write(raw)
+    members = source_archive_members(source_archive, recipe['upstream'],
+                                     'openssl-' + recipe['upstream']['version'], output / 'source')
+    source = output / 'source' / ('openssl-' + recipe['upstream']['version'])
+    tools = {name: Path('/Library/Developer/CommandLineTools/usr/bin') / name
+             for name in ('ar', 'ranlib', 'otool', 'lipo')}
+    tools.update(make=Path('/usr/bin/make'), perl=Path('/usr/bin/perl'))
+    inputs = {str(path): original(path, 512 * 1024 * 1024)
+              for path in (*tools.values(), clang, sdk / 'SDKSettings.json',
+                           recipe_path, Path(__file__).resolve(), Path(sys.executable).resolve(), source_archive)}
+    receipts = output / 'compiler-receipts'; receipts.mkdir()
+    driver = output / 'cc'
+    # Dependency capture alone changes -MMD to -MD. Original compile/link flags
+    # and source remain selected by the pinned upstream build. Each invocation
+    # records the actual compiler inputs immediately after it returns.
+    driver.write_text('#!' + str(Path(sys.executable).resolve()) + '\n' + r'''
+import hashlib,json,os,subprocess,sys,uuid
+from pathlib import Path
+original=sys.argv[1:]; selected=['-MD' if value=='-MMD' else value for value in original]
+result=subprocess.run([COMPILER,*selected])
+record={'original':original,'selected':selected,'exit':result.returncode,'inputs':{}}
+if result.returncode==0 and '-MF' in selected:
+    dependency=Path(selected[selected.index('-MF')+1])
+    import shlex
+    names=shlex.split(dependency.read_text().replace(chr(92)+chr(10),' ').split(':',1)[1])
+    for name in names:
+        path=Path(name).resolve(strict=True)
+        with path.open('rb') as stream:
+            before=os.fstat(stream.fileno())
+            if before.st_size>16*1024*1024:raise ValueError('Oversized original compiler input')
+            raw=stream.read(before.st_size+1);after=os.fstat(stream.fileno())
+        fields=('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns')
+        if len(raw)!=before.st_size or any(getattr(before,key)!=getattr(after,key) for key in fields):
+            raise ValueError('Original static compiler input changed')
+        record['inputs'][str(path)]={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
+with (RECEIPTS/(uuid.uuid4().hex+'.json')).open('x') as stream:json.dump(record,stream)
+raise SystemExit(result.returncode)
+'''.replace('COMPILER', repr(str(clang))).replace('RECEIPTS', 'Path(' + repr(str(receipts)) + ')'))
+    driver.chmod(0o755)
+    inputs[str(driver)] = original(driver)
+    flags = ['-O2', '-fPIC', '-mmacosx-version-min=' + profile['minimum_macos'], '-isysroot', str(sdk)]
+    environment = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'LANG': 'C', 'LC_ALL': 'C',
+        'CC': str(driver), 'AR': str(tools['ar']), 'RANLIB': str(tools['ranlib']),
+        'CFLAGS': shlex.join(flags), 'SDKROOT': str(sdk),
+        'MACOSX_DEPLOYMENT_TARGET': profile['minimum_macos']}
+    steps = []
+    def run(name, arguments):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError('Source-built Crypto preparation budget exhausted')
+        result = subprocess.run(arguments, cwd=source, env=environment, capture_output=True,
+                                text=True, timeout=remaining)
+        (output / (name + '.stdout')).write_text(result.stdout)
+        (output / (name + '.stderr')).write_text(result.stderr)
+        steps.append({'name': name, 'command': arguments, 'exit': result.returncode})
+        (output / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
+        if result.returncode:
+            raise ValueError('Source-built Crypto command failed: ' + name)
+        return result.stdout
+    target = run('compiler-target', [str(clang), '-dumpmachine']).strip()
+    if re.fullmatch(r'(?:arm64|aarch64)-apple-darwin[0-9.]*', target) is None:
+        raise ValueError('Source-built Crypto compiler is not Darwin arm64')
+    run('configure', [str(tools['perl']), 'Configure', *profile['configure']])
+    run('build-static', [str(tools['make']), '-j', str(profile['cpu_threads']), 'build_libs'])
+    compiled = {}
+    records = [json.loads(path.read_bytes()) for path in sorted(receipts.iterdir())]
+    if not records or any(record['exit'] != 0 for record in records):
+        raise ValueError('Original static compiler invocation did not succeed')
+    for record in records:
+        for path, item in record['inputs'].items():
+            if path in compiled and compiled[path] != item:
+                raise ValueError('Original static compiler input changed between invocations')
+            compiled[path] = item
+    if not compiled:
+        raise ValueError('No actual original static compiler inputs observed')
+    prefix = output / 'prefix'
+    (prefix / 'lib').mkdir(parents=True)
+    for name in ('libcrypto.a', 'LICENSE.txt'):
+        target_path = prefix / ('lib/' + name if name.endswith('.a') else name)
+        with target_path.open('xb') as stream:
+            stream.write((source / name).read_bytes())
+    headers = []
+    for path in sorted((source / 'include/openssl').rglob('*.h')):
+        if path.is_symlink():
+            raise ValueError('Source-built public header is an alias')
+        relative = path.relative_to(source / 'include')
+        target_path = prefix / 'include' / relative
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with target_path.open('xb') as stream:
+            stream.write(path.read_bytes())
+        headers.append({'path': str(relative), **original(target_path)})
+    archive = prefix / 'lib/libcrypto.a'
+    archive_members = run('archive-members', [str(tools['ar']), '-t', str(archive)]).splitlines()
+    if not archive_members or run('archive-target', [str(tools['lipo']), '-archs', str(archive)]).strip() != 'arm64':
+        raise ValueError('Static source archive does not contain the selected arm64 members')
+    verify_original_inputs(inputs, compiled)
+    proof = {'source': head, 'target': 'aarch64-apple-darwin', 'profile': profile,
+        'prefix': str(prefix), 'archive': {'path': str(archive), **original(archive)},
+        'archive_members': archive_members, 'source_members': members,
+        'header_count': len(headers), 'header_census_sha256': hashlib.sha256(
+            json.dumps(headers, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
+        'compiler_target': target, 'compiler_flags': flags, 'compiler_invocations': len(records),
+        'inputs': inputs, 'compiled_inputs': compiled, 'loaded': False, 'providers': 0}
+    (output / 'static-source.json').write_text(json.dumps(proof, indent=2) + '\n')
+    inputs[str(output / 'static-source.json')] = original(output / 'static-source.json')
+    if time.monotonic() >= deadline:
+        raise ValueError('Source-built Crypto preparation budget exhausted')
+    return produce(component_output or output / 'component', prefix, clang, sdk, source_static=proof)
 
 
 def linux_source_inputs(openssl: Path, selected: dict, *, query=subprocess.check_output) -> dict:
@@ -341,19 +531,27 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--openssl-prefix', type=Path, required=True)
+    parser.add_argument('--openssl-prefix', type=Path)
     parser.add_argument('--clang', type=Path, required=True)
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
     parser.add_argument('--seconds', type=int, default=600)
+    parser.add_argument('--static-profile', choices=('homebrew26', 'source-macos11'), default='homebrew26')
+    parser.add_argument('--source-archive', type=Path)
     args = parser.parse_args()
     if args.target == 'linux-x64':
-        if args.sdk is not None:
+        if args.sdk is not None or args.openssl_prefix is None or args.source_archive is not None:
             raise ValueError('Linux Crypto preparation cannot select a Darwin SDK')
         result = produce_linux(args.output.resolve(), args.openssl_prefix.resolve(strict=True),
                                args.clang.resolve(strict=True), args.seconds)
+    elif args.static_profile == 'source-macos11':
+        if args.sdk is None or args.openssl_prefix is not None:
+            raise ValueError('Source-built Darwin Crypto requires its SDK and source profile only')
+        result = produce_darwin_source(args.output.resolve(), args.clang.resolve(strict=True),
+            args.sdk.resolve(strict=True), args.seconds,
+            source_archive=args.source_archive.resolve(strict=True) if args.source_archive else None)
     else:
-        if args.sdk is None:
+        if args.sdk is None or args.openssl_prefix is None or args.source_archive is not None:
             raise ValueError('Darwin Crypto preparation requires its original SDK')
         result = produce(args.output.resolve(), args.openssl_prefix.resolve(strict=True),
                          args.clang.resolve(strict=True), args.sdk.resolve(strict=True))
