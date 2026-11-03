@@ -842,6 +842,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         }
       },
     });
+  } catch (cause) {
+    if (cause?.code !== 'RunHostTaskInvocationRejected') throw cause;
+    throw Object.assign(new Error(`${cause.message}: ${inspect(cause.cause, {depth: 6})}`,
+      {cause}), {code: cause.code});
   } finally {
     const beforeCleanup = dispatches;
     permitCleanup = true;
