@@ -23,8 +23,29 @@ def require(ok, message):
         raise ValueError(message)
 
 
-def build(source, archive, destination, clang, sdk, make, perl, seconds):
-    require(sys.platform == 'darwin' and platform.machine() == 'arm64', 'Selected Native TLS target differs')
+def command_profile(target, clang, sdk, destination):
+    """Explicit compiler DATA for the existing same-image TLS implementation."""
+    require(target in ('darwin-arm64', 'linux-x64'), 'Selected Native TLS target differs')
+    require((target == 'darwin-arm64') == (sdk is not None), 'Selected TLS SDK/target differs')
+    flags = '-O2 -fPIC' + (' -arch arm64 -isysroot ' + str(sdk) if sdk is not None else '')
+    environment = {'PATH': '/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+                   if sdk is not None else '/usr/bin:/bin:/usr/sbin:/sbin',
+                   'HOME': str(destination), 'CC': str(clang), 'LC_ALL': 'C', 'LANG': 'C',
+                   'CFLAGS': flags, 'LDFLAGS': flags}
+    if sdk is not None:
+        environment.update({'SDKROOT': str(sdk), 'MACOSX_DEPLOYMENT_TARGET': '26.0'})
+    return {'configure': 'darwin64-arm64-cc' if sdk is not None else 'linux-x86_64',
+            'environment': environment,
+            'compilerFlags': ['-arch', 'arm64', '-isysroot', str(sdk)] if sdk is not None else ['-D_GNU_SOURCE']}
+
+
+def build(source, archive, destination, clang, sdk, make, perl, seconds, target='darwin-arm64'):
+    actual = ('darwin-arm64' if sys.platform == 'darwin' and platform.machine() == 'arm64'
+              else 'linux-x64' if sys.platform == 'linux' and platform.machine() == 'x86_64' else None)
+    require(actual == target, 'Selected Native TLS target differs')
+    require(re.fullmatch(r'[a-f0-9]{40}', source) is not None and type(seconds) is int and seconds > 0,
+            'Invalid selected TLS source or build budget')
+    profile = command_profile(target, clang, sdk, destination)
 
     def clean():
         require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == source and
@@ -38,7 +59,9 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
     destination.mkdir(parents=True)
     selected = [archive, Path(__file__).resolve(), ROOT / 'scripts/native-http-component-source.json',
                 ROOT / 'scripts/produce-native-remote-scoped-runtime.py', clang, make, perl,
-                sdk / 'SDKSettings.json', Path(sys.executable).resolve()]
+                Path(sys.executable).resolve()]
+    if sdk is not None:
+        selected.append(sdk / 'SDKSettings.json')
     inputs = [NATIVE.original(p) for p in selected]
     (destination / 'inputs.json').write_text(json.dumps(inputs, indent=2) + '\n')
     with tarfile.open(archive, 'r:gz') as tar:
@@ -72,11 +95,7 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
     build_root = destination / 'build'
     build_root.mkdir()
     stage = destination / 'stage'
-    env = {'PATH': '/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin',
-           'HOME': str(destination), 'CC': str(clang), 'SDKROOT': str(sdk),
-           'MACOSX_DEPLOYMENT_TARGET': '26.0', 'LC_ALL': 'C', 'LANG': 'C',
-           'CFLAGS': '-O2 -fPIC -arch arm64 -isysroot ' + str(sdk),
-           'LDFLAGS': '-arch arm64 -isysroot ' + str(sdk)}
+    env = profile['environment']
     deadline, steps = time.monotonic() + seconds, []
 
     def run(name, command):
@@ -89,7 +108,7 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
         (destination / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
         require(result.returncode == 0, 'TLS command failed: ' + name)
 
-    run('configure', [str(perl), str(source_root / 'Configure'), 'darwin64-arm64-cc',
+    run('configure', [str(perl), str(source_root / 'Configure'), profile['configure'],
                       '--prefix=' + str(stage), *recipe['configure']])
     run('build-libraries', [str(make), '-j1', 'build_libs'])
     (stage / 'lib').mkdir(parents=True)
@@ -109,7 +128,7 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
         require(NATIVE.original(Path(item['path'])) == item, 'TLS original changed during production')
     clean()
     files = [NATIVE.original(p) for p in sorted(stage.rglob('*')) if p.is_file()]
-    receipt = {'source': source, 'upstream': recipe, 'inputs': inputs, 'stage': str(stage), 'files': files,
+    receipt = {'source': source, 'target': target, 'upstream': recipe, 'inputs': inputs, 'stage': str(stage), 'files': files,
                'compiledLibraries': 2, 'loaded': 0, 'installedSupplier': False, 'normalProfile': None,
                'scope': 'Static TLS dependency only; no Runtime/Host/transport/physical-stop acceptance.'}
     (destination / 'build.json').write_text(json.dumps(receipt, indent=2) + '\n')
@@ -119,9 +138,11 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', required=True)
-    for name in ('archive', 'destination', 'clang', 'sdk', 'make', 'perl'):
+    for name in ('archive', 'destination', 'clang', 'make', 'perl'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--sdk', type=Path)
+    parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
     parser.add_argument('--seconds', type=int, required=True)
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.archive, args.destination, args.clang,
-                           args.sdk, args.make, args.perl, args.seconds)))
+                           args.sdk, args.make, args.perl, args.seconds, args.target)))

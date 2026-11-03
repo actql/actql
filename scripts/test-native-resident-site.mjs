@@ -4,7 +4,7 @@
 // and runs it in a separate executor holder. The executor entry count is
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
-import {prepareNativeResidentSite, prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
+import {prepareNativeResidentHttpLibrary, prepareNativeResidentSite, prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import test from 'node:test';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
@@ -106,9 +106,6 @@ if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-resident-site-'));
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
-const httpLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
-  (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib'
-    : 'libcurl.so.4');
 const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
   ? 'aarch64-apple-darwin'
   : process.platform === 'linux' && process.arch === 'x64'
@@ -144,6 +141,7 @@ const running = new Set();
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
+  const httpLibrary = prepareNativeResidentHttpLibrary();
   const executable = prepareNativeResidentSite(repository,
     join(root, 'resident-producer'));
   execFileSync(moon, ['build', '--target', 'js', '--release',

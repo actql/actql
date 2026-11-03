@@ -64,6 +64,52 @@ function prepareNativeCommand(repository, destination, entry, {
   return binary;
 }
 
+export function prepareNativeResidentHttpLibrary({
+  receiptPath = process.env.ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT,
+  platform = process.platform, arch = process.arch,
+} = {}) {
+  const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
+    : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
+  assert(target, 'No selected Resident HTTP component for this actual platform');
+  assert(typeof receiptPath === 'string' && receiptPath.length > 0,
+    'The original owned HTTP component receipt is required; stock libcurl is not a fallback');
+  const receiptFile = lstatSync(receiptPath);
+  assert(receiptFile.isFile() && !receiptFile.isSymbolicLink() && receiptFile.size <= 4 * 1024 ** 2);
+  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  const recipeBytes = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
+  const recipe = JSON.parse(recipeBytes);
+  assert.match(receipt.source, /^[0-9a-f]{40}$/u);
+  assert.equal(receipt.target, target);
+  assert.equal(receipt.recipe_sha256, createHash('sha256').update(recipeBytes).digest('hex'));
+  assert.deepEqual(receipt.upstream, recipe.upstream);
+  assert.equal(receipt.loaded, 0); assert.equal(receipt.initialized, 0);
+  assert.equal(receipt.installed_supplier, false);
+  for (const name of ['component_tls_lifetime.c', 'component_tls_lifetime.h']) {
+    const relative = 'src/platform_native/http_client/' + name;
+    const originals = receipt.inputs.filter(item => item.path.endsWith('/' + relative));
+    assert.equal(originals.length, 1, 'Exact HTTP TLS implementation original required');
+    const sourceBytes = readFileSync(new URL('../' + relative, import.meta.url));
+    assert.equal(originals[0].bytes, sourceBytes.length);
+    assert.equal(originals[0].sha256, createHash('sha256').update(sourceBytes).digest('hex'));
+  }
+  // The existing producer checks the same-image allocator/TLS v3 export when
+  // this original receipt is present. This DATA is not a Read or load grant.
+  assert(receipt.ownedOpenSSLReceipt && typeof receipt.ownedOpenSSLReceipt.path === 'string',
+    'HTTP component lacks its original owned TLS construction');
+  const item = receipt.library;
+  const before = lstatSync(item.path);
+  assert(before.isFile() && !before.isSymbolicLink() && before.size > 0 && before.size <= 64 * 1024 ** 2);
+  for (const key of ['dev', 'ino', 'mode']) assert.equal(before[key], item[key]);
+  const bytes = readFileSync(item.path);
+  assert.equal(bytes.length, item.bytes);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
+  for (const [path, original] of [[item.path, before], [receiptPath, receiptFile]]) {
+    const after = lstatSync(path);
+    for (const key of ['dev','ino','size','mode','mtimeMs','ctimeMs']) assert.equal(after[key], original[key]);
+  }
+  return item.path;
+}
+
 export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   opensslPrefix = process.env.ACTQL_TEST_NATIVE_OPENSSL_PREFIX ??

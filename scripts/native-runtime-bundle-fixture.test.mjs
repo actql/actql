@@ -2,7 +2,7 @@ import './native-preparation-originals.test.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
+import {lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
@@ -67,6 +67,49 @@ test('Resident preparation rejects a valid bundle receipt for a different origin
   f.receiptEntry('native_runtime_bundle');
   assert.throws(()=>selectedEntries.prepareNativeResidentSite(f.root,f.destination,
     {execute:f.execute,platform:'darwin',arch:'arm64',moonHome:f.tool}),/Expected values to be strictly equal/u);
+});
+
+function httpFixture(t,target) {
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-resident-http-receipt-')));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const path=join(root,'original-component'),bytes=Buffer.from('explicit receipt port; never loaded');
+  writeFileSync(path,bytes);
+  const metadata=lstatSync(path);
+  const recipeBytes=readFileSync(new URL('./native-http-component-source.json',import.meta.url));
+  const receipt={source:'b'.repeat(40),target,recipe_sha256:createHash('sha256').update(recipeBytes).digest('hex'),
+    upstream:JSON.parse(recipeBytes).upstream,loaded:0,initialized:0,installed_supplier:false,
+    inputs:['component_tls_lifetime.c','component_tls_lifetime.h'].map(name=>{
+      const relative='src/platform_native/http_client/'+name;
+      const bytes=readFileSync(new URL('../'+relative,import.meta.url));
+      return {path:'/original-producer/'+relative,bytes:bytes.length,
+        sha256:createHash('sha256').update(bytes).digest('hex')};
+    }),
+    ownedOpenSSLReceipt:{path:join(root,'original-tls-receipt')},
+    library:{path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex'),
+      dev:metadata.dev,ino:metadata.ino,mode:metadata.mode}};
+  const receiptPath=join(root,'build.json');
+  const save=()=>writeFileSync(receiptPath,JSON.stringify(receipt));
+  save();return {path,receiptPath,receipt,save};
+}
+
+test('Resident HTTP selection retains an original owned component on each actual target',t=>{
+  for(const [platform,arch,target] of [['darwin','arm64','darwin-arm64'],['linux','x64','linux-x64']]){
+    const f=httpFixture(t,target);
+    assert.equal(selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,platform,arch}),f.path);
+  }
+});
+test('Resident HTTP refuses stock, foreign, initialized or changed originals before loading',t=>{
+  const changes=[f=>{f.receipt.ownedOpenSSLReceipt=null;},f=>{f.receipt.target='linux-x64';},
+    f=>{f.receipt.initialized=1;},f=>{f.receipt.recipe_sha256='0'.repeat(64);},
+    f=>{f.receipt.inputs[0].sha256='0'.repeat(64);},
+    f=>{writeFileSync(f.path,'changed component');}];
+  for(const change of changes){
+    const f=httpFixture(t,'darwin-arm64');change(f);f.save();
+    assert.throws(()=>selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,
+      platform:'darwin',arch:'arm64'}));
+  }
+  assert.throws(()=>selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:'',
+    platform:'darwin',arch:'arm64'}),/original owned HTTP component receipt/u);
 });
 
 test('bundle consumers select the same existing producer for actual Darwin and explicit Linux entry recipes',t=>{

@@ -403,6 +403,62 @@ class BundleInstallerComposition(unittest.TestCase):
 
 
 
+class HttpComponentRecipeControls(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec = importlib.util.spec_from_file_location('http_selected_component',
+            Path(__file__).with_name('produce-native-http-component.py'))
+        cls.http = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.http)
+
+    def test_explicit_tls_targets_keep_the_original_configuration_and_no_foreign_sdk(self):
+        select = self.http.TLS.command_profile
+        darwin = select('darwin-arm64', Path('/cc'), Path('/sdk'), Path('/owned'))
+        linux = select('linux-x64', Path('/cc'), None, Path('/owned'))
+        self.assertEqual(darwin['configure'], 'darwin64-arm64-cc')
+        self.assertEqual(darwin['environment']['MACOSX_DEPLOYMENT_TARGET'], '26.0')
+        self.assertEqual(linux['configure'], 'linux-x86_64')
+        self.assertNotIn('SDKROOT', linux['environment'])
+        self.assertNotIn('-arch', linux['environment']['CFLAGS'])
+        self.assertEqual(linux['compilerFlags'], ['-D_GNU_SOURCE'])
+        for target, sdk in (('linux-arm64', None), ('linux-x64', Path('/sdk')), ('darwin-arm64', None)):
+            with self.subTest(target=target, sdk=sdk), self.assertRaises(ValueError):
+                select(target, Path('/cc'), sdk, Path('/owned'))
+
+    def image(self, root):
+        library = root / 'libcurl.so.4'
+        header = bytearray(64)
+        header[:7] = b'\x7fELF\x02\x01\x01'
+        header[16:18] = (3).to_bytes(2, 'little')
+        header[18:20] = (62).to_bytes(2, 'little')
+        library.write_bytes(header)
+        dynamic = '(NEEDED) Shared library: [libc.so.6]\n(SONAME) Library soname: [libcurl.so.4]\n'
+        exports = '\n'.join('0000 T ' + name for name in
+                            self.http.CURL_EXPORTS | {'curl_actql_native_tls_api_v3'})
+        return library, dynamic, exports
+
+    def test_linux_http_requires_the_existing_same_image_read_allocator_export(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            library, dynamic, exports = self.image(Path(temporary))
+            self.assertEqual(self.http.inspect_linux_component(library, dynamic, exports), ['libc.so.6'])
+            with self.assertRaisesRegex(ValueError, 'cleanup or loader export'):
+                self.http.inspect_linux_component(library, dynamic,
+                    '\n'.join(line for line in exports.splitlines() if 'curl_actql_native_tls_api_v3' not in line))
+
+    def test_linux_http_refuses_foreign_abi_dynamic_tls_and_ambient_loader_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            library, dynamic, exports = self.image(Path(temporary))
+            for extra in ('(NEEDED) Shared library: [libssl.so.3]\n',
+                          '(NEEDED) Shared library: [libcrypto.so.3]\n',
+                          '(RUNPATH) Library runpath: [/foreign]\n'):
+                with self.subTest(extra=extra), self.assertRaises(ValueError):
+                    self.http.inspect_linux_component(library, dynamic + extra, exports)
+            raw = bytearray(library.read_bytes());raw[18:20] = (183).to_bytes(2, 'little')
+            library.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, 'ELF64 little-endian x86-64'):
+                self.http.inspect_linux_component(library, dynamic, exports)
+
+
 class ResidentCaptureComponent(unittest.TestCase):
     def test_actual_selected_original_and_refusals_without_a_managed_runtime(self):
         target = {('Darwin', 'arm64'): 'darwin-arm64',
