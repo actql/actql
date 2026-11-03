@@ -66,10 +66,40 @@ fn record_guard_cell(
   source : RecordGuardSource,
   row : Int,
   column : Int,
-) -> Value {
-  match source {
-    Supplied(read) => Captured(captured_cell(read.rows, row, column).unwrap())
-    Completed(output) => completed_cell(output, row, column).unwrap()
+) -> Result[Value?, FixedInputGuardIssue] {
+  // Measurement reads typed presence, not expression access that requires a
+  // schema-wide presence guarantee. A missing required cell is still invalid.
+  let (schema, cell) = match source {
+    Supplied(read) =>
+      (
+        captured_schema(read.rows),
+        captured_presence_cell(read.rows, row, column),
+      )
+    Completed(output) => {
+      if !(output.table is Some(PresenceTable(_))) {
+        return match completed_cell(output, row, column) {
+          Some(value) => Ok(Some(value))
+          None => Err(InvalidLayout)
+        }
+      }
+      (
+        completed_output_relation_schema(output),
+        completed_presence_cell(output, row, column),
+      )
+    }
+  }
+  guard @schema.field_at(schema, column) is Some(field) else {
+    return Err(InvalidLayout)
+  }
+  match cell {
+    Ok(Present(value)) => Ok(Some(Captured(value)))
+    Ok(Absent) =>
+      if field.presence == @schema.Conditional {
+        Ok(None)
+      } else {
+        Err(InvalidLayout)
+      }
+    Err(_) => Err(InvalidLayout)
   }
 }
 
@@ -118,14 +148,15 @@ fn step_record_guard(
         if state.column == state.columns {
           state.phase = EndRow
         } else {
-          let writer = state.writer.unwrap()
-          @encode.key(writer, record_guard_name(state.source, state.column))
-          state.phase = Emit(
-            identity_scan_emit(
-              record_guard_cell(state.source, state.row, state.column),
-              writer,
-            ),
-          )
+          match record_guard_cell(state.source, state.row, state.column) {
+            Err(issue) => return Err(issue)
+            Ok(None) => state.column += 1
+            Ok(Some(value)) => {
+              let writer = state.writer.unwrap()
+              @encode.key(writer, record_guard_name(state.source, state.column))
+              state.phase = Emit(identity_scan_emit(value, writer))
+            }
+          }
         }
       Emit(cursor) =>
         if advance_identity_wire(cursor) {
