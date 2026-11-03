@@ -11,6 +11,25 @@ const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
 
+// The normalizing Ledger parser alone uses the staged Unicode workspace.
+// Receipt/data-key constructors keep their complete unchanged envelope. These
+// original methods are closed installing-code calls, never caller callbacks.
+function bindEffectLedgerCodecs(original, construction) {
+  if (typeof construction?.ledgerCodec !== 'function') return original;
+  const codec = construction.ledgerCodec;
+  const control = {...original};
+  for (const name of ['admitLedgerEntry', 'issuePreparedLedgerEntry',
+    'issueNextLedgerEntry', 'issueRowReceiptTerminalEntry',
+    'issueRowReceiptTerminalEntryFromResponse']) {
+    const method = original[name];
+    if (typeof method !== 'function') fail('EffectLedgerControlRuntimeUnavailable');
+    control[name] = (...args) => Reflect.apply(codec, construction,
+      [original, method, args, name === 'admitLedgerEntry' ? args[0] : undefined,
+        args.at(-2), args.at(-1)]);
+  }
+  return Object.freeze(control);
+}
+
 // MoonBit admits the canonical fact and its transition. SQLite only owns
 // durable bytes and the atomic compare-and-swap of one item head.
 export function openEffectLedger({
@@ -41,7 +60,7 @@ export function openEffectLedger({
     fail('InvalidEffectLedgerOutcomeLimit');
   }
   if (controlConstruction !== undefined && typeof controlConstruction !== 'function') fail('InvalidEffectLedgerConstruction');
-  const control = runtimeCore(moon).effectApplicationControl;
+  const control = bindEffectLedgerCodecs(runtimeCore(moon).effectApplicationControl, controlConstruction);
   const scope = control.logicalRequestScope(
     authorityScopeCid, callerRequestId, maxCallerBytes,
   );

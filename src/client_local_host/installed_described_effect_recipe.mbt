@@ -35,6 +35,7 @@ pub fn installed_described_effect_recipe_capacities(
   metadata_on_child? : Bool = false,
   control_wire_bytes? : Int? = None,
   host_input_bytes? : Int? = None,
+  defer_ledger_codec? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
     entries.length() == 4 &&
@@ -107,6 +108,7 @@ pub fn installed_described_effect_recipe_capacities(
       response_read_quantum~,
       control_wire_bytes~,
       host_input_bytes~,
+      defer_ledger_codec~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

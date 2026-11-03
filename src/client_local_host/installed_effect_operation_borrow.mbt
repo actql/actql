@@ -599,6 +599,8 @@ fn retain_installed_effect_operation_controls(
         coordinates: Map([]),
         construction_deferred,
         construction_active: false,
+        ledger_codec_active: false,
+        ledger_codec_workspace: 0L,
         host_input: None,
       }
       owner.effect_operation_controls = Some(control)
@@ -1025,6 +1027,46 @@ pub fn begin_installed_effect_operation_control_input(
 }
 
 ///|
+/// Nested normalizing Ledger codec on this SAME synchronous control frame.
+/// None is the existing fixed Ledger issuance schema bound, not an unknown
+/// wire encoded as zero. Some is the actual original stored wire before parse.
+pub fn begin_installed_effect_operation_ledger_codec(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  wire : String?,
+  nodes : Int,
+  depth : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_codec=Some((true, wire, nodes, depth)),
+  )
+}
+
+///|
+pub fn complete_installed_effect_operation_ledger_codec(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_codec=Some((false, None, 0, 0)),
+  )
+}
+
+///|
 fn resize_installed_effect_operation_control_construction(
   owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -1032,6 +1074,7 @@ fn resize_installed_effect_operation_control_construction(
   expected_plan : ClientInstalledEffectManagedPlan,
   active : Bool,
   input_wire? : String? = None,
+  ledger_codec? : (Bool, String?, Int, Int)? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
@@ -1062,8 +1105,53 @@ fn resize_installed_effect_operation_control_construction(
   if !control.construction_deferred {
     return Err(Unsupported)
   }
-  if control.construction_active == active {
-    return Err(AlreadyBound)
+  match ledger_codec {
+    None =>
+      if control.construction_active == active || control.ledger_codec_active {
+        return Err(AlreadyBound)
+      }
+    Some((entering, _, _, _)) =>
+      if !active ||
+        !control.construction_active ||
+        control.ledger_codec_active == entering ||
+        input_wire is Some(_) {
+        return Err(AlreadyBound)
+      }
+  }
+  let codec_workspace = match ledger_codec {
+    Some((true, wire, nodes, depth)) => {
+      if nodes < 1 || nodes > 4096 || depth < 1 || depth > 32 {
+        return Err(Unsupported)
+      }
+      let bytes = match wire {
+        Some(wire) =>
+          match @scalar.admit_utf8_length(wire, 1000000) {
+            Ok(bytes) if bytes > 0 => bytes
+            _ => return Err(Unsupported)
+          }
+        None =>
+          match installed_effect_control_wire_bound(1, 1000000) {
+            Ok(bytes) => bytes
+            Err(issue) => return Err(issue)
+          }
+      }
+      guard installed_json_effect_response_construction_capacity(
+          @execution.execution_capacity(0L, 0L).unwrap(),
+          bytes,
+          nodes,
+          depth,
+        )
+        is Some(codec) &&
+        @execution.execution_capacity_retained_bytes(codec) <=
+        @execution.execution_capacity_retained_bytes(
+          plan.operation_control_capacity,
+        ) else {
+        return Err(Unsupported)
+      }
+      @execution.execution_capacity_execution_bytes(codec) -
+      @execution.execution_capacity_retained_bytes(codec)
+    }
+    _ => 0L
   }
   let input = match input_wire {
     None => None
@@ -1091,7 +1179,12 @@ fn resize_installed_effect_operation_control_construction(
       }
     }
   }
-  guard installed_effect_control_capacity(Some(control), plan, input~)
+  guard installed_effect_control_capacity(
+      Some(control),
+      plan,
+      input~,
+      codec_workspace=Some(codec_workspace),
+    )
     is Some((capacity, idle)) else {
     return Err(Unsupported)
   }
@@ -1124,7 +1217,13 @@ fn resize_installed_effect_operation_control_construction(
       if input is Some(original) {
         control.host_input = Some(original)
       }
-      control.construction_active = active
+      match ledger_codec {
+        Some((entering, _, _, _)) => {
+          control.ledger_codec_active = entering
+          control.ledger_codec_workspace = codec_workspace
+        }
+        None => control.construction_active = active
+      }
       Ok(())
     }
   }
@@ -1208,6 +1307,7 @@ fn installed_effect_control_capacity(
   control : ClientEffectOperationControls?,
   plan : ClientInstalledEffectManagedPlan,
   input? : (String, @execution.ExecutionCapacity)? = None,
+  codec_workspace? : Int64? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -1217,7 +1317,31 @@ fn installed_effect_control_capacity(
         Some(value) => value.host_input
       }
   }
-  let original = plan.operation_control_capacity
+  // Other same-owner reservation/current paths must retain a live or failed
+  // nested codec's prefix. Only its explicit synchronous completion supplies
+  // Some(0); observing another operation is never a workspace return.
+  let codec_workspace = codec_workspace.unwrap_or(
+    match control {
+      Some(value) => value.ledger_codec_workspace
+      None => 0L
+    },
+  )
+  let base = plan.operation_control_capacity
+  let base_retained = @execution.execution_capacity_retained_bytes(base)
+  guard @execution.checked_preparation_add_product(
+      base_retained, codec_workspace, 1L,
+    )
+    is Some(codec_execution) &&
+    @execution.execution_capacity(
+      base_retained,
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(base),
+        codec_execution,
+      ),
+    )
+    is Some(original) else {
+    return None
+  }
   guard selected is Some((_, host)) else {
     return Some((original, plan.operation_control_idle_execution))
   }

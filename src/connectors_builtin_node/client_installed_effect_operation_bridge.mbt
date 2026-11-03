@@ -296,3 +296,32 @@ pub fn client_program_installed_effect_operation_input_begin(
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.begin_installed_effect_operation_input(original, input)
 }
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerCodecBegin")
+pub fn client_program_installed_effect_operation_ledger_codec_begin(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  wire : String?,
+  nodes : Int,
+  depth : Int,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.begin_installed_effect_operation_ledger_codec(
+    owner, prepared, request, plan, wire, nodes, depth,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectOperationLedgerCodecComplete")
+pub fn client_program_installed_effect_operation_ledger_codec_complete(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.complete_installed_effect_operation_ledger_codec(
+    owner, prepared, request, plan,
+  )
+}

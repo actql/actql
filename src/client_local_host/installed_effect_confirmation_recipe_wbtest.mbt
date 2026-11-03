@@ -18,6 +18,8 @@ fn confirmation_recipe_profile(
 ///|
 fn confirmation_recipe_capacities(
   count : Int,
+  stored_bytes? : Int = 4096,
+  defer_ledger_codec? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   installed_standard_create_request_recipe_capacities(
     Some(confirmation_recipe_profile(count)),
@@ -35,10 +37,11 @@ fn confirmation_recipe_capacities(
     64,
     7,
     256,
-    4096,
+    stored_bytes,
     128,
     16,
     0L,
+    defer_ledger_codec~,
   )
 }
 
@@ -242,5 +245,35 @@ test "standard CREATE initially retains codec limits and text without a future H
       )
       is Err(Unsupported),
     )
+  }
+}
+
+///|
+test "staged saved Ledger recipe preserves all physical and retained quantities while deferring only codec scratch" {
+  for count in [4, 7] {
+    let full = confirmation_recipe_capacities(count, stored_bytes=1000000).unwrap()
+    let staged = confirmation_recipe_capacities(
+      count,
+      stored_bytes=1000000,
+      defer_ledger_codec=true,
+    ).unwrap()
+    assert_eq(staged.length(), full.length())
+    for slot in 0..<full.length() {
+      assert_eq(
+        @execution.execution_capacity_retained_bytes(staged[slot]),
+        @execution.execution_capacity_retained_bytes(full[slot]),
+      )
+      if slot == 4 {
+        assert_true(
+          @execution.execution_capacity_execution_bytes(staged[slot]) <
+          @execution.execution_capacity_execution_bytes(full[slot]),
+        )
+      } else {
+        assert_eq(
+          @execution.execution_capacity_execution_bytes(staged[slot]),
+          @execution.execution_capacity_execution_bytes(full[slot]),
+        )
+      }
+    }
   }
 }

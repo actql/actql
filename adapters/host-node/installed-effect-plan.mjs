@@ -753,13 +753,15 @@ export function prepareInstalledEffectControlConstruction(run) {
   const begin = runtime?.clientProgramInstalledEffectOperationControlConstructionBegin;
   const complete = runtime?.clientProgramInstalledEffectOperationControlConstructionComplete;
   const beginInput = runtime?.clientProgramInstalledEffectOperationControlInputBegin;
+  const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
+  const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
-  let working = false, failed = false, retired = false, primary, pending, work;
+  let working = false, codecWorking = false, failed = false, retired = false, primary, pending, work;
   const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
     run.prepared === prepared && run.request === request && run.operationPlan === plan &&
     run.readPlan === readPlan && run.controlConstruction === work;
@@ -798,6 +800,7 @@ export function prepareInstalledEffectControlConstruction(run) {
         [parent, prepared, request, plan, ...(inputWire === undefined ? [] : [inputWire])]));
       originalRecord();
       const value = Reflect.apply(method, receiver, args);
+      if (failed) throw primary;
       retainInvalid(value);
       originalRecord();
       checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
@@ -813,6 +816,37 @@ export function prepareInstalledEffectControlConstruction(run) {
     }
   };
   work = (receiver, method, args) => invoke(receiver, method, args);
+  // Only the original Ledger invokes this nested synchronous seam. The outer
+  // control frame keeps its full Receipt/Grant/projector allowance and output
+  // holders; no Preview one-use identity or physical occurrence is reused.
+  const ledgerCodec = (receiver, method, args, wire, nodes = 512, depth = 16) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (!working || !run.selecting || codecWorking) fail('InstalledEffectControlConstructionPending');
+    if (typeof method !== 'function' || !Array.isArray(args) ||
+        wire !== undefined && typeof wire !== 'string' ||
+        !Number.isSafeInteger(nodes) || nodes < 1 || nodes > 4096 ||
+        !Number.isSafeInteger(depth) || depth < 1 || depth > 32 ||
+        typeof codecBegin !== 'function' || typeof codecComplete !== 'function') {
+      fail('InstalledEffectControlRuntimeUnavailable');
+    }
+    codecWorking = true;
+    try {
+      originalRecord();
+      checked(Reflect.apply(codecBegin, runtime, [parent, prepared, request, plan, wire, nodes, depth]));
+      originalRecord();
+      const value = Reflect.apply(method, receiver, args);
+      if (failed) throw primary;
+      retainInvalid(value);
+      originalRecord();
+      checked(Reflect.apply(codecComplete, runtime, [parent, prepared, request, plan]));
+      originalRecord();
+      return value;
+    } catch (cause) {
+      failed = true; primary = cause;
+      throw cause;
+    } finally { codecWorking = false; }
+  };
   const parsePreview = wire => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
@@ -842,7 +876,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire, parsePreview}));
+  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec}));
 }
 
 // A composed generic owner keeps its original codec and full control quote.

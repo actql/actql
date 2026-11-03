@@ -157,6 +157,7 @@ pub fn client_program_installed_standard_create_request_recipe_capacities(
     stored_depth,
     metadata_units,
     response_read_quantum~,
+    defer_ledger_codec=true,
   )
 }
 
@@ -847,6 +848,8 @@ pub fn client_program_installed_described_effect_input_recipe_capacities(
     metadata_units,
     response_read_quantum~,
     metadata_on_child=true,
+    // Zero selects the unchanged wider composed-implementation fallback.
+    defer_ledger_codec=control_wire_bytes > 0,
     control_wire_bytes=if control_wire_bytes == 0 {
       None
     } else {

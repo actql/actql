@@ -1174,3 +1174,69 @@ test('original recovery input grows the retained constructor before its only wor
     assert.equal(f.settlements(),1);assert.equal(f.debits(),1);
   }
 });
+
+
+test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace', () => {
+  let f;const receiver={},first={},second={};
+  f=controlWorkFixture({
+    clientProgramInstalledEffectOperationLedgerCodecBegin(owner,p,r,plan,wire) {
+      assert.deepEqual([owner,p,r,plan],[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan]);
+      assert.equal(f.run.selecting,true);f.events.push(['codec-begin',wire]);return {$tag:1};
+    },
+    clientProgramInstalledEffectOperationLedgerCodecComplete() {f.events.push('codec-complete');return {$tag:1};},
+  });
+  f.work(receiver,function () {
+    assert.equal(f.work.ledgerCodec(receiver,function(value){assert.equal(this,receiver);return value;},[first],'first'),first);
+    assert.equal(f.work.ledgerCodec(receiver,value=>value,[second],'second'),second);
+  },[]);
+  assert.deepEqual(f.events,['begin',['codec-begin','first'],'codec-complete',['codec-begin','second'],'codec-complete','complete']);
+  assert.equal(f.run.selecting,false);
+  assert.throws(()=>f.work.ledgerCodec(receiver,()=>{},[],'outside'),{code:'InstalledEffectControlConstructionPending'});
+});
+
+test('saved Ledger codec preserves failed undefined, current and asynchronous prefixes without successful completion', async () => {
+  for (const mode of ['undefined','foreign','async','reentry']) {
+    let f,settle;const promise=new Promise(resolve=>{settle=resolve;});
+    f=controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec-begin');return {$tag:1};},
+      clientProgramInstalledEffectOperationLedgerCodecComplete(){f.events.push('codec-complete');return {$tag:1};},
+    });
+    let primary;
+    assert.throws(()=>f.work({},()=>f.work.ledgerCodec({},()=>{
+      if(mode==='undefined')throw undefined;
+      if(mode==='foreign'){f.run.request={};return 1;}
+      if(mode==='async')return promise;
+      return f.work.ledgerCodec({},()=>assert.fail('nested codec'),[],'second');
+    },[],'first'),[]),cause=>{primary=cause;return mode==='undefined'?cause===undefined:!!cause.code;});
+    assert.deepEqual(f.events,['begin','codec-begin']);
+    assert.throws(()=>f.work({},()=>assert.fail('retry after failure'),[]),cause=>cause===primary);
+    if(mode==='async'){assert.equal(f.run.selecting,true);settle();await new Promise(setImmediate);assert.equal(f.run.selecting,false);}
+    else {settle();assert.equal(f.run.selecting,false);}
+  }
+});
+
+
+test('saved Ledger codec binds all original normalizing entries while retaining Receipt controls and same arguments', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerCodecs');
+  assert(declaration);
+  const bind=Function('fail',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerCodecs;')(
+    code=>{throw Object.assign(new Error(code),{code});});
+  const calls=[],wire='original Ledger wire',arg={},result={};
+  const names=['admitLedgerEntry','issuePreparedLedgerEntry','issueNextLedgerEntry',
+    'issueRowReceiptTerminalEntry','issueRowReceiptTerminalEntryFromResponse'];
+  const original=Object.freeze(Object.fromEntries([...names,'issueRowOutcomeReceipt','issueMemberReceiptFromRowPartition'].map(name=>[
+    name,function(...args){assert.equal(this,original);calls.push([name,args]);return result;},
+  ])));
+  const construction=Object.assign(()=>{}, {ledgerCodec(receiver,method,args,input,nodes,depth) {
+    assert.equal(receiver,original);assert.equal(method,original[names[calls.length]]);
+    assert.equal(input,calls.length===0?wire:undefined);assert.equal(nodes,512);assert.equal(depth,16);return Reflect.apply(method,receiver,args);
+  }});
+  const selected=bind(original,construction);
+  for(const name of names)assert.equal(selected[name](wire,arg,512,16),result);
+  assert.equal(selected.issueRowOutcomeReceipt,original.issueRowOutcomeReceipt);
+  assert.equal(selected.issueMemberReceiptFromRowPartition,original.issueMemberReceiptFromRowPartition);
+  assert(calls.every(([,args])=>args[0]===wire&&args[1]===arg));
+  assert.equal(bind(original,undefined),original);
+});

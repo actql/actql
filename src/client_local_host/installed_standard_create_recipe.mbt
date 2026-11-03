@@ -98,6 +98,7 @@ fn standard_create_saved_control_capacity(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  defer_ledger_codec? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
   guard installed_json_effect_response_construction_capacity(
       @execution.execution_capacity(0L, 0L).unwrap(),
@@ -143,7 +144,16 @@ fn standard_create_saved_control_capacity(
       @execution.execution_capacity_retained_bytes(receipts),
     ),
     Int64::max(
-      @execution.execution_capacity_execution_bytes(ledger),
+      if defer_ledger_codec {
+        // No normalizing Ledger parser exists at installation. Its complete
+        // output allowance stays retained; the same control reservation grows
+        // at each original Ledger wire before entering that synchronous codec.
+        @execution.execution_capacity_retained_bytes(ledger)
+      } else {
+        @execution.execution_capacity_execution_bytes(ledger)
+      },
+      // Receipt encoding/data-key admission, including arbitrary typed outcome
+      // text and escaping, keeps its unchanged full construction envelope.
       @execution.execution_capacity_execution_bytes(receipts),
     ),
   )
@@ -326,6 +336,7 @@ pub fn installed_standard_create_request_recipe_capacities(
   stored_depth : Int,
   metadata_units : Int64,
   response_read_quantum? : Int = 1,
+  defer_ledger_codec? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   installed_standard_recipe_capacities(
     original,
@@ -353,6 +364,7 @@ pub fn installed_standard_create_request_recipe_capacities(
     // Its exact codec limits are retained on the same capture extent; the
     // existing control-input boundary grows before parsing that original wire.
     host_input_bytes=Some(0),
+    defer_ledger_codec~,
   )
 }
 
@@ -441,6 +453,7 @@ fn installed_standard_recipe_capacities(
   response_read_quantum? : Int = 1,
   control_wire_bytes? : Int? = None,
   host_input_bytes? : Int? = None,
+  defer_ledger_codec? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
   guard control_bytes > 0 &&
@@ -522,7 +535,10 @@ fn installed_standard_recipe_capacities(
     is Some(secret) &&
     standard_create_grant_capacity() is Some(grant) &&
     standard_create_saved_control_capacity(
-      control_bytes, stored_nodes, stored_depth,
+      control_bytes,
+      stored_nodes,
+      stored_depth,
+      defer_ledger_codec~,
     )
     is Some(stored) &&
     standard_create_representation_capacity(

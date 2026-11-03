@@ -20025,6 +20025,18 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "wire",
+            "nodes",
+            "depth"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
           "parameters": [],
           "async": false
@@ -20492,7 +20504,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0621b9251896be96d1e6450747494dbf39eb0d351537692798149d618dd81238",
+      "sha256": "82d6ccd04a2c10809a085566cbfed63a5e88b9c4add11c063acbc09293f4890d",
       "contracts": [
         {
           "operations": [
@@ -20983,6 +20995,82 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"saved Ledger codec keeps maximum retained and Receipt workspace but stages only normalizing scratch\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
               }
             ]
           }

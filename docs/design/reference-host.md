@@ -3204,3 +3204,17 @@ retaining the same input cleanup duty.
 Promise settlement, cancellation and a finished input are not physical-stop or
 resource-return acknowledgements. No registry currentness or foreign/retired
 original check is weakened.
+
+
+Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation.
+The standard and input-staged described recipes retain the old maximum outputs
+and full Receipt, Grant and native-projector construction envelopes. Only the
+not-yet-constructed normalizing Ledger workspace is deferred. Each original
+stored wire supplies its actual UTF8 length; original Ledger issuance uses its
+existing fixed schema bound. The same reservation grows before that codec and
+returns only completed synchronous scratch. It takes the maximum with other
+control workspace and preserves retained output and accumulated physical work.
+A throw, invalid asynchronous result, changed original or pending nested codec
+retains the failed prefix; neither outer completion nor Promise settlement
+acknowledges physical cleanup. Repeated Ledger wires do not consume or replace
+the separate one-use Host Preview input binding.

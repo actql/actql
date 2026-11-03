@@ -32297,7 +32297,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "b2a087bd612cf9976774ee1ee5cf346be83434ae9ffe7d37f58e03ecabfe496e",
+      "sha256": "d2fd438585da2064f3b18c0a27bdafa674068ee9278c768d8ec57f0d8a6a5ad7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -32327,6 +32327,10 @@
         {
           "name": "begin_installed_effect_operation_input",
           "declaration": "begin_installed_effect_operation_input ( value : ClientInstalledEffectOperationBorrow , input : ClientInstalledEffectOperationExtent , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_effect_operation_ledger_codec",
+          "declaration": "begin_installed_effect_operation_ledger_codec ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , wire : String ? , nodes : Int , depth : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "borrow_installed_effect_operation",
@@ -32359,6 +32363,10 @@
         {
           "name": "complete_installed_effect_operation_control_construction",
           "declaration": "complete_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "complete_installed_effect_operation_ledger_codec",
+          "declaration": "complete_installed_effect_operation_ledger_codec ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "installed_effect_control_capacity",
@@ -32667,6 +32675,83 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "begin_installed_effect_operation_ledger_codec",
+            "complete_installed_effect_operation_ledger_codec"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"saved Ledger codec keeps maximum retained and Receipt workspace but stages only normalizing scratch\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
               }
             ]
           }
@@ -34958,7 +35043,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "2bd46cd270957bc0790ef73b104a13d06aa81948fe967ca27c0dc19510704fde",
+      "sha256": "db798dd2bf7aca2a2fb40a8d572e6d4fcb460a596f778f39d7c733d945f17256",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -34999,7 +35084,7 @@
         },
         {
           "name": "standard_create_saved_control_capacity",
-          "declaration": "standard_create_saved_control_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "standard_create_saved_control_capacity ( bytes : Int , nodes : Int , depth : Int , defer_ledger_codec ? : Bool"
         },
         {
           "name": "standard_create_secret_capacity",
@@ -49399,9 +49484,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_installed_effect_operation_ledger_codec_begin",
+            "client_program_installed_effect_operation_ledger_codec_complete"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"saved Ledger codec keeps maximum retained and Receipt workspace but stages only normalizing scratch\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "ddfa14bd8c92e856ffa71d71c3d6bcffe5ba30e9473354614d9880cb2078c888",
+      "sha256": "9f5dbc4f4bb5e8f46a5be4101f5754ba7d7b5b8b63406d79785ee0fd351274d6",
       "operations": [
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
@@ -49464,6 +49626,14 @@
           "declaration": "client_program_installed_effect_operation_input_begin ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , input : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "client_program_installed_effect_operation_ledger_codec_begin",
+          "declaration": "client_program_installed_effect_operation_ledger_codec_begin ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , wire : String ? , nodes : Int , depth : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_operation_ledger_codec_complete",
+          "declaration": "client_program_installed_effect_operation_ledger_codec_complete ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "client_program_installed_effect_operation_response_backing_fits",
           "declaration": "client_program_installed_effect_operation_response_backing_fits ( original : @ client_local_host . ClientInstalledEffectOperationExtent , max_response_bytes : Int , max_header_bytes : Int , response_read_quantum : Int , ) - > Bool"
         },
@@ -49499,7 +49669,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "56129842540027b1b9b40d8862e9ef9da802076fdc56e6b682ec0dff6ba988a3",
+      "sha256": "a20351dbcda67b66ddd8df46302dbfb342cf2ec5068d4da089d2f8d01019dd7f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -74146,7 +74316,7 @@
     },
     {
       "module": "src/client_local_host/installed_described_effect_recipe.mbt",
-      "sha256": "5bc198c778df7db000ecb69c4ac0e15677bbe70a25ca1afb9c5e87878e4ff3ef",
+      "sha256": "f5988cb744ed60deaa7f557fcfd661fa9a0c4fec6c7067187cb401c4ab331f33",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
