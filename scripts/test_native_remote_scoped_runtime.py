@@ -498,6 +498,55 @@ class ResidentCaptureComponent(unittest.TestCase):
             self.assertEqual(result.stdout, 'PASS unselected entry refuses without capture\n')
 
 
+class ResidentFfiComponent(unittest.TestCase):
+    def test_original_external_handle_retirement_uses_the_pinned_runtime_abi(self):
+        target = {('Darwin', 'arm64'): 'darwin-arm64',
+                  ('Linux', 'x86_64'): 'linux-x64'}.get((platform.system(), platform.machine()))
+        self.assertIsNotNone(target, 'Select an actual supported FFI component target')
+        self.assertIn('MOON_HOME', os.environ, 'Use the existing selected pinned toolchain')
+        home = Path(os.environ['MOON_HOME']).resolve()
+        self.assertEqual(json.loads((home / 'installed.json').read_bytes()),
+                         {'pin': json.loads((MODULE.ROOT / 'toolchain.json').read_bytes()), 'platform': target})
+        runtime = [home / 'lib/runtime' / (name + '.c') for name in sorted(MODULE.RUNTIME_NAMES)]
+        original_inputs = [home / 'include/moonbit.h', home / 'include/moonbit_runtime.h',
+                           home / 'lib/libmoonbitrun.o', home / 'lib/libbacktrace.a', *runtime]
+        def identities():
+            return [(path.stat().st_dev, path.stat().st_ino, path.stat().st_mode,
+                     path.stat().st_mtime_ns, path.stat().st_size, path.read_bytes()) for path in original_inputs]
+        before = identities()
+        compiler = shutil.which('cc')
+        self.assertIsNotNone(compiler)
+        parent = MODULE.ROOT / '_build/native-resident-control-ffi'
+        parent.mkdir(parents=True, exist_ok=True)
+        directory = Path(tempfile.mkdtemp(prefix='original-', dir=parent))
+        print('Retained original Resident FFI component: ' + str(directory))
+        header = directory / 'initial.h'
+        MODULE.command_initial_control_header('a' * 40, header, MODULE.ENTRY, target)
+        flags = (['-D_GNU_SOURCE', '-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY',
+                  '-DACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY'] if target == 'linux-x64' else [])
+        for selected in (True, False):
+            executable = directory / ('selected' if selected else 'unselected-recipe')
+            arguments = [compiler, '-std=c11', '-O0', '-pthread', *flags,
+                '-I' + str(home / 'include'), '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC',
+                *(['-DACTQL_RESIDENT_INITIAL_CONTROL_HEADER="' + str(header) + '"'] if selected else []),
+                str(MODULE.ROOT / 'scripts/fixtures/resident-initial-control-ffi.c'),
+                *map(str, runtime), str(home / 'lib/libmoonbitrun.o'),
+                str(home / 'lib/libbacktrace.a'), '-lm', '-o', str(executable)]
+            result = subprocess.run(arguments, capture_output=True, text=True, timeout=45)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for mode in (('components', 'partial', 'stderr') if selected else ('unselected',)):
+                result = subprocess.run([str(executable), mode], capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if mode == 'stderr':
+                    self.assertEqual(result.stderr, 'command diagnostic\n')
+                    self.assertEqual(result.stdout, 'PASS diagnostic consumed on stderr only\n')
+                else:
+                    self.assertEqual(result.stdout,
+                        '{"kind":"stopped","scope":"original-command-retired"}\n'
+                        'PASS original capture retirement; no second entry or renewal\n')
+        self.assertEqual(identities(), before, 'Original pinned runtime changed during FFI component')
+
+
 class LinuxResidentComposition(unittest.TestCase):
     def test_selected_resident_uses_one_pinned_provider_and_own_capture_header(self):
         fixture = RemoteScopedComposition()
