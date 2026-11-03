@@ -956,3 +956,31 @@ test('owned request retries only unread cleanup methods on the same failed child
   f.retireAliases(); await child.release();
   assert.equal(observes, 2); assert.equal(releases, 1); assert.equal(f.settlements(), 1);
 });
+
+test('nested owned prepare cannot clear the outer physical cleanup fence', async () => {
+  for (const point of ['factory', 'getter', 'status', 'prepare']) {
+    const f = constructorControlFixture(undefined); let child, closed = false, closes = 0, nested = false;
+    const reenter = () => {
+      if (nested) return;
+      nested = true;
+      assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildReentrantPrepare'});
+      assert.equal(child.release(), false, 'outer construction still owns the physical child');
+      assert.equal(closes, 0);
+    };
+    const original = {
+      get prepare() {if (point === 'getter') reenter(); return () => {
+        if (point === 'prepare') reenter(); return {};
+      };},
+      release() {closes++; closed = true; return true;},
+      retry() {closes++; closed = true; return true;},
+      status() {if (point === 'status') reenter(); return {pending: !closed};},
+    };
+    child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+      if (point === 'factory') reenter(); return original;
+    }});
+    assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildRetired'});
+    assert.equal(closes, 0); assert.equal(f.settlements(), 0);
+    f.retireAliases(); assert.equal(await child.release(), true);
+    assert.equal(closes, 1); assert.equal(f.settlements(), 1);
+  }
+});

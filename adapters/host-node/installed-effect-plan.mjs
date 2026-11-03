@@ -336,6 +336,7 @@ export function prepareInstalledEffectOwnedRequestChild({constructChild, ...opti
   };
   return Object.freeze({prepare() {
     if (stopping) fail('InstalledEffectRequestChildRetired');
+    if (invoking) fail('InstalledEffectRequestChildReentrantPrepare');
     invoking = true;
     try {return managed.prepare();} finally {invoking = false;}
   }, checkOriginal: managed.checkOriginal,
