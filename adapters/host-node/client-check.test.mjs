@@ -1524,7 +1524,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
     const problems = [];
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
-      const client = await open(t, configuration);
+      const client = await submissionObservationClient(t, entrance, configuration);
       const original = await client.newSubmission();
       let error;
       try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
@@ -1573,7 +1573,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: original submission projects implementation limits only from public checking`, async t => {
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
-      const client = await open(t, configuration);
+      const client = await submissionObservationClient(t, entrance, configuration);
       for (const [text, sourceDependent] of [
         ['SELECT UNKNOWN_FUNCTION(1) AS n', false],
         ['SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records', true],
