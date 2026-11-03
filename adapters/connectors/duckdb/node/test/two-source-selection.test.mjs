@@ -2,6 +2,7 @@
 // provider lifecycle are exercised by the shared two-source public harness.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import {prepareCapturedDuckDBSource, capturedDuckDBConfiguration,
   capturedDuckDBPhysicalCapacity} from '../../../../host-node/captured-duckdb-source.mjs';
 import {installNodeClientDispatchOwner} from '../../../../host-node/client-dispatch-owner.mjs';
@@ -104,10 +105,12 @@ test('resumed two-input preparations size one ledger before opening and keep fir
   const accesses = [0, 1].map(() => ({...sourceAccess,
     authorization: {authorize: async () => ({action: 'dispatch'})}}));
   const preparedSources = [];
-  const order = [], closes = [], stopped = [], ledger = {}, ref = {runDefinitionCid: 'run'};
+  const order = [], closes = [], stopped = [], diagnostics = [], ledger = {}, ref = {runDefinitionCid: 'run'};
   const capacities = [Object.freeze({}), Object.freeze({})];
   let cleanupBlocked = true, selections;
-  let physicalCloseConfirmed = false;
+  let frame = Object.freeze({cancellationRequested: false, revision: 1,
+    physicalCloseConfirmed: false, runDefinition: {wire: 'definition'}});
+  const sourceOriginals = new Map();
   for (let task = 0; task < 2; task++) {
     const occurrence = {stage: task, input: 0, task};
     preparedSources.push({occurrence, sourceAccess,
@@ -120,9 +123,15 @@ test('resumed two-input preparations size one ledger before opening and keep fir
         assert.equal(options.sourceAccess, accesses[task]);
         assert.equal(capturedDuckDBConfiguration(options.preparedSource).value, f.broad);
         if (task === 1) throw acquisitionFailure(new Error('second source failed'), 'stopped');
-        return {occurrence, checkedSource: {sourceDataPolicyCid: 'policy'},
+        const capture = {}, original = {evidence: {}, prepared: false};
+        sourceOriginals.set(capture, original);
+        return {capture, occurrence, checkedSource: {sourceDataPolicyCid: 'policy'},
           acquisition: {selection: options.preparedSource.selection},
-          issueSourceEvidence: async () => 'evidence',
+          async prepareSourceEvidenceOriginal(options) {
+            assert.equal(options.effectiveDataPolicyCid, 'policy');
+            assert.equal(original.prepared, false);
+            original.prepared = true;
+          },
           async close() { closes.push(0); if (cleanupBlocked) throw new Error('cleanup pending'); }};
       }}});
   }
@@ -139,15 +148,24 @@ test('resumed two-input preparations size one ledger before opening and keep fir
   };
   const owner = installNodeClientDispatchOwner({moon: f.moon,
     control: {runDefinitionRunId: () => 'run',
+      takeSourceEvidenceOriginal(capture) {
+        const original = sourceOriginals.get(capture);
+        assert.equal(original?.prepared, true);
+        sourceOriginals.delete(capture);
+        return original.evidence;
+      },
       runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
     journal: {reservePhysicalStart: () => true,
-      lookupRunDefinition: () => ({cancellationRequested: false, revision: 1,
-        physicalCloseConfirmed, runDefinition: {wire: 'definition'}}),
+      lookupRunDefinition: () => frame,
       lookupReconciliationState: () => undefined,
-      markPhysicalClose(...args) { stopped.push(args); physicalCloseConfirmed = true; }},
+      markPhysicalClose(actualRef, outcome, original) {
+        assert.strictEqual(original, frame);
+        stopped.push([actualRef, outcome]);
+        frame = Object.freeze({...frame, physicalCloseConfirmed: true});
+      }},
     store: {confirmCommittedIndex: async () => undefined},
     startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
-    observed() {}, planFor: () => ({runDefinition: {wire: 'definition'}}),
+    observed(event, detail) {diagnostics.push({event, detail});}, planFor: () => ({runDefinition: {wire: 'definition'}}),
     sourceProfile: {sources: []}, registry: '{}', values: '{}', fragment: '{}', ordered: '{}',
     now: () => '2026-10-03T00:00:00Z',
     checkpoints: {heldOrigin: () => undefined, acquisitionAccess: (_request, base, occurrence) => {
@@ -163,7 +181,8 @@ test('resumed two-input preparations size one ledger before opening and keep fir
     connection: {}, requestId: 'request'}, {}, {ref, runDefinition: {wire: 'definition'},
     dispatchReserved: false, cancellationRequested: false}, {preparedSources}), 'started');
   await owner.operation(ref);
-  assert.deepEqual(order, ['prepare-0', 'prepare-1', 'ledger', 'open-0', 'open-1']);
+  assert.deepEqual(order, ['prepare-0', 'prepare-1', 'ledger', 'open-0', 'open-1'],
+    inspect(diagnostics, {depth: 3}));
   assert.equal(selections.length, capacities.length);
   for (const [index, capacity] of capacities.entries()) {
     assert.equal(selections[index], capacity);

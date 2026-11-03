@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {inspect} from 'node:util';
 import { DuckDBInstance } from '@duckdb/node-api';
 import { authorizeLocalDatabase } from '../session.mjs';
 import { runNativeQuery } from '../native-query.mjs';
@@ -161,6 +162,15 @@ test('native coordinator requires both exact settled receipts and revokes failed
       const stopped = [];
       let computes = 0;
       let cancellationRequested = false, revision = 1, physicalCloseConfirmed = false;
+      let frame;
+      const lookupRunDefinition = () => {
+        if (frame === undefined || frame.revision !== revision ||
+            frame.physicalCloseConfirmed !== physicalCloseConfirmed) {
+          frame = Object.freeze({cancellationRequested, revision,
+            physicalCloseConfirmed, runDefinition: {wire: 'definition'}});
+        }
+        return frame;
+      };
       const access = {};
       const owner = installNodeClientDispatchOwner({
         moon: {clientProgramAcquisitionCount: () => 1,
@@ -183,10 +193,12 @@ test('native coordinator requires both exact settled receipts and revokes failed
         control: {runDefinitionRunId: () => 'physical-source-cleanup',
           runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
         journal: {reservePhysicalStart: () => true,
-          lookupRunDefinition: () => ({cancellationRequested, revision,
-            physicalCloseConfirmed, runDefinition: {wire: 'definition'}}),
+          lookupRunDefinition,
           lookupReconciliationState: () => undefined,
-          markPhysicalClose(...args) { stopped.push(args); physicalCloseConfirmed = true; }},
+          markPhysicalClose(actualRef, outcome, original) {
+            assert.strictEqual(original, lookupRunDefinition());
+            stopped.push([actualRef, outcome]); physicalCloseConfirmed = true;
+          }},
         store: {confirmCommittedIndex: async () => undefined},
         startRun: async () => ({kind: 'reserved', ref}),
         hostConnection: () => true, observed: () => {},
@@ -225,7 +237,9 @@ test('native coordinator requires both exact settled receipts and revokes failed
       return runNativeQuery(grant, factory([], 'success'), {...limits, maxRows: 1}, signal);
     });
     await over.start();
-    await over.owner.drain();
+    try {await over.owner.drain();} catch (cause) {
+      throw new Error(inspect(cause.failures, {depth: 5}), {cause});
+    }
     assert.deepEqual(over.stopped, [[over.ref, 'failed']]);
     assert.equal(opens, 1);
     assert.equal(over.computes(), 0);
@@ -309,7 +323,7 @@ test('native coordinator requires both exact settled receipts and revokes failed
       successfulReads++;
       const capture = await runNativeQuery(grant, factory([], 'success'), limits, signal);
       return {setup: {}, checkedSource: {},
-        issueSourceEvidence: () => { throw new Error('PostAcquisitionEvidenceFailed'); },
+        prepareSourceEvidenceOriginal: () => { throw new Error('PostAcquisitionEvidenceFailed'); },
         async close() {
           if (!permitCaptureClose) throw new Error('CaptureCloseInjected');
           capture.close(); physicalCloses++;
