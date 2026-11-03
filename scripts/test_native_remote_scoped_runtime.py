@@ -437,6 +437,34 @@ class HttpComponentRecipeControls(unittest.TestCase):
                             self.http.CURL_EXPORTS | {'curl_actql_native_tls_api_v3'})
         return library, dynamic, exports
 
+    def test_macos11_profile_is_explicit_and_cannot_retag_original_26_tls(self):
+        tls = self.http.TLS
+        profile = tls.command_profile('darwin-arm64', Path('/cc'), Path('/sdk'), Path('/owned'), '11.0')
+        self.assertEqual(profile['minimumMacOS'], '11.0')
+        self.assertEqual(profile['environment']['MACOSX_DEPLOYMENT_TARGET'], '11.0')
+        self.assertIn('-mmacosx-version-min=11.0', profile['environment']['CFLAGS'])
+        self.assertIn('-mmacosx-version-min=11.0', profile['compilerFlags'])
+        tls.validate_receipt_profile({}, 'darwin-arm64', '26.0')
+        with self.assertRaisesRegex(ValueError, 'deployment profile differs'):
+            tls.validate_receipt_profile({}, 'darwin-arm64', '11.0')
+        tls.validate_receipt_profile({'target': 'darwin-arm64', 'minimumMacOS': '11.0'},
+                                     'darwin-arm64', '11.0')
+        for target, sdk, minimum in (('linux-x64', None, '11.0'),
+                                     ('darwin-arm64', Path('/sdk'), '14.0')):
+            with self.subTest(target=target, minimum=minimum), self.assertRaises(ValueError):
+                tls.command_profile(target, Path('/cc'), sdk, Path('/owned'), minimum)
+
+    def test_static_tls_archive_members_cannot_hide_a_newer_deployment_requirement(self):
+        check = self.http.TLS.validate_archive_deployment
+        old = 'cmd LC_BUILD_VERSION\ncmdsize 24\nplatform 1\nminos 11.0\nsdk 26.0\n'
+        newer = 'cmd LC_BUILD_VERSION\ncmdsize 24\nplatform 1\nminos 26.0\nsdk 26.0\n'
+        check(old, '11.0')
+        check(old + newer, '26.0')
+        check('cmd LC_VERSION_MIN_MACOSX\ncmdsize 16\nversion 11.0\nsdk 26.0\n', '11.0')
+        for loads in (old + newer, old.replace('platform 1', 'platform 2'), ''):
+            with self.subTest(loads=loads), self.assertRaisesRegex(ValueError, 'deployment requirement'):
+                check(loads, '11.0')
+
     def test_linux_http_requires_the_existing_same_image_read_allocator_export(self):
         with tempfile.TemporaryDirectory() as temporary:
             library, dynamic, exports = self.image(Path(temporary))

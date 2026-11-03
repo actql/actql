@@ -66,7 +66,7 @@ function prepareNativeCommand(repository, destination, entry, {
 
 export function prepareNativeResidentHttpLibrary({
   receiptPath = process.env.ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT,
-  platform = process.platform, arch = process.arch,
+  platform = process.platform, arch = process.arch, execute = execFileSync,
 } = {}) {
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
     : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
@@ -80,6 +80,20 @@ export function prepareNativeResidentHttpLibrary({
   const recipe = JSON.parse(recipeBytes);
   assert.match(receipt.source, /^[0-9a-f]{40}$/u);
   assert.equal(receipt.target, target);
+  if (platform === 'darwin') {
+    const current = execute('/usr/bin/sw_vers', ['-productVersion'],
+      {encoding: 'utf8', timeout: 10000, maxBuffer: 4096}).trim();
+    assert.match(current, /^\d+\.\d+(?:\.\d+)?$/u);
+    assert(['11.0', '26.0'].includes(receipt.minimumMacOS), 'Selected HTTP macOS deployment profile required');
+    const version = value => {
+      const parts = value.split('.').map(Number).concat([0,0]).slice(0,3);
+      assert(parts.every(Number.isSafeInteger), 'Bounded actual macOS version required');
+      return parts;
+    };
+    const actual = version(current), minimum = version(receipt.minimumMacOS);
+    const difference = minimum.map((value,index) => value - actual[index]).find(value => value !== 0) ?? 0;
+    assert(difference <= 0, 'HTTP component deployment requirement exceeds this actual macOS');
+  } else assert.equal(receipt.minimumMacOS, null);
   assert.equal(receipt.recipe_sha256, createHash('sha256').update(recipeBytes).digest('hex'));
   assert.deepEqual(receipt.upstream, recipe.upstream);
   assert.equal(receipt.loaded, 0); assert.equal(receipt.initialized, 0);

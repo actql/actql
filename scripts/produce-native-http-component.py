@@ -78,11 +78,11 @@ def inspect_linux_component(library: Path, dynamic: str, exports: str) -> list[s
 def build(source: str, archive: Path, signature: Path, keyring: Path,
           openssl: Path, clang: Path, sdk: Path | None, make: Path, gpgv: Path,
           destination: Path, seconds: int, owned_openssl_receipt: Path | None = None,
-          target: str = 'darwin-arm64') -> dict:
+          target: str = 'darwin-arm64', minimum_macos: str | None = None) -> dict:
     actual = ('darwin-arm64' if sys.platform == 'darwin' and platform.machine() == 'arm64'
               else 'linux-x64' if sys.platform == 'linux' and platform.machine() == 'x86_64' else None)
     require(actual == target, 'Selected HTTP component target differs')
-    profile = TLS.command_profile(target, clang, sdk, destination)
+    profile = TLS.command_profile(target, clang, sdk, destination, minimum_macos)
     require(target != 'linux-x64' or owned_openssl_receipt is not None,
             'Linux HTTP requires the original owned TLS receipt')
     require(re.fullmatch(r'[a-f0-9]{40}', source) is not None and type(seconds) is int and seconds > 0,
@@ -112,8 +112,8 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
         selected.append(Path('/usr/bin/readelf'))
     if owned_openssl_receipt is not None:
         owned = json.loads(owned_openssl_receipt.read_bytes())
-        require(owned.get('target', 'darwin-arm64') == target and
-                owned['upstream'] == recipe['ownedOpenSSLSource'] and
+        TLS.validate_receipt_profile(owned, target, profile['minimumMacOS'])
+        require(owned['upstream'] == recipe['ownedOpenSSLSource'] and
                 Path(owned['stage']) == openssl, 'Owned TLS source/recipe differs')
         # Reuse the exact static input when its actual producer/source/tool
         # inputs remain unchanged. A later HTTP adapter child does not retag
@@ -129,6 +129,8 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
                          ROOT / 'src/platform_native/http_client/component_tls_lifetime.c',
                          ROOT / 'src/platform_native/http_client/component_tls_lifetime.h'])
     else:
+        require(profile['minimumMacOS'] == recipe['minimumMacOS'],
+                'A different deployment profile requires its original owned TLS receipt')
         tls_files = recipe['openssl']['files']
     for relative, expected in tls_files.items():
         path = openssl / relative
@@ -144,8 +146,9 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
     environment = {**profile['environment'], 'PKG_CONFIG': '/usr/bin/false', 'OPENSSL_CONF': '/dev/null'}
     if sdk is not None:
         environment.update({'DEVELOPER_DIR': '/Library/Developer/CommandLineTools',
-                            'MACOSX_DEPLOYMENT_TARGET': recipe['minimumMacOS'],
-                            'LDFLAGS': '-arch arm64 -isysroot ' + str(sdk)})
+                            'MACOSX_DEPLOYMENT_TARGET': profile['minimumMacOS'],
+                            'LDFLAGS': '-arch arm64 -isysroot ' + str(sdk) +
+                                (' -mmacosx-version-min=11.0' if profile['minimumMacOS'] == '11.0' else '')})
 
     def run(name: str, command: list[str], cwd: Path = ROOT) -> str:
         remaining = deadline - time.monotonic()
@@ -219,7 +222,8 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
             run('observed-imports', ['/usr/bin/nm', '-D', '--undefined-only', str(library)])
         else:
             observed_dependencies, minimum_macos = inspect_darwin_component(
-                library, openssl, prefix, recipe, owned_openssl_receipt, run)
+                library, openssl, prefix, {**recipe, 'minimumMacOS': profile['minimumMacOS']},
+                owned_openssl_receipt, run)
         shutil.copy2(source_root / 'COPYING', bundle / 'CURL-COPYING')
         shutil.copy2(openssl / 'LICENSE.txt', bundle / 'OPENSSL-LICENSE.txt')
     finally:
@@ -286,9 +290,10 @@ if __name__ == '__main__':
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--target', choices=('darwin-arm64', 'linux-x64'), default='darwin-arm64')
+    parser.add_argument('--minimum-macos', choices=('11.0', '26.0'))
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--owned-openssl-receipt', type=Path)
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.archive, args.signature, args.keyring,
         args.openssl, args.clang, args.sdk, args.make, args.gpgv, args.destination, args.seconds,
-        args.owned_openssl_receipt, args.target)))
+        args.owned_openssl_receipt, args.target, args.minimum_macos)))

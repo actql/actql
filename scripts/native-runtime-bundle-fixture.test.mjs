@@ -76,7 +76,8 @@ function httpFixture(t,target) {
   writeFileSync(path,bytes);
   const metadata=lstatSync(path);
   const recipeBytes=readFileSync(new URL('./native-http-component-source.json',import.meta.url));
-  const receipt={source:'b'.repeat(40),target,recipe_sha256:createHash('sha256').update(recipeBytes).digest('hex'),
+  const receipt={source:'b'.repeat(40),target,minimumMacOS:target==='darwin-arm64'?'11.0':null,
+    recipe_sha256:createHash('sha256').update(recipeBytes).digest('hex'),
     upstream:JSON.parse(recipeBytes).upstream,loaded:0,initialized:0,installed_supplier:false,
     inputs:['component_tls_lifetime.c','component_tls_lifetime.h'].map(name=>{
       const relative='src/platform_native/http_client/'+name;
@@ -95,21 +96,31 @@ function httpFixture(t,target) {
 test('Resident HTTP selection retains an original owned component on each actual target',t=>{
   for(const [platform,arch,target] of [['darwin','arm64','darwin-arm64'],['linux','x64','linux-x64']]){
     const f=httpFixture(t,target);
-    assert.equal(selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,platform,arch}),f.path);
+    assert.equal(selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,platform,arch,
+      execute:()=>{assert.equal(platform,'darwin');return '14.0';}}),f.path);
   }
 });
 test('Resident HTTP refuses stock, foreign, initialized or changed originals before loading',t=>{
   const changes=[f=>{f.receipt.ownedOpenSSLReceipt=null;},f=>{f.receipt.target='linux-x64';},
     f=>{f.receipt.initialized=1;},f=>{f.receipt.recipe_sha256='0'.repeat(64);},
     f=>{f.receipt.inputs[0].sha256='0'.repeat(64);},
+    f=>{f.receipt.minimumMacOS='26.0';},
     f=>{writeFileSync(f.path,'changed component');}];
   for(const change of changes){
     const f=httpFixture(t,'darwin-arm64');change(f);f.save();
     assert.throws(()=>selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,
-      platform:'darwin',arch:'arm64'}));
+      platform:'darwin',arch:'arm64',execute:()=> '14.0'}));
   }
   assert.throws(()=>selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:'',
     platform:'darwin',arch:'arm64'}),/original owned HTTP component receipt/u);
+});
+
+test('Resident HTTP keeps the original macOS 26 component profile only on an actual compatible OS',t=>{
+  const f=httpFixture(t,'darwin-arm64');f.receipt.minimumMacOS='26.0';f.save();
+  assert.equal(selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,
+    platform:'darwin',arch:'arm64',execute:()=> '26.0.1'}),f.path);
+  assert.throws(()=>selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,
+    platform:'darwin',arch:'arm64',execute:()=> '14.7.2'}),/exceeds this actual macOS/u);
 });
 
 test('bundle consumers select the same existing producer for actual Darwin and explicit Linux entry recipes',t=>{
