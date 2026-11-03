@@ -153,7 +153,7 @@ test('verified preparation reuse and refusal never call another producer',t=>{
   writeFileSync(join(f.destination,'inputs.json'),JSON.stringify([item(compiler)]));
   writeFileSync(join(f.root,'preparation.json'),JSON.stringify({source:'a'.repeat(40),target:'darwin-arm64',
     clang:compiler,sdk:join(f.tool,'SDK'),moon_home:f.tool,
-    entries:{native_runtime_bundle:item(join(f.destination,'build.json'))},components:{}}));
+    entries:{native_runtime_bundle:item(join(f.destination,'build.json'))},components:{},http:null}));
   const execute=(command,args)=>{assert.notEqual(command,'python3');return f.execute(command,args);};
   const reuse=()=>prepareNativeRuntimeBundle(f.root,f.destination,
     {execute,platform:'darwin',arch:'arm64',moonHome:f.tool,preparation:f.root});

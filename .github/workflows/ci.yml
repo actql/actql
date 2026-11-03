@@ -1135,7 +1135,7 @@ jobs:
       - name: Install existing scoped component producer dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test scoped bundle producer source and image metadata refusals
-        run: python3 -B -m unittest scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
+        run: python3 -B -m unittest scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_native_resident_http_preparation.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
       - name: Test selected Linux x64 process-provider ABI and original physical custody
@@ -1160,7 +1160,7 @@ jobs:
           openssl_development="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].package; p.name+"="+p.version')"
           openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
           sudo apt-get update
-          sudo apt-get install --yes "$openssl_development" "$openssl_runtime"
+          sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
       - name: Prepare exact-source scoped Native commands and components once
         timeout-minutes: 15
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
@@ -1359,6 +1359,14 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test macOS local execution ownership and cancellation
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
+      - name: Ensure the original curl signature verifier tools are available
+        timeout-minutes: 5
+        run: |
+          if ! command -v gpg >/dev/null || ! command -v gpgv >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install gnupg
+          fi
+          command -v gpg
+          command -v gpgv
       - name: Prepare exact-source scoped Native commands and components once
         timeout-minutes: 15
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900

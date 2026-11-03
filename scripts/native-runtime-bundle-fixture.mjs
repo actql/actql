@@ -6,7 +6,9 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
-import {preparedNativeCommand, preparedNativeComponents} from './native-preparation-originals.mjs';
+import {fileURLToPath} from 'node:url';
+import {preparedNativeCommand, preparedNativeComponents, preparedNativeHttpReceipt,
+  verifyNativeHttpPreparation} from './native-preparation-originals.mjs';
 
 export function prepareNativeRuntimeBundle(repository, destination, options) {
   return prepareNativeCommand(repository, destination, 'native_runtime_bundle', options);
@@ -67,12 +69,23 @@ function prepareNativeCommand(repository, destination, entry, {
 export function prepareNativeResidentHttpLibrary({
   receiptPath = process.env.ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT,
   platform = process.platform, arch = process.arch, execute = execFileSync,
+  preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
 } = {}) {
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
     : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
   assert(target, 'No selected Resident HTTP component for this actual platform');
   assert(typeof receiptPath === 'string' && receiptPath.length > 0,
     'The original owned HTTP component receipt is required; stock libcurl is not a fallback');
+  if(preparation!==undefined && preparation!==null) {
+    const repository=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
+    const run=(command,args)=>execute(command,args,{cwd:repository,encoding:'utf8',timeout:60000});
+    const source=run('git',['rev-parse','HEAD']).trim();
+    assert.equal(run('git',['status','--porcelain']),'');
+    const clang=realpathSync(platform==='darwin'?run('xcrun',['--find','clang']).trim()
+      :run('sh',['-c','command -v clang']).trim());
+    const sdk=platform==='darwin'?realpathSync(run('xcrun',['--show-sdk-path']).trim()):undefined;
+    assert.equal(receiptPath,preparedNativeHttpReceipt(preparation,{source,target,clang,sdk}));
+  }
   const receiptFile = lstatSync(receiptPath);
   assert(receiptFile.isFile() && !receiptFile.isSymbolicLink() && receiptFile.size <= 4 * 1024 ** 2);
   const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
@@ -122,6 +135,40 @@ export function prepareNativeResidentHttpLibrary({
     for (const key of ['dev','ino','size','mode','mtimeMs','ctimeMs']) assert.equal(after[key], original[key]);
   }
   return item.path;
+}
+
+export function prepareNativeResidentHttpComponent(repository,destination,{
+  execute=execFileSync,platform=process.platform,arch=process.arch,seconds=900,
+  curlArchive=process.env.ACTQL_TEST_NATIVE_HTTP_CURL_ARCHIVE,
+  curlSignature=process.env.ACTQL_TEST_NATIVE_HTTP_CURL_SIGNATURE,
+  releaseKey=process.env.ACTQL_TEST_NATIVE_HTTP_RELEASE_KEY,
+  tlsArchive=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE,
+}={}) {
+  assert(Number.isSafeInteger(seconds) && seconds>0 && seconds<=1800);
+  const target=platform==='darwin' && arch==='arm64'?'darwin-arm64'
+    :platform==='linux' && arch==='x64'?'linux-x64':undefined;
+  assert(target,'No selected Resident HTTP preparation target');
+  repository=realpathSync(repository);
+  destination=join(realpathSync(dirname(resolve(destination))),basename(destination));
+  const run=(command,args)=>execute(command,args,{cwd:repository,encoding:'utf8',
+    timeout:(seconds+30)*1000,maxBuffer:8*1024**2});
+  const source=run('git',['rev-parse','HEAD']).trim();assert.match(source,/^[0-9a-f]{40}$/u);
+  assert.equal(run('git',['status','--porcelain']),'');
+  const clang=realpathSync(platform==='darwin'?run('xcrun',['--find','clang']).trim()
+    :run('sh',['-c','command -v clang']).trim());
+  const sdk=platform==='darwin'?realpathSync(run('xcrun',['--show-sdk-path']).trim()):undefined;
+  const tools=['make','perl','gpg','gpgv'].flatMap(name=>['--'+name,
+    realpathSync(run('sh',['-c','command -v '+name]).trim())]);
+  run('python3',[join(repository,'scripts/prepare-native-resident-http-component.py'),
+    '--source',source,'--target',target,'--clang',clang,
+    ...(sdk===undefined?[]:['--sdk',sdk]),...tools,'--destination',destination,'--seconds',String(seconds),
+    ...[['curl-archive',curlArchive],['curl-signature',curlSignature],['release-key',releaseKey],
+      ['tls-archive',tlsArchive]].flatMap(([name,path])=>path===undefined?[]:['--'+name,realpathSync(path)])]);
+  const receipt=verifyNativeHttpPreparation(join(destination,'preparation.json'),{source,target});
+  prepareNativeResidentHttpLibrary({receiptPath:receipt,platform,arch,execute,preparation:null});
+  assert.equal(run('git',['rev-parse','HEAD']).trim(),source);
+  assert.equal(run('git',['status','--porcelain']),'');
+  return receipt;
 }
 
 export function prepareNativeRuntimeBundleLibraries(repository, destination, {

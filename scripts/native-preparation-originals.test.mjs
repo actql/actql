@@ -2,10 +2,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,writeFileSync} from 'node:fs';
+import {lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {preparedNativeCommand,preparedNativeComponents} from './native-preparation-originals.mjs';
+import {preparedNativeCommand,preparedNativeComponents,preparedNativeHttpReceipt} from './native-preparation-originals.mjs';
 
 const fingerprint=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
 const descriptor=path=>({path,...fingerprint(readFileSync(path))});
@@ -33,7 +33,7 @@ function fixture(t) {
       library:fingerprint(readFileSync(library))}};
     body[name]=descriptor(library);
   }
-  const record={source,target,clang,sdk,moon_home:root,entries:{},components:{}};
+  const record={source,target,clang,sdk,moon_home:root,entries:{},components:{},http:null};
   function publish() {
     for(const [name,item] of Object.entries(receipts)) {
       writeFileSync(item.path,JSON.stringify(item.body));body.producer_receipts[name]=descriptor(item.path);
@@ -50,6 +50,48 @@ test('same-source selected public artifacts retain both command and component in
   const f=fixture(t);
   assert.equal(preparedNativeCommand(f.root,'native_runtime_bundle',f.selected),f.command);
   assert.equal(preparedNativeComponents(f.root,f.selected),f.components);
+});
+
+function httpPreparation(t) {
+  const f=fixture(t),directory=join(f.root,'http');
+  mkdirSync(join(directory,'owned-tls/stage'),{recursive:true});
+  mkdirSync(join(directory,'component/bundle'),{recursive:true});
+  const recipe=JSON.parse(readFileSync(new URL('./native-http-component-source.json',import.meta.url)));
+  const pin=descriptor(f.header),library=join(directory,'component/bundle/libcurl.4.dylib');
+  writeFileSync(library,'Source-only owned HTTP bytes; never loaded');
+  const tlsPath=join(directory,'owned-tls/build.json'),componentPath=join(directory,'component/build.json');
+  const tls={source:f.source,target:f.target,minimumMacOS:'11.0',loaded:0,inputs:[pin],
+    stage:join(directory,'owned-tls/stage'),upstream:recipe.ownedOpenSSLSource,
+    compiledLibraries:2,installedSupplier:false,files:[pin]};
+  const identity=lstatSync(library);
+  const component={source:f.source,target:f.target,minimumMacOS:'11.0',loaded:0,initialized:0,
+    installed_supplier:false,inputs:[pin],upstream:recipe.upstream,library:{...descriptor(library),
+      dev:identity.dev,ino:identity.ino,mode:identity.mode}};
+  const body={source:f.source,target:f.target,minimumMacOS:'11.0',loaded:0,initialized:0,
+    installed_supplier:false,inputs:[pin]};
+  function publish() {
+    writeFileSync(tlsPath,JSON.stringify(tls));body.tls=descriptor(tlsPath);
+    component.ownedOpenSSLReceipt=descriptor(tlsPath);
+    writeFileSync(componentPath,JSON.stringify(component));body.component=descriptor(componentPath);
+    writeFileSync(join(directory,'preparation.json'),JSON.stringify(body));
+    f.record.http=descriptor(join(directory,'preparation.json'));f.publish();
+  }
+  publish();return {...f,tls,component,body,componentPath,library,publishHttp:publish};
+}
+test('Resident preparation retains the exact same-source owned TLS and HTTP originals',t=>{
+  const f=httpPreparation(t);
+  assert.equal(preparedNativeHttpReceipt(f.root,f.selected),f.componentPath);
+});
+test('Resident preparation refuses incomplete, foreign, old deployment or changed originals',t=>{
+  for(const change of [f=>{f.record.http=null;f.publish();},
+    f=>{f.tls.minimumMacOS='26.0';f.publishHttp();},
+    f=>{f.component.source='b'.repeat(40);f.publishHttp();},
+    f=>{f.component.library.ino++;f.publishHttp();},
+    f=>{writeFileSync(f.header,'changed original TLS compiler input');},
+    f=>{writeFileSync(f.library,'changed HTTP library');}]) {
+    const f=httpPreparation(t);change(f);
+    assert.throws(()=>preparedNativeHttpReceipt(f.root,f.selected));
+  }
 });
 test('foreign source, target, compiler or command selection refuses without a substitute',t=>{
   const f=fixture(t);

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isAbsolute, join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 function data(path, item) {
   assert.equal(typeof path, 'string'); assert(isAbsolute(path));
@@ -18,6 +19,9 @@ function data(path, item) {
     assert.equal(bytes.length,item.bytes,'Original preparation input byte count changed');
     assert.equal(createHash('sha256').update(bytes).digest('hex'),item.sha256,
       'Original preparation input digest changed');
+    for(const key of ['dev','ino','mode'])if(item[key]!==undefined) {
+      assert(Number.isSafeInteger(item[key]));assert.equal(before[key],BigInt(item[key]));
+    }
   }
   return bytes;
 }
@@ -46,7 +50,7 @@ function index(root,selected) {
   root=realpathSync(root);
   const record=json(join(root,'preparation.json'));
   assert.deepEqual(Object.keys(record).sort(),
-    ['clang','components','entries','moon_home','sdk','source','target']);
+    ['clang','components','entries','http','moon_home','sdk','source','target']);
   assert(Object.keys(record.entries).length>0);
   for(const entry of Object.keys(record.entries))assert(['native_runtime_bundle','native_remote_resident_site'].includes(entry));
   for(const key of ['source','target','clang'])assert.equal(record[key],selected[key]);
@@ -54,10 +58,45 @@ function index(root,selected) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
+export function verifyNativeHttpPreparation(path,selected,item) {
+  const directory=realpathSync(join(path,'..')),body=json(path,item);
+  for(const key of ['source','target'])assert.equal(body[key],selected[key]);
+  const minimum=selected.target==='darwin-arm64'?'11.0':null;
+  assert.equal(body.minimumMacOS,minimum);
+  assert.equal(body.loaded,0);assert.equal(body.initialized,0);assert.equal(body.installed_supplier,false);
+  inventory(body.inputs);
+  assert.equal(body.tls.path,join(directory,'owned-tls/build.json'));
+  assert.equal(body.component.path,join(directory,'component/build.json'));
+  const tls=json(body.tls.path,body.tls),component=json(body.component.path,body.component);
+  const recipe=json(fileURLToPath(new URL('./native-http-component-source.json',import.meta.url)));
+  for(const receipt of [tls,component]) {
+    assert.equal(receipt.source,selected.source);assert.equal(receipt.target,selected.target);
+    assert.equal(receipt.minimumMacOS,minimum);assert.equal(receipt.loaded,0);
+    inventory(receipt.inputs);
+  }
+  assert.equal(tls.stage,join(directory,'owned-tls/stage'));
+  assert.deepEqual(tls.upstream,recipe.ownedOpenSSLSource);
+  assert.equal(tls.compiledLibraries,2);assert.equal(tls.installedSupplier,false);
+  inventory(tls.files);
+  assert.deepEqual(component.upstream,recipe.upstream);
+  assert.equal(component.initialized,0);assert.equal(component.installed_supplier,false);
+  for(const key of ['path','bytes','sha256'])assert.equal(component.ownedOpenSSLReceipt[key],body.tls[key]);
+  assert.equal(component.library.path,join(directory,'component/bundle',
+    selected.target==='darwin-arm64'?'libcurl.4.dylib':'libcurl.so.4'));
+  verifyOriginal(component.library);
+  return body.component.path;
+}
+export function preparedNativeHttpReceipt(root,selected) {
+  const {root:canonical,record}=index(root,selected);
+  assert(record.http,'Complete original HTTP preparation is required for Resident');
+  const path=join(canonical,'http/preparation.json');assert.equal(record.http.path,path);
+  return verifyNativeHttpPreparation(path,selected,record.http);
+}
 export function preparedNativeCommand(root,entry,selected) {
   const {root:canonical,record}=index(root,selected);
   assert(['native_runtime_bundle','native_remote_resident_site'].includes(entry));
   const directory=join(canonical,entry),item=record.entries[entry];assert(item);
+  if(entry==='native_remote_resident_site')assert(record.http,'Resident requires complete original HTTP preparation');
   assert.equal(item.path,join(directory,'build.json'));
   const body=json(item.path,item);
   assert.equal(body.source,selected.source);assert.equal(body.target,selected.target);
