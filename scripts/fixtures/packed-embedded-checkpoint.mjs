@@ -35,13 +35,22 @@ function checkpointFailureData(error) {
 }
 
 // The existing Host event may put an error message in `code`. Retain only
-// its own bounded primary code and numeric tags, never refs or opaque causes.
+// fixed authored dispatch labels from that field, never arbitrary messages.
+// An emitted label remains DATA, not proof of its origin or nonacceptance.
 function checkpointDispatchFailureData(detail) {
   if (detail === null || typeof detail !== 'object' || nodeTypes.isProxy(detail)) return undefined;
   const data = {};
   const code = Object.getOwnPropertyDescriptor(detail, 'primaryCode');
   if (code && Object.hasOwn(code, 'value') && typeof code.value === 'string' &&
       /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(code.value)) data.primaryCode = code.value;
+  const emittedCodes = ['InstalledManagedComputeRunUnavailable', 'PreparationHostCustodyUnavailable',
+    'DuplicatePreparationHostBorrow', 'ForeignPreparationHostCustody', 'InstalledManagedComputeHostUnavailable',
+    'ClientProgramNeedsInputs', 'PreparationPublicationUnavailable', 'ClientDispatchCleanupOwnerAlreadyRetained',
+    'ClientDispatchCleanupOwnerInvalid', 'CapturedRunPublicationFailed', 'CapturedRunExecutionFailed',
+    'ClientRunStopObservationChanged', 'ClientDispatchCleanupPending'];
+  const emitted = Object.getOwnPropertyDescriptor(detail, 'code');
+  if (emitted && Object.hasOwn(emitted, 'value') && typeof emitted.value === 'string' &&
+      emittedCodes.includes(emitted.value)) data.emittedCode = emitted.value;
   for (const key of ['issueTag', 'nestedIssueTag']) {
     const field = Object.getOwnPropertyDescriptor(detail, key);
     if (field && Object.hasOwn(field, 'value') && Number.isSafeInteger(field.value) &&
@@ -80,7 +89,9 @@ authorization.observe = (name, detail) => {
 let firstResumeFailure, retryClaimAfterFailure = false, recoveryAfterFailure = false;
 authorization.faultInjection = (name, detail) => {
   appendFileSync('embedded-events.log', `${name}\n`);
-  if (name === 'resume_failed' || name === 'sweep_failed') {
+  if (name === 'dispatch_reserved' || name === 'physical_start_reserved') {
+    record(`first-${name}`, {});
+  } else if (name === 'resume_failed' || name === 'sweep_failed') {
     const data = {event: name, code: detail?.code ?? null};
     firstResumeFailure ??= data;
     record('first-resume-failure', data);

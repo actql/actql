@@ -424,7 +424,7 @@ test('packed checkpoint dispatch capture excludes messages, identities, getters 
   let reads = 0;
   const getter = {get() {reads++; throw new Error('must not inspect');}};
   const detail = Object.create({primaryCode: 'InheritedCode', issueTag: 1});
-  for (const key of ['primaryCode', 'issueTag', 'nestedIssueTag', 'ref', 'cause']) {
+  for (const key of ['primaryCode', 'code', 'issueTag', 'nestedIssueTag', 'ref', 'cause']) {
     Object.defineProperty(detail, key, getter);
   }
   assert.deepEqual(capture(detail), {});
@@ -447,6 +447,54 @@ test('packed checkpoint dispatch capture excludes messages, identities, getters 
   }
   assert.deepEqual(capture({issueTag: 0, nestedIssueTag: 65535}), {issueTag: 0, nestedIssueTag: 65535});
   assert.equal(reads, 0);
+});
+
+test('packed checkpoint emitted codes retain only exact authored labels without promoting a primary', () => {
+  const {functionSource} = checkpointObservationDeclarations();
+  const capture = new Function('nodeTypes', functionSource('checkpointDispatchFailureData') +
+    ';return checkpointDispatchFailureData;')(nodeTypes);
+  for (const code of ['InstalledManagedComputeRunUnavailable', 'CapturedRunPublicationFailed']) {
+    assert.deepEqual(capture({code}), {emittedCode: code});
+  }
+  for (const code of ['PrivateButIdentifierShaped', 'private message', 'ClientDispatchFailed',
+    'InstalledManagedComputeRunUnavailable:private-value', '', 1,
+    {toString() {throw new Error('must not coerce');}}]) assert.deepEqual(capture({code}), {});
+  const declaration = parseJavaScript(functionSource('checkpointDispatchFailureData'),
+    {ecmaVersion: 'latest', sourceType: 'module'}).body[0];
+  const labels = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'emittedCodes')).declarations[0].init.elements;
+  const dispatch = readFileSync(new URL('../adapters/host-node/client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const entry = readFileSync(new URL('../adapters/host-node/entry.mjs', import.meta.url), 'utf8');
+  for (const label of labels) {
+    assert.equal(label.type, 'Literal');
+    assert.equal(typeof label.value, 'string');
+    assert(dispatch.includes(`new Error('${label.value}')`) ||
+      dispatch.includes(`new TypeError('${label.value}')`) || entry.includes(`= '${label.value}'`),
+    `Missing original authored dispatch label: ${label.value}`);
+  }
+});
+
+test('packed checkpoint first dispatch hooks retain no capabilities and do not repeat', () => {
+  const {source, ast, functionSource} = checkpointObservationDeclarations();
+  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
+    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'faultInjection');
+  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
+  const records = [], events = [];
+  const recordOriginal = new Function(functionSource('checkpointObservationRecord') +
+    ';return checkpointObservationRecord;')();
+  const observe = new Function('record', 'appendFileSync', `
+    let firstResumeFailure, retryClaimAfterFailure=false, recoveryAfterFailure=false;
+    return ${callback};`)((kind, data) => recordOriginal(records, kind, data),
+    (path, text) => {assert.equal(path, 'embedded-events.log'); events.push(text);});
+  const opaque = new Proxy({}, {get() {throw new Error('must not inspect original capability');}});
+  for (let index = 0; index < 100; index++) {
+    assert.equal(observe('dispatch_reserved', opaque), undefined);
+    assert.equal(observe('physical_start_reserved', opaque), undefined);
+  }
+  assert.deepEqual(records, [{kind: 'first-dispatch_reserved', data: {}},
+    {kind: 'first-physical_start_reserved', data: {}}]);
+  assert.equal(events.length, 200, 'the original event log remains unchanged');
 });
 
 test('packed checkpoint observes only the existing dispatch event and preserves its first DATA', () => {
