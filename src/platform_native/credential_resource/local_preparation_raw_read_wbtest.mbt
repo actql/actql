@@ -53,8 +53,12 @@ fn raw_lookup_native_fixture(
   let directory = label + "-" + @env.now().to_string()
   let root = @filesystem.open_private_root(root_path).unwrap()
   root.create_directory(directory).unwrap() |> ignore
-  let store_root = root_path + "/" + directory
-  let journal_path = store_root + "/original-credential.sqlite"
+  // The original credential Journal and Publication Store own sibling roots.
+  // A fresh Store must not inherit the unmarked Journal database as its format.
+  let store_directory = directory + "-publication"
+  root.create_directory(store_directory).unwrap() |> ignore
+  let store_root = root_path + "/" + store_directory
+  let journal_path = root_path + "/" + directory + "/original-credential.sqlite"
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let database = sqlite.open_database(journal_path, 65536L).unwrap()
   let crypto = @signature.load_library(crypto_path).unwrap()
