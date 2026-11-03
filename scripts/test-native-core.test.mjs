@@ -195,6 +195,36 @@ test('Reader custody callbacks preserve the original empty Moon driver command',
   assert.doesNotThrow(() => JSON.parse(readFileSync(metadata, 'utf8')));
 });
 
+test('Native Core full campaign remains selected after callback diagnosis failure', () => {
+  const core = workflow.jobs.core;
+  const start = core.steps.findIndex(step => step.id === 'native-compiler-diagnostic-start');
+  const campaign = core.steps.indexOf(coreStep);
+  assert.deepEqual(core.steps.slice(start + 1, campaign).map(step => step.name),
+    ['Test actual Native Reader callbacks and original empty compiler driver']);
+  assert.equal(core['continue-on-error'], undefined);
+  assert.equal(core.steps[start + 1]['continue-on-error'], undefined);
+  assert.equal(coreStep['continue-on-error'], undefined);
+  assert.equal(typeof coreStep.if, 'string');
+  const expression = coreStep.if.trim().slice(3, -2);
+  for (const [target, previousSuccess, startOutcome, cancelled, expected] of [
+    ['native', true, 'success', false, true],
+    ['native', false, 'success', false, true],
+    ['native', false, 'skipped', false, false],
+    ['native', false, 'failure', false, false],
+    ['native', false, 'success', true, false],
+    ['js', true, 'skipped', false, true],
+    ['js', false, 'skipped', false, false],
+    ['wasm', true, 'skipped', false, true],
+    ['wasm', false, 'skipped', false, false],
+  ]) {
+    const selected = runInNewContext(expression, {matrix: {target},
+      steps: {'native-compiler-diagnostic-start': {outcome: startOutcome}},
+      success: () => previousSuccess && !cancelled, cancelled: () => cancelled},
+    {timeout: 100});
+    assert.equal(selected, expected, `${target}/${previousSuccess}/${startOutcome}/${cancelled}`);
+  }
+});
+
 test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
   const core = workflow.jobs.core;
   const expression = core['runs-on'];

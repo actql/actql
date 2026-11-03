@@ -319,6 +319,12 @@ jobs:
           scripts/test-native-core.test.mjs
       # Use one test job per actual runner CPU. Building is unaffected.
       - name: Test common core
+        # A diagnostic failure still fails this job, but must not suppress the
+        # original Native campaign after its actual prerequisites succeeded.
+        if: >-
+          ${{ (matrix.target == 'native' && !cancelled() &&
+               steps['native-compiler-diagnostic-start'].outcome == 'success') ||
+              (matrix.target != 'native' && success()) }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
