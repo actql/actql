@@ -8,10 +8,12 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
+import {types as nodeTypes} from 'node:util';
 import './two-source-optional-effect.test.mjs';
 import './composition-release-input.test.mjs';
 import './table-ctas-result-controls.test.mjs';
 import {parse} from 'yaml';
+import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
   './fixtures/composed-infer-effect-input.mjs';
@@ -320,4 +322,97 @@ test('admission-only flags narrow the existing Source case without ordinary Effe
       targetReadApprovalEnabled: false, compositionCases: ['source'], optionalCases: [],
     });
   }
+});
+
+// Pure fixture observation controls. These execute no Client, Host or Journal.
+function checkpointObservationDeclarations() {
+  const source = readFileSync(new URL('./fixtures/packed-embedded-checkpoint.mjs', import.meta.url), 'utf8');
+  const ast = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const functionSource = name => {
+    const declaration = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
+    assert(declaration, `Missing actual fixture declaration ${name}`);
+    return source.slice(declaration.start, declaration.end);
+  };
+  return {source, ast, functionSource};
+}
+
+test('packed checkpoint observation covers the configured retry inside the original child budget', () => {
+  const {functionSource} = checkpointObservationDeclarations();
+  const schedule = new Function('assert', functionSource('checkpointObservationSchedule') +
+    ';return checkpointObservationSchedule;')(assert);
+  assert.deepEqual(schedule(10000), {pollMs: 25, retryMs: 10100, polls: 808});
+  assert.equal(schedule(10000).polls * schedule(10000).pollMs, 20200);
+  assert(3 * 20200 < 120000);
+  for (const invalid of [undefined, 0, -1, 999, 1000.5, 20000]) assert.throws(() => schedule(invalid));
+});
+
+test('packed checkpoint first diagnostic and public pending observations cannot overwrite each other', () => {
+  const {source, ast, functionSource} = checkpointObservationDeclarations();
+  const recordOriginal = new Function(functionSource('checkpointObservationRecord') +
+    ';return checkpointObservationRecord;')();
+  const records = [], events = [];
+  const record = (kind, data) => recordOriginal(records, kind, data);
+  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
+    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'faultInjection');
+  assert(assignment);
+  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
+  const observe = new Function('record', 'appendFileSync', `
+    let firstResumeFailure, retryClaimAfterFailure=false, recoveryAfterFailure=false;
+    return ${callback};`)(record, (path, value) => {assert.equal(path, 'embedded-events.log'); events.push(value);});
+  record('first-lookup', {kind: 'held', state: 'resuming'});
+  observe('resume_claimed', {generation: 1});
+  observe('resume_failed', {code: 'OriginalResumeFailure'});
+  observe('sweep_failed', {code: 'LaterDifferentFailure'});
+  observe('resume_claimed', {generation: 2});
+  observe('run_observed', {});
+  record('first-lookup', {kind: 'found'});
+  assert.deepEqual(records.find(item => item.kind === 'first-lookup').data, {kind: 'held', state: 'resuming'});
+  assert.deepEqual(records.find(item => item.kind === 'first-resume-failure').data,
+    {event: 'resume_failed', code: 'OriginalResumeFailure'});
+  assert.deepEqual(records.find(item => item.kind === 'resume-claim-after-failure').data, {generation: 2});
+  assert(records.some(item => item.kind === 'run-observed-after-failure'));
+  assert.equal(records.some(item => item.kind === 'busy'), false, 'a held lookup is not a typed busy cause');
+  assert.deepEqual(events, ['resume_claimed\n', 'resume_failed\n', 'sweep_failed\n',
+    'resume_claimed\n', 'run_observed\n']);
+});
+
+test('packed checkpoint close records actual return and preserves the first pending failure', async () => {
+  const {functionSource} = checkpointObservationDeclarations();
+  const records = [], record = (kind, data) => records.push({kind, data});
+  let release;
+  const first = {close() {assert.equal(this, first); return new Promise(resolve => {release = resolve;});}};
+  const owner = new Function('record', 'initialClient', 'nodeTypes', `let client=initialClient; const closedClients=new WeakSet();
+    ${functionSource('checkpointFailureData')}
+    ${functionSource('closeClient')}
+    return {closeClient,setClient(value){client=value;}};`)(record, first, nodeTypes);
+  const closing = owner.closeClient('first');
+  assert.deepEqual(records, [{kind: 'close-attempt:first', data: {first: true}}]);
+  release(); await closing;
+  assert.deepEqual(records.at(-1), {kind: 'close-returned:first', data: {first: true}});
+  const failure = Object.assign(new Error('same pending cleanup'), {code: 'ClientCleanupPending'});
+  const pending = {close() {assert.equal(this, pending); throw failure;}};
+  owner.setClient(pending);
+  await assert.rejects(owner.closeClient('pending'), error => error === failure);
+  assert.deepEqual(records.at(-1), {kind: 'close-failed:pending',
+    data: {first: true, name: null, code: 'ClientCleanupPending'}});
+  assert.equal(records.some(item => item.kind === 'close-returned:pending'), false);
+});
+
+test('packed checkpoint failure capture reads only own scalar DATA without getters or opaque causes', () => {
+  const {functionSource} = checkpointObservationDeclarations();
+  const capture = new Function('nodeTypes', functionSource('checkpointFailureData') +
+    ';return checkpointFailureData;')(nodeTypes);
+  let reads = 0;
+  const error = new Error('original scalar code');
+  Object.defineProperty(error, 'code', {get() {reads++; throw new Error('must not run');}});
+  Object.defineProperty(error, 'cause', {get() {reads++; throw new Error('opaque cause');}});
+  assert.deepEqual(capture(error), {name: null, code: null});
+  const proxy = new Proxy({}, {getOwnPropertyDescriptor() {reads++; throw new Error('opaque proxy');}});
+  for (const value of [proxy, undefined, null, 1, 'failure']) {
+    assert.deepEqual(capture(value), {name: null, code: null});
+  }
+  assert.equal(reads, 0);
+  assert.deepEqual(capture({name: 'OriginalPublicFailure', code: 'UnexpectedOriginalCode'}),
+    {name: 'OriginalPublicFailure', code: 'UnexpectedOriginalCode'});
 });
