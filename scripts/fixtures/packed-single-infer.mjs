@@ -8,10 +8,36 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+import {types as nodeTypes} from 'node:util';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, cid, configuration, program, expected} from
   './installed-infer-fixture.mjs';
+
+// Preserve one existing Host admission event in the command's existing stderr
+// evidence. These labels/tags are DATA, not an acceptance or failure verdict.
+// Never serialize errors, opaque compiled values, getters or business inputs.
+function inferPreparationFailureData(detail) {
+  const own = (record, key) => {
+    if (record === null || typeof record !== 'object' || nodeTypes.isProxy(record)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(record, key);
+    return field && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  const boundary = own(detail, 'boundary');
+  if (!['original_model_compilation', 'model_execution', 'model_dependencies',
+    'model_provider', 'model_dispatch', 'model_admission', 'task_compilation',
+    'model_admission.original_startup', 'model_admission.compute_suffix',
+    'model_admission.egress', 'model_admission.account', 'model_admission.plan_graph',
+    'model_admission.provider_binding'].includes(boundary)) return undefined;
+  const data = {boundary};
+  for (const key of ['code', 'typedCause']) {
+    const value = own(detail, key);
+    if (typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(value)) data[key] = value;
+  }
+  const tag = own(own(detail, 'cause'), '$tag');
+  if (Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535) data.issueTag = tag;
+  return Object.freeze(data);
+}
 
 const mode = process.argv[2];
 const transport = process.argv[3] ?? 'local';
@@ -75,6 +101,14 @@ const physicalStop = new Promise(resolve => { releasePhysicalStop = resolve; });
 let stopBeforeAcknowledgement;
 let started;
 const ready = new Promise(resolve => { started = resolve; });
+let inferFailureObserved = false;
+authorization.observe = (name, detail) => {
+  if (name !== 'infer_preparation_rejected' || inferFailureObserved) return;
+  const data = inferPreparationFailureData(detail);
+  if (data === undefined) return;
+  inferFailureObserved = true;
+  console.error(JSON.stringify({event: name, ...data}));
+};
 authorization.faultInjection = async name => {
   if (mode === 'approval-stop-cancel' && name === 'infer_model_settlement_committed' && !cancelled) {
     await ready;

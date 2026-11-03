@@ -34,6 +34,57 @@ const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script]
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
 });
 
+test('packed INFER original preparation evidence excludes opaque values getters and proxy traps', () => {
+  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'inferPreparationFailureData');
+  assert(definition);
+  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
+    ';return inferPreparationFailureData;')(nodeTypes);
+  let getterReads = 0;
+  const cause = {$tag: 3};
+  Object.defineProperty(cause, 'message', {get() {getterReads++; throw new Error('private');}});
+  const detail = {boundary: 'model_execution', code: 'MoonBitHostFailure', typedCause: 'InvalidInput',
+    cause, privateInput: 'never disclose'};
+  assert.deepEqual(project(detail), {boundary: 'model_execution', code: 'MoonBitHostFailure',
+    typedCause: 'InvalidInput', issueTag: 3});
+  assert(Object.isFrozen(project(detail)));
+  const accessor = {boundary: 'model_provider'};
+  for (const key of ['code', 'typedCause', 'cause']) Object.defineProperty(accessor, key,
+    {get() {getterReads++; throw new Error('private');}});
+  assert.deepEqual(project(accessor), {boundary: 'model_provider'});
+  const proxy = new Proxy({}, {get() {getterReads++; throw new Error('private');},
+    getOwnPropertyDescriptor() {getterReads++; throw new Error('private');}});
+  assert.equal(project(proxy), undefined);
+  assert.deepEqual(project({boundary: 'model_provider', cause: proxy}), {boundary: 'model_provider'});
+  assert.equal(project({boundary: 'private-business-input'}), undefined);
+  assert.deepEqual(project({boundary: 'model_execution', code: 'not a typed code',
+    typedCause: 'x'.repeat(129), cause: {$tag: -1}}), {boundary: 'model_execution'});
+  assert.equal(getterReads, 0);
+});
+
+test('packed INFER keeps at most its first original admission event in existing stderr evidence', () => {
+  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AssignmentExpression' &&
+    node.expression.left.object?.name === 'authorization' &&
+    node.expression.left.property?.name === 'observe');
+  assert(assignment);
+  const lines = [], detail = Object.freeze({boundary: 'model_provider'});
+  const observe = new Function('authorization', 'inferPreparationFailureData', 'console',
+    'let inferFailureObserved=false;' + script.slice(assignment.start, assignment.end) +
+    ';return authorization.observe;')({}, value => {
+    assert.equal(value, detail); return value;
+  }, {error: line => lines.push(line)});
+  observe('other_event', detail);
+  observe('infer_preparation_rejected', detail);
+  observe('infer_preparation_rejected', detail);
+  assert.deepEqual(lines.map(line => JSON.parse(line)),
+    [{event: 'infer_preparation_rejected', boundary: 'model_provider'}]);
+});
+
 test('packed INFER metadata uses the same installed Local policy without reidentifying its Model', async () => {
   const script=readFileSync(new URL('./test-packed-single-infer.mjs',import.meta.url),'utf8');
   const tree=parseJavaScript(script,{ecmaVersion:'latest',sourceType:'module'});
