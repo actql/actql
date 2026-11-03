@@ -113930,7 +113930,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5c36f1078b016910552e45c494ce80fe99a91978bb97b5a1e7392196720ea606"
+      "sha256": "7441d03f5abacc3688f2b94c49f9ac7e20275819af6879625525372b9919cf54"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

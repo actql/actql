@@ -1107,3 +1107,40 @@ test('Source-free Model module retains the output required by its existing confi
     assert.equal(moduleCalls, 1); assert.equal(planCalls, 1);
   }
 });
+
+
+// Actual adoption method with explicit nominal Core ports. The port records
+// the same selected declaration; it does not issue a Run or Model allowance.
+test('Model adoption forwards only the same selected quantity limits before Scope and Run binding', () => {
+  const begin = managerSource.indexOf('    adoptModelPreparation(');
+  const end = managerSource.indexOf('    selectDomainSourceInput(', begin);
+  assert(begin > 0 && end > begin);
+  const method = managerSource.slice(begin, end).trim().replace(/,$/u, '');
+  for (const quantities of [undefined, Object.freeze({tokens: 33n, costUnits: 0n, durationMs: 500n})]) {
+    const parent = {}, input = {}, prepared = {}, request = {}, identity = {}, plan = {}, scope = {}, active = {};
+    const events = [], holder = {}, model = {graph: {}, scope: undefined,
+      selection: Object.freeze({quantityCapacity: quantities === undefined ? undefined : Object.freeze({limits: quantities})})};
+    const ok = value => ({$tag: 1, _0: value});
+    const moon = {
+      clientProgramPreparationBorrowRead(value) {assert.strictEqual(value, holder); return prepared;},
+      clientProgramPrepareRequestModelReadScope(...args) {
+        assert.equal(quantities, undefined); assert.deepEqual(args, [parent, input, plan]); events.push('scope'); return ok(scope);
+      },
+      clientProgramPrepareRequestModelReadScopeWithQuantities(...args) {
+        assert(quantities); assert.deepEqual(args, [parent, input, plan, 33n, 0n, 500n]); events.push('quantities then scope'); return ok(scope);
+      },
+      clientProgramCompleteRequestModelPreparation(...args) {assert.deepEqual(args, [parent, input, plan]); assert.strictEqual(model.scope, scope); events.push('complete'); return ok(undefined);},
+      clientProgramAdoptRequestModelPreparation(...args) {assert.deepEqual(args, [parent, identity, scope]); events.push('adopt'); return ok(active);},
+    };
+    const state = {parent, prepared, compilationFamily: 'model', modelCompilation: {}, modelGraph: model.graph,
+      holder, context: {runtime: moon}, original: {}};
+    const producer = {preparation: state, receipt: input};
+    const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'types', 'fail', 'registerRequestRun', 'checked',
+      `return ({${method}});`)(() => {}, {request: () => request}, {}, () => producer,
+      {isProxy: () => false}, code => {throw new Error(code);}, (run, construct) => {run.value = construct();},
+      value => {assert.equal(value.$tag, 1); return value._0;});
+    const run = object.adoptModelPreparation(prepared, identity, plan, model);
+    assert.strictEqual(run.model, model); assert.strictEqual(run.value, active); assert.strictEqual(model.scope, scope);
+    assert.deepEqual(events, [quantities === undefined ? 'scope' : 'quantities then scope', 'complete', 'adopt']);
+  }
+});

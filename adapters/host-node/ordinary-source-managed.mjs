@@ -1191,7 +1191,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       if (scopeField === undefined || !Object.hasOwn(scopeField, 'value') ||
           scopeField.value !== undefined || scopeField.writable !== true) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime;
-      const scope = moon.clientProgramPrepareRequestModelReadScope;
+      const quantityLimits = model.selection?.quantityCapacity?.limits;
+      const scope = quantityLimits === undefined ? moon.clientProgramPrepareRequestModelReadScope
+        : moon.clientProgramPrepareRequestModelReadScopeWithQuantities;
       const complete = moon.clientProgramCompleteRequestModelPreparation;
       const adopt = moon.clientProgramAdoptRequestModelPreparation;
       if (![scope, complete, adopt].every(method => typeof method === 'function')) {
@@ -1205,7 +1207,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.adopting = true;
       try {
         registerRequestRun(run, () => {
-          model.scope = checked(Reflect.apply(scope, moon, [state.parent, producer.receipt, modelPlan]));
+          model.scope = checked(Reflect.apply(scope, moon, [state.parent, producer.receipt, modelPlan,
+            ...(quantityLimits === undefined ? [] : [quantityLimits.tokens,
+              quantityLimits.costUnits, quantityLimits.durationMs])]));
           if (model.scope === undefined) fail('NodeManagedRunAdmissionUnavailable');
           checked(Reflect.apply(complete, moon, [state.parent, producer.receipt, modelPlan]));
           return checked(Reflect.apply(adopt, moon, [state.parent, identity, model.scope]));

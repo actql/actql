@@ -39544,7 +39544,7 @@
         },
         {
           "name": "[I]prepare_request_model_read_scope",
-          "declaration": "[ I ] prepare_request_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
+          "declaration": "[ I ] prepare_request_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
         },
         {
           "name": "[I]prepare_request_model_source_free_plan",
@@ -39859,7 +39859,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "c51385495ec475f4618bb55f1bc0bbae3215aa54ee678d8273b51490b46a3c8c"
+      "sha256": "52149e0bef008080941643dbf7745f76dbddc0e567f2f64e582693f4e270a9aa"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
@@ -51598,7 +51598,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e0c5b10e72996fffaad7531dc29a8d79708070e2d23ed1de3e115bcde3f1e6d3",
+      "sha256": "967632ef244d50a77ecb85e9a42b2ea1fb4be7edeaba2ec8f3f207b019a22c0c",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -51834,6 +51834,10 @@
         {
           "name": "client_program_prepare_request_model_read_scope",
           "declaration": "client_program_prepare_request_model_read_scope ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_read_scope_with_quantities",
+          "declaration": "client_program_prepare_request_model_read_scope_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_source_free_module",
@@ -52370,6 +52374,7 @@
             "client_program_prepare_request_model_graph",
             "client_program_prepare_request_model_provider_binding",
             "client_program_prepare_request_model_read_scope",
+            "client_program_prepare_request_model_read_scope_with_quantities",
             "client_program_prepare_request_model_source_free_module",
             "client_program_prepare_request_program_compilation",
             "client_program_prepare_request_serialization_compilation",
@@ -52481,6 +52486,10 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "Request Node Model Plan"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_js_wbtest.mbt",
+                "anchor": "Request Model configures original installed quantities once before the same Run binding"
               }
             ]
           }

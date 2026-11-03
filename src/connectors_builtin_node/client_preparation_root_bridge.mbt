@@ -300,6 +300,32 @@ pub fn client_program_prepare_request_model_read_scope(
 }
 
 ///|
+// The same retained provider supplies its actual quantity declaration before
+// Request/Run binding. Core intersects the original execution contract and
+// Resource enforces its existing one-shot preparation-only configuration.
+#export_name("clientProgramPrepareRequestModelReadScopeWithQuantities")
+pub fn client_program_prepare_request_model_read_scope_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
 #export_name("clientProgramCompleteRequestModelPreparation")
 pub fn client_program_complete_request_model_preparation(
   parent : @client_local_host.ClientRequestPreparation[

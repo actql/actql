@@ -34,7 +34,10 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   const rawCompiled = {}, rawDefinition = {};
   const compiled = facadeBindings ? Object.freeze({kind: 'infer'}) : rawCompiled;
   const definition = facadeBindings ? Object.freeze({kind: 'run_definition', identity: 'fixture-definition'}) : rawDefinition;
-  const calls = [], model = {graph, occurrence, compiled, runDefinition: definition, scope: undefined, component: undefined};
+  // This fixture owns the existing Mock module path. Real configured
+  // source-free components have separate deferred-provider caller controls.
+  const calls = [], model = {graph, occurrence, compiled, runDefinition: definition, scope: undefined, component: undefined,
+    selection: Object.freeze({localMock: true})};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
   if (serialized) {

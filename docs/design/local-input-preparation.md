@@ -4751,6 +4751,15 @@ the missing Scope, and a continuation does not add the relative increment a
 second time. Successful binding clears the quotation alias; abort and ordinary
 retirement keep the existing child/borrower and physical-cleanup obligations.
 
+Before the Pure Model Scope binds that same Request to its Run, the retained
+provider's quantity declaration is intersected with the original execution
+contract and configured through Resource's one-shot preparation entrance.
+An identical existing configuration is only observed; a different configuration
+or late attempt cannot reset accumulated usage. The later Model binder uses the
+same intersection. A composed provider retains its exact provider and Model
+limits as a purpose within the larger parent budget; dedicated startup keeps
+its exact-Ledger check. Neither path replaces rows, Scope or the original Ledger.
+
 This construction reservation is distinct from runtime Source/Model bodies
 and operation controls, which make their own reservations on the same Ledger.
 The entire runtime Plan allowance is never added to preparation as a proxy

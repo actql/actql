@@ -413,6 +413,7 @@ pub fn[I] prepare_request_model_read_scope(
   owner : ClientRequestPreparation[I],
   input : I,
   plan : ClientInstalledManagedModelPlan,
+  quantity_limits? : @resources.QuantityAmounts? = None,
 ) -> Result[
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
@@ -498,49 +499,110 @@ pub fn[I] prepare_request_model_read_scope(
   }
   let (r, e) = owner.program_domain_quote.unwrap()
   owner.phase = Selecting
+  // Configure the SAME Request before its original Run binding. This uses
+  // Resource's one-shot preparation entrance; no reset or late configuration
+  // is permitted. A retry may only observe an already identical configuration.
+  let quantities_ready : Result[Unit, ClientInstalledManagedRunIssue] = match
+    quantity_limits {
+    None => Ok(())
+    Some(installed) => {
+      let execution = @publication_host.client_infer_plan_graph_execution_contract(
+        plan.graph,
+      )
+      let selected : @resources.QuantityAmounts = {
+        tokens: Int64::min(
+          installed.tokens,
+          @environment.model_execution_ceiling(
+            execution,
+            @environment.TotalTokenReservation,
+          ),
+        ),
+        cost_units: Int64::min(
+          installed.cost_units,
+          @environment.model_execution_ceiling(
+            execution,
+            @environment.TotalCostUnits,
+          ),
+        ),
+        duration_ms: Int64::min(
+          installed.duration_ms,
+          @environment.model_execution_ceiling(
+            execution,
+            @environment.TotalDurationMs,
+          ),
+        ),
+      }
+      if @resources.quantity_configuration_matches(owner.ledger, Some(selected)) {
+        Ok(())
+      } else {
+        @resources.configure_quantities(owner.ledger, selected).map_err(issue => {
+          Ledger(issue)
+        })
+      }
+    }
+  }
+  // Resource currentness may run the original caller's interruption fence.
+  // Preserve that retirement and its primary; never restore a closed parent
+  // to ModelScopeQuoted after the quantity configuration check.
+  if owner.phase != Selecting {
+    return match quantities_ready {
+      Err(issue) => Err(issue)
+      Ok(_) => Err(ForeignOriginal)
+    }
+  }
   let result : Result[
     @publication_host.ClientModelReadScope,
     ClientInstalledManagedRunIssue,
-  ] = match
-    @resources.grow_preparation_capacity_inventory(
-      capacity,
-      input,
-      r,
-      e,
-      Int::max(request_preparation_borrow_limit, plan.max_reservations),
-      plan.max_holdings,
-      plan.max_delegations,
-    ) {
-    Err(issue) => Err(Preparation(issue))
-    Ok(_) => {
-      guard owner.phase == Selecting &&
-        owner.input is Some(original_input) &&
-        physical_equal(original_input, input) &&
-        owner.program_capacity is Some(original_capacity) &&
-        physical_equal(original_capacity, capacity) &&
-        owner.program_model is Some(original_plan) &&
-        physical_equal(original_plan, plan) &&
-        owner.program_domain_quote is Some(current_quote) &&
-        current_quote.0 == r &&
-        current_quote.1 == e else {
-        if owner.phase == Selecting {
-          owner.phase = ModelScopeQuoted
+  ] = match quantities_ready {
+    Err(issue) => Err(issue)
+    Ok(_) =>
+      if owner.phase != Selecting {
+        Err(ForeignOriginal)
+      } else {
+        match
+          @resources.grow_preparation_capacity_inventory(
+            capacity,
+            input,
+            r,
+            e,
+            Int::max(request_preparation_borrow_limit, plan.max_reservations),
+            plan.max_holdings,
+            plan.max_delegations,
+          ) {
+          Err(issue) => Err(Preparation(issue))
+          Ok(_) => {
+            guard owner.phase == Selecting &&
+              owner.input is Some(original_input) &&
+              physical_equal(original_input, input) &&
+              owner.program_capacity is Some(original_capacity) &&
+              physical_equal(original_capacity, capacity) &&
+              owner.program_model is Some(original_plan) &&
+              physical_equal(original_plan, plan) &&
+              owner.program_domain_quote is Some(current_quote) &&
+              current_quote.0 == r &&
+              current_quote.1 == e else {
+              if owner.phase == Selecting {
+                owner.phase = ModelScopeQuoted
+              }
+              return Err(ForeignOriginal)
+            }
+            match
+              @resources.preparation_capacity_inventory_original(
+                capacity, input,
+              ) {
+              Err(issue) => Err(Preparation(issue))
+              Ok(identity) =>
+                @publication_host.bind_client_model_read_scope(
+                  plan.compiled,
+                  plan.definition,
+                  plan.graph,
+                  owner.ledger,
+                  identity,
+                ).map_err(issue => ModelRead(issue))
+            }
+          }
         }
-        return Err(ForeignOriginal)
       }
-      match
-        @resources.preparation_capacity_inventory_original(capacity, input) {
-        Err(issue) => Err(Preparation(issue))
-        Ok(identity) =>
-          @publication_host.bind_client_model_read_scope(
-            plan.compiled,
-            plan.definition,
-            plan.graph,
-            owner.ledger,
-            identity,
-          ).map_err(issue => ModelRead(issue))
-      }
-    }
   }
   if result is Ok(_) {
     owner.program_domain_quote = None

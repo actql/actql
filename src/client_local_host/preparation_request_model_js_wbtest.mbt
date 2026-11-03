@@ -149,6 +149,11 @@ fn request_model_fixture(
   captured? : Bool = false,
   model_input? : Bool = true,
   current? : () -> Bool = () => true,
+  quantities? : @resources.QuantityAmounts? = Some({
+    tokens: 128L,
+    cost_units: 0L,
+    duration_ms: 1000L,
+  }),
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -170,11 +175,9 @@ fn request_model_fixture(
   let previous = @resources.begin_preparation_io(capacity, input, 2L).unwrap()
   @resources.charge_preparation_io(previous, 1L).unwrap()
   @resources.finish_preparation_io_after_cleanup(previous).unwrap()
-  @resources.configure_quantities(parent.ledger, {
-    tokens: 128L,
-    cost_units: 0L,
-    duration_ms: 1000L,
-  }).unwrap()
+  if quantities is Some(value) {
+    @resources.configure_quantities(parent.ledger, value).unwrap()
+  }
   let contracts = request_program_module_contracts()
   let manifests = request_program_module_manifests()
   let compilation_limits = @publication_host.client_standard_pure_compilation_limits()
@@ -1058,6 +1061,64 @@ test "Model Scope refuses an independently compiled equivalent instead of replac
     parent.program_domain_compilation_inputs is None &&
     parent.program_artifact_geometry is None,
   )
+  @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
+  let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      plan.compiled,
+      plan.definition,
+      plan.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "Request Model configures original installed quantities once before the same Run binding" {
+  let (parent, input, plan, construction) = request_model_fixture(
+    quantities=None,
+  )
+  assert_true(@resources.quantity_configuration_matches(parent.ledger, None))
+  let expected : @resources.QuantityAmounts = {
+    tokens: 128L,
+    cost_units: 0L,
+    duration_ms: 1000L,
+  }
+  let scope = prepare_request_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({
+      tokens: 1000L,
+      cost_units: 1000L,
+      duration_ms: 10000L,
+    }),
+  ).unwrap()
+  assert_true(
+    @resources.quantity_configuration_matches(parent.ledger, Some(expected)),
+  )
+  assert_eq(
+    @resources.configure_quantities(parent.ledger, expected),
+    Err(@resources.InvalidCharge),
+  )
+  let before = @resources.quantity_usage(parent.ledger)
+  assert_true(
+    prepare_request_model_read_scope(
+      parent,
+      input,
+      plan,
+      quantity_limits=Some({ tokens: 1L, cost_units: 0L, duration_ms: 1L, }),
+    )
+    is Err(_),
+  )
+  assert_eq(@resources.quantity_usage(parent.ledger), before)
+  assert_true(
+    @resources.quantity_configuration_matches(parent.ledger, Some(expected)),
+  )
+  complete_request_model_preparation(parent, input, plan).unwrap()
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
   let run = begin_request_model_managed_run(parent, plan.request, scope).unwrap()
   assert_true(
