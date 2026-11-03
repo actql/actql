@@ -129,6 +129,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     realizationKey: 'duckdb-acquired',
     supportsRetainedRelationOutput: true,
     environmentWire: profile.environmentWire,
+    ...(sourceInitialization === undefined ? {} : {environmentOriginal: environment}),
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid: contentCid({
         version: 'actql-installed-duckdb-source-binding/0.1',

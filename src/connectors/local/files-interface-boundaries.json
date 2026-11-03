@@ -2769,7 +2769,8 @@
             "ledgerRoot",
             "nativeFilesystem",
             "effectResources",
-            "sourceBindings"
+            "sourceBindings",
+            "installationServices"
           ],
           "async": true
         },
@@ -2938,6 +2939,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -2948,6 +2953,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -2958,6 +2967,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -2968,6 +2981,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -2978,6 +2995,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -2988,6 +3009,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -2998,6 +3023,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -3008,6 +3037,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -3018,6 +3051,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -3032,6 +3069,10 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
                 "anchor": "test('Local STORE projects a Command outcome admitted by actual Common without a provider action'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -3052,7 +3093,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "bf30f1b276045879473ff0e67caceb9cac7d617951cba2f8e71bdeb8d65a2bb6"
+      "sha256": "0054eda3d7a6179d1c2e1ed62296837b137e820bcedc914f74a0162b37ed9957"
     },
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",

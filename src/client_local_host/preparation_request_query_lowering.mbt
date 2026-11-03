@@ -30,8 +30,21 @@ fn request_query_lowering_data_bytes(
   query : ClientRequestQuerySyntax,
   declarations : String?,
   catalog : @checked.PreparedSourceCatalog,
+  request_copy : (Int, Int64),
 ) -> Int64? {
   let usage = @checked.source_catalog_usage(catalog)
+  // Each emitted external input has an authored relation occurrence with at
+  // least one token. CTE reuse imports its captured Result rather than replaying
+  // its external input. The complete original token count therefore bounds
+  // initial alias imports across joins, set arms and nested query bodies.
+  // Prefix, member and demand-copy overlap is accounted separately below.
+  let occurrences = match query.query {
+    Some(parsed) =>
+      @query_syntax.token_count(@query_syntax.query_source(parsed))
+    None => return None
+  }
+  let copy_bytes = request_query_literal_copy_bytes(request_copy, occurrences)
+  guard copy_bytes is Some(copy_bytes) else { return None }
   let units = query.document.length().to_int64() +
     (match declarations {
       Some(value) => value.length().to_int64()
@@ -40,7 +53,10 @@ fn request_query_lowering_data_bytes(
     usage.bytes.to_int64() +
     usage.nodes.to_int64() +
     1L
-  request_snapshot_data_bytes(units, units)
+  guard request_snapshot_data_bytes(units, units) is Some(base) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(base, copy_bytes, 1L)
 }
 
 ///|
@@ -99,7 +115,16 @@ pub fn[I] lower_request_published_query(
       Err(issue) => return Err(Publication(issue))
       Ok(value) => value
     }
-    guard request_query_lowering_data_bytes(query, declarations, catalog)
+    let request_copy = match
+      @source_publication.prepared_published_request_copy_geometry(
+        publication, environment,
+      ) {
+      Err(issue) => return Err(Publication(issue))
+      Ok(value) => value
+    }
+    guard request_query_lowering_data_bytes(
+        query, declarations, catalog, request_copy,
+      )
       is Some(bytes) else {
       return Err(Overflow)
     }
@@ -209,4 +234,110 @@ pub fn[I] prepared_request_query_lowering(
     return Err(Request(WrongPhase))
   }
   Ok(output)
+}
+
+///|
+// New literal DATA is a separate constructor family. Do not spend the old
+// Catalog-derived tariff or unused capacity on imported request trees.
+fn request_query_literal_copy_bytes(
+  geometry : (Int, Int64),
+  occurrences : Int,
+) -> Int64? {
+  let (nodes, text) = geometry
+  if nodes < 0 ||
+    text < 0L ||
+    occurrences < 1 ||
+    text > 2147483640L ||
+    nodes == 2147483647 {
+    return None
+  }
+  if nodes == 0 {
+    return if text == 0L { Some(0L) } else { None }
+  }
+  // Include the enclosing request field and its parent wrapper, not only the
+  // subtree leaf values. Maxima come from the same immutable publication.
+  let nodes = nodes + 1
+  let text = text + 7L
+  guard @source_builder.cursor_import_construction_extent(nodes, text.to_int())
+    is Some(imported) &&
+    @canonical.nfc_lf_retained_output_units(text) is Some(normalized) else {
+    return None
+  }
+  // Every scalar number needs <=25 bytes;32N also covers all punctuation,
+  // quotes and literal control words. Unicode/escaping needs <=6 bytes/unit.
+  let output = 32L * nodes.to_int64() + 6L * (normalized + text)
+  if output > 2147483647L {
+    return None
+  }
+  guard @encode.text_writer_construction_inventory(
+      output.to_int(),
+      nodes,
+      nodes,
+    )
+    is Some(writer) &&
+    @syntax.admitted_source_emission_construction_extent(nodes) is Some(emitter) else {
+    return None
+  }
+  // Four named lifetime lanes, not four invocations or a physical GC claim:
+  // 1. Original Construction's imported annotated tree and final Source.
+  // 2. checked_query_prefix_pipeline's original full-prefix snapshot.
+  // 3. MemberResolution.finish replacement OR its synchronous nested
+  //    source_prefix_carrier import/snapshot (the scan ends before finish).
+  // 4. prune_query_binding_source's demanded copy beside the original checked
+  //    pipeline/source. This later phase does not run another member pass.
+  // Each lane deliberately includes BOTH builder and admitted/indexed trees.
+  // CheckedInfer/nearest pipeline Cursors remain in lane 2/3 until consumed;
+  // only Cursor-free Carrier/schema facts enter ScriptSources caches. See the
+  // request DATA interface for the complete source-lifetime argument.
+  let original = imported
+  // Later imports see NFC/LF-normalized keys and unchanged scalar values.
+  // NFC/LF is idempotent: all later copies share this retained-text envelope,
+  // rather than repeatedly expanding the bound at every prefix/probe.
+  let retained_text = normalized + text
+  if retained_text > 2147483647L {
+    return None
+  }
+  guard @source_builder.cursor_import_construction_extent(
+      nodes,
+      retained_text.to_int(),
+    )
+    is Some(later) else {
+    return None
+  }
+  let prefix = later
+  let resolved = later
+  let demanded = later
+  guard @execution.preparation_representation_cost({
+      record_headers: original.record_headers +
+      prefix.record_headers +
+      resolved.record_headers +
+      demanded.record_headers +
+      writer.record_headers +
+      emitter.record_headers,
+      reference_slots: original.reference_slots +
+      prefix.reference_slots +
+      resolved.reference_slots +
+      demanded.reference_slots +
+      writer.reference_slots +
+      emitter.reference_slots,
+      scalar_words: original.scalar_words +
+      prefix.scalar_words +
+      resolved.scalar_words +
+      demanded.scalar_words +
+      writer.scalar_words +
+      emitter.scalar_words,
+      owned_utf16_units: original.owned_utf16_units +
+      prefix.owned_utf16_units +
+      resolved.owned_utf16_units +
+      demanded.owned_utf16_units +
+      writer.owned_utf16_units,
+      owned_wire_bytes: 0L,
+    })
+    is Some(bytes) else {
+    return None
+  }
+  // Sum the complete simultaneous lanes for every possible original import.
+  // Reusing a lane requires the prior logical Source to be unreachable from
+  // later lowering; no claim is made about when the backend releases memory.
+  @execution.checked_preparation_add_product(0L, bytes, occurrences.to_int64())
 }

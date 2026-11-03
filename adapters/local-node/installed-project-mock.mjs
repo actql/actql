@@ -9,7 +9,7 @@ import {installedProjectOriginalsForRuntime} from '../host-node/installed-projec
 import {loadInstalledProjectConnections} from '../host-node/installed-project-connections.mjs';
 import {loadDeclaredProjectCatalog, inspectDeclaredProjectCatalog} from './declared-project-catalog.mjs';
 import {assertDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
-import {composeInstalledCheckEnvironment} from '../host-node/installed-check-environment.mjs';
+import {composeInstalledSourceEnvironment} from '../host-node/installed-funded-environment.mjs';
 import {contentCid} from '../host-node/local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
 import {retireNodeInferOriginalRead} from '../host-node/infer-operation.mjs';
@@ -154,7 +154,7 @@ async function prepareProjectMockDeclarations(moon, project, profile,
 // Source/managed-Compute original; neither the profile label nor this factory
 // issues a permission, a runtime parent, or a replacement Run.
 export async function installPreparedProjectMockSources({moon, mockPreparation,
-  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun, prepareManagedSourceRun, effectManagedRun}) {
+  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun, prepareManagedSourceRun, effectManagedRun, installationServices}) {
   if (typeof authorizationFor !== 'function' || typeof readAsset !== 'function' ||
       typeof prepareManagedSourceRun !== 'function' ||
       typeof sourceManaged?.assertCurrent !== 'function' ||
@@ -674,11 +674,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           return Object.freeze({...adapter.ledgerCapacity(prepared), managedRun: run.value});
         }}));
     }
-    let environmentWire;
-    for (const source of sources) environmentWire = composeInstalledCheckEnvironment(moon,
-      baseEnvironmentWire, environmentWire, source.environmentWire);
+    let environmentOriginal;
+    for (const source of sources) environmentOriginal = composeInstalledSourceEnvironment(installationServices, moon,
+      baseEnvironmentWire, environmentOriginal, source.environmentWire);
+    const environmentWire = environmentOriginal.wire;
     current();
-    return Object.freeze({realizationKey: mockRealization, environmentWire,
+    return Object.freeze({realizationKey: mockRealization, environmentWire, environmentOriginal,
       sources: Object.freeze(sources),
       mockWritableSource: bundle.writable === undefined ? undefined
         : sources[bundle.sources.indexOf(bundle.writable.source)],

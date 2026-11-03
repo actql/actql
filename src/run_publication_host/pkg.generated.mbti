@@ -16,6 +16,7 @@ import {
   "actql/actql/execution_site",
   "actql/actql/logical_request_scope",
   "actql/actql/lowering_relation",
+  "actql/actql/numeric_reduction",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
@@ -42,6 +43,10 @@ import {
 
 // Values
 pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?
+
+pub fn admit_client_check_environment_from_wire(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, graph? : Bool) -> @program_check.CheckEnvironment?
+
+pub fn admit_client_check_environment_wire(String, String) -> @check_environment.WireEnvironment?
 
 pub fn admit_client_compilation_manifests(String, String, Int, Int, Int) -> Result[ClientCompilationManifests, ClientCompilationManifestIssue]
 
@@ -348,6 +353,8 @@ pub fn client_captured_content_storage(ClientCapturedContent) -> (String, String
 pub fn client_captured_content_wire(ClientCapturedContent) -> String
 
 pub fn client_captured_content_workspace_capacity(Int, inventory_count? : Int) -> (Int64, Int64)?
+
+pub fn client_check_environment_wrapper_construction_extent(Bool) -> @check_environment.RegistryConstructionExtent
 
 pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
 

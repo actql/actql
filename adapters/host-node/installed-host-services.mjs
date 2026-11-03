@@ -1,3 +1,4 @@
+import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
@@ -11,7 +12,7 @@ import {createInstalledTableSource, installedTableReadSite} from './installed-ta
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {installedCheckEnvironmentInputs, composeInstalledCheckEnvironmentOriginal} from './installed-check-environment.mjs';
+import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
@@ -548,7 +549,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
   if (original.selected.get(installation) === undefined || typeof connectorId !== 'string' ||
       typeof baseEnvironmentWire !== 'string' || !['source', 'effect'].includes(role) ||
       role === 'effect' && installation.effect === undefined) fail('ForeignInstalledSourceInitialization');
-  return createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role);
+  return createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role, services);
 }
 
 // The existing builtin publishes its complete Environment, rather than a Row
@@ -563,7 +564,7 @@ export function beginInstalledPublishedSourceInitialization(services, installati
       typeof sourceRef !== 'string' || typeof wire !== 'string' || typeof baseEnvironmentWire !== 'string') {
     fail('ForeignInstalledSourceInitialization');
   }
-  const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source');
+  const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source', services);
   try {
     const environment = context.preparePublishedEnvironment(wire);
     // Catalog views carry their checked contract identity, not a source_ref.
@@ -593,7 +594,7 @@ export function beginInstalledPublishedSourceInitialization(services, installati
   }
 }
 
-function createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role) {
+function createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role, services) {
   const scope = {installation, connectorId, baseEnvironmentWire, role, prepared: undefined,
     source: undefined, active: true};
   material.contexts.push(scope); material.constructors++;
@@ -888,23 +889,14 @@ function createInstalledSourceContext(original, material, installation, connecto
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.declarationAttempted ||
           material.phase !== 'working' || material.busy || typeof wire !== 'string') fail('ForeignInstalledSourceInitialization');
       scope.declarationAttempted = true;
-      const basis = 16n * (BigInt(wire.length) + BigInt(scope.baseEnvironmentWire.length));
-      reserveSource(original, material, basis, basis, basis);
+      // The central constructor retains every input and native original under
+      // this exact existing material before constructing the published view.
+      const environment = composeInstalledSourceEnvironment(services, original.moon,
+        scope.baseEnvironmentWire, undefined, wire);
       if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
-      let environment;
-      material.busy = true;
-      try {
-        environment = composeInstalledCheckEnvironmentOriginal(original.moon, scope.baseEnvironmentWire,
-          undefined, wire);
-        // A published Table Environment is its own actual admitted original;
-        // it is never manufactured into a RowDeclaration or restored again.
-        freezeSourceProjection(environment.body);
-        scope.prepared = Object.freeze({environment});
-        scope.publishedEnvironment = true;
-        material.inputs.push(wire, environment);
-        material.nodes += basis; material.text += basis; material.wire += basis;
-      } finally {material.busy = false;}
-      reconcileSource(original, material);
+      scope.prepared = Object.freeze({environment});
+      scope.publishedEnvironment = true;
+      material.inputs.push(environment);
       return environment;
     },
     prepareNativeDeclaration(projection) {
@@ -1709,6 +1701,19 @@ export function finishInstalledSourceInitialization(context, adapter, cause, fai
   retained.scope.active = false; retained.material.constructors--;
 }
 
+// Nominal admission for the common installed Environment composer. Reused
+// metadata still belongs to this exact live Source material and runtime.
+export function installedSourceEnvironmentConstructionReader(services, moon) {
+  const original = installations.get(services);
+  if (original === undefined || original.moon !== moon) fail('ForeignInstalledHostServices');
+  original.current();
+  const material = sourceMaterial(original);
+  if (material === undefined || material.phase !== 'working' || material.busy) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  return installedSourceConfigurationReader(services);
+}
+
 export function reserveInstalledSourceEnvironment(services, ...wires) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
@@ -1801,6 +1806,11 @@ export function borrowInstalledSourceInitialization(services, sourceOriginal, en
   return view;
 }
 
+export function isInstalledSourceInitializationRetired(services) {
+  const original = installations.get(services);
+  return original !== undefined && original.material?.phase === 'retired';
+}
+
 export function retireInstalledSourceInitialization(services) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
@@ -1834,6 +1844,7 @@ export function retireInstalledSourceInitialization(services) {
     material.input = material.unit = material.capacity = material.methods = undefined;
     original.initialPreparation = undefined;
     material.phase = 'retired';
+    releaseRetiredInstalledEnvironmentComposition(services);
   }
   return completed;
 }

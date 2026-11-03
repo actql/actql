@@ -27902,7 +27902,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28065,7 +28065,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28697,7 +28697,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -57685,10 +57685,11 @@
     {
       "module": "adapters/host-node/installed-check-environment.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7457fc466e808c9c74633171f1db546bf9d71029c93c0fdafb83e1470c1e139c",
+      "sha256": "c1f98799b6266f938ea14131e188906a35c18ca35196410745642cff3b3339e4",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
+        "composeAdmittedCheckEnvironmentOriginals",
         "composeInstalledCheckEnvironment",
         "composeInstalledCheckEnvironmentOriginal",
         "installedCheckEnvironmentInputs",
@@ -57710,6 +57711,65 @@
           "parameters": [
             "moon",
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals",
+          "parameters": [
+            "baseOriginal",
+            "sourceOriginal",
+            "effectOriginal",
+            "admit"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#2",
+          "parameters": [
+            "section"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#7",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -57736,49 +57796,9 @@
         {
           "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal",
           "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#2",
-          "parameters": [
-            "section"
-          ],
-          "async": false
-        },
-        {
-          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#6",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#7",
-          "parameters": [
-            "value"
+            "wire",
+            "evidenceCid",
+            "body"
           ],
           "async": false
         },
@@ -57882,12 +57902,6 @@
             "composeInstalledCheckEnvironment",
             "composeInstalledCheckEnvironmentOriginal",
             "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal",
-            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#2",
-            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#3",
-            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#4",
-            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#5",
-            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#6",
-            "composeInstalledCheckEnvironmentOriginal/composeInstalledCheckEnvironmentOriginal#7",
             "mergeManifest",
             "mergeManifest/mergeManifest",
             "mergeMembers",
@@ -57922,6 +57936,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -57940,6 +57958,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -57958,6 +57980,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -57976,6 +58002,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -57990,6 +58020,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -58004,6 +58038,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -58018,6 +58056,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -58036,6 +58078,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -58054,6 +58100,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -58076,6 +58126,10 @@
               {
                 "path": "adapters/host-node/installed-check-environment-original.test.mjs",
                 "anchor": "test('external wire encoding, CID and selected admission remain required'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -58288,6 +58342,83 @@
               {
                 "path": "adapters/host-node/installed-effect-profile-cleanup.test.mjs",
                 "anchor": "test('identical Source and Effect Environment inputs cross"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "composeAdmittedCheckEnvironmentOriginals",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#2",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#3",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#4",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#5",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#6",
+            "composeAdmittedCheckEnvironmentOriginals/composeAdmittedCheckEnvironmentOriginals#7"
+          ],
+          "exports": [
+            "composeAdmittedCheckEnvironmentOriginals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -62269,7 +62400,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "615941c020d72583a51e9f5cc999b199e359d21314e1cf7150b75084662d27e6",
+      "sha256": "fef8420a162911dbbddc9fb4df2293fa4d4dfe12211e30ba1e0df11ea3fbc292",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -62771,6 +62902,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -62785,6 +62920,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -62799,6 +62938,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -62813,12 +62956,16 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -62827,6 +62974,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -62841,6 +62992,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -62855,6 +63010,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -62869,6 +63028,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -62883,6 +63046,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -62893,6 +63060,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -62990,7 +63161,7 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6e45fd20c6e5609ba12e2a62d3e990049cf3c4fea80c84006b7a2e9faf90d197",
+      "sha256": "7b99ef448fc74e25077a935aaba68be6c0378c0e2356d3b5b71f032939e7f233",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -63310,6 +63481,10 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -63328,12 +63503,16 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}"
+                "anchor": "import {verifyInstalledConnectorBindings}"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -63346,6 +63525,10 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -63364,6 +63547,10 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -63382,6 +63569,10 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -63400,6 +63591,10 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -63414,6 +63609,10 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Outcomes and reconciliation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -63428,6 +63627,10 @@
               {
                 "path": "docs/design/effect-refusal-settlement.md",
                 "anchor": "# Settling Effect evidence after a resume refusal"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -63446,6 +63649,10 @@
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
                 "anchor": "export function installedUpdateTargets(effect, aliases, environmentWire = effect.environmentWire) {"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -63456,6 +63663,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -63512,7 +63723,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}"
+                "anchor": "import {verifyInstalledConnectorBindings}"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -63684,7 +63895,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-effect-inventory.mjs",
-                "anchor": "import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}"
+                "anchor": "import {verifyInstalledConnectorBindings}"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -63816,7 +64027,9 @@
       "imports": [
         "./installed-check-environment.mjs",
         "./installed-effect-limits.mjs",
+        "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
+        "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-account-config.mjs",
         "node:path"
@@ -67752,11 +67965,12 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "54fdf42f41b0df4da7782c89f6cdec7f6315237b7440c318455f2360fd57c51e",
+      "sha256": "941f9da361fad0be0d29beea6f3bf1e8b48b450da3e5443b8c3ef3973cd5a01c",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "localFilesLookupExecutionPolicy",
+        "localResourceLookupExecutionPolicy",
         "selectInstalledHostEnvironment",
         "selectInstalledLocalMaterializationEnvironment",
         "snapshotHostCapacityPolicy",
@@ -67781,6 +67995,15 @@
           "name": "localFilesLookupExecutionPolicy/selected/selected",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "localResourceLookupExecutionPolicy",
+          "parameters": [
+            "moon",
+            "original",
+            "selected"
           ],
           "async": false
         },
@@ -68350,6 +68573,76 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "localResourceLookupExecutionPolicy"
+          ],
+          "exports": [
+            "localResourceLookupExecutionPolicy"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-resource-lookup-policy.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -70839,7 +71132,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "cf26746a34c4ec41a856c85cc700398581c86f6d4125f24f3b4e6723a19cd548",
+      "sha256": "6e743a06f03b5af763a412d3ec2663e4b01b5ba989c9662e616ec62dd4136b38",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -70904,7 +71197,8 @@
             "readAsset",
             "prepareManagedModelRun",
             "prepareManagedSourceRun",
-            "effectManagedRun"
+            "effectManagedRun",
+            "installationServices"
           ],
           "async": true
         },
@@ -71377,7 +71671,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "../host-node/infer-operation.mjs",
-        "../host-node/installed-check-environment.mjs",
+        "../host-node/installed-funded-environment.mjs",
         "../host-node/installed-host-cleanup.mjs",
         "../host-node/installed-project-configuration.mjs",
         "../host-node/installed-project-connections.mjs",
@@ -71564,6 +71858,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -71581,6 +71879,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
               }
             ],
@@ -71603,6 +71905,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Identity"
               }
             ],
@@ -71630,6 +71936,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -71652,6 +71962,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -71670,6 +71984,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -71687,6 +72005,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Cancellation"
               }
             ],
@@ -71710,6 +72032,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -71727,6 +72053,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Extension"
               }
             ],
@@ -71765,6 +72095,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
               }
             ]
@@ -74625,7 +74959,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "66ee2d44e7f93e0b18d7579e00a087e3a861a991a901ec8ca7310ff75dd080c6",
+      "sha256": "c5de0c2e05dbb5153a4049e80929df9414172320bb29f37683ce7bd8b69b5621",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -74649,6 +74983,20 @@
             "request",
             "originals"
           ],
+          "async": false
+        },
+        {
+          "name": "constructAliasIdentity",
+          "parameters": [
+            "construct",
+            "parts",
+            "aliases"
+          ],
+          "async": false
+        },
+        {
+          "name": "constructAliasIdentity/constructAliasIdentity",
+          "parameters": [],
           "async": false
         },
         {
@@ -74676,6 +75024,20 @@
           "async": true
         },
         {
+          "name": "identityFromAliasProfile",
+          "parameters": [
+            "profile",
+            "providerProfile",
+            "queryAliases",
+            "connectorTable",
+            "configurationReader",
+            "read",
+            "construct",
+            "optional"
+          ],
+          "async": true
+        },
+        {
           "name": "installedSourceFor",
           "parameters": [
             "profile",
@@ -74695,12 +75057,13 @@
           "parameters": [
             "path",
             "connectorTable",
-            "configurationReader"
+            "configurationReader",
+            "moon"
           ],
           "async": true
         },
         {
-          "name": "installedSourceIdentity/read/read",
+          "name": "installedSourceIdentity/readers/readers",
           "parameters": [],
           "async": false
         },
@@ -74777,7 +75140,14 @@
           "async": true
         },
         {
-          "name": "loadInstalledSourceMember/read/read",
+          "name": "loadInstalledSourceMember/loadInstalledSourceMember",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSourceMember/readers/readers",
           "parameters": [],
           "async": false
         },
@@ -74796,13 +75166,25 @@
         },
         {
           "name": "loadInstalledSources/loadInstalledSources",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSources/loadInstalledSources/loadInstalledSources",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledSources/loadInstalledSources/loadInstalledSources",
+          "name": "loadInstalledSources/loadInstalledSources/queryAliases/queryAliases",
           "parameters": [
             "source"
           ],
@@ -74811,19 +75193,12 @@
         {
           "name": "loadInstalledSources/loadInstalledSources#2",
           "parameters": [
-            "alias"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadInstalledSources/loadInstalledSources#3",
-          "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledSources/loadInstalledSources#4",
+          "name": "loadInstalledSources/loadInstalledSources#3",
           "parameters": [
             "ref"
           ],
@@ -74880,6 +75255,28 @@
           "async": false
         },
         {
+          "name": "readAliasProfile",
+          "parameters": [
+            "path",
+            "readers",
+            "construct",
+            "configurationReader"
+          ],
+          "async": true
+        },
+        {
+          "name": "readAliasProfile/readAliasProfile",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readAliasProfile/snapshot/snapshot",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
           "name": "readProfile",
           "parameters": [
             "path",
@@ -74900,13 +75297,6 @@
           "parameters": [
             "parts",
             "queryAliases"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceIdentityFromParts/exact/exact",
-          "parameters": [
-            "entry"
           ],
           "async": false
         },
@@ -74944,14 +75334,12 @@
             "loadInstalledSources/loadInstalledSources",
             "loadInstalledSources/loadInstalledSources#2",
             "loadInstalledSources/loadInstalledSources#3",
-            "loadInstalledSources/loadInstalledSources#4",
             "loadInstalledSources/loadInstalledSources/loadInstalledSources",
             "providerRuntime",
             "publishInstalledSourceProfile",
             "readProfile",
             "selectInstallation",
             "sourceIdentityFromParts",
-            "sourceIdentityFromParts/exact/exact",
             "validPluralSourcePaths",
             "validPluralSourcePaths/validPluralSourcePaths"
           ],
@@ -74979,6 +75367,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -74993,6 +75389,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -75007,6 +75411,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -75021,12 +75433,20 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -75035,6 +75455,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -75049,6 +75477,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -75063,6 +75499,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -75081,6 +75525,14 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "## Builtin DuckDB installation custody"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -75095,6 +75547,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -75109,6 +75569,14 @@
               {
                 "path": "adapters/host-node/installed-duckdb-source-owner.test.mjs",
                 "anchor": "test('builtin Source enters its original checked Environment before native construction'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -75318,10 +75786,8 @@
         },
         {
           "operations": [
-            "installedSourceIdentity/read/read",
             "loadInstalledSource/loadInstalledSource",
-            "loadInstalledSourceMember",
-            "loadInstalledSourceMember/read/read"
+            "loadInstalledSourceMember"
           ],
           "exports": [],
           "attributes": {
@@ -75329,54 +75795,90 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Initial Source configuration and original bytes"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -75387,6 +75889,10 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -75456,7 +75962,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-source.mjs",
-                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';"
+                "anchor": "import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -75534,6 +76040,84 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "constructAliasIdentity",
+            "constructAliasIdentity/constructAliasIdentity",
+            "identityFromAliasProfile",
+            "installedSourceIdentity/readers/readers",
+            "loadInstalledSourceMember/loadInstalledSourceMember",
+            "loadInstalledSourceMember/readers/readers",
+            "loadInstalledSources/loadInstalledSources/loadInstalledSources#2",
+            "loadInstalledSources/loadInstalledSources/queryAliases/queryAliases",
+            "readAliasProfile",
+            "readAliasProfile/readAliasProfile",
+            "readAliasProfile/snapshot/snapshot"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -75552,11 +76136,14 @@
         "./installed-check-environment.mjs",
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
+        "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-source-limits.mjs",
         "./local-account-config.mjs",
+        "./source-alias-construction.mjs",
         "./source-alias-publication.mjs",
+        "./source-alias-request.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
         "node:path"
@@ -90759,7 +91346,7 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "afba534bb02ba09094cc40b6faf4594a3dea6c7e4c3001196af923238f9d096a",
+      "sha256": "1944e6efc697d642675e793d4282828b5b2e418d2a1f926a2a0ce0b400155921",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -90821,13 +91408,6 @@
         },
         {
           "name": "admitNamespace/rows/rows/rows",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "admitNamespace/rows/rows/rows#2",
           "parameters": [
             "left",
             "right"
@@ -91038,12 +91618,19 @@
         {
           "name": "splitSourceAliasProfile/aliases/aliases/aliases",
           "parameters": [
-            "value"
+            "key"
           ],
           "async": false
         },
         {
           "name": "splitSourceAliasProfile/aliases/aliases/aliases#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "splitSourceAliasProfile/aliases/aliases/aliases#3",
           "parameters": [
             "value"
           ],
@@ -91107,7 +91694,6 @@
             "admitNamespace/retained/retained",
             "admitNamespace/rows/rows",
             "admitNamespace/rows/rows/rows",
-            "admitNamespace/rows/rows/rows#2",
             "admitRegistrationRange",
             "admitRegistrationRange/admitRegistrationRange",
             "admitRegistrationRange/admitRegistrationRange#2",
@@ -91176,6 +91762,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -91202,6 +91792,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -91228,6 +91822,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -91254,6 +91852,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -91280,6 +91882,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -91306,6 +91912,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -91328,6 +91938,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -91346,6 +91960,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -91372,6 +91990,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -91390,6 +92012,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -91408,6 +92034,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -91418,6 +92048,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -91428,6 +92062,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -91438,6 +92076,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -91448,6 +92090,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -91458,6 +92104,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -91468,6 +92118,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -91478,6 +92132,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -91488,12 +92146,20 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Preparation, compilation and saved selection"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
               {
                 "path": "adapters/host-node/source-store-publication.test.mjs",
                 "anchor": "test('ordinary publication owns STORE targets"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -91745,6 +92411,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "splitSourceAliasProfile/aliases/aliases/aliases#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -91752,8 +92486,11 @@
         "../host-common/authorization-gate.mjs",
         "./installed-source-limits.mjs",
         "./installed-source.mjs",
+        "./source-alias-construction.mjs",
+        "./source-alias-request.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -110987,6 +111724,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -111013,6 +111754,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -111039,6 +111784,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -111061,6 +111810,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -111083,6 +111836,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -111105,6 +111862,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -111127,6 +111888,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -111153,6 +111918,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -111175,6 +111944,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -111201,6 +111974,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -114227,7 +115004,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e3e5d0eef9eb14cdc05bb06319447c2ea7c4e02461cc43a27b68d4c5a769b7c7"
+      "sha256": "7aab2923a20bc009d81e09f3fed6ef089610402a96068de1030da794cecc7af6"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -122351,7 +123128,7 @@
       "sha256": "66df22ee9b82437cd6476665764c35898e71d414042ee7ced8db2e879af4b2ba",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -123265,7 +124042,7 @@
       "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -123951,10 +124728,10 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "954d399e91b507aea6816129ea247355aa2406453a5bb47b27f59002645a1c4c",
+      "sha256": "c200e68e95bb9dcb01628c7aed3d3c5f49fe3f25c5715ac124603302cc2b9287",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
@@ -123967,6 +124744,8 @@
         "createInstalledHostServices",
         "finishInstalledSourceInitialization",
         "installedSourceConfigurationReader",
+        "installedSourceEnvironmentConstructionReader",
+        "isInstalledSourceInitializationRetired",
         "prepareInstalledSourceAcquisitionContracts",
         "readInstalledSourceAcquisitionContract",
         "reserveInstalledSourceEnvironment",
@@ -124416,7 +125195,8 @@
             "installation",
             "connectorId",
             "baseEnvironmentWire",
-            "role"
+            "role",
+            "services"
           ],
           "async": false
         },
@@ -124843,6 +125623,21 @@
           "async": false
         },
         {
+          "name": "installedSourceEnvironmentConstructionReader",
+          "parameters": [
+            "services",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "isInstalledSourceInitializationRetired",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledSourceAcquisitionContracts",
           "parameters": [
             "context",
@@ -125135,6 +125930,7 @@
         "./installed-check-environment.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
+        "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
@@ -125427,6 +126223,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -125440,6 +126240,10 @@
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
               }
             ],
@@ -125455,6 +126259,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -125468,6 +126276,10 @@
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Ownership"
               }
             ],
@@ -125483,6 +126295,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -125497,6 +126313,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -125510,6 +126330,10 @@
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Cancellation"
               }
             ],
@@ -125529,6 +126353,10 @@
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -125542,6 +126370,10 @@
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Extension"
               }
             ],
@@ -125572,6 +126404,10 @@
               },
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
               }
             ]
@@ -126142,6 +126978,78 @@
             "verification": [
               {
                 "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedSourceEnvironmentConstructionReader",
+            "isInstalledSourceInitializationRetired"
+          ],
+          "exports": [
+            "installedSourceEnvironmentConstructionReader",
+            "isInstalledSourceInitializationRetired"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
               }
             ]
@@ -129497,6 +130405,847 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Bound connector construction"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-funded-environment.mjs",
+      "sha256": "b211ede85c50559d23d0bc271bdb8a06fceb1e5a72825c23d50d023a59669b71",
+      "exports": [
+        "composeInstalledSourceEnvironment",
+        "releaseRetiredInstalledEnvironmentComposition"
+      ],
+      "operations": [
+        {
+          "name": "composeInstalledSourceEnvironment",
+          "parameters": [
+            "services",
+            "moon",
+            "baseInput",
+            "sourceInput",
+            "effectInput"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/admit/admit",
+          "parameters": [
+            "wire",
+            "evidenceCid",
+            "body",
+            "counts"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/admit/admit/admit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/admit/admit/admit#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/admit/admit/raw/raw",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/admit/admit/raw/raw#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/borrow/borrow",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/composed/composed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/composed/composed/composed",
+          "parameters": [
+            "wire",
+            "evidenceCid",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/composed/composed#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/construct/construct",
+          "parameters": [
+            "capacity",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/input/input",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/input/input/parsed/parsed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/input/input/parsed/parsed#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/input/input/verified/verified",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/input/input/verified/verified#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/js/js",
+          "parameters": [
+            "geometry",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment/js/js/js",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "freezeDocument",
+          "parameters": [
+            "document",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "freezeDocument/visit",
+          "parameters": [
+            "value",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "mergedCounts",
+          "parameters": [
+            "base",
+            "source",
+            "effect",
+            "wire",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "releaseRetiredInstalledEnvironmentComposition",
+          "parameters": [
+            "services"
+          ],
+          "async": false
+        },
+        {
+          "name": "sealComposedBody",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-check-environment-construction.mjs",
+        "./installed-check-environment.mjs",
+        "./installed-host-services.mjs",
+        "./local-account-config.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "composeInstalledSourceEnvironment",
+            "composeInstalledSourceEnvironment/admit/admit",
+            "composeInstalledSourceEnvironment/admit/admit/admit",
+            "composeInstalledSourceEnvironment/admit/admit/admit#2",
+            "composeInstalledSourceEnvironment/admit/admit/raw/raw",
+            "composeInstalledSourceEnvironment/admit/admit/raw/raw#2",
+            "composeInstalledSourceEnvironment/borrow/borrow",
+            "composeInstalledSourceEnvironment/composed/composed",
+            "composeInstalledSourceEnvironment/composed/composed/composed",
+            "composeInstalledSourceEnvironment/composed/composed#2",
+            "composeInstalledSourceEnvironment/construct/construct",
+            "composeInstalledSourceEnvironment/current/current",
+            "composeInstalledSourceEnvironment/input/input",
+            "composeInstalledSourceEnvironment/input/input/parsed/parsed",
+            "composeInstalledSourceEnvironment/input/input/parsed/parsed#2",
+            "composeInstalledSourceEnvironment/input/input/verified/verified",
+            "composeInstalledSourceEnvironment/input/input/verified/verified#2",
+            "composeInstalledSourceEnvironment/js/js",
+            "composeInstalledSourceEnvironment/js/js/js",
+            "fail/fail",
+            "freezeDocument",
+            "freezeDocument/visit",
+            "mergedCounts",
+            "releaseRetiredInstalledEnvironmentComposition",
+            "sealComposedBody"
+          ],
+          "exports": [
+            "composeInstalledSourceEnvironment",
+            "releaseRetiredInstalledEnvironmentComposition"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-check-environment-construction.mjs",
+      "sha256": "a2c6aa1a1505c8c3a03dc223a1c9cba8f0b54720fc37dc8c43ff72e46e0596cd",
+      "exports": [
+        "installedEnvironmentCompositionConstructionGeometry",
+        "installedEnvironmentDocumentConstructionGeometry",
+        "installedEnvironmentParseConstructionGeometry"
+      ],
+      "operations": [
+        {
+          "name": "addCanonical",
+          "parameters": [
+            "workspace",
+            "measured",
+            "calls",
+            "hashes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEnvironmentCompositionConstructionGeometry",
+          "parameters": [
+            "frozenBaseBody",
+            "frozenSourceBody",
+            "frozenEffectBody"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEnvironmentDocumentConstructionGeometry",
+          "parameters": [
+            "frozenDocument"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEnvironmentParseConstructionGeometry",
+          "parameters": [
+            "originalWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "shape",
+          "parameters": [
+            "value",
+            "parent",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "stage/stage",
+          "parameters": [
+            "retained",
+            "workspace",
+            "bounds"
+          ],
+          "async": false
+        },
+        {
+          "name": "textShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "zero/zero",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installed-source-construction-geometry.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "addCanonical",
+            "installedEnvironmentCompositionConstructionGeometry",
+            "installedEnvironmentDocumentConstructionGeometry",
+            "installedEnvironmentParseConstructionGeometry",
+            "invalid/invalid",
+            "own/own",
+            "shape",
+            "stage/stage",
+            "textShape",
+            "zero/zero"
+          ],
+          "exports": [
+            "installedEnvironmentCompositionConstructionGeometry",
+            "installedEnvironmentDocumentConstructionGeometry",
+            "installedEnvironmentParseConstructionGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/source-alias-construction.mjs",
+      "sha256": "59c7e4ced512297d2266c9df6a19789e2c8f318107307ee7838452d709023083",
+      "exports": [
+        "captureSourceAliasConstruction",
+        "sourceAliasBorrowedGeometry",
+        "sourceAliasCollectionConstructionGeometry",
+        "sourceAliasDataGeometry",
+        "sourceAliasIdentityConstructionGeometry",
+        "sourceAliasProfileConstructionGeometry"
+      ],
+      "operations": [
+        {
+          "name": "captureSourceAliasConstruction",
+          "parameters": [
+            "configurationReader",
+            "moon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourceAliasConstruction/captureSourceAliasConstruction",
+          "parameters": [
+            "_geometry",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSourceAliasConstruction/captureSourceAliasConstruction/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "captureSourceAliasConstruction/captureSourceAliasConstruction#2",
+          "parameters": [
+            "geometry",
+            "project"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "jsonStringBytes",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownMethod/ownMethod",
+          "parameters": [
+            "owner",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasBorrowedGeometry",
+          "parameters": [
+            "aliases"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasBorrowedGeometry/sourceAliasBorrowedGeometry",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasCollectionConstructionGeometry",
+          "parameters": [
+            "sources"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasDataGeometry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasDataGeometry/visit",
+          "parameters": [
+            "item",
+            "level"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasIdentityConstructionGeometry",
+          "parameters": [
+            "aliases"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasProfileConstructionGeometry",
+          "parameters": [
+            "profileWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "stage/stage",
+          "parameters": [
+            "retained",
+            "workspace",
+            "bounds"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-source-construction-geometry.mjs",
+        "./source-alias-request.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureSourceAliasConstruction",
+            "captureSourceAliasConstruction/captureSourceAliasConstruction",
+            "captureSourceAliasConstruction/captureSourceAliasConstruction/projection/init:capacity/init:capacity",
+            "captureSourceAliasConstruction/captureSourceAliasConstruction#2",
+            "invalid/invalid",
+            "jsonStringBytes",
+            "ownMethod/ownMethod",
+            "sourceAliasBorrowedGeometry",
+            "sourceAliasBorrowedGeometry/sourceAliasBorrowedGeometry",
+            "sourceAliasCollectionConstructionGeometry",
+            "sourceAliasDataGeometry",
+            "sourceAliasDataGeometry/visit",
+            "sourceAliasIdentityConstructionGeometry",
+            "sourceAliasProfileConstructionGeometry",
+            "stage/stage"
+          ],
+          "exports": [
+            "captureSourceAliasConstruction",
+            "sourceAliasBorrowedGeometry",
+            "sourceAliasCollectionConstructionGeometry",
+            "sourceAliasDataGeometry",
+            "sourceAliasIdentityConstructionGeometry",
+            "sourceAliasProfileConstructionGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/source-alias-request.mjs",
+      "sha256": "1e8abdeb9d49367ca999dcdb48e6aa12a3631682da552c25136f538b25a0c99d",
+      "exports": [
+        "aliasRequestGeometry",
+        "snapshotAliasRequest",
+        "sourceAliasIdentityRow"
+      ],
+      "operations": [
+        {
+          "name": "aliasRequestGeometry",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "aliasRequestGeometry/visit",
+          "parameters": [
+            "value",
+            "level"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalid/invalid",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "object/object",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotAliasRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshotAliasRequest/copy",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasIdentityRow",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "common-semantics",
+      "responsibilityFacet": "primary",
+      "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "aliasRequestGeometry",
+            "aliasRequestGeometry/visit",
+            "invalid/invalid",
+            "object/object",
+            "snapshotAliasRequest",
+            "snapshotAliasRequest/copy",
+            "sourceAliasIdentityRow"
+          ],
+          "exports": [
+            "aliasRequestGeometry",
+            "snapshotAliasRequest",
+            "sourceAliasIdentityRow"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-alias-construction.md",
+                "anchor": "## Verification"
               }
             ]
           }

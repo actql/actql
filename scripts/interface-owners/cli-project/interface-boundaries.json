@@ -3,7 +3,6 @@
   "declarations": [
     {
       "module": "packages/native-cli/lib/project-template.mjs",
-      "sha256": "2bd5a85ff3f4b0ee2290c170bdaa4fcf7f92a0893aecdacdb67c1cfc8574da18",
       "exports": [
         "projectTemplateFiles"
       ],
@@ -120,7 +119,8 @@
             ]
           }
         }
-      ]
+      ],
+      "sha256": "92be6a49aa62aa23308fba36ddcab5d9d9d7d4344035bc54cbd0c1ff2754ded5"
     },
     {
       "module": "packages/native-cli/lib/project-scaffold.mjs",

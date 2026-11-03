@@ -9202,7 +9202,8 @@
           "parameters": [
             "runtime",
             "baseEnvironmentWire",
-            "authorizationFor"
+            "authorizationFor",
+            "installationServices"
           ],
           "async": true
         },
@@ -9247,7 +9248,8 @@
             "authorizationFor",
             "principalId",
             "effectResources",
-            "sourceBindings"
+            "sourceBindings",
+            "installationServices"
           ],
           "async": true
         },
@@ -10744,6 +10746,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -10857,6 +10863,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
               }
             ],
@@ -10988,6 +10998,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -11105,6 +11119,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Ownership"
               }
             ],
@@ -11224,6 +11242,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -11334,6 +11356,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -11439,6 +11465,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Cancellation"
               }
             ],
@@ -11566,6 +11596,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -11671,6 +11705,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Extension"
               }
             ],
@@ -11898,6 +11936,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -11990,6 +12032,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -12019,6 +12065,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
               }
             ],
@@ -12070,6 +12120,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -12108,6 +12162,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -12138,6 +12196,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -12164,6 +12226,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -12189,6 +12255,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Cancellation"
               }
             ],
@@ -12228,6 +12298,10 @@
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -12253,6 +12327,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Extension"
               }
             ],
@@ -12291,6 +12369,10 @@
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
               }
             ]
@@ -17124,6 +17206,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -17154,6 +17240,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -17184,6 +17274,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -17214,6 +17308,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -17244,6 +17342,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -17274,6 +17376,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -17304,6 +17410,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -17334,6 +17444,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -17364,6 +17478,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Model selector and module use retained invocation originals"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -17410,6 +17528,10 @@
               {
                 "path": "adapters/host-node/request-model-plan.test.mjs",
                 "anchor": "Request Model module unwraps same compiler and Definition before its existing native constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -19049,60 +19171,100 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Named Source Run handoff"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -19440,6 +19602,7 @@
         "./installed-effect-managed-run.mjs",
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
+        "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
@@ -19486,7 +19649,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d23c02d5fdd4be76f652d4c5a0fe27c809fbc730e1540d4fcd9d9e53a8a871d0"
+      "sha256": "5b109fbffe169796078173b029e24849a476cb493ccc263d8d2937375f4c7da5"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

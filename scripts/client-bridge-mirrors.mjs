@@ -37,6 +37,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_kintone_delete_outcome_bridge.mbt',
     'client_project_configuration_bridge.mbt',
     'client_project_admission_construction_bridge.mbt',
+    'client_check_environment_construction_bridge.mbt',
     'client_mock_churn_risk_bridge.mbt',
     'client_relation_document_bridge.mbt',
     'client_relation_restore_construction_bridge.mbt',

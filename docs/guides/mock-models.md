@@ -30,7 +30,7 @@ not the spelling of the key. The catalog describes:
 - `views`: `resource`, `resource_kind` and the existing full Relation `schema`.
   Optional `request_schema`, `facts`, `acquisition`, `resource_identity` and
   `data_classification` use the existing Relation contracts.
-- `query_aliases`: explicit `{name, resource}` pairs.
+- `query_aliases`: explicit `{name, resource}` pairs, optionally with a `request` JSON object. The object supplies literal request data to the existing Source request checker. Omitted fields stay omitted: no defaults or implicit `null` values are inserted. Request data does not introduce parameter, binding, permission, or provider authority.
 - `data`: explicit `resource`, `items_path`, `key_path` and `primary_identity`.
   No `rows`, `files`, `contents` or primary-key convention is inferred.
 - `writes`: explicit resource, primary identity, writable fields, `permission`,

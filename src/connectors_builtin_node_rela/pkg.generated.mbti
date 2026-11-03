@@ -433,6 +433,12 @@ pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, 
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
+pub fn client_program_check_environment_from_wire(@check_environment.WireEnvironment, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
+
+pub fn client_program_check_environment_from_wire_construction_capacity(@check_environment.WireEnvironment) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_check_environment_wire_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_check_environment_with_calendar_artifact(@program_check.CheckEnvironment, Bytes, Int, Int, Int, Int, Int, Int) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
@@ -1714,6 +1720,8 @@ pub fn client_program_query_time_context(@run_publication_host.ClientQueryTimePr
 pub fn client_program_query_time_created_at(@run_publication_host.ClientQueryTimePreparation) -> String
 
 pub fn client_program_query_time_invocation_original(@run_publication_host.ClientQueryTimePreparation, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
+
+pub fn client_program_read_check_environment_wire(String, String) -> @check_environment.WireEnvironment?
 
 pub fn client_program_read_installed_model_defaults(String, String, String, String, Int, Int, Int, Int, Int) -> Result[@run_publication_host.ClientModelProviderDefaults, @run_publication_host.ClientModelProviderDefaultsIssue]
 

@@ -7,7 +7,11 @@ members against a selected fixture document. `installed-mock-row-effect.mjs`
 installs its optional single writable target through the catalog's prepared
 Effect member. They use generic relation admission and target projection, not
 scenario-specific schemas, connector names, permissions or row values. Project
-configuration selects declarations and sample data independently. Existing
+configuration selects declarations and sample data independently. The ordinary
+managed Source preparation accepts a nonempty bundle of at most 128 Sources,
+rather than requiring exactly two for this profile. Its original callback,
+currentness and lifetime fences are unchanged; a valid count alone never
+admits a Source or funds its work. Existing
 Source initialization, checked Run, RowRun, Account and durable Effect Ledger
 owners retain their respective authority; this composition creates no new owner.
 

@@ -281,3 +281,26 @@ for (const template of templates) test(`actual ${template} model admits replacem
   await writeFile(path, JSON.stringify(initial));
   await assert.rejects(observeFile(), commonRefusal);
 });
+
+test('actual catalog preserves explicit alias request data without filling omitted requests', async t => {
+  const f = await fixture(t, 'deal-review-mock');
+  const result = await f.load();
+  const drive = result.sources.find(source => source.catalogue.connection === 'drive');
+  const files = drive.catalogue.queryAliases.find(alias => alias.name === 'drive.files');
+  const contents = drive.catalogue.queryAliases.find(alias => alias.name === 'drive.contents');
+  assert.deepEqual(files.request, {paths: null, glob: null});
+  assert.ok(Object.isFrozen(files.request));
+  assert.equal(Object.hasOwn(contents, 'request'), false);
+  const catalog = JSON.parse(f.catalogWire);
+  catalog.connections.drive.query_aliases[0].request = {};
+  const empty = await f.load({catalog});
+  assert.deepEqual(empty.sources.find(source => source.catalogue.connection === 'drive')
+    .catalogue.queryAliases[0].request, {});
+});
+
+test('actual catalog refuses non-object alias requests before fixture access', async t => {
+  const f = await fixture(t, 'deal-review-mock');
+  for (const request of [null, [], 'request', 1, true]) {
+    await f.rejects(catalog => {catalog.connections.drive.query_aliases[0].request = request;});
+  }
+});

@@ -41928,7 +41928,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "144bce99d9ec2e49c34346789f403295b1727ff28dde84a46fd0d8aceeb4ed98",
+      "sha256": "86d7c19f6b687c41802e4ef8f0bd847346e9eb988695246bea47d3072d024f6f",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -41942,8 +41942,12 @@
           "declaration": "[ I ] prepared_request_query_lowering ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( @ frontend . Lowered , @ checked . PreparedSourceCatalog , @ frontend . DiagnosticSource , ) , ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "request_query_literal_copy_bytes",
+          "declaration": "request_query_literal_copy_bytes ( geometry : ( Int , Int64 ) , occurrences : Int , ) - > Int64 ?"
+        },
+        {
           "name": "request_query_lowering_data_bytes",
-          "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , ) - > Int64 ?"
+          "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , request_copy : ( Int , Int64 ) , ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -41964,6 +41968,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -41974,6 +41982,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
               }
             ],
             "identity": [
@@ -41984,6 +41996,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
@@ -41994,6 +42010,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
               }
             ],
             "synchronization": [
@@ -42004,6 +42024,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
@@ -42014,6 +42038,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
@@ -42024,6 +42052,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
@@ -42034,6 +42066,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
@@ -42044,6 +42080,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
@@ -42058,6 +42098,78 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "request_query_literal_copy_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -45338,7 +45450,7 @@
     },
     {
       "module": "src/client_source_publication/prepared_environment.mbt",
-      "sha256": "e72e6091626d74e579ab6be1ea428fb3364fbe84d360f08327a72db9f8dbe998",
+      "sha256": "1b40ef9ae3f9c75e6900b19d6dfaac883f9cd343079d8aa2ab6312f15e78451f",
       "exports": [],
       "operations": [
         {
@@ -45388,6 +45500,10 @@
         {
           "name": "prepared_published_query_environment_publication_matches",
           "declaration": "prepared_published_query_environment_publication_matches ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , publication : String , ) - > Bool"
+        },
+        {
+          "name": "prepared_published_request_copy_geometry",
+          "declaration": "prepared_published_request_copy_geometry ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , ) - > Result [ ( Int , Int64 ) , PreparedPublicationIssue ]"
         },
         {
           "name": "prepared_published_required_catalog",
@@ -45442,54 +45558,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
@@ -45508,6 +45660,78 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepared_published_request_copy_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -45516,7 +45740,7 @@
     },
     {
       "module": "src/client_source_publication/publication.mbt",
-      "sha256": "188536423c529464e97d67a0aa814595343e345bba7eeb90eefce46b9b7f4421",
+      "sha256": "f77ce7682f5fc250cece19ba81b59c96f2da77916439a59de2b56d1dfb43afaa",
       "exports": [],
       "operations": [
         {
@@ -45552,6 +45776,10 @@
           "declaration": "client_source_declarations ( declarations : String ? , ) - > @ parameter_binding . Declarations ? raise PublicationStop"
         },
         {
+          "name": "emit_source_publication_input",
+          "declaration": "emit_source_publication_input ( writer : @ encode . Writer , connector : String , resource : String , view : String , request : @ decode . Cursor ? , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
           "name": "read_publication_data",
           "declaration": "read_publication_data ( wire : String , ) - > Result [ @ decode . Cursor , PublicationIssue ]"
         },
@@ -45576,12 +45804,20 @@
           "declaration": "source_publication_field ( value : @ decode . Cursor , name : String , ) - > @ decode . Cursor raise PublicationStop"
         },
         {
+          "name": "source_publication_input",
+          "declaration": "source_publication_input ( connector : String , resource : String , view : String , request : @ decode . Cursor ? , max_bytes ? : Int"
+        },
+        {
           "name": "source_publication_input_limits",
           "declaration": "source_publication_input_limits ( ) - > ( @ source . ParseLimits , @ decode . Limits , )"
         },
         {
           "name": "source_publication_members",
           "declaration": "source_publication_members ( environment : @ check_environment . WireEnvironment , section : @ check_environment . Section , key : String , ) - > Map [ String , @ decode . Cursor ] raise PublicationStop"
+        },
+        {
+          "name": "source_publication_request",
+          "declaration": "source_publication_request ( entry : @ decode . Cursor , ) - > @ decode . Cursor ? raise PublicationStop"
         },
         {
           "name": "source_publication_text",
@@ -45620,54 +45856,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
@@ -45686,6 +45958,80 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "emit_source_publication_input",
+            "source_publication_input",
+            "source_publication_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }

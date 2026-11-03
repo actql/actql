@@ -45,6 +45,8 @@ pub fn prepared_published_query_environment_matches(PreparedPublishedQueryEnviro
 
 pub fn prepared_published_query_environment_publication_matches(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String) -> Bool
 
+pub fn prepared_published_request_copy_geometry(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Result[(Int, Int64), PreparedPublicationIssue]
+
 pub fn prepared_published_required_catalog(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Result[@program_check.PreparedSourceCatalog, PreparedPublicationIssue]
 
 pub fn published_command_targets(@program_check.CheckEnvironment, String) -> Result[@query_program.CommandTargetPublication?, PublicationIssue]

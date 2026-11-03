@@ -1,5 +1,6 @@
+import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
 import {localProjectFilesystem} from './local-files-native.mjs';
-import {createInstalledHostServices, installedSourceConfigurationReader, reserveInstalledSourceEnvironment,
+import {createInstalledHostServices, installedSourceConfigurationReader,
   completeInstalledSourceInitialization, borrowInstalledSourceInitialization,
   retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {openHostInitializationPreparation, closeHostInitializationPreparation}
@@ -18,7 +19,7 @@ import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // Host in process; the journal and publication Store own durable physical I/O.
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
-  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy} from './installed-host-policy.mjs';
+  selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment, localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy} from './installed-host-policy.mjs';
 import {createHash, createPublicKey, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -157,8 +158,7 @@ import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedStartupView, bindInferTrustedStore,
   checkInferTrustedStore, selectedInferTrustedStoreDimensions, bindInferTrustedSdkStaticModules,
   checkInferTrustedSdkStaticModules, checkInferTrustedSdkEagerModules} from './infer-trusted-runtime-view.mjs';
-import {composeInstalledCheckEnvironmentOriginal,
-  verifyInstalledConnectorBindings} from
+import {verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
@@ -1058,7 +1058,7 @@ async function embeddedInstallationIdentity(root, installation, project, moon, p
   const sourcePaths = installedSourcePaths(installation);
   const effectPaths = installedEffectPaths(installation);
   const identities = await Promise.all(sourcePaths.map(path =>
-    installedSourceIdentity(path, {connectorTable, configurationReader})));
+    installedSourceIdentity(path, {connectorTable, configurationReader, moon})));
   const source = identities.length === 0 ? null : identities.length === 1
     ? identities[0] : {version: 'actql-installed-source-inventory/0.1', identities};
   const effectIdentities = [];
@@ -1706,7 +1706,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       mockAccount = await preparation.initializeMockAccount(moon, principalId, authorization, mockModels);
       if (mockAccount !== undefined) authorization = mockAccount.authorization;
       sourceProfile = await preparation.installMockSources(moon, baseEnvironmentWire,
-        () => createLocalAuthorizationGate({...authorization, principal: principalId}));
+        () => createLocalAuthorizationGate({...authorization, principal: principalId}), installationServices);
       if (preparation.sourcePreparation() !== installationSourcePreparation) {
         throw clientOperationError('InstalledSourcePreparationChanged');
       }
@@ -1732,7 +1732,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (installationSourcePreparation !== undefined) {
         const projectEffects = await preparation.installProjectEffects(moon, baseEnvironmentWire,
           () => createLocalAuthorizationGate({...authorization, principal: principalId}),
-          principalId, localFileEffectResources, sourceProfile.connectorBindings);
+          principalId, localFileEffectResources, sourceProfile.connectorBindings, installationServices);
         localFileEffectInstallation = projectEffects;
         if (installedEffect === undefined) installedEffect = projectEffects;
         else {
@@ -1742,7 +1742,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           const inventories = [installedEffect, projectEffects];
           const combined = await composeInstalledEffects(
             inventories.flatMap(effect => effect.effects ?? [effect]),
-            {moon, baseEnvironmentWire}, async (effect, _options, retain) => {
+            {moon, baseEnvironmentWire, installationServices}, async (effect, _options, retain) => {
               retain(effect); return effect;
             });
           installedEffect = Object.freeze({...combined, queryStoreTargets: Object.freeze(
@@ -1791,11 +1791,9 @@ async function openInstalledHost(originalInstallation, preparation) {
               effectInstallation.privateEvidenceKey.byteLength !== 32))) {
       throw new TypeError('InvalidInstalledEffectSite');
     }
-    reserveInstalledSourceEnvironment(installationServices, baseEnvironmentWire,
-      sourceProfile?.environmentWire, effectInstallation?.environmentWire);
-    const composedEnvironment = composeInstalledCheckEnvironmentOriginal(moon,
-      baseEnvironmentWire, sourceProfile?.environmentWire,
-      effectInstallation?.environmentWire);
+    const composedEnvironment = composeInstalledSourceEnvironment(installationServices, moon,
+      baseEnvironmentWire, sourceProfile?.environmentOriginal ?? sourceProfile?.environmentWire,
+      installedEffect?.environmentOriginal ?? effectInstallation?.environmentWire);
     environmentWire = composedEnvironment.wire;
     if (mockModels === undefined) {
       environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
@@ -7181,10 +7179,20 @@ async function openPreparedInstalledHost(options, initialEntry) {
     },
     localFilesLookupExecutionPolicy(runtime) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledProjectSourcePreparation');
-      if (projectSourcePreparation === undefined || mockPreparation !== undefined) return undefined;
+      if ((projectSourcePreparation === undefined) === (mockPreparation === undefined)) return undefined;
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
-      const bundle = projectSourcePreparation.originalsForRuntime(moon);
-      return localFilesLookupExecutionPolicy(bundle.sources.map(source => source.limits));
+      let selected;
+      if (projectSourcePreparation !== undefined) {
+        const bundle = projectSourcePreparation.originalsForRuntime(moon);
+        selected = localFilesLookupExecutionPolicy(bundle.sources.map(source => source.limits));
+      } else {
+        const bundle = mockPreparation.originalsForRuntime(moon);
+        if (bundle.physicalKind !== 'declared-json-document') return undefined;
+        // The selected Local installation supplies its existing service policy,
+        // not a file-count assertion about this declaration or sample data.
+        selected = localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]);
+      }
+      return localResourceLookupExecutionPolicy(moon, moon.clientLocalResourcePolicyOriginal(), selected);
     },
     installProjectSources(runtime, baseEnvironmentWire, authorizationFor) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
@@ -7228,7 +7236,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         maxRows: 100, maxRequestBytes: 100000, maxResponseBytes: 65536, maxEffects: 16});
     },
     async installProjectEffects(runtime, baseEnvironmentWire, authorizationFor, principalId,
-      effectResources, sourceBindings) {
+      effectResources, sourceBindings, installationServices) {
       if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
         throw clientOperationError('ForeignInstalledProjectSourcePreparation');
       }
@@ -7237,19 +7245,19 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const runtimeBundleCid = await installedRuntimeBundleCid(runtimeUrl);
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return installPreparedProjectLocalFileEffects({moon, preparation: projectSourcePreparation,
-        sourceManaged, baseEnvironmentWire, authorizationFor, principalId, sourceBindings,
+        sourceManaged, baseEnvironmentWire, authorizationFor, principalId, sourceBindings, installationServices,
         runtimeBundleCid, ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
         nativeFilesystem, effectResources,
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
-    async installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
+    async installMockSources(runtime, baseEnvironmentWire, authorizationFor, installationServices) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       const prepareSource = preparation.prepareManagedSourceRun;
       if (typeof prepareSource !== 'function') throw clientOperationError('NodeManagedRunAdmissionUnavailable');
-      const profile = await installPreparedProjectMockSources({moon, mockPreparation, sourceManaged,
+      const profile = await installPreparedProjectMockSources({moon, mockPreparation, sourceManaged, installationServices,
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path),
         effectManagedRun: (prepared, request) => preparation.effectManagedPlanRun(moon, prepared, request),

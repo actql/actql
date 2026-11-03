@@ -62,7 +62,7 @@ export function projectTemplateFiles(template) {
           request_fields: ['resource', 'version'], response_fields: ['resource', 'version'],
           identity: ['resource', 'version'], cardinality: 'one',
         }}}],
-        query_aliases: [{name: 'drive.files', resource: 'files'},
+        query_aliases: [{name: 'drive.files', resource: 'files', request: {paths: null, glob: null}},
           {name: 'drive.contents', resource: 'contents'}],
         data: [{resource: 'files', items_path: ['drive', 'files', 'rows'],
           key_path: ['drive', 'files', 'key'], primary_identity: 'id', schema: {
