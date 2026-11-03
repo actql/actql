@@ -226,6 +226,9 @@ jobs:
       - name: Test normal Python wheel acceptance harness guards
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_ci_python_wheels.py
+      - name: Test bounded compiler crash metadata privacy controls
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -B scripts/test_native_compiler_diagnostics.py
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -302,6 +305,18 @@ jobs:
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
         run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
+      - name: Mark original Native compiler diagnostic window
+        id: native-compiler-diagnostic-start
+        if: ${{ matrix.target == 'native' }}
+        run: >-
+          python3 -B scripts/native-compiler-diagnostics.py --start
+          --context .artifacts/native-compiler-diagnostics/context.json
+      - name: Test actual Native Reader callbacks and original empty compiler driver
+        if: ${{ matrix.target == 'native' }}
+        run: >-
+          node scripts/local-checks.mjs test node --timeout-seconds 300 --
+          --test-name-pattern '^Reader custody callbacks preserve'
+          scripts/test-native-core.test.mjs
       # Use one test job per actual runner CPU. Building is unaffected.
       - name: Test common core
         run: |
@@ -324,6 +339,21 @@ jobs:
               node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
             fi
           fi
+      - name: Collect only current original Native compiler crash cause metadata
+        if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
+        timeout-minutes: 1
+        run: >-
+          python3 -B scripts/native-compiler-diagnostics.py
+          --context .artifacts/native-compiler-diagnostics/context.json
+          --collect .artifacts/native-compiler-diagnostics/sanitized.json
+      - name: Retain only sanitized current Native compiler diagnostics
+        if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-compiler-cause-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .artifacts/native-compiler-diagnostics/
+          if-no-files-found: warn
+          retention-days: 14
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
     needs: [select-targets, preflight]
