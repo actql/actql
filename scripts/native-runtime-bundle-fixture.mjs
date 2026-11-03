@@ -24,9 +24,9 @@ export function prepareNativeRuntimeBundle(repository, destination, {
   const source = run('git', ['rev-parse', 'HEAD']).trim();
   assert.match(source, /^[0-9a-f]{40}$/u);
   assert.equal(run('git', ['status', '--porcelain']), '', 'Clean fixed bundle build Source required');
-  const clang = platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
-    : run('sh', ['-c', 'command -v cc']).trim();
-  const sdk = platform === 'darwin' ? run('xcrun', ['--show-sdk-path']).trim() : undefined;
+  const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
+    : run('sh', ['-c', 'command -v cc']).trim());
+  const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
   run('python3', [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
     '--source', source, '--moon-home', realpathSync(moonHome), '--clang', clang,
     ...(sdk === undefined ? [] : ['--sdk', sdk]), '--target', target,

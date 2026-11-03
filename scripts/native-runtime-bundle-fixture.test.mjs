@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdirSync,mkdtempSync,realpathSync,rmSync,writeFileSync} from 'node:fs';
+import {mkdirSync,mkdtempSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
@@ -10,20 +10,26 @@ function fixture(t, platform) {
   const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-bundle-producer-port-')));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const tool=join(root,'tool');mkdirSync(tool);
+  const compiler=join(tool,'cc'),sdk=join(tool,'SDK');
+  writeFileSync(compiler,'selected compiler');mkdirSync(sdk);
+  symlinkSync(compiler,join(tool,'compiler-alias'));
+  symlinkSync(sdk,join(tool,'SDK-alias'));
   const source='a'.repeat(40),destination=join(root,'selected');
   const executable=join(destination,'emission/native/release/build/cmd/native_runtime_bundle/native_runtime_bundle.exe');
   const calls=[];let originalFailure;
   const execute=(command,args)=>{
     calls.push([command,args]);
     if(command==='git')return args[0]==='rev-parse'?source+'\n':'';
-    if(command==='xcrun')return args[0]==='--find'?'/actual/clang\n':'/actual/SDK\n';
-    if(command==='sh')return '/actual/cc\n';
+    if(command==='xcrun')return join(tool,args[0]==='--find'?'compiler-alias':'SDK-alias')+'\n';
+    if(command==='sh')return join(tool,'compiler-alias')+'\n';
     assert.equal(command,'python3');
     assert.equal(args[0],join(root,'scripts/produce-native-remote-scoped-runtime.py'));
     assert.equal(args[args.indexOf('--entry')+1],'src/cmd/native_runtime_bundle');
     assert.equal(args[args.indexOf('--target')+1],platform==='darwin'?'darwin-arm64':'linux-x64');
     assert.equal(args[args.indexOf('--source')+1],source);
+    assert.equal(args[args.indexOf('--clang')+1],compiler);
     assert.equal(args.includes('--sdk'),platform==='darwin');
+    if(platform==='darwin')assert.equal(args[args.indexOf('--sdk')+1],sdk);
     if(originalFailure)throw originalFailure;
     const bytes=Buffer.from('explicit Source-only artifact port; never executable');
     mkdirSync(join(destination,'emission/native/release/build/cmd/native_runtime_bundle'),{recursive:true});
