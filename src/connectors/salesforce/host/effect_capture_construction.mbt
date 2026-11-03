@@ -422,7 +422,24 @@ pub fn effect_capture_construction_profile(
   }
   guard sf_effect_capacity(retained, workspace) is Some(fixed) &&
     @execution.add_execution_capacity(fixed, catalog_capacity) is Some(fixed) &&
-    @execution.add_execution_capacity(fixed, preview_capacity) is Some(fixed) &&
+    @execution.add_execution_capacity(fixed, preview_capacity) is Some(total) &&
+    // recoverCapturedSalesforceSingleRequests completes its member Catalog
+    // projections and clears the outer JS Preview tree BEFORE entering the
+    // native Preview identity constructor. The parsed member-profile frames
+    // have returned too. Their escaped Strings and Catalogs remain retained;
+    // they are not private forests which overlap the next native parse.
+    // A failed preceding constructor stops here with its complete peak held.
+    @execution.execution_capacity(
+      @execution.execution_capacity_retained_bytes(total),
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(fixed) +
+        @execution.execution_capacity_retained_bytes(preview_capacity),
+        @execution.execution_capacity_retained_bytes(total) +
+        @execution.execution_capacity_execution_bytes(preview_capacity) -
+        @execution.execution_capacity_retained_bytes(preview_capacity),
+      ),
+    )
+    is Some(fixed) &&
     @shape.collection_construction_extent({
       // Original request/result/CID carriers, request/currents arrays and
       // per-row target identity/footprint entries. Payload stays with the

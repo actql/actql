@@ -163,9 +163,12 @@ test "Salesforce staged metadata and warm capture keep maxima as bounds until or
     @execution.execution_capacity_execution_bytes(response[7]) >
     @execution.execution_capacity_execution_bytes(initial[7]),
   )
+  // Cold reconstruction still owns a complete private phase. Its peak need
+  // not exceed a warm profile's full generated capability-writer envelope;
+  // the later Preview constructor does not overlap completed Catalog work.
   assert_true(
     @execution.execution_capacity_execution_bytes(recovered[0]) >
-    @execution.execution_capacity_execution_bytes(initial[0]),
+    @execution.execution_capacity_retained_bytes(recovered[0]),
   )
   assert_true(
     @execution.execution_capacity_execution_bytes(recovered[0]) <=
