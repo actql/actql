@@ -1039,6 +1039,8 @@ verification: try {
     cert: await readFile(join(root, 'server.crt')),
     root,
     allowLocalEffectRejection: true,
+    allowEffectCreate: focus === undefined || focus === 'resident-review-write' ||
+      focus === 'resident-review-regressions',
   });
   effectCheckpointServer = await startNativeEffectCheckpointServer({
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
@@ -1272,6 +1274,9 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
+    ...(focus === undefined || focus === 'resident-review-write' ||
+        focus === 'resident-review-regressions'
+      ? {ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE: '1'} : {}),
     ...(effectReviewOrigin ? {
       ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review-report',
       ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review',
@@ -1383,8 +1388,10 @@ verification: try {
     if (packagePath === 'src/query_integration') {
       // The retained Preview, retained Checkpoint and original-holder review
       // each perform one Provider read. Denied/duplicate paths perform no
-      // additional read, and no case applies an external Effect.
-      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 0});
+      // additional read; mapped-create applies its one scoped Effect.
+      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+      assert.deepEqual(bearerServers.effectCreatedValues(),
+        [{Id: '001000000000001AAA', Count__c: 3}]);
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {

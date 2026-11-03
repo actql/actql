@@ -306,9 +306,9 @@ fn native_mapped_create_context_review(
     // Local trusted signing peer only. The common Owner still admits its
     // exact original report/Resolution and separately checks current send
     // authority. This does not establish a production Cloud approval.
-    assert_eq(
-      @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW"),
-      Some("1"),
+    assert_true(
+      @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_APPROVED_ROW") == Some("1") ||
+      @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE") == Some("1"),
     )
     retained_effect_review_retention_store(
       consumer,
@@ -322,6 +322,7 @@ fn native_mapped_create_context_review(
       complete.preview.wire,
       @publication.run_evidence_value_identity(complete.preview.authoring),
       review_work=Some(work),
+      approved_row=true,
       original_journal_path=journal_path,
       original_context=Some((context, journal)),
     )
