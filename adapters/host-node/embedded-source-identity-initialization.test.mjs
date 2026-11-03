@@ -13,7 +13,17 @@ const program = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const declaration = name => program.body.map(node => node.declaration ?? node)
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
 const identityBody = declaration('embeddedInstallationIdentity');
-const connectBody = declaration('connectEmbeddedLocal');
+// The public connect entry forwards to the same shared Local/Remote owner.
+// Extract that actual owner, rather than searching beyond the wrapper's end.
+const connectEntry = declaration('connectEmbeddedLocal');
+const handoff = connectEntry.body.body[0];
+assert.equal(connectEntry.body.body.length, 1);
+assert.equal(handoff.type, 'ReturnStatement');
+assert.equal(handoff.argument.type, 'CallExpression');
+assert.equal(handoff.argument.callee.name, 'openPreparedInstalledHost');
+assert.deepEqual(handoff.argument.arguments.map(node => [node.type, node.name]),
+  [['Identifier', 'options'], ['Identifier', 'initialEntry']]);
+const connectBody = declaration(handoff.argument.callee.name);
 const start = source.indexOf('  const root = installation?.directory', connectBody.start);
 const end = source.indexOf('  const client = await profiles.connect', start);
 assert(start > connectBody.start && end > start && end < connectBody.end);
