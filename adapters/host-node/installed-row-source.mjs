@@ -2732,9 +2732,12 @@ export async function createInstalledRowSource({moon, declaration, commands,
             return Object.freeze({originalAuthorization: selected,
               authorization: Object.freeze({...selected,useId})});
           }
-          if (!text(childOperation) || !Number.isSafeInteger(index) || index < 0 || index >= limits.maxPages) {
+          if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {
             fail('InvalidInstalledSourceReadChild');
           }
+          // Spend this original ordinal before an external current callback.
+          // A failed or reentrant call cannot reuse it to issue another child.
+          readChildIndex++;
           await currentRead(prepared, access, signal);
           if (supplied !== undefined) return supplied;
           let original = childOperation === operation ? grant : readChildGrants.get(childOperation);
