@@ -378,6 +378,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       holdingCid: control.modelPrivateHoldingCid(plan.runDefinition, storeAuthorityCid, original.name, -1)});
     await holding.commit(); holding = undefined;
   }
+  // Match the existing single-Model durable capture boundary: every capture
+  // and its Observation/Invocation holdings committed before publication.
+  await faultInjection?.('infer_capture_committed', {});
   signal.throwIfAborted();
   await publishCompletedEffectFreeRun({...publication.plan, execution, store, control, signal});
   for (const child of children) {
