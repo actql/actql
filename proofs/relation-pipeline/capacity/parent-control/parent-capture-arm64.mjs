@@ -9,12 +9,12 @@ const ownerName=n=>/connectors5local[0-9]+managed__provider__execution__with__ch
 const callbacks=['advance','cancel','stopped','cleanup','childWorkIssue'];
 const roles=['startNext',...callbacks];
 const layouts={
- startNext:[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'measurement',8],[32,'maxValueBytes',4],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
- advance:[[8,'startNext',8],[16,'reclaimsScratch',4],[24,'terminal',8],[32,'cancelled',8],[40,'used',8],[48,'maxValueBytes',4],[56,'execution',8],[64,'inputs',8],[72,'state',8],[80,'sequence',8],[88,'count',4]],
+ startNext:[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'maxValueBytes',4],[32,'measurement',8],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
+ advance:[[8,'startNext',8],[16,'reclaimedPrefix',4],[24,'terminal',8],[32,'cancelled',8],[40,'used',8],[48,'execution',8],[56,'inputs',8],[64,'state',8],[72,'sequence',8],[80,'count',4]],
  cancel:[[8,'terminal',8],[16,'cancelled',8],[24,'state',8]],stopped:[[8,'terminal',8]],
  cleanup:[[8,'cleanupIndex',8],[16,'reclaimed',8],[24,'terminal',8],[32,'state',8]],childWorkIssue:[[8,'state',8]],
 };
-const payloads={startNext:72,advance:96,cancel:32,stopped:16,cleanup:40,childWorkIssue:16};
+const payloads={startNext:72,advance:88,cancel:32,stopped:16,cleanup:40,childWorkIssue:16};
 const family=r=>r.replace(/^w/,'x'), width=r=>{
  assert(/^[xw](?:[0-9]|[12][0-9]|30)$/.test(r),'Unreviewed ARM64 capture register');return r[0]==='x'?8:4;
 };
@@ -41,7 +41,7 @@ function observerSources(ins,end,call) {
  const add=(role,value,w)=>{assert(value && value.width===w,'Missing typed ARM64 observer argument '+role);
   assert(!sources.has(value.source),'ARM64 observer roles alias a source');sources.set(value.source,{kind:'role',role,width:w});};
  ['parent','state','used','cancelled','terminal','reclaimed','cleanupIndex','sequence'].forEach((r,n)=>add(r,registers.get('x'+n),8));
- [['inputs',0,8],['execution',8,8],['measurement',16,8],['numeric',24,8],['family',32,8],['count',40,4],['maxValueBytes',44,4],['reclaimsScratch',48,4]]
+ [['inputs',0,8],['execution',8,8],['measurement',16,8],['numeric',24,8],['family',32,8],['count',40,4],['maxValueBytes',44,4],['reclaimedPrefix',48,4]]
   .forEach(([r,at,w])=>add(r,stack.get(at),w));
  assert.equal(stack.size,8,'Unexpected ARM64 observer stack argument');assert.equal(call(ins[end]),observer);
  return {sources,begin:begin+1};

@@ -9,14 +9,14 @@ const callbackRoles=['advance','cancel','stopped','cleanup','childWorkIssue'];
 // Reviewed source/ABI correspondence, including scalar padding. Actual object
 // and linked stores must independently establish these roles, not just a set.
 const layouts={
-  startNext:[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'measurement',8],
-    [32,'maxValueBytes',4],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
-  advance:[[8,'startNext',8],[16,'reclaimsScratch',4],[24,'terminal',8],[32,'cancelled',8],
-    [40,'used',8],[48,'maxValueBytes',4],[56,'execution',8],[64,'inputs',8],[72,'state',8],[80,'sequence',8],[88,'count',4]],
+  startNext:[[0,'used',8],[8,'family',8],[16,'numeric',8],[24,'maxValueBytes',4],
+    [32,'measurement',8],[40,'execution',8],[48,'state',8],[56,'sequence',8],[64,'count',4]],
+  advance:[[8,'startNext',8],[16,'reclaimedPrefix',4],[24,'terminal',8],[32,'cancelled',8],
+    [40,'used',8],[48,'execution',8],[56,'inputs',8],[64,'state',8],[72,'sequence',8],[80,'count',4]],
   cancel:[[8,'terminal',8],[16,'cancelled',8],[24,'state',8]], stopped:[[8,'terminal',8]],
   cleanup:[[8,'cleanupIndex',8],[16,'reclaimed',8],[24,'terminal',8],[32,'state',8]], childWorkIssue:[[8,'state',8]],
 };
-const payloads={startNext:72,advance:96,cancel:32,stopped:16,cleanup:40,childWorkIssue:16};
+const payloads={startNext:72,advance:88,cancel:32,stopped:16,cleanup:40,childWorkIssue:16};
 const widths={QWORD:8,DWORD:4};
 const family=r=>({eax:'rax',ebx:'rbx',ecx:'rcx',edx:'rdx',edi:'rdi',esi:'rsi'}[r]??r.replace(/^(r(?:[89]|1[0-5]))d$/,'$1'));
 const registerWidth=r=>{const width=/^(?:r(?:ax|bx|cx|dx|di|si|[89]|1[0-5]))$/.test(r)?8:
@@ -40,7 +40,7 @@ function roleSlots(ins,end,call) {
   const add=(role,value,width)=>{assert(value && value.width===width,'Missing typed capture observer argument '+role);
     assert(!slots.has(value.slot),'Capture observer roles share a private slot');slots.set(value.slot,{role,width});};
   ['parent','state','used','cancelled','terminal','reclaimed'].forEach((role,k)=>add(role,registers.get(['rdi','rsi','rdx','rcx','r8','r9'][k]),8));
-  ['cleanupIndex','sequence','inputs','execution','measurement','numeric','family','count','maxValueBytes','reclaimsScratch']
+  ['cleanupIndex','sequence','inputs','execution','measurement','numeric','family','count','maxValueBytes','reclaimedPrefix']
     .forEach((role,k)=>add(role,stack.get(k*8),k<7?8:4));
   assert.equal(stack.size,10,'Unexpected capture observer stack argument');
   assert.equal(call(ins[end]),observer);
