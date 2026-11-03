@@ -101,7 +101,11 @@ pub fn github_source_read_construction_capacity(
   // Comment rows are smaller; original subjects add1H4R1W each.
   guard @shape.collection_construction_extent({
       records: 16L * rows + subjects + 10L * pages.to_int64(),
-      record_references: 39L * rows + 4L * subjects + 32L * pages.to_int64(),
+      // One retained original constructor cleanup-projector alias.
+      record_references: 1L +
+      39L * rows +
+      4L * subjects +
+      32L * pages.to_int64(),
       record_words: 21L * rows + subjects + 24L * pages.to_int64(),
       // Native labels/assignees, their original pending cursor histories,
       // page rows/progress/subjects and JS accumulated row/page arrays.

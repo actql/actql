@@ -299,8 +299,9 @@ async function readGitHubRowsByNode({moon, repository,
           }
         }
       } finally {
-        // Retiring decoder aliases does not ACK the original transport/RowRun.
-        invoke(operations.close,[original]);
+        // Managed decoder originals stay with this SAME Reader's retirement
+        // duty. A stopped read-current fence must not replace the primary.
+        if (managed === undefined) invoke(operations.close,[original]);
       }
     } else while (pending) {
       signal?.throwIfAborted();
@@ -350,9 +351,9 @@ async function readGitHubRowsByNode({moon, repository,
         }
         current = JSON.parse(decoded(invoke(operations.finish,[original])));
       } finally {
-        // Codec alias retirement does not acknowledge a transport, RowRun or
-        // physical resource. Their original owners retain those duties.
-        invoke(operations.close,[original]);
+        // The managed cleanup owner closes this same original after stop;
+        // ordinary read projection is deliberately unavailable then.
+        if (managed === undefined) invoke(operations.close,[original]);
       }
       if (rows.length + current.rows.length > owned.maxRows) {
         stopped('GitHubReadRowLimit');
@@ -404,12 +405,13 @@ async function readGitHubRowsByNode({moon, repository,
 // Reader. This constructor prepares original facts only; no credential call,
 // parser, request issuer or replacement resource owner runs here.
 export function prepareGitHubSourceReadSequence(options) {
-  let {moon,site,repository,preparedRead,originalAuthorization,limits,responseCapacity}=options;
+  let {moon,site,repository,preparedRead,originalAuthorization,limits,responseCapacity,retireProjection}=options;
   options=undefined;
   let resource=preparedRead?.resource,nonce=preparedRead?.nonce;
   const comments=resource==='issue_comments',pullRequests=resource==='pull_requests';
   if (!['issues','pull_requests','issue_comments'].includes(resource) ||
-      typeof nonce!=='string'||!nonce||typeof responseCapacity!=='function') fail('InvalidGitHubSourceRead');
+      typeof nonce!=='string'||!nonce||typeof responseCapacity!=='function'||
+      typeof retireProjection!=='function'||types.isProxy(retireProjection)) fail('InvalidGitHubSourceRead');
   let grant=originalAuthorization?.grant,scope=originalAuthorization?.scope;
   if (grant===undefined||scope?.operation!==GITHUB_GRAPHQL_READ_OPERATION ||
       scope.runInvocationCid!==preparedRead.runInvocationCid ||
@@ -449,13 +451,23 @@ export function prepareGitHubSourceReadSequence(options) {
       if(pending)return false;
       if(retired)return true;
       const prefix=managed.prefix;
-      for(const value of managed.escaped)if(retainedReads.get(value)===prefix)retainedReads.delete(value);
       if(prefix!==undefined){
-        prefix.responses.length=0;prefix.pages.length=0;
+        // This is the original constructor-supplied synchronous projector,
+        // not context.project's read-current fence. Its existing borrower
+        // retains invalid async results; a failure leaves this SAME page for
+        // cleanup retry. No new registry, issuer or physical ACK is created.
+        while(prefix.pages.length!==0){
+          const original=prefix.pages[prefix.pages.length-1];
+          const result=Reflect.apply(retireProjection,undefined,[prefix.operations.close,prefix.moon,[original]]);
+          if(result!==undefined)fail('InvalidGitHubDecoderRetirement');
+          prefix.pages.pop();
+        }
+        prefix.responses.length=0;
         for(const name of Object.keys(prefix))prefix[name]=undefined;
       }
+      for(const value of managed.escaped)if(retainedReads.get(value)===prefix)retainedReads.delete(value);
       managed.escaped.clear();managed.context=managed.project=managed.prefix=undefined;
-      moon=site=repository=preparedRead=originalAuthorization=limits=responseCapacity=credential=capacity=undefined;
+      moon=site=repository=preparedRead=originalAuthorization=limits=responseCapacity=retireProjection=credential=capacity=undefined;
       grant=scope=resource=nonce=undefined;
       managed=undefined;retired=true;
       return true;

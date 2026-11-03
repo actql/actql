@@ -168,3 +168,11 @@ ticket. Codec close cuts decoder aliases, while the shared Reader retains the
 original response/failed-child duties. Only its existing stopped-binding and
 pending-callback checks permit protocol-prefix retirement; an awaited read or
 codec close alone is no physical cleanup acknowledgement.
+
+Managed decoder originals close through the same Reader's retirement duty,
+using the original synchronous projector supplied to its constructor. This
+projector retains invalid asynchronous results without imposing a read-current
+fence on cleanup. A rejected/stopped read therefore keeps its original failure;
+a failed decoder close keeps that same original page for retirement retry.
+Read projections still enforce their unchanged current/stop fences. Closing
+a decoder returns Unit, never a physical acknowledgement or new permission.
