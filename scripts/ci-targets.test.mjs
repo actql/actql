@@ -22,6 +22,40 @@ test('preflight checks Native counter assignments before the build toolchain', (
   assert.ok(jobs.native.needs.includes('preflight'));
 });
 
+test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-profile-stack-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const npm = join(root, 'npm');
+  writeFileSync(npm, '#!/bin/sh\nprintf "%s:%s\\n" "$ACTQL_FIXTURE_STACK_KIB" "$*"\nexit "$ACTQL_FIXTURE_NPM_EXIT"\n');
+  chmodSync(npm, 0o755);
+  for (const [job, name, command] of [
+    ['native', 'Test Node-free native storage publication and control', 'check:native-http-client'],
+    ['native-separated-network', 'Verify native direct and outbound-only Store profiles', 'check:native-separated-network'],
+  ]) {
+    assert.equal(jobs[job]['runs-on'], 'ubuntu-24.04');
+    const step = jobs[job].steps.find(row => row.name === name);
+    assert.ok(step);
+    assert.equal(step.if, undefined);
+    assert.equal(step['continue-on-error'], undefined);
+    assert.match(step.run, /ulimit -S -s 65536\s+?npm run /u);
+    // Observe exact shell ordering and child inheritance without starting a
+    // Native compiler or changing the host shell's hard resource limit.
+    const observe = 'ulimit() { test "$*" = "-S -s 65536" || return 93; ' +
+      'export ACTQL_FIXTURE_STACK_KIB="$3"; }\n';
+    for (const status of [0, 7]) {
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', observe + step.run], {
+        cwd: root, encoding: 'utf8', timeout: 5000,
+        env: {...process.env, PATH: root + ':' + process.env.PATH,
+          ACTQL_FIXTURE_NPM_EXIT: String(status)},
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.signal, null);
+      assert.equal(result.status, status, result.stderr);
+      assert.equal(result.stdout.trim(), `65536:run ${command}`);
+    }
+  }
+});
+
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');

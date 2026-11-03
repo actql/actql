@@ -1145,7 +1145,11 @@ jobs:
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
-        run: npm run check:native-http-client
+        run: |
+          # Match the existing Linux Native compiler stack prerequisite.
+          # All original cases and product resource budgets remain unchanged.
+          ulimit -S -s 65536
+          npm run check:native-http-client
       - name: Test public packed Run materials against native resident Site
         id: packed-materials
         env:
@@ -1392,7 +1396,11 @@ jobs:
       - name: Verify native direct and outbound-only Store profiles
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
-        run: npm run check:native-separated-network
+        run: |
+          # The same full Native query compilation runs before either route.
+          # Match Core's compiler stack prerequisite; keep both routes.
+          ulimit -S -s 65536
+          npm run check:native-separated-network
   workers:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
