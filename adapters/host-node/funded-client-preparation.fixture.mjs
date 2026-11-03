@@ -99,7 +99,8 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
     httpRegistry?.retirePreparation(host, originals.installation, host);
     closed = true;
   };
-  if (!http) return Object.freeze({prepare, close, manager: view, retireOriginal});
+  if (!http) return Object.freeze({prepare, close, manager: view, retireOriginal,
+    installedContracts: admission});
   const originalRequest = request => httpRegistry.originalSourceRequest(host,
     originals.installation, host, request);
   const prepareRequest = (operation, request) => {
