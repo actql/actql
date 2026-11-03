@@ -125,6 +125,66 @@ test('verified union member retains the final hash check after transfer',t=>{
  assert.equal(fs.existsSync(f.from),false);assert.equal(fs.statSync(f.to).nlink,1);
  originalArchiveUnchanged(f);
 });
+// Synthetic stat identities model values the Number API rounds together. The
+// real fixture still owns its original TAR, files and filesystem operations.
+for(const changed of ['source','target'])test(`verified union member detects rounded ${changed} inode identity`,t=>{
+ const f=stagedMember(t),stat=fs.lstatSync,link=fs.linkSync,original=2n**53n;
+ let linked=false;
+ assert.equal(Number(original),Number(original+1n));
+ transferFaults(t,{
+  lstatSync(path,options){
+   const info=Reflect.apply(stat,fs,[path,options]);
+   if(path===f.from||path===f.to){
+    const different=linked&&path===(changed==='source'?f.from:f.to);
+    const ino=original+(different?1n:0n);info.ino=options?.bigint?ino:Number(ino);
+   }
+   return info;
+  },
+  linkSync(from,to){const value=Reflect.apply(link,fs,[from,to]);linked=true;return value;}
+ });
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),new RegExp(`Verified ${changed} identity changed`));
+ assert.equal(fs.existsSync(f.from),true);assert.equal(fs.existsSync(f.to),true);
+ assert.deepEqual(fs.readFileSync(f.from),f.bytes);assert.deepEqual(fs.readFileSync(f.to),f.bytes);
+ originalArchiveUnchanged(f);
+});
+test('verified union member preserves a distinct rounded inode during rollback',t=>{
+ const f=stagedMember(t),stat=fs.lstatSync,unlink=fs.unlinkSync,original=2n**53n;
+ const failure=new Error('fixture original source removal failure');
+ let failed=false,targetRemovals=0;
+ transferFaults(t,{
+  lstatSync(path,options){
+   const info=Reflect.apply(stat,fs,[path,options]);
+   if(path===f.from||path===f.to){
+    const ino=original+(failed&&path===f.to?1n:0n);info.ino=options?.bigint?ino:Number(ino);
+   }
+   return info;
+  },
+  unlinkSync(path){
+   if(path===f.from){failed=true;throw failure;}
+   if(path===f.to)targetRemovals++;
+   return Reflect.apply(unlink,fs,[path]);
+  }
+ });
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),error=>error===failure);
+ assert.equal(targetRemovals,0,'Never unlink a different inode that rounds to the original');
+ assert.equal(fs.existsSync(f.from),true);assert.equal(fs.existsSync(f.to),true);
+ assert.deepEqual(fs.readFileSync(f.to),f.bytes);originalArchiveUnchanged(f);
+});
+test('verified union member detects submillisecond source modification',t=>{
+ const f=stagedMember(t),stat=fs.lstatSync,link=fs.linkSync;
+ let linked=false;
+ transferFaults(t,{
+  lstatSync(path,options){
+   const info=Reflect.apply(stat,fs,[path,options]);
+   if(linked&&(path===f.from||path===f.to)&&options?.bigint)info.mtimeNs+=1n;
+   return info;
+  },
+  linkSync(from,to){const value=Reflect.apply(link,fs,[from,to]);linked=true;return value;}
+ });
+ assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),/Verified source identity changed/);
+ assert.equal(fs.existsSync(f.from),true);assert.equal(fs.existsSync(f.to),false);
+ assert.deepEqual(fs.readFileSync(f.from),f.bytes);originalArchiveUnchanged(f);
+});
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
  source:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
  workflow:{ref:'actql/actql/.github/workflows/ci.yml@refs/heads/main',sha:'b'.repeat(40)},planDigest};
