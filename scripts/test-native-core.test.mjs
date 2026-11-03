@@ -90,6 +90,94 @@ test('Reader custody injection loads across the selected host helper CPU subtype
   }
 });
 
+test('Reader custody callbacks preserve ordinary FDs and exact pending/acked behavior', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'callbacks-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  for (const name of ['ordinary.json', 'runtime-constructor-pending/local-runtime.json',
+    'runtime-constructor-acked/local-runtime.json']) {
+    writeFileSync(join(scratch, name), 'original bounded callback fixture');
+  }
+  const source = join(scratch, 'callback-helper.c');
+  writeFileSync(source, `
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+  assert(argc == 2);
+  const char *names[] = {"ordinary.json", "runtime-constructor-pending/local-runtime.json",
+    "runtime-constructor-acked/local-runtime.json"};
+  for (int i = 0; i < 3; i++) {
+    char path[PATH_MAX];
+    int n = snprintf(path, sizeof(path), "%s/%s", argv[1], names[i]);
+    assert(n > 0 && (size_t)n < sizeof(path));
+    int fd = open(path, O_RDONLY); assert(fd >= 0);
+    struct stat status; errno = 0;
+    int observed = fstat(fd, &status);
+    if (i == 0) assert(observed == 0 && S_ISREG(status.st_mode));
+    else assert(observed == -1 && errno == EIO);
+    assert(fcntl(fd, F_GETFD) >= 0);
+    errno = 0;
+    int closed = close(fd);
+    if (i == 1) assert(closed == -1 && errno == EIO);
+    else assert(closed == 0);
+    errno = 0;
+    assert(fcntl(fd, F_GETFD) == -1 && errno == EBADF);
+  }
+  puts("reader-callbacks:3");
+  return 0;
+}
+`);
+  const subtypes = process.platform === 'darwin' ? ['arm64', 'arm64e'] : [undefined];
+  for (const subtype of subtypes) {
+    const helper = join(scratch, 'callback-helper-' + (subtype ?? process.arch));
+    const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
+      ...(subtype ? ['-arch', subtype] : []), source, '-o', helper], {
+      encoding: 'utf8', timeout: 30000,
+    });
+    assert.equal(built.error, undefined);
+    assert.equal(built.status, 0, built.stderr);
+    const observed = spawnSync(helper, [scratch], {encoding: 'utf8', timeout: 10000,
+      env: {...process.env, ...injected}});
+    writeFileSync(join(scratch, 'callback-' + (subtype ?? process.arch) + '.json'),
+      JSON.stringify({status: observed.status, signal: observed.signal,
+        stdout: observed.stdout, stderr: observed.stderr}, null, 2) + '\n');
+    assert.equal(observed.error, undefined);
+    assert.equal(observed.signal, null, observed.stderr);
+    assert.equal(observed.status, 0, observed.stderr);
+    assert.equal(observed.stdout.trim(), 'reader-callbacks:3');
+  }
+});
+
+test('Reader custody callbacks preserve the original empty Moon driver command', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'driver-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const driver = join(scratch, '__generated_driver_for_internal_test.mbt');
+  const metadata = join(scratch, '__internal_test_info.json');
+  const command = ['generate-test-driver', '--output-driver', driver,
+    '--output-metadata', metadata, '--target', 'native', '--pkg-name',
+    'actql/actql', '--driver-kind', 'internal'];
+  const observed = spawnSync('moon', command, {cwd: checkout, encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected}});
+  writeFileSync(join(scratch, 'original-driver-command.json'), JSON.stringify({
+    command: ['moon', ...command], status: observed.status, signal: observed.signal,
+    stdout: observed.stdout, stderr: observed.stderr}, null, 2) + '\n');
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+  assert.ok(readFileSync(driver).length > 0);
+  assert.doesNotThrow(() => JSON.parse(readFileSync(metadata, 'utf8')));
+});
+
 test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
   const core = workflow.jobs.core;
   const expression = core['runs-on'];
