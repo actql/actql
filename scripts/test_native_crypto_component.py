@@ -165,6 +165,17 @@ class CompatibleDarwinSource(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'archive member'):
                     P.source_archive_members(self.archive, expected, 'openssl-original', self.root / 'stage')
 
+    def test_original_member_and_total_bounds_are_checked_before_publication(self):
+        expected = self.write_archive([('openssl-original/crypto/original.c', b'original C', tarfile.REGTYPE)])
+        for extra in ({'maximum_member_bytes': 9}, {'unpacked_bytes': 9}):
+            with self.subTest(extra=extra), self.assertRaisesRegex(ValueError, 'Oversized'):
+                P.source_archive_members(self.archive, {**expected, **extra},
+                    'openssl-original', self.root / 'bounded')
+        records = P.source_archive_members(self.archive,
+            {**expected, 'maximum_member_bytes': 10, 'unpacked_bytes': 10, 'members': 1, 'files': 1},
+            'openssl-original', self.root / 'exact')
+        self.assertEqual(len(records), 1)
+
     def test_compatible_profile_does_not_relabel_the_existing_homebrew_archive(self):
         recipe = json.loads((P.SOURCE / 'source.json').read_bytes())
         self.assertEqual(recipe['minimum_macos'], '26.0')

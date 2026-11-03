@@ -204,6 +204,9 @@ def source_archive_members(archive: Path, expected: dict, prefix: str, destinati
     if observed != {key: expected[key] for key in ('bytes', 'sha256')}:
         raise ValueError('Pinned original OpenSSL source archive mismatch')
     members = []
+    maximum_member = expected.get('maximum_member_bytes', 16 * 1024 * 1024)
+    maximum_total = expected.get('unpacked_bytes', 128 * 1024 * 1024)
+    total = 0
     with tarfile.open(archive, 'r:gz') as container:
         seen = set()
         for member in container:
@@ -214,8 +217,9 @@ def source_archive_members(archive: Path, expected: dict, prefix: str, destinati
             seen.add(member.name)
             if member.isdir():
                 continue
-            if member.size > 16 * 1024 * 1024:
+            if member.size > maximum_member or total + member.size > maximum_total:
                 raise ValueError('Oversized OpenSSL source member')
+            total += member.size
             raw = container.extractfile(member).read(member.size + 1)
             if len(raw) != member.size:
                 raise ValueError('Incomplete original OpenSSL source member')
@@ -225,6 +229,10 @@ def source_archive_members(archive: Path, expected: dict, prefix: str, destinati
                 output.write(raw)
             members.append({'path': member.name, 'bytes': len(raw),
                             'sha256': hashlib.sha256(raw).hexdigest()})
+    if (('members' in expected and len(seen) != expected['members'])
+            or ('files' in expected and len(members) != expected['files'])
+            or ('unpacked_bytes' in expected and total != expected['unpacked_bytes'])):
+        raise ValueError('Pinned original OpenSSL source inventory differs')
     return members
 
 

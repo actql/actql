@@ -8,7 +8,11 @@
     "version": "3.6.2",
     "url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.2/openssl-3.6.2.tar.gz",
     "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f",
-    "bytes": 54913556
+    "bytes": 54913556,
+    "members": 6150,
+    "files": 5844,
+    "unpacked_bytes": 134879600,
+    "maximum_member_bytes": 20844910
   },
   "candidate_static_input": {
     "qualification": "selected installed Homebrew static archive, not an ActQL source rebuild",
