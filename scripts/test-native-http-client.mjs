@@ -1021,6 +1021,7 @@ verification: try {
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
     root,
+    allowLocalEffectRejection: true,
   });
   effectCheckpointServer = await startNativeEffectCheckpointServer({
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
@@ -1353,6 +1354,17 @@ verification: try {
         ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
       walFixtureEnvironment.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE = walFixture;
     }
+    // Only this child consumes the existing signed rejection fixture. Other
+    // packages keep their original optional-HTTP environment unchanged.
+    const localReviewFixtureEnvironment = packagePath ===
+        'src/platform_native/remote_resident_source_compute_tests'
+      ? {
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET:
+          join(bearerServers.directory, 'control'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin,
+      } : {};
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
       env: packagePath === 'src/platform_native/filesystem'
@@ -1360,6 +1372,7 @@ verification: try {
           ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
         : {...testEnvironment,
           ...walFixtureEnvironment,
+          ...localReviewFixtureEnvironment,
           ...(packagePath === 'src/platform_native/signature'
             ? nativeOriginalSigningFixture(root) : {}),
           ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
