@@ -22,6 +22,10 @@ pub fn buffered_hashing_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
 
 pub fn buffered_writer(Int, Int, Int, Int) -> Writer raise EncodeFailure
 
+pub fn buffered_writer_next_construction_inventory(Writer, Int, Int) -> BufferedWriterConstructionInventory?
+
+pub fn buffered_writer_start_construction_inventory() -> BufferedWriterConstructionInventory
+
 pub fn cancel_ordered_key(OrderedKeyEmitCursor) -> Unit
 
 pub fn cancel_string_value(StringEmitCursor) -> Unit
@@ -112,6 +116,13 @@ pub(all) suberror EncodeFailure {
 } derive(@debug.Debug)
 
 // Types and methods
+pub(all) struct BufferedWriterConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
 type EncodedDocument
 
 pub(all) struct HashWriterConstructionInventory {

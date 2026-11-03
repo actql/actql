@@ -250,9 +250,15 @@ pub fn timestamp_order_text(String) -> String?
 
 pub fn typed_key_order_text(CheckedValue) -> Result[String, KeyOrderIssue]
 
+pub fn wire_emit_fragment_byte_bound() -> Int
+
+pub fn wire_emit_next_construction_inventory(WireEmitCursor) -> WireEmitConstructionInventory?
+
 pub fn wire_emit_next_reference(WireEmitCursor) -> ReferenceValue?
 
 pub fn wire_emit_pending_frames(WireEmitCursor) -> Int
+
+pub fn wire_emit_start_construction_inventory() -> WireEmitConstructionInventory
 
 // Errors
 
@@ -490,6 +496,13 @@ pub enum Value {
 }
 
 type VectorBuilder
+
+pub(all) struct WireEmitConstructionInventory {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
 
 type WireEmitCursor
 

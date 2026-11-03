@@ -11,6 +11,7 @@ pub(all) suberror EncodeFailure {
 
 ///|
 priv enum Frame {
+  RetiredFrame
   ArrayItems(Bool)
   ObjectKey(Bool, Map[String, Unit])
   ObjectValue(Map[String, Unit])
@@ -86,7 +87,7 @@ priv struct BufferedHash {
 ///|
 // Exact bounded comparison fragments need text and usage, not a digest.
 priv struct BufferedText {
-  text : StringBuilder
+  mut text : StringBuilder
   limit : Int
   mut bytes : Int
 }
@@ -221,7 +222,9 @@ pub fn drain_buffered_output(w : Writer) -> String raise EncodeFailure {
     fail(w, InvalidStructure)
   }
   let text = buffer.text.to_string()
-  buffer.text.reset()
+  // A drained native String can share the old backing. Replace the builder
+  // with its one-slot initial state rather than zeroing the old capacity.
+  buffer.text = StringBuilder()
   buffer.bytes = 0
   text
 }
@@ -265,6 +268,7 @@ pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
 pub fn cancel_writer(w : Writer) -> Unit {
   w.closed = true
   w.string_active = false
+  for index in 0..<w.frames.length() { w.frames[index] = RetiredFrame }
   w.frames.clear()
   match w.output {
     TextOutput(text) => text.reset()
@@ -273,7 +277,7 @@ pub fn cancel_writer(w : Writer) -> Unit {
       buffer.bytes = 0
     }
     BufferedTextOutput(buffer) => {
-      buffer.text.reset()
+      buffer.text = StringBuilder()
       buffer.bytes = 0
     }
     CompareOutput(output) => output.expected = ""
@@ -557,7 +561,7 @@ fn value_start(w : Writer) -> Unit raise EncodeFailure {
         }
         w.frames[index] = ArrayItems(false)
       }
-      ObjectKey(_, _) | OrderedObjectKey(_) => fail(w, InvalidStructure)
+      RetiredFrame | ObjectKey(_, _) | OrderedObjectKey(_) => fail(w, InvalidStructure)
       ObjectValue(keys) => w.frames[index] = ObjectKey(false, keys)
       OrderedObjectValue(previous) =>
         w.frames[index] = OrderedObjectKey(Some(previous))
@@ -902,7 +906,8 @@ pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
       keys[name] = ()
       w.frames[index] = ObjectValue(keys)
     }
-    ArrayItems(_)
+    RetiredFrame
+    | ArrayItems(_)
     | ObjectValue(_)
     | OrderedObjectKey(_)
     | OrderedObjectValue(_) => fail(w, InvalidStructure)
@@ -914,10 +919,14 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
   match w.frames.last() {
     Some(ArrayItems(_)) => {
+      // Native pop retains its backing slot. Retire the payload before the
+      // O(1) pop so completed Maps and borrowed keys are no longer retained.
+      w.frames[w.frames.length() - 1] = RetiredFrame
       ignore(w.frames.pop())
       ascii(w, "]")
     }
-    Some(ObjectKey(_, _))
+    Some(RetiredFrame)
+    | Some(ObjectKey(_, _))
     | Some(ObjectValue(_))
     | Some(OrderedObjectKey(_))
     | Some(OrderedObjectValue(_))
@@ -930,10 +939,14 @@ pub fn end_object(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
   match w.frames.last() {
     Some(ObjectKey(_, _)) | Some(OrderedObjectKey(_)) => {
+      // Native pop retains its backing slot. Retire the payload before the
+      // O(1) pop so completed Maps and borrowed keys are no longer retained.
+      w.frames[w.frames.length() - 1] = RetiredFrame
       ignore(w.frames.pop())
       ascii(w, "}")
     }
-    Some(ArrayItems(_))
+    Some(RetiredFrame)
+    | Some(ArrayItems(_))
     | Some(ObjectValue(_))
     | Some(OrderedObjectValue(_))
     | None => fail(w, InvalidStructure)

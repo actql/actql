@@ -63466,7 +63466,6 @@
             "admit_prepared_client_run_publication",
             "admit_prepared_client_values_aoa_identity",
             "client_full_sequence_limits_match",
-            "client_program_acquisition_prefix",
             "client_task_output_step",
             "client_task_output_target",
             "client_task_pipeline_emission",
@@ -63851,9 +63850,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_acquisition_prefix"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "79d97fe96f597888da9e54a77b2e2ed97109e229f4f68c79655c1f82934d4e25",
+      "sha256": "a05b24076212ed97007f84d1c17ff67418e92860673ba5c192cf3869673feb1d",
       "exports": [],
       "operations": [
         {

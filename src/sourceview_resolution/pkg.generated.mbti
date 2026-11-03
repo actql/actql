@@ -23,6 +23,8 @@ import {
 }
 
 // Values
+pub fn advance_keyed_request_wire(KeyedRequestWireCursor) -> KeyedRequestWirePoll
+
 pub fn advance_keyed_row_request(KeyedRowRequestCursor) -> KeyedRowRequestPoll
 
 pub fn advance_keyed_row_response(KeyedRowResponseCursor) -> KeyedRowResponsePoll
@@ -38,6 +40,8 @@ pub fn attached_pipeline_stage(PipelineAttachment) -> @stage_parameters.Collecte
 pub fn bind_keyed_request_parameters(RequestParameters, KeyedRequest, Int) -> Result[ParameterizedKeyedRequest, RequestParameterIssue]
 
 pub fn bind_request_parameters(RequestParameters, DirectRequest, Int) -> Result[ParameterizedRequest, RequestParameterIssue]
+
+pub fn cancel_keyed_request_wire(KeyedRequestWireCursor) -> Unit
 
 pub fn cancel_keyed_row_request(KeyedRowRequestCursor) -> Unit
 
@@ -146,6 +150,14 @@ pub fn keyed_request_field_count(KeyedRequest) -> Int
 pub fn keyed_request_input(KeyedRequest) -> ResolvedInput
 
 pub fn keyed_request_usage(KeyedRequest) -> (Int, Int, Int, Int)
+
+pub fn keyed_request_wire_next_inventory(KeyedRequestWireCursor) -> KeyedRequestWireInventory?
+
+pub fn keyed_request_wire_owner(KeyedRequestWireCursor) -> KeyedRowRequest
+
+pub fn keyed_request_wire_progress(KeyedRequestWireCursor) -> (Int64, Int, Int, Int)
+
+pub fn keyed_request_wire_start_inventory() -> KeyedRequestWireInventory
 
 pub fn keyed_row_request_field(KeyedRowRequest, String) -> @value_admission.CheckedValue?
 
@@ -407,6 +419,8 @@ pub fn source_acquisition_source_index(SourceAcquisition) -> Int
 
 pub fn source_acquisition_work(SourceAcquisition) -> Int
 
+pub fn start_keyed_request_wire(KeyedRowRequest, Int, Int, Int) -> Result[KeyedRequestWireCursor, RequestWireIssue]
+
 pub fn start_keyed_row_request(ParameterizedKeyedRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowRequestCursor, KeyedRowRequestIssue]
 
 pub fn start_keyed_row_response(KeyedRowRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowResponseCursor, KeyedRowResponseIssue]
@@ -494,6 +508,24 @@ pub(all) enum KeyedJoinIssueKind {
 type KeyedMode
 
 type KeyedRequest
+
+type KeyedRequestWireCursor
+
+pub(all) struct KeyedRequestWireInventory {
+  generation : Int64
+  fragment_bytes : Int
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub enum KeyedRequestWirePoll {
+  WireContinue
+  WireFragment(String)
+  WireComplete(Int, Int, Int)
+  WireFailed(RequestWireIssue)
+}
 
 type KeyedRowBounds
 
