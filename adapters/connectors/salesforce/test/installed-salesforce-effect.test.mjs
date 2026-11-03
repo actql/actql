@@ -8,7 +8,7 @@ import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
 import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
-  recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
+  moon, recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
 import {checkInstalledSalesforceEffectProfile} from
   '../host/installed-salesforce-effect.mjs';
@@ -325,6 +325,38 @@ test('a restarted Set is refused before any write when one target changed',
       `${label}: ${failure.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
     }
+  });
+
+test('a republished wider Mapping refuses the original two-member Program at static closure',
+  async t => {
+    const installation = await installedEffect(t, {writes: [update, other],
+      org: {writableObjects: ['Other_Record__c']},
+      entries: twoTargets('00D000000000001EAA')});
+    const original = await installation.load();
+    const document = JSON.stringify(updateProgram(original.mappings));
+    const writes = [update, {...other, fields: ['Name', 'External_Key__c']}];
+    await installation.publish({writes});
+    const current = await installation.load({writes});
+    assert.equal(current.mappings.length, 2);
+    assert.equal(current.mappings[0].mappingRef, original.mappings[0].mappingRef);
+    assert.notEqual(current.mappings[1].mappingRef, original.mappings[1].mappingRef);
+    assert.equal(current.mappings.some(mapping =>
+      mapping.mappingRef === original.mappings[1].mappingRef), false);
+    const environment = moon.clientProgramCheckEnvironment(current.environmentWire,
+      JSON.parse(current.environmentWire).evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const seen = installation.org.seen.length;
+    // The original Program still names the old Mapping. The existing typed
+    // static closure refuses it before recovery, rather than resolving it to
+    // the replacement merely because the resource and operation match.
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationReady(outcome), undefined);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(outcome),
+      'effect_static_rejected');
+    assert.equal(installation.org.seen.length, seen);
+    assert.equal(writesOf(installation.org).length, 0);
   });
 
 test('a rejected row fails, halts its member and is never retried',
