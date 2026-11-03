@@ -409,3 +409,37 @@ test('actual read-access resume retains the same input retirement retry without 
   assert.deepEqual(f.events.filter(Array.isArray),
     [['finish', 'returned'], ['finish', 'returned'], ['finish', 'returned']]);
 });
+
+test('actual read-access settlement observes undefined without replacing its original failure', async () => {
+  const source = await readFile(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const selected = [];
+  const walk = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'settlement' &&
+        source.slice(node.init?.start, node.init?.end).includes("diagnostic('source_resume_failed'")) selected.push(node.init);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === 'object') walk(value);
+    }
+  };
+  walk(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(selected.length, 1);
+  const ref = {}, key = {}, view = {runId: 'same-run'};
+  const flight = Promise.reject(undefined);
+  const effectResumeFlights = new Map([[key, flight]]);
+  const observed = [];
+  const ports = {flight, ref, key, view, effectResumeFlights,
+    diagnostic(name, detail) {observed.push({name, detail});},
+    checkpoints: {journal: {getRunState() {return {status: 'resuming'};}},
+      sweep() {assert.fail('An unresolved original claim must not be swept');}},
+  };
+  const settlement = compileFunction('return '+source.slice(selected[0].start, selected[0].end),
+    Object.keys(ports))(...Object.values(ports));
+  await settlement;
+  let rejected = false;
+  try {await flight;} catch (cause) {rejected = true;assert.strictEqual(cause, undefined);}
+  assert.equal(rejected, true);
+  assert.deepEqual(observed, [{name: 'source_resume_failed',
+    detail: {ref, code: undefined, detail: undefined, cause: undefined, missingModule: undefined}}]);
+  assert.equal(effectResumeFlights.size, 0);
+});

@@ -5086,8 +5086,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             effectResumeFlights.set(key, flight);
             const settlement = flight.catch(error => diagnostic('source_resume_failed', {
               ref, code: error?.code ?? error?.message,
-              detail: error.authorization?.detail,
-              cause: error.authorization?.error?.code,
+              detail: error?.authorization?.detail,
+              cause: error?.authorization?.error?.code,
               missingModule: error?.code === 'ERR_MODULE_NOT_FOUND' ? error.url : undefined})).finally(() => {
               effectResumeFlights.delete(key);
               if (checkpoints.journal.getRunState(view.runId)?.status !== 'resuming') {
