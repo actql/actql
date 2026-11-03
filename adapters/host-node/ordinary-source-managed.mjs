@@ -1,6 +1,7 @@
 import {snapshotClientRequest} from '@actql/client-wire';
 import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {open} from 'node:fs/promises';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -548,17 +549,19 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         return restored;
       });
     },
-    retainRequestInput(request, intent, captured) {
+    retainRequestInput(request, intent, captured, materialWire) {
       if (request === null || typeof request !== 'object' || requestProducers.has(request) ||
-          (intent === undefined) === (captured === undefined)) {
+          (intent === undefined) === (captured === undefined) ||
+          materialWire !== undefined && (typeof materialWire !== 'string' || captured !== undefined)) {
         fail('ForeignInstalledSourceProducer');
       }
-      let retainIntent, intentWire;
+      let retainIntent, intentWire, reserveMaterial;
       const receipt = beginProducer(undefined, (state, original, assertCurrent, childrenPending) => {
         const moon = state.context.runtime;
         if (captured === undefined) {
           retainIntent = Object.getOwnPropertyDescriptor(moon, 'clientProgramRetainRequestSubmittedIntent')?.value;
           intentWire = Object.getOwnPropertyDescriptor(moon, 'clientSubmittedIntentWire')?.value;
+          reserveMaterial = Object.getOwnPropertyDescriptor(moon, 'clientProgramReserveRequestRetainedProgramMaterial')?.value;
           if (typeof retainIntent !== 'function' || typeof intentWire !== 'function') {
             fail('NodeManagedRunRuntimeUnavailable');
           }
@@ -590,6 +593,30 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const wire = Reflect.apply(intentWire, moon, [intent]);
         if (typeof wire !== 'string') fail('InvalidHostRuntimeResult');
         const body = JSON.parse(wire);
+        if (body.kind === 'program' && materialWire !== undefined) {
+          if (typeof reserveMaterial !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+          checked(Reflect.apply(reserveMaterial, moon, [state.parent, receipt, materialWire]));
+          if (closing || closed || producer.finished || producer.preparation !== state ||
+              receipts.get(receipt) !== producer || state.parent === undefined) fail('ForeignInstalledSourceProducer');
+          const material = JSON.parse(materialWire);
+          if (material?.program_format !== 'json' || typeof material.program !== 'string' ||
+              material.parameters !== null && typeof material.parameters !== 'string') {
+            fail('ForeignInstalledSourceProducer');
+          }
+          const program = JSON.parse(material.program);
+          const parameters = material.parameters === null ? null : JSON.parse(material.parameters);
+          // The canonical intent already binds the complete structured input.
+          // Compare ALL metadata, values and exact data Strings once, then
+          // retain the material's original field order before the sole native
+          // Program checker/compiler. No reissued intent or changed material
+          // bytes bypass the later exact Run/compilation binding.
+          if (canonicalValueJson(program, {dataKeys: true}) !== canonicalValueJson(body.input, {dataKeys: true}) ||
+              canonicalValueJson(parameters, {dataKeys: true}) !== canonicalValueJson(body.parameters, {dataKeys: true})) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          body.input = program;
+          body.parameters = parameters;
+        }
         // Keep the SDK envelope's literal null sentinel. The same native
         // bridge treats only null as absent; undefined is supplied input.
         freezeInput(body);

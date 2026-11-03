@@ -1212,6 +1212,20 @@ pub fn client_program_finish_request_submitted_intent(
 }
 
 ///|
+#export_name("clientProgramReserveRequestRetainedProgramMaterial")
+pub fn client_program_reserve_request_retained_program_material(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_retained_program_material(
+    parent, input, wire,
+  )
+}
+
+///|
 #export_name("clientProgramRequestSubmittedIntentOriginal")
 pub fn client_program_request_submitted_intent_original(
   parent : @client_local_host.ClientRequestPreparation[

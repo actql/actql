@@ -354,6 +354,146 @@ test "retained Request intent keeps the same original and observed long Text geo
 }
 
 ///|
+test "retained Program material constructor grows the same original input before decoding" {
+  let input = [1]
+  let parent = begin_request_preparation(
+    request_parent_fixture(input),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  let intent = @publication_host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":{},\"parameters\":null}", 1048576, 65536, 64,
+  ).unwrap()
+  retain_request_submitted_intent(parent, input, intent).unwrap()
+  let before = @resources.preparation_capacity_working_extents(
+    parent.capacity,
+    input,
+  ).unwrap()
+  let base = parent.snapshot_base.unwrap()
+  let units = parent.snapshot_units
+  let values = parent.snapshot_values
+  let wire = "{\"program_format\":\"json\",\"program\":\"{}\",\"parameters\":null}"
+  let n = wire.length().to_int64() + 1L
+  let amount = 3L * request_snapshot_data_bytes(n, n).unwrap()
+  reserve_request_retained_program_material(parent, input, wire).unwrap()
+  assert_eq(
+    @resources.preparation_capacity_working_extents(parent.capacity, input).unwrap(),
+    (before.0 + amount, before.1 + amount),
+  )
+  assert_eq(parent.snapshot_base, Some((base.0 + amount, base.1 + amount)))
+  assert_eq(parent.snapshot_units, units)
+  assert_eq(parent.snapshot_values, values)
+  assert_true(
+    physical_equal(
+      request_submitted_intent_original(parent, input).unwrap(),
+      intent,
+    ),
+  )
+  assert_true(parent.program_json is None && !parent.native_parameters_ready)
+  assert_true(parent.phase == Open)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "retained Program material constructor refuses one-short original capacity without changing its snapshot" {
+  for retention in [true, false] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let intent = @publication_host.prepare_client_submitted_intent(
+      "{\"kind\":\"program\",\"input\":{},\"parameters\":null}", 1048576, 65536,
+      64,
+    ).unwrap()
+    retain_request_submitted_intent(parent, input, intent).unwrap()
+    let wire = "{\"program_format\":\"json\",\"program\":\"{}\",\"parameters\":null}"
+    let n = wire.length().to_int64() + 1L
+    let amount = 3L * request_snapshot_data_bytes(n, n).unwrap()
+    let before = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    let base = parent.snapshot_base
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - before.0 - amount + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - before.1 - amount + 1L
+      },
+    ).unwrap()
+    let result = reserve_request_retained_program_material(parent, input, wire)
+    assert_true(
+      if retention {
+        result is Err(Capacity(Resource(RetentionLimit)))
+      } else {
+        result is Err(Capacity(Resource(ExecutionLimit)))
+      },
+    )
+    assert_eq(parent.snapshot_base, base)
+    assert_true(parent.phase == Open)
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "retained Program material constructor fences foreign input and original current reentry" {
+  let input = [1]
+  let selected : Ref[ClientRequestPreparation[Array[Int]]?] = Ref(None)
+  let armed = Ref(false)
+  let refused = Ref(false)
+  let wire = "{}"
+  let parent = begin_request_preparation(
+    request_parent_fixture(input, current=() => {
+      if armed.val {
+        armed.val = false
+        refused.val = reserve_request_retained_program_material(
+            selected.val.unwrap(),
+            input,
+            wire,
+          )
+          is Err(WrongPhase)
+      }
+      true
+    }),
+    input,
+    client_local_resource_policy(),
+  ).unwrap()
+  selected.val = Some(parent)
+  assert_true(
+    reserve_request_retained_program_material(parent, input, wire)
+    is Err(WrongPhase),
+  )
+  let intent = @publication_host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":{},\"parameters\":null}", 1048576, 65536, 64,
+  ).unwrap()
+  retain_request_submitted_intent(parent, input, intent).unwrap()
+  assert_true(
+    reserve_request_retained_program_material(parent, [1], wire)
+    is Err(ForeignOriginal),
+  )
+  armed.val = true
+  reserve_request_retained_program_material(parent, input, wire).unwrap()
+  assert_true(refused.val)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_true(
+    reserve_request_retained_program_material(parent, input, wire)
+    is Err(WrongPhase),
+  )
+}
+
+///|
 test "retained Request intent refuses a foreign input or replacement without a new identity" {
   let input = [1]
   let parent = begin_request_preparation(

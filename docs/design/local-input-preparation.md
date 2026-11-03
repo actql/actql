@@ -5549,3 +5549,31 @@ or fabricated acknowledgment in this alias cut. The actual Wasm instance caller
 and its complete input, controller, phase, returned-body and failed-child backing
 must still be connected; these typed Request methods alone do not enable a normal
 Python Source/Model/Effect execution or durable Saved/approval continuation.
+
+### Retained structured Effect input
+
+A submitted intent canonicalizes object keys. Its identity preserves complete
+Program and Parameter values, but does not retain their original object-member
+order. Effect Run materials separately retain complete machine-source Strings.
+Reconstructing a structured Program only from the canonical intent can therefore
+change the material preimage despite retaining every value and the same Run.
+
+The installed cold caller selects the full material wire from its same retained
+Journal Run. For a structured Program, the existing Request grows before native
+decoding and comparison. The input-derived quote uses three existing detached
+value envelopes for the native material/input trees, canonical comparison
+collections and comparison output. Encoded code units bound the number of native
+JSON values, including decoded Program and Parameter Strings. The same snapshot
+base retains this allowance through checking, compilation, Plan construction and
+retirement; no codec ceiling, independent Root or unused policy extent funds it.
+
+The caller compares the complete Program and Parameters against the same
+canonical intent using the existing data-preserving canonical codec. Metadata,
+array order, exact keys, Unicode normalization forms, CR/LF and explicit null
+remain significant. Only after full value equality does it retain the material's
+original member order for the sole existing native checker/compiler. It issues
+no new intent or Run. The later material codec still requires exact original
+material bytes, compilation, Request and Run correspondence. Textual Source
+continues to use its original text/frontend rather than the material's lowered
+Program. Failed comparison, capacity, currentness or construction remains on the
+same Request's existing abort and retirement chain.

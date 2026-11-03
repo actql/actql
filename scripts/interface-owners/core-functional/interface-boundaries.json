@@ -39471,7 +39471,7 @@
     {
       "module": "src/client_local_host/preparation_request_intent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "019f254f6b80c849ee76db37230bedad001d675f1dcfb591b24d0a809b79f5b3",
+      "sha256": "2bfa41fe238f870102c2ade02fd9b6ba2be2cffe746117539763ed9aa7ce9809",
       "role": "common-semantics",
       "owner": "Existing submitted-intent identity and original Request preparation Owners",
       "exports": [],
@@ -39493,6 +39493,10 @@
           "declaration": "[ I ] request_submitted_intent_original ( owner : ClientRequestPreparation [ I ] , input : I , ) - > @ publication_host . ClientSubmittedIntent ?"
         },
         {
+          "name": "[I]reserve_request_retained_program_material",
+          "declaration": "[ I ] reserve_request_retained_program_material ( owner : ClientRequestPreparation [ I ] , input : I , wire : String , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "[I]retain_request_submitted_intent",
           "declaration": "[ I ] retain_request_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
         },
@@ -39507,9 +39511,9 @@
             "<module>",
             "[I,T]prepare_request_submitted_intent",
             "[I]finish_request_submitted_intent",
+            "[I]request_intent_input_ready",
             "[I]request_submitted_intent_original",
-            "request_intent_construction_bytes",
-            "[I]request_intent_input_ready"
+            "request_intent_construction_bytes"
           ],
           "exports": [],
           "attributes": {
@@ -39581,6 +39585,7 @@
         },
         {
           "operations": [
+            "[I]reserve_request_retained_program_material",
             "[I]retain_request_submitted_intent"
           ],
           "exports": [],
@@ -51827,7 +51832,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8fd486e06d40ead48c00818ede1d28ffe0e06dfa9e5a1caf5a5bb8083c0321d0",
+      "sha256": "6fab7f2ca5f17846419f45aac7b55b0a65bdf99577ee331542bd41ba3462df0d",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -52207,6 +52212,10 @@
         {
           "name": "client_program_reserve_request_query_time_invocation",
           "declaration": "client_program_reserve_request_query_time_invocation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , compilation : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramModuleBridgeIssue ]"
+        },
+        {
+          "name": "client_program_reserve_request_retained_program_material",
+          "declaration": "client_program_reserve_request_retained_program_material ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , wire : String , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
           "name": "client_program_reserve_request_snapshot",
@@ -52730,8 +52739,9 @@
         {
           "operations": [
             "client_program_request_program_module_capacity_refusal",
-            "client_program_retain_request_submitted_intent",
-            "client_program_reserve_request_model_recovery_materials"
+            "client_program_reserve_request_model_recovery_materials",
+            "client_program_reserve_request_retained_program_material",
+            "client_program_retain_request_submitted_intent"
           ],
           "exports": [],
           "attributes": {

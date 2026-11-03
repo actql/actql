@@ -463,3 +463,81 @@ pub fn[I] retain_request_submitted_intent(
     reserve_request_snapshot(owner, input, units, values)
   }
 }
+
+///|
+/// Back the installed caller's retained structured Program reconstruction on
+/// this SAME Request before native material decoding or full-input comparison.
+/// The wire selects no semantic owner, grant, limits or admission. The later
+/// original materials codec still binds the Run, compiler and complete bytes.
+pub fn[I] reserve_request_retained_program_material(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  wire : String,
+) -> Result[Unit, ClientRequestPreparationIssue] {
+  guard owner.phase == Open &&
+    owner.intent_attempted &&
+    !owner.intent_peak_live &&
+    owner.submitted_intent is Some(_) &&
+    owner.snapshot_base is Some(base) &&
+    !owner.native_parameters_ready &&
+    owner.program_json is None &&
+    owner.query_syntax is None else {
+    return Err(WrongPhase)
+  }
+  guard owner.input is Some(original) && physical_equal(original, input) else {
+    return Err(ForeignOriginal)
+  }
+  // Each native JSON value needs at least one encoded code unit. This bound
+  // includes the outer material and its decoded Program/Parameters Strings.
+  // Reuse three existing detached-value envelopes for the simultaneously live
+  // native inputs, canonical comparison collections and comparison output.
+  // They depend on this actual wire, never a codec/policy maximum or spare
+  // capacity. Borrowed original wire and fixed VM frames are not copies.
+  let units = wire.length().to_int64() + 1L
+  guard request_snapshot_data_bytes(units, units) is Some(one) &&
+    @execution.checked_preparation_add_product(0L, one, 3L) is Some(bytes) &&
+    @execution.checked_preparation_add_product(base.0, bytes, 1L)
+    is Some(base_r) &&
+    @execution.checked_preparation_add_product(base.1, bytes, 1L)
+    is Some(base_e) else {
+    return Err(Policy)
+  }
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      let (r, e) = match
+        @resources.preparation_capacity_working_extents(owner.capacity, input) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(value) => value
+      }
+      guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+        @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+        return Err(Policy)
+      }
+      match
+        @resources.reserve_working_preparation_phase(
+          owner.capacity,
+          input,
+          r,
+          e,
+        ) {
+        Err(issue) => return Err(Capacity(issue))
+        Ok(_) => ()
+      }
+      // Imported currentness can reenter. These local original checks add no
+      // callback, and the existing snapshot base retains the complete grown
+      // envelope through subsequent input/Program/Plan construction.
+      guard owner.phase == Selecting &&
+        owner.input is Some(original) &&
+        physical_equal(original, input) &&
+        owner.snapshot_base == Some(base) &&
+        owner.program_json is None &&
+        !owner.native_parameters_ready else {
+        return Err(ForeignOriginal)
+      }
+      owner.snapshot_base = Some((base_r, base_e))
+      Ok(())
+    },
+    () => owner.phase = Open,
+  )
+}

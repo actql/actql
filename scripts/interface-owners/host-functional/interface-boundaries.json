@@ -110417,7 +110417,8 @@
           "parameters": [
             "request",
             "intent",
-            "captured"
+            "captured",
+            "materialWire"
           ],
           "async": false
         },
@@ -110503,6 +110504,7 @@
         }
       ],
       "imports": [
+        "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/diagnostic-observer.mjs",
@@ -110842,23 +110844,23 @@
             "prepareOrdinaryManagedInstallation",
             "prepareOrdinaryManagedInstallation/captureReader",
             "prepareOrdinaryManagedInstallation/closeChild/work/work",
+            "prepareOrdinaryManagedInstallation/reserveModelRecovery",
             "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
-            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
-            "prepareOrdinaryProjectSourceManagedInstallation",
-            "prepareOrdinaryManagedInstallation/reserveModelRecovery",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
             "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
             "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
             "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
-            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2"
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2",
+            "prepareOrdinaryProjectSourceManagedInstallation"
           ],
           "exports": [
             "prepareOrdinaryProjectSourceManagedInstallation"
@@ -111341,8 +111343,8 @@
           "operations": [
             "prepareOrdinaryManagedInstallation/prepareRun",
             "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2"
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
+            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun"
           ],
           "exports": [],
           "attributes": {
@@ -114124,7 +114126,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "871a0ed78da0d0bdc4d2ad2e86824739298ffa6eaa0e709e42086243ae034ff1"
+      "sha256": "a6963abd18d6815b525f96a9796d8120c7391ad38ae67987653bc923df2610cb"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

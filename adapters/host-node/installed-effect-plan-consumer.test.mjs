@@ -668,7 +668,7 @@ function retainedRequestSourceMember(path, name, kind = 'Property') {
 // Actual manager functions, with explicit Core/resource/current ports. No
 // synthetic port here certifies native backing or an ordinary installation.
 function retainedRequestManagerFixture({throwOnRetain = false, failure, missing = false, reentry = false,
-  document, materialWire, missingMaterial = false, materialFailure = false} = {}) {
+  document, materialWire, missingMaterial = false, materialFailure = false, materialReentry = false} = {}) {
   const parent = {}, intent = {}, request = {}, originals = {}, receipts = new WeakMap(), producers = new Set();
   const requestProducers = new WeakMap(), calls = [], liveRuns = new Set(), counts = {current: 0};
   let reserved = false, materialReserved = false;
@@ -687,7 +687,9 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     assert.strictEqual(receipts.get(receipt).preparation.parent, parent);
     assert.strictEqual(originalWire, materialWire); calls.push('reserve-material');
     if (materialFailure) throw failure;
-    materialReserved = true; return ok(undefined);
+    materialReserved = true;
+    if (materialReentry) receipts.get(receipt).finished = true;
+    return ok(undefined);
   }, clientProgramReserveRequestSnapshot(actualParent, receipt, units, values) {
     assert.strictEqual(this, moon);assert.strictEqual(actualParent,parent);
     assert.strictEqual(receipts.get(receipt).preparation.parent,parent);
@@ -790,6 +792,19 @@ test('retained Program material preserves missing backing and thrown undefined b
   assert.deepEqual(f.calls.slice(-2), ['original-cleanup', 'producer-return']);
 });
 
+test('retained Program material fences original retirement during its capacity callback before decoding', () => {
+  const document = canonicalValueJson({kind: 'program', input: {id: 'p'}, parameters: null}, {dataKeys: true});
+  const materialWire = JSON.stringify({program_format: 'json', program: '{"id":"p"}', parameters: null});
+  const f = retainedRequestManagerFixture({document, materialWire, materialReentry: true});
+  assert.throws(() => f.view.retainRequestInput(f.request, f.intent, undefined, materialWire),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.calls.filter(value => value === 'decode').length, 1);
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode', 'reserve-material',
+    'original-cleanup', 'producer-return']);
+  assert.equal(f.requestProducers.has(f.request), false);
+  assert.equal(f.producers.size, 0);
+});
+
 test('retained textual Source keeps its original frontend and never decodes the lowered Program material', () => {
   const f = retainedRequestManagerFixture({materialWire: 'not decoded', missingMaterial: true});
   const retained = f.view.retainRequestInput(f.request, f.intent, undefined, 'not decoded');
@@ -865,9 +880,10 @@ test('retained Effect constructor failure stays original without a fresh Run or 
   assert(threw); assert.deepEqual(f.calls, ['original-journal', 'intent-current', 'compile-once', 'same-original', 'original-constructor']);
 });
 
-function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true} = {}) {
+function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true, target = true} = {}) {
   const ref = {runDefinitionCid: 'original-ref'}, identity = {}, prepared = {}, managed = {}, intent = {}, originalBinding = {};
   const runDefinition = {identity: ref.runDefinitionCid}, calls = [];
+  const materialWire = 'same Journal-retained complete material';
   const originalSubmittedIntent = {intent, assertCurrent() {calls.push('intent-current');}};
   let request;
   const prepareSubmit = async value => {assert.strictEqual(value, request); calls.push('same-request-check'); if (failPrepare) throw undefined; return prepared;};
@@ -877,11 +893,13 @@ function retainedHostPreparationFixture({reuse = false, failPrepare = false, cle
     authorityScopeCid: 'authority', journal: {
       lookupRunDefinition: value => {assert.strictEqual(value, ref); return {requestId: 'original-request'};},
       lookupOwnedDefinition: key => {assert.equal(key.requestId, 'original-request'); return {requestIdentity: identity,
-        runDefinition, runAdmissionEvidence: material ? {updateTargetRunOriginal: {}} : {}};},
+        runDefinition, runAdmissionEvidence: material ? target
+          ? {updateTargetRunOriginal: {materialsWire: materialWire}} : {effectOriginalRunWire: materialWire} : {}};},
       originalSubmittedIntent: value => {assert.strictEqual(value, identity); calls.push('original-intent'); return originalSubmittedIntent;}},
     preparation: {retainedEffectManagedPlan: () => reuse ? managed : undefined,
-      retainEffectRequestInput(runtime, value, original) {
+      retainEffectRequestInput(runtime, value, original, captured, wire) {
         assert.strictEqual(runtime, ports.moon); assert.strictEqual(original, intent); request = value;
+        assert.strictEqual(captured, undefined); assert.strictEqual(wire, materialWire);
         assert.equal(request.requestId, 'original-request'); calls.push('same-parent-input');
         return {finish(terminal) {calls.push(`finish-${terminal}`); if (cleanupFailure) throw new Error('OriginalCleanupPending');}};
       }, bindSourceRequest(parent, child) {assert.strictEqual(parent, request); assert.strictEqual(child, prepared); calls.push('bind-original-alias');},
@@ -900,10 +918,12 @@ function retainedHostPreparationFixture({reuse = false, failPrepare = false, cle
 }
 
 test('retained Host binds the Journal Request directly through one checked preparation and original Plan', async () => {
-  const f = retainedHostPreparationFixture(), result = await f.restore();
-  assert.strictEqual(result.managedEffect, f.managed); assert.strictEqual(result.original, f.originalBinding);
-  assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check',
-    'bind-original-alias', 'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
+  for (const target of [true, false]) {
+    const f = retainedHostPreparationFixture({target}), result = await f.restore();
+    assert.strictEqual(result.managedEffect, f.managed); assert.strictEqual(result.original, f.originalBinding);
+    assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check',
+      'bind-original-alias', 'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
+  }
   const reused = retainedHostPreparationFixture({reuse: true});
   assert.strictEqual((await reused.restore()).managedEffect, reused.managed); assert.deepEqual(reused.calls, []);
 });

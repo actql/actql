@@ -3649,7 +3649,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     // or a submitted transport packet. Its original typed identity stays with
     // the independently selected Journal row throughout construction/adoption.
     const request = {requestId: retained.requestId, signal};
-    const input = preparation.retainEffectRequestInput(moon, request, originalSubmittedIntent.intent);
+    const materialWire = owned.runAdmissionEvidence.updateTargetRunOriginal?.materialsWire ??
+      owned.runAdmissionEvidence.effectOriginalRunWire;
+    const input = preparation.retainEffectRequestInput(moon, request,
+      originalSubmittedIntent.intent, undefined, materialWire);
     let terminal = 'failed';
     try {
       const prepared = await prepareSubmit(request);
@@ -6466,7 +6469,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return manager.restoreModelOriginal(originalSourceManagedHostRequest(originals, request),
         original, definition, identity, construct);
     },
-    retainEffectRequestInput(runtime, request, intent, captured) {
+    retainEffectRequestInput(runtime, request, intent, captured, materialWire) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.retainRequestInput !== 'function') {
         throw clientOperationError('InstalledEffectRequestPreparationUnavailable');
@@ -6478,7 +6481,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       profiles.retainRequest(host, originalInstallation, host, request, pending);
       let original, finished = false;
       const finishProducer = manager.finishSourceProducer;
-      try {original = captured === undefined ? manager.retainRequestInput(request, intent)
+      try {original = captured === undefined ? manager.retainRequestInput(request, intent, undefined, materialWire)
         : manager.retainRequestInput(request, undefined, captured);}
       catch (cause) {settled(); throw cause;}
       return Object.freeze({body: original.body,

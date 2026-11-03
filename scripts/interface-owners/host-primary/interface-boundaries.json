@@ -9877,7 +9877,8 @@
             "runtime",
             "request",
             "intent",
-            "captured"
+            "captured",
+            "materialWire"
           ],
           "async": false
         },
@@ -19649,7 +19650,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "34adcb0498780b2d555f1768118cda515884aa708d84fa792fb187f42a83360b"
+      "sha256": "b590d444d5366d0ad670f582db02bae8efd411a79ae17caead5910ef8e27c062"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
