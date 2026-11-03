@@ -1,5 +1,7 @@
 ///|
-fn effect_host_preview_input_fixture() -> (
+fn effect_host_preview_input_fixture(
+  standard? : Bool = false,
+) -> (
   @publication_host.PreparedClientEffectComputation,
   @publication_host.ClientRequestIdentity,
   ClientInstalledEffectManagedPlan,
@@ -11,14 +13,18 @@ fn effect_host_preview_input_fixture() -> (
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   let host = prepare_installed_effect_host_input_capture_recipe_extent(
     "operation",
-    [
-      @execution.execution_capacity(8L, 8L).unwrap(),
-      empty,
-      empty,
-      empty,
-      empty,
-      empty,
-    ],
+    if standard {
+      [@execution.execution_capacity(8L, 8L).unwrap(), empty]
+    } else {
+      [
+        @execution.execution_capacity(8L, 8L).unwrap(),
+        empty,
+        empty,
+        empty,
+        empty,
+        empty,
+      ]
+    },
     1000000,
     100000,
     64,
@@ -185,5 +191,55 @@ test "Host Preview refused growth leaves same original usage and input selection
   complete_installed_effect_operation_control_construction(
     owner, prepared, request, plan,
   ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "standard two-role capture grows the same original Preview forest and keeps refusal retryable" {
+  let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture(
+    standard=true,
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner,
+      prepared,
+      request,
+      plan,
+      "x".repeat(500000),
+    )
+    is Err(_),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(owner.effect_operation_controls.unwrap().host_input is None)
+  let wire = "{\"rows\":[{\"id\":1}]}"
+  begin_installed_effect_operation_control_input(
+    owner, prepared, request, plan, wire,
+  ).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  assert_true(active.reserved_retention_bytes > before.reserved_retention_bytes)
+  assert_eq(active.attempts, before.attempts)
+  assert_eq(active.transferred_bytes, before.transferred_bytes)
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  let retained = @resources.ledger_usage(ledger)
+  assert_eq(retained.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_true(
+    retained.reserved_execution_bytes < active.reserved_execution_bytes,
+  )
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, wire,
+    )
+    is Err(AlreadyBound),
+  )
+  assert_true(
+    begin_installed_effect_operation_control_input(
+      owner, prepared, request, plan, "{\"foreign\":true}",
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), retained)
   retire_installed_managed_run(owner).unwrap()
 }

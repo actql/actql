@@ -32,9 +32,11 @@ test('automatic standard recipe forwards original constructor capacities and kee
           effectLedgerImplementationBounds.maxOutcomeNodes,effectLedgerImplementationBounds.maxOutcomeDepth,41n,16384]);
         return {$tag:1,_0:capacities};
       },
-      clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){
-        assert.equal(this,moon);assert.deepEqual([operation,fixed,row],['write',capacities[0],capacities[1]]);
-        const extent={capture:true};extents.push(extent);return {$tag:1,_0:extent};
+      clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation,original,maxBytes,maxNodes,maxDepth){
+        assert.equal(this,moon);assert.deepEqual([operation,original,maxBytes,maxNodes,maxDepth],
+          ['write',[capacities[0],capacities[1]],512,32,8]);
+        assert.strictEqual(original[0],capacities[0]);assert.strictEqual(original[1],capacities[1]);
+        const extent={capture:true,hostInputLimits:[maxBytes,maxNodes,maxDepth]};extents.push(extent);return {$tag:1,_0:extent};
       },
       clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation,capacity,transfer,physical){
         assert.equal(this,moon);const extent={operation,capacity,transfer,physical};extents.push(extent);return {$tag:1,_0:extent};
@@ -83,9 +85,12 @@ test('confirmed CREATE forwards the original seven-role Native profile and owns 
     clientProgramInstalledStandardCreateRequestRecipeCapacities(original) {
       assert.equal(this, moon); assert.strictEqual(original, profile); return {$tag: 1, _0: capacities};
     },
-    clientProgramInstalledEffectCaptureExtentPrepare(operation, fixed, row) {
-      assert.deepEqual([operation, fixed, row], ['comment-write', capacities[0], capacities[1]]);
-      return {$tag: 1, _0: {capture: true}};
+    clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation, original, maxBytes, maxNodes, maxDepth) {
+      assert.equal(this, moon);
+      assert.deepEqual([operation, original, maxBytes, maxNodes, maxDepth],
+        ['comment-write', [capacities[0], capacities[1]], 512, 32, 8]);
+      assert.strictEqual(original[0], capacities[0]); assert.strictEqual(original[1], capacities[1]);
+      return {$tag: 1, _0: {capture: true, hostInputLimits: [maxBytes, maxNodes, maxDepth]}};
     },
     clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
       return {$tag: 1, _0: {operation, capacity, transfer, physical}};

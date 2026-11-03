@@ -160,7 +160,14 @@ pub fn prepare_installed_effect_host_input_capture_recipe_extent(
   if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(Unsupported)
   }
-  prepare_installed_effect_capture_recipe_extent(operation, recipe).map(original => {
+  // Standard CREATE owns fixed/per-row capture quantities. Described
+  // drivers additionally retain their original checked effect-id role.
+  let capture = if recipe.length() == 2 {
+    prepare_installed_effect_capture_extent(operation, recipe[0], recipe[1])
+  } else {
+    prepare_installed_effect_capture_recipe_extent(operation, recipe)
+  }
+  capture.map(original => {
     ..original,
     host_input_limits: Some({
       max_input_bytes: max_bytes,

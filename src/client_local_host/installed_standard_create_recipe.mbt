@@ -349,6 +349,10 @@ pub fn installed_standard_create_request_recipe_capacities(
     stored_depth,
     metadata_units,
     response_read_quantum~,
+    // The standard installed Request does not yet own a Preview forest.
+    // Its exact codec limits are retained on the same capture extent; the
+    // existing control-input boundary grows before parsing that original wire.
+    host_input_bytes=Some(0),
   )
 }
 

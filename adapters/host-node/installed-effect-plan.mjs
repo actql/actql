@@ -74,7 +74,7 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     ? 'clientProgramInstalledStandardCreateRequestRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const captureFor = originalMethod(moon, captureProfile === undefined
-    ? 'clientProgramInstalledEffectCaptureExtentPrepare' : 'clientProgramInstalledEffectCaptureRecipeExtentPrepare');
+    ? 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare' : 'clientProgramInstalledEffectCaptureRecipeExtentPrepare');
   const {write, check} = construction;
   const confirmation = construction.confirmation;
   if (confirmed && (check === undefined || confirmation.maxRequestBytes !== check.maxRequestBytes ||
@@ -110,8 +110,8 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     fail('InstalledStandardCreateConstructionUnavailable');
   }
   const memberOperations = [Object.freeze({operation:write.operation,
-    extent:checked(captureProfile === undefined ? captureFor(write.operation,capacities[0],capacities[1])
-      : captureFor(write.operation,capacities))})];
+    extent:checked(captureProfile === undefined ? captureFor(write.operation,[capacities[0],capacities[1]],
+      limits.maxWireBytes,limits.maxNodes,limits.maxDepth) : captureFor(write.operation,capacities))})];
   const rowOperations = [Object.freeze({operation:write.operation,
     extent:checked(extentFor(write.operation,capacities[2],0n,false))})];
   const requestFinalization = confirmed ? Object.freeze({operationIndex: rowOperations.length}) : undefined;

@@ -32675,7 +32675,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "b0b62d8aa3c1e25b540c96a57a65ca066b975f98a82f17da8d7beffa542b494f",
+      "sha256": "8fe677dde6d343cf7feaba58dbb114401e83e8d93008c9f03f8cb36f45c0f482",
       "exports": [],
       "operations": [
         {
@@ -34958,7 +34958,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "18af182b7ad000c2fff8efe9f4071f863fd3a517bd1d31cae6c4349741b057c4",
+      "sha256": "2bd46cd270957bc0790ef73b104a13d06aa81948fe967ca27c0dc19510704fde",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",

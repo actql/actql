@@ -173,3 +173,74 @@ test "standard read request scratch belongs to the shared control while each phy
     }
   }
 }
+
+///|
+test "standard CREATE initially retains codec limits and text without a future Host Preview forest" {
+  let initial = confirmation_recipe_capacities(7).unwrap()
+  let full = installed_standard_recipe_capacities(
+    Some(confirmation_recipe_profile(7)),
+    None,
+    4096,
+    128,
+    16,
+    1024,
+    32,
+    8,
+    2048,
+    4096,
+    2048,
+    4096,
+    false,
+    64,
+    7,
+    256,
+    4096,
+    128,
+    16,
+    0L,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(initial[0]) <
+    @execution.execution_capacity_retained_bytes(full[0]),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(initial[0]) <
+    @execution.execution_capacity_execution_bytes(full[0]),
+  )
+  for slot in 1..<8 {
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(initial[slot]),
+      @execution.execution_capacity_retained_bytes(full[slot]),
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(initial[slot]),
+      @execution.execution_capacity_execution_bytes(full[slot]),
+    )
+  }
+  let extent = prepare_installed_effect_host_input_capture_recipe_extent(
+    "create",
+    [initial[0], initial[1]],
+    4096,
+    128,
+    16,
+  ).unwrap()
+  assert_true(extent.checked_effect_id_capacity is None)
+  let bounds = extent.host_input_limits.unwrap()
+  assert_eq(bounds.max_input_bytes, 4096)
+  assert_eq(bounds.max_nodes, 128)
+  assert_eq(bounds.max_depth, 16)
+  assert_true(physical_equal(extent.capacity, initial[0]))
+  assert_true(physical_equal(extent.checked_row_capacity.unwrap(), initial[1]))
+  for count in [0, 1, 3, 4, 5, 7, 8] {
+    assert_true(
+      prepare_installed_effect_host_input_capture_recipe_extent(
+        "create",
+        Array::make(count, initial[0]),
+        4096,
+        128,
+        16,
+      )
+      is Err(Unsupported),
+    )
+  }
+}
