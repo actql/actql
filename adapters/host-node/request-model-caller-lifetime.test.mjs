@@ -984,3 +984,73 @@ test('Request serialized Model preserves native Graph across actual facade Host 
     f.occurrence, {...f.selected}, f.execution, f.admission), /Foreign Content compilation graph/u);
   assert.deepEqual(f.calls, ['same native Content'], 'A copied facade never enters the Core constructor');
 });
+
+const modelModuleConstructor = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareRequestMockModelPlan');
+assert(modelModuleConstructor);
+
+test('Source-free Model module retains the output required by its existing configured Host', () => {
+  for (const {physical, serialized, retainedOutput, expected} of [
+    {physical: false, serialized: false, retainedOutput: false, expected: true},
+    {physical: true, serialized: false, retainedOutput: false, expected: false},
+    {physical: false, serialized: true, retainedOutput: false, expected: false},
+    {physical: true, serialized: false, retainedOutput: true, expected: true},
+  ]) {
+    const prepared = {}, request = {}, parent = {}, input = {}, compilation = {};
+    const compiled = {}, definition = {}, occurrence = {}, graph = {}, bounds = {};
+    const module = {}, plan = {}, admission = {}, initialControl = {};
+    let moduleCalls = 0, planCalls = 0;
+    const moon = {
+      clientProgramAcquisitionCount: value => {assert.strictEqual(value, prepared); return 0;},
+      clientProgramPreparedComposedInferBounds: () => assert.fail('Keep the original selected bounds'),
+      clientProgramComposedInferRetainedLimits: value => {
+        assert.strictEqual(value, bounds); return [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n];
+      },
+      clientProgramPrepareRequestModelSourceFreeModule() {},
+    };
+    const model = {compiled, runDefinition: definition, occurrence, graph, selection: {selectedBounds: bounds}};
+    if (physical) model.originalReadInstallation = {
+      nodeInstallation: {layout: {retained_bytes: 31n, execution_bytes: 41n}},
+      modelRetainedBytes: 51n, modelExecutionBytes: 61n,
+      bootstrap: {maxReservations: 7, maxHoldings: 8, maxDelegations: 9},
+    };
+    const run = {runtime: moon, prepared, request, model};
+    const control = {
+      prepareCheckedClientRequestModelSourceFreeModule(...args) {
+        assert.deepEqual(args.slice(0, 7), [parent, input, request, compiled, definition, compilation, admission]);
+        assert.strictEqual(args[7], expected);
+        moduleCalls++; return module;
+      },
+      prepareCheckedClientRequestModelSourceFreePlan(...args) {
+        assert.deepEqual(args, [parent, input, module, request, compiled, definition, occurrence, graph, bounds]);
+        assert.equal(physical, false); planCalls++; return plan;
+      },
+      prepareCheckedClientRequestNodeModelSourceFreePlan(...args) {
+        assert.deepEqual(args, [parent, input, module, request, compiled, definition,
+          occurrence, graph, bounds, model.originalReadInstallation]);
+        assert.equal(physical, true); planCalls++; return plan;
+      },
+    };
+    model.control = control;
+    if (serialized) {
+      model.serializationGraph = {};
+      run.contentPreparation = {prepared, managed: run,
+        plan: {compiled, runDefinition: definition, serializationGraph: model.serializationGraph},
+        contentControl: {prepareModelRequestPrefix() {return {};}}};
+    }
+    const originals = {installation: {projectRuntime: moon, initialControl,
+      retainedRelationOutput: retainedOutput, computeRuns: new WeakMap([[prepared, run]])}};
+    const construct = Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
+      'prepareInstalledSequenceContractOriginal', 'runtimeCore', 'checked', 'clientOperationError',
+      'return ' + hostSource.slice(modelModuleConstructor.start, modelModuleConstructor.end))(
+      value => assert.strictEqual(value, originals),
+      (value, actual) => {assert.strictEqual(value, originals); assert.strictEqual(actual, prepared); return request;},
+      value => {assert.strictEqual(value, originals); return {moon, control: initialControl, contracts: {}, admission};},
+      value => {assert.strictEqual(value, moon); return {publicationControl: control};},
+      value => value, code => Object.assign(new Error(code), {code}));
+    assert.strictEqual(construct(originals, run, model, compilation, parent, input), plan);
+    assert.strictEqual(run.preparedSequences, module);
+    assert.strictEqual(run.modelPlan, plan);
+    assert.equal(moduleCalls, 1); assert.equal(planCalls, 1);
+  }
+});

@@ -58316,7 +58316,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "bb12c33940a3ba1946ee1f7d161003b059ad3be58f62ef16a39d5ced4ead3555"
+      "sha256": "bb8da05c600a3a7227c9acdbdc982ddbedb657550854e54ad719d18945361001"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
