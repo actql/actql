@@ -41,6 +41,8 @@ function fixture({composed = false} = {}) {
     modelCompiled: compiled, runDefinition, updateTargetSelections};
   const mockEffectRuns = new Map(), mockEffectOriginals = new WeakMap(), effectSelections = new WeakMap();
   const registry = {}, values = {}, fragment = {}, ordered = {};
+  const infer = composed ? Object.freeze({graph: {}}) : undefined;
+  const inferSelections = new WeakMap(infer === undefined ? [] : [[prepared, infer]]);
   let current = true, ownedRecovery = true, physicalFailure, savedAuthorization = 'saved-authorization';
   const reissuedAllowed = {}, reissuedDefinition = {};
   const refusal = new Error('OriginalHostNotCurrent');
@@ -102,12 +104,13 @@ function fixture({composed = false} = {}) {
   }};
   const control = {}, preparation = {assertResultPublicationCurrent: currentHost,
     admitEffectResultPublicationRun(p) {assert.strictEqual(p, prepared); calls.push('result-purpose');},
-    prepareManagedEffectPlanRun(core, actualFacts, selection, inputs) {
+    prepareManagedEffectPlanRun(core, actualFacts, selection, inputs, originalInfer) {
       assert.strictEqual(this, preparation); assert.strictEqual(core, moon);
       assert.strictEqual(actualFacts, facts); assert.strictEqual(selection, selected);
       assert.strictEqual(actualFacts.identity, identity);
       assert.strictEqual(actualFacts.modelCompiled, compiled);
       assert.strictEqual(actualFacts.runDefinition, runDefinition);
+      assert.strictEqual(originalInfer, infer);
       assert.deepEqual(Object.keys(inputs).sort(), ['fragment', 'ordered', 'registry', 'sourceProfile', 'values']);
       for (const [name, original] of Object.entries({registry, values, fragment, ordered, sourceProfile})) {
         assert.strictEqual(inputs[name], original);
@@ -122,7 +125,7 @@ function fixture({composed = false} = {}) {
     'mockEffectRuns', 'mockEffectObservationMethods', 'mockEffectObservation', 'moon', 'checked',
     'journal', 'namespaceId', 'authorityScopeCid', 'control', 'sourceProfile',
     'registry', 'values', 'fragment', 'ordered', 'installedEffect', 'effectSelections', 'updateTargetOriginals',
-    'installedEffectFor', 'installedRowEffectDescriptors', 'validateInstalledUpdateOwnerSelections',
+    'installedEffectFor', 'installedRowEffectDescriptors', 'validateInstalledUpdateOwnerSelections', 'inferSelections',
     functions + '\nconst mockEffectResources=' + source.slice(resources.init.start, resources.init.end) +
     ';const prepareDefinition=' + source.slice(preparationNode.start, preparationNode.end) +
     ';return {mockEffectResources, retainMockEffectRunOriginal, prepareDefinition};')(
@@ -131,7 +134,7 @@ function fixture({composed = false} = {}) {
       value => {if (value.$tag !== 1) throw value._0; return value._0;},
       journal, 'namespace', 'authority', control, sourceProfile,
       registry, values, fragment, ordered, installedEffect, effectSelections, updateTargetOriginals,
-      installedEffectFor, installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections);
+      installedEffectFor, installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections, inferSelections);
   return {...api, calls, facts, originalFacts: facts, actualLimits,
     plan: () => observedPlan, selected, descriptorReads: () => descriptorReads, selections: () => selections,
     failPlan(value) {planFailure = value;},
