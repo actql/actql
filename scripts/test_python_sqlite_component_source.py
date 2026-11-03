@@ -137,6 +137,23 @@ class SQLiteSourceTests(unittest.TestCase):
 class LinuxProcessSQLiteSourceTests(unittest.TestCase):
     setUp = SQLiteSourceTests.setUp
     stage = SQLiteSourceTests.stage
+    def test_x64_selection_derives_its_own_recipe_without_relabeling_arm(self):
+        record = self.stage('linux-x64-gnu')
+        selected = record['selected_process_recipe']
+        self.assertEqual(selected['target'], 'x86_64-unknown-linux-gnu')
+        self.assertEqual(selected['process_format'], 'ELF64-little-x86-64-shared')
+        self.assertIsNone(selected['deployment_target'])
+        original = (self.source / 'source.json').read_bytes()
+        arm, arm_raw = MODULE.process_recipe(original, 'linux-arm64-gnu')
+        self.assertEqual(arm['target'], 'aarch64-unknown-linux-gnu')
+        self.assertNotEqual(record['recipe_sha256'], hashlib.sha256(arm_raw).hexdigest())
+        self.assertEqual(record['original_recipe_sha256'], hashlib.sha256(original).hexdigest())
+        for name in ('upstream', 'local', 'provider_inputs', 'defines', 'memory', 'optimization'):
+            self.assertEqual(selected[name], self.recipe[name])
+        self.assertEqual((record['compiled'], record['loaded']), (0, 0))
+        self.assertFalse(record['installed_supplier'])
+        self.assertIsNone(record['normal_profile'])
+
     def test_linux_selection_is_genuinely_derived_without_changing_source_or_heap(self):
         record = self.stage('linux-arm64-gnu')
         selected = record['selected_process_recipe']
@@ -164,11 +181,25 @@ class LinuxProcessSQLiteSourceTests(unittest.TestCase):
         self.assertNotIn('original_recipe_sha256', record)
 
     def test_foreign_target_refuses_before_stage_publication(self):
-        for target in ('linux-x64-gnu', 'linux-arm64-musl', 'darwin-arm64', True):
+        for target in ('linux-x64-musl', 'linux-arm64-musl', 'linux-riscv64-gnu', 'darwin-arm64', True):
             with self.subTest(target=target):
                 with self.assertRaisesRegex(ValueError, 'target selection'):
                     self.stage(target)
                 self.assertFalse(self.destination.exists())
+
+    def test_x64_cannot_derive_from_foreign_recipe_or_provider_inputs(self):
+        for target, deployment in (('x86_64-unknown-linux-gnu', '11.0'), ('aarch64-apple-darwin', '26.0')):
+            with self.subTest(target=target, deployment=deployment):
+                self.recipe['target'], self.recipe['deployment_target'] = target, deployment
+                with self.assertRaisesRegex(ValueError, 'target selection'):
+                    self.stage('linux-x64-gnu')
+                self.assertFalse(self.destination.exists())
+        self.recipe['target'], self.recipe['deployment_target'] = 'aarch64-apple-darwin', '11.0'
+        name = next(iter(self.recipe['provider_inputs']))
+        self.recipe['provider_inputs'][name]['sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'digest mismatch'):
+            self.stage('linux-x64-gnu')
+        self.assertFalse(self.destination.exists())
 
 
 if __name__ == '__main__':
