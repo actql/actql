@@ -6,9 +6,13 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
+import shlex
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,26 +51,104 @@ class LinuxX64OwnedProcess(unittest.TestCase):
         cls.directory = Path(tempfile.mkdtemp(prefix='original-', dir=parent))
         cls.records = []
         cls.sequence = 0
+        cls.context = {}
+        cls.source = cls.invoke('source', ['git', 'rev-parse', 'HEAD']).stdout.strip()
+        status = cls.invoke('source-clean', ['git', 'status', '--porcelain'])
+        if status.returncode or status.stdout:
+            raise RuntimeError('Requires the same clean committed source')
+        recipe = json.loads((PROVIDER / 'linux-x64-process-source.json').read_bytes())
+        for item in recipe['inputs']:
+            data = (ROOT / item['path']).read_bytes()
+            if len(data) != item['bytes'] or hashlib.sha256(data).hexdigest() != item['sha256']:
+                raise RuntimeError('Changed process-provider source: ' + item['path'])
+        cls.context['source'] = cls.source
+        cls.context['recipe'] = hashlib.sha256(
+            (PROVIDER / 'linux-x64-process-source.json').read_bytes()).hexdigest()
+        cls.pin = json.loads((ROOT / 'toolchain.json').read_bytes())
+        cls.moon_home = Path(os.environ['MOON_HOME'])
+        installed = json.loads((cls.moon_home / 'installed.json').read_bytes())
+        if installed != {'pin': cls.pin, 'platform': 'linux-x64'}:
+            raise RuntimeError('Requires the original pinned Linux x64 MoonBit installation')
+        cls.context['toolchain'] = installed
+        cls.context['tools'] = {}
+        for name in ('moon', 'moonc'):
+            binary = cls.moon_home / 'bin' / name
+            cls.context['tools'][name] = {'path': str(binary),
+                'sha256': hashlib.sha256(binary.read_bytes()).hexdigest()}
+        moon = cls.invoke('moon-version', [str(cls.moon_home / 'bin/moon'), 'version'])
+        moonc = cls.invoke('moonc-version', [str(cls.moon_home / 'bin/moonc'), '-v'])
+        if (moon.returncode or not moon.stdout.splitlines()
+                or moon.stdout.splitlines()[0] != 'moon ' + cls.pin['moon']
+                or moonc.returncode or moonc.stdout.strip() != cls.pin['moonc']):
+            raise RuntimeError('Actual MoonBit compiler versions differ from toolchain.json')
+        target = cls.invoke('cc-target', [cls.compiler, '-dumpmachine'])
+        version = cls.invoke('cc-version', [cls.compiler, '--version'])
+        if (target.returncode or version.returncode
+                or not re.fullmatch(r'x86_64(?:-[^-]+)?-linux-gnu[^\s]*', target.stdout.strip())):
+            raise RuntimeError('Requires the actual Linux x64 GNU compiler target')
+        cls.context['c_compiler'] = {'path': str(Path(cls.compiler).resolve()),
+            'sha256': hashlib.sha256(Path(cls.compiler).read_bytes()).hexdigest(),
+            'target': target.stdout.strip(), 'version': version.stdout}
+        cls.persist()
 
-    def invoke(self, label, command, *, timeout=60):
-        type(self).sequence += 1
-        stem = self.directory / f'{self.sequence:02d}-{label}'
-        result = subprocess.run(command, capture_output=True, text=True,
-                                timeout=timeout, env={**os.environ, 'CC': self.compiler})
+    @classmethod
+    def persist(cls, **extra):
+        manifest = {'profile': 'linux-x64-posix-process', 'context': cls.context,
+                    'records': cls.records, 'normal_profile': None,
+                    'image_rust_engine': False, **extra}
+        (cls.directory / 'original-controls.json').write_text(
+            json.dumps(manifest, indent=2) + '\n')
+
+    @classmethod
+    def invoke(cls, label, command, *, timeout=60):
+        cls.sequence += 1
+        stem = cls.directory / f'{cls.sequence:02d}-{label}'
+        started = time.monotonic()
+        try:
+            result = subprocess.run(command, capture_output=True, text=True,
+                                    timeout=timeout, cwd=ROOT,
+                                    env={**os.environ, 'CC': cls.compiler})
+        except subprocess.TimeoutExpired as error:
+            def output(value):
+                return value.decode(errors='replace') if isinstance(value, bytes) else value or ''
+            stem.with_suffix('.stdout').write_text(output(error.stdout))
+            stem.with_suffix('.stderr').write_text(output(error.stderr))
+            cls.records.append({'command': command, 'returncode': None,
+                'timed_out': True, 'timeout_seconds': timeout,
+                'seconds': time.monotonic() - started, 'stdout': str(stem.with_suffix('.stdout')),
+                'stderr': str(stem.with_suffix('.stderr'))})
+            cls.persist()
+            raise
         stem.with_suffix('.stdout').write_text(result.stdout)
         stem.with_suffix('.stderr').write_text(result.stderr)
-        self.records.append({'command': command, 'returncode': result.returncode,
-                             'stdout': str(stem.with_suffix('.stdout')),
-                             'stderr': str(stem.with_suffix('.stderr'))})
+        cls.records.append({'command': command, 'returncode': result.returncode,
+            'timed_out': False, 'timeout_seconds': timeout,
+            'seconds': time.monotonic() - started, 'stdout': str(stem.with_suffix('.stdout')),
+            'stderr': str(stem.with_suffix('.stderr'))})
+        cls.persist()
         return result
 
     def compile(self, name, *, selected=True, extra=()):
         executable = self.directory / (name + ('-selected' if selected else '-unselected'))
+        dependencies = executable.with_suffix('.d')
         command = [self.compiler,
             '-std=c11', '-O0', '-Wall', '-Wextra', '-D_GNU_SOURCE', '-pthread',
+            '-MD', '-MF', str(dependencies),
             *(['-DACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN=1'] if selected else []),
             *extra, str(PROVIDER / 'fixtures' / (name + '.c')), '-o', str(executable)]
         result = self.invoke(name + '-compile', command)
+        if result.returncode == 0:
+            members = shlex.split(dependencies.read_text().replace('\\\n', ' ').split(':', 1)[1])
+            inputs = []
+            for member in members:
+                path = Path(member)
+                if not path.is_absolute():
+                    path = ROOT / path
+                data = path.read_bytes()
+                inputs.append({'path': str(path), 'bytes': len(data),
+                               'sha256': hashlib.sha256(data).hexdigest()})
+            self.records.append({'compile': name, 'actual_source_and_headers': inputs})
+            self.persist()
         return result, executable
 
     def test_01_unselected_and_conflicting_profiles_refuse_before_execution(self):
@@ -122,13 +204,27 @@ class LinuxX64OwnedProcess(unittest.TestCase):
     def tearDownClass(cls):
         # Retain original binaries/control/stdout/stderr even after a failure.
         # Removing a directory would never acknowledge a physical borrow.
-        manifest = {'profile': 'linux-x64-posix-process',
-                    'compiler': cls.compiler, 'records': cls.records,
-                    'normal_profile': None, 'image_rust_engine': False}
-        (cls.directory / 'original-controls.json').write_text(
-            json.dumps(manifest, indent=2) + '\n')
+        head = cls.invoke('source-after', ['git', 'rev-parse', 'HEAD'])
+        status = cls.invoke('source-clean-after', ['git', 'status', '--porcelain'])
+        if head.returncode or head.stdout.strip() != cls.source or status.returncode or status.stdout:
+            raise RuntimeError('Selected source changed during actual qualification')
+        for tool in (*cls.context['tools'].values(), cls.context['c_compiler']):
+            if hashlib.sha256(Path(tool['path']).read_bytes()).hexdigest() != tool['sha256']:
+                raise RuntimeError('An original compiler changed during qualification')
+        if json.loads((cls.moon_home / 'installed.json').read_bytes()) != cls.context['toolchain']:
+            raise RuntimeError('Original toolchain installation changed during qualification')
+        cls.persist()
         print('Retained Linux x64 process-provider controls: ' + str(cls.directory))
 
 
 if __name__ == '__main__':
-    unittest.main()
+    program = unittest.main(exit=False, verbosity=2)
+    result = program.result
+    complete = result.wasSuccessful() and result.testsRun == 3 and not result.skipped
+    summary = {'tests_run': result.testsRun, 'skipped': len(result.skipped),
+               'failures': len(result.failures), 'errors': len(result.errors),
+               'complete': complete, 'expected_physical_fixtures': len(CASES)}
+    if hasattr(LinuxX64OwnedProcess, 'directory'):
+        LinuxX64OwnedProcess.persist(test_result=summary)
+    print(json.dumps(summary))
+    sys.exit(0 if complete else 1)

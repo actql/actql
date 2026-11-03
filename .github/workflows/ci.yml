@@ -1086,6 +1086,17 @@ jobs:
           python: 'true'
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
+      - name: Test selected Linux x64 process-provider ABI and original physical custody
+        timeout-minutes: 5
+        run: python3 -B scripts/test_native_linux_x64_owned_process.py
+      - name: Retain Linux x64 process-provider original controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-x64-owned-process-${{ github.run_id }}-${{ github.run_attempt }}
+          path: _build/linux-x64-owned-process/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests

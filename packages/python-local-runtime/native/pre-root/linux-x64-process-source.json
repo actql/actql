@@ -50,7 +50,11 @@
       "scripts/test-native-http-client.mjs",
       "scripts/test-native-separated-network.sh"
     ],
-    "coverage": "Preserve all15 existing package selections and later original controls. A C-only result is not their qualification."
+    "coverage": "Preserve all15 existing package selections and later original controls. A C-only result is not their qualification.",
+    "ci_job": "native",
+    "ci_step_timeout_minutes": 5,
+    "ci_order": "Once before check:native-http-client; not duplicated in native-separated-network",
+    "actual_correspondence": "Require exact source/recipe input hashes, original installed.json Linuxx64 marker and Moon versions; record actual C compiler target/version/binary and dependency header hashes. Recheck source and tools after execution."
   },
   "inputs": [
     {
@@ -145,8 +149,8 @@
     },
     {
       "path": "scripts/test_native_linux_x64_owned_process.py",
-      "bytes": 6590,
-      "sha256": "1361ec5113a334bf847e4fa33f6b20fb4c1ba750e42b56e6974343b83b7a2884"
+      "bytes": 12285,
+      "sha256": "c8d3d5476126d6fba726221c5ef574c77f4e33f15a49324f6dafbce2cbefcf37"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/linux_x64_process_abi.c",
