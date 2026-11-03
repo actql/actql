@@ -87,7 +87,9 @@ fn local_client_effect_source_original(
       .insert("client_submitted_intent_custody", "issued", b"0")
       .unwrap()
       |> ignore
-      database.insert("client_submitted_intent_usage", "retained", b"0:0").unwrap()
+      database
+      .insert("client_submitted_intent_usage", "retained", b"0:0")
+      .unwrap()
       |> ignore
       database.commit().unwrap()
       let journal = @client.open_native_client_run_journal(database, 8).unwrap()
