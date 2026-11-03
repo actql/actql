@@ -6,7 +6,7 @@ seven-field `RelationChainExecutionState` and five primitive Refs (`used`,
 and overlay are removed. Historical reports remain original execution records;
 they are not accepted by the current consumer or rewritten to current source.
 
-The independently typed census covers the state, the sixteen-field
+The independently typed census covers the state, the fourteen-field
 `RelationChainInputPreparation`, the sixteen-field `ProducerReadPreparation`,
 and the existing selected/configuration and provider-construction records.
 `chain-source.mjs` binds the explicit constructor capture roles and release
@@ -44,9 +44,15 @@ bind their pointer fields and actual capture identities.
 | Lifted start-next environment | 80 | 72-byte payload; integers at 32/64 introduce padding |
 | Advance callback | 104 | 96-byte payload; integers at 16/48/88 introduce padding |
 | Cancel / stopped / cleanup / child-work callback | 40 / 24 / 48 / 24 | Code pointer plus actual source capture fields |
-| Chain input preparation | 112 | 104-byte payload, eight reference fields |
+| Chain input preparation | 104 | 96-byte payload, eight reference fields; four cursor Ints after the node |
 | Producer metadata preparation | 96 | 88-byte payload, five reference fields |
 | Int/Bool Ref / Int64 Ref | 12 / 16 | Generated scalar constructor requests; not inferred from scalar GC metadata |
+
+The current fourteen-field input preparation has `matched` and `read` at payload
+offsets 72 and 80. The earlier sixteen-field validator inputs remain historical
+fixtures; their 112-byte record and offsets 80/88 do not describe this constructor.
+The independent declared-field ABI model and the actual typed Native census must
+agree before the current report is admitted.
 
 `current-reader.c` borrows live objects synchronously, stores no MoonBit pointer,
 and adds no RC or persistent holder. Its observations are point-in-time identity
