@@ -302,6 +302,53 @@ struct Query {
 /// grant or a semantic verdict. Nested expressions, CTEs, subqueries, unknown
 /// shapes and producer primaries remain dependent. No names/values are read.
 pub fn is_standalone_reference_projection(query : Query) -> Bool {
+  guard standalone_projection_expression(query) is Some(expression) &&
+    expression.nodes.length() == 1 &&
+    expression.root == 0 else {
+    return false
+  }
+  match expression.nodes[0].kind {
+    Reference(parts) => parts.length() == 1
+    _ => false
+  }
+}
+
+///|
+/// Shape evidence from the same parser-owned scalar AST, not a checked value
+/// or execution grant. No relation, producer, CTE, command or column reference
+/// may contribute to this projection. Caller parameters remain caller DATA.
+pub fn is_source_free_scalar_projection(query : Query) -> Bool {
+  guard standalone_projection_expression(query) is Some(expression) else {
+    return false
+  }
+  for node in expression.nodes {
+    match node.kind {
+      Reference(_) => return false
+      Null
+      | Boolean(_)
+      | Number(_)
+      | StringLiteral(_)
+      | JsonLiteral(_)
+      | ParameterReference(_)
+      | Property(_, _)
+      | ArrayOffset(_, _, _)
+      | Unary(_, _)
+      | Binary(_, _, _)
+      | Call(_, _)
+      | ArrayConstructor(_, _)
+      | StructConstructor(_)
+      | Parenthesized(_)
+      | Predicate(_, _)
+      | SearchedCase(_, _)
+      | Cast(_, _)
+      | Interval(_, _) => ()
+    }
+  }
+  true
+}
+
+///|
+fn standalone_projection_expression(query : Query) -> Expression? {
   if query.primary is Some(_) ||
     query.bound_source is Some(_) ||
     !query.relation.is_empty() ||
@@ -319,28 +366,23 @@ pub fn is_standalone_reference_projection(query : Query) -> Bool {
     query.short_command_effect is Some(_) ||
     !query.commands.is_empty() ||
     query.operations.length() != 1 {
-    return false
+    return None
   }
   match query.operations[0] {
     Select(projections, _) => {
-      guard projections.length() == 1 else { return false }
+      guard projections.length() == 1 else { return None }
       let projection = projections[0]
       guard projection.expression is Some(expression) &&
         projection.aggregate is None &&
         projection.analytic is None &&
         projection.star is None &&
         projection.except_columns.is_empty() &&
-        projection.replacements.is_empty() &&
-        expression.nodes.length() == 1 &&
-        expression.root == 0 else {
-        return false
+        projection.replacements.is_empty() else {
+        return None
       }
-      match expression.nodes[0].kind {
-        Reference(parts) => parts.length() == 1
-        _ => false
-      }
+      Some(expression)
     }
-    _ => false
+    _ => None
   }
 }
 

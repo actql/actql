@@ -88,6 +88,12 @@ pub fn client_program_project_original_query_issue(
       query_original
       .map(@query_syntax.is_standalone_reference_projection)
       .unwrap_or(false)
+    ) ||
+    (
+      issue is QueryLowering(Expression({ issue: UnsupportedFunction, .. })) &&
+      query_original
+      .map(@query_syntax.is_source_free_scalar_projection)
+      .unwrap_or(false)
     )
   let absence = issue is QueryLowering(UnresolvedRelation(_))
   let same_publication = match (original_publication, environment) {

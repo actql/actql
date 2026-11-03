@@ -2629,6 +2629,16 @@ Known supplied type facts can accompany an unresolved protected Source; Source
 privacy, namespace correspondence and report currentness remain independent.
 No second parse, binding, semantic check or raw supplied value enters reporting.
 
+A retained `UnsupportedFunction` can also supply its existing implementation
+limit when the same parser-owned Query is one scalar projection with no Source,
+producer, CTE, join, set operation, command or column reference. The Query owner
+checks this bounded shape without lowering, evaluating or reading scalar names
+and values again. The existing standalone-reference proof shares the same
+outer-shape predicate and retains its narrower expression rule. Other failures
+and dependent shapes keep the complete publication disclosure gate. This is
+report DATA only; the original Request/current/terminal fences and cleanup duty
+remain required, and no parse counter is presented as all projection work.
+
 
 The actual Node opening reads the six immutable limits from its original
 Common policy once and passes that same policy to the original admission.
