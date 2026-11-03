@@ -156,4 +156,6 @@ test('current reclaimed-prefix helper retains reviewed body and original sequenc
     const changed=original.replace(before,after);assert.notEqual(changed,original);
     assert.throws(()=>checkChainSource(source.slice(0,start)+changed+source.slice(end)),/reviewed reclaimed-prefix/);
   }
+  const call='let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)';
+  assert.throws(()=>checkChainSource(source.replace(call,call+'\n  let duplicate = relation_chain_reclaimed_prefix(sequence)')),/reviewed reclaimed-prefix call count/);
 });
