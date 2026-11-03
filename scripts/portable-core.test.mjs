@@ -197,6 +197,21 @@ test('public concrete binding import is rejected; opaque abstract port is allowe
   assert.deepEqual(f.check().packages, ['root']);
 });
 
+test('captured original input Ref is a reviewed public DATA type only for its existing Owner', t => {
+  const f = fixture(t), owner = 'pipeline_check_context';
+  f.put(owner, 'moon.pkg', manifest);
+  f.put(owner, 'main.mbt', 'pub fn identity(value : Int) -> Int { value }');
+  f.put(owner, 'pkg.generated.mbti', 'import { "moonbitlang/core/ref" @ref }\npub fn retain(@ref.Ref[Int]) -> Unit');
+  assert.deepEqual(inspectCore(f.root, [owner]).packages, [owner]);
+  f.put('root', 'pkg.generated.mbti', 'import { "moonbitlang/core/ref" @ref }');
+  assert.throws(f.check, /UnreviewedPublicType: root/);
+  f.put(owner, 'moon.pkg', manifest + 'import { "moonbitlang/core/ref" @ref }');
+  assert.throws(() => inspectCore(f.root, [owner]), /UnreviewedExternal: pipeline_check_context/);
+  f.put(owner, 'moon.pkg', manifest);
+  f.put(owner, 'pkg.generated.mbti', 'import { "moonbitlang/core/env" @host }');
+  assert.throws(() => inspectCore(f.root, [owner]), /UnreviewedPublicType: pipeline_check_context/);
+});
+
 test('actual explicitly rooted product closure passes', () => {
   const result = inspectCore(new URL('../', import.meta.url).pathname);
   assert.ok(result.roots.includes('program_check'));
