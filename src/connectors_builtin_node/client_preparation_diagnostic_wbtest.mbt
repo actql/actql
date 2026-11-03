@@ -531,3 +531,46 @@ test "native Source document terminal projects original invalid Program instead 
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }
 }
+
+///|
+test "original Query implementation refusal is distinct from unavailable Host capability" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"WITH records AS (SELECT 1 AS id, 1 AS amount) SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10\"}",
+    ),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(result is Err(_))
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("source_implementation_limit"),
+  )
+  // These original unavailable-capability facts do not acquire a language
+  // implementation verdict merely because both decline before dispatch.
+  assert_eq(
+    client_source_preparation_issue_code(UnsupportedCarrier),
+    "source_unsupported",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(CommandTargetOriginalsUnavailable),
+    "source_unsupported",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(RecordTargetOriginalsUnavailable),
+    "source_unsupported",
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}
