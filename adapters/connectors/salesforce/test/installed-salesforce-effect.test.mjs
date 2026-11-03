@@ -10,8 +10,6 @@ import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
-import {loadInstalledSalesforceSource} from
-  '../host/installed-salesforce-source.mjs';
 import {checkInstalledSalesforceEffectProfile} from
   '../host/installed-salesforce-effect.mjs';
 
@@ -21,6 +19,18 @@ const recordReads = org => org.seen.filter(item => item.method === 'GET' &&
   /\/sobjects\/[A-Za-z_]+\/[^/]+$/u.test(item.path) &&
   !item.path.endsWith('/describe'));
 const ids = ['a00000000000001', 'a00000000000002'];
+
+// The real installation parent retains the original refusal and its cleanup
+// owner. A generic Host failure alone cannot satisfy a provider refusal.
+const initializedFailure = code => error => {
+  assert.equal(error.code, 'InstalledHostInitializationFailed');
+  assert.equal(error.primaryFailure?.code, code);
+  assert.strictEqual(error.cause, error.primaryFailure);
+  assert.equal(error.cleanupPending, false);
+  assert.equal(error.cleanupHandle.status().pending, false);
+  assert.deepEqual(error.cleanupErrors, []);
+  return true;
+};
 const update = {resource: 'Test_Record__c', kind: 'update', fields: ['Name']};
 
 // A Program of one update Effect per installed Mapping, over `rows`.
@@ -130,7 +140,7 @@ test('a published generation is restored only as it was published',
     // Another write set is another generation.
     await assert.rejects(installation.load({writes: [{...update,
       fields: ['Name', 'External_Key__c']}]}),
-    {code: 'SalesforceEffectPublicationMismatch'});
+    initializedFailure('SalesforceEffectPublicationMismatch'));
     // A tampered Mapping list is not this generation.
     const path = installation.profile.publicationPath;
     const text = await readFile(path, 'utf8');
@@ -138,13 +148,13 @@ test('a published generation is restored only as it was published',
     record.mappings[0].mapping_cid = `sha256:${'9'.repeat(64)}`;
     await writeFile(path, JSON.stringify(record));
     await assert.rejects(installation.load(),
-      {code: 'SalesforceEffectPublicationMismatch'});
+      initializedFailure('SalesforceEffectPublicationMismatch'));
     await writeFile(path, text);
     // Another Site generation must publish again first.
     await installation.writeSite({...installation.siteDocument,
       siteGeneration: 2});
     await assert.rejects(installation.load(),
-      {code: 'ForeignSalesforceDeclaration'});
+      initializedFailure('ForeignSalesforceDeclaration'));
     // Nothing was read to restore any of them.
     assert.equal(writesOf(installation.org).length, 0);
     // An unknown profile is refused before anything is installed; a checked
@@ -429,25 +439,27 @@ test('a failed Salesforce loader keeps its cause and hands over the Site release
       fields: ['Name', 'External_Key__c']}]},
     {openCredentialJournal: effectJournal.open}).then(() => undefined,
       error => error);
-    assert.equal(effectFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.equal(effectFailure.code, 'InstalledHostInitializationFailed');
+    assert.equal(effectFailure.primaryFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.strictEqual(effectFailure.cause, effectFailure.primaryFailure);
     assert.equal(effectFailure.cleanupPending, true);
-    assert.deepEqual(effectFailure.cleanupErrors.map(error => error.code),
-      ['InjectedJournalCloseFailure']);
+    assert.deepEqual(effectFailure.cleanupErrors.map(({owner, error}) => [owner, error.code]),
+      [['source-profile', 'InjectedJournalCloseFailure']]);
     assert.equal((await effectFailure.cleanupHandle.retry()).pending, false);
     assert.equal(effectJournal.calls.close, 2);
     // Source load: its publication is missing.
     const sourceJournal = closeFailingJournal(1);
-    const sourceFailure = await loadInstalledSalesforceSource({
+    const sourceFailure = await installation.loadSource({
       version: 'actql-installed-salesforce-source/0.1',
       siteProfilePath: installation.profile.siteProfilePath,
       publicationPath: join(installation.root, 'missing-source.json'),
       connectorId: 'salesforce', resources: ['Test_Record__c'],
       accountConfigurationWire: installation.profile.accountConfigurationWire,
-    }, {...installation.options,
-      providerMoon: installation.options.salesforceMoon,
-      openCredentialJournal: sourceJournal.open})
+    }, {openCredentialJournal: sourceJournal.open})
       .then(() => undefined, error => error);
-    assert.equal(sourceFailure.code, 'SalesforcePublicationMissing');
+    assert.equal(sourceFailure.code, 'InstalledHostInitializationFailed');
+    assert.equal(sourceFailure.primaryFailure.code, 'SalesforcePublicationMissing');
+    assert.strictEqual(sourceFailure.cause, sourceFailure.primaryFailure);
     assert.equal(sourceFailure.cleanupPending, true);
     assert.equal((await sourceFailure.cleanupHandle.retry()).pending, false);
     assert.equal(sourceJournal.calls.close, 2);
@@ -660,7 +672,7 @@ test('an Effect runtime missing a required entry is refused before provider I/O'
       const before = installation.org.seen.length;
       const {[entry]: _omitted, ...runtime} = salesforceMoon;
       await assert.rejects(installation.load({}, {salesforceMoon: runtime}),
-        {code: 'InvalidSalesforceEffectRuntime'}, entry);
+        initializedFailure('InvalidSalesforceEffectRuntime'), entry);
       assert.equal(installation.org.seen.length, before, entry);
     }
   });

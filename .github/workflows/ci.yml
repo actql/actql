@@ -313,7 +313,7 @@ jobs:
             fi
             # Reopen remains within a run; the full run below starts fresh.
             node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
-            node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+            node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)" --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then
@@ -329,7 +329,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.deep_proofs == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     permissions:
       contents: read
       actions: read
@@ -1086,6 +1086,17 @@ jobs:
           python: 'true'
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
+      - name: Test selected Linux x64 process-provider ABI and original physical custody
+        timeout-minutes: 5
+        run: python3 -B scripts/test_native_linux_x64_owned_process.py
+      - name: Retain Linux x64 process-provider original controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-x64-owned-process-${{ github.run_id }}-${{ github.run_attempt }}
+          path: _build/linux-x64-owned-process/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests

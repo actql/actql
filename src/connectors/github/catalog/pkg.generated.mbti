@@ -24,6 +24,8 @@ pub fn classify_comment_response(Int, HeaderObservation, Bytes, PageLimits, Stri
 
 pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
 
+pub fn comment_read_query_units() -> Int
+
 pub let comment_subject_query : String
 
 pub fn comment_subject_request(String) -> Result[String, CommentRequestIssue]
@@ -95,6 +97,8 @@ pub fn repository_request(String, String) -> String
 pub fn request_headers() -> Array[(String, String)]
 
 pub let response_headers : Array[String]
+
+pub fn source_read_query_units() -> Int
 
 pub let user_agent : String
 

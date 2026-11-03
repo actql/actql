@@ -1740,6 +1740,8 @@ pub fn client_program_installed_model_defaults_generation(@run_publication_host.
 
 pub fn client_program_installed_model_defaults_usage(@run_publication_host.ClientModelProviderDefaults) -> (Int, Int, Int)
 
+pub fn client_program_installed_native_source_reader_capacity(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_preparation_payload_severed(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool

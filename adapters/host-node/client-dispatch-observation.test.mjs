@@ -44,7 +44,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
   const {join}=await import('node:path');
   const {inspect}=await import('node:util');
   const {runtimeCore}=await import('../host-common/runtime-core.mjs');
-  const {installNodeClientProgramPreparation}=await import('./client-program-preparation.mjs');
+  const {openFundedClientPreparation}=await import('./funded-client-preparation.fixture.mjs');
   const {sourceFreeValuesPlan,sourceFreeValuesAdmissionEvidence}=await import('./local-values-plan.mjs');
   const {createNodeHostEntry,CapturedRunExecutionError}=await import('./entry.mjs');
   const {installStrategyContributions}=await import('../connectors-builtin/strategy.generated.mjs');
@@ -61,7 +61,18 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
   const environment=moon.clientProgramCheckEnvironment(environmentWire,JSON.parse(environmentWire).evidence_bundle_cid,
     false,false,true,false,false,false,false);
   assert(environment);
-  const preparedProgram=installNodeClientProgramPreparation({moon,environment})({kind:'aql',
+  let funded,preparedProgram,journal,store,failure,execution,dispatch,managedRun,managedAdmission;
+  t.after(async()=>{
+    // The Request parent closes only after the actual consumers retire. A
+    // pending physical/managed close stops this chain and retains that parent.
+    if(dispatch)await dispatch.drain();
+    if(managedRun!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(managedRun));
+    else if(managedAdmission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(managedAdmission));
+    await store?.close();journal?.close();
+    await funded?.close();
+  });
+  funded=await openFundedClientPreparation({moon,environment});
+  preparedProgram=await funded.prepare({kind:'aql',
     input:{text:'SELECT TRY_TIMESTAMP(CAST(1 / 0 AS STRING)) AS value',format:'sql'},parameters:null});
   const control=runtimeCore(moon).publicationControl;
   const authorityScopeCid='sha256:'+'a'.repeat(64),storeAuthorityCid='sha256:'+'7'.repeat(64),namespaceId='failed-compute-component';
@@ -70,11 +81,11 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     'original-failed-compute',moon.clientProgramSourceFreeInputIntentCid());
   assert(request);
   const plan=sourceFreeValuesPlan({moon,control,preparedProgram,publicationOriginal:publicationOriginalFixture(moon,preparedProgram),authorityScopeCid,namespaceId,storeAuthorityCid,now});
-  const journal=openClientRequestJournal(join(directory,'requests'));
+  journal=openClientRequestJournal(join(directory,'requests'));
   const accepted=journal.acceptDefinition(request,{namespaceId,runDefinition:plan.runDefinition,
     runAdmissionEvidence:sourceFreeValuesAdmissionEvidence(plan),resultNames:['main'],
     lookupExpiresAt:'2099-01-01T00:00:00.000Z'},moon,control);
-  const store=await openLocalPublicationStore({directory:join(directory,'publication'),storeAuthorityCid,
+  store=await openLocalPublicationStore({directory:join(directory,'publication'),storeAuthorityCid,
     capacityBytes:512*1024*1024,maxObjectBytes:10000000,maxObjects:100,maxContractNodes:100000,maxContractDepth:64},control);
   const snapshot=join(directory,'snapshots');
   const local=installLocalSnapshotStore(async(_key,bytes,frame)=>{
@@ -87,7 +98,6 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
   const registry=checked(moon.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
   const entry=createNodeHostEntry(()=>Promise.resolve(moon),installStrategyContributions);
-  let failure,execution,dispatch,managedRun,managedAdmission;
   let observations=0;
   const selectedStore=interleaveObservation?Object.freeze({...store,async confirmCommittedIndex(ref){
     const result=await store.confirmCommittedIndex(ref);
@@ -106,7 +116,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     }
     return result;
   }}):store;
-  try{
+  {
     if(managed){
       // Import the SAME installed CJS resource namespace captured by this
       // Common module, never the source checkout's independent WeakMap.
@@ -143,11 +153,6 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     assert.equal(frame.observedTerminalOutcome,'failed');
     assert.equal(await store.confirmCommittedIndex(accepted.ref),undefined);
     assert.equal(observations,interleaveObservation?1:0);
-  }finally{
-    if(dispatch)await dispatch.drain();
-    if(managedRun!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(managedRun));
-    else if(managedAdmission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(managedAdmission));
-    await store.close();journal.close();
   }
 }
 

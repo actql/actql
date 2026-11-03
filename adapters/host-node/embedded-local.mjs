@@ -1464,8 +1464,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   const environmentSource = preparation.readEnvironmentSource();
   const selectedLookupPolicy = hostLookupExecutionPolicy ??
     preparation?.localFilesLookupExecutionPolicy?.(moon);
-  const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
-    selectedLookupPolicy);
+  // An independently supplied Remote Effect carries its published generic
+  // policy identity. Its transport does not select a Local row profile.
+  // Ordinary Local materialization, including Remote Values/Source callers,
+  // continues to consume the same installed Local Resource row selector.
+  const baseEnvironmentWire = (mode === 'remote' && effectInstallation !== undefined
+    ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment)(
+    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -4343,6 +4348,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       localPreparationCustody.adopt(await prepareCapturedSubmission(submission), submission));
     preparation.bindSourceRequest(submission, submission.preparedProgram);
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
+    // A restored non-Effect request needs the SAME pre-admitted Plan as a
+    // fresh submission before Source preparation or publication reads it.
+    // Effect definitions retain their existing constructor below.
+    if (!effectful) admitPreparedSubmission(submission);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :

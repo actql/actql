@@ -21,13 +21,18 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
   // Its collector/returned record/current borrowed getter use the fixed tail.
   // Successive original sequences are inspected synchronously, not coheld.
   let slots = client_local_scalar_text_proof_slots().to_int64()
-  @execution.preparation_representation_cost({
-    record_headers: 4L * levels + 5L * slots + 6L,
-    reference_slots: 10L * levels + 10L * slots + 12L,
-    scalar_words: 14L * levels + 8L * slots + 16L,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  })
+  guard @execution.preparation_representation_cost({
+      record_headers: 4L * levels + 5L * slots + 6L,
+      reference_slots: 10L * levels + 10L * slots + 12L,
+      scalar_words: 14L * levels + 8L * slots + 16L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(original) &&
+    client_local_closed_carrier_proof_scratch_bytes() is Some(carrier) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(original, carrier, 1L)
 }
 
 ///|
@@ -36,10 +41,10 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
 fn client_local_value_node_proof_retained_bytes() -> Int64? {
   @execution.preparation_representation_cost({
     record_headers: 2L,
-    // One optional weighted scalar in each coheld Compute/Effect-endpoint
-    // inventory; no row table escapes the existing constructor traversal.
+    // Two original coheld optional weighted scalars plus the independent
+    // immutable Carrier-mode bit; retain both existing proof inventories.
     reference_slots: 5L,
-    scalar_words: 6L,
+    scalar_words: 7L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -62,6 +67,17 @@ fn client_local_json_contract_nodes(
     // node envelope retains the Decimal record/coefficient; decoded input,
     // wire, CAST and aggregate workspace keep their independent old bounds.
     @contract.Decimal(..) => Some(1L)
+    // The original Vector contract fixes every component's Number type and
+    // dimension. Its JSON array is one node plus that many scalar nodes; the
+    // Carrier provider still owns its separate vector storage/workspace.
+    @contract.Vector(dimensions~) =>
+      if dimensions >= 0.0 &&
+        dimensions < 2147483647.0 &&
+        dimensions.to_int().to_double() == dimensions {
+        Some(1L + dimensions.to_int().to_int64())
+      } else {
+        None
+      }
     // Opaque Resource values are not scalar JSON nodes. The SAME reference
     // owner bounds its admitted closed scalar envelope, including the object.
     // Content remains unbounded; no reference/issuer/current is consulted.

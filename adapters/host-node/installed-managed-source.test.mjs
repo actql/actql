@@ -146,14 +146,16 @@ test('managed Source view preserves original physical and plural method receiver
 });
 
 test('DuckDB quotes its actual pending capture and physical transport without selecting or reading it', async () => {
-  const text = readFileSync(new URL('./installed-source.mjs', import.meta.url), 'utf8');
+  const text = readFileSync(new URL('./installed-duckdb-source.mjs', import.meta.url), 'utf8');
   const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const node = syntax.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'duckdbAdapter');
+  const node = syntax.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === 'createInstalledDuckDBSource')?.declaration;
   assert(node);
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const requirement = {}, pending = {}, capacity = {}, calls = [];
+  const authorization = Object.freeze({close() {assert.equal(this,authorization);calls.push('authorization-close');return true;}});
   const profile = {database: '/never-opened.duckdb', schema: 'main', table: 'four_rows', sourceRef: 'source:rows',
-    environmentWire: '{"connector_catalogs":[]}', transportLimits: {maxRows: 4, maxCells: 4,
+    environmentWire: '{"connector_catalogs":[]}',sourceAccess:{authorization}, transportLimits: {maxRows: 4, maxCells: 4,
       maxTransportBytes: 1024, maxSqlBytes: 4096, maxParameters: 0, maxColumns: 1, memoryBytes: 1048576, threads: 1}};
   const moon = {
     clientProgramQueryRequirementSourceRef(value) {return value === requirement ? profile.sourceRef : 'source:foreign';},
@@ -167,14 +169,17 @@ test('DuckDB quotes its actual pending capture and physical transport without se
   };
   const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
     'computePhysicalCapacity', 'importMetaUrl',
-    text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return duckdbAdapter;')(
-    async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-source.mjs', import.meta.url).href);
+    text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return createInstalledDuckDBSource;')(
+    async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-duckdb-source.mjs', import.meta.url).href);
   const adapter = await create(profile, moon, {root: '/unused', principalId: 'original'});
   const result = adapter.managedCaptureCapacity(requirement), physical = computePhysicalCapacity(profile.transportLimits);
   assert.deepEqual(result, {capacity, transferBytes: physical.transferBytes, executionBytes: physical.executionBytes});
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
   assert.throws(() => adapter.managedCaptureCapacity({}), /InstalledSourceProgramMismatch/);
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
+  adapter.close();
+  assert.deepEqual(calls, ['pending','typed-capacity','authorization-close']);
+  assert.throws(() => adapter.managedCaptureCapacity(requirement), /InstalledSourceReaderNotCurrent/);
 });
 
 function hostManagedSources(onCheck = () => {}, inputField = 'preparedProgram') {

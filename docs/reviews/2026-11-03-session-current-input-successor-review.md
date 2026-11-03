@@ -19,11 +19,11 @@ extractor. No package-language interpretation or fallback rule is added.
 | `src/platform_native/runtime_bundle/moon.pkg` | `1d8c003fea820e24835d1b6539d0e42e5908103e8d776a7c91b525b64dee02e4` | Against `38e95bfac2907700456de6c53ed0cad3620bb72d`, only `store_trust.mbt` and its WB test receive explicit Native selectors. All imports, unsupported counterparts and other selectors are unchanged. JS cannot select these Native bodies; their bytes remain inputs. This does not qualify Native Store trust behavior. |
 | `src/query_integration/moon.pkg` | `179d0c70d9c11c032372634cef98528fdebe13e3afb97a1e917c51bf0d1515fe` | Against `38e95bfac2907700456de6c53ed0cad3620bb72d`, only the named `strategy_cleanup_current_js_wbtest.mbt` JS selector is added. Literal WB imports and the original Native-only `cc`, `stub-cc` and SSL/crypto link flags are unchanged. That Native branch does not execute on this reviewed JS path. |
 
-The existing map has the same eighteen paths. These five exact digests receive
-this review revision; the thirteen unaffected entries retain their complete
-previous descriptors. Ten entries now have explicit successor revisions. The
-original default and archived descriptors are not rewritten or inferred from
-current files at admission time.
+The single current map contains nineteen paths, with eleven explicit review
+revisions. The five entries above retain their reviewed revisions; the other
+entries retain their own exact descriptors, including the separate Physical
+Resource and Remote Client reviews below. Default and archived descriptors are
+not rewritten or inferred from current files at admission time.
 
 The target remains JS and the toolchain digest remains
 `8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a`
@@ -61,11 +61,30 @@ membership and transitive imports remain inputs. Target predicates never
 remove them from the keyed source closure. This review does not attest to VM
 identity, capacity, currentness, resource backing or Native/Wasm correctness.
 
-The map still contains eighteen entries, ten with explicit successor revisions.
-Only this entry's exact digest and review revision change; the other seventeen
-complete descriptors, default review, archived reviews, JS target and pinned
-toolchain are unchanged. An old or altered digest, unknown option, changed
+The single current map has nineteen entries, eleven with explicit review
+revisions. The Physical Resource tuple and every other descriptor retain their
+own exact reviewed input. An old or altered digest, unknown option, changed
 selector, foreign path, target or toolchain remains unresolved. The extractor
 retains its original full-source fallback and refusal of unresolved reuse.
 Changing these reviewed bytes changes the scientific action inputs and requires
 fresh work; it does not make an old receipt current or establish reuse.
+
+## Remote Client Native linker configuration
+
+Reviewed public source: `deea413fba8b255cf5be7300d94eccd883b5b5eb`.
+The complete `src/platform_native/remote_client/moon.pkg` SHA-256 is
+`2d564b643659ca806c35da2414f432b52292fa8c79a94cffc0706191ae156832`.
+
+Its literal `link.native.cc` selects the existing
+`./scripts/native-sqlite-link-driver.sh`. The option applies only to Native;
+it is not a JS build hook, stub compiler, resolver or arbitrary linker. This
+finite JS input review uses the existing native-options rule and unchanged
+pinned toolchain. It does not qualify the Native driver, compiler or execution.
+All literal production/WB imports and all package members, including Native
+bodies excluded from JS execution, remain in the original keyed source closure.
+
+One exact descriptor is added to the single current map. The eighteen existing
+descriptors, archived reviews, JS foreign-library rule, three inert nested C
+fixtures and policy functions remain unchanged. Unknown bytes/options, foreign
+paths, targets or toolchains still refuse review and retain full-source fallback
+with unresolved reuse. No old receipt is admitted by this new configuration pin.

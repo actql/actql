@@ -80,8 +80,8 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
 // One current map records each input's exact review, while archived preimages
 // above remain evidence for their own source only, never runtime acceptance.
 test('single current map binds exact per-entry reviews and full literal import closure', () => {
-  assert.equal(Object.keys(currentPackageConfigurations).length, 18);
-  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 10);
+  assert.equal(Object.keys(currentPackageConfigurations).length, 19);
+  assert.equal(Object.values(currentPackageConfigurations).filter(entry => entry.revision !== undefined).length, 11);
   const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
   for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
     const revision = entry.revision ?? currentConfigurationReviewRevision;
@@ -140,5 +140,36 @@ test('current physical Resource review binds platform VM selectors and refuses s
     const altered = {...head, read: member => member === path ? Buffer.from(changed) : head.read(member)};
     assert(packageSourceInputs({tree: altered, packages: ['src/physical_resources'], target: 'js'})
       .unresolved.includes('Unreviewed package configuration: ' + path));
+  }
+});
+
+// One current literal Native link option is inert on this existing JS path.
+// No compiler, linker, container or runtime acceptance is asserted here.
+test('current remote Client review binds only its Native link driver on JS', () => {
+  const path = 'src/platform_native/remote_client/moon.pkg';
+  const digest = '2d564b643659ca806c35da2414f432b52292fa8c79a94cffc0706191ae156832';
+  const revision = 'deea413fba8b255cf5be7300d94eccd883b5b5eb';
+  const reviewed = gitTree(root, revision), bytes = reviewed.read(path);
+  assert.equal(hash(bytes), digest);
+  assert.equal(bytes.toString().split('  link: { "native": { "cc": "./scripts/native-sqlite-link-driver.sh" } },\n').length, 2);
+  assert.deepEqual(currentPackageConfigurationReviewFor(request(path, digest)), {
+    revision, target: 'js', toolchainDigest,
+    moonRevision: packageConfigurationReview.moonRevision,
+    rule: 'literal-native-options-with-bound-source-membership',
+  });
+  for (const target of ['native', 'wasm'])
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, digest), target}), null);
+  const head = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
+  assert.deepEqual(head.read(path), bytes);
+  const directory = 'src/platform_native/remote_client';
+  const selected = packageSourceInputs({tree: head, packages: [directory], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  // Native selectors do not remove any original package member from the key.
+  const members = [...head.entries.keys()].filter(member => member.startsWith(directory + '/') &&
+    !member.slice(directory.length + 1).includes('/')).sort();
+  assert.deepEqual(selected.directories.find(entry => entry.path === directory + '/*').members, members);
+  for (const member of members) {
+    assert(selected.paths.includes(member));
+    assert.equal(head.entries.get(member).mode, '100644');
   }
 });

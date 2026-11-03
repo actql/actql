@@ -52358,6 +52358,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "## Independently supplied Remote Effects"
               }
             ],
             "inputsOutputs": [
@@ -53348,6 +53352,14 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances"
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "test('Remote supplied Effect environment retains the original generic selector before publication composition'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "test('Remote ordinary materialization retains its original Local selector without an independent Effect'"
               }
             ]
           }
@@ -57882,6 +57894,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('held request reconstruction retains its actual pending original before funded preparation'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('held resume adopts the same Request Plan before its original publication consumer'"
               }
             ]
           }
@@ -58182,7 +58198,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5faf3c631f685ec82fb9801fd82c903d09f68bc272d25795f5dfafa4eea814a8"
+      "sha256": "04ae28fafdbbf40c5b9ec388821b21f0bab1ee7ad488ce0a5c52f418a6d7b507"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

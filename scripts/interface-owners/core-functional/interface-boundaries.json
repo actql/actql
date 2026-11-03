@@ -30526,7 +30526,7 @@
           }
         }
       ],
-      "sha256": "b11da24e1d03744c20b31e6e86fb2e655d4c5cd8d651575f2c7cf072bd60ae5c",
+      "sha256": "bc17fd0eae09f12f5ecaab0756b832eb6e8b75adee45bc96e64f350975eba9db",
       "exports": [],
       "operations": [
         {
@@ -43054,7 +43054,7 @@
     },
     {
       "module": "src/client_local_host/schema_proof_inventory.mbt",
-      "sha256": "0d3a98f4764fd588e7c0a0eb13155ba1251c9513d05fa756f0b8e551e099daeb",
+      "sha256": "e9737a6270abad628a0f7eb92d15763fde9864fd95aaf44f89042e37996f2660",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -43333,7 +43333,7 @@
     },
     {
       "module": "src/client_local_host/value_node_demand.mbt",
-      "sha256": "643b49701543b224551170301ef64a29d1901faebf69c553a7021ad280c5eeda",
+      "sha256": "6b0380219906b871e369dd12a2a0450555f2cf7b1b794ecd7c4c301546ec9a49",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -49790,7 +49790,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "0414c843ff5f80cb778f8f91c56fa33ae1ea69cfa2df679c9dec8682decf2e18",
+      "sha256": "1b2d35dc2c5cd6f2e864bac55b2388b1eb465b4776693705c15a68c346be45f1",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -49807,6 +49807,10 @@
         {
           "name": "client_program_installed_json_source_reader_profile",
           "declaration": "client_program_installed_json_source_reader_profile ( metadata_responses : Int , origin_units : Int , ) - > Array [ Int ] ?"
+        },
+        {
+          "name": "client_program_installed_native_source_reader_capacity",
+          "declaration": "client_program_installed_native_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_installed_preserving_json_source_reader_capacity_with_request",
@@ -50253,6 +50257,86 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_native_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "pub fn github_source_read_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Fixed request quantities derive from the same Catalog documents"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The same RowRun grant, scope, request packet and use ordinal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Initial request/control construction is selected before any read callback."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "a failed decoder close keeps that same original page for retirement retry."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "if(pending)return false;"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Read projections still enforce their unchanged current/stop fences."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "fn github_read_request_inventory()"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "original provider quantity; neither quantity issues permission or a new budget."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "row and total-response rejection limits keep their original values."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source request quantity covers original escaped node cursor and all fixed document families\""
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
               }
             ]
           }
@@ -72521,6 +72605,648 @@
         }
       ],
       "exports": []
+    },
+    {
+      "module": "src/client_local_host/closed_carrier_capacity.mbt",
+      "sha256": "bec5c768eb1511414b91929c7f9a449235e93925b79fb7890c699cff95f04502",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Local capacity Plan and original typed Carrier provider boundary",
+      "referenceQualification": "Checked source demand/configuration only; no execution, physical backing or normal acceptance from a count.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_closed_carrier_bound",
+          "declaration": "client_local_closed_carrier_bound ( sequences : Array [ @ execution . GeneratedSequence ] , graph : @ strategy . CheckedDAG , work : Ref [ Int ] , ) - > Int ?"
+        },
+        {
+          "name": "client_local_closed_carrier_proof_scratch_bytes",
+          "declaration": "client_local_closed_carrier_proof_scratch_bytes ( ) - > Int64 ?"
+        },
+        {
+          "name": "client_local_closed_item_bound",
+          "declaration": "client_local_closed_item_bound ( graph : @ strategy . CheckedDAG , owner : @ lower . BoundPrepared , target : @ pipeline . Target , work : Ref [ Int ] , depth : Int , ) - > Int ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_closed_carrier_bound",
+            "client_local_closed_carrier_proof_scratch_bytes",
+            "client_local_closed_item_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"closed Carrier facts configure every original task without replacing provider storage\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/lowering_relation/carrier_capacity.mbt",
+      "sha256": "fd39e3c6e84a06e581a79872aa54e4e2376429ba269c363c9e6c80ec80f5641e",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Local capacity Plan and original typed Carrier provider boundary",
+      "referenceQualification": "Checked source demand/configuration only; no execution, physical backing or normal acceptance from a count.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "node_closed_item_count_bound",
+          "declaration": "node_closed_item_count_bound ( node : PreparedNode , inputs : Array [ Int ] , ) - > Int ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "node_closed_item_count_bound"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"closed Carrier facts configure every original task without replacing provider storage\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/capacity_metadata.mbt",
+      "sha256": "a0d3add41bde13924eae798fcc484ffd716fd58f4d1d860ea6e9b0e7163eb2a1",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Local capacity Plan and original typed Carrier provider boundary",
+      "referenceQualification": "Checked source demand/configuration only; no execution, physical backing or normal acceptance from a count.",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_local_result_metadata_retained",
+          "declaration": "client_local_result_metadata_retained ( envelope : ClientLocalResultEnvelope , max_rows : Int , schema_bytes : Int , ) - > Int64 ?"
+        },
+        {
+          "name": "client_local_scalar_metadata_envelope",
+          "declaration": "client_local_scalar_metadata_envelope ( inventory : ClientLocalSchemaProofInventory , graph : @ strategy . CheckedDAG , max_rows : Int , result_envelope : ClientLocalResultEnvelope , ) - > ( Int64 , Int ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_local_result_metadata_retained",
+            "client_local_scalar_metadata_envelope"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Closed Carrier demand"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"closed Carrier facts configure every original task without replacing provider storage\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/github/catalog/issue_fields.mbt",
+      "sha256": "63c6fa7910a788825c5f25840d0a7dc0b4f65c082bf1d6a00109a4888acfba62",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_issue_page_read",
+          "declaration": "begin_issue_page_read ( body : Bytes , limits : PageLimits , max_pages : Int , expected_node_id : String , expected_database_id : Int64 , expected_name_with_owner : String , ) - > Result [ IssuePageRead , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "issue_field_query",
+          "declaration": "issue_field_query ( field : String , pull_request : Bool ) - > String"
+        },
+        {
+          "name": "issue_page_read_accept",
+          "declaration": "issue_page_read_accept ( read : IssuePageRead , body : Bytes , ) - > Result [ Unit , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "issue_page_read_close",
+          "declaration": "issue_page_read_close ( read : IssuePageRead ) - > Unit"
+        },
+        {
+          "name": "issue_page_read_finish",
+          "declaration": "issue_page_read_finish ( read : IssuePageRead , ) - > Result [ GraphqlIssuePage , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "issue_page_read_next_request",
+          "declaration": "issue_page_read_next_request ( read : IssuePageRead , first : Int , ) - > Result [ String ? , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "source_read_query_units",
+          "declaration": "source_read_query_units ( ) - > Int"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "GitHub Catalog original GraphQL documents, decoder observations and their immutable quantity projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_issue_page_read",
+            "issue_field_query",
+            "issue_page_read_accept",
+            "issue_page_read_close",
+            "issue_page_read_finish",
+            "issue_page_read_next_request",
+            "source_read_query_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/github/catalog/issue_fields.mbt",
+                "anchor": "pub fn begin_issue_page_read("
+              },
+              {
+                "path": "src/connectors/github/catalog/issue_fields.mbt",
+                "anchor": "pub fn source_read_query_units()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Fixed request quantities derive from the same Catalog documents"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The same RowRun grant, scope, request packet and use ordinal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Initial request/control construction is selected before any read callback."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "revisited cursors and repeated keys; a refused decoder cannot resume after the"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "if(pending)return false;"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Read projections still enforce their unchanged current/stop fences."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "fn github_read_request_inventory()"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "original provider quantity; neither quantity issues permission or a new budget."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "row and total-response rejection limits keep their original values."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source request quantity covers original escaped node cursor and all fixed document families\""
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/github/catalog/issue_comments.mbt",
+      "sha256": "e9f3520f506a2839947b80ad7dc7d7e9ef1fd4fe840be4ad7616d96809a45742",
+      "exports": [],
+      "operations": [
+        {
+          "name": "comment_read_query_units",
+          "declaration": "comment_read_query_units ( ) - > Int"
+        },
+        {
+          "name": "comment_repository",
+          "declaration": "comment_repository ( object : @ decode . ObjectView , expected : GraphqlRepository , ) - > Result [ Unit , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "graphql_comment_row",
+          "declaration": "graphql_comment_row ( object : @ decode . ObjectView , subject : IssueCommentSubject , ) - > Result [ IssueCommentRow , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "issue_comment_subjects_request",
+          "declaration": "issue_comment_subjects_request ( repository_id : String , native_type : String , first : Int , after : String ? , ) - > Result [ String , GraphqlRequestIssue ]"
+        },
+        {
+          "name": "issue_comments_request",
+          "declaration": "issue_comments_request ( subject : IssueCommentSubject , first : Int , after : String ? , ) - > Result [ String , GraphqlRequestIssue ]"
+        },
+        {
+          "name": "project_issue_comment_subjects_response",
+          "declaration": "project_issue_comment_subjects_response ( body : Bytes , limits : PageLimits , expected : GraphqlRepository , native_type : String , ) - > Result [ GraphqlIssueCommentSubjectsPage , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "project_issue_comments_response",
+          "declaration": "project_issue_comments_response ( body : Bytes , limits : PageLimits , expected : IssueCommentSubject , ) - > Result [ GraphqlIssueCommentPage , GraphqlResponseIssue ]"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "GitHub Catalog original GraphQL documents, decoder observations and their immutable quantity projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "comment_read_query_units",
+            "comment_repository",
+            "graphql_comment_row",
+            "issue_comment_subjects_request",
+            "issue_comments_request",
+            "project_issue_comment_subjects_response",
+            "project_issue_comments_response"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/github/catalog/issue_comments.mbt",
+                "anchor": "pub fn project_issue_comments_response("
+              },
+              {
+                "path": "src/connectors/github/catalog/issue_comments.mbt",
+                "anchor": "pub fn comment_read_query_units()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Every dependent page checks the same native subject ID, number,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The same RowRun grant, scope, request packet and use ordinal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Initial request/control construction is selected before any read callback."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "a failed decoder close keeps that same original page for retirement retry."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "if(pending)return false;"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Read projections still enforce their unchanged current/stop fences."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "fn github_read_request_inventory()"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "original provider quantity; neither quantity issues permission or a new budget."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "row and total-response rejection limits keep their original values."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source request quantity covers original escaped node cursor and all fixed document families\""
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/github/host_node/read_construction.mbt",
+      "sha256": "bf28110fc1c04b289fa2576757775d184bc85eedbe55a1bb5d59232a22facc93",
+      "exports": [],
+      "operations": [
+        {
+          "name": "github_read_collection_units",
+          "declaration": "github_read_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "github_read_request_inventory",
+          "declaration": "github_read_request_inventory ( ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "github_source_read_construction_capacity",
+          "declaration": "github_source_read_construction_capacity ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , pages : Int , max_subjects : Int , response_bytes : Int , header_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "GitHub original native constructor geometry composed through shared representation and Source Reader owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "github_read_collection_units",
+            "github_read_request_inventory",
+            "github_source_read_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "pub fn github_source_read_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Fixed request quantities derive from the same Catalog documents"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "The same RowRun grant, scope, request packet and use ordinal"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Initial request/control construction is selected before any read callback."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "a failed decoder close keeps that same original page for retirement retry."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
+                "anchor": "if(pending)return false;"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "Read projections still enforce their unchanged current/stop fences."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/github/host_node/read_construction.mbt",
+                "anchor": "fn github_read_request_inventory()"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "original provider quantity; neither quantity issues permission or a new budget."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "row and total-response rejection limits keep their original values."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source request quantity covers original escaped node cursor and all fixed document families\""
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

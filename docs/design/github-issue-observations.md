@@ -133,3 +133,46 @@ unclassified failures keep their existing provider meanings. The direct Site
 helper composes these same pure hooks for its existing callers; the standard
 installed path does not retain a second Provider-owned HTTP callback. Neither
 projection nor a returned subject retires the physical read or its failed child.
+
+## Installed native Source Reader
+
+The installed loader selects the existing shared Reader before constructing the
+Row Source. The original GitHub protocol runs inside that Reader, with one
+ordered occurrence declaration for all outer and dependent GraphQL reads.
+The same RowRun grant, scope, request packet and use ordinal reach the checked
+child authorization; the packet itself is its occurrence original. An operation
+name, equal scope DATA or a request byte bound cannot replace that original.
+POST uses the unchanged native body and the original installed request bound.
+
+The native quantity retains protocol rows, subjects, continuations, cursor
+histories and the response-prefix aliases, plus current parser/index and output
+construction. Fixed request quantities derive from the same Catalog documents
+and fragments used by the original builders. HTTP rejection bounds do not fund
+those earlier native stringify calls. Native finish JSON, Host parsing and
+row serialization can overlap; the unchanged later row-wire limit does not
+bound an allocation that already occurred before that refusal.
+
+Initial request/control construction is selected before any read callback.
+After each actual response is retained and charged, the same RowRun grows its
+original allowance from the largest owned response extent before native
+projection. This narrows constructor geometry only; parser, page, subject,
+row and total-response rejection limits keep their original values. The shared
+native Reader composes its response/binding/credential inventory with that
+original provider quantity; neither quantity issues permission or a new budget.
+
+A complete page consumes the original response charge once. A dependent reply
+without a complete page consumes that same charge as an observation before the
+next receive. The native codec still decides completeness and provider meaning.
+The protocol never calls a second charge function or constructs a replacement
+ticket. Codec close cuts decoder aliases, while the shared Reader retains the
+original response/failed-child duties. Only its existing stopped-binding and
+pending-callback checks permit protocol-prefix retirement; an awaited read or
+codec close alone is no physical cleanup acknowledgement.
+
+Managed decoder originals close through the same Reader's retirement duty,
+using the original synchronous projector supplied to its constructor. This
+projector retains invalid asynchronous results without imposing a read-current
+fence on cleanup. A rejected/stopped read therefore keeps its original failure;
+a failed decoder close keeps that same original page for retirement retry.
+Read projections still enforce their unchanged current/stop fences. Closing
+a decoder returns Unit, never a physical acknowledgement or new permission.

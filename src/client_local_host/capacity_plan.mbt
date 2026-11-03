@@ -43,12 +43,26 @@ fn client_local_capacity_plan(
   graph_offset? : Int = 0,
   content? : ClientInstalledEffectContentPreparation? = None,
 ) -> ClientLocalCapacityPlan {
-  let inventory = if scalar_values {
+  let ordinary_inventory = if scalar_values {
     client_local_schema_proof_inventory(sequences, graph~, graph_offset~)
   } else {
     None
   }
-  let node_inventory = match inventory {
+  let inventory = match ordinary_inventory {
+    Some(value) => Some(value)
+    None =>
+      if scalar_values {
+        client_local_schema_proof_inventory(
+          sequences,
+          graph~,
+          graph_offset~,
+          closed_carriers=true,
+        )
+      } else {
+        None
+      }
+  }
+  let ordinary_node_inventory = match inventory {
     Some(value) => Some(value)
     None =>
       if scalar_values {
@@ -59,6 +73,22 @@ fn client_local_capacity_plan(
           scalar_only=false,
           leaf_only=true,
           content~,
+        )
+      } else {
+        None
+      }
+  }
+  let node_inventory = match ordinary_node_inventory {
+    Some(value) => Some(value)
+    None =>
+      if scalar_values {
+        client_local_schema_proof_inventory(
+          sequences,
+          graph~,
+          graph_offset~,
+          scalar_only=false,
+          leaf_only=true,
+          closed_carriers=true,
         )
       } else {
         None

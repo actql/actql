@@ -64,6 +64,7 @@ async function fixture(t, transport, item, cancel) {
   const environment = JSON.parse(await readFile(new URL(
     './fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
   const base = JSON.parse(await readFile(join(root, 'spec/local-check-environment.json'), 'utf8'));
+  const hostCapacityPolicy = base.host_policy_profile.capacity;
   environment.host_policy_profile = base.host_policy_profile;
   environment.connector_capabilities[0].capability_contract_cids.push(
     'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
@@ -140,7 +141,7 @@ async function fixture(t, transport, item, cancel) {
   });
   if (transport === 'local') {
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
-      installation: {directory: hostDirectory, sourceProfilePath, authorization}});
+      installation: {directory: hostDirectory, sourceProfilePath, authorization, hostCapacityPolicy}});
   } else {
     execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
       '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1', '-subj', '/CN=localhost',
@@ -148,7 +149,7 @@ async function fixture(t, transport, item, cancel) {
     const cert = await readFile(join(directory, 'remote.crt'));
     setDefaultCACertificates([...getCACertificates('default'), cert.toString('utf8')]);
     host = await openInstalledRemoteHttpHost({directory: hostDirectory,
-      sourceProfilePath, authorization,
+      sourceProfilePath, authorization, hostCapacityPolicy,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer({key: await readFile(join(directory, 'remote.key')), cert}, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
