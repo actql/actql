@@ -29,7 +29,7 @@ BUNDLE_ENTRY = 'src/cmd/native_runtime_bundle'
 RUNTIME_NAMES = frozenset(('runtime', 'env', 'utf', 'backtrace', 'sync_io'))
 RELEASE_UTF_OBJECTS = frozenset(('moonbit_simdutf.o', 'simdutf.o'))
 RESIDENT_RECIPE = Path(ENTRY) / 'initial_control_recipe.json'
-# Only the selected Local components import these same-process physical ports.
+# Selected command components import these same-process physical ports.
 # No provider DLL, general symbol export or second allocator is introduced.
 LOCAL_COMPONENT_PROVIDER_EXPORTS = (
     'actql_native_owned_current',
@@ -101,7 +101,7 @@ def command_initial_control_header(source: str, destination: Path, entry: str,
         raise ValueError('Exact Resident source pin is required')
     if entry not in (ENTRY, BUNDLE_ENTRY):
         raise ValueError('No private command recipe for this entry')
-    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry != BUNDLE_ENTRY):
+    if target not in ('darwin-arm64', 'linux-x64'):
         raise ValueError('No selected command recipe for this target/entry')
     path = ROOT / entry / ('initial_control_recipe.linux-x64.json' if target == 'linux-x64'
                            else 'initial_control_recipe.json')
@@ -199,7 +199,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  stock_file_control_bytes: int | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     entry_package = selected_entry(entry)
-    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry != BUNDLE_ENTRY):
+    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry not in (ENTRY, BUNDLE_ENTRY)):
         raise ValueError('No selected scoped command for this target/entry')
     if target == 'linux-x64' and stock_file_control_bytes != 4096:
         raise ValueError('Exact bundle stock-File control page required')
@@ -277,7 +277,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                     raise ValueError('Foreign executable output')
                 if entry == LOCAL_ENTRY:
                     parts = local_initial_entry_arguments(parts, moon_home, emission)
-                if entry in (LOCAL_ENTRY, BUNDLE_ENTRY):
+                if entry in (ENTRY, LOCAL_ENTRY, BUNDLE_ENTRY):
                     parts.extend(('-Wl,-exported_symbol,_' if target == 'darwin-arm64'
                                   else '-Wl,--export-dynamic-symbol=') + symbol
                                  for symbol in LOCAL_COMPONENT_PROVIDER_EXPORTS)
@@ -316,7 +316,11 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             parts[1:1] = (["-isysroot", str(sdk), "-mmacosx-version-min=11.0"]
                           if target == 'darwin-arm64' else [
                               '-D_GNU_SOURCE', '-DACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN',
-                              '-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', '-include', str(control_header),
+                              # Reuse the pinned scoped provider profile and stock
+                              # File layout; select Resident capture separately.
+                              '-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY',
+                              *(['-DACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY'] if entry == ENTRY else []),
+                              '-include', str(control_header),
                               # Original LP64 {pointer,size_t,unsigned} record is24; its
                               # same compiled provider checks that layout and total page.
                               '-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=' + str((stock_file_control_bytes - 8) // 24),
@@ -403,7 +407,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           entry: str = ENTRY, package_version: str | None = None,
           target: str = 'darwin-arm64') -> dict[str, object]:
     entry_package = selected_entry(entry)
-    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry != BUNDLE_ENTRY):
+    if target not in ('darwin-arm64', 'linux-x64') or (target == 'linux-x64' and entry not in (ENTRY, BUNDLE_ENTRY)):
         raise ValueError('No selected scoped command for this target/entry')
     if package_version is not None:
         from python_release_cohort import select_release_version
@@ -505,9 +509,13 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                 'receipt': str(destination / ('cc-' + str(index) + '.json'))}
                for index, (before, after) in enumerate(zip(originals, commands))
                if before[0] == str(cc_driver)]
-    command_include_inputs = ([original(ROOT / ENTRY / name) for name in
-                               ('initial_control_stub.c', 'initial_control_capture.h')]
-                              if entry == BUNDLE_ENTRY else [])
+    command_include_paths = ([ROOT / ENTRY / name for name in
+                              ('initial_control_stub.c', 'initial_control_capture.h')]
+                             if entry == BUNDLE_ENTRY else
+                             [ROOT / ENTRY / 'initial_control_capture.h'] if entry == ENTRY else [])
+    if target == 'linux-x64':
+        command_include_paths.append(ROOT / BUNDLE_ENTRY / 'initial_control_capture_linux_x64.h')
+    command_include_inputs = [original(path) for path in command_include_paths]
     cc_plan.write_text(json.dumps({'steps': c_steps, 'emission': str(emission),
         'allocator_inputs': [original(p) for p in sorted(allocator.iterdir()) if p.is_file()]
             + ([resident_control['recipe'], resident_control['header']] if resident_control else [])
@@ -527,11 +535,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     paths.update(moon_home / 'lib' / name for name in RELEASE_UTF_OBJECTS)
     if resident_control:
         paths.update((Path(resident_control['recipe']['path']), Path(resident_control['header']['path'])))
-        if entry == BUNDLE_ENTRY:
-            # The installer compiles these exact private capture helpers into
-            # its OWN image. Preserve their include closure, not a Resident handle.
-            paths.update(ROOT / ENTRY / name for name in
-                         ('initial_control_stub.c', 'initial_control_capture.h'))
+        # The selected command compiles the shared private helpers into its OWN
+        # image. Preserve their include closure, not another command's handle.
+        paths.update(command_include_paths)
     if package_version is not None:
         node = shutil.which('node')
         if node is None:

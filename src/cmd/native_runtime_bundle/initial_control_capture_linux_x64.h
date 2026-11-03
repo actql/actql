@@ -23,6 +23,8 @@
 #include <unistd.h>
 #ifdef ACTQL_BUNDLE_INITIAL_CONTROL_HEADER
 #include ACTQL_BUNDLE_INITIAL_CONTROL_HEADER
+#elif defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY) && defined(ACTQL_RESIDENT_INITIAL_CONTROL_HEADER)
+#include ACTQL_RESIDENT_INITIAL_CONTROL_HEADER
 #endif
 
 /* glibc's executable init-array call supplies the original main arguments.
@@ -67,7 +69,8 @@ static bool bundle_linux_cleanup_current(resident_entry *entry) {
         syscall(SYS_gettid) == getpid() && pthread_equal(entry->thread, pthread_self());
 }
 static bool selected_recipe(void) {
-#ifdef ACTQL_BUNDLE_INITIAL_CONTROL_HEADER
+#if defined(ACTQL_BUNDLE_INITIAL_CONTROL_HEADER) || \
+    (defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY) && defined(ACTQL_RESIDENT_INITIAL_CONTROL_HEADER))
     const char *source = ACTQL_RESIDENT_SOURCE_SHA;
     const char *recipe = ACTQL_RESIDENT_RECIPE_SHA;
     if (sizeof(ACTQL_RESIDENT_SOURCE_SHA) != 41 ||
@@ -92,7 +95,8 @@ static bool capture_entry(resident_entry *entry) {
     if (entry->attempted) return false;
     entry->attempted = true;
     entry->process = getpid(); entry->thread = pthread_self();
-#ifdef ACTQL_BUNDLE_INITIAL_CONTROL_HEADER
+#if defined(ACTQL_BUNDLE_INITIAL_CONTROL_HEADER) || \
+    (defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY) && defined(ACTQL_RESIDENT_INITIAL_CONTROL_HEADER))
     if (!selected_recipe() || syscall(SYS_gettid) != getpid() ||
         !bundle_linux_startup.seen || !bundle_linux_loader_supported()) return false;
     int argc = bundle_linux_startup.argc;

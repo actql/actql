@@ -4,7 +4,7 @@
 // and runs it in a separate executor holder. The executor entry count is
 // read from a synced evidence file, never from transport logs.
 import assert from 'node:assert/strict';
-import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
+import {prepareNativeResidentSite, prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import test from 'node:test';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
@@ -106,18 +106,9 @@ if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
 await mkdir(scratchRoot, {recursive: true});
 const root = await mkdtemp(join(scratchRoot, 'native-resident-site-'));
 const moon = join(process.env.MOON_HOME ?? '', 'bin', 'moon');
-const sqliteLibrary = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
-  (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib'
-    : 'libsqlite3.so.0');
 const httpLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY ??
   (process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib'
     : 'libcurl.so.4');
-const cryptoLibrary = process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
-  (process.platform === 'darwin'
-    ? ['/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib',
-      '/usr/local/opt/openssl@3/lib/libcrypto.3.dylib']
-      .find(path => existsSync(path)) ?? 'libcrypto.3.dylib'
-    : 'libcrypto.so.3');
 const targetTriple = process.platform === 'darwin' && process.arch === 'arm64'
   ? 'aarch64-apple-darwin'
   : process.platform === 'linux' && process.arch === 'x64'
@@ -153,16 +144,13 @@ const running = new Set();
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
-  execFileSync(moon, ['build', '--target', 'native', '--strip',
-    'src/cmd/native_remote_resident_site'],
-  {cwd: repository, stdio: 'inherit'});
+  const executable = prepareNativeResidentSite(repository,
+    join(root, 'resident-producer'));
   execFileSync(moon, ['build', '--target', 'js', '--release',
     'src/connectors_builtin_node'], {cwd: repository, stdio: 'inherit'});
   execFileSync(process.execPath, ['scripts/build-runtime-packages.mjs',
     'coordinator-core', 'run-host-core', ...(retainedConsumerMode ? ['transfer-core'] : [])],
   {cwd: repository, stdio: 'inherit'});
-  const executable = join(repository, '_build/native/debug/build/cmd/' +
-    'native_remote_resident_site/native_remote_resident_site.exe');
   const bundleTool = prepareNativeRuntimeBundle(repository,
     join(root, 'runtime-bundle-producer'));
   const bundleLibraries = prepareNativeRuntimeBundleLibraries(repository,
@@ -578,7 +566,7 @@ try {
 
   const entryLog = join(root, 'executor-entry.log');
   const common = [
-    '--sqlite-library', sqliteLibrary, '--crypto-library', cryptoLibrary,
+    '--sqlite-library', bundleLibraries.sqliteLibrary, '--crypto-library', bundleLibraries.cryptoLibrary,
     '--http-library', httpLibrary, '--journal', join(root, 'journal.sqlite3'),
     '--runtime-root', runtimeRoot, '--bundle-issuer', 'bundle-authority-a',
     '--bundle-key-id', 'key-a', '--bundle-public-key-root', bundleInput,

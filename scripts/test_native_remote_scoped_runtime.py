@@ -8,6 +8,8 @@ import unittest
 import subprocess
 import sys
 import os
+import platform
+import shutil
 
 SPEC = importlib.util.spec_from_file_location('remote_build', Path(__file__).with_name('produce-native-remote-scoped-runtime.py'))
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -89,7 +91,11 @@ class RemoteScopedComposition(unittest.TestCase):
         runtime = {Path(x).name for p in c for x in p if x.startswith(str(self.stage)) and x.endswith('.c')}
         self.assertEqual(runtime, {name + '.c' for name in MODULE.RUNTIME_NAMES})
         self.assertFalse(any(str(self.home / 'lib/runtime') in x for p in planned for x in p))
-        self.assertEqual(planned[-1][-2:], [str(self.home / 'lib/libmoonbitrun.o'), '-lm'])
+        exports = ['-Wl,-exported_symbol,_' + symbol
+                   for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS]
+        self.assertEqual(planned[-1][-len(exports):], exports)
+        self.assertEqual(planned[-1][:-len(exports)][-2:],
+                         [str(self.home / 'lib/libmoonbitrun.o'), '-lm'])
 
     def test_original_debug_registry_and_compiler_arguments_are_preserved(self):
         commands = [c.copy() for c in self.commands]
@@ -397,6 +403,45 @@ class BundleInstallerComposition(unittest.TestCase):
 
 
 
+class ResidentCaptureComponent(unittest.TestCase):
+    def test_actual_selected_original_and_refusals_without_a_managed_runtime(self):
+        target = {('Darwin', 'arm64'): 'darwin-arm64',
+                  ('Linux', 'x86_64'): 'linux-x64'}.get((platform.system(), platform.machine()))
+        self.assertIsNotNone(target, 'Select an actual supported capture component target')
+        compiler = shutil.which('cc')
+        self.assertIsNotNone(compiler)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            header = root / 'initial.h'
+            record = MODULE.command_initial_control_header('a' * 40, header, MODULE.ENTRY, target)
+            selected = root / 'selected'
+            unselected = root / 'unselected'
+            source = MODULE.ROOT / 'scripts/fixtures/resident-initial-control.c'
+            flags = (['-D_GNU_SOURCE', '-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY',
+                      '-DACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY'] if target == 'linux-x64' else [])
+            def compile_capture(arguments):
+                result = subprocess.run(arguments, capture_output=True, text=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            # This component consumes capture only, not the header's other
+            # private command-preparation helpers. Product flags stay unchanged.
+            warnings = ['-Wall', '-Wextra', '-Werror', '-Wno-unused-function']
+            compile_capture([compiler, '-std=c11', *warnings, '-pthread',
+                *flags, '-DACTQL_RESIDENT_INITIAL_CONTROL_HEADER="' + str(header) + '"',
+                str(source), '-o', str(selected)])
+            for arguments, expected in (([], 'PASS same original;'),
+                    (['loader-refusal'], 'PASS unsupported loader selection stays refused'),
+                    (['x' * (record['selected']['maximumArgumentBytes'] + 1)],
+                     'PASS argument bound checked before original copy')):
+                result = subprocess.run([str(selected), *arguments], check=True,
+                    capture_output=True, text=True, timeout=10)
+                self.assertTrue(result.stdout.startswith(expected), result.stdout)
+            compile_capture([compiler, '-std=c11', *warnings, '-pthread',
+                str(source), '-o', str(unselected)])
+            result = subprocess.run([str(unselected)], check=True,
+                capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.stdout, 'PASS unselected entry refuses without capture\n')
+
+
 class LinuxResidentComposition(unittest.TestCase):
     def test_selected_resident_uses_one_pinned_provider_and_own_capture_header(self):
         fixture = RemoteScopedComposition()
@@ -461,7 +506,7 @@ class LinuxBundleComposition(unittest.TestCase):
         for size in (None, 0, 1, 4095, 4097, 8192):
             with self.subTest(size=size), self.assertRaisesRegex(ValueError, 'control page'):
                 self.fixture.plan(target='linux-x64', stock_file_control_bytes=size)
-        for entry in (MODULE.ENTRY, MODULE.LOCAL_ENTRY):
+        for entry in (MODULE.LOCAL_ENTRY,):
             with self.subTest(entry=entry), self.assertRaisesRegex(ValueError, 'target/entry'):
                 MODULE.commands_for('', Path('/moon'), Path('/owned/emission'), Path('/owned/allocator'),
                                     Path('/cc'), None, target='linux-x64', entry=entry,

@@ -1,5 +1,9 @@
 #ifndef ACTQL_RESIDENT_INITIAL_CONTROL_CAPTURE_H
 #define ACTQL_RESIDENT_INITIAL_CONTROL_CAPTURE_H
+#if defined(__linux__) && defined(__x86_64__) && defined(ACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY)
+/* The selected Linux capture recipe, retained in this command's own image. */
+#include "../native_runtime_bundle/initial_control_capture_linux_x64.h"
+#else
 /* Command-private original capture. Allocation-free OS observation precedes
  * the generic bootstrap and every managed argument/parser/Store operation. */
 #include "../../platform_native/host_bootstrap/command_input.h"
@@ -154,5 +158,5 @@ static bool entry_current(resident_entry *entry) {
 #endif
 }
 
-
+#endif
 #endif

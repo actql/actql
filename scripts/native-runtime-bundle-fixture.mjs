@@ -1,4 +1,4 @@
-// Build the existing selected bundle command for its actual test platform.
+// Build the existing selected command for its actual test platform.
 // The producer owns source/allocator/header checks; raw unselected executables
 // are never a fallback for an install/activate acceptance path.
 import assert from 'node:assert/strict';
@@ -7,7 +7,15 @@ import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
 
-export function prepareNativeRuntimeBundle(repository, destination, {
+export function prepareNativeRuntimeBundle(repository, destination, options) {
+  return prepareNativeCommand(repository, destination, 'native_runtime_bundle', options);
+}
+
+export function prepareNativeResidentSite(repository, destination, options) {
+  return prepareNativeCommand(repository, destination, 'native_remote_resident_site', options);
+}
+
+function prepareNativeCommand(repository, destination, entry, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   moonHome = process.env.MOON_HOME, seconds = 600,
 } = {}) {
@@ -15,6 +23,7 @@ export function prepareNativeRuntimeBundle(repository, destination, {
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
     : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
   assert(target, 'No selected bundle command recipe for this actual platform');
+  const entryPath = 'src/cmd/' + entry;
   assert(typeof moonHome === 'string' && moonHome.length > 0,
     'The existing pinned Moon toolchain is required');
   repository = realpathSync(repository);
@@ -31,13 +40,13 @@ export function prepareNativeRuntimeBundle(repository, destination, {
     '--source', source, '--moon-home', realpathSync(moonHome), '--clang', clang,
     ...(sdk === undefined ? [] : ['--sdk', sdk]), '--target', target,
     '--destination', destination, '--seconds', String(seconds),
-    '--entry', 'src/cmd/native_runtime_bundle']);
+    '--entry', entryPath]);
   const receiptPath = join(destination, 'build.json');
   const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
-  assert.equal(receipt.source, source);assert.equal(receipt.entry, 'src/cmd/native_runtime_bundle');
+  assert.equal(receipt.source, source);assert.equal(receipt.entry, entryPath);
   assert.equal(receipt.target, target);assert.equal(receipt.plan_only, false);
   assert.equal(receipt.moon_build_exit, 0);assert.equal(receipt.providers, 1);
-  const binary = join(destination, 'emission/native/release/build/cmd/native_runtime_bundle/native_runtime_bundle.exe');
+  const binary = join(destination, 'emission/native/release/build/cmd', entry, entry + '.exe');
   assert.equal(receipt.executable.path, binary);
   const original = lstatSync(binary);assert(original.isFile() && !original.isSymbolicLink() && (original.mode & 0o111) !== 0);
   const bytes = readFileSync(binary);
