@@ -310,10 +310,9 @@ try {
       process.env.ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC === '1'
     ? failedCoreDriver(process.cwd(), process.env.MOON_HOME) : undefined;
   child = spawn(process.execPath, ['--input-type=module', '-e',
-    "import {runNativeCoreTestSequence} from './scripts/native-core-test-sequence.mjs'; " +
-    "process.exitCode = runNativeCoreTestSequence(" + JSON.stringify(moonArgs) + ", " +
-    "{serialBuild: " + (coreArgs !== undefined && process.env.ACTQL_TEST_NATIVE_SERIAL_BUILD === '1') +
-    ", timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
+    "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+    "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
+    "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
   {env: testEnv, stdio: compilerDriver ? ['inherit', 'pipe', 'pipe'] : 'inherit'});
   if (compilerDriver) {
