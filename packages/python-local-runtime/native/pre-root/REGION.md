@@ -87,6 +87,13 @@ Native HTTP and separated-network wrappers must still execute all their
 selected packages and later controls; this profile provides no case exclusion
 or fallback. Source selection alone is not execution or distribution evidence.
 
+The shared `owned_inventory.inc` observes the same provider's actual control,
+generic, pending-retirement and heap records on every selected process profile.
+It is also used by the original Darwin heap backend. Moving this census does
+not add a Rust allocator to Linux or substitute zero availability values for
+physical observations. The Native bootstrap inventory FFI remains bound to the
+same entered original domain and its existing scalar bounds and cleanup owner.
+
 ## Original child allocation domain
 
 The trusted child supplier can bind the original Core payload to an

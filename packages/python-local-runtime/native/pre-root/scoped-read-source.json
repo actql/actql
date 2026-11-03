@@ -18,8 +18,8 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 28742,
-      "sha256": "81c1078a9d06550c1292b4b7dd4f2238e30e3a5e2d7b4b875ae6ee45eb90ec45"
+      "bytes": 28852,
+      "sha256": "b75b7a412278b141bd07855da5ae09b02ec11e539bfa8d5186aa9077ee9bf2fe"
     },
     {
       "root": "provider",
@@ -158,8 +158,15 @@
       "root": "provider",
       "path": "owned_rust_heap.inc",
       "output": "owned_rust_heap.inc",
-      "bytes": 12126,
-      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
+      "bytes": 8940,
+      "sha256": "41d2340952cc9cf8af4934b1d71c317249a34cf9887869aa11f9a53675cc31d8"
+    },
+    {
+      "root": "provider",
+      "path": "owned_inventory.inc",
+      "output": "owned_inventory.inc",
+      "bytes": 3410,
+      "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
     }
   ],
   "outputs": {
@@ -200,8 +207,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 29663,
-      "sha256": "3844e8af9766fe5fdbc0f002f5cafc034b077a9b3050c184e48bf168ecff51eb"
+      "bytes": 29773,
+      "sha256": "5a7a8f28136bbc46c24d38d94383fb10a70aa119defdd7ec360f5d53da906359"
     },
     "owned_capacity.h": {
       "bytes": 6288,
@@ -224,8 +231,8 @@
       "sha256": "fff21307ba1dc05e471c157d51a884f9fb8758faff52972cce05953e163dd5a6"
     },
     "owned_rust_heap.inc": {
-      "bytes": 12126,
-      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
+      "bytes": 8940,
+      "sha256": "41d2340952cc9cf8af4934b1d71c317249a34cf9887869aa11f9a53675cc31d8"
     },
     "owned_thread.h": {
       "bytes": 1894,
@@ -254,6 +261,10 @@
     "utf.c": {
       "bytes": 11366,
       "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
+    },
+    "owned_inventory.inc": {
+      "bytes": 3412,
+      "sha256": "57bf2a27176ce61aaa835cadcfe21fbf435fb809a48dc3d5c3f5487b2eb7dc8c"
     }
   },
   "normal_profile": null,

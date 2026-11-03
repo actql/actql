@@ -35,6 +35,7 @@ CASES = (
     ('extent_work', 'discovered', 14),
     ('cleanup', 'native_cleanup_cases', 16),
     ('thread', 'executed', 12),
+    ('process_inventory', 'process_inventory_cases', 19),
 )
 
 

@@ -1097,6 +1097,11 @@ jobs:
           path: _build/linux-x64-owned-process/
           if-no-files-found: warn
           retention-days: 14
+      - name: Test original Native bootstrap inventory FFI and domain lifetime
+        timeout-minutes: 5
+        run: >-
+          node scripts/local-checks.mjs test moon --timeout-seconds 240 --
+          --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests

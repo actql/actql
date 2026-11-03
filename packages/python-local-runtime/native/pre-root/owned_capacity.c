@@ -613,6 +613,9 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
+/* Generic, pending and heap census stays with the same physical provider. */
+#include "owned_inventory.inc"
+
 #if defined(__APPLE__)
 #include "owned_rust_heap.inc"
 #endif

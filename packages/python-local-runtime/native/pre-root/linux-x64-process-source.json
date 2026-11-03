@@ -33,7 +33,8 @@
       "owned_capacity.c",
       "owned_region.inc",
       "owned_domain_borrow.inc",
-      "owned_thread.inc"
+      "owned_thread.inc",
+      "owned_inventory.inc"
     ],
     "abi": "LP64 little-endian glibc, 64-bit pointers/size_t/off_t, 32-bit int/PID and always-lock-free PID atomics; actual layout/page sizes observed, never copied from ARM",
     "custody": "Original Core child/current/borrow and child-first physical retirement remain required; anonymous parent is not FD transport",
@@ -54,7 +55,19 @@
     "ci_job": "native",
     "ci_step_timeout_minutes": 5,
     "ci_order": "Once before check:native-http-client; not duplicated in native-separated-network",
-    "actual_correspondence": "Require exact source/recipe input hashes, original installed.json Linuxx64 marker and Moon versions; record actual C compiler target/version/binary and dependency header hashes. Recheck source and tools after execution."
+    "actual_correspondence": "Require exact source/recipe input hashes, original installed.json Linuxx64 marker and Moon versions; record actual C compiler target/version/binary and dependency header hashes. Recheck source and tools after execution.",
+    "ci_ffi_command": [
+      "node",
+      "scripts/local-checks.mjs",
+      "test",
+      "moon",
+      "--timeout-seconds",
+      "240",
+      "--",
+      "--target",
+      "native",
+      "src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt"
+    ]
   },
   "inputs": [
     {
@@ -104,8 +117,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 28742,
-      "sha256": "81c1078a9d06550c1292b4b7dd4f2238e30e3a5e2d7b4b875ae6ee45eb90ec45"
+      "bytes": 28852,
+      "sha256": "b75b7a412278b141bd07855da5ae09b02ec11e539bfa8d5186aa9077ee9bf2fe"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -149,8 +162,8 @@
     },
     {
       "path": "scripts/test_native_linux_x64_owned_process.py",
-      "bytes": 13884,
-      "sha256": "db2c6412a10517178eddea20ed27b8a6c8fe3e8be2f8bacd74a9c229f6ee2d9a"
+      "bytes": 13942,
+      "sha256": "c9bcf3025210fbe4acbb59cae23681c922ba9327b37ab2e289425b9791528bf7"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/fixtures/linux_x64_process_abi.c",
@@ -221,6 +234,21 @@
       "path": "packages/python-local-runtime/native/pre-root/fixtures/thread.c",
       "bytes": 12343,
       "sha256": "52152ab57d0810a9fb64a6e1e3898dc2e91ce7135ab9beeb04de5ea52d9ebb1c"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_inventory.inc",
+      "bytes": 3410,
+      "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/fixtures/process_inventory.c",
+      "bytes": 4752,
+      "sha256": "e5cfd2c758408f5f3c10ab2182d37e14d302fe327161911e67f76e6386995a09"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt",
+      "bytes": 3325,
+      "sha256": "8c1019ebc4d459ce610d04adcf1c3d85887f33961dc0f0edd3a76ae9662c7aff"
     }
   ]
 }
