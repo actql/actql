@@ -5,11 +5,12 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {retainedParentCoreBound,checkParentCensus} from '../parent-control/bounds.mjs';
 import {inspectCurrentChain} from '../parent-control/current-inspect.mjs';
+import {currentChainSyntheticFixture} from '../parent-control/current-chain.synthetic.fixture.mjs';
 const root=fileURLToPath(new URL('../../../../',import.meta.url));
 const read=p=>readFileSync(join(root,p));
-// Extracted point observations exercise the validator; they do not authenticate
-// a binary, assert a new execution, or prove whole-owner lifetime coverage.
-const records=()=>structuredClone(JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/chain-records.fixture.json')).records);
+// Current-source inputs are explicitly synthetic. The archived Native capture
+// remains unchanged at its original execution revision and is not relabelled.
+const records=()=>currentChainSyntheticFixture().records;
 test('conditional core uses five Refs plus state and input-derived overlap',()=>{
   assert.equal(retainedParentCoreBound(2).bytes,808n);assert.equal(retainedParentCoreBound(10).bytes,1064n);
   assert(retainedParentCoreBound(2147483647).bytes<9223372036854775807n);
@@ -25,13 +26,15 @@ test('current census binds state, metadata preparation and all provider construc
   const generated='src/execution_relation/generated_sequence.mbt';
   assert.throws(()=>checkParentCensus(path=>path===generated?read(path).toString().replace('traversal_ceilings : Array[(Int, Int64, Int64)]','traversal_ceilings : Array[(Int, String, Int64)]'):read(path)));
 });
-test('actual capture roles and padded Native layouts bind every lifecycle phase',()=>{
+test('synthetic current source/ABI inputs bind capture roles and every lifecycle phase',()=>{
+  assert.match(currentChainSyntheticFixture().role,/^synthetic-current-source-abi;/);
+  // actualPhases is the verifier's accepted input count, not observed execution.
   const result=inspectCurrentChain(records());assert.equal(result.actualPhases,7);assert.equal(result.completePhysicalUpper,false);
-  for(const mutate of [r=>r[0].callbacks[0].requestedBytes=96,
+  for(const mutate of [r=>r[0].callbacks[0].requestedBytes=88,
     r=>r[0].callbacks[0].captures[0].id=r[0].roots.state,
     r=>r[0].environments[0].captures.pop(),r=>r.splice(4,1),
     r=>r[1].callbacks[0].captures[0].id='1']) {
-    const r=records();mutate(r);assert.throws(()=>inspectCurrentChain(r));
+    const r=records(),before=structuredClone(r);mutate(r);assert.notDeepEqual(r,before);assert.throws(()=>inspectCurrentChain(r));
   }
 });
 test('pending/error cleanup cannot lose the completed occurrence or nested cursor',()=>{
@@ -43,6 +46,6 @@ test('pending/error cleanup cannot lose the completed occurrence or nested curso
     r=>r[1].state.captures.find(c=>c.offset===8).id='1',
     r=>r[6].state.captures.find(c=>c.offset===8).id='1',
     r=>r[7].state.captures.find(c=>c.offset===8).id='1']) {
-    const r=records();mutate(r);assert.throws(()=>inspectCurrentChain(r));
+    const r=records(),before=structuredClone(r);mutate(r);assert.notDeepEqual(r,before);assert.throws(()=>inspectCurrentChain(r));
   }
 });
