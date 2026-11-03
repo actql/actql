@@ -102,15 +102,19 @@ test('Reader custody callbacks preserve ordinary FDs and exact pending/acked beh
   }
   const source = join(scratch, 'callback-helper.c');
   writeFileSync(source, `
+#define _GNU_SOURCE
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 int main(int argc, char **argv) {
-  assert(argc == 2);
+  assert(argc == 3);
+  int injected = strcmp(argv[2], "injected") == 0;
+  assert(injected || strcmp(argv[2], "ordinary") == 0);
   const char *names[] = {"ordinary.json", "runtime-constructor-pending/local-runtime.json",
     "runtime-constructor-acked/local-runtime.json"};
   for (int i = 0; i < 3; i++) {
@@ -120,12 +124,12 @@ int main(int argc, char **argv) {
     int fd = open(path, O_RDONLY); assert(fd >= 0);
     struct stat status; errno = 0;
     int observed = fstat(fd, &status);
-    if (i == 0) assert(observed == 0 && S_ISREG(status.st_mode));
+    if (i == 0 || !injected) assert(observed == 0 && S_ISREG(status.st_mode));
     else assert(observed == -1 && errno == EIO);
     assert(fcntl(fd, F_GETFD) >= 0);
     errno = 0;
     int closed = close(fd);
-    if (i == 1) assert(closed == -1 && errno == EIO);
+    if (i == 1 && injected) assert(closed == -1 && errno == EIO);
     else assert(closed == 0);
     errno = 0;
     assert(fcntl(fd, F_GETFD) == -1 && errno == EBADF);
@@ -143,14 +147,27 @@ int main(int argc, char **argv) {
     });
     assert.equal(built.error, undefined);
     assert.equal(built.status, 0, built.stderr);
-    const observed = spawnSync(helper, [scratch], {encoding: 'utf8', timeout: 10000,
+    // Distinguish the selected executable ABI from the injected callbacks.
+    // Both runs use these same original files and actual descriptor assertions.
+    const control = spawnSync(helper, [scratch, 'ordinary'], {
+      encoding: 'utf8', timeout: 10000, env: process.env,
+    });
+    writeFileSync(join(scratch, 'callback-control-' + (subtype ?? process.arch) + '.json'),
+      JSON.stringify({subtype: subtype ?? process.arch, status: control.status,
+        signal: control.signal, stdout: control.stdout, stderr: control.stderr}, null, 2) + '\n');
+    assert.equal(control.error, undefined);
+    assert.equal(control.signal, null, `${subtype ?? process.arch} control: ${control.stderr}`);
+    assert.equal(control.status, 0, `${subtype ?? process.arch} control: ${control.stderr}`);
+    assert.equal(control.stdout.trim(), 'reader-callbacks:3');
+    process.stdout.write(`# Reader custody injected callback: ${subtype ?? process.arch}\n`);
+    const observed = spawnSync(helper, [scratch, 'injected'], {encoding: 'utf8', timeout: 10000,
       env: {...process.env, ...injected}});
     writeFileSync(join(scratch, 'callback-' + (subtype ?? process.arch) + '.json'),
       JSON.stringify({status: observed.status, signal: observed.signal,
         stdout: observed.stdout, stderr: observed.stderr}, null, 2) + '\n');
     assert.equal(observed.error, undefined);
-    assert.equal(observed.signal, null, observed.stderr);
-    assert.equal(observed.status, 0, observed.stderr);
+    assert.equal(observed.signal, null, `${subtype ?? process.arch}: ${observed.stderr}`);
+    assert.equal(observed.status, 0, `${subtype ?? process.arch}: ${observed.stderr}`);
     assert.equal(observed.stdout.trim(), 'reader-callbacks:3');
   }
 });
