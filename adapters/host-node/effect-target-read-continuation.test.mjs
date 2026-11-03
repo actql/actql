@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
+import {retainInstalledHostRuntimeFailure} from './installed-host-cleanup.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {assertEffectTargetReadBinding, effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
 import {effectTargetReadInventory} from './effect-target-read-inventory.mjs';
@@ -332,7 +333,7 @@ async function capturedReadResumeFixture({rejectPrepare = false, failFinish = fa
   const primary = undefined, cleanupFailure = new Error('OriginalInputRetirementPending');
   const input = {finish(terminal) {
     assert.equal(this, input);assert.equal(held, true);events.push(['finish', terminal]);finishAttempts++;
-    if (failFinish && finishAttempts === 1) throw cleanupFailure;
+    if (failFinish && finishAttempts <= 2) throw cleanupFailure;
     held = false;
   }};
   const preparation = {
@@ -372,7 +373,7 @@ async function capturedReadResumeFixture({rejectPrepare = false, failFinish = fa
     journal: {lookupRunDefinition() {return {cancellationRequested: false};}},
     terminal() {return false;}, observeRun() {assert.fail('No terminal observation selected');},
     setInterval() {return {unref() {}};}, clearInterval() {events.push('clear');},
-    retainInstalledHostRuntimeFailure(cause, cleanup) {return Object.assign(new Error('RetainedOriginalInput'), {cause, cleanup});},
+    retainInstalledHostRuntimeFailure,
   };
   const execute = compileFunction('return '+source.slice(flights[0].start, flights[0].end), Object.keys(ports))(...Object.values(ports));
   return {execute, events, primary, cleanupFailure, held: () => held, preparing: () => preparing};
@@ -387,10 +388,10 @@ test('actual read-access resume retains its same captured Request through prepar
 
 test('actual read-access resume keeps thrown undefined and original failed-input retirement', async () => {
   const f = await capturedReadResumeFixture({rejectPrepare: true});
-  await assert.rejects(f.execute, error => {
-    assert.equal(error.cause, f.primary);assert.equal(typeof error.cleanup, 'function');
-    assert.equal(f.held(), true);error.cleanup();return true;
-  });
+  let rejected = false;
+  try {await f.execute();}
+  catch (cause) {rejected = true;assert.strictEqual(cause, f.primary);}
+  assert.equal(rejected, true);
   assert.deepEqual(f.events.filter(value => value !== 'clear'),
     ['retain', 'prepare', 'refuse', ['finish', 'failed']]);
   assert.equal(f.held(), false);assert.equal(f.preparing(), 1);
@@ -398,10 +399,13 @@ test('actual read-access resume keeps thrown undefined and original failed-input
 
 test('actual read-access resume retains the same input retirement retry without preparing again', async () => {
   const f = await capturedReadResumeFixture({failFinish: true});
-  await assert.rejects(f.execute, error => {
-    assert.equal(error.cause, f.cleanupFailure);assert.equal(f.held(), true);
-    error.cleanup();return true;
-  });
+  let failure;
+  try {await f.execute();} catch (cause) {failure = cause;}
+  assert.strictEqual(failure.primaryFailure, f.cleanupFailure);
+  assert.strictEqual(failure.cause, f.cleanupFailure);assert.equal(f.held(), true);
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
   assert.equal(f.held(), false);assert.equal(f.preparing(), 1);
-  assert.deepEqual(f.events.filter(Array.isArray), [['finish', 'returned'], ['finish', 'returned']]);
+  assert.deepEqual(f.events.filter(Array.isArray),
+    [['finish', 'returned'], ['finish', 'returned'], ['finish', 'returned']]);
 });
