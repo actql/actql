@@ -9202,7 +9202,9 @@ async function exerciseStrategyGraph(
                 if (cancel && start === 2 && observation.complete === false &&
                     observation.progress > 0n && !scheduled) {
                   scheduled = true;
-                  setTimeout(() => controller.abort(), 0);
+                  // Keep the abort inside the observed incomplete sort, before
+                  // its output lease can be constructed by a later advance.
+                  controller.abort();
                 }
                 return result;
               };
