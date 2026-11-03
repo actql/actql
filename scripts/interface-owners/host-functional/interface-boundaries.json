@@ -27902,7 +27902,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28065,7 +28065,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28697,7 +28697,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -68693,11 +68693,12 @@
     {
       "module": "adapters/host-node/installed-project-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2c366d1a7a7e6ae5126d7a97ebb7dc1f225afe9dabb50bfe08c11fa680ae74b6",
+      "sha256": "081684433daafa18a4f646bb187ddd3ae5f1fc5368a919c1334476cc7cfff042",
       "exports": [
         "admitInstalledProjectConfiguration",
         "installedProjectOriginalsForRuntime",
         "loadInstalledProjectConfiguration",
+        "resolveInstalledProjectTaskPath",
         "retireInstalledProjectConfiguration"
       ],
       "operations": [
@@ -68762,6 +68763,15 @@
             "moon",
             "configurationWire",
             "readers"
+          ],
+          "async": false
+        },
+        {
+          "name": "resolveInstalledProjectTaskPath",
+          "parameters": [
+            "project",
+            "moon",
+            "file"
           ],
           "async": false
         },
@@ -69101,10 +69111,12 @@
         {
           "operations": [
             "installedProjectOriginalsForRuntime",
-            "retainConfiguration/project/init:originalsForRuntime/init:originalsForRuntime"
+            "retainConfiguration/project/init:originalsForRuntime/init:originalsForRuntime",
+            "resolveInstalledProjectTaskPath"
           ],
           "exports": [
-            "installedProjectOriginalsForRuntime"
+            "installedProjectOriginalsForRuntime",
+            "resolveInstalledProjectTaskPath"
           ],
           "attributes": {
             "responsibility": [
@@ -70110,7 +70122,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock-answers.mjs",
-      "sha256": "6b6a9a5737594c2fd4cd72acc7914c4c5aec5a7ea645031548a4c4228c7f009a",
+      "sha256": "a382e0f0ded475627906de267ab82e46f814d1a3b58cc2b0adf023c49f3e40f7",
       "exports": [
         "loadInstalledProjectMockAnswers"
       ],
@@ -72533,7 +72545,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-model-tasks.mjs",
-      "sha256": "f1f42b77c2b502571257fa4e56844c7b9c47316d8356aa96a783c92fee3fa3da",
+      "sha256": "7ddbff43cad703b962333762d669670d2b1d831ac2fd6280b991682e7de09fd2",
       "exports": [
         "loadInstalledProjectModelTasks",
         "prepareInstalledProjectModelTasks"
@@ -122296,7 +122308,7 @@
       "sha256": "66df22ee9b82437cd6476665764c35898e71d414042ee7ced8db2e879af4b2ba",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -123210,7 +123222,7 @@
       "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -123899,7 +123911,7 @@
       "sha256": "954d399e91b507aea6816129ea247355aa2406453a5bb47b27f59002645a1c4c",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C — existing standard Host Source/Effect service originals",
+      "owner": "C \u2014 existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",
