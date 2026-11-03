@@ -10989,8 +10989,8 @@ async function exerciseStrategyGraph(
     [{id: 1}, {id: 2}], [{id: 3}]);
   const crossBoundary = retainedBoundaryProgram('cross_join',
     [{id: 1}, {id: 2}], [{tag: 'a'}, {tag: 'b'}]);
-  const rejectedChain = structuredClone(appendBoundary);
-  rejectedChain.stages.find(stage => stage.id === 'crossed').steps = [
+  const independentBranch = structuredClone(appendBoundary);
+  independentBranch.stages.find(stage => stage.id === 'crossed').steps = [
     {from: 'l', append: {with: 'r'}, as: 'appended'},
     {from: 'l', filter: 'true', as: 'out'},
   ];
@@ -11016,10 +11016,15 @@ async function exerciseStrategyGraph(
         {id: 2, tag: 'a'}, {id: 2, tag: 'b'}]},
     {name: 'cross-work-short', program: crossBoundary, work: 51, space: 12},
     {name: 'cross-space-short', program: crossBoundary, work: 52, space: 11},
-    {name: 'unsupported-chain', program: rejectedChain, work: 100000, space: 10000},
+    // The selected Relation provider admits an unconsumed pure branch before
+    // the terminal step and retains every selected child's cleanup owner.
+    {name: 'independent-branch', program: independentBranch, work: 100000,
+      space: 10000, expected: [{id: 1}, {id: 2}]},
   ]) {
-    const binaryFixture = fixture.strategyFixtureCreate(...args,
-      JSON.stringify(program));
+    // Retained evidence admission is separate from the exact kernel work and
+    // workspace ceilings selected below, including every one-short refusal.
+    const binaryFixture = fixture.strategyFixtureAccounted(
+      fixture.strategyFixtureCreate(...args, JSON.stringify(program)));
     const capture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const directory = await mkdtemp(join(tmpdir(), `actql-retained-${name}-`));
@@ -11067,10 +11072,7 @@ async function exerciseStrategyGraph(
       if (expected) {
         assert.equal(fixture.strategyFixtureCid(binaryFixture, 3), hash(expected), name);
         assert.equal(leases, 3, name);
-      } else if (name === 'unsupported-chain') {
-        assert.equal(dispatches, 0, 'unsupported Program must fail before any Compute');
-        assert.equal(leases, 0, name);
-        assert.equal(execution.completed.length, 0, name);
+        assert.equal(dispatches, 3, name);
       } else {
         assert.deepEqual(execution.completed.map(item => item.task), [1, 2], name);
         assert.equal(leases, 2, name);
@@ -11275,8 +11277,9 @@ async function exerciseStrategyGraph(
   nestPolicyProgram.results = {
     producer: {from: {stage: 'nested', result: 'r'}},
   };
-  const nestPolicyFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(nestPolicyProgram));
+  // Fund retained evidence independently of the authored one-item Nest limit.
+  const nestPolicyFixture = fixture.strategyFixtureAccounted(
+    fixture.strategyFixtureCreate(...args, JSON.stringify(nestPolicyProgram)));
   const nestPolicyCapture = await runNativeHostQuery(grant,
     fixture.strategyFixtureAcquisition(nestPolicyFixture), suppliedLimits);
   const nestPolicyDirectory = await mkdtemp(join(
@@ -11344,8 +11347,9 @@ async function exerciseStrategyGraph(
     await nestPolicyStore.cleanup();
     await rm(nestPolicyDirectory, {recursive: true, force: true});
   }
-  const cancelledValuesFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(retainedValuesProgram));
+  // Reach actual Values work before observing cancellation of retained output.
+  const cancelledValuesFixture = fixture.strategyFixtureAccounted(
+    fixture.strategyFixtureCreate(...args, JSON.stringify(retainedValuesProgram)));
   const cancelledValuesCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(cancelledValuesFixture),
@@ -11399,7 +11403,8 @@ async function exerciseStrategyGraph(
                 if (!valuesWorkObserved && !observation.complete &&
                     observation.progress > 0n) {
                   valuesWorkObserved = true;
-                  setTimeout(() => valuesCancel.abort(), 0);
+                  // Deliver cancellation before the next output lease starts.
+                  valuesCancel.abort();
                 }
               }
               return result;
@@ -11444,8 +11449,9 @@ async function exerciseStrategyGraph(
     await cancelledValuesStore.cleanup();
     await rm(cancelledValuesDirectory, {recursive: true, force: true});
   }
-  const failedValuesFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(retainedValuesProgram));
+  // This is the same retained Values input; reach the injected Store append.
+  const failedValuesFixture = fixture.strategyFixtureAccounted(
+    fixture.strategyFixtureCreate(...args, JSON.stringify(retainedValuesProgram)));
   const failedValuesCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(failedValuesFixture),
@@ -11825,7 +11831,8 @@ async function exerciseStrategyGraph(
                       progressAfterStart += poll.progress;
                       if (!scheduled) {
                         scheduled = true;
-                        setTimeout(() => cancellation.abort(), 0);
+                        // Observe cancellation while this row step is pending.
+                        cancellation.abort();
                       }
                     }
                   }
@@ -12286,7 +12293,8 @@ async function exerciseStrategyGraph(
                         longSelectedTakeWork >= 10n) &&
                       !valuesWorkObserved) {
                     valuesWorkObserved = true;
-                    setTimeout(() => valuesCancellation.abort(), 0);
+                    // Keep cancellation at the observed pending chain step.
+                    valuesCancellation.abort();
                   }
                   return result;
                 };
