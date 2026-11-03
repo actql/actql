@@ -5049,6 +5049,15 @@ Source dependency whose original collected inputs are unavailable stays
 unresolved; reporting does not collect or resolve it again. Native originals
 without an authored text mapping do not acquire invented text coordinates.
 
+When that same retained refusal contains an invalid supplied-input binder issue
+and its Source dependencies are public in the current audience, projection uses
+the existing binder-owned type explanation beside independent missing-value
+requirements. It does not bind again or add an unavailable Parameters pointer.
+Budget and invalid-setting issues keep the original classification path. A
+private registration that stopped before binding supplies no binder proof;
+whether binding was reached after private registration must not disclose that
+registration's availability. The existing protected-Source filter remains.
+
 Before reading current publication metadata or constructing report output,
 the same Request grows its retained and working extents for the bounded report
 writer, findings, labels, publication/index views and sequential Source-reference

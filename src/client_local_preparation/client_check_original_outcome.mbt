@@ -108,6 +108,27 @@ pub fn client_program_project_original_check_outcome(
       hidden = true
     }
   }
+  // Only the same original binder refusal proves a supplied violation. Keep
+  // the original private-Source filter: whether binding was reached after
+  // private registration must not reveal that registration's availability.
+  let supplied_refusal = if !hidden &&
+    outcome is @checked.Rejected(diagnostic) &&
+    @checked.diagnostic_cause(diagnostic)
+    is Source(SourceView(Binding(Binding(issue)))) &&
+    issue is BindingInput(Supplied, _) &&
+    check_binding_fault(issue) is Invalid {
+    findings.push(
+      check_supplied_type_finding(
+        issue,
+        @stage_parameters.declarations(source),
+        supplied,
+        None,
+      ),
+    )
+    true
+  } else {
+    false
+  }
   let stop = if hidden {
     // Preserve the existing independent unsupported-declaration limitation,
     // while every unresolved private dependency stays protected.
@@ -126,7 +147,7 @@ pub fn client_program_project_original_check_outcome(
     }
     findings.push(Unresolved("source_resolution"))
     Report
-  } else if unregistered is Some(_) {
+  } else if unregistered is Some(_) || supplied_refusal {
     Report
   } else {
     match outcome {

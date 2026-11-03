@@ -484,10 +484,18 @@ for (const entrance of ['local', 'https']) {
       assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:program-mixed-verdict]');
       const programInput = sdk.getCheckInput(checked, 'program');
       const parametersInput = sdk.getCheckInput(checked, 'parameters');
-      assert.deepEqual(checked.report.reasons, [{code: 'supplied_value_type_mismatch', facts: {
-        parameter: 'wrong', expected_type: 'number', actual_type: wrong === null ? 'null' : 'string'},
-        location: {kind: 'structured', document_id: 'parameters', revision: parametersInput.revision, pointer: '/wrong'}}],
+      assert.deepEqual(checked.report.reasons.map(({location, ...reason}) => reason),
+        [{code: 'supplied_value_type_mismatch', facts: {
+          parameter: 'wrong', expected_type: 'number', actual_type: wrong === null ? 'null' : 'string'}}],
       '[check-mutation:program-mixed-facts]');
+      // The retained native binder proves the type facts, but may not retain
+      // authored Parameters coordinates. Any emitted location still owns them.
+      const location = checked.report.reasons[0].location;
+      if (location !== undefined) {
+        assert.deepEqual(location, {kind: 'structured', document_id: 'parameters',
+          revision: parametersInput.revision, pointer: '/wrong'});
+        assert.equal(sdk.resolveCheckLocation(checked, location).input, parametersInput);
+      }
       const requirement = checked.report.requirements[0];
       assert.equal(requirement.code, 'parameter_value_required');
       assert.equal(requirement.facts.parameter, 'missing');

@@ -43704,7 +43704,7 @@
     {
       "module": "src/client_local_preparation/client_check_original_outcome.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fcf27af4561ade8a69c190cbb4a9c1d4d87aee7d555e8bb6a9aa70e4ff8d6c84",
+      "sha256": "ccb4e4e35fae0a6d6cba0e82ad74029643c5f59b3edfd89d3ca3a00c6862e12c",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -43788,6 +43788,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
                 "anchor": "test \"Request original observation bridge"
+              },
+              {
+                "path": "src/client_local_preparation/client_check_original_outcome_wbtest.mbt",
+                "anchor": "test \"retained original binder refusal"
               }
             ]
           }
