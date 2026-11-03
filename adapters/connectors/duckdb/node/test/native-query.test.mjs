@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {ledgerUsageFields} from '../../../../host-common/ledger-contract.generated.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -153,6 +154,10 @@ test('native coordinator requires both exact settled receipts and revokes failed
     const dispatching = open => {
       const ref = {runDefinitionCid: 'physical-source-cleanup'};
       const preparedProgram = {};
+      const preparedSource = {checkedSource: {sourceRef: 'fixture-source'}};
+      const capacity = {}, ledger = {};
+      const transferBytes = BigInt(limits.maxTransportBytes);
+      const executionBytes = BigInt(limits.memoryBytes);
       const stopped = [];
       let computes = 0;
       let cancellationRequested = false, revision = 1, physicalCloseConfirmed = false;
@@ -163,6 +168,17 @@ test('native coordinator requires both exact settled receipts and revokes failed
             assert.strictEqual(actual, preparedProgram);
             // Lifecycle-only fixture: acquisition never publishes a Result.
             return false;
+          },
+          clientProgramPrepareSingleCapturedLocalInstalledLedger(program, selected, transfer, execution) {
+            assert.strictEqual(program, preparedProgram);
+            assert.strictEqual(selected, capacity);
+            assert.equal(transfer, transferBytes);
+            assert.equal(execution, executionBytes);
+            return ledger;
+          },
+          clientProgramMultiCapturedLedgerUsage(actual) {
+            assert.strictEqual(actual, ledger);
+            return ledgerUsageFields.map(() => 0n);
           }},
         control: {runDefinitionRunId: () => 'physical-source-cleanup',
           runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
@@ -176,6 +192,12 @@ test('native coordinator requires both exact settled receipts and revokes failed
         hostConnection: () => true, observed: () => {},
         planFor: () => ({runDefinition: {wire: 'definition'}}),
         sourceProfile: {sourceAccess: access,
+          // This existing dispatch oracle checks lifecycle, not Core admission.
+          // Bind its capacity/usage ports to this exact fixture before opening.
+          ledgerCapacity(actual) {
+            assert.strictEqual(actual, preparedSource);
+            return {capacity, transferBytes, executionBytes};
+          },
           admitsSource: source => source === 'fixture-source', async open(options) {
           try { return await open(options); }
           catch (error) { options.reportAcquisitionFailure(error); throw error; }
@@ -193,7 +215,7 @@ test('native coordinator requires both exact settled receipts and revokes failed
             connection: {}, requestId: 'source-cleanup'}, {},
           {ref, runDefinition: {wire: 'definition'}, dispatchReserved: false},
           {preparedSourceAccess: access,
-            preparedSource: {checkedSource: {sourceRef: 'fixture-source'}}}), 'started');
+            preparedSource}), 'started');
           return owner.operation(ref);
         }};
     };

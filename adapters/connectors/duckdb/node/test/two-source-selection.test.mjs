@@ -7,6 +7,7 @@ import {prepareCapturedDuckDBSource, capturedDuckDBConfiguration,
 import {installNodeClientDispatchOwner} from '../../../../host-node/client-dispatch-owner.mjs';
 import {acquisitionFailure} from '../../../../host-common/acquisition-outcome.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
+import {ledgerUsageFields} from '../../../../host-common/ledger-contract.generated.mjs';
 import * as cancellationMoon from
   '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
@@ -132,7 +133,10 @@ test('resumed two-input preparations size one ledger before opening and keep fir
     assert.ok(execution.every(value => value > 0n));
     return ledger;
   };
-  f.moon.clientProgramMultiCapturedLedgerUsage = value => { assert.equal(value, ledger); return Array(10).fill(0n); };
+  f.moon.clientProgramMultiCapturedLedgerUsage = value => {
+    assert.equal(value, ledger);
+    return ledgerUsageFields.map(() => 0n);
+  };
   const owner = installNodeClientDispatchOwner({moon: f.moon,
     control: {runDefinitionRunId: () => 'run',
       runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
