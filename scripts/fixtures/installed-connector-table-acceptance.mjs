@@ -17,7 +17,12 @@ export async function runInstalledConnectorTableAcceptance({connect,
   const keys = generateKeyPairSync('ed25519');
   const authorization = {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-      account_id: 'table-fixture', entries: [{entry_id: 'values', outcome: 'allow',
+      account_id: 'table-fixture', entries: [{entry_id: 'host-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'run']},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'values', outcome: 'allow',
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}]}),
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
