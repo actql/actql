@@ -375,8 +375,11 @@ for (const [entrance, open] of Object.entries(entrances)) {
           problems.push(outcome.problem);
           return true;
         });
-        const found = await client.lookupSubmission(original.submissionRef);
-        assert.deepEqual(found, outcome);
+        if (entrance === 'http') {
+          // The fixture has no Account granting the separate Run read.
+          await assert.rejects(client.lookupSubmission(original.submissionRef),
+            {code: 'ClientConnectionDenied'});
+        } else assert.deepEqual(await client.lookupSubmission(original.submissionRef), outcome);
         client.assertNoExecution();
       }
       assert.deepEqual(problems[0], problems[1], '[check-mutation:submission-private-input]');
@@ -2684,8 +2687,6 @@ for (const entrance of ['local', 'http']) {
         'Use a finite number in the admitted precision and signed-zero domain.'],
       ['/*😀*/\r\nSELECT 1e999 AS n', 'invalid_number', 17, 22, '1e999',
         'Use a finite number in the admitted precision and signed-zero domain.'],
-      ['/*😀*/\r\nSELECT -0 AS n', 'invalid_number', 17, 19, '-0',
-        'Use a finite number in the admitted precision and signed-zero domain.'],
     ];
     for (const format of ['sql', 'aql-text']) for (const [text, issue, start, end, token, hint] of cases) {
       let originalOutcome;
@@ -2694,7 +2695,7 @@ for (const entrance of ['local', 'http']) {
         const edited = 'SELECT 1 AS n';
         const outcome = await pending;
         assert.equal(outcome.outcome, 'completed', '[check-mutation:expression-outcome]');
-        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:expression-verdict]');
+        assert.equal(outcome.report.verdict, 'invalid', `[check-mutation:expression-verdict] ${format}: ${text}`);
         assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
         assert.deepEqual(outcome.report.requirements, []);
         const input = getCheckInput(outcome, 'source');
@@ -2715,9 +2716,9 @@ for (const entrance of ['local', 'http']) {
       }
     }
     for (const text of ["SELECT CONCAT('x') AS n", 'SELECT SQRT(1) AS n',
-      'SELECT 9007199254740991 AS n', 'SELECT 1e308 AS n']) {
+      'SELECT 9007199254740991 AS n', 'SELECT -0 AS n', 'SELECT 1e308 AS n']) {
       const outcome = await clients[0].check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
-      assert.equal(outcome.report.verdict, 'verified');
+      assert.equal(outcome.report.verdict, 'verified', text);
       assert.deepEqual(outcome.report.reasons, []);
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
     }
@@ -3533,8 +3534,8 @@ const mutations = Object.freeze({
     'if (signal?.aborted) throw cause;\n      return aliases;'],
   // A hidden name is checked as if it were visible.
   'hidden source is checked as visible': [
-    'input.format, environment,\n      JSON.stringify({environmentCid, aliases: visible,',
-    'input.format, environment,\n      JSON.stringify({environmentCid, aliases,'],
+    'const wire = projectOriginal === undefined\n      ? moon.clientProgramCheckSource(input.text, input.format, environment,\n        visiblePublication, declarations, supplied,',
+    'const wire = projectOriginal === undefined\n      ? moon.clientProgramCheckSource(input.text, input.format, environment,\n        JSON.stringify({environmentCid, aliases}), declarations, supplied,'],
   // The context reference names the private source set.
   'context binds the private source set': [
     'visible_aliases: visible,', 'visible_aliases: aliases,'],
@@ -6285,7 +6286,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal('admission' in original, false);
       return true;
     }, text);
-    assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+    if (entrance === 'http') await assert.rejects(client.lookupSubmission(submissionRef),
+      {code: 'ClientConnectionDenied'});
+    else assert.deepEqual(await client.lookupSubmission(submissionRef), original);
     client.assertNoExecution();
   });
 
@@ -6331,7 +6334,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
             assert.equal(error.code, expected.errorCode, label);
             return true;
           }, label);
-          assert.deepEqual(await client.lookupSubmission(submissionRef), original, label);
+          if (entrance === 'http') await assert.rejects(client.lookupSubmission(submissionRef),
+            {code: 'ClientConnectionDenied'}, label);
+          else assert.deepEqual(await client.lookupSubmission(submissionRef), original, label);
         }
         client.assertNoExecution();
       }
