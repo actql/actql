@@ -84,3 +84,47 @@ test('physical child method observation cannot reenter close and then start I/O'
   child = f.create(); await assert.rejects(child.prepare(), {code: 'InstalledEffectOperationAlreadyPrepared'});
   assert.deepEqual(f.calls, ['borrow']); f.close(); f.retireAliases(); assert.equal(child.retry(), true);
 });
+
+test('successful charge keeps an undefined current refusal separate from original cleanup', async () => {
+  const f = fixture(({retainPhysicalChild, chargeBytes}, original, calls) => {
+    retainPhysicalChild(original);
+    chargeBytes(3n);
+    calls.push('must not write after current refusal');
+  });
+  const charge = f.runtime.clientProgramInstalledEffectOperationCharge;
+  f.runtime.clientProgramInstalledEffectOperationCharge = function (...args) {
+    const result = Reflect.apply(charge, this, args);
+    f.run.failure = undefined;
+    return result;
+  };
+  const child = f.create();
+  let failed = false;
+  try {await child.prepare();} catch (error) {failed = true; assert.equal(error, undefined);}
+  assert.equal(failed, true);
+  assert.deepEqual(f.calls, ['borrow', 'start', ['charge', 3n]]);
+  assert.equal(child.release(), false, 'physical child and request aliases are still owned');
+  f.close(); f.retireAliases();
+  assert.equal(child.retry(), true, 'same closed original can retire after the successful charge');
+  assert.equal(child.status().pending, false);
+  assert.deepEqual(f.calls, ['borrow', 'start', ['charge', 3n], 'retire']);
+});
+
+test('an unresolved charge failure retains the original accounting duty after physical cleanup', async () => {
+  const primary = new Error('OriginalAccountingResponseUnknown');
+  const f = fixture(({retainPhysicalChild, chargeBytes}, original) => {
+    retainPhysicalChild(original);
+    chargeBytes(3n);
+    assert.fail('must not write after unresolved accounting');
+  });
+  f.runtime.clientProgramInstalledEffectOperationCharge = (token, bytes) => {
+    f.calls.push(['charge unknown', bytes]);
+    throw primary;
+  };
+  const child = f.create();
+  await assert.rejects(child.prepare(), error => error === primary);
+  f.close(); f.retireAliases();
+  assert.equal(child.release(), false);
+  assert.equal(child.retry(), false);
+  assert.equal(child.status().pending, true);
+  assert.deepEqual(f.calls, ['borrow', 'start', ['charge unknown', 3n]]);
+});
