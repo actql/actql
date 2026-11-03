@@ -138,7 +138,7 @@ const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(retainedTaskRoot, {recursive: true});
 await mkdir(multiBundleStoreRoot, {recursive: true});
-await mkdir(sqliteRoot, {recursive: true});
+await mkdir(sqliteRoot, {recursive: true, mode: 0o700});
 await mkdir(standardRoot, {recursive: true});
 await mkdir(transferStandardRoot, {recursive: true});
 await mkdir(remotePublicationRoot, {recursive: true});
