@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {basename, dirname, join, resolve} from 'node:path';
+import {preparedNativeCommand, preparedNativeComponents} from './native-preparation-originals.mjs';
 
 export function prepareNativeRuntimeBundle(repository, destination, options) {
   return prepareNativeCommand(repository, destination, 'native_runtime_bundle', options);
@@ -18,6 +19,7 @@ export function prepareNativeResidentSite(repository, destination, options) {
 function prepareNativeCommand(repository, destination, entry, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   moonHome = process.env.MOON_HOME, seconds = 600,
+  preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
 } = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
@@ -36,7 +38,10 @@ function prepareNativeCommand(repository, destination, entry, {
   const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
     : run('sh', ['-c', 'command -v clang']).trim());
   const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
-  run('python3', [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
+  if (preparation !== undefined && preparation !== null) {
+    destination = preparedNativeCommand(preparation, entry, {source,target,clang,sdk,
+      moon_home:realpathSync(moonHome)});
+  } else run('python3', [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
     '--source', source, '--moon-home', realpathSync(moonHome), '--clang', clang,
     ...(sdk === undefined ? [] : ['--sdk', sdk]), '--target', target,
     '--destination', destination, '--seconds', String(seconds),
@@ -65,6 +70,8 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
     (platform === 'linux' ? '/usr' : '/opt/homebrew/opt/openssl@3'),
   darwinCryptoProfile = process.env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE ?? 'source-macos11',
   opensslSourceArchive = process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE,
+  moonHome = process.env.MOON_HOME,
+  preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
   seconds = 600,
 } = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
@@ -81,7 +88,10 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   const clang = realpathSync(platform === 'darwin' ? run('xcrun', ['--find', 'clang']).trim()
     : run('sh', ['-c', 'command -v clang']).trim());
   const sdk = platform === 'darwin' ? realpathSync(run('xcrun', ['--show-sdk-path']).trim()) : undefined;
-  run('python3', [join(repository, 'scripts/prepare-native-runtime-bundle-components.py'),
+  if (preparation !== undefined && preparation !== null) {
+    destination = preparedNativeComponents(preparation, {source,target,clang,sdk,
+      moon_home:typeof moonHome==='string'?realpathSync(moonHome):undefined});
+  } else run('python3', [join(repository, 'scripts/prepare-native-runtime-bundle-components.py'),
     '--source', source, '--target', target, '--clang', clang,
     ...(sdk === undefined ? [] : ['--sdk', sdk, '--darwin-crypto-profile', darwinCryptoProfile]),
     ...(platform === 'linux' || darwinCryptoProfile === 'homebrew26'

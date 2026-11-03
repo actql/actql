@@ -78,6 +78,12 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None,
         'sqlite': {'path': str(sqlite_path), **sqlite['library']},
         'crypto': {'path': str(crypto_path), **crypto['library']},
         'sqlite_recipe': sqlite['recipe_sha256'], 'crypto_recipe': crypto['recipe'],
+        'producer_receipts': {
+            'sqlite': {'path': str(destination / 'sqlite/process-producer.json'),
+                       **SQLITE.identity(destination / 'sqlite/process-producer.json', 32 * 1024 * 1024)},
+            'crypto': {'path': str(destination / 'crypto/producer.json'),
+                       **CRYPTO.original(destination / 'crypto/producer.json')},
+        },
         'providers': 0, 'loaded': False, 'initialized': False}
     clean()
     (destination / 'bundle-components.json').write_text(json.dumps(result, indent=2) + '\n')

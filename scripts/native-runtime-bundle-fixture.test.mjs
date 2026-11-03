@@ -1,13 +1,14 @@
+import './native-preparation-originals.test.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdirSync,mkdtempSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
+import {mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 
-function fixture(t, platform, entry = 'native_runtime_bundle') {
+function fixture(t, platform, entry = 'native_runtime_bundle', preparation = false) {
   const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-bundle-producer-port-')));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const tool=join(root,'tool');mkdirSync(tool);
@@ -15,7 +16,7 @@ function fixture(t, platform, entry = 'native_runtime_bundle') {
   writeFileSync(compiler,'selected compiler');mkdirSync(sdk);
   symlinkSync(compiler,join(tool,'compiler-alias'));
   symlinkSync(sdk,join(tool,'SDK-alias'));
-  const source='a'.repeat(40),destination=join(root,'selected');
+  const source='a'.repeat(40),destination=join(root,preparation?entry:'selected');
   const executable=join(destination,`emission/native/release/build/cmd/${entry}/${entry}.exe`);
   const calls=[];let originalFailure,receiptEntry=entry;
   const execute=(command,args)=>{
@@ -87,6 +88,25 @@ test('foreign platform selection refuses before a compiler or source query',t=>{
   const f=fixture(t,'darwin');
   assert.throws(()=>prepareNativeRuntimeBundle(f.root,f.destination,{execute:f.execute,platform:'linux',arch:'arm64',moonHome:f.tool}),/No selected bundle command recipe/u);
   assert.deepEqual(f.calls,[]);
+});
+
+test('verified preparation reuse and refusal never call another producer',t=>{
+  const f=fixture(t,'darwin','native_runtime_bundle',true);
+  prepareNativeRuntimeBundle(f.root,f.destination,{execute:f.execute,platform:'darwin',arch:'arm64',moonHome:f.tool});
+  const item=path=>({path,bytes:readFileSync(path).length,
+    sha256:createHash('sha256').update(readFileSync(path)).digest('hex')});
+  const compiler=join(f.tool,'cc');
+  writeFileSync(join(f.destination,'inputs.json'),JSON.stringify([item(compiler)]));
+  writeFileSync(join(f.root,'preparation.json'),JSON.stringify({source:'a'.repeat(40),target:'darwin-arm64',
+    clang:compiler,sdk:join(f.tool,'SDK'),moon_home:f.tool,
+    entries:{native_runtime_bundle:item(join(f.destination,'build.json'))},components:{}}));
+  const execute=(command,args)=>{assert.notEqual(command,'python3');return f.execute(command,args);};
+  const reuse=()=>prepareNativeRuntimeBundle(f.root,f.destination,
+    {execute,platform:'darwin',arch:'arm64',moonHome:f.tool,preparation:f.root});
+  assert.equal(reuse(),f.executable);
+  writeFileSync(compiler,'changed original compiler');
+  assert.throws(reuse,/Original preparation input/u);
+  assert.equal(f.calls.filter(([command])=>command==='python3').length,1);
 });
 
 test('bundle libraries use the original component producers and verify their original bytes',t=>{

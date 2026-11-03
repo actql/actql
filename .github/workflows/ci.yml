@@ -1124,7 +1124,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1154,6 +1154,20 @@ jobs:
         run: >-
           node scripts/local-checks.mjs test moon --timeout-seconds 240 --
           --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
+      - name: Prepare exact-source scoped Native commands and components once
+        timeout-minutes: 15
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
+      - name: Retain scoped Native preparation source and compiler receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-scoped-preparation/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
@@ -1309,8 +1323,8 @@ jobs:
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
-    # Keep the complete profile within the existing Linux Native time budget.
-    timeout-minutes: 30
+    # Preserve the complete campaign plus selected source/component preparation.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1338,6 +1352,20 @@ jobs:
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test macOS local execution ownership and cancellation
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
+      - name: Prepare exact-source scoped Native commands and components once
+        timeout-minutes: 15
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
+      - name: Retain scoped Native preparation source and compiler receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-scoped-preparation/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+          if-no-files-found: warn
+          retention-days: 14
       - name: Verify native macOS arm64 profile
         run: |
           test "$(uname -m)" = arm64
@@ -1383,7 +1411,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1413,6 +1441,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes iproute2 iptables curl
+      - name: Prepare exact-source scoped Native commands and components once
+        timeout-minutes: 15
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries bundle --seconds 900
+      - name: Retain scoped Native preparation source and compiler receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-scoped-preparation/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+          if-no-files-found: warn
+          retention-days: 14
       - name: Verify native direct and outbound-only Store profiles
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
