@@ -604,3 +604,34 @@ necessary. Reusing immutable validation results does not cache current file
 contents or weaken the original generation and identity refusals.
 
 Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation.
+
+### Original metadata input, codec and constructor
+
+Both generation hashes still observe the original physical file. They reuse
+one 64KiB streaming work buffer rather than copy the whole file to hash it.
+This is a fixed algorithmic window, not a metadata size or acceptance limit;
+an observed caller must back it before construction.
+
+The observed metadata reader keeps the selected FileIO and its same open
+stream. It measures the stream before reading, obtains constructor backing,
+then reads that bounded original byte snapshot. A changed file length refuses
+before the decoder can perform an enlarged read. The original PyIceberg
+ByteStream constructor and compressor selection consume that same snapshot;
+the ordinary explicit diagnostic path keeps its original InputFile entry.
+
+Uncompressed metadata uses its measured byte length. Gzip metadata first
+obtains fixed streaming codec workspace, then counts the complete decoded
+byte stream through the original compressor in bounded chunks. All
+concatenated members count; compressed length and a final ISIZE are not
+expanded-size bounds. The resulting quantity precedes the original UTF8 and
+typed metadata constructor. The original codec retains CRC, truncation and
+format refusals. This extra preflight applies to compressed metadata; it is
+not a second schema check or a performance claim.
+
+Input bytes, codec workspace and decoded metadata are separate simultaneous
+holdings. Observing their geometry is not their reservation: the same-parent
+Host must bind it to actual backing before continuing each constructor. It
+must also fund the fixed stream/probe controls before entry. Manifest codecs,
+Catalog bootstrap, Parquet/Arrow and failed-prefix holdings retain their own
+obligations; this metadata connection does not retrospectively fund them or
+acknowledge physical cleanup.

@@ -7966,7 +7966,7 @@
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
       "responsibilityFacet": "primary",
-      "sha256": "921474898be43ea974655c93eddc7cea8ec2668486e975133ad0d5bea6c0a569",
+      "sha256": "4878fb8ecc54c2f95f9bfd57e2aaa5524b25c9478f05b418e3c05fc28e60aa62",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
       "exports": [
@@ -8064,6 +8064,15 @@
           "parameters": [
             "self",
             "task"
+          ]
+        },
+        {
+          "async": false,
+          "name": "TableCatalog/_read_generation_metadata",
+          "parameters": [
+            "self",
+            "io",
+            "location"
           ]
         },
         {
@@ -8408,7 +8417,8 @@
             "TableCatalog/_observe_material",
             "TableCatalog/_read_generation_file",
             "_parquet_thrift_limits",
-            "TableCatalog/_generation_read_material"
+            "TableCatalog/_generation_read_material",
+            "TableCatalog/_read_generation_metadata"
           ],
           "exports": [],
           "attributes": {
@@ -8424,6 +8434,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "inputsOutputs": [
@@ -8438,6 +8452,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "identity": [
@@ -8452,6 +8470,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "ownership": [
@@ -8466,6 +8488,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "synchronization": [
@@ -8480,6 +8506,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "failure": [
@@ -8494,6 +8524,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "cancellation": [
@@ -8508,6 +8542,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "resources": [
@@ -8522,6 +8560,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "extension": [
@@ -8536,6 +8578,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Original Catalog record snapshot and retained checks"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
               }
             ],
             "verification": [
@@ -8554,6 +8600,14 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "test_resolved_original_reuses_checked_mapping_schema_and_selected_io_once"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original metadata input, codec and constructor"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "def test_gzip_metadata_observes_full_concatenated_expansion_before_original_parser"
               }
             ]
           }

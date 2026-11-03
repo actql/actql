@@ -2,12 +2,15 @@ import tempfile
 import unittest
 import sqlite3
 import hashlib
+import gzip
+import json
 import math
 import re
 import pyarrow as pa
 from contextlib import closing
 from unittest.mock import patch
 import pyarrow.parquet as pq
+from pyiceberg.serializers import FromByteStream
 from pathlib import Path
 
 from catalog import CatalogRefusal, TableCatalog, _parquet_thrift_limits
@@ -125,13 +128,13 @@ class CatalogTests(unittest.TestCase):
         seen = []
         catalog = TableCatalog(Path(root) / "catalog.db", Path(root) / "warehouse",
                                "sha256:" + "3" * 64,
-                               {"bytes": 16777216, "files": 256, "operations": 32},
-                               before_materialization=lambda value: seen.append(dict(value)))
+                               {"bytes": 16777216, "files": 256, "operations": 32})
         rows = [{"id": -0.0, "p": "e\u0301\r\n"}, {"id": 9007199254740992}, {"id": -2.5, "p": None}]
         try:
             catalog.create_namespace("test")
             receipt = self.write(catalog, request("create", "rows", "e"), rows)
             self.assertEqual(seen, [], "test publication supplies no observed read or backing evidence")
+            catalog.before_materialization = lambda value: seen.append(dict(value))
             actual = catalog.read_generation(receipt, mapping())
             self.assertEqual(actual, rows)
             self.assertEqual(math.copysign(1, actual[0]["id"]), -1)
@@ -139,7 +142,8 @@ class CatalogTests(unittest.TestCase):
             self.assertNotIn("p", actual[1])
             self.assertIsNone(actual[2]["p"])
             self.assertEqual([value["phase"] for value in seen],
-                             ["parquet-footer", "parquet-read", "arrow-rows"])
+                             ["metadata-hash", "metadata-input", "metadata-json",
+                              "parquet-footer", "parquet-read", "arrow-rows"])
         finally:
             catalog.engine.dispose()
 
@@ -302,6 +306,154 @@ class CatalogTests(unittest.TestCase):
             bad["schema_cid"] = "sha256:" + "9" * 64
             with self.assertRaisesRegex(PhysicalRefusal, "StorageMappingIdentity"):
                 catalog.generation_table(receipt, bad)
+        finally:
+            catalog.engine.dispose()
+
+    def test_original_metadata_parser_is_preceded_by_same_file_geometry(self):
+        root = tempfile.mkdtemp(prefix="actql-table-metadata-construction-")
+        print("Retained original metadata fixture:", root)
+        catalog = self.open(root)
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "c"), [{"id": 1, "p": "e\u0301"}])
+            size = catalog.local_path(receipt["metadata_location"]).stat().st_size
+            observed = []
+            catalog.before_materialization = lambda value: observed.append(dict(value))
+            original = FromByteStream.table_metadata
+            def parse(byte_stream, *args, **kwargs):
+                self.assertIn({"phase": "metadata-json", "bytes": size, "rows": 0, "columns": 0}, observed,
+                              "original metadata decoder entered before its actual byte geometry")
+                return original(byte_stream, *args, **kwargs)
+            with patch.object(FromByteStream, "table_metadata", parse):
+                table = catalog.generation_table(receipt, mapping())
+            self.assertEqual(str(table.metadata.table_uuid), receipt["table_uuid"])
+            self.assertEqual([item["phase"] for item in observed],
+                             ["metadata-hash", "metadata-input", "metadata-json"])
+            self.assertEqual(observed[0]["bytes"], 65536)
+            self.assertEqual(observed[1]["bytes"], size)
+        finally:
+            catalog.engine.dispose()
+
+    def test_original_metadata_refusal_closes_same_stream_before_decoder(self):
+        root = tempfile.mkdtemp(prefix="actql-table-metadata-refusal-")
+        print("Retained original metadata refusal fixture:", root)
+        catalog = self.open(root)
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "d"), [{"id": 1}])
+            original_io = catalog._load_file_io({}, receipt["metadata_location"])
+            original_input = original_io.new_input(receipt["metadata_location"])
+            streams = []
+            class OriginalInput:
+                location = original_input.location
+                def open(self):
+                    stream = original_input.open()
+                    streams.append(stream)
+                    return stream
+            primary = RuntimeError("OriginalMetadataConstructorRefusal")
+            def before(value):
+                if value["phase"] == "metadata-json":
+                    raise primary
+            catalog.before_materialization = before
+            with patch.object(catalog, "_load_file_io", return_value=original_io), \
+                    patch.object(original_io, "new_input", return_value=OriginalInput()), \
+                    patch.object(FromByteStream, "table_metadata", side_effect=AssertionError("unfunded metadata decoder")):
+                with self.assertRaises(RuntimeError) as failed:
+                    catalog.generation_table(receipt, mapping())
+            self.assertIs(failed.exception, primary)
+            self.assertEqual(len(streams), 1)
+            self.assertTrue(streams[0].closed)
+        finally:
+            catalog.engine.dispose()
+
+    def test_gzip_metadata_observes_full_concatenated_expansion_before_original_parser(self):
+        root = tempfile.mkdtemp(prefix="actql-table-gzip-metadata-")
+        print("Retained gzip metadata fixture:", root)
+        catalog = self.open(root)
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "e"), [{"id": 1}])
+            location = catalog.local_path(receipt["metadata_location"])
+            metadata = json.loads(location.read_bytes())
+            metadata["properties"]["codec-fixture"] = "x" * 180000
+            logical = json.dumps(metadata).encode("utf-8")
+            split = 65539
+            encoded = gzip.compress(logical[:split]) + gzip.compress(logical[split:])
+            compressed = location.with_name("observed.gz.metadata.json")
+            compressed.write_bytes(encoded)
+            self.assertLess(len(encoded), len(logical))
+            self.assertNotEqual(int.from_bytes(encoded[-4:], "little"), len(logical))
+            seen = []
+            catalog.before_materialization = lambda value: seen.append(dict(value))
+            original = FromByteStream.table_metadata
+            def parse(byte_stream, *args, **kwargs):
+                self.assertEqual(seen, [
+                    {"phase": "metadata-input", "bytes": len(encoded), "rows": 0, "columns": 0},
+                    {"phase": "metadata-codec", "bytes": 65536, "rows": 0, "columns": 0},
+                    {"phase": "metadata-json", "bytes": len(logical), "rows": 0, "columns": 0}])
+                return original(byte_stream, *args, **kwargs)
+            with patch.object(FromByteStream, "table_metadata", parse):
+                result = catalog._read_generation_metadata(
+                    catalog._load_file_io({}, compressed.as_uri()), compressed.as_uri())
+            self.assertEqual(str(result.table_uuid), receipt["table_uuid"])
+            self.assertEqual(result.properties["codec-fixture"], "x" * 180000)
+        finally:
+            catalog.engine.dispose()
+
+    def test_metadata_input_growth_refuses_before_unbounded_original_decoder_read(self):
+        root = tempfile.mkdtemp(prefix="actql-table-metadata-growth-")
+        print("Retained metadata growth fixture:", root)
+        catalog = self.open(root)
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "f"), [{"id": 1}])
+            location = catalog.local_path(receipt["metadata_location"])
+            def before(value):
+                if value["phase"] == "metadata-input":
+                    with location.open("ab") as changed:
+                        changed.write(b" ")
+            catalog.before_materialization = before
+            with patch.object(FromByteStream, "table_metadata", side_effect=AssertionError("unbounded decoder read")):
+                with self.assertRaisesRegex(ValueError, "TableMetadataFileChanged"):
+                    catalog.generation_table(receipt, mapping())
+        finally:
+            catalog.engine.dispose()
+
+    def test_gzip_preflight_retains_original_crc_refusal_without_json_admission(self):
+        root = tempfile.mkdtemp(prefix="actql-table-metadata-codec-refusal-")
+        print("Retained metadata codec refusal fixture:", root)
+        catalog = self.open(root)
+        try:
+            location = catalog.warehouse / "corrupt.gz.metadata.json"
+            location.parent.mkdir(parents=True, exist_ok=True)
+            original = gzip.compress(b"{}")
+            corrupt = original[:-8] + bytes([original[-8] ^ 1]) + original[-7:]
+            location.write_bytes(corrupt)
+            seen = []
+            catalog.before_materialization = lambda value: seen.append(dict(value))
+            with patch.object(FromByteStream, "table_metadata", side_effect=AssertionError("unadmitted metadata decoder")):
+                with self.assertRaises(gzip.BadGzipFile):
+                    catalog._read_generation_metadata(
+                        catalog._load_file_io({}, location.as_uri()), location.as_uri())
+            self.assertEqual([value["phase"] for value in seen], ["metadata-input", "metadata-codec"])
+        finally:
+            catalog.engine.dispose()
+
+    def test_original_generation_hash_streams_fixed_scratch_without_whole_file_copy(self):
+        root = tempfile.mkdtemp(prefix="actql-table-metadata-hash-")
+        print("Retained original metadata hash fixture:", root)
+        catalog = self.open(root)
+        try:
+            location = catalog.warehouse / "original.metadata.json"
+            location.parent.mkdir(parents=True, exist_ok=True)
+            for raw in (b"", b"original\x00\xff" * 20000):
+                location.write_bytes(raw)
+                expected = "sha256:" + hashlib.sha256(raw).hexdigest()
+                seen = []
+                catalog.before_materialization = lambda value: seen.append(dict(value))
+                with patch.object(Path, "read_bytes", side_effect=AssertionError("whole hash file copy")):
+                    self.assertEqual(catalog.generation(location.as_uri()), expected)
+                self.assertEqual(seen, [{"phase": "metadata-hash", "bytes": 65536, "rows": 0, "columns": 0}])
         finally:
             catalog.engine.dispose()
 

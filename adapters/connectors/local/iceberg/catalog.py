@@ -11,13 +11,14 @@ import sqlite3
 import re
 import uuid
 from pathlib import Path
+from io import BytesIO as _BytesIO
 from urllib.parse import unquote, urlparse
 
 import pyarrow.parquet as pq
 from pyiceberg.catalog.sql import SqlCatalog
 from pyiceberg.exceptions import NoSuchTableError, TableAlreadyExistsError
 from pyiceberg.table import CommitTableResponse, Table
-from pyiceberg.serializers import FromInputFile
+from pyiceberg.serializers import FromInputFile, FromByteStream as _FromByteStream, Compressor as _Compressor
 
 from physical import (PhysicalRefusal, canonical_envelope, check_mapping, decode_physical,
                       encode_rows, envelope_cid, iceberg_schema, seal)
@@ -29,6 +30,8 @@ from custody import CustodyIO, install_custody, reserve, claim_file, charge_file
 # parquet/properties.h. Never widen either existing parser bound for a footer.
 _PARQUET_THRIFT_STRING_DEFAULT = 100_000_000
 _PARQUET_THRIFT_CONTAINER_DEFAULT = 1_000_000
+# Fixed streaming work window, not a file-size, expansion or acceptance limit.
+_METADATA_READ_QUANTUM = 65536
 
 
 def _parquet_thrift_limits(footer_bytes):
@@ -145,7 +148,49 @@ class TableCatalog(SqlCatalog):
         return path
 
     def generation(self, location):
-        return "sha256:" + hashlib.sha256(self.local_path(location).read_bytes()).hexdigest()
+        # Both original generation observations remain real file reads. Keep
+        # one fixed scratch buffer instead of materializing the whole metadata
+        # file merely to hash it. The caller backs this window before entry.
+        with self.local_path(location).open("rb", buffering=0) as original:
+            self._observe_material("metadata-hash", _METADATA_READ_QUANTUM)
+            scratch = bytearray(_METADATA_READ_QUANTUM)
+            view = memoryview(scratch)
+            digest = hashlib.sha256()
+            while count := original.readinto(scratch):
+                digest.update(view[:count])
+            return "sha256:" + digest.hexdigest()
+
+    def _read_generation_metadata(self, io, location):
+        input_file = io.new_input(location)
+        if self.before_materialization is None:
+            return FromInputFile.table_metadata(input_file)
+        with input_file.open() as original:
+            original.seek(0, os.SEEK_END)
+            size = original.tell()
+            original.seek(0)
+            self._observe_material("metadata-input", size)
+            # Observe before the bounded read and use this SAME byte snapshot
+            # for codec preflight and the original upstream constructor. A
+            # callback or later file growth cannot enlarge an admitted read.
+            raw = original.read(size)
+            if len(raw) != size or original.read(1):
+                raise ValueError("TableMetadataFileChanged")
+            with _BytesIO(raw) as snapshot:
+                compression = _Compressor.get_compressor(input_file.location)
+                decoded_size = size
+                if input_file.location.endswith(".gz.metadata.json"):
+                    self._observe_material("metadata-codec", _METADATA_READ_QUANTUM)
+                    decoded_size = 0
+                    # The SAME existing gzip codec owns validation, including
+                    # concatenated members and CRC/truncation errors. Count in
+                    # a fixed work window; never trust compressed size or ISIZE
+                    # as a bound on the complete decoded metadata constructor.
+                    with compression.stream_decompressor(snapshot) as decoded:
+                        while block := decoded.read(_METADATA_READ_QUANTUM):
+                            decoded_size += len(block)
+                    snapshot.seek(0)
+                self._observe_material("metadata-json", decoded_size)
+                return _FromByteStream.table_metadata(byte_stream=snapshot, compression=compression)
 
     def reconcile(self, request):
         # Missing receipt is not proof of noncommit and never authorizes resend.
@@ -323,7 +368,7 @@ class TableCatalog(SqlCatalog):
         if self.generation(location) != receipt.get("generation_cid"):
             raise CatalogRefusal("ReadGenerationBinding")
         io = self._load_file_io({}, location)
-        metadata = FromInputFile.table_metadata(io.new_input(location))
+        metadata = self._read_generation_metadata(io, location)
         mapping = json.loads(metadata.properties.get("actql.storage-mapping", "null"))
         if not isinstance(mapping, dict):
             raise CatalogRefusal("ForeignTableStorageMapping")
@@ -520,7 +565,7 @@ class TableCatalog(SqlCatalog):
         if io is None:
             io = self._load_file_io({}, receipt["metadata_location"])
         if metadata is None:
-            metadata = FromInputFile.table_metadata(io.new_input(receipt["metadata_location"]))
+            metadata = self._read_generation_metadata(io, receipt["metadata_location"])
         if str(metadata.table_uuid) != receipt["table_uuid"] or \
                 metadata.properties.get("actql.schema-cid") != mapping["schema_cid"] or \
                 metadata.properties.get("actql.storage-mapping") != canonical_envelope(mapping) or \
