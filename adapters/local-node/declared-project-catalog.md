@@ -28,6 +28,13 @@ place of those original prepared tuples. The no-inventory route is an explicit
 non-installed declaration diagnostic; runtime installers require the real
 members and never select that route as a funding fallback.
 
+Query aliases may carry an explicit `request` JSON object. Its admitted parsed
+reference remains deeply frozen and is forwarded as literal DATA. Omission and
+an explicit empty object remain distinct; no fields or null defaults are added.
+The existing Request checker retains responsibility for required fields, types
+and keyed/static conflicts. These values grant no parameter, binding, Source or
+Effect authority.
+
 ## Identity
 
 Connection selection scans the bounded admitted collection to obtain the exact
@@ -69,9 +76,13 @@ the inventory and contexts perform their own currentness and original-material
 checks around admission and reservation.
 
 For each connection the sequence is: begin the actual source member; reserve
-Entry geometry before its JSON parse and saved-view serialization; reserve
-scope hashing; for File bindings only, reserve the initial native restore and
-export, then reserve returned-wire parsing and File-fact construction; reserve
+raw JSON parsing and recursive freezing before inspecting the entry; reserve
+projection from that immutable entry; reserve scope hashing and a separate
+saved-view serialization with its parallel native input arrays. For File
+bindings only, reserve the initial native restore and export, then separately
+reserve returned-wire parsing/freezing, File-fact construction into copied
+saved records, and final saved-view serialization. Preserve the original frozen
+records rather than mutating them. Then reserve
 physical override payloads and each actual native override; prepare the final
 native declaration once. Ordinary relations omit the initial File restore.
 An effect then begins its original context, constructs its reserved UPDATE
@@ -106,9 +117,14 @@ installation's original context.
 
 ## Resources
 
-The Entry, Scope, FileFacts, PhysicalOverrides, MappingInputs and FinalDescriptors
-recipes describe pure JS retained/workspace overlap. They scan exact borrowed
-Strings or already-admitted counts without parsing input to measure its budget.
+The parse, projection, saved-input, Scope, FileFacts, PhysicalOverrides,
+MappingInputs and FinalDescriptors recipes describe pure JS retained/workspace
+overlap. The parse recipe scans borrowed original Strings before parsing. Later
+recipes scan already-funded immutable JSON originals, actual selected schemas,
+CID Strings and descriptor counts without parsing, hashing or serializing input
+to measure its budget. Every successful and failed construction peak remains
+retained under the same original material; this staging neither raises its
+normal capacity limit nor assumes scratch lifetime has ended.
 The existing source-construction capacity API converts those recipes before
 `prepareNativeInput` or metadata preparation invokes the constructor.
 

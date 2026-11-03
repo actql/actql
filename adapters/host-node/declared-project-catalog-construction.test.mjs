@@ -297,3 +297,117 @@ test('Mapping input quotation does not parse serialize or coerce and validates a
     assert.equal(calls, 0);
   } finally {JSON.parse = parse; JSON.stringify = stringify;}
 });
+
+import {declaredProjectCatalogJsonParseConstructionGeometry as parseGeometry,
+  declaredProjectCatalogEntryProjectionConstructionGeometry as entryProjectionGeometry,
+  declaredProjectCatalogSavedInputConstructionGeometry as savedGeometry,
+  declaredProjectCatalogFileFactsProjectionConstructionGeometry as fileProjectionGeometry}
+  from './declared-project-catalog-construction.mjs';
+const deepFreeze = value => {
+  if (value !== null && typeof value === 'object') {
+    for (const item of Object.values(value)) deepFreeze(item);
+    Object.freeze(value);
+  }
+  return value;
+};
+
+test('parse-first recipe funds malformed and huge failure prefixes without parsing', () => {
+  const parse = JSON.parse, stringify = JSON.stringify;
+  JSON.parse = JSON.stringify = () => {throw new Error('quote must not parse or stringify');};
+  try {
+    for (const original of ['', '{', '{"views":[', '[1,'.repeat(10000), '"' + 'x'.repeat(100000)]) {
+      const q = parseGeometry(original);
+      assert.ok(q.nodes > 0n);
+      assert.ok(q.text >= 12n * BigInt(original.length));
+      assert.equal(q.bounds.inputUnits, BigInt(original.length));
+    }
+  } finally {JSON.parse = parse; JSON.stringify = stringify;}
+});
+
+test('actual entry projection uses two original views rather than assumed128', () => {
+  const value = sample('plain');
+  value.views.push({...value.views[0], resource: 'other'});
+  const original = JSON.stringify(value), entry = deepFreeze(value);
+  const q = entryProjectionGeometry(entry);
+  assert.equal(q.bounds.views, 2n);
+  assert.ok(q.nodes < geometry(original).nodes);
+  assert.ok(q.text < geometry(original).text);
+  const projected = project(entry), saved = savedGeometry(deepFreeze(projected.views));
+  assert.ok(saved.bounds.savedViewsWireUnits >= BigInt(projected.savedViewsWire.length));
+  assert.ok(q.bounds.savedBodyUnits >= projected.views.reduce((sum, view) => sum +
+    Object.entries(view).filter(([key]) => key.endsWith('_wire'))
+      .reduce((n, [, text]) => n + BigInt(text.length), 0n), 0n));
+});
+
+test('saved input scalar escaped-width inventory covers exact opaque Strings', () => {
+  for (const text of ['abc', '\\"\n\r\t\u0001', '日本語😀', '\ud800', 'x'.repeat(100000)]) {
+    const views = deepFreeze([{resource: 'a', resource_kind: 'relation', schema_wire: text,
+      schema_cid: 'sha256:' + '0'.repeat(64), facts_wire: undefined}]);
+    const expected = JSON.stringify({views});
+    const q = savedGeometry(views);
+    assert.equal(q.bounds.savedViewsWireUnits, BigInt(expected.length));
+    assert.ok(q.retained.text >= 2n * BigInt(expected.length));
+  }
+});
+
+test('immutable geometry refuses proxies accessors cycles holes and unsupported depth', () => {
+  let calls = 0;
+  const getter = Object.freeze({get views() {calls++; return [];}});
+  assert.throws(() => entryProjectionGeometry(getter));
+  assert.throws(() => entryProjectionGeometry(new Proxy(Object.freeze({}), {ownKeys() {calls++; return [];}})));
+  const cycle = {}; cycle.self = cycle; Object.freeze(cycle);
+  assert.throws(() => entryProjectionGeometry(cycle));
+  assert.throws(() => savedGeometry(Object.freeze(Array(2))));
+  assert.throws(() => savedGeometry([{resource: 'mutable'}]));
+  let deep = Object.freeze({});
+  for (let i = 0; i < 258; i++) deep = Object.freeze({child: deep});
+  assert.throws(() => entryProjectionGeometry(deep));
+  assert.equal(calls, 0);
+});
+
+test('file projection selects actual original CIDs and excludes irrelevant export text', () => {
+  const entry = deepFreeze({views: [{resource: 'files', schema: {id: {type: 'string', nullable: false}}},
+    {resource: 'content', schema: {id: {type: 'string', nullable: false}}}],
+    data: [{resource: 'files', items_path: ['rows'], key_path: ['id'], primary_identity: 'id'}],
+    file_bindings: [{data_resource: 'files', listing_resource: 'files', content_resource: 'content', version_field: 'version'}]});
+  const initial = extra => deepFreeze({views: [{resource: 'files', carrier_schema_cid: 'a'.repeat(71)},
+    {resource: 'content', carrier_schema_cid: 'b'.repeat(71)}], extra});
+  const first = fileProjectionGeometry(entry, initial(''), 'c'.repeat(71));
+  const huge = fileProjectionGeometry(entry, initial('x'.repeat(100000)), 'c'.repeat(71));
+  assert.equal(first.bounds.views, 2n);
+  assert.equal(first.bounds.fileBindingCount, 1n);
+  assert.deepEqual(first, huge);
+  const parse = JSON.parse, stringify = JSON.stringify;
+  JSON.parse = JSON.stringify = () => {throw new Error('no parse or serialization in quote');};
+  try {
+    assert.deepEqual(fileProjectionGeometry(entry, initial(''), 'c'.repeat(71)), first);
+    entryProjectionGeometry(entry);
+    savedGeometry(deepFreeze([{resource: 'files', schema_wire: '{}'}]));
+  } finally {JSON.parse = parse; JSON.stringify = stringify;}
+  assert.throws(() => fileProjectionGeometry(entry, deepFreeze({views: []}), 'scope'));
+});
+
+test('physical immutable entry overload counts only exact selected schemas and rejects count mismatch', () => {
+  const value = sample('public');
+  value.data[0].schema = {id: {type: 'string', nullable: false}};
+  const entry = deepFreeze(value), original = JSON.stringify(value);
+  const q = physicalGeometry(entry, 1);
+  assert.equal(q.bounds.overrideCount, 1n);
+  assert.ok(q.text < physicalGeometry(original, 1).text);
+  const binding = entry.data[0];
+  const actual = wire({views: [{resource: binding.resource, resource_kind: entry.views[0].resource_kind,
+    schema_wire: wire(binding.schema), schema_cid: 'sha256:' + 'a'.repeat(64),
+    facts_wire: wire({relation_keys: {candidate_keys: [[binding.primary_identity]]}})}]});
+  assert.ok(q.bounds.savedViewsWireUnits >= BigInt(actual.length));
+  assert.throws(() => physicalGeometry(entry, 0));
+  assert.equal(physicalGeometry(deepFreeze(sample('no override')), 0).retained.nodes, 1n);
+});
+
+test('final immutable entry overload uses actual data count and original mapping records', () => {
+  const entry = deepFreeze(sample('x'));
+  const mappings = Object.freeze([Object.freeze({body: '{}'})]);
+  const q = finalGeometry(entry, '{}', mappings, 2);
+  assert.equal(q.bounds.mappingCount, 1n);
+  assert.ok(q.nodes < finalGeometry(JSON.stringify(entry), '{}', mappings, 2).nodes);
+  assert.deepEqual(q, finalGeometry(entry, '{}', ['{}'], 2));
+});

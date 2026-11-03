@@ -5,11 +5,18 @@
   It returns demand DATA, not parsed catalog content, capacity, admission or a
   new constructor owner. Shared canonical construction follows the existing
   canonicalJson data-key path, preserving opaque member names without NFC.
-- Inputs and outputs: Entry and subsequent stages scan exact borrowed Strings.
+- Inputs and outputs: Legacy stages scan exact borrowed Strings. The installed parse-first route
+  funds raw JSON parsing and recursive freezing first, then scans only immutable
+  own-data JSON originals without parsing, serializing, hashing or coercing them.
+  Mutable, proxy, accessor, cyclic and over-depth inputs refuse.
   Scope uses connection, configured provider namespace, resolved data path and
   whole original catalog wire separately. File facts use the original entry,
   initial native declaration export, scope CID and validated binding count.
+  The parse-first File projection instead receives frozen parsed entry/export
+  originals and measures the actual selected carrier CID Strings per binding.
   Physical overrides and Mapping inputs use exact validated invocation counts.
+  Frozen-entry override geometry measures each actual schema and identity; final
+  descriptor geometry uses the actual data count, not the maximum permitted count.
   Final descriptors accept original frozen Mapping records with own body Strings
   or the diagnostic String array. Outputs use bigint logical constructor nodes,
   UTF16 backing bytes (two bytes per unit), wire bytes, retained/workspace sums
@@ -26,10 +33,10 @@
   tuple references and original Mapping records remain borrowed; this helper
   creates no Root, Run, Ledger, source installation or approval authority.
 - Synchronization: Fund strict catalog reading and native catalog/connections
-  admission separately before obtaining entry spans. Fund entry JS parsing and
-  initial saved-view construction before native restore. With the funded native
-  export, separately fund scope hashing, initial export parsing/File facts and
-  final saved-view construction. Fund every native restore separately. Physical
+  admission separately before obtaining entry spans. Fund entry JSON parse/freeze before entry projection, then separately fund
+  actual saved-view serialization and seven parallel arrays before native restore. With the funded native
+  export, separately fund scope hashing, initial export parse/freeze, File facts into copied saved records, and
+  final saved-view construction. Never mutate the prior frozen saved records. Fund every native restore separately. Physical
   payloads coexist across all actual overrides. Fund authored UPDATE JSON and
   frozen operation/source records before prepareBorrowedDeclaration and then
   prepareMappings. Fund final descriptors before assembling the returned tuple.
@@ -44,11 +51,15 @@
   Currentness, reentry, failed constructor debt and pending cleanup remain with
   the existing initialization material and original Source/Effect owners. No
   successful geometry return permits premature release of captured originals.
-- Resources: Entry demand includes the parsed tree, validation keys/vocabulary,
+- Resources: Legacy Entry demand includes the parsed tree, validation keys/vocabulary,
   saved records and Strings, alias/data/file-binding collections, seven native
   input arrays, schema hashes and first restore wire. Canonical families include
   entries/pairs/filter/replacement arrays, keys/Set, sort, child text, recursion
-  and final output. Later stages count scope/version hash preimages and buffers,
+  and final output. The parse-first APIs separate that same construction into
+  funded parse/freeze, immutable entry projection, and SavedInput stages. Exact
+  escaped String widths and recursive output sizes replace repeated pessimistic
+  expansion of whole-entry bounds; all earlier full peaks remain retained.
+  Later stages count scope/version hash preimages and buffers,
   initial exported JSON, fixed File-fact descriptor vocabularies, generated facts,
   physical candidate-key payloads and the single physicalDeclarations Map whose
   values are replaced with native declarations. Final output counts four borrowed

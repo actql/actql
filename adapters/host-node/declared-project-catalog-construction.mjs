@@ -229,8 +229,11 @@ export function declaredProjectCatalogFileFactsConstructionGeometry(
  * overrideCount comes from the already-funded validated data bindings. Each
  * override has its own schema canonical/hash, candidate-key facts and one-view
  * restore String/parallel native arrays. No native restore or export is here.
- * Aliased schemas are counted once PER INVOCATION, never deduplicated by data. */
+ * Aliased schemas are counted once PER INVOCATION, never deduplicated by data.
+ * First argument may instead be the already-funded frozen parsed entry; that
+ * path measures each selected original schema and checks the exact count. */
 export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entryWire, overrideCount) {
+  if (typeof entryWire !== 'string') return physicalOverridesFromImmutableEntry(entryWire, overrideCount);
   const entry = sourceJsonWireGeometry(entryWire), count = admittedCount(overrideCount);
   if (count === 0n) return stage({nodes: 1n, text: 0n, wire: 0n}, zero(), {savedViewsWireUnits: 0n});
   const schema = canonicalConstruction(entry);
@@ -264,11 +267,14 @@ export function declaredProjectCatalogPhysicalOverridesConstructionGeometry(entr
  * these Strings or quote UPDATE Mapping/Environment/native restore operations.
  * sourceCount is the exact admitted connection count; per-entry invocation may
  * conservatively retain another final outer array envelope but never discounts
- * the already-completed source prefix. */
+ * the already-completed source prefix. The first argument also accepts an
+ * already-funded frozen parsed entry, using its actual data-binding count. */
 export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
   entryWire, declarationWire, mappingWires, sourceCount,
 ) {
-  const entry = sourceJsonWireGeometry(entryWire);
+  const originalEntry = typeof entryWire === 'string' ? undefined : entryWire;
+  const entry = originalEntry === undefined ? sourceJsonWireGeometry(entryWire)
+    : immutableJsonShape(originalEntry);
   stringUnits(declarationWire);
   const sources = admittedCount(sourceCount);
   if (!Array.isArray(mappingWires) || nodeTypes.isProxy(mappingWires) || mappingWires.length > 128) invalidGeometry();
@@ -287,7 +293,8 @@ export function declaredProjectCatalogFinalDescriptorsConstructionGeometry(
     }
     mappingCount++;
   }
-  const members = entry.nodes < 128n ? entry.nodes : 128n;
+  const members = originalEntry === undefined ? (entry.nodes < 128n ? entry.nodes : 128n)
+    : BigInt(immutableList(ownData(originalEntry, 'data')).length);
   const descriptors = members * (1n + 7n); // physical record and its fields
   const physicalArrays = 1n + members + members; // output slots + empty writable arrays
   const writes = 1n + mappingCount + entry.nodes; // spread writes, borrowed mapping wires
@@ -359,4 +366,251 @@ export function declaredProjectCatalogMappingInputsConstructionGeometry(entryWir
     text: canonical.text,
     wire: 0n,
   }, {writesJsonUnits: canonical.outputUnits, writeCount: count, sourceFields: fields});
+}
+
+// Parse-first alternatives. Legacy whole-wire recipes above remain compatible.
+// These helpers inspect already-owned immutable JSON data. They do not parse,
+// stringify, canonicalize, hash, mutate, or confer semantic admission.
+const ownData = (value, name) => {
+  if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value) ||
+      !Object.isFrozen(value)) invalidGeometry();
+  const property = Object.getOwnPropertyDescriptor(value, name);
+  if (property === undefined) return undefined;
+  if (!Object.hasOwn(property, 'value')) invalidGeometry();
+  return property.value;
+};
+const exactEscapedUnits = value => {
+  stringUnits(value);
+  let units = 2n;
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code === 34 || code === 92 || code === 8 || code === 9 ||
+        code === 10 || code === 12 || code === 13) units += 2n;
+    else if (code < 32) units += 6n;
+    else if (code >= 0xd800 && code <= 0xdbff) {
+      const next = value.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {units += 2n; index++;}
+      else units += 6n; // canonical refuses, but its failure prefix is covered
+    } else if (code >= 0xdc00 && code <= 0xdfff) units += 6n;
+    else units++;
+  }
+  return units;
+};
+function immutableJsonShape(value, ancestors = undefined, depth = 0) {
+  if (depth > 256) invalidGeometry(); // explicit unsupported quote shape
+  let output, nodes = 1n, recursive = 0n, units = 0n;
+  if (value === null) output = 4n;
+  else if (typeof value === 'boolean') output = value ? 4n : 5n;
+  else if (typeof value === 'number') output = 25n; // finite JSON number bound
+  else if (typeof value === 'string') {output = exactEscapedUnits(value); units = stringUnits(value);}
+  else {
+    if (typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) invalidGeometry();
+    const array = Array.isArray(value);
+    if (Object.getPrototypeOf(value) !== (array ? Array.prototype : Object.prototype)) invalidGeometry();
+    for (let frame = ancestors; frame !== undefined; frame = frame.parent) {
+      if (frame.value === value) invalidGeometry();
+    }
+    const frame = {value, parent: ancestors};
+    output = 2n;
+    let members = 0n;
+    // Inspect own data descriptors only; never invoke an accessor or Proxy.
+    for (const key of Reflect.ownKeys(value)) {
+      if (array && key === 'length') continue;
+      if (typeof key !== 'string') invalidGeometry();
+      const field = Object.getOwnPropertyDescriptor(value, key);
+      if (!field || !Object.hasOwn(field, 'value') || !field.enumerable) invalidGeometry();
+      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= value.length)) invalidGeometry();
+      if (field.value === undefined && !array) continue; // canonical omits this member
+      const child = immutableJsonShape(field.value, frame, depth + 1);
+      if (members > 0n) output++;
+      if (!array) {output += exactEscapedUnits(key) + 1n; units += BigInt(key.length);}
+      output += child.outputUnits; recursive += child.recursiveUnits;
+      nodes += 1n + child.nodes; units += child.units; members++;
+    }
+    if (array && members !== BigInt(value.length)) invalidGeometry();
+  }
+  return {nodes, units, outputUnits: output, recursiveUnits: recursive + output};
+}
+const actualCanonical = shape => ({nodes: 10n * shape.nodes,
+  text: 2n * (3n * shape.recursiveUnits + 2n * shape.outputUnits),
+  wire: 0n, outputUnits: shape.outputUnits});
+const immutableList = value => {
+  if (!Array.isArray(value) || nodeTypes.isProxy(value) || !Object.isFrozen(value) ||
+      value.length > 128) invalidGeometry();
+  return value;
+};
+const optionalList = (entry, key) => {
+  const value = ownData(entry, key);
+  return value === undefined ? undefined : immutableList(value);
+};
+
+/** Before JSON.parse AND recursive freeze of the exact borrowed original.
+ * No semantic success is assumed. Parser partial tree/text, Object.values
+ * arrays/slots, recursive frames and failure controls coexist. Even malformed
+ * or oversized documents receive this quote before parse/shape refusal.
+ * The original String is borrowed; parsed keys/values own decoded text. */
+export function declaredProjectCatalogJsonParseConstructionGeometry(originalWire) {
+  const input = sourceJsonWireGeometry(originalWire);
+  return stage({nodes: input.nodes, text: 2n * input.units, wire: 0n}, {
+    nodes: 5n * input.nodes + 4n,
+    text: 10n * input.units, wire: 0n,
+  }, {inputUnits: input.units, inputNodes: input.nodes});
+}
+
+/** Validation/projection AFTER the separately funded parse/freeze. Returns
+ * geometry for the existing selected entry/views/publicViews/queryAliases/
+ * data/fileBindings/writeSpecs outputs, excluding savedInput. Original entry
+ * and all subtrees stay borrowed. Freeze the saved records/array before their
+ * separate SavedInput quote. Invalid supported JSON shapes still get the
+ * validation prefix; no absent/invalid list authorizes a constructor loop. */
+export function declaredProjectCatalogEntryProjectionConstructionGeometry(frozenEntry) {
+  const input = immutableJsonShape(frozenEntry);
+  const rawViews = frozenEntry !== null && typeof frozenEntry === 'object'
+    ? ownData(frozenEntry, 'views') : undefined;
+  const views = Array.isArray(rawViews) && rawViews.length <= 128 ? rawViews : undefined;
+  let count = 0n, bodyUnits = 0n, hashUnits = 0n;
+  const canonical = zero();
+  if (views !== undefined) for (let index = 0; index < views.length; index++) {
+    const view = ownData(views, String(index));
+    if (view === null || typeof view !== 'object' || Array.isArray(view)) continue;
+    count++;
+    for (const name of ['schema', 'request_schema', 'facts', 'acquisition', 'resource_identity']) {
+      const value = ownData(view, name);
+      if (value === undefined) continue;
+      const measured = actualCanonical(immutableJsonShape(value));
+      bodyUnits += measured.outputUnits;
+      const passes = name === 'schema' ? 2n : 1n;
+      canonical.nodes += passes * measured.nodes;
+      canonical.text += passes * measured.text;
+      if (name === 'schema') hashUnits += measured.outputUnits;
+    }
+  }
+  // Every alias/data/write/file descriptor, validation key and field is part
+  // of this actual frozen forest; no assumed128-record expansion is used.
+  const retained = {nodes: 12n + 5n * input.nodes + 12n * count,
+    text: 2n * (bodyUnits + 71n * count + BigInt(optionalWireKeys.length) * count), wire: 0n};
+  return stage(retained, {
+    // Object.keys/vocabulary, Set entries, map controls, spreads, recursive
+    // freeze arrays/slots/frames for borrowed forest and newly saved records.
+    nodes: 20n * input.nodes + 40n * count + 3n * retained.nodes + canonical.nodes + 16n,
+    text: canonical.text + 2n * 135n * count,
+    wire: 3n * hashUnits + 128n * count,
+  }, {views: count, savedBodyUnits: bodyUnits});
+}
+
+/** Exact already-owned detached Strings, no re-escaping bound from an earlier
+ * unparsed body. Funds canonical {views}, seven native argument arrays, their
+ * wrapper and freeze traversal. Call separately for initial/final inputs. */
+export function declaredProjectCatalogSavedInputConstructionGeometry(frozenSavedViews) {
+  const views = immutableList(frozenSavedViews), shape = immutableJsonShape(views);
+  const count = BigInt(views.length);
+  // Add the one outer record, key and child reference; each subtree's recursive
+  // output was already summed by the immutable scalar traversal.
+  const output = shape.outputUnits + BigInt('{"views":}'.length);
+  const canonical = actualCanonical({nodes: shape.nodes + 2n,
+    outputUnits: output, recursiveUnits: shape.recursiveUnits + output});
+  const retained = {nodes: 10n + 7n * (1n + count), text: 2n * output, wire: 0n};
+  return stage(retained, {nodes: canonical.nodes + 3n * retained.nodes + 8n,
+    text: canonical.text, wire: 0n}, {views: count, savedViewsWireUnits: output});
+}
+
+/** Separate from funded parse/freeze of initial native export and from final
+ * SavedInput. Uses actual original carrier CID Strings, not export length or
+ * a fixed CID assumption. Callback copies saved records before adding facts;
+ * it must not mutate prior frozen records. Prior outputs and all failure
+ * prefixes remain retained under their full earlier provider quantities. */
+export function declaredProjectCatalogFileFactsProjectionConstructionGeometry(
+  frozenEntry, frozenInitialExport, scopeCid,
+) {
+  const entry = immutableJsonShape(frozenEntry);
+  immutableJsonShape(frozenInitialExport);
+  const views = immutableList(ownData(frozenEntry, 'views'));
+  const initialViews = immutableList(ownData(frozenInitialExport, 'views'));
+  const data = immutableList(ownData(frozenEntry, 'data'));
+  const bindings = optionalList(frozenEntry, 'file_bindings');
+  const scope = stringUnits(scopeCid), count = BigInt(bindings?.length ?? 0);
+  const workspace = zero();
+  let factsUnits = 0n, versionUnits = 0n;
+  const find = (list, name) => {
+    for (let index = 0; index < list.length; index++) {
+      const value = ownData(list, String(index));
+      if (ownData(value, 'resource') === name) return value;
+    }
+    invalidGeometry();
+  };
+  if (bindings !== undefined) for (let index = 0; index < bindings.length; index++) {
+    const binding = ownData(bindings, String(index));
+    const physical = find(data, ownData(binding, 'data_resource'));
+    const physicalShape = immutableJsonShape(physical);
+    // The actual spread adds schema only when absent in original data binding.
+    const schema = ownData(physical, 'schema') === undefined
+      ? immutableJsonShape(ownData(find(views, ownData(physical, 'resource')), 'schema')) : undefined;
+    const physicalOutput = physicalShape.outputUnits +
+      (schema === undefined ? 0n : schema.outputUnits + BigInt(',"schema":'.length));
+    const versionField = ownData(binding, 'version_field');
+    const versionOutput = physicalOutput + exactEscapedUnits(scopeCid) +
+      exactEscapedUnits(versionField) + BigInt('{"scope":,"physical":,"version_field":,"representation":"exact_stored_bytes"}'.length);
+    const version = actualCanonical({nodes: physicalShape.nodes + (schema?.nodes ?? 0n) + 10n,
+      outputUnits: versionOutput, recursiveUnits: physicalShape.recursiveUnits +
+        (schema === undefined ? 0n : schema.recursiveUnits + physicalOutput) +
+        exactEscapedUnits(scopeCid) + exactEscapedUnits(versionField) + 20n + versionOutput});
+    const listingCid = ownData(find(initialViews, ownData(binding, 'listing_resource')), 'carrier_schema_cid');
+    const contentCid = ownData(find(initialViews, ownData(binding, 'content_resource')), 'carrier_schema_cid');
+    const listing = fixedCanonical(listingTemplate, scope + stringUnits(listingCid) + 71n);
+    const content = fixedCanonical(contentTemplate, scope + stringUnits(contentCid) + 71n);
+    factsUnits += listing.canonical.outputUnits + content.canonical.outputUnits;
+    versionUnits += version.outputUnits;
+    workspace.nodes += version.nodes + listing.shape.nodes + content.shape.nodes +
+      listing.canonical.nodes + content.canonical.nodes + 20n;
+    workspace.text += version.text + listing.canonical.text + content.canonical.text + 2n * 135n;
+    workspace.wire += 3n * version.outputUnits + 128n;
+  }
+  const copiedViews = 1n + 12n * BigInt(views.length);
+  const retained = {nodes: copiedViews + 3n * count,
+    text: 2n * (factsUnits + 71n * count), wire: 0n};
+  workspace.nodes += 3n * retained.nodes + entry.nodes + 8n;
+  return stage(retained, workspace, {views: BigInt(views.length), fileBindingCount: count,
+    generatedFactsUnits: factsUnits, versionPreimageUnits: versionUnits});
+}
+
+
+// Same physical-override stage and output Map as the legacy String API. Each
+// schema is measured from its exact frozen original; the later saved wire is
+// bounded from that schema's output, never from the whole catalog entry.
+function physicalOverridesFromImmutableEntry(frozenEntry, overrideCount) {
+  immutableJsonShape(frozenEntry);
+  const expected = admittedCount(overrideCount);
+  const data = immutableList(ownData(frozenEntry, 'data'));
+  const views = immutableList(ownData(frozenEntry, 'views'));
+  const retained = {nodes: 1n, text: 0n, wire: 0n}, workspace = zero();
+  let count = 0n, savedUnits = 0n;
+  for (let index = 0; index < data.length; index++) {
+    const binding = ownData(data, String(index));
+    const originalSchema = ownData(binding, 'schema');
+    if (originalSchema === undefined) continue;
+    const resource = ownData(binding, 'resource'), identity = ownData(binding, 'primary_identity');
+    let kind;
+    for (let selected = 0; selected < views.length; selected++) {
+      const view = ownData(views, String(selected));
+      if (ownData(view, 'resource') === resource) {kind = ownData(view, 'resource_kind'); break;}
+    }
+    const identifiers = stringUnits(resource) + stringUnits(kind);
+    const schema = actualCanonical(immutableJsonShape(originalSchema));
+    const candidate = fixedCanonical(candidateTemplate, stringUnits(identity));
+    const restoreUnits = identifiers + schema.outputUnits + 71n + candidate.canonical.outputUnits +
+      BigInt(savedViewTemplate.length + restoreEnvelope.length);
+    const restore = canonicalConstruction({nodes: 12n, units: restoreUnits,
+      weighted: 4n * restoreUnits, depth: 3n});
+    // Map entry; saved record/member slots; envelope; seven native arrays;
+    // strings. Both schema canonical calls and hash input remain counted.
+    retained.nodes += 1n + 10n + 3n + 14n + 4n;
+    retained.text += 2n * (schema.outputUnits + 71n + candidate.canonical.outputUnits + restore.outputUnits);
+    workspace.nodes += 2n * schema.nodes + candidate.shape.nodes + candidate.canonical.nodes +
+      restore.nodes + 4n;
+    workspace.text += 2n * schema.text + candidate.canonical.text + restore.text + 2n * 135n;
+    workspace.wire += 3n * schema.outputUnits + 128n;
+    count++; savedUnits += restore.outputUnits;
+  }
+  if (count !== expected) invalidGeometry();
+  return stage(retained, workspace, {savedViewsWireUnits: savedUnits, overrideCount: count});
 }

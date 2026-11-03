@@ -3,19 +3,30 @@
   "declarations": [
     {
       "module": "adapters/host-node/declared-project-catalog-construction.mjs",
-      "sha256": "0b5a5d8da096eaade27757a4b81670ff9c65ac1e804fe8f6e380c0641563cf83",
+      "sha256": "db84f4fa4892d01ec7614ab6957118f61aea0ef4ac39ea9a5ec95daa755cd78b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
       "exports": [
         "declaredProjectCatalogEntryConstructionGeometry",
+        "declaredProjectCatalogEntryProjectionConstructionGeometry",
         "declaredProjectCatalogFileFactsConstructionGeometry",
+        "declaredProjectCatalogFileFactsProjectionConstructionGeometry",
         "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+        "declaredProjectCatalogJsonParseConstructionGeometry",
         "declaredProjectCatalogMappingInputsConstructionGeometry",
         "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+        "declaredProjectCatalogSavedInputConstructionGeometry",
         "declaredProjectCatalogScopeConstructionGeometry"
       ],
       "operations": [
+        {
+          "name": "actualCanonical/actualCanonical",
+          "parameters": [
+            "shape"
+          ],
+          "async": false
+        },
         {
           "name": "admittedCount/admittedCount",
           "parameters": [
@@ -41,6 +52,13 @@
           "async": false
         },
         {
+          "name": "declaredProjectCatalogEntryProjectionConstructionGeometry",
+          "parameters": [
+            "frozenEntry"
+          ],
+          "async": false
+        },
+        {
           "name": "declaredProjectCatalogFileFactsConstructionGeometry",
           "parameters": [
             "entryWire",
@@ -51,12 +69,36 @@
           "async": false
         },
         {
+          "name": "declaredProjectCatalogFileFactsProjectionConstructionGeometry",
+          "parameters": [
+            "frozenEntry",
+            "frozenInitialExport",
+            "scopeCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogFileFactsProjectionConstructionGeometry/find/find",
+          "parameters": [
+            "list",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
           "parameters": [
             "entryWire",
             "declarationWire",
             "mappingWires",
             "sourceCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogJsonParseConstructionGeometry",
+          "parameters": [
+            "originalWire"
           ],
           "async": false
         },
@@ -77,6 +119,13 @@
           "async": false
         },
         {
+          "name": "declaredProjectCatalogSavedInputConstructionGeometry",
+          "parameters": [
+            "frozenSavedViews"
+          ],
+          "async": false
+        },
+        {
           "name": "declaredProjectCatalogScopeConstructionGeometry",
           "parameters": [
             "connection",
@@ -87,10 +136,33 @@
           "async": false
         },
         {
+          "name": "exactEscapedUnits/exactEscapedUnits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "fixedCanonical/fixedCanonical",
           "parameters": [
             "template",
             "additionalUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "immutableJsonShape",
+          "parameters": [
+            "value",
+            "ancestors",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "immutableList/immutableList",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -104,6 +176,30 @@
           "parameters": [
             "left",
             "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "optionalList/optionalList",
+          "parameters": [
+            "entry",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalOverridesFromImmutableEntry",
+          "parameters": [
+            "frozenEntry",
+            "overrideCount"
           ],
           "async": false
         },
@@ -133,27 +229,43 @@
         {
           "operations": [
             "<module>",
+            "actualCanonical/actualCanonical",
             "admittedCount/admittedCount",
             "canonicalConstruction",
             "declaredProjectCatalogEntryConstructionGeometry",
+            "declaredProjectCatalogEntryProjectionConstructionGeometry",
             "declaredProjectCatalogFileFactsConstructionGeometry",
+            "declaredProjectCatalogFileFactsProjectionConstructionGeometry",
+            "declaredProjectCatalogFileFactsProjectionConstructionGeometry/find/find",
             "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+            "declaredProjectCatalogJsonParseConstructionGeometry",
             "declaredProjectCatalogMappingInputsConstructionGeometry",
             "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+            "declaredProjectCatalogSavedInputConstructionGeometry",
             "declaredProjectCatalogScopeConstructionGeometry",
+            "exactEscapedUnits/exactEscapedUnits",
             "fixedCanonical/fixedCanonical",
+            "immutableJsonShape",
+            "immutableList/immutableList",
             "invalidGeometry/invalidGeometry",
             "maximum/maximum",
+            "optionalList/optionalList",
+            "ownData/ownData",
+            "physicalOverridesFromImmutableEntry",
             "stage/stage",
             "stringUnits/stringUnits",
             "zero/zero"
           ],
           "exports": [
             "declaredProjectCatalogEntryConstructionGeometry",
+            "declaredProjectCatalogEntryProjectionConstructionGeometry",
             "declaredProjectCatalogFileFactsConstructionGeometry",
+            "declaredProjectCatalogFileFactsProjectionConstructionGeometry",
             "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+            "declaredProjectCatalogJsonParseConstructionGeometry",
             "declaredProjectCatalogMappingInputsConstructionGeometry",
             "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+            "declaredProjectCatalogSavedInputConstructionGeometry",
             "declaredProjectCatalogScopeConstructionGeometry"
           ],
           "attributes": {
@@ -219,7 +331,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./installed-source-construction-geometry.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

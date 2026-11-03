@@ -5,9 +5,11 @@ import {resolve} from 'node:path';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
-import {declaredProjectCatalogEntryConstructionGeometry,
+import {declaredProjectCatalogJsonParseConstructionGeometry,
+  declaredProjectCatalogEntryProjectionConstructionGeometry,
+  declaredProjectCatalogSavedInputConstructionGeometry,
   declaredProjectCatalogScopeConstructionGeometry,
-  declaredProjectCatalogFileFactsConstructionGeometry,
+  declaredProjectCatalogFileFactsProjectionConstructionGeometry,
   declaredProjectCatalogPhysicalOverridesConstructionGeometry,
   declaredProjectCatalogMappingInputsConstructionGeometry,
   declaredProjectCatalogFinalDescriptorsConstructionGeometry}
@@ -136,9 +138,12 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
     const connectorId = connection, registration = 'declared_file', revision = registration + '/0.1';
     const sourceMember = installationInventory === undefined ? undefined
       : await installationInventory.begin(connectionOriginal, connectionIndex, 'source');
+    const parsed = inputStage(sourceMember,
+      () => declaredProjectCatalogJsonParseConstructionGeometry(entryWire),
+      () => Object.freeze({entry: freeze(JSON.parse(entryWire))}));
     const selected = inputStage(sourceMember,
-      () => declaredProjectCatalogEntryConstructionGeometry(entryWire), () => {
-      const entry = JSON.parse(entryWire);
+      () => declaredProjectCatalogEntryProjectionConstructionGeometry(parsed.entry), () => {
+      const entry = parsed.entry;
       if (!closed(entry, ['views', 'query_aliases', 'data'], ['writes', 'file_bindings']) ||
           !list(entry.views) || entry.views.length === 0 || !list(entry.query_aliases) ||
           !list(entry.data) || !list(entry.writes ?? []) || !list(entry.file_bindings ?? [])) invalid();
@@ -158,7 +163,9 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
         views.push(saved); publicViews.set(view.resource, view);
       }
       const queryAliases = entry.query_aliases.map(alias => {
-        if (!closed(alias, ['name', 'resource']) || !text(alias.name) || !publicViews.has(alias.resource) ||
+        if (!closed(alias, ['name', 'resource'], ['request']) ||
+            Object.hasOwn(alias, 'request') && !object(alias.request) ||
+            !text(alias.name) || !publicViews.has(alias.resource) ||
             aliases.has(alias.name)) invalid();
         aliases.add(alias.name); return {...alias};
     });
@@ -208,8 +215,8 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
       for (const alias of spec.aliases) {if (updates.has(alias)) invalid(); updates.add(alias);}
       writeSpecs.push(spec);
     }
-    return {entry, views, publicViews, queryAliases, data, fileBindings, writeSpecs,
-      input: savedInput(views)};
+    return Object.freeze({entry, views: freeze(views), publicViews, queryAliases,
+      data, fileBindings, writeSpecs});
     });
     const {entry, views, publicViews, queryAliases, data, fileBindings, writeSpecs} = selected;
     // Existing installed Effect ownership currently admits one target. Reject
@@ -219,18 +226,23 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
     const {scopeCid} = inputStage(sourceMember,
       () => declaredProjectCatalogScopeConstructionGeometry(connection, provider, dataPath, originalWire),
       () => Object.freeze({scopeCid: cid({connection, connector: provider, dataPath, catalog: originalWire})}));
-    let finalInput = selected.input;
+    let finalViews = views;
+    let finalInput = inputStage(sourceMember,
+      () => declaredProjectCatalogSavedInputConstructionGeometry(finalViews),
+      () => savedInput(finalViews));
     if (fileBindings.length) {
-      const initialDeclaration = restoreInput(sourceMember, connectorId, registration, revision, selected.input);
-      finalInput = inputStage(sourceMember,
-        () => declaredProjectCatalogFileFactsConstructionGeometry(entryWire, initialDeclaration.wire,
-          scopeCid, fileBindings.length), () => {
-        const initial = JSON.parse(initialDeclaration.wire);
+      const initialDeclaration = restoreInput(sourceMember, connectorId, registration, revision, finalInput);
+      const {initial} = inputStage(sourceMember,
+        () => declaredProjectCatalogJsonParseConstructionGeometry(initialDeclaration.wire),
+        () => Object.freeze({initial: freeze(JSON.parse(initialDeclaration.wire))}));
+      const facts = inputStage(sourceMember,
+        () => declaredProjectCatalogFileFactsProjectionConstructionGeometry(entry, initial, scopeCid), () => {
+        const factViews = views.map(view => ({...view}));
         for (const binding of fileBindings) {
           const versionCid = cid({scope: scopeCid, physical: data.get(binding.data_resource),
             version_field: binding.version_field, representation: 'exact_stored_bytes'});
-          const listing = views.find(view => view.resource === binding.listing_resource);
-          const content = views.find(view => view.resource === binding.content_resource);
+          const listing = factViews.find(view => view.resource === binding.listing_resource);
+          const content = factViews.find(view => view.resource === binding.content_resource);
           // Existing File contracts, derived from actual declared carrier CIDs.
           // These are static capability facts, not a current grant or reader.
           listing.facts_wire = wire({file_listing: {version: 'actql-file-list/0.1', kind: 'file_listing',
@@ -246,12 +258,16 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
             lookup_capacity: {version: 'actql-lookup-capacity/0.1', completeness: 'complete_per_requested_key',
               max_rows_per_key: 1, max_pages_per_request: 1, max_response_bytes_per_page: 1048576}});
         }
-        return savedInput(views);
+        return Object.freeze({views: freeze(factViews)});
       });
+      finalViews = facts.views;
+      finalInput = inputStage(sourceMember,
+        () => declaredProjectCatalogSavedInputConstructionGeometry(finalViews),
+        () => savedInput(finalViews));
     }
     const overrideCount = entry.data.reduce((count, binding) => count + (binding.schema === undefined ? 0 : 1), 0);
     const overrideInputs = overrideCount === 0 ? undefined : inputStage(sourceMember,
-      () => declaredProjectCatalogPhysicalOverridesConstructionGeometry(entryWire, overrideCount), () => {
+      () => declaredProjectCatalogPhysicalOverridesConstructionGeometry(entry, overrideCount), () => {
       const overrides = new Map();
       for (const binding of data.values()) {
         if (entry.data.find(value => value.resource === binding.resource).schema === undefined) continue;
@@ -294,7 +310,7 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
       mappingOriginals = effectPrepared.mappings;
     } else mappingOriginals = [];
     const source = inputStage(undefined,
-      () => declaredProjectCatalogFinalDescriptorsConstructionGeometry(entryWire, declarationWire, mappingOriginals, count),
+      () => declaredProjectCatalogFinalDescriptorsConstructionGeometry(entry, declarationWire, mappingOriginals, count),
       () => {
       const physical = [];
       for (const binding of data.values()) {
@@ -312,7 +328,7 @@ export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, 
       return Object.freeze({declaration, wire: declarationWire, physical: Object.freeze(physical),
         writes: Object.freeze(writes), fileBindings: freeze(fileBindings), scopeCid,
         sourceMember, sourcePrepared, effectMember, effectPrepared,
-        catalogue: freeze({connection, connectorId, provider, registration, revision, views,
+        catalogue: freeze({connection, connectorId, provider, registration, revision, views: finalViews,
           queryAliases, updateAliases: writes.flatMap(spec => spec.aliases.map(name => ({name, resource: spec.resource})))})});
     }, true);
     sources.push(source);

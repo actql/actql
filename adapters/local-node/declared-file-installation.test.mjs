@@ -8,7 +8,7 @@ import test from 'node:test';
 import {createDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
 import {loadDeclaredProjectCatalog} from './declared-project-catalog.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-import {declaredProjectCatalogEntryConstructionGeometry}
+import {declaredProjectCatalogJsonParseConstructionGeometry}
   from '../host-node/declared-project-catalog-construction.mjs';
 import {admitInstalledProjectConfiguration, installedProjectOriginalsForRuntime}
   from '../host-node/installed-project-configuration.mjs';
@@ -326,7 +326,7 @@ async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformed
       clientProjectCatalogName: (original, index) => Object.keys(original.connections)[index],
       clientProjectCatalogEntryOriginalJson(original, index) {
         const wire = malformedEntry ? '{' : JSON.stringify(original.connections[Object.keys(original.connections)[index]]);
-        const {retained, workspace} = declaredProjectCatalogEntryConstructionGeometry(wire);
+        const {retained, workspace} = declaredProjectCatalogJsonParseConstructionGeometry(wire);
         entryQuantity = [retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire];
         state.entryWire = wire;return wire;
       },
