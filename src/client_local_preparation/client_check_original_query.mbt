@@ -18,6 +18,10 @@ pub fn client_program_project_original_query_issue(
   correlation_ref : String,
   source_namespace : ClientCheckSourceNamespace?,
   query_original? : @query_syntax.Query? = None,
+  binding_original? : @parameters.BindingReadInput? = None,
+  binding_declarations? : @parameters.Declarations? = None,
+  binding_supplied? : @decode.Cursor? = None,
+  binding_limits? : @admitted.Limits? = None,
 ) -> String {
   if source_namespace is Some(complete) &&
     (
@@ -32,6 +36,32 @@ pub fn client_program_project_original_query_issue(
     return check_failed_json("check_context_invalid", correlation_ref)
   }
   let findings : Array[CheckFinding] = []
+  // Borrow one completed same-declaration binding, never bind or validate raw
+  // supplied DATA here. Only its proven independent typed mismatch is public.
+  if binding_original is Some(original) &&
+    binding_declarations is Some(declarations) &&
+    binding_supplied is Some(supplied) &&
+    binding_limits is Some(limits) &&
+    @parameters.reuse_binding_read(
+      original,
+      declarations,
+      Some(supplied),
+      limits,
+    )
+    is Some(Err(issue)) &&
+    issue
+    is (BindingInput(
+      Supplied,
+      Value(ValueIssue(WrongType | UnexpectedNull, ..))
+    )
+    | BindingInput(
+      Supplied,
+      Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
+    )) {
+    findings.push(
+      check_supplied_type_finding(issue, declarations, Some(supplied), None),
+    )
+  }
   // This typed issue and the exact retained parsed shape prove that unrelated
   // hidden publications cannot influence the failing expression. Parameter
   // issues and any query with a Source/producer dependency keep the old gate.

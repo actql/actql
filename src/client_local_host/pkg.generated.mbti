@@ -532,7 +532,7 @@ pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailur
 
 pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> LocalValuesExecutionIssue
 
-pub fn[I] lower_request_published_query(ClientRequestPreparation[I], I, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientRequestQueryLoweringIssue]
+pub fn[I] lower_request_published_query(ClientRequestPreparation[I], I, @client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String?, public_primary? : Bool, binding_limits? : @value_admission.Limits?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog, @program_source_builder.Source), ClientRequestQueryLoweringIssue]
 
 pub fn mark_installed_effect_operation_transfer_uncertain(ClientInstalledEffectOperationBorrow, Int64) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -1108,6 +1108,9 @@ pub suberror ClientRequestProgramPlanIssue {
 pub suberror ClientRequestQueryLoweringIssue {
   Request(ClientRequestPreparationIssue)
   Publication(@client_source_publication.PreparedPublicationIssue)
+  WithBinding(ClientRequestQueryLoweringIssue, @parameter_binding.Issue)
+  BindingFailure(ClientRequestQueryLoweringIssue, ClientRequestPreparationIssue)
+  BindingException(ClientRequestQueryLoweringIssue, QueryBindingForeignFailure)
   Overflow
 }
 
@@ -1522,6 +1525,9 @@ pub(all) enum LocalValuesResultExportIssue {
   Bridge(@execution_relation.ManagedProducerBridgeIssue)
   Export(@run_publication_host.PublicationOutputExportIssue)
 }
+
+#external
+pub type QueryBindingForeignFailure
 
 // Type aliases
 

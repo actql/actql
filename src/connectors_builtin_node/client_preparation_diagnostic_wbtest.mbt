@@ -574,3 +574,39 @@ test "original Query implementation refusal is distinct from unavailable Host ca
   )
   @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
 }
+
+///|
+test "original Query refusal projects its same supplied type violation without a semantic outcome" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"SELECT missing AS n FROM records WHERE amount >= @minimum\",\"parameterDeclarations\":{\"minimum\":{\"type\":\"number\"}}}",
+    ),
+    request_diagnostic_test_json("{\"minimum\":\"twenty\"}"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(
+    result
+    is Err(
+      @client_local_host.ClientRequestTerminalIssue::QueryLowering(
+        WithBinding(_, _)
+      )
+    ),
+  )
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("source_invalid_input"),
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}

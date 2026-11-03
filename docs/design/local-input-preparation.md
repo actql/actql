@@ -2593,6 +2593,29 @@ getter acknowledges them. Complete work metering and normal Host adoption must
 be established by their actual consumers, not inferred from syntax counters.
 
 
+### Refused Query supplied-input binding
+
+A native Query lowering refusal retains its original parsed Query, Catalog and
+failure. When that same Request already admitted declarations and supplied
+Parameters, one existing staged binding reader can establish an independent
+supplied type violation beside that failure. It does not construct a semantic
+CheckOutcome or resume the successful compiler path. The successful lowerer
+continues to use its existing ordinary binder once.
+
+The original preparation reservation backs each reader constructor using its
+actual declaration/input geometry and existing construction recipes. One phase
+work continuation survives capacity callbacks without resetting spent work.
+The same parent, declaration owner, supplied tree position and selected semantic
+limits are checked before and after each grow. Failed growth or currentness
+retains the original lowering failure, partial reader and pending work until the
+same Request cleanup can finish them; it does not authorize another preparation.
+
+Report projection only borrows the completed same-original binding result.
+Known supplied type facts can accompany an unresolved protected Source; Source
+privacy, namespace correspondence and report currentness remain independent.
+No second parse, binding, semantic check or raw supplied value enters reporting.
+
+
 The actual Node opening reads the six immutable limits from its original
 Common policy once and passes that same policy to the original admission.
 It does not accept a numerical requirements object or ask an already

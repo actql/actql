@@ -10,6 +10,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/parameter_binding" @parameters,
+  "actql/actql/value_admission" @admitted,
   "actql/actql/relation_schema" @schema,
   "actql/actql/check_environment" @environment,
   "actql/actql/source_value" @source,

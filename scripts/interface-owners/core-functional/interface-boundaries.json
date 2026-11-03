@@ -40608,7 +40608,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_native_query.mbt",
-      "sha256": "528f1978a5fcd6cb9c1313ec2c04c8f5778e331963da73808fdae9e96a204155",
+      "sha256": "aba2f833e1055df4bf32858f191e71b009510468d65ea09c60f5cca0a02770cc",
       "exports": [],
       "operations": [
         {
@@ -40617,7 +40617,7 @@
         },
         {
           "name": "[I,T]prepare_request_native_query_computation_input",
-          "declaration": "[ I , T ] prepare_request_native_query_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , supplied ? : T ?"
+          "declaration": "[ I , T ] prepare_request_native_query_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , document : String , format : @ frontend . Format , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , binding_limits ? : @ admitted . Limits ?"
         },
         {
           "name": "[I,T]prepare_request_native_query_input",
@@ -40633,7 +40633,11 @@
         },
         {
           "name": "[I,T]prepare_request_native_source_computation_input",
-          "declaration": "[ I , T ] prepare_request_native_source_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , limits : @ syntax . Limits , supplied ? : T ?"
+          "declaration": "[ I , T ] prepare_request_native_source_computation_input ( owner : ClientRequestPreparation [ I ] , input : I , captured : T , reader : @ source . JsonDataReader [ T ] , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , limits : @ checked . CheckLimits , supplied ? : T ?"
+        },
+        {
+          "name": "request_query_binding_limits",
+          "declaration": "request_query_binding_limits ( limits : @ checked . CheckLimits , ) - > @ admitted . Limits"
         }
       ],
       "responsibilityFacet": "primary",
@@ -40649,7 +40653,8 @@
             "[I,T]prepare_request_native_source_computation",
             "[I,T]prepare_request_native_query_computation_input",
             "[I,T]prepare_request_native_source_computation_check",
-            "[I,T]prepare_request_native_source_computation_input"
+            "[I,T]prepare_request_native_source_computation_input",
+            "request_query_binding_limits"
           ],
           "exports": [],
           "attributes": {
@@ -40908,7 +40913,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "f12c554bb691eae633972a62fefdb9820ee338fbca0cb4ebb140ecad2d4bfec9",
+      "sha256": "4e2bb8ee1e588e02a6f4f92b5263ed672212d178312389d0722832164bf00a6c",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -42685,7 +42690,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "85ec104188bca32e3a5cf1f4088bcbafe766282fcc0bd3d33e6159df8499a731",
+      "sha256": "b229f96b42d7baa5fce1d4775862165bf303cedc4a36dc37133b3cbbcc8a02e2",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -52737,7 +52742,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "d7e889efc278d86b7ddf505f2da82227cc11a2f2d63a23f45d9a7474a004565e",
+      "sha256": "8caff253d72e25808721d1e44cacd4ebb503ed5d76164175acf447362d095526",
       "exports": [],
       "operations": [
         {
@@ -54285,6 +54290,10 @@
           "declaration": "client_program_query_acquisition_source_index ( acquisition : @ acquisition . QueryAcquisition , ) - > Int"
         },
         {
+          "name": "client_program_query_lowering_issue_code",
+          "declaration": "client_program_query_lowering_issue_code ( issue : @ client_local_host . ClientRequestQueryLoweringIssue , ) - > String ?"
+        },
+        {
           "name": "client_program_query_requirement_cid",
           "declaration": "client_program_query_requirement_cid ( requirement : @ planning . QueryRequirement , ) - > String"
         },
@@ -55371,7 +55380,8 @@
             "client_program_installed_managed_run_invocation_original",
             "client_program_query_time_invocation_original",
             "client_program_row_source_acquisition_contracts_construction_capacity",
-            "client_program_row_source_issue_source_evidence_original"
+            "client_program_row_source_issue_source_evidence_original",
+            "client_program_query_lowering_issue_code"
           ],
           "exports": [],
           "attributes": {

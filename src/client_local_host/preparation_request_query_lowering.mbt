@@ -6,6 +6,8 @@ priv struct ClientRequestQueryLowering {
   environment : @checked.CheckEnvironment
   declarations : String?
   public_primary : Bool
+  binding_limits : @admitted.Limits?
+  mut refusal_binding : ClientRequestQueryRefusalBinding?
   quote : (Int64, Int64)
   mut output : Result[
     (
@@ -21,6 +23,9 @@ priv struct ClientRequestQueryLowering {
 pub suberror ClientRequestQueryLoweringIssue {
   Request(ClientRequestPreparationIssue)
   Publication(@source_publication.PreparedPublicationIssue)
+  WithBinding(ClientRequestQueryLoweringIssue, @parameters.Issue)
+  BindingFailure(ClientRequestQueryLoweringIssue, ClientRequestPreparationIssue)
+  BindingException(ClientRequestQueryLoweringIssue, QueryBindingForeignFailure)
   Overflow
 }
 
@@ -59,6 +64,7 @@ pub fn[I] lower_request_published_query(
   environment : @checked.CheckEnvironment,
   declarations : String?,
   public_primary? : Bool = false,
+  binding_limits? : @admitted.Limits? = None,
 ) -> Result[
   (
     @frontend.Lowered,
@@ -102,7 +108,17 @@ pub fn[I] lower_request_published_query(
       Err(issue) => return Err(Publication(issue))
       Ok(value) => value
     }
+    let control = if owner.native_query_declarations is Some(_) &&
+      owner.native_parameters is Some(_) &&
+      binding_limits is Some(_) {
+      request_query_refusal_binding_control_bytes()
+    } else {
+      Some(0L)
+    }
     guard request_query_lowering_data_bytes(query, declarations, catalog)
+      is Some(data) &&
+      control is Some(control) &&
+      @execution.checked_preparation_add_product(data, control, 1L)
       is Some(bytes) else {
       return Err(Overflow)
     }
@@ -120,6 +136,8 @@ pub fn[I] lower_request_published_query(
       environment,
       declarations,
       public_primary,
+      binding_limits,
+      refusal_binding: None,
       quote: (r, e),
       output: None,
     })
@@ -129,7 +147,8 @@ pub fn[I] lower_request_published_query(
     physical_equal(selected.publication, publication) &&
     physical_equal(selected.environment, environment) &&
     selected.declarations == declarations &&
-    selected.public_primary == public_primary else {
+    selected.public_primary == public_primary &&
+    selected.binding_limits == binding_limits else {
     return Err(Request(ForeignOriginal))
   }
   owner.phase = Selecting
@@ -176,7 +195,28 @@ pub fn[I] lower_request_published_query(
   owner.phase = QueryLoweringFailed
   selected.output = Some(outcome)
   match outcome {
-    Err(issue) => Err(issue)
+    Err(issue) => {
+      if owner.native_query_declarations is None ||
+        owner.native_parameters is None ||
+        selected.binding_limits is None {
+        return Err(issue)
+      }
+      match
+        query_binding_protected_call(
+          () => finish_request_query_refusal_binding(owner, input, selected),
+          () => {
+            pause_request_query_refusal_binding(selected)
+            if owner.phase == Selecting {
+              owner.phase = QueryLoweringFailed
+            }
+          },
+        ) {
+        Ok(Ok(Some(binding))) => Err(WithBinding(issue, binding))
+        Ok(Ok(None)) => Err(issue)
+        Ok(Err(failure)) => Err(BindingFailure(issue, failure))
+        Err(failure) => Err(BindingException(issue, failure))
+      }
+    }
     Ok(output) => {
       guard output.0.program is Some(program) else {
         return Err(Request(WrongPhase))

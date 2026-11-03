@@ -610,6 +610,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
     owner.phase = previous
   }
   clear_request_parameter_source(owner)
+  match finish_request_query_refusal_binding_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   if owner.intent_work is Some(work) {

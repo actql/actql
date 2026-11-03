@@ -30,6 +30,10 @@ fn[I] project_request_query_check_outcome(
     Some(Ok(original)) => Some(original)
     _ => None
   }
+  let mut binding_original = None
+  let mut binding_declarations = None
+  let mut binding_supplied = None
+  let mut binding_limits = None
   let (issue, environment, publication) = match terminal {
     QuerySyntax(original) => {
       guard phase == QuerySyntaxFailed &&
@@ -44,12 +48,38 @@ fn[I] project_request_query_check_outcome(
       }
       (issue, None, None)
     }
-    QueryLowering(original) => {
+    QueryLowering(terminal_original) => {
+      let original = match terminal_original {
+        WithBinding(original, _)
+        | BindingFailure(original, _)
+        | BindingException(original, _) => original
+        _ => terminal_original
+      }
       guard phase == QueryLoweringFailed &&
         query.lowering is Some(lowering) &&
         lowering.output is Some(Err(retained)) &&
         physical_equal(retained, original) else {
         return Err(ForeignOriginal)
+      }
+      if terminal_original is WithBinding(_, issue) {
+        guard lowering.refusal_binding is Some(binding) &&
+          owner.native_query_declarations is Some((_, declarations)) &&
+          physical_equal(binding.declarations, declarations) &&
+          owner.native_parameters is Some(supplied) &&
+          @parameters.reuse_binding_read(
+            binding.reader,
+            declarations,
+            Some(supplied),
+            binding.limits,
+          )
+          is Some(Err(retained_binding)) &&
+          physical_equal(retained_binding, issue) else {
+          return Err(ForeignOriginal)
+        }
+        binding_original = Some(binding.reader)
+        binding_declarations = Some(declarations)
+        binding_supplied = Some(supplied)
+        binding_limits = Some(binding.limits)
       }
       let issue = match original {
         Publication(Frontend(value)) => value
@@ -135,7 +165,13 @@ fn[I] project_request_query_check_outcome(
             Some(Err(current)) => physical_equal(current, original)
             _ => false
           }
-        QueryLowering(original) =>
+        QueryLowering(terminal_original) => {
+          let original = match terminal_original {
+            WithBinding(original, _)
+            | BindingFailure(original, _)
+            | BindingException(original, _) => original
+            _ => terminal_original
+          }
           match query.lowering {
             Some(lowering) =>
               match lowering.output {
@@ -151,13 +187,36 @@ fn[I] project_request_query_check_outcome(
               }
             None => false
           }
+        }
         _ => false
       }
       let current_parsed = match query.query {
         Some(Ok(original)) => Some(original)
         _ => None
       }
+      let same_binding = match
+        (binding_original, binding_declarations, binding_supplied) {
+        (None, None, None) => true
+        (Some(reader), Some(declarations), Some(supplied)) =>
+          owner.native_query_declarations is Some((_, current_declarations)) &&
+          physical_equal(current_declarations, declarations) &&
+          owner.native_parameters is Some(current_supplied) &&
+          @decode.tree_index(supplied, current_supplied) ==
+          @decode.tree_index(supplied, supplied) &&
+          query.lowering is Some(lowering) &&
+          lowering.refusal_binding is Some(binding) &&
+          physical_equal(binding.reader, reader) &&
+          @parameters.reuse_binding_read(
+            reader,
+            declarations,
+            Some(supplied),
+            binding.limits,
+          )
+          is Some(_)
+        _ => false
+      }
       guard same_terminal &&
+        same_binding &&
         (match (parsed_original, current_parsed) {
           (None, None) => true
           (Some(original), Some(current)) => physical_equal(original, current)
@@ -182,6 +241,10 @@ fn[I] project_request_query_check_outcome(
             correlation_ref,
             source_namespace,
             query_original=parsed_original,
+            binding_original~,
+            binding_declarations~,
+            binding_supplied~,
+            binding_limits~,
           ),
         ),
       )

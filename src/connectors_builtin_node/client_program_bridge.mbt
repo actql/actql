@@ -322,6 +322,36 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
+// The original read-only lowerer terminal is matched directly, never rebuilt
+// as a fabricated Request result just to recurse through its classification.
+fn client_program_query_lowering_issue_code(
+  issue : @client_local_host.ClientRequestQueryLoweringIssue,
+) -> String? {
+  match issue {
+    WithBinding(
+      _,
+      BindingInput(Supplied, Value(ValueIssue(WrongType | UnexpectedNull, ..)))
+    )
+    | WithBinding(
+      _,
+      BindingInput(
+        Supplied,
+        Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
+      )
+    ) => Some("source_invalid_input")
+    WithBinding(original, _)
+    | BindingFailure(original, _)
+    | BindingException(original, _) =>
+      client_program_query_lowering_issue_code(original)
+    Publication(Frontend(issue)) =>
+      Some(client_source_preparation_issue_code(Frontend(issue)))
+    Publication(Publication(Declarations)) =>
+      Some(client_source_preparation_issue_code(Declarations))
+    _ => None
+  }
+}
+
+///|
 /// Project the original Request terminal through the SAME existing semantic
 /// issue projection. No document, getter, checker or compiler is entered here.
 /// None deliberately preserves foreign/current/resource/Host uncertainty; it
@@ -331,12 +361,11 @@ pub fn client_program_request_preparation_issue_code(
   result : Result[String, @client_local_host.ClientRequestTerminalIssue],
 ) -> String? {
   let issue : ClientProgramBridgeIssue = match result {
-    Err(QuerySyntax(Frontend(issue)))
-    | Err(QueryLowering(Publication(Frontend(issue))))
-    | Err(Publication(Frontend(issue))) =>
+    Err(QueryLowering(issue)) =>
+      return client_program_query_lowering_issue_code(issue)
+    Err(QuerySyntax(Frontend(issue))) | Err(Publication(Frontend(issue))) =>
       return Some(client_source_preparation_issue_code(Frontend(issue)))
-    Err(QueryLowering(Publication(Publication(Declarations))))
-    | Err(Publication(Publication(Declarations))) =>
+    Err(Publication(Publication(Declarations))) =>
       return Some(client_source_preparation_issue_code(Declarations))
     Err(CheckOutcome(Rejected(diagnostic))) => Preparation(Check(diagnostic))
     Err(CheckOutcome(NeedsInputs(_))) => return Some("needs_inputs")
