@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-file-installation.mjs",
-      "sha256": "e311484cd9830b00ee779c23c89f0621d6a3fbbec31e8f73421666a31afe8dc2",
+      "sha256": "3998d75831e7f280238d5aedc5090e9e76f6d0c890bc5e0774514d14169b7035",
       "exports": [
         "createDeclaredFileInstallationInventory"
       ],
@@ -128,7 +128,8 @@
         {
           "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare",
           "parameters": [
-            "method"
+            "method",
+            "retainPrepared"
           ],
           "async": false
         },
@@ -174,6 +175,21 @@
           "name": "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail/init:fail",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:prepareMetadataInput/init:prepareMetadataInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:readMetadataUtf8/init:readMetadataUtf8",
+          "parameters": [
+            "path",
+            "maxBytes"
+          ],
+          "async": false
         },
         {
           "name": "effectModule/effectModule",
@@ -286,6 +302,8 @@
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/previous/previous",
             "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail",
             "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail/init:fail",
+            "createDeclaredFileInstallationInventory/inventory/init:prepareMetadataInput/init:prepareMetadataInput",
+            "createDeclaredFileInstallationInventory/inventory/init:readMetadataUtf8/init:readMetadataUtf8",
             "effectModule/effectModule",
             "effectModule/effectModule#2",
             "effectModule/effectModule#3",
@@ -323,6 +341,14 @@
               {
                 "path": "adapters/local-node/declared-file-installation.mjs",
                 "anchor": "prepareNativeDeclaration: prepare('prepareNativeDeclaration')"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "prepareNativeInput: prepare('prepareNativeInput', false)"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "prepareMetadataInput(projection) {"
               }
             ],
             "identity": [
@@ -359,6 +385,10 @@
               {
                 "path": "adapters/local-node/declared-file-installation.mjs",
                 "anchor": "retainBoundInstalledSourceFailure(record.context, cause, record.adapter)"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "if (retainPrepared) record.prepared = result;"
               }
             ],
             "synchronization": [
@@ -391,6 +421,10 @@
               {
                 "path": "adapters/local-node/declared-file-installation.mjs",
                 "anchor": "finishInstalledSourceInitialization(record.context, record.adapter, failure, true);"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "if (record.finished || record.failed) fail('DeclaredFileInstallationClosed');"
               }
             ],
             "cancellation": [
@@ -475,6 +509,18 @@
               {
                 "path": "adapters/local-node/declared-file-installation.test.mjs",
                 "anchor": "test('component retirement joins an actual Effect constructor before retiring its original material'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog stages actual connection members before constructors and exports each declaration once'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "for (const thrown of [undefined, null]) test("
               }
             ]
           }

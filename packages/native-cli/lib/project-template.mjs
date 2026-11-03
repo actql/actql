@@ -47,7 +47,10 @@ export function projectTemplateFiles(template) {
           version: {type: 'string', nullable: false}, name: {type: 'string', nullable: false},
           path: {type: 'string', nullable: true}, media_type: {type: 'string', nullable: true},
           size_bytes: {type: 'number', nullable: true}, modified_at: {type: 'timestamp', nullable: true},
-        }, acquisition: {kind: 'scan', authority: 'read_metadata'}},
+        }, request_schema: {type: 'object', nullable: false, additional_properties: false, fields: {
+          paths: {type: 'array', nullable: true, items: {type: 'string', nullable: false}},
+          glob: {type: 'string', nullable: true},
+        }}, acquisition: {kind: 'scan', authority: 'read_metadata'}},
         {resource: 'contents', resource_kind: 'file', schema: {
           resource: {type: 'resource_ref', resource_kind: 'file', nullable: false},
           version: {type: 'string', nullable: false},

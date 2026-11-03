@@ -1,0 +1,225 @@
+{
+  "qualification": "Source-scoped staged JS constructor correspondence only; not normal-package, artifact or release acceptance",
+  "declarations": [
+    {
+      "module": "adapters/host-node/declared-project-catalog-construction.mjs",
+      "sha256": "0b5a5d8da096eaade27757a4b81670ff9c65ac1e804fe8f6e380c0641563cf83",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed SourceInitialization material and original Source/Effect constructor owners; provider-neutral geometry DATA only",
+      "exports": [
+        "declaredProjectCatalogEntryConstructionGeometry",
+        "declaredProjectCatalogFileFactsConstructionGeometry",
+        "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+        "declaredProjectCatalogMappingInputsConstructionGeometry",
+        "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+        "declaredProjectCatalogScopeConstructionGeometry"
+      ],
+      "operations": [
+        {
+          "name": "admittedCount/admittedCount",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonicalConstruction",
+          "parameters": [
+            "nodes",
+            "units",
+            "weighted",
+            "depth"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogEntryConstructionGeometry",
+          "parameters": [
+            "entryWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogFileFactsConstructionGeometry",
+          "parameters": [
+            "entryWire",
+            "initialDeclarationWire",
+            "scopeCid",
+            "fileBindingCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+          "parameters": [
+            "entryWire",
+            "declarationWire",
+            "mappingWires",
+            "sourceCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogMappingInputsConstructionGeometry",
+          "parameters": [
+            "entryWire",
+            "actualValidatedWriteCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+          "parameters": [
+            "entryWire",
+            "overrideCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "declaredProjectCatalogScopeConstructionGeometry",
+          "parameters": [
+            "connection",
+            "providerNamespace",
+            "resolvedDataPath",
+            "originalCatalogWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "fixedCanonical/fixedCanonical",
+          "parameters": [
+            "template",
+            "additionalUnits"
+          ],
+          "async": false
+        },
+        {
+          "name": "invalidGeometry/invalidGeometry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "maximum/maximum",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "stage/stage",
+          "parameters": [
+            "retained",
+            "workspace",
+            "bounds"
+          ],
+          "async": false
+        },
+        {
+          "name": "stringUnits/stringUnits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "zero/zero",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admittedCount/admittedCount",
+            "canonicalConstruction",
+            "declaredProjectCatalogEntryConstructionGeometry",
+            "declaredProjectCatalogFileFactsConstructionGeometry",
+            "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+            "declaredProjectCatalogMappingInputsConstructionGeometry",
+            "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+            "declaredProjectCatalogScopeConstructionGeometry",
+            "fixedCanonical/fixedCanonical",
+            "invalidGeometry/invalidGeometry",
+            "maximum/maximum",
+            "stage/stage",
+            "stringUnits/stringUnits",
+            "zero/zero"
+          ],
+          "exports": [
+            "declaredProjectCatalogEntryConstructionGeometry",
+            "declaredProjectCatalogFileFactsConstructionGeometry",
+            "declaredProjectCatalogFinalDescriptorsConstructionGeometry",
+            "declaredProjectCatalogMappingInputsConstructionGeometry",
+            "declaredProjectCatalogPhysicalOverridesConstructionGeometry",
+            "declaredProjectCatalogScopeConstructionGeometry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/declared-project-catalog-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

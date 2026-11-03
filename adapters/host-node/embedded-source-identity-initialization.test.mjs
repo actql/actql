@@ -61,6 +61,7 @@ function fixture(paths) {
     source.slice(identityBody.start, identityBody.end) + ';return embeddedInstallationIdentity;');
   const embeddedInstallationIdentity = makeIdentity(...Object.values(common));
   const run = compile({installation, project, projectProfile, projectSourcePreparation,
+    selectedProfile: {selected: undefined},
     originalInstallation, record, moon, control, originals, preparation, resolve, process: {env: {}},
     localStateRoot() {assert.fail('Explicit root selected');},
     installedSourcePaths: common.installedSourcePaths,

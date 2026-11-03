@@ -5,7 +5,10 @@
 The existing installed Source initializer owns these continuations. An Effect
 may borrow an already prepared immutable native declaration from a Source on
 that same initializer. CREATE and UPDATE Mapping construction remain separate
-closed Common operations under the same initializer reservation.
+closed Common operations under the same initializer reservation. Before any
+connection context exists, the configuration reader can reserve a pure native
+metadata projection through this same original material; it does not invent a
+connection or begin a second initialization.
 
 ## Inputs and outputs
 
@@ -14,12 +17,18 @@ exact prepared tuple. `prepareMappings` consumes frozen write descriptors and
 their original wire. A descriptor's optional `operation` is `create` by default
 or explicitly `update`; unknown operations refuse. `rowSourceMapping` dispatches
 to the corresponding Common constructor and projects its existing metadata.
+The configuration reader's `prepareNativeInput` takes an exact synchronous
+capacity/project pair. Its strict `readUtf8` retains the existing bounded file
+and decode custody. Native declaration preparation returns its already-owned
+export as `wire`, so consumers do not serialize the declaration again.
 
 ## Identity
 
 Borrowing requires the same original material, service, installation entry,
 connector identity and base Environment. Copied contexts and equal declaration
-bytes do not substitute for those originals. A configured provider name does
+bytes do not substitute for those originals. Metadata projections check the
+actual configuration-reader receiver and original material, including after the
+reservation callback; copied readers do not gain a construction entrance. A configured provider name does
 not replace a connection namespace. UPDATE's schema and target identity come
 from the retained declaration, not a repeated caller-supplied field schema.
 
@@ -36,7 +45,10 @@ objects; finishing a metadata-only holder is not successful installation.
 Each declaration and Mapping attempt is recorded before the original reservation
 callback. Original currentness and context state are rechecked after that
 callback. Constructors are synchronous; reentry, replacement or repeated attempts
-refuse. Reading an optional operation never invokes an inherited getter.
+refuse. Metadata projection attempts are recorded by exact projection identity
+before callbacks. Promise-returning constructors retain their unsettled cleanup
+obligation and cannot be mistaken for synchronous completion. Reading an
+optional operation never invokes an inherited getter.
 
 ## Failure
 
@@ -71,5 +83,7 @@ sample row determines the dispatch. Public platform support is unchanged.
 factories with explicit Common/resource fixtures: exact borrowing, foreign
 contexts, refusal before construction, once-only attempts, pending constructor
 cancellation and physical close. `installed-effect-profile-cleanup.test.mjs`
-checks UPDATE dispatch and refusal under the existing owner. These are Host
+checks UPDATE dispatch, metadata before connection creation, foreign receivers,
+reservation refusal, reentry, unsettled constructors and the borrowed original
+export under the existing owner. These are Host
 component tests, not normal-package README or live provider acceptance.

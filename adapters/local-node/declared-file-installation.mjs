@@ -6,7 +6,7 @@ import {createInstalledConnectorTable, installedConnectorForTable,
   verifyInstalledConnectorRegistration} from '../host-node/installed-connectors.mjs';
 import {beginInstalledSourceInitialization, finishInstalledSourceInitialization,
   retainInstalledHostServiceInstallation, reserveInstalledSourceRuntimeIdentity,
-  retainBoundInstalledSourceFailure, withInstalledSourceLoading}
+  retainBoundInstalledSourceFailure, withInstalledSourceLoading, installedSourceConfigurationReader}
   from '../host-node/installed-host-services.mjs';
 import {createInstalledRowSource} from '../host-node/installed-row-source.mjs';
 import {createInstalledRowEffect} from '../host-node/installed-row-effect.mjs';
@@ -83,7 +83,20 @@ export function createDeclaredFileInstallationInventory({moon, project, services
     })();
     return record.cleanupFlight;
   }
+  const metadataReader = installedSourceConfigurationReader(services);
+  if (typeof metadataReader?.readUtf8 !== 'function' ||
+      typeof metadataReader?.prepareNativeInput !== 'function') fail('DeclaredFileInstallationUnavailable');
   const inventory = Object.freeze({
+    readMetadataUtf8(path, maxBytes) {
+      current();
+      return metadataReader.readUtf8(path, {maxBytes});
+    },
+    prepareMetadataInput(projection) {
+      current();
+      const value = metadataReader.prepareNativeInput(projection);
+      current();
+      return value;
+    },
     begin(connectionOriginal, index, role = 'source') {
       current();
       if (!Object.hasOwn(versions, role) || connectionOriginal?.project !== projectOriginal ||
@@ -104,7 +117,7 @@ export function createDeclaredFileInstallationInventory({moon, project, services
       const entry = installedConnectorForTable(table, role, profile);
       const record = {connections: connectionOriginal, index, role, entry, profile,
         context: undefined, prepared: undefined, adapter: undefined,
-        loading: false, finished: false, failure: undefined};
+        loading: false, finished: false, failed: false, failure: undefined};
       records.push(record);
       // Install the original flight before module loading/current callbacks.
       record.flight = Promise.resolve().then(() => withInstalledSourceLoading(services, async () => {
@@ -129,20 +142,21 @@ export function createDeclaredFileInstallationInventory({moon, project, services
         record.context = context;
         const memberCurrent = () => {
           current();
-          if (record.finished || record.failure !== undefined) fail('DeclaredFileInstallationClosed');
+          if (record.finished || record.failed) fail('DeclaredFileInstallationClosed');
         };
-        const prepare = method => (...args) => {
+        const prepare = (method, retainPrepared = true) => (...args) => {
           memberCurrent();
           try {
             const result = Reflect.apply(context[method], context, args);
-            record.prepared = result;
+            if (retainPrepared) record.prepared = result;
             memberCurrent();
             return result;
-          } catch (cause) {record.failure = cause;throw cause;}
+          } catch (cause) {record.failed = true;record.failure = cause;throw cause;}
         };
         const member = Object.freeze({connection, connectorId: connection, providerNamespace,
           registration: entry.registration, revision: entry.revision,
           runtimeBundleCid, sourceInitialization: context,
+          prepareNativeInput: prepare('prepareNativeInput', false),
           prepareNativeDeclaration: prepare('prepareNativeDeclaration'),
           prepareMappings: prepare('prepareMappings'),
           prepareBorrowedDeclaration(sourceMember) {
@@ -183,7 +197,7 @@ export function createDeclaredFileInstallationInventory({moon, project, services
               record.finished = true;
               return adapter;
             }).catch(async cause => {
-              record.failure = cause;
+              record.failed = true;record.failure = cause;
               throw await failRecord(record, cause);
             });
             flights.add(record.loadFlight);
@@ -196,7 +210,7 @@ export function createDeclaredFileInstallationInventory({moon, project, services
         members.set(member, record);
         return member;
       })).catch(async cause => {
-        record.failure = cause;
+        record.failed = true;record.failure = cause;
         throw await failRecord(record, cause);
       });
       flights.add(record.flight);

@@ -90,6 +90,7 @@ import {loadInstalledProjectMockAnswers} from '../local-node/installed-project-m
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock, installPreparedProjectMockSources, installedMockRequestRealization}
   from '../local-node/installed-project-mock.mjs';
+import {createDeclaredFileInstallationInventory} from '../local-node/declared-file-installation.mjs';
 import {prepareInstalledProjectLocalFiles, installPreparedProjectLocalFiles, LOCAL_FILES_DEFAULT_LIMITS}
   from '../connectors/local/host/installed-project-files.mjs';
 import {installPreparedProjectLocalFileEffects}
@@ -976,7 +977,8 @@ export function prepareInstalledMockSourcePreparation(originals, originalSourceI
     }
     return previous.flight;
   }
-  const {project, projectProfile, projectRuntime} = originals.installation;
+  const {project, projectProfile, projectRuntime, declaredFileInstallationInventory: installationInventory} = originals.installation;
+  if (installationInventory === undefined) throw clientOperationError('DeclaredFileInstallationUnavailable');
   const retained = {runtime: projectRuntime, sourceInstallation: originalSourceInstallation,
     view: undefined, flight: undefined};
   profiles.retainMockPreparation(originals.host, originals.installation,
@@ -987,13 +989,16 @@ export function prepareInstalledMockSourcePreparation(originals, originalSourceI
   };
   retained.flight = (async () => {
     const view = await prepareInstalledProjectMock(projectRuntime, project, projectProfile,
-      {assertCurrent});
+      {assertCurrent, installationInventory});
     // Retain the acquired original before the fallible final current check.
     // Failure keeps this same view and flight; it never prepares another pair.
     retained.view = view;
     assertCurrent();
     view.originalsForRuntime(projectRuntime);
-  })();
+  })().catch(async cause => {
+    await installationInventory.fail(cause);
+    throw cause;
+  });
   return retained.flight;
 }
 
@@ -1464,8 +1469,9 @@ async function openInstalledHost(originalInstallation, preparation) {
   const environmentSource = preparation.readEnvironmentSource();
   const selectedLookupPolicy = hostLookupExecutionPolicy ??
     preparation?.localFilesLookupExecutionPolicy?.(moon);
-  const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
-    selectedLookupPolicy);
+  const baseEnvironmentWire = originalInstallation.declaredFileBaseEnvironmentWire ??
+    selectInstalledLocalMaterializationEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
+      selectedLookupPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
@@ -1749,7 +1755,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}),
-        principalId, mockEffectResources, sourceProfile.sources[0].connectorBindings[0]);
+        principalId, mockEffectResources, sourceProfile.mockWritableSource?.connectorBindings[0]);
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
       mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
@@ -6021,6 +6027,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
       hostJournalFlight = undefined;
       record.hostJournal = undefined;
     }
+    // Unconstructed declaration/Mapping contexts still belong to this SAME
+    // initial Source material. Failure retirement ends their constructor duty,
+    // never reports a metadata holder as a successfully installed adapter.
+    await originalInstallation.declaredFileInstallationInventory?.fail(
+      clientOperationError('DeclaredFileInstallationClosed'));
     if (hostInitialization !== undefined) {
       if (sourceInitializationServices !== undefined &&
           retireInstalledSourceInitialization(sourceInitializationServices) !== true) {
@@ -7269,7 +7280,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       const bundle = mockPreparation.originalsForRuntime(moon);
-      if (sourceBinding?.connectorId !== bundle.sources[0].catalogue.connectorId ||
+      if (bundle.writable === undefined ||
+          sourceBinding?.connectorId !== bundle.writable.source.catalogue.connectorId ||
           typeof sourceBinding.bindingCid !== 'string' ||
           !/^sha256:[0-9a-f]{64}$/u.test(sourceBinding.bindingCid)) {
         throw clientOperationError('ForeignInstalledMockSourceBinding');
@@ -7304,8 +7316,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
         [entry.catalogue.connection, view.resource]));
       const requestRealization = installedMockRequestRealization(mockPreparation, moon);
-      const updates = bundle.sources.flatMap(entry => entry.catalogue.updateAliases.map(alias =>
-        [entry.catalogue.connection, alias.resource]));
+      const updates = bundle.writable === undefined ? [] :
+        [[bundle.writable.source.catalogue.connection, bundle.writable.write.resource]];
       if (updates.length > 1) throw clientOperationError('InstalledMockCatalogueUnavailable');
       const binding = await initializeOrdinaryMockAccount({moon, root: originalInstallation.root, principal,
         subject: {projectDirectory: project.directory,
@@ -7573,9 +7585,44 @@ async function openPreparedInstalledHost(options, initialEntry) {
   projectProfile = selectInstalledProjectProfile(moon, project, requestedProfile, 65536);
   record.projectProfile = projectProfile;
   const selectedProfile = projectProfile.originalsForRuntime(moon);
-  Object.assign(originalInstallation, {project, projectProfile, projectRuntime: moon,
-    initialControl: control});
+  originalInstallation.initialControl = control;
+  const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :
+    resolve(installation.directory);
+  Object.assign(originalInstallation, {root, project, projectProfile, projectRuntime: moon,
+    authorization: installation?.authorization,
+    connectorTable: installation?.connectorTable,
+    sourceProfilePath: installation?.sourceProfilePath,
+    sourceProfilePaths: installation?.sourceProfilePaths,
+    sourceSelectorNamespace: installation?.sourceSelectorNamespace,
+    sourceNamespace: installation?.sourceNamespace,
+    resolveSourceSecret: installation?.resolveSourceSecret,
+    effectProfilePath: installation?.effectProfilePath,
+    effectProfilePaths: installation?.effectProfilePaths,
+    resolveEffectSecret: installation?.resolveEffectSecret,
+    modelInstallation: installation?.modelInstallation,
+    calendarArtifact: installation?.calendarArtifact,
+    registerModelProviders: installation?.registerModelProviders,
+    verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
+    resultDataPolicy: installation?.resultDataPolicy,
+    inferEvidence: installation?.inferEvidence,
+    hostCapacityPolicy: installation?.hostCapacityPolicy,
+    hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
+    retainedRelationOutput: installation?.retainedRelationOutput === undefined
+      ? false : installation.retainedRelationOutput,
+    observation: installation?.observation,
+    valuesMaxRows: installation?.valuesMaxRows});
+  record.installation = originalInstallation;
   if (selectedProfile.selected === 'mock') {
+    const services = preparation.sourceInitializationServices(moon, root, userInfo().username);
+    const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon,
+      preparation.readEnvironmentSource().trimEnd(), originalInstallation.hostCapacityPolicy,
+      originalInstallation.hostLookupExecutionPolicy);
+    originalInstallation.declaredFileBaseEnvironmentWire = baseEnvironmentWire;
+    // Retain before module/runtime selection and before the first dynamic
+    // declaration. Later Host installation borrows this same service/parent.
+    record.declaredFileInstallationInventory = originalInstallation.declaredFileInstallationInventory =
+      createDeclaredFileInstallationInventory({moon, project, services, baseEnvironmentWire, runtimeUrl,
+        assertCurrent: () => assertInitialControlInstallationCurrent(control, originals)});
     // The actual Source admission precedes its connection/catalogue/control
     // preparation. Initial control cannot fund those allocations or file I/O.
     // A missing original refuses here, with no legacy snapshot/read fallback.
@@ -7616,32 +7663,6 @@ async function openPreparedInstalledHost(options, initialEntry) {
     // admitted choice unavailable instead of falling back to live profiles.
     throw clientOperationError('InstalledProjectProfileUnavailable');
   }
-  const root = installation?.directory === undefined ? project?.stateDirectory ?? localStateRoot() :
-    resolve(installation.directory);
-  Object.assign(originalInstallation, {root, project, projectProfile, projectRuntime: moon,
-    authorization: installation?.authorization,
-    connectorTable: installation?.connectorTable,
-    sourceProfilePath: installation?.sourceProfilePath,
-    sourceProfilePaths: installation?.sourceProfilePaths,
-    sourceSelectorNamespace: installation?.sourceSelectorNamespace,
-    sourceNamespace: installation?.sourceNamespace,
-    resolveSourceSecret: installation?.resolveSourceSecret,
-    effectProfilePath: installation?.effectProfilePath,
-    effectProfilePaths: installation?.effectProfilePaths,
-    resolveEffectSecret: installation?.resolveEffectSecret,
-    modelInstallation: installation?.modelInstallation,
-    calendarArtifact: installation?.calendarArtifact,
-    registerModelProviders: installation?.registerModelProviders,
-    verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
-    resultDataPolicy: installation?.resultDataPolicy,
-    inferEvidence: installation?.inferEvidence,
-    hostCapacityPolicy: installation?.hostCapacityPolicy,
-    hostLookupExecutionPolicy: installation?.hostLookupExecutionPolicy,
-    retainedRelationOutput: installation?.retainedRelationOutput === undefined
-      ? false : installation.retainedRelationOutput,
-    observation: installation?.observation,
-    valuesMaxRows: installation?.valuesMaxRows});
-  record.installation = originalInstallation;
   const configurationReader = originalInstallation.sourceProfilePath === undefined &&
     originalInstallation.sourceProfilePaths === undefined && process.env.ACTQL_LOCAL_SOURCE_PROFILE === undefined ? undefined :
     installedSourceConfigurationReader(preparation.sourceInitializationServices(moon, root, userInfo().username));

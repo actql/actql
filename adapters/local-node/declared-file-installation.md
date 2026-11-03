@@ -15,18 +15,28 @@ or replace the Common semantic owners.
 
 `createDeclaredFileInstallationInventory` receives the original runtime,
 admitted Project, already-created Host services, selected base Environment wire,
-runtime URL and synchronous currentness check. `begin` receives that Project's
+runtime URL and synchronous currentness check. `readMetadataUtf8` and
+`prepareMetadataInput` use the same services' configuration reader before
+connection-specific contexts exist. The former retains the actual file/UTF-8
+read; the latter reserves a pure metadata projection before it runs. Neither
+creates another initial material or installation. `begin` receives that Project's
 original connection collection, an in-range connection index and either the
 `source` or `effect` role. It returns one original member per connection/index/
 role, with its checked identities and the actual Source initialization context.
 
-A source member's `prepareNativeDeclaration` forwards the caller's complete
-native projection envelope to the existing context. Its `capacity` and `project`
-operations must describe and construct all original logical and physical
-results, including intermediate restoration overlap. An effect member borrows
-that exact source member's prepared declaration and prepares its own checked
-Mappings. `load` accepts the existing physical factory options, injects the
-retained originals and rejects attempts to replace them. It returns the actual
+A member's `prepareNativeInput` delegates each pure staged input projection to
+its original context without replacing the member's final prepared tuple. The
+catalog loader uses this for funded entry parsing, scope and File facts,
+physical override inputs and their native restores. Each actual restore/export
+pair has its own native quote. The final source `prepareNativeDeclaration`
+retains the final declaration, declared DATA, already-owned export wire and
+Environment. Its returned wire is borrowed rather than exported again.
+
+An effect member prepares its UPDATE inputs before borrowing the exact source
+member's prepared declaration, then prepares its own checked Mappings. `load`
+accepts the existing physical factory options, injects the final retained
+originals and rejects attempts to replace them. An earlier native input is not
+a final declaration and cannot enable `load`. The result is the actual
 registered adapter, not a descriptor standing in for a completed factory.
 `cleanup` retains a settled unsuccessful member's original cleanup obligation.
 Use inventory `fail` for cancellation while construction is pending: it closes
@@ -52,8 +62,11 @@ values, copied context objects and matching provider labels are insufficient.
 
 The existing Host services own the initial Source material and reservation
 successor. The inventory retains every begun context before further preparation,
-including contexts whose projection or factory later fails. Source declaration
-originals remain with that material; an effect holds a checked reference to the
+including contexts whose projection or factory later fails. Pure aggregate
+metadata, including final catalog descriptors after declaration preparation,
+stays on the same configuration-reader material; it does not consume the
+provider read-target construction slot. Source declaration originals remain
+with that material; an effect holds a checked reference to the
 same declaration rather than restoring another one. Each context owns its own
 prepared exported Environment and, when applicable, Mappings.
 
@@ -85,7 +98,10 @@ to the existing context's synchronous reservation-before-construction methods.
 
 Malformed profiles, foreign Project/connection/context originals, replacement
 prepared values, out-of-range connections, unsupported roles and unavailable
-runtime methods refuse. Reservation refusal precedes the corresponding native,
+runtime methods refuse. A separate failed-state flag records even a literal
+`undefined` rejection; its error value never determines whether another stage
+may run. The original rejection value remains the cleanup carrier's cause.
+Reservation refusal precedes the corresponding native,
 Environment or Mapping constructor. A failed preparation or load is not retried
 with another declaration, runtime read, Root or capacity source. Earlier contexts
 remain retained for the same failure cleanup path.
@@ -112,8 +128,12 @@ All admission and preparation use the already-selected Host services and the
 same initial Source material. No new Root, late capacity source or fabricated
 selected installation is created. The normal runtime reader owns its file
 handle, bytes, hash and close. The native projection supplier must provide the
-actual complete typed construction quantity before any native constructor;
-this inventory has no guessed numeric fallback or independent quantity model.
+actual complete typed construction quantity before each native constructor.
+Pure JS stages separately use their declared retained/workspace recipes before
+parsing, canonicalization, hashing or descriptor allocation. Intermediate File
+and physical override originals remain retained when the final declaration is
+prepared and closes native-input preparation.
+This inventory has no guessed numeric fallback or independent quantity model.
 Borrowing retains the source's same declaration capability while the effect
 funds its own Environment and Mappings through the existing context.
 
@@ -144,7 +164,11 @@ earlier-context cleanup, detached originals, runtime reservation failure,
 currentness failure, pending physical close and reentrant cancellation inside
 the actual Effect factory before its asynchronous ledger creation. The latter
 checks that the constructor settles and its registered Site closes before the
-initial material retires.
+initial material retires. Staged catalog cases additionally check actual
+connection-index selection, four independent restore/export invocations, exact
+source/effect prepared tuples, generic UPDATE continuation, missing native
+quantities, refusal before the first entry JSON parse and cleanup of the
+previously completed prefix.
 
 These are component tests. Their Common semantic/resource ports and typed
 quantity are explicit fixtures, and no Account grant, Source request or Effect

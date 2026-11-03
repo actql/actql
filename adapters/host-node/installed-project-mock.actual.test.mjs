@@ -6,6 +6,7 @@ import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {prepareInstalledProjectMock} from '../local-node/installed-project-mock.mjs';
+import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
@@ -16,16 +17,18 @@ async function fixture({connections, data = './original/data.json'} = {}) {
   await mkdir('_build', {recursive: true});
   const directory = await mkdtemp(join(process.cwd(), '_build/mock-profile-originals-'));
   await writeFile(join(directory, 'actql.config.json'), JSON.stringify({version: 'actql-config/0.1',
-    connectors: './connections.json', profile: 'mock', mock: {data, answers: {}}}));
+    connectors: './connections.json', profile: 'mock', mock: {catalog: './catalog.json', data, answers: {}}}));
   const connectionWire = JSON.stringify({version: 'actql-connectors/0.1', connections: connections ?? {
     salesforce: {connector: 'salesforce', credentials: {token: {env: 'NEVER_READ_MOCK_SECRET'}}},
     snowflake: {connector: 'snowflake'},
   }});
   const path = join(directory, 'connections.json');
   await writeFile(path, connectionWire);
+  const catalogPath = join(directory, 'catalog.json');
+  await writeFile(catalogPath, projectTemplateFiles('churn-risk-mock')['mock/catalog.json']);
   const project = await loadInstalledProjectConfiguration(moon, {directory});
   const profile = selectInstalledProjectProfile(moon, project, 'mock', 65536);
-  return {directory, path, project, profile, connectionWire};
+  return {directory, path, catalogPath, project, profile, connectionWire};
 }
 
 test('actual Mock preparation retains original Project/Profile/connections and both explicit Common declarations', async () => {
@@ -34,7 +37,7 @@ test('actual Mock preparation retains original Project/Profile/connections and b
   let checks = 0;
   const view = await prepareInstalledProjectMock(moon, f.project, f.profile, {
     assertCurrent() {checks++;}, async openFile(path, flags) {
-      assert.equal(path, f.path); opened.push(path); return open(path, flags);
+      assert.ok([f.path, f.catalogPath].includes(path)); opened.push(path); return open(path, flags);
     },
   });
   const value = view.originalsForRuntime(moon);
@@ -57,7 +60,9 @@ test('actual Mock preparation retains original Project/Profile/connections and b
   assert.equal(JSON.parse(value.mappingWire).target_ref, 'connector://salesforce/Account');
   assert.equal(view.originalsForRuntime(moon), value);
   assert.ok(checks > 3);
-  assert.deepEqual(opened, [f.path], 'No data, answer, credential or provider acquisition');
+  assert.deepEqual(opened, [f.path, f.catalogPath], 'No data, answer, credential or provider acquisition');
+  assert.equal(value.physicalKind, 'declared-json-document');
+  assert.equal(value.writable.source, value.sources[0]);
   view.retire(moon);
 });
 
@@ -72,11 +77,11 @@ test('actual Mock preparation refuses foreign original Profile before connection
 
 test('actual Mock preparation does not infer a catalogue from the file name or another connector', async () => {
   for (const connections of [{salesforce: {connector: 'salesforce'}},
-    {salesforce: {connector: 'snowflake'}, snowflake: {connector: 'snowflake'}}]) {
+    {other: {connector: 'salesforce'}, snowflake: {connector: 'snowflake'}}]) {
     const f = await fixture({connections});
     await assert.rejects(prepareInstalledProjectMock(moon, f.project, f.profile,
       {assertCurrent() {}}), error => ['InstalledMockCatalogueUnavailable',
-      'InstalledMockConnectionChanged'].includes(error.code));
+      'InvalidInstalledMockCatalog'].includes(error.code));
   }
 });
 
@@ -109,4 +114,17 @@ test('actual Mock preparation keeps same-view/runtime retirement separate from S
   // Retiring this private DATA view does not retire its original parent.
   assert.ok(f.project.originalsForRuntime(moon).configuration);
   assert.equal(f.profile.originalsForRuntime(moon).selected, 'mock');
+});
+
+// Connection labels are arbitrary declarations, not a provider-selection
+// oracle. SourceRef uses the connection identity, not the provider identity.
+test('actual Mock preparation keeps same-provider connection identities distinct', async () => {
+  const f = await fixture({connections: {salesforce: {connector: 'snowflake'}, snowflake: {connector: 'snowflake'}}});
+  const prepared = await prepareInstalledProjectMock(moon, f.project, f.profile, {assertCurrent() {}});
+  const bundle = prepared.originalsForRuntime(moon);
+  assert.equal(bundle.writable.source.catalogue.connectorId, 'salesforce');
+  assert.equal(bundle.writable.source.catalogue.provider, 'snowflake');
+  assert.deepEqual(bundle.sources.map(source => source.catalogue.connectorId), ['salesforce', 'snowflake']);
+  assert.equal(JSON.parse(bundle.mappingWire).target_ref, 'connector://salesforce/Account');
+  prepared.retire(moon);
 });

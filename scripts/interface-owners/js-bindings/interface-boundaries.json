@@ -45396,6 +45396,11 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/openPreparedInstalledHost#4",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
           "parameters": [
             "prepared"
@@ -45579,20 +45584,6 @@
           "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates/updates",
-          "parameters": [
-            "alias"
           ],
           "async": false
         },
@@ -46350,6 +46341,13 @@
           "async": true
         },
         {
+          "name": "prepareInstalledMockSourcePreparation/prepareInstalledMockSourcePreparation#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": true
+        },
+        {
           "name": "prepareInstalledSequenceContractOriginal",
           "parameters": [
             "originals"
@@ -47067,8 +47065,6 @@
             "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources",
             "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/sources/sources/sources",
             "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/tasks/tasks",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates",
-            "openPreparedInstalledHost/preparation/init:initializeMockAccount/init:initializeMockAccount/updates/updates/updates",
             "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels",
             "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels",
             "openPreparedInstalledHost/preparation/init:installMockModels/init:installMockModels/init:installMockModels/assertCurrent/assertCurrent",
@@ -47135,6 +47131,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -47161,6 +47161,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -47207,6 +47211,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -47241,6 +47249,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -47267,6 +47279,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -47289,6 +47305,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -47311,6 +47331,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -47345,6 +47369,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -47367,6 +47395,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -47401,6 +47433,10 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -47919,6 +47955,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Standard Local Account initialization"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -47957,6 +47997,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input.mjs",
                 "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -48007,6 +48051,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -48049,6 +48097,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -48091,6 +48143,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -48129,6 +48185,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input.test.mjs",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -48167,6 +48227,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -48209,6 +48273,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -48243,6 +48311,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -48309,6 +48381,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('Host passes raw input before awaiting and consumes only the same captured packet afterwards'"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -48537,6 +48613,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -48551,6 +48631,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -48565,6 +48649,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -48579,6 +48667,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -48593,6 +48685,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -48607,6 +48703,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -48621,6 +48721,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -48635,6 +48739,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -48649,6 +48757,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -48675,6 +48787,10 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -52192,6 +52308,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Responsibility"
               }
             ],
             "inputsOutputs": [
@@ -52282,6 +52402,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
               }
             ],
             "identity": [
@@ -52392,6 +52516,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
               }
             ],
             "ownership": [
@@ -52498,6 +52626,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
               }
             ],
             "synchronization": [
@@ -52596,6 +52728,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
               }
             ],
             "failure": [
@@ -52690,6 +52826,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
               }
             ],
             "cancellation": [
@@ -52784,6 +52924,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
               }
             ],
             "resources": [
@@ -52894,6 +53038,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
               }
             ],
             "extension": [
@@ -52988,6 +53136,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
               }
             ],
             "verification": [
@@ -53182,6 +53334,10 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
               }
             ]
           }
@@ -57792,6 +57948,75 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openPreparedInstalledHost/openPreparedInstalledHost#4",
+            "prepareInstalledMockSourcePreparation/prepareInstalledMockSourcePreparation#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Verification"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -57811,6 +58036,7 @@
         "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "../local-node/declared-file-installation.mjs",
         "../local-node/installed-mock-row-effect.mjs",
         "../local-node/installed-project-mock-answers.mjs",
         "../local-node/installed-project-mock.mjs",
@@ -57908,7 +58134,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "569ea17c6c62654f568162d249d54848a66647c918771322cd72a5405df44268"
+      "sha256": "d23c02d5fdd4be76f652d4c5a0fe27c809fbc730e1540d4fcd9d9e53a8a871d0"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

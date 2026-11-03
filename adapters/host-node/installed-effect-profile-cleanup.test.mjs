@@ -493,7 +493,7 @@ test('GitHub Effect installer forwards original declaration Mapping and Site con
 // Actual existing Source material/context and Environment assembler. Only
 // native Core capacities/projection and current/retirement ports are explicit;
 // this exercises ownership/order, not numeric backing or a physical ACK.
-function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false} = {}) {
+function commandConstructionFixture({refuseReserve = false, failProjection, duringReserve, role = 'effect', reserveAt = 2, additionalNative = [], contractQuantity, contractFailure, repeatedNative = false, retainedNative, failRetainedProjection, missingRetainedProjection = false, metadataOnly = false} = {}) {
   const ok = value => ({$tag: 1, _0: value});
   const initial = {}, input = {}, unit = {}, capacity = {}, declaration = {}, native = {};
   const installed = Object.freeze({registration: 'sheets', revision: 'sheets/0.1', effect: {}});
@@ -532,10 +532,10 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   if (missingRetainedProjection) delete moon.clientProgramInstalledSourceRetainedConstructionCapacity;
   const services = createInstalledHostServices({root: '/unopened-original-command-construction', principalId: 'fixture', moon,
     initialPreparation: initial, assertCurrent() {}});
-  retainInstalledHostServiceInstallation(services, installed, cid);
+  if (!metadataOnly) retainInstalledHostServiceInstallation(services, installed, cid);
   const environment = JSON.stringify({version:'actql-check-environment/0.1',connector_catalogs:[],schema_snapshots:[],
     connector_capabilities:[],mapping_contracts:[],command_contracts:[]});
-  context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, role);
+  if (!metadataOnly) context = beginInstalledSourceInitialization(services, installed, 'sheets', environment, role);
   const projection = Object.freeze({capacity(wire) {
     assert.deepEqual(JSON.parse(wire), base);events.push('native-quantity');return native;
   }, project(wire) {
@@ -896,6 +896,8 @@ test('native Source input and original declaration stay on the same pre-reserved
   }));
   assert.strictEqual(prepared.declaration,f.declaration);
   assert.strictEqual(prepared.material,material);
+  assert.equal(typeof prepared.wire, 'string');
+  assert.deepEqual(JSON.parse(prepared.wire), prepared.declared);
   assert.equal(prepared.environment.wire,JSON.stringify(JSON.parse(prepared.environment.wire)));
   assert.doesNotThrow(()=>assertInstalledSourceConstruction(f.context,prepared.declaration,
     prepared.declared,prepared.environment));
@@ -982,4 +984,57 @@ test('Effect UPDATE backing refusal never enters either Mapping constructor', as
   assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
     {code: 'ForeignInstalledSourceInitialization'});
   assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+// Metadata precedes a configured connection. Its reader still belongs to the
+// original Source material, never to a fabricated connector context.
+test('metadata native admission uses the original reader before a connection exists', () => {
+  const f = commandConstructionFixture({metadataOnly: true});
+  const reader = installedSourceConfigurationReader(f.services), value = Object.freeze({original: true});
+  const projection = Object.freeze({capacity() {assert.equal(this, projection);return f.native;},
+    project() {assert.equal(this, projection);assert.equal(f.events.at(-1), 'reserve');return value;}});
+  assert.equal(reader.prepareNativeInput(projection), value);
+  assert.equal(f.context, undefined);
+  assert.throws(() => reader.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
+  assert.throws(() => reader.prepareNativeInput.call(Object.freeze({...reader}), projection),
+    {code: 'ForeignInstalledConfigurationReader'});
+  const foreign = installedSourceConfigurationReader(commandConstructionFixture({metadataOnly: true}).services);
+  assert.throws(() => reader.prepareNativeInput.call(foreign, projection), {code: 'ForeignInstalledConfigurationReader'});
+  assert.equal(f.retire(), true);
+});
+
+test('metadata native reservation refusal is once-only and precedes projection', () => {
+  const f = commandConstructionFixture({metadataOnly: true, refuseReserve: true, reserveAt: 1});
+  const reader = installedSourceConfigurationReader(f.services);let called = 0;
+  const projection = Object.freeze({capacity() {return f.native;}, project() {called++;return {};}});
+  assert.throws(() => reader.prepareNativeInput(projection), error => error === f.refusal);
+  assert.equal(called, 0);
+  assert.throws(() => reader.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
+  assert.equal(f.retire(), true);
+});
+
+test('metadata native admission refuses reentry and retains an unsettled failed constructor', async () => {
+  const f = commandConstructionFixture({metadataOnly: true}), reader = installedSourceConfigurationReader(f.services);
+  let settle;const pending = new Promise(resolve => {settle = resolve;});
+  const projection = Object.freeze({capacity() {
+    assert.throws(() => reader.prepareNativeInput(projection), {code: 'ForeignInstalledSourceInitialization'});
+    return f.native;
+  }, project() {return pending;}});
+  assert.throws(() => reader.prepareNativeInput(projection));
+  assert.equal(f.retire(), false);
+  settle(Object.freeze({original: 'settled'}));await pending;await Promise.resolve();
+  assert.equal(f.retire(), true);
+});
+
+test('same Source metadata reader funds strict UTF8 decoding and rejects malformed original bytes', async t => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'actql-source-utf8-'));
+  t.after(() => fs.rm(directory, {recursive: true, force: true}));
+  const valid = join(directory, 'valid.json'), invalid = join(directory, 'invalid.json');
+  await fs.writeFile(valid, '{"name":"例"}');await fs.writeFile(invalid, Buffer.from([0xc3, 0x28]));
+  const f = commandConstructionFixture({metadataOnly: true}), reader = installedSourceConfigurationReader(f.services);
+  assert.equal(await reader.readUtf8(valid, {maxBytes: 64}), '{"name":"例"}');
+  assert.equal(f.originalIo.size, 0);
+  await assert.rejects(reader.readUtf8(invalid, {maxBytes: 64}), error => error.code === 'ERR_ENCODING_INVALID_ENCODED_DATA');
+  assert.equal(f.originalIo.size, 0);
+  assert.equal(f.retire(), true);
 });

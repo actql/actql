@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtemp, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
+import {loadDeclaredProjectCatalog} from './declared-project-catalog.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
+import {declaredProjectCatalogEntryConstructionGeometry}
+  from '../host-node/declared-project-catalog-construction.mjs';
 import {admitInstalledProjectConfiguration, installedProjectOriginalsForRuntime}
   from '../host-node/installed-project-configuration.mjs';
 import {createInstalledHostServices, retireInstalledSourceInitialization,
@@ -22,7 +27,7 @@ const baseEnvironmentWire = JSON.stringify({version: 'actql-check-environment/0.
 const writes = Object.freeze([Object.freeze({resource: 'records', sources: Object.freeze([
   Object.freeze({target: 'label', field: 'label', null_behavior: 'reject'})])})]);
 
-async function fixture(t) {
+async function fixture(t, extendMoon) {
   const root = await mkdtemp(join(tmpdir(), 'actql-declared-file-component-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const runtimePath = join(root, 'runtime.mjs');
@@ -96,6 +101,7 @@ async function fixture(t) {
     clientProgramInstalledSourceReadBindEffectProgram: unused,
     clientProgramInstalledSourceReadAttachAcquisition: unused,
   });
+  extendMoon?.({moon, state, events, nativeOriginals});
   const project = admitInstalledProjectConfiguration(moon, '{"fixture":"configuration"}');
   const projectOriginal = installedProjectOriginalsForRuntime(project, moon);
   const connectionOriginal = Object.freeze({project: projectOriginal, connections});
@@ -292,4 +298,219 @@ test('component retirement joins an actual Effect constructor before retiring it
   assert.equal(f.state.sourceCloses, 0, 'no source adapter was fabricated for metadata cleanup');
   assert.equal(f.retire(), true);assert.equal(f.state.retires, 1);
   assert.equal(f.state.projections, 1);assert.equal(f.state.mappings, 1);
+});
+
+// Exercise real inventory/service ownership with explicit Common semantic ports.
+// These fixtures verify staging and original custody, not Core admission laws.
+async function catalogFixture(t, {refuseNative = 0, missingNative = 0, malformedEntry = false, refuseEntry = false} = {}) {
+  let latestQuote;
+  const exports = new Map(), restoreCalls = [];
+  const f = await fixture(t, ({moon, state, events, nativeOriginals}) => {
+    state.nativeQuotes = 0;state.nativeRestores = 0;state.nativeExports = 0;
+    state.entryQuotes = 0;state.entryWire = undefined;
+    let entryQuantity;
+    moon.clientProgramInstalledSourceConstructionCapacity = (...values) => {
+      if (entryQuantity !== undefined && values.every((value, index) => value === entryQuantity[index])) {
+        state.entryQuotes++;state.phase = 'entry';
+        if (refuseEntry) state.refuse = state.phase;
+      }
+      return ok({values});
+    };
+    Object.assign(moon, {
+      clientProjectCatalogAdmissionConstructionCapacity: () => Object.freeze({fixture: 'catalog-admission-quantity'}),
+      clientProjectCatalogAdmit(original) {
+        assert.equal(events.at(-1), 'reserve:' + state.phase);
+        return ok(JSON.parse(original));
+      },
+      clientProjectCatalogCount: original => Object.keys(original.connections).length,
+      clientProjectCatalogName: (original, index) => Object.keys(original.connections)[index],
+      clientProjectCatalogEntryOriginalJson(original, index) {
+        const wire = malformedEntry ? '{' : JSON.stringify(original.connections[Object.keys(original.connections)[index]]);
+        const {retained, workspace} = declaredProjectCatalogEntryConstructionGeometry(wire);
+        entryQuantity = [retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire];
+        state.entryWire = wire;return wire;
+      },
+      clientProgramRelationRestoreConstructionCapacity(connector, registration, revision, wire,
+        resources, kinds, schemas, requests, facts, acquisitions, identities) {
+        const index = ++state.nativeQuotes;state.phase = 'native-' + index;
+        latestQuote = Object.freeze({fixture: 'actual-invocation-native-quantity', index,
+          connector, registration, revision, wire, resources, kinds, schemas, requests, facts, acquisitions, identities});
+        if (index === refuseNative) state.refuse = state.phase;
+        return index === missingNative ? undefined : latestQuote;
+      },
+      clientProgramRowSourceRestoreRelationDeclaration(connector, registration, revision, wire) {
+        assert.equal(events.at(-1), 'reserve:' + state.phase);
+        assert.deepEqual([connector, registration, revision, wire],
+          [latestQuote.connector, latestQuote.registration, latestQuote.revision, latestQuote.wire]);
+        const declaration = Object.freeze({fixture: 'native-declaration', index: latestQuote.index});
+        const views = JSON.parse(wire).views;
+        assert.deepEqual([latestQuote.resources, latestQuote.kinds, latestQuote.schemas, latestQuote.requests,
+          latestQuote.facts, latestQuote.acquisitions, latestQuote.identities],
+          ['resource', 'resource_kind', 'schema_wire', 'request_schema_wire', 'facts_wire',
+            'acquisition_wire', 'resource_identity_wire'].map(name => views.map(view => view[name])));
+        const declared = {views: views.map(view => ({resource: view.resource,
+          source_ref: `connector://${connector}/${view.resource}#records`, carrier_schema_cid: cid})),
+          evidence_schemas: [], evidence_capabilities: [], view_bodies: [], contracts: [],
+          catalog: JSON.stringify({connector_id: connector}), manifest_entry: JSON.stringify({
+            connector_id: connector, connector: registration, connector_version: revision})};
+        nativeOriginals.set(declaration, JSON.stringify(declared));
+        restoreCalls.push(latestQuote);state.nativeRestores++;return ok(declaration);
+      },
+      clientProgramRowSourceDeclarationJson(declaration) {
+        assert(nativeOriginals.has(declaration));
+        assert.equal(exports.get(declaration) ?? 0, 0, 'each native restore has exactly one owned export');
+        exports.set(declaration, 1);state.nativeExports++;return nativeOriginals.get(declaration);
+      },
+      clientProgramRelationUpdateMapping: unused,
+      clientProgramRowSourcePrepareUpdateMapping(declaration, wire, resource, sources) {
+        assert(nativeOriginals.has(declaration));assert.equal(events.at(-1), 'reserve:' + state.phase);
+        assert.deepEqual(JSON.parse(wire), {writes: [{resource: 'records', primary_identity: 'id',
+          update: {fields: ['label'], permission: 'write', approval: 'required'}}]});
+        assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
+        const declared = JSON.parse(nativeOriginals.get(declaration));
+        const connector = JSON.parse(declared.catalog).connector_id;
+        state.mappings++;
+        return JSON.stringify({mapping_ref: `mapping:${connector}/update.v1`, mapping_cid: cid,
+          body: JSON.stringify({mapping_contract_cid: cid, target_ref: `connector://${connector}/${resource}`,
+            primary_identity: 'id', writable_fields: ['label'], minimum_approval: 'required',
+            permission_rules: [{effect_kind: 'update', permissions: ['write']}]}),
+          write_fields: ['label'], omittable: []});
+      },
+    });
+  });
+  const string = {type: 'string', nullable: false};
+  const catalog = {connections: {
+    // Deliberately reverse configured connection order and share the provider.
+    crm_secondary: {views: [{resource: 'files', resource_kind: 'record', schema: {id: string, name: string}},
+      {resource: 'contents', resource_kind: 'record', schema: {id: string}}],
+      query_aliases: [{name: 'files.listing', resource: 'files'}],
+      data: [{resource: 'files', items_path: ['files'], key_path: ['keys'], primary_identity: 'id',
+        schema: {id: string, name: string, version: string, media_type: string, content_utf8: string}}],
+      file_bindings: [{listing_resource: 'files', content_resource: 'contents', data_resource: 'files',
+        identity_field: 'id', name_field: 'name', version_field: 'version', media_type_field: 'media_type',
+        content_utf8_field: 'content_utf8'}]},
+    crm_primary: {views: [{resource: 'records', resource_kind: 'record', schema: {id: string, label: string}}],
+      query_aliases: [{name: 'crm.records', resource: 'records'}],
+      data: [{resource: 'records', items_path: ['records'], key_path: ['keys'], primary_identity: 'id'}],
+      writes: [{resource: 'records', primary_identity: 'id', writable_fields: ['label'],
+        permission: 'write', observe_permission: 'read', approval: 'required', aliases: ['CRM.Record']}]},
+  }};
+  const originalWire = JSON.stringify(catalog);
+  await writeFile(join(f.root, 'catalog.json'), originalWire);
+  return {...f, exports, restoreCalls, originalWire, load: () => loadDeclaredProjectCatalog(f.moon, {
+    directory: f.root, catalogFile: 'catalog.json', dataFile: 'absent-data.json',
+    connections: f.connectionOriginal.connections, connectionOriginal: f.connectionOriginal,
+    installationInventory: f.inventory, assertCurrent() {},
+  })};
+}
+
+test('component catalog stages actual connection members before constructors and exports each declaration once', async t => {
+  const f = await catalogFixture(t), result = await f.load();
+  const [files, records] = result.sources;
+  assert.equal(files.catalogue.connection, 'crm_secondary');assert.equal(records.catalogue.connection, 'crm_primary');
+  assert.equal(files.sourceMember, await f.begin(1));assert.equal(records.sourceMember, await f.begin(0));
+  assert.equal(files.sourceMember.providerNamespace, records.sourceMember.providerNamespace);
+  assert.equal(files.sourcePrepared.declaration, files.declaration);
+  assert.equal(files.sourcePrepared.wire, files.wire);
+  assert.equal(records.sourcePrepared.declaration, records.effectPrepared.declaration);
+  assert.equal(records.effectMember, await f.begin(0, 'effect'));
+  assert.equal(records.writes[0].mappingWire, records.effectPrepared.mappings[0].body);
+  assert.notEqual(files.physical[0].declaration, files.declaration);
+  assert.equal(records.physical[0].declaration, records.declaration);
+  assert.equal(f.state.nativeRestores, 4);assert.equal(f.state.nativeExports, 4);
+  assert.deepEqual(f.restoreCalls.map(value => [value.connector, value.registration]), [
+    ['crm_secondary', 'declared_file'], ['crm_secondary', 'declared_file_data'],
+    ['crm_secondary', 'declared_file'], ['crm_primary', 'declared_file']]);
+  const expectedScope = 'sha256:' + createHash('sha256').update(canonicalJson({
+    connection: 'crm_secondary', connector: 'salesforce', dataPath: join(f.root, 'absent-data.json'),
+    catalog: f.originalWire}, {dataKeys: true})).digest('hex');
+  assert.equal(files.scopeCid, expectedScope);
+  assert.equal(f.state.mappings, 1);assert.equal(f.state.takes, 1);
+  const adapter = await records.sourceMember.load(f.sourceOptions());
+  assert.equal(adapter.admitsSource('connector://crm_primary/records#records'), true);
+  await adapter.close();await f.inventory.fail(new Error('finished catalog constructor component'));
+  assert.equal(f.retire(), true);
+});
+
+for (const index of [1, 2, 3, 4]) {
+  test(`component catalog native reservation refusal ${index} precedes its constructor and retains the earlier prefix`, async t => {
+    const f = await catalogFixture(t, {refuseNative: index});
+    await assert.rejects(f.load(), error => error === f.refusal);
+    assert.equal(f.state.nativeQuotes, index);assert.equal(f.state.nativeRestores, index - 1);
+    assert.equal(f.state.nativeExports, index - 1);assert.equal(f.retire(), false);
+    await f.inventory.fail(f.refusal);assert.equal(f.retire(), true);assert.equal(f.state.takes, 1);
+    assert.equal(f.state.sourceCloses + f.state.effectCloses, 0);
+  });
+}
+
+test('component catalog missing native quote refuses without restore or export fallback', async t => {
+  const f = await catalogFixture(t, {missingNative: 1});
+  await assert.rejects(f.load(), {code: 'InstalledSourceDeclarationCapacityUnavailable'});
+  assert.equal(f.state.nativeRestores, 0);assert.equal(f.state.nativeExports, 0);
+  await f.inventory.fail(new Error('missing exact native quantity'));assert.equal(f.retire(), true);
+});
+
+test('component catalog malformed entry is refused inside its original funded projection', async t => {
+  const f = await catalogFixture(t, {malformedEntry: true});
+  await assert.rejects(f.load(), SyntaxError);
+  assert.equal(f.state.nativeQuotes, 0);assert.equal(f.state.nativeRestores, 0);
+  assert.equal(f.retire(), false);
+  await f.inventory.fail(new Error('malformed original entry'));assert.equal(f.retire(), true);
+});
+
+test('component native input cannot substitute for the final prepared Source tuple', async t => {
+  const f = await fixture(t), source = await f.begin();
+  const input = Object.freeze({fixture: 'earlier-js-stage'});
+  assert.equal(source.prepareNativeInput(Object.freeze({capacity: () => Object.freeze({fixture: 'input-quote'}),
+    project: () => input})), input);
+  await assert.rejects(source.load(f.sourceOptions()), {code: 'DeclaredFileInstallationAlreadyConstructed'});
+  const prepared = source.prepareNativeDeclaration(f.projection());
+  const adapter = await source.load(f.sourceOptions());
+  assert.equal(adapter.admitsSource('connector://crm_primary/records#records'), true);
+  assert.notEqual(input, prepared);
+  await adapter.close();await f.inventory.fail(new Error('component complete'));assert.equal(f.retire(), true);
+});
+
+
+test('component catalog Entry quantity refusal precedes its first JavaScript parse', async t => {
+  const f = await catalogFixture(t, {refuseEntry: true});
+  const parse = JSON.parse;
+  let entryParses = 0;
+  JSON.parse = function(value, ...args) {
+    if (value === f.state.entryWire) entryParses++;
+    return Reflect.apply(parse, this, [value, ...args]);
+  };
+  try {await assert.rejects(f.load(), error => error === f.refusal);}
+  finally {JSON.parse = parse;}
+  assert.equal(f.state.entryQuotes, 1);assert.equal(entryParses, 0);
+  assert.equal(f.state.nativeQuotes, 0);assert.equal(f.state.nativeRestores, 0);
+  await f.inventory.fail(f.refusal);assert.equal(f.retire(), true);
+});
+
+
+for (const thrown of [undefined, null]) test(`component ${String(thrown)} native-input failure stays failed and retains original cleanup ownership`, async t => {
+  const f = await fixture(t), source = await f.begin(), earlier = await f.begin(1);
+  earlier.prepareNativeDeclaration(f.projection('crm_secondary'));
+  const adapter = await earlier.load(f.sourceOptions('crm_secondary'));
+  let attempts = 0, caught = false;
+  const projection = Object.freeze({capacity: () => Object.freeze({fixture: 'input-quote'}),
+    project() {attempts++;throw thrown;}});
+  try {source.prepareNativeInput(projection);}
+  catch (cause) {caught = true;assert.equal(cause, thrown);}
+  assert.equal(caught, true);assert.equal(attempts, 1);
+  const different = Object.freeze({capacity: () => Object.freeze({fixture: 'different-input-quote'}),
+    project() {attempts++;return {};}});
+  assert.throws(() => source.prepareNativeInput(different), {code: 'DeclaredFileInstallationClosed'});
+  assert.throws(() => source.prepareNativeDeclaration(f.projection()), {code: 'DeclaredFileInstallationClosed'});
+  await assert.rejects(source.load(f.sourceOptions()), {code: 'DeclaredFileInstallationClosed'});
+  assert.equal(attempts, 1);assert.equal(f.state.projections, 1);
+  const failure = await source.cleanup(thrown);
+  assert.equal(failure.code, 'InstalledHostInitializationFailed');
+  assert.equal(Object.hasOwn(failure, 'primaryFailure'), true);assert.equal(failure.primaryFailure, thrown);
+  assert.equal(Object.hasOwn(failure, 'cause'), true);assert.equal(failure.cause, thrown);
+  f.state.sourcePending = true;
+  await assert.rejects(adapter.close(), error => error === f.pendingClose);
+  await f.inventory.fail(thrown);assert.equal(f.retire(), false);
+  f.state.sourcePending = false;await adapter.close();
+  assert.equal(f.retire(), true);assert.equal(f.state.retires, 1);
 });

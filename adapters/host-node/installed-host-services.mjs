@@ -12,7 +12,7 @@ import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {installedCheckEnvironmentInputs, composeInstalledCheckEnvironmentOriginal} from './installed-check-environment.mjs';
-import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
+import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
@@ -263,13 +263,47 @@ function freezeSourceProjection(value) {
 // This reader is created only by the real initializer, before the first
 // configuration open. Its fixed Buffer peak is reserved before allocation;
 // actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
+// One pure metadata/native-input constructor under an already existing Source
+// material. Context and metadata-reader entrances supply only private guards;
+// neither can replace the original material or reserve after construction.
+function prepareSourceNativeInput(original, material, projection, attempts, validate, retain) {
+  if (material.phase !== 'working' || material.busy || attempts.has(projection)) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  validate();
+  const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+  attempts.add(projection);
+  let quantity;
+  material.busy = true;
+  try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
+  finally {material.busy = false;}
+  if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
+  material.providers.push(quantity); material.inputs.push(projection);
+  reserveSource(original, material);
+  validate();
+  if (material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  let value;
+  material.busy = true;
+  try {
+    value = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
+    material.inputs.push(value);
+    validate();
+    if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
+      fail('InvalidInstalledSourceNativeInput');
+    }
+    retain(value);
+  } finally {material.busy = false;}
+  reconcileSource(original, material);
+  return value;
+}
+
 export function installedSourceConfigurationReader(services) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = sourceMaterial(original);
   if (material === undefined) return undefined;
   if (material.configurationReader !== undefined) return material.configurationReader;
-  async function read(path, options, json) {
+  async function read(path, options, json, strictUtf8 = false) {
     if (options !== undefined && (nodeTypes.isProxy(options) ||
         Reflect.ownKeys(options).some(name => name !== 'maxBytes'))) {
       fail('InvalidInstalledConfigurationReaderOptions');
@@ -296,7 +330,8 @@ export function installedSourceConfigurationReader(services) {
         reserveSource(original, material, json ? 4n * decoded : 0n,
           12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
       };
-      const value = await (json ? readSourceProfileJson : readBoundedConfigurationText)(path,
+      const value = await (json ? readSourceProfileJson
+        : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
         {maxBytes, beforeDecode, io: sourceIo(original, material)});
       // The original file has actually closed before retaining/reconciling.
       material.inputs.push(value);
@@ -338,7 +373,19 @@ export function installedSourceConfigurationReader(services) {
     } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
     finally {material.ioPending--;}
   }
+  const metadataProjections = new WeakSet();
+  const validateMetadataInput = () => {
+    if (sourceMaterial(original) !== material || material.phase !== 'working') {
+      fail('ForeignInstalledSourceInitialization');
+    }
+  };
+  const retainMetadataInput = () => {};
   const reader = Object.freeze({
+    prepareNativeInput(projection) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return prepareSourceNativeInput(original, material, projection, metadataProjections,
+        validateMetadataInput, retainMetadataInput);
+    },
     parseJsonText(text) {
       if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
         fail('ForeignInstalledConfigurationText');
@@ -365,6 +412,10 @@ export function installedSourceConfigurationReader(services) {
     readText(path, options) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return read(path, options, false);
+    },
+    readUtf8(path, options) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return read(path, options, false, true);
     },
     async readOriginalText(path) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
@@ -548,6 +599,11 @@ function createInstalledSourceContext(original, material, installation, connecto
   material.contexts.push(scope); material.constructors++;
   const inputProjections = new WeakSet();
   const nativeInputOriginals = new WeakSet();
+  const validateNativeInputContext = () => {
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  };
+  const retainNativeInput = value => nativeInputOriginals.add(value);
   function prepareSourceEnvironment(declared, mappings = []) {
     const geometry = sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared, mappings);
     const before = scope.prepared;
@@ -780,33 +836,9 @@ function createInstalledSourceContext(original, material, installation, connecto
       } finally {material.busy = false;}
     },
     prepareNativeInput(projection) {
-      if (this !== context || !scope.active || scope.prepared !== undefined || scope.source !== undefined ||
-          material.phase !== 'working' || material.busy || inputProjections.has(projection)) {
-        fail('ForeignInstalledSourceInitialization');
-      }
-      const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
-      inputProjections.add(projection);
-      let quantity;
-      material.busy = true;
-      try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
-      finally {material.busy = false;}
-      if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
-      material.providers.push(quantity); material.inputs.push(projection);
-      reserveSource(original, material);
-      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
-          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
-      let value;
-      material.busy = true;
-      try {
-        value = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
-        material.inputs.push(value);
-        if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
-          fail('InvalidInstalledSourceNativeInput');
-        }
-        nativeInputOriginals.add(value);
-      } finally {material.busy = false;}
-      reconcileSource(original, material);
-      return value;
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      return prepareSourceNativeInput(original, material, projection, inputProjections,
+        validateNativeInputContext, retainNativeInput);
     },
     prepareProviderEffect(site, provider, mappingOriginals) {
       if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
@@ -936,7 +968,9 @@ function createInstalledSourceContext(original, material, installation, connecto
       try {
         const environment = scope.role === 'effect' ? undefined
           : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
-        prepared = Object.freeze({declaration, declared, environment});
+        // Borrow the exact already-owned export. Consumers must not serialize
+        // or export the declaration again just to recover its original wire.
+        prepared = Object.freeze({declaration, declared, wire: declaredWire, environment});
         scope.prepared = prepared;
         // Preserve the existing raw Mapping continuation's declaration basis.
         scope.declarationBasis = 16n * (BigInt(declaredWire.length) + BigInt(scope.baseEnvironmentWire.length));
