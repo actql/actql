@@ -9,6 +9,7 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
+import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
@@ -57,6 +58,37 @@ test('Native Effect capture progress missing evidence remains unavailable', asyn
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+
+test('Reader custody injection loads across the selected host helper CPU subtypes', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  // Retain the exact generated library and helper binaries with this new
+  // component's evidence. None is an installed runtime or a product profile.
+  const scratch = mkdtempSync(join(parent, 'loader-'));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const source = join(scratch, 'helper.c');
+  writeFileSync(source, 'int main(void) { return 0; }\n');
+  // Apple's compiler/launcher helpers can use arm64e while the Native test
+  // binaries use arm64. Exercise the real loader for both, without changing
+  // the product's admitted Darwin arm64 profile or its injection semantics.
+  const subtypes = process.platform === 'darwin' ? ['arm64', 'arm64e'] : [undefined];
+  for (const subtype of subtypes) {
+    const helper = join(scratch, 'helper-' + (subtype ?? process.arch));
+    const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
+      ...(subtype ? ['-arch', subtype] : []), source, '-o', helper], {
+      encoding: 'utf8', timeout: 30000,
+    });
+    assert.equal(built.error, undefined);
+    assert.equal(built.signal, null);
+    assert.equal(built.status, 0, built.stderr);
+    const loaded = spawnSync(helper, [], {encoding: 'utf8', timeout: 10000,
+      env: {...process.env, ...injected}});
+    assert.equal(loaded.error, undefined);
+    assert.equal(loaded.signal, null, loaded.stderr);
+    assert.equal(loaded.status, 0, loaded.stderr);
+  }
+});
 
 test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
   const core = workflow.jobs.core;
