@@ -157,5 +157,8 @@ test('current reclaimed-prefix helper retains reviewed body and original sequenc
     assert.throws(()=>checkChainSource(source.slice(0,start)+changed+source.slice(end)),/reviewed reclaimed-prefix/);
   }
   const call='let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)';
-  assert.throws(()=>checkChainSource(source.replace(call,call+'\n  let duplicate = relation_chain_reclaimed_prefix(sequence)')),/reviewed reclaimed-prefix call count/);
+  const parent=source.indexOf('fn bounded_relation_chain_execution_state(');
+  assert(parent>=0);
+  const duplicate=source.slice(0,parent)+source.slice(parent).replace(call,call+'\n  let duplicate = relation_chain_reclaimed_prefix(sequence)');
+  assert.throws(()=>checkChainSource(duplicate),/reviewed reclaimed-prefix call count/);
 });
