@@ -147,9 +147,9 @@ def build(source, archive, destination, clang, sdk, make, perl, seconds, target=
             validate_archive_deployment(loads, profile['minimumMacOS'])
     for headers in (source_root / 'include/openssl', build_root / 'include/openssl'):
         for path in headers.glob('*.h'):
-            target = stage / 'include/openssl' / path.name
-            require(not target.exists() or target.read_bytes() == path.read_bytes(), 'TLS header collision')
-            shutil.copy2(path, target)
+            header_target = stage / 'include/openssl' / path.name
+            require(not header_target.exists() or header_target.read_bytes() == path.read_bytes(), 'TLS header collision')
+            shutil.copy2(path, header_target)
     shutil.copy2(source_root / 'LICENSE.txt', stage / 'LICENSE.txt')
     config = (stage / 'include/openssl/configuration.h').read_text()
     require(all(re.search(r'#\s*define\s+' + option + r'\b', config) for option in

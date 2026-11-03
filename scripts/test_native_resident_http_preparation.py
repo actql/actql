@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -89,6 +90,45 @@ class ExistingProducerComposition(unittest.TestCase):
 
     def test_foreign_primary_key_refuses_before_either_producer(self):
         self.compose('darwin-arm64',key_fingerprint='B'*40)
+
+
+class OwnedTlsReceipt(unittest.TestCase):
+    def test_copying_headers_preserves_the_selected_serializable_target(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw).resolve();(root/'scripts').mkdir()
+            source='a'*40;original=root/'original/openssl-test'
+            (original/'crypto').mkdir(parents=True);(original/'include/openssl').mkdir(parents=True)
+            before=b'OPENSSL_zalloc(sizeof(pthread_rwlock_t))\nOPENSSL_zalloc(sizeof(pthread_mutex_t))\n'
+            after=before.replace(b'OPENSSL_zalloc(sizeof(pthread_rwlock_t))',b'CRYPTO_zalloc(sizeof(pthread_rwlock_t), NULL, 0)').replace(
+                b'OPENSSL_zalloc(sizeof(pthread_mutex_t))',b'CRYPTO_zalloc(sizeof(pthread_mutex_t), NULL, 0)')
+            (original/'crypto/threads_pthread.c').write_bytes(before)
+            (original/'include/openssl/original.h').write_bytes(b'Source-only header')
+            (original/'LICENSE.txt').write_bytes(b'Source-only license')
+            archive=root/'source.tar.gz'
+            with tarfile.open(archive,'w:gz') as stream:stream.add(original,arcname='openssl-test')
+            recipe={'version':'test','archive':{'bytes':archive.stat().st_size,
+                'sha256':hashlib.sha256(archive.read_bytes()).hexdigest()},'configure':[],
+                'lockAllocationRefusal':{'path':'crypto/threads_pthread.c',
+                    'beforeSha256':hashlib.sha256(before).hexdigest(),'afterSha256':hashlib.sha256(after).hexdigest()}}
+            (root/'scripts/native-http-component-source.json').write_text(json.dumps({'ownedOpenSSLSource':recipe}))
+            (root/'scripts/produce-native-remote-scoped-runtime.py').write_bytes(b'Source-only original observer')
+            for name in ('cc','make','perl'):(root/name).write_bytes(b'Source-only tool')
+            output=root/'output'
+            def execute(command,**kwargs):
+                if 'build_libs' in command:
+                    build=output/'build'
+                    for name in ('libssl.a','libcrypto.a'):(build/name).write_bytes(b'Fixture archive; never loaded')
+                    (build/'include/openssl').mkdir(parents=True)
+                    (build/'include/openssl/configuration.h').write_text('#define OPENSSL_NO_PINSHARED\n#define OPENSSL_NO_ATEXIT\n')
+                return subprocess.CompletedProcess(command,0,'','')
+            with patch.object(P.HTTP.TLS,'ROOT',root),patch.object(P.HTTP.TLS.sys,'platform','linux'),\
+                    patch.object(P.HTTP.TLS.platform,'machine',return_value='x86_64'),\
+                    patch.object(P.HTTP.TLS.subprocess,'check_output',
+                        side_effect=lambda args,**kw:source+'\n' if 'rev-parse' in args else ''),\
+                    patch.object(P.HTTP.TLS.subprocess,'run',side_effect=execute):
+                result=P.HTTP.TLS.build(source,archive,output,root/'cc',None,root/'make',root/'perl',30,'linux-x64')
+            self.assertEqual(result['target'],'linux-x64')
+            self.assertEqual(json.loads((output/'build.json').read_text())['target'],'linux-x64')
 
 
 if __name__=='__main__':unittest.main()
