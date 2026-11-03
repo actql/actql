@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync, existsSync, mkdirSync, writeFileSync, copyFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {runCodeInspection as run,readNativeSymbols} from './native-code-inspection.mjs';
 import {scalarSitesX64} from './provider-callback-x64.mjs';
 import {nativeFunctionEntries,disassembleNativeRanges} from './native-code-disassembly.mjs';
 import {hash} from '../../inventory.mjs';
@@ -26,11 +26,6 @@ export function nativeArtifactPath(root,read,path) {
   assert(typeof physical==='string' && physical.length>0,'Invalid Native artifact physical path');
   assert.equal(hash(readFileSync(physical)),hash(read(path)),'Detached Native artifact physical input');
   return physical;
-}
-function run(tool, args) {
-  const r = spawnSync(tool, args, {encoding:'utf8', timeout:30000, maxBuffer:32*1024*1024});
-  assert.equal(r.status, 0, r.stderr || `Code inspection failed: ${tool}`);
-  return r.stdout;
 }
 export function codeSymbols(text) {
   const symbols = new Map();
@@ -152,7 +147,7 @@ export function providerConstructors(names, providerNames) {
 }
 function generatedCode(root, object, exe, providerNames, platform) {
   const {anchorName,malloc,objdump}=toolsFor(platform);
-  const full=run(nm,['-n',exe]);
+  const full=readNativeSymbols(nm,['-n',exe],{names:[anchorName,malloc]});
   const names=codeSymbols(providerSymbolText(full));
   const constructors=providerConstructors(names.keys(),providerNames);
   const symbols=[...names].filter(([name])=>name===anchorName || name===malloc || name.includes('connectors5local'))
@@ -165,7 +160,7 @@ function generatedCode(root, object, exe, providerNames, platform) {
     }
     // GNU debug symbols have zero size and include basic-block labels. Use
     // finite ranges ending at the next real function, never its first block.
-    const all=nativeFunctionEntries(file===exe?full:run(nm,['-n',file]));
+    const all=nativeFunctionEntries(file===exe?full:readNativeSymbols(nm,['-n',file],{names:[anchorName,malloc]}));
     return disassembleNativeRanges(run,objdump,file,all,constructors,relocations);
   }
   return {symbols,disassembly:dump(object,true),linkedDisassembly:dump(exe,false),constructors};
