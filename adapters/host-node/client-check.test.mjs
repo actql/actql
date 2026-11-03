@@ -6368,7 +6368,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: CTE unresolved witnesses require authorized complete namespace absence`, async t => {
     const account = JSON.parse(namespaceAccount());
     // Namespace inspection does not grant the separate original-Submission read.
-    account.entries.push({entry_id: 'host-run-read', outcome: 'allow',
+    account.entries.unshift({entry_id: 'host-run-read', outcome: 'allow',
       principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
       resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []});
     const client = await namespaceClient(t, entrance, configurations.allowed, {sourceNamespace: 'queries',
