@@ -480,6 +480,8 @@ pub fn installed_row_capture_capacity(@client_row_source_host.RowAcquisition) ->
 
 pub fn installed_slack_source_reader_capacity(Array[Int], Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
+pub fn installed_source_child_grant_construction_capacity() -> @execution_relation.ExecutionCapacity?
+
 pub fn installed_source_construction_capacity(Int64, Int64, Int64, Int64, Int64, Int64) -> @execution_relation.ExecutionCapacity?
 
 pub fn installed_source_reader_policy() -> Array[Int]

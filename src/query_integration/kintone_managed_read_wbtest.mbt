@@ -69,6 +69,29 @@ test "managed Kintone adopts exact Query original and supplies charged typed val
     8192L,
   ).unwrap()
   @row_host.begin_row_run(run, 8192, 4, 4).unwrap()
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
+  let adopt_borrow = fn(declaration) {
+    @kintone_host.adopt_managed_record_borrow(
+      declaration,
+      borrow,
+      kintone_page_limits(),
+      kintone_value_limits(),
+      100,
+      2,
+    )
+  }
+  // An unbound cleanup duty cannot expose the retained original selection.
+  assert_true(adopt_borrow(original) is Err(Host(InvalidState)))
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => true).unwrap()
+  assert_true(adopt_borrow(kintone_original_declaration()) is Err(_))
+  let borrowed_read = adopt_borrow(original).unwrap()
+  assert_true(
+    @kintone_host.managed_record_query_matches(borrowed_read, acquisition),
+  )
+  assert_true(
+    @row_host.borrow_row_run_responses(run, acquisition) is Err(InvalidState),
+  )
+  @kintone_host.retire_managed_record(borrowed_read)
   // Generic-owner ordering: the caller charges once before native projection.
   let charge = @row_host.charge_row_run_page(run, bytes).unwrap()
   let rows = @kintone_host.managed_record_project_page(read, bytes).unwrap()
@@ -95,6 +118,7 @@ test "managed Kintone adopts exact Query original and supplies charged typed val
   assert_false(@kintone_host.managed_record_query_matches(read, acquisition))
   assert_true(@kintone_host.managed_record_project_page(read, bytes) is Err(_))
   kintone_assert_closed(run, ledger)
+  assert_true(adopt_borrow(original) is Err(Host(InvalidState)))
 }
 
 ///|
@@ -171,4 +195,91 @@ test "managed Kintone requires final Form and latches drift and duplicate seek I
   assert_false(@kintone_host.managed_record_complete(terminal))
   @kintone_host.retire_managed_record(read)
   @kintone_host.retire_managed_record(terminal)
+}
+
+///|
+test "managed Kintone cumulative native response quote preserves the previous original capacity" {
+  let original = kintone_original_declaration()
+  let acquisition = @kintone_host.record_read_acquisition(
+    kintone_read_preparation(original~),
+  )
+  let pages = kintone_page_limits()
+  let values = kintone_value_limits()
+  let read = @kintone_host.adopt_managed_record_query(
+    original, acquisition, pages, values, 100, 2,
+  ).unwrap()
+  let initial = @kintone_host.managed_record_construction_capacity(
+    original, pages, values, 100, 2, 8192,
+  ).unwrap()
+  let initial_bytes = @execution.execution_capacity_execution_bytes(initial)
+  let form = kintone_original_form_body()
+  let limits = managed_kintone_form_limits()
+  assert_true(
+    @kintone_host.managed_record_response_construction_capacity(
+      read,
+      initial,
+      form.length(),
+      false,
+      limits,
+    )
+    is None,
+  )
+  let with_form = @kintone_host.managed_record_response_construction_capacity(
+    read,
+    initial,
+    form.length(),
+    true,
+    limits,
+  ).unwrap()
+  let form_bytes = @execution.execution_capacity_execution_bytes(with_form)
+  assert_true(form_bytes > initial_bytes)
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(initial),
+    initial_bytes,
+  )
+  // Quotation itself leaves the original protocol state unchanged.
+  assert_true(@kintone_host.managed_record_form_request(read, 8192) is Ok(_))
+  @kintone_host.managed_record_recheck_form(read, form, limits).unwrap()
+  let page = managed_kintone_page("9007199254740993")
+  let with_page = @kintone_host.managed_record_response_construction_capacity(
+    read,
+    with_form,
+    page.length(),
+    false,
+    limits,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(with_page) > form_bytes,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(with_form),
+    form_bytes,
+  )
+  assert_true(
+    @kintone_host.managed_record_response_construction_capacity(
+      read, with_page, -1, false, limits,
+    )
+    is None,
+  )
+  assert_true(
+    @kintone_host.managed_record_response_construction_capacity(
+      read,
+      with_page,
+      pages.max_bytes + 1,
+      false,
+      limits,
+    )
+    is None,
+  )
+  @kintone_host.retire_managed_record(read)
+  assert_true(
+    @kintone_host.managed_record_response_construction_capacity(
+      read,
+      with_page,
+      page.length(),
+      false,
+      limits,
+    )
+    is None,
+  )
 }

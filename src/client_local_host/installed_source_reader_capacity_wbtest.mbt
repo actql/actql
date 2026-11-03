@@ -7,27 +7,29 @@ test "JSON Source reader inventory uses shared tariff and separate retained work
   // The reader retains its original sequence retirement method/state plus
   // two native callbacks (2H/4R=64B). The complete simultaneous native
   // handoff/typed-call controls are 7H/14R/11W=312B, never another payload.
-  // The one selected-native flag adds one retained word.
+  // The one selected-native flag adds one retained word. Captured credential
+  // current pairs + bound Site methods + factory/reader slots add 2H/13R=136B;
+  // private borrow handoff adds three workspace references=24B.
   let capacity = installed_json_source_reader_capacity(limits, 2, 3).unwrap()
-  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3488L)
-  // Independent Host vector: 27 headers, 99 references, 23 words,
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3624L)
+  // Independent Host vector: 27 headers, 102 references, 23 words,
   // 51 UTF16 units and 14 wire bytes. The 20 checked-value slots are
   // separate from the original Source parser/key workspace. Consume that
   // owner's quote instead of keeping a second frozen NFC/Source aggregate.
   let host = @execution.preparation_representation_cost({
     record_headers: 27L,
-    reference_slots: 99L,
+    reference_slots: 102L,
     scalar_words: 23L,
     owned_utf16_units: 51L,
     owned_wire_bytes: 14L,
   }).unwrap()
-  assert_eq(host, 1524L)
+  assert_eq(host, 1548L)
   let response = @execution.preparation_representation_cost(
     installed_source_response_workspace(4, 3, 4).unwrap(),
   ).unwrap()
   assert_eq(
     @execution.execution_capacity_execution_bytes(capacity),
-    3488L + host + 20L * @execution.execution_capacity_node_bytes() + response,
+    3624L + host + 20L * @execution.execution_capacity_node_bytes() + response,
   )
   assert_true(installed_json_source_reader_capacity([], 2, 3) is None)
   assert_true(installed_json_source_reader_capacity(limits, 0, 3) is None)
@@ -197,15 +199,15 @@ test "native typed Source composes only shared Reader controls with its original
     3,
     Some(codec),
   ).unwrap()
-  // The independent generic retained vector3488 includes row-id/cursor
+  // The independent generic retained vector3624 includes row-id/cursor
   // tracking: (3+2)*(2R+1W) + (3*7+2*5)U = 182B. This native Reader
   // never constructs that generic tracking state; its codec owns its cursor.
-  // The remaining shared retained vector is3306. Native shared controls are
-  // 27H/99R/23W=1408B, target8U=16B and one physical response4B.
+  // The remaining shared retained vector is3442. Native shared controls are
+  // 27H/101R/23W=1424B, target8U=16B and one physical response4B.
   // The codec alone owns its actual parser/typed projection; no row wire or
   // generic raw JSON decoder is allocated or priced by this alternative.
-  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3323L)
-  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 4757L)
+  assert_eq(@execution.execution_capacity_retained_bytes(capacity), 3459L)
+  assert_eq(@execution.execution_capacity_execution_bytes(capacity), 4917L)
   let spelling = limits.copy()
   spelling[8] = 5000
   spelling[9] = 7000
@@ -239,7 +241,7 @@ test "native typed Source composes only shared Reader controls with its original
     @execution.execution_capacity_retained_bytes(
       installed_native_source_reader_capacity(body, 2, 3, Some(codec)).unwrap(),
     ),
-    3324L,
+    3460L,
   )
   assert_true(
     installed_native_source_reader_capacity(limits, 2, 3, None) is None,

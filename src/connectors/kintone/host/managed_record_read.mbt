@@ -148,6 +148,30 @@ pub fn adopt_managed_record_whole(
 }
 
 ///|
+/// Adopt the SAME selection retained by the generic reader's current response
+/// borrow. The Common owner has already bound its physical cleanup observer.
+pub fn adopt_managed_record_borrow(
+  original : RecordDeclaration,
+  borrow : @rows.RowRunResponseBorrow,
+  page_limits : @catalog.RecordPageLimits,
+  value_limits : @catalog.RecordValueLimits,
+  max_contract_pairs : Int,
+  per_page : Int,
+) -> Result[ManagedRecordRead, RecordReadIssue] {
+  match @rows.row_run_response_selection(borrow) {
+    Err(issue) => Err(Host(issue))
+    Ok(QueryResponse(acquisition)) =>
+      adopt_managed_record_query(
+        original, acquisition, page_limits, value_limits, max_contract_pairs, per_page,
+      )
+    Ok(InputResponse(acquisition)) =>
+      adopt_managed_record_whole(
+        original, acquisition, page_limits, value_limits, max_contract_pairs, per_page,
+      )
+  }
+}
+
+///|
 pub fn managed_record_query_matches(
   read : ManagedRecordRead,
   original : @rows.RowAcquisition,

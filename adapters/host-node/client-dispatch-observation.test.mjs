@@ -644,3 +644,41 @@ test('required installed preparation forwards only its same funded callback with
   assert.strictEqual(await prepare(request), prepared); assert.equal(calls, 1);
   prepare.retireOriginal(prepared); prepare.retireReferences();
 });
+
+test('dispatch final usage observes the same ledger only after original preparation retirement', () => {
+  const install = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'installNodeClientDispatchOwner').declaration;
+  const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retire');
+  const entries = new Map(), events = [], ledger = {retained: 7}, ref = {runDefinitionCid: 'original-retirement'};
+  const retire = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+    ['entries','keyOf','diagnostic','resourceUsage'])(entries, value => value.runDefinitionCid,
+    (name, detail) => events.push({name, detail}), value => {
+      assert.equal(value, ledger); return {reservedRetentionBytes: String(value.retained)};
+    });
+  let attempts = 0, allow = false;
+  const entry = {ref, acquisitionLedger: ledger, settled: true, finishPending: true,
+    retirePreparation() {attempts++; if (!allow) throw new Error('OriginalPreparationPending'); ledger.retained = 0;}};
+  entries.set(ref.runDefinitionCid, entry);
+  retire(entry); assert.equal(attempts, 0); assert.equal(events.length, 0);
+  entry.finishPending = false; retire(entry);
+  assert.equal(attempts, 1); assert.equal(entries.get(ref.runDefinitionCid), entry);
+  assert.equal(events.length, 0, 'failed original retirement cannot publish final-zero usage');
+  allow = true; retire(entry);
+  assert.equal(attempts, 2); assert.equal(entries.has(ref.runDefinitionCid), false);
+  assert.deepEqual(events, [{name: 'dispatch_cleanup_completed', detail: {ref,
+    resourceUsage: {reservedRetentionBytes: '0'}}}]);
+  retire(entry); assert.equal(events.length, 1, 'same original retirement reports once');
+  for (const failureAt of ['usage', 'observer']) {
+    const retained = new Map(), selected = {ref, acquisitionLedger: ledger, settled: true};
+    retained.set(ref.runDefinitionCid, selected);
+    const observeRetirement = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+      ['entries','keyOf','diagnostic','resourceUsage'])(retained, value => value.runDefinitionCid,
+      () => {throw new Error('ObserverUnavailable');}, () => {
+        if (failureAt === 'usage') throw new Error('ObservationUnavailable');
+        return {reservedRetentionBytes: '0'};
+      });
+    assert.doesNotThrow(() => observeRetirement(selected));
+    assert.equal(retained.size, 0, 'optional diagnostic failure cannot resurrect original custody');
+    assert.doesNotThrow(() => observeRetirement(selected));
+  }
+});

@@ -16,6 +16,8 @@ import {
 // Values
 pub fn accept_record_read_page(RecordRead, Bytes) -> Result[Int, RecordReadIssue]
 
+pub fn adopt_managed_record_borrow(RecordDeclaration, @client_row_source_host.RowRunResponseBorrow, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int) -> Result[ManagedRecordRead, RecordReadIssue]
+
 pub fn adopt_managed_record_query(RecordDeclaration, @client_row_source_host.RowAcquisition, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int) -> Result[ManagedRecordRead, RecordReadIssue]
 
 pub fn adopt_managed_record_whole(RecordDeclaration, @client_row_source_host.RowInputAcquisition, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int) -> Result[ManagedRecordRead, RecordReadIssue]
@@ -26,11 +28,21 @@ pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @c
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
 
+pub fn managed_record_column_count(RecordDeclaration) -> Int
+
 pub fn managed_record_columns(ManagedRecordRead) -> Array[String]
 
 pub fn managed_record_complete(ManagedRecordRead) -> Bool
 
+pub fn managed_record_construction_capacity(RecordDeclaration, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn managed_record_form_construction_inventory(ManagedRecordRead, Int, @catalog.FormFieldLimits) -> @execution_relation.PreparationRepresentationUnits?
+
 pub fn managed_record_form_request(ManagedRecordRead, Int) -> Result[String, RecordReadIssue]
+
+pub fn managed_record_identity_units(RecordDeclaration, String, String, String) -> Int64?
+
+pub fn managed_record_page_construction_inventory(ManagedRecordRead, Int) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn managed_record_page_request(ManagedRecordRead, Int) -> Result[String, RecordReadIssue]
 
@@ -39,6 +51,8 @@ pub fn managed_record_project_page(ManagedRecordRead, Bytes) -> Result[Array[Arr
 pub fn managed_record_query_matches(ManagedRecordRead, @client_row_source_host.RowAcquisition) -> Bool
 
 pub fn managed_record_recheck_form(ManagedRecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
+
+pub fn managed_record_response_construction_capacity(ManagedRecordRead, @execution_relation.ExecutionCapacity, Int, Bool, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn managed_record_whole_matches(ManagedRecordRead, @client_row_source_host.RowInputAcquisition) -> Bool
 

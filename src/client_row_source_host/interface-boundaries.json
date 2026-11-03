@@ -246,7 +246,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "219e63b27d81769720c1edf0b3bf9770c191b9871f07b145822d101931445737",
+      "sha256": "d105348a3db9e508198bfcacc1e6229711d8280f4ea63fbcfae40676ceebe325",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -376,6 +376,7 @@
         "pub fn row_original_input_capacity() -> (Int64, Int64)",
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
+        "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]",
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
         "pub fn row_source_json_page_has_next_cursor(RowSourceJsonPage) -> Bool",
         "pub fn row_source_json_page_next_cursor(RowSourceJsonPage) -> Result[String, RowSourceJsonPageIssue]",
@@ -405,6 +406,7 @@
         "pub enum RowKeyedPagePoll {",
         "pub enum RowListingPagePoll {",
         "pub struct RowMapping {",
+        "pub enum RowResponseSelection {",
         "pub struct RowRunResponseBorrow {"
       ],
       "operations": [
@@ -911,6 +913,10 @@
         {
           "name": "row_run_listing_complete",
           "declaration": "pub fn row_run_listing_complete(RowRun) -> Bool"
+        },
+        {
+          "name": "row_run_response_selection",
+          "declaration": "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]"
         },
         {
           "name": "row_source_columns",
@@ -2945,6 +2951,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "row_run_response_selection"
+          ],
+          "exports": [
+            "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]",
+            "pub enum RowResponseSelection {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Borrow the SAME stored original selection after its one physical cleanup"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": ") -> Result[RowResponseSelection, RowHostIssue] {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Ok(value.selection)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "observer is bound. This consumes nothing and creates no acquisition."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "guard value.cleanup_state is Bound else { return Err(InvalidState) }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "match check_row_run_response_borrow_current(value) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Logical abort/close keeps the same observer for cleanup; it does not require"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "observer is bound. This consumes nothing and creates no acquisition."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "pub enum RowResponseSelection {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_whole_response_growth_wbtest.mbt",
+                "anchor": "WholeInput response growth keeps the original selection charge and cleanup"
+              }
+            ]
+          }
         }
       ]
     },
@@ -2953,7 +3030,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "b78a7a4516179f829d16dba48e20efeda0ded6befd4a246699a2aeb900e66f04",
+      "sha256": "a6d54377c786fe177b52f278a6e44c35c432451e2796d04cfd835cffbb68a983",
       "exports": [],
       "operations": [
         {
@@ -2987,6 +3064,10 @@
         {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
+        },
+        {
+          "name": "row_run_response_selection",
+          "declaration": "row_run_response_selection ( value : RowRunResponseBorrow , ) - > Result [ RowResponseSelection , RowHostIssue ]"
         }
       ],
       "contracts": [
@@ -3214,76 +3295,140 @@
         },
         {
           "operations": [
+            "row_run_response_selection"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Borrow the SAME stored original selection after its one physical cleanup"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": ") -> Result[RowResponseSelection, RowHostIssue] {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Ok(value.selection)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "observer is bound. This consumes nothing and creates no acquisition."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "guard value.cleanup_state is Bound else { return Err(InvalidState) }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "match check_row_run_response_borrow_current(value) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Logical abort/close keeps the same observer for cleanup; it does not require"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "observer is bound. This consumes nothing and creates no acquisition."
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "pub enum RowResponseSelection {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication_host/client_whole_response_growth_wbtest.mbt",
+                "anchor": "WholeInput response growth keeps the original selection charge and cleanup"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "grow_row_run_response_capacity"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "pub fn grow_row_run_response_capacity("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "pub fn grow_row_run_response_capacity("
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "anchor": "capacity : @execution.ExecutionCapacity,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical_equal(current_charge, charge)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "retain any successful new debit"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "value.cleanup_state = GrowingWorkspace"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "return Err(Physical(InvalidCharge))"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Logical abort/close keeps the same observer for cleanup; it does not require"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "guard row_input_acquisition_capacity(acquisition, Some(capacity))"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical.execution_scratch > 9223372036854775807L - execution"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "Whole-input, keyed and listing lifetimes do not use this cut."
               }
             ],
             "verification": [
               {
-                "path": "src/query_integration/provider_capacity_wbtest.mbt",
-                "anchor": "test \"actual native response grows the original Row reservation before decode and retains failed cleanup\""
-              },
-              {
-                "path": "adapters/host-node/managed-source-reader.md",
-                "anchor": "## Native response construction phase"
+                "path": "src/run_publication_host/client_whole_response_growth_wbtest.mbt",
+                "anchor": "WholeInput response growth refuses one short byte dimension atomically"
               }
             ]
           }

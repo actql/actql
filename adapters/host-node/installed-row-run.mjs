@@ -165,7 +165,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     readerPrepared = borrow;
     checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, readerRetired));
     const grow = moon.clientProgramRowSourceGrowResponseCapacity;
-    const reserveResponseCapacity = typeof grow !== 'function' || wholeInput ? undefined
+    const reserveResponseCapacity = typeof grow !== 'function' ? undefined
       : capacity => {
         if (closed || !readerReadPending || readerStopRequested) fail('InstalledSourceClosed');
         signal?.throwIfAborted();
@@ -177,8 +177,9 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       };
     // Keep the original options object and every original callback receiver.
     // The separate private constructor argument supplies only this SAME
-    // RowRun's growth function, never a copied input or another issuer.
-    reader = Reflect.apply(prepare, receiver, [options, undefined, reserveResponseCapacity]);
+    // RowRun's growth function and SAME bound response borrow, never a copied
+    // selection, reconstructed input or another issuer.
+    reader = Reflect.apply(prepare, receiver, [options, undefined, reserveResponseCapacity, borrow]);
     if (typeof reader?.then === 'function') {
       // Preparation must be synchronous and I/O-free. An accidental async
       // factory is never adopted later, but its rejection must still be handled.

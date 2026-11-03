@@ -2566,6 +2566,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "inputsOutputs": [
@@ -2592,6 +2596,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### INFER original captured evidence"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "identity": [
@@ -2622,6 +2630,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "## Source observation and Result publication policies"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "ownership": [
@@ -2640,6 +2652,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "synchronization": [
@@ -2654,6 +2670,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "physical-close transaction compares that complete original row before its"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "failure": [
@@ -2672,6 +2692,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "cancellation": [
@@ -2686,6 +2710,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "resources": [
@@ -2708,6 +2736,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "extension": [
@@ -2726,6 +2758,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "An unchanged complete row reuses its original request identity and"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
               }
             ],
             "verification": [
@@ -2776,6 +2812,14 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -3716,7 +3760,8 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "4b370b9c8bab4c44447603a0e4c0bafb6c7d6f1dcd3a972a5bdf1227f4469004"
+      "sha256": "a3dec30f61c50cee83059079822193abdc1a315d00481eebedecbf039a63f210",
+      "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
       "module": "adapters/host-node/effect-command-key.mjs",

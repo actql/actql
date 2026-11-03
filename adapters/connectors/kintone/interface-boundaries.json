@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
-      "sha256": "c2b6c7b41735aedb362757276a20feaaf0c7b42e12d7e6580cf0e226bf8b4296",
+      "sha256": "7d1d2eb7c4ba8b0bcd4c6d130339d35c560386fd36bdb827c64748b503b322da",
       "exports": [
         "INSTALLED_KINTONE_SITE_VERSION",
         "INSTALLED_KINTONE_SOURCE_VERSION",
@@ -145,32 +145,19 @@
           "async": false
         },
         {
-          "name": "loadInstalledKintoneSource/init:project/init:project",
+          "name": "loadInstalledKintoneSource/capacity/capacity",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/init:capacity/init:capacity",
           "parameters": [],
           "async": false
         },
         {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource/authorize/authorize",
-          "parameters": [
-            "operation",
-            "index"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource/current/current",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource/loadInstalledKintoneSource",
+          "name": "loadInstalledKintoneSource/init:capacity/init:capacity/base/base",
           "parameters": [
             "sum",
             "value"
@@ -178,24 +165,43 @@
           "async": false
         },
         {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource#2",
+          "name": "loadInstalledKintoneSource/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource",
           "parameters": [],
           "async": true
         },
         {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource#3",
+          "name": "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
           "parameters": [
-            "requirement",
-            "queryContract",
-            "evidenceContract"
+            "input"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledKintoneSource/loadInstalledKintoneSource#4",
+          "name": "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeForm/authorizeForm",
           "parameters": [
-            "options"
+            "selected",
+            "selectedSignal"
           ],
+          "async": true
+        },
+        {
+          "name": "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:capacityForResponse/init:capacityForResponse",
+          "parameters": [
+            "read",
+            "kind",
+            "bytes",
+            "previous"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/verifyCurrent/verifyCurrent",
+          "parameters": [],
           "async": true
         },
         {
@@ -231,8 +237,11 @@
       ],
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../site/kintone-managed-sequence.mjs",
         "../site/kintone-record-read.mjs",
         "node:crypto",
         "node:fs/promises",
@@ -261,17 +270,10 @@
             "inputs",
             "installedKintoneSourceIdentityParts",
             "installedKintoneSourceIdentityParts/readers/readers",
-            "loadInstalledKintoneSource",
             "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledKintoneSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledKintoneSource/init:project/init:project",
             "loadInstalledKintoneSource/loadInstalledKintoneSource",
-            "loadInstalledKintoneSource/loadInstalledKintoneSource/authorize/authorize",
-            "loadInstalledKintoneSource/loadInstalledKintoneSource/current/current",
-            "loadInstalledKintoneSource/loadInstalledKintoneSource/loadInstalledKintoneSource",
-            "loadInstalledKintoneSource/loadInstalledKintoneSource#2",
-            "loadInstalledKintoneSource/loadInstalledKintoneSource#3",
-            "loadInstalledKintoneSource/loadInstalledKintoneSource#4",
             "loadInstalledKintoneSource/target/target",
             "metadataBodyBytes",
             "positive/positive",
@@ -391,6 +393,81 @@
               {
                 "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
                 "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledKintoneSource/capacity/capacity",
+            "loadInstalledKintoneSource/init:capacity/init:capacity",
+            "loadInstalledKintoneSource/init:capacity/init:capacity/base/base",
+            "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+            "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/authorizeForm/authorizeForm",
+            "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/init:capacityForResponse/init:capacityForResponse",
+            "loadInstalledKintoneSource/providerReader/init:prepareReadSequence/init:prepareReadSequence/verifyCurrent/verifyCurrent",
+            "loadInstalledKintoneSource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "prepareReadSequence(input) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "return createKintoneManagedSequence({moon, original,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "binding retains this SAME callback and surrounds it with root current."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "const decision = await verifyCurrent();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "fail('KintoneFormReadUseLimit');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "anchor": "maxTotalResponseBytes: Number(totalBytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Ok(InputResponse(acquisition)) =>"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs",
+                "anchor": "managed Kintone loader keeps one original Form grant and current callback through final recheck"
               }
             ]
           }
@@ -7376,12 +7453,16 @@
     },
     {
       "module": "src/connectors/kintone/host/managed_record_read.mbt",
-      "sha256": "7150c84d08638fdc90ddb9080943c3ff8a644b06a6865e925c5ee9c2ffcec9bf",
+      "sha256": "ea9dd48ec86959fdcc7329549e66998b8b9f1285461884b3d061d3b38f788f3c",
       "exports": [],
       "operations": [
         {
           "name": "[T]refuse_managed_record",
           "declaration": "[ T ] refuse_managed_record ( read : ManagedRecordRead , issue : RecordReadIssue , ) - > Result [ T , RecordReadIssue ]"
+        },
+        {
+          "name": "adopt_managed_record_borrow",
+          "declaration": "adopt_managed_record_borrow ( original : RecordDeclaration , borrow : @ rows . RowRunResponseBorrow , page_limits : @ catalog . RecordPageLimits , value_limits : @ catalog . RecordValueLimits , max_contract_pairs : Int , per_page : Int , ) - > Result [ ManagedRecordRead , RecordReadIssue ]"
         },
         {
           "name": "adopt_managed_record_query",
@@ -7516,6 +7597,74 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "adopt_managed_record_borrow"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA-only native protocol adopted by the already-accounted generic reader."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "pub fn adopt_managed_record_borrow("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "match @rows.row_run_response_selection(borrow) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "No RowRun, response charge, credential or cleanup acknowledgement is issued."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "await observeForm();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "fail('KintoneReadPageLimit');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "@execution.add_execution_capacity(previous, stage)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Ok(InputResponse(acquisition)) =>"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs",
+                "anchor": "managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form"
+              }
+            ]
+          }
         }
       ]
     },
@@ -7633,6 +7782,440 @@
               {
                 "path": "src/query_integration/kintone_managed_read_wbtest.mbt",
                 "anchor": "managed Kintone adopts exact Query original and supplies charged typed values without a second borrow"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+      "sha256": "2394008efd862b458d41bf6e2910204a4fbb43d7481a4b177da801cbf7d6b3f8",
+      "exports": [
+        "createKintoneManagedSequence"
+      ],
+      "operations": [
+        {
+          "name": "createKintoneManagedSequence",
+          "parameters": [
+            "moon",
+            "original",
+            "bounds",
+            "limits",
+            "guestSpaceId",
+            "authorizeForm",
+            "capacityForResponse",
+            "baseCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:read/init:read",
+          "parameters": [
+            "context"
+          ],
+          "async": true
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm/init:prepare/init:prepare/init:project/init:project",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:read/init:read/rows/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:read/init:read/rows/init:prepare/init:prepare/init:project/init:project",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createKintoneManagedSequence/prepare/request/request",
+          "parameters": [
+            "body",
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "method",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "./kintone-record-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createKintoneManagedSequence",
+            "createKintoneManagedSequence/call/call",
+            "createKintoneManagedSequence/methods/methods",
+            "createKintoneManagedSequence/prepare",
+            "createKintoneManagedSequence/prepare/current/current",
+            "createKintoneManagedSequence/prepare/init:read/init:read",
+            "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm",
+            "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm/init:prepare/init:prepare",
+            "createKintoneManagedSequence/prepare/init:read/init:read/observeForm/observeForm/init:prepare/init:prepare/init:project/init:project",
+            "createKintoneManagedSequence/prepare/init:read/init:read/rows/init:prepare/init:prepare",
+            "createKintoneManagedSequence/prepare/init:read/init:read/rows/init:prepare/init:prepare/init:project/init:project",
+            "createKintoneManagedSequence/prepare/init:responseCapacity/init:responseCapacity",
+            "createKintoneManagedSequence/prepare/init:retire/init:retire",
+            "createKintoneManagedSequence/prepare/request/request",
+            "fail/fail",
+            "method"
+          ],
+          "exports": [
+            "createKintoneManagedSequence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "No credential, physical transport, RowRun, charge or cleanup ACK is created here."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "return function prepare(input){"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "input.responseBorrow"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "retired=true;read=columns=capacity=kind=undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "await observeForm();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "fail('KintoneReadPageLimit');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "capacity=Reflect.apply(capacityForResponse,undefined,[read,kind,bytes,capacity]);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "Ok(InputResponse(acquisition)) =>"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs",
+                "anchor": "managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+      "sha256": "d09d90fa7aa669ad1c7180f3c4145491b48c102493910e339bbec69e29b822c8",
+      "exports": [],
+      "operations": [
+        {
+          "name": "form_construction_geometry",
+          "declaration": "form_construction_geometry ( original : FormFieldCatalog , ) - > FormConstructionGeometry ?"
+        },
+        {
+          "name": "selected_form_construction_geometry",
+          "declaration": "selected_form_construction_geometry ( original : FormFieldCatalog , names : Array [ String ] , ) - > SelectedFormConstructionGeometry ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "form_construction_geometry",
+            "selected_form_construction_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "clone, parser, contract or replacement observation is constructed."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "pub fn form_construction_geometry("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Scalar geometry of the SAME observed catalog."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Names and metadata are borrowed, not reconstructed."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "The generic owner has retained and charged the original body before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "return None"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "path_slots += depth.to_int64()"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "pub fn selected_form_construction_geometry("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction_wbtest.mbt",
+                "anchor": "managed Kintone page quote follows actual bytes and original empty table geometry"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/managed_read_construction.mbt",
+      "sha256": "72d4096d2b6a2b838368fd4d9f9723413e05375de34f01034d5e5a1651f60c82",
+      "exports": [],
+      "operations": [
+        {
+          "name": "managed_record_capacity",
+          "declaration": "managed_record_capacity ( units : @ execution . PreparationRepresentationUnits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "managed_record_column_count",
+          "declaration": "managed_record_column_count ( original : RecordDeclaration ) - > Int"
+        },
+        {
+          "name": "managed_record_construction_capacity",
+          "declaration": "managed_record_construction_capacity ( original : RecordDeclaration , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , pairs : Int , per_page : Int , max_request_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "managed_record_form_construction_inventory",
+          "declaration": "managed_record_form_construction_inventory ( read : ManagedRecordRead , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "managed_record_form_inventory",
+          "declaration": "managed_record_form_inventory ( original : RecordDeclaration , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "managed_record_identity_units",
+          "declaration": "managed_record_identity_units ( original : RecordDeclaration , origin : String , resource : String , guest_space : String , ) - > Int64 ?"
+        },
+        {
+          "name": "managed_record_page_construction_inventory",
+          "declaration": "managed_record_page_construction_inventory ( read : ManagedRecordRead , body_bytes : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "managed_record_page_inventory",
+          "declaration": "managed_record_page_inventory ( original : RecordDeclaration , names : Array [ String ] , columns : Int , body_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , pairs : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "managed_record_response_construction_capacity",
+          "declaration": "managed_record_response_construction_capacity ( read : ManagedRecordRead , previous : @ execution . ExecutionCapacity , body_bytes : Int , is_form : Bool , form_limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "D — existing kintone Catalog/Host originals and typed DATA projection",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "managed_record_capacity",
+            "managed_record_column_count",
+            "managed_record_construction_capacity",
+            "managed_record_form_construction_inventory",
+            "managed_record_form_inventory",
+            "managed_record_identity_units",
+            "managed_record_page_construction_inventory",
+            "managed_record_page_inventory",
+            "managed_record_response_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "pub fn managed_record_construction_capacity("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "pub fn managed_record_response_construction_capacity("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Scalar geometry of the SAME observed catalog."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "Names and metadata are borrowed, not reconstructed."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "anchor": "The generic owner has retained and charged the original body before"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "guard units is Some(units) && managed_record_capacity(units) is Some(stage) else {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/connectors/kintone/host/managed_record_read.mbt",
+                "anchor": "DATA alias retirement only. The generic reader owns physical cleanup."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction.mbt",
+                "anchor": "@execution.add_execution_capacity(previous, stage)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors/kintone/catalog/form_construction_geometry.mbt",
+                "anchor": "pub fn selected_form_construction_geometry("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/managed_read_construction_wbtest.mbt",
+                "anchor": "managed Kintone page quote follows actual bytes and original empty table geometry"
               }
             ]
           }

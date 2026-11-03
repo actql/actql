@@ -5,7 +5,7 @@
     {
       "module": "adapters/connectors-builtin/installations.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "285463e7ce94a1bb2eea26161c5d0e83c15a46a2d8894b5c9e74f17043b486fe",
+      "sha256": "939d87cbad1df8b6607405ea92fa53e11bb26d2863bfd105f1834a2b41f3509e",
       "exports": [
         "installedConnectors"
       ],
@@ -236,7 +236,7 @@
       "unresolvedSyntax": [],
       "role": "generated-binding",
       "owner": "existing connector manifest / checked installation and strategy Owners",
-      "rationale": "Build-time projection of existing selected connector-owned manifests. Generated references do not admit an installation, grant authority, authorize execution or settle cleanup.",
+      "rationale": "Build-time projection of existing selected connector-owned manifests. Generated references do not admit an installation, grant authority, authorize execution or settle cleanup. The original connector manifest now projects the Kintone managed sequence implementation file. Generated packaging references confer no Source admission or execution authority.",
       "contracts": [
         {
           "operations": [
@@ -316,6 +316,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "inputsOutputs": [
@@ -370,6 +374,10 @@
               {
                 "path": "adapters/connectors-builtin/installations.generated.mjs",
                 "anchor": "path: \"adapters/connectors/slack/site/slack-source-read.mjs\""
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "identity": [
@@ -424,6 +432,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "ownership": [
@@ -470,6 +482,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "synchronization": [
@@ -520,6 +536,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "failure": [
@@ -570,6 +590,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "cancellation": [
@@ -612,6 +636,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "resources": [
@@ -666,6 +694,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "extension": [
@@ -716,6 +748,10 @@
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
+              },
+              {
+                "path": "adapters/connectors-builtin/installations.generated.mjs",
+                "anchor": "path: \"adapters/connectors/kintone/site/kintone-managed-sequence.mjs\""
               }
             ],
             "verification": [
@@ -770,6 +806,10 @@
               {
                 "path": "adapters/connectors/slack/test/installed-slack-messages.test.mjs",
                 "anchor": "test('installed Slack channels Account permission cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }

@@ -121310,7 +121310,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "66df22ee9b82437cd6476665764c35898e71d414042ee7ced8db2e879af4b2ba",
+      "sha256": "25e2a69cee115ce388dae93ef7c6b51ada15e52f049f84def8e410e9939c0de4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -121339,7 +121339,8 @@
           "parameters": [
             "options",
             "retainPreparation",
-            "reserveResponseCapacity"
+            "reserveResponseCapacity",
+            "responseBorrow"
           ],
           "async": false
         },
@@ -121379,6 +121380,13 @@
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe/init:observe",
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -121481,6 +121489,18 @@
         },
         {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/child/child",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/current/current",
           "parameters": [],
           "async": true
         },
@@ -121689,6 +121709,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "inputsOutputs": [
@@ -121715,6 +121739,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "identity": [
@@ -121741,6 +121769,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "ownership": [
@@ -121767,6 +121799,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "synchronization": [
@@ -121793,6 +121829,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "failure": [
@@ -121819,6 +121859,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "cancellation": [
@@ -121845,6 +121889,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "resources": [
@@ -121871,6 +121919,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "extension": [
@@ -121897,6 +121949,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
               }
             ],
             "verification": [
@@ -121943,6 +121999,22 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Original read rejection during retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "native response constructor grows the SAME original RowRun after charge and before projection"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -122219,8 +122291,163 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe/init:observe",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/child/child",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild/current/current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "prepare(options, retainPreparation, reserveResponseCapacity, responseBorrow)"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "The SAME combined invocation/reader-stop signal already controls"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "anchor": "const current = Object.freeze({assertCurrent:check,observeCurrent:async () => {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "native response constructor grows the SAME original RowRun after charge and before projection"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "rationale": "The same bound response borrow and combined stop signal enter the private native preparer. A declared separate-resource child retains its exact Site authorization and current callback, binds once, and joins the same reader cleanup. Ordinary same-resource credential checks remain strict."
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
@@ -122913,7 +123140,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "5a954f34e6450f25ab01f5d11883cc8fb65ce368f85939d23010156177b6cc4c",
+      "sha256": "b8f490bb0156a791e40c84b9e4816b4b53c420aac147935fad46e561e2047c1f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -124033,6 +124260,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "inputsOutputs": [
@@ -124043,6 +124274,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "identity": [
@@ -124053,6 +124288,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "ownership": [
@@ -124063,6 +124302,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "synchronization": [
@@ -124073,6 +124316,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "failure": [
@@ -124083,6 +124330,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "cancellation": [
@@ -124093,6 +124344,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "resources": [
@@ -124103,6 +124358,10 @@
               {
                 "path": "adapters/host-node/installed-host-services.mjs",
                 "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "extension": [
@@ -124113,6 +124372,10 @@
               {
                 "path": "adapters/host-node/installed-source-service-entry.test.mjs",
                 "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "Optional separately bound Resources are declared by this SAME complete"
               }
             ],
             "verification": [
@@ -124127,6 +124390,18 @@
               {
                 "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
                 "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -124753,7 +125028,8 @@
             ]
           }
         }
-      ]
+      ],
+      "rationale": "The complete selected native sequence declares separate-resource construction demand before reader creation. Its declared resource names confer no authority; actual original Site decisions, grants and current fences remain required."
     },
     {
       "module": "src/physical_resources/ledger_accounting.generated.mbt",
@@ -128121,9 +128397,9 @@
   ],
   "counts": {
     "modules": 189,
-    "operations": 4960,
+    "operations": 4970,
     "exports": 1144,
-    "explicitContractGroups": 517
+    "explicitContractGroups": 518
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

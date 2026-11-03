@@ -18,6 +18,14 @@ import * as common from '../../../../_build/js/release/build/connectors_builtin_
 
 const executeFile = promisify(execFile);
 const source = 'SELECT `$id`, Subject, Tags, RecordNumber FROM kintone.inquiries |> RESULT records';
+// The direct authored source selector follows the genuine WholeInput route,
+// matching the native installed_kintone_whole_source_js fixture. It is not SQL
+// translated into a document or a pre-acquired Query requirement.
+const wholeSource = JSON.stringify({version: 'actql/0.1', id: 'kintone-public-whole',
+  stages: [{id: 'scan', inputs: {remote: {connector: 'kintone', resource: 'inquiries'}},
+    steps: [{select: ['$id', 'Subject', 'Tags', 'RecordNumber'], as: 'selected'}],
+    results: {r: {from: 'selected', fields: ['$id', 'Subject', 'Tags', 'RecordNumber']}}}],
+  results: {records: {from: {stage: 'scan', result: 'r'}}}});
 const columns = [
   {name: '$id', contract: {type: 'string', nullable: false}},
   {name: 'Subject', contract: {type: 'string', nullable: false}},
@@ -62,7 +70,7 @@ async function fixture(t, entrance) {
     if (priorCa !== undefined) setDefaultCACertificates(priorCa);
   });
   try {
-    if (entrance === 'Local') {
+    if (entrance !== 'HTTPS') {
       client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable', installation});
     } else {
       const [key, cert] = await Promise.all(['resource.key', 'resource.crt'].map(name => readFile(join(dirname(f.tls.caPath), name))));
@@ -96,26 +104,42 @@ async function fixture(t, entrance) {
   return {...f, client, observations, installation, closeHost};
 }
 
-for (const entrance of ['Local', 'HTTPS']) test(
+for (const {entrance, format, program} of [
+  {entrance: 'Local', format: 'sql', program: source},
+  {entrance: 'HTTPS', format: 'sql', program: source},
+  {entrance: 'LocalJSON', format: 'json', program: wholeSource},
+]) test(
   `public ${entrance} kintone preserves full values through Named Result and original Run lookup`, async t => {
     const f = await fixture(t, entrance);
-    const report = await f.client.check(source, {kind: 'text', scope: 'bound_input', format: 'sql'});
-    if (report.report?.verdict !== 'verified') {
+    const report = await f.client.check(format === 'json' ? JSON.parse(program) : program,
+      format === 'json' ? {kind: 'program', scope: 'bound_input'}
+        : {kind: 'text', scope: 'bound_input', format});
+    if (format === 'sql' && report.report?.verdict !== 'verified') {
       const declared = await f.load(), data = JSON.parse(declared.environmentWire);
       const environment = common.clientProgramCheckEnvironment(declared.environmentWire,
         data.evidence_bundle_cid, false, false, true, false, false, false, false);
-      const outcome = common.clientProgramPrepareSourceComputationWithParameters(source, 'sql',
+      const outcome = common.clientProgramPrepareSourceComputationWithParameters(program, format,
         environment, JSON.stringify({environmentCid: common.clientProgramCheckingEnvironmentCid(environment),
           aliases: declared.queryAliases}), undefined, undefined, false, []);
       t.diagnostic(inspect({originalPreparationIssue: common.clientProgramPreparationIssue(
         common.clientProgramSourceComputationPure(outcome))}, {depth: 12}));
       await declared.close();
     }
-    assert.equal(report.report?.verdict, 'verified', inspect(report, {depth: 8}));
-    assert.deepEqual(report.report.runnable, {verdict: 'yes', reasons: []});
+    if (format === 'json') {
+      // A raw authored Source selector has no public alias evidence. Advisory
+      // Check preserves that protected boundary; the actual installed Run must
+      // resolve the SAME selector and its original Account decision below.
+      assert.equal(report.report?.verdict, 'undetermined', inspect(report, {depth: 8}));
+      assert.deepEqual(report.report.coverage, {limits: [], unresolved: [
+        {boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.deepEqual(report.report.runnable, {verdict: 'no', reasons: [{code: 'unresolved_protected'}]});
+    } else {
+      assert.equal(report.report?.verdict, 'verified', inspect(report, {depth: 8}));
+      assert.deepEqual(report.report.runnable, {verdict: 'yes', reasons: []});
+    }
     assert.equal(f.tls.seen().length, 0); assert.equal(f.state.resolutions, 0);
     const submissionRef = f.client.newSubmission({nonce: `kintone-public-${entrance.toLowerCase()}`});
-    const execution = await f.client.startSource(source, {format: 'sql', submissionRef});
+    const execution = await f.client.startSource(program, {format, submissionRef});
     const state = await execution.wait({signal: AbortSignal.timeout(20000)});
     if (state.status !== 'succeeded') t.diagnostic(inspect({state, observations: f.observations},
       {depth: 8, maxStringLength: 3000}));
@@ -126,7 +150,7 @@ for (const entrance of ['Local', 'HTTPS']) test(
     assert.deepEqual(await result.all(), expected);
     const attached = await f.client.attach(execution.ref);
     assert.deepEqual(await attached.result('records').all(), expected);
-    const original = await f.client.startSource(source, {format: 'sql', submissionRef});
+    const original = await f.client.startSource(program, {format, submissionRef});
     assert.deepEqual(original.ref, execution.ref);
     assert.deepEqual(await original.result('records').all(), expected);
     assert.deepEqual(f.tls.seen().map(value => value.pathname), [
@@ -137,11 +161,11 @@ for (const entrance of ['Local', 'HTTPS']) test(
     const cleanup = f.observations.filter(([name]) => name === 'dispatch_cleanup_completed');
     assert.equal(cleanup.length, 1);
     const usage = cleanup[0][1].resourceUsage;
-    assert.equal(usage.holdings, '2');
+    assert.equal(usage.holdings, '0', 'both real reader bindings retire before dispatch cleanup');
     for (const field of ['heldBytes', 'reservedTransferBytes', 'reservedRetentionBytes',
       'reservedExecutionBytes', 'uncertainTransferBytes']) assert.equal(usage[field], '0', field);
     assert(BigInt(usage.transferredBytes) > 0n);
-    if (entrance === 'Local') {
+    if (entrance !== 'HTTPS') {
       await f.closeHost();
       const restartPath = join(f.root, 'original-host-restart.json');
       await writeFile(restartPath, JSON.stringify({installation: f.installation,
@@ -169,6 +193,6 @@ for (const entrance of ['Local', 'HTTPS']) test(
         columns, rows: expected});
       assert.equal(f.tls.seen().length, 5, 'a fresh process restores the original capture without Provider replay');
     }
-    t.diagnostic(JSON.stringify({entrance, providerRequests: f.tls.seen().length,
+    t.diagnostic(JSON.stringify({entrance, format, providerRequests: f.tls.seen().length,
       sameRunLookup: true, repeatedRead: true, usage}));
   });

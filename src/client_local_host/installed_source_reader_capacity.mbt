@@ -191,16 +191,25 @@ fn installed_source_reader_retained_inventory(
   // Two typed-value callbacks share the original RowRun/sequence state.
   let native_callback_headers = 2L
   let native_callback_slots = 4L
+  // The root and borrowed credential keep their SAME captured current pairs
+  // until binding retirement (2H/6R). A bound Site carries its two resource-
+  // child method references (2R); the generic factory/reader retains five
+  // selection/method slots (5R). Actual separately bound children and their
+  // credentials/secret/current closures belong to the selected domain quote.
+  let resource_current_headers = 2L
+  let resource_current_slots = 13L
   let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 39L +
     resolver_headers +
     native_callback_headers +
+    resource_current_headers +
     3L * originals,
     reference_slots: common_fields +
     provider_fields +
     closures +
     resolver_slots +
     native_callback_slots +
+    resource_current_slots +
     4L +
     2L * fields +
     9L * originals +
@@ -217,7 +226,10 @@ fn installed_source_reader_retained_inventory(
 ///|
 fn installed_source_reader_control_inventory() -> @execution.PreparationRepresentationUnits {
   let native_control_headers = 7L
-  let native_control_slots = 14L
+  // One private prepare argument and one factory input property forward the
+  // SAME bound response borrow. One context slot exposes the SAME combined
+  // cancellation signal, not another owner. No new selection/Run is created.
+  let native_control_slots = 14L + 2L + 1L
   let native_control_words = 11L
   {
     record_headers: 20L + native_control_headers,
@@ -648,4 +660,13 @@ pub fn installed_native_source_reader_capacity(
     return None
   }
   @execution.add_execution_capacity(reader, native)
+}
+
+///|
+/// One additional independently issued read Grant uses the existing Credential
+/// codec and Journal construction recipe. This quantity does not issue a Grant
+/// or replace its original decision/current checks. Shared readers already fund
+/// their root; a selected distinct-Resource child composes this once separately.
+pub fn installed_source_child_grant_construction_capacity() -> @execution.ExecutionCapacity? {
+  standard_create_grant_capacity()
 }
