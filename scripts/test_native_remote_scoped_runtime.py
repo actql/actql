@@ -488,6 +488,28 @@ class HttpComponentRecipeControls(unittest.TestCase):
 
 
 class ResidentCaptureComponent(unittest.TestCase):
+    def test_fixture_declares_its_own_stdio_without_capture_header_exports(self):
+        compiler = shutil.which('cc')
+        self.assertIsNotNone(compiler)
+        with tempfile.TemporaryDirectory() as temporary:
+            declarations = Path(temporary) / 'capture-contract.h'
+            # Declaration-only header contract: compile the SAME actual fixture
+            # without incidental Darwin stdio exports. No capture is fabricated
+            # or executed, and the real target component below stays unchanged.
+            declarations.write_text('''#include <stdbool.h>
+typedef struct resident_entry resident_entry;
+extern resident_entry original_entry;
+bool selected_recipe(void);
+bool capture_entry(resident_entry *);
+bool entry_current(resident_entry *);
+''')
+            result = subprocess.run([compiler, '-std=c11', '-Wall', '-Wextra', '-Werror',
+                '-fsyntax-only', '-DACTQL_RESIDENT_INITIAL_CONTROL_CAPTURE_H',
+                '-include', str(declarations),
+                str(MODULE.ROOT / 'scripts/fixtures/resident-initial-control.c')],
+                capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_actual_selected_original_and_refusals_without_a_managed_runtime(self):
         target = {('Darwin', 'arm64'): 'darwin-arm64',
                   ('Linux', 'x86_64'): 'linux-x64'}.get((platform.system(), platform.machine()))
