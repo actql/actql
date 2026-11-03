@@ -24,6 +24,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startNativeEffectCheckpointServer} from './fixtures/native-effect-checkpoint-server.mjs';
+import {nativeEffectReviewFixture} from './fixtures/native-effect-review-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
@@ -41,7 +42,9 @@ import {pinnedEngineContracts} from
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
     !['remote-client-poll', 'http-retirement', 'http-symbol-unload',
-      'http-constructor-retirement'].includes(focus)) {
+      'http-constructor-retirement', 'resident-review-regressions',
+      'resident-review-provider', 'resident-review-checkpoint',
+      'resident-review-write'].includes(focus)) {
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
@@ -126,7 +129,7 @@ const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
 );
 // The full runner owns DuckDB prerequisites. The focused remote-client case
 // only uses libcurl and SQLite; it does not build or execute a DuckDB consumer.
-if (focus === undefined) {
+if (focus === undefined || focus.startsWith('resident-review-')) {
   assert(existsSync(nativeTestDuckDBLibrary),
     `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
 }
@@ -209,6 +212,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
 let server;
 let bearerServers;
 let effectCheckpointServer;
+let effectReviewServer;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -1016,6 +1020,19 @@ verification: try {
     throw new Error('native HTTP test listener has no TCP address');
   }
   const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
+  let effectReviewOrigin;
+  if (focus === undefined || focus.startsWith('resident-review-')) {
+    const review = nativeEffectReviewFixture('Bearer native-secret');
+    // Review upload uses its original bearer Client, not the separate mTLS
+    // transport peer. Keep its same secret/CA and existing server cleanup.
+    effectReviewServer = createServer({key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+      if (!review.handle(request, response)) response.writeHead(404).end();
+    });
+    effectReviewServer.listen(0, nativeHttpHost);
+    await once(effectReviewServer, 'listening');
+    effectReviewOrigin = `https://${nativeHttpHost}:${effectReviewServer.address().port}`;
+  }
   bearerServers = await startNativeBearerServers({
     host: nativeHttpHost,
     key: await readFile(join(root, 'server.key')),
@@ -1159,6 +1176,7 @@ verification: try {
   }
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const moonModule = await import(pathToFileURL(join(
     new URL('../', import.meta.url).pathname,
@@ -1254,6 +1272,11 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
+    ...(effectReviewOrigin ? {
+      ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review-report',
+      ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review',
+      ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-resolution',
+    } : {}),
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
     ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
@@ -1307,6 +1330,39 @@ verification: try {
     productCredentialEnvelope.signature,
   );
   await writeFile(join(root, 'credential-authority.pem'), credentialPublicKey);
+  if (focus?.startsWith('resident-review-')) {
+    // Use the same peers, signed bundle and physical roots as the full CI
+    // harness. Each original case runs once in its own process/Store namespace.
+    const selected = [
+      ['resident-review-local', 'local_client_source_wbtest.mbt',
+        'Native Local original sole-view completion is refused before acquisition or durable start claim'],
+      ['resident-review-provider', 'acquisition_runtime_wbtest.mbt',
+        'Effect original holders retain physical Provider review and Checkpoint without reacquisition'],
+      ['resident-review-checkpoint', 'acquisition_runtime_wbtest.mbt',
+        'original completion-free Source and consumer persist mapped-create review through Store loss and cleanup retry'],
+      ['resident-review-write', 'acquisition_runtime_wbtest.mbt',
+        'original completion-free mapped-create approval retains one physical write through response custody loss'],
+    ];
+    for (const [selectedFocus, file, name] of selected) {
+      if (focus !== 'resident-review-regressions' && focus !== selectedFocus) continue;
+      const child = spawn(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+        "'src/platform_native/remote_resident_source_compute_tests/'+process.argv[1]," +
+        "'--filter',process.argv[2]],{cwd:process.cwd(),timeout:600000});", file, name], {
+        cwd: new URL('../', import.meta.url), stdio: 'inherit',
+        env: {...testEnvironment,
+          ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin},
+      });
+      const [code, signal] = await once(child, 'exit');
+      assert.equal(code, 0, `focused Resident review failed: ${name}: ${code ?? signal}`);
+    }
+    break verification;
+  }
   for (const packagePath of [
     'src/platform_native/filesystem',
     'src/platform_native/sqlite',
@@ -2929,6 +2985,10 @@ verification: try {
   await stopProductTransferService(productTransferService);
   productTransferService = undefined;
 } finally {
+  if (effectReviewServer !== undefined) {
+    effectReviewServer.close();
+    await once(effectReviewServer, 'close');
+  }
   await effectCheckpointServer?.close();
   releaseStalePoll?.();
   if (applicationControlProxy !== undefined) {

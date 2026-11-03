@@ -4,7 +4,38 @@ import {lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, st
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
+import {nativeEffectReviewFixture} from './fixtures/native-effect-review-fixture.mjs';
+
+for (const path of ['/fixture/effect-review-report', '/fixture/effect-review', '/fixture/effect-resolution']) {
+  test(`Native review fixture rejects foreign credentials without a fallback response: ${path}`, async t => {
+    const fixture = nativeEffectReviewFixture('Bearer original-secret');
+    let fallbacks = 0;
+    const server = createServer((request, response) => {
+      if (!fixture.handle(request, response)) {
+        fallbacks++;
+        response.writeHead(404).end();
+      }
+    });
+    t.after(async () => {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    });
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    const response = await fetch(`http://127.0.0.1:${server.address().port}${path}`, {
+      method: 'POST', headers: {authorization: 'Bearer foreign-secret', 'content-type': 'application/json'},
+      body: '{}',
+    });
+    assert.equal(response.status, 403);
+    assert.equal(await response.text(), '');
+    assert.equal(fallbacks, 0);
+    assert.deepEqual(fixture.facts(), {resolutionRequests: 0, reviewUploads: 0,
+      checkpointReportRequests: 0, checkpointReportWire: undefined, reviewUploadBodies: []});
+  });
+}
 
 test('filesystem fixture is private even under the ordinary permissive umask', () => {
   const parent = mkdtempSync(join(tmpdir(), 'actql-private-fixture-'));
