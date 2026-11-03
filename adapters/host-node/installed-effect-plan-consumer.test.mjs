@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {snapshotClientRequest} from '@actql/client-wire';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
   from './installed-effect-managed-run.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
@@ -678,9 +679,15 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     reserved = true;
     if (reentry) receipts.get(receipt).finished = true;
     return ok(undefined);
-  }, clientSubmittedIntentWire(original) {assert.strictEqual(this, moon); assert.strictEqual(original, intent); return wire;}};
+  }, clientSubmittedIntentWire(original) {assert.strictEqual(this, moon); assert.strictEqual(original, intent); return wire;},
+  clientProgramReserveRequestSnapshot(actualParent, receipt, units, values) {
+    assert.strictEqual(this, moon);assert.strictEqual(actualParent,parent);
+    assert.strictEqual(receipts.get(receipt).preparation.parent,parent);
+    assert.equal(typeof units,'bigint');assert.equal(typeof values,'bigint');
+    calls.push('reserve-snapshot');reserved=true;return ok();
+  }};
   if (missing) delete moon.clientProgramRetainRequestSubmittedIntent;
-  const context = {runtime: moon}, ports = {closing: false, closed: false, originals, receipts, producers, liveRuns,
+  const context = {runtime: moon}, ports = {closing: false, closed: false, originals, receipts, producers, liveRuns, snapshotClientRequest,
     requestProducers, callbacks: {preparationContext: () => context, validator() {}, retainedValidator() {}},
     current() {counts.current++;}, requestPreparationAvailable: () => true, assertRequestPreparationControl() {},
     retainSourceInitializationMaterial() {}, retireInitialPreparation() {},
@@ -697,7 +704,8 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     freezeInput(value) {return Object.freeze(value);}};
   const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
     retainedRequestSourceMember('./ordinary-source-managed.mjs', 'beginProducer', 'FunctionDeclaration') +
-    ';return ({' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'retainRequestInput') + '});';
+    ';const view = ({' + ['retainRequestInput','captureSourceSnapshot','bindSourceSnapshot','bindSourceRequest']
+      .map(name => retainedRequestSourceMember('./ordinary-source-managed.mjs',name)).join(',') + '});return view;';
   const view = new Function(...Object.keys(ports), code)(...Object.values(ports));
   return {view, parent, intent, request, calls, receipts, producers, requestProducers, wire, counts};
 }
@@ -1004,4 +1012,27 @@ test('whole Effect target refresh validates the captured Prepared against its ex
   assert.deepEqual(calls, ['same-static-original', 'same-plan-reads']);
   assert.equal(effectSubmissions.get(prepared).requestId, 'original-request');
   assert.equal(Object.hasOwn(effectSubmissions.get(prepared), 'preparedProgram'), false);
+});
+
+test('retained manager captures held input through the same funded snapshot without issuing an intent', () => {
+  const f=retainedRequestManagerFixture(),captured=Object.freeze({kind:'program',
+    input:Object.freeze({version:'actql/0.1',id:'e\u0301😀'}),requestId:'same-held-request'});
+  const retained=f.view.retainRequestInput(f.request,undefined,captured);
+  const producer=f.receipts.get(retained.receipt);
+  assert.equal(f.calls[0],'open-parent');assert(f.calls.includes('reserve-snapshot'));
+  assert.equal(f.calls.includes('retain-original'),false);assert.equal(f.calls.includes('decode'),false);
+  assert.notEqual(retained.body,captured);assert.equal(retained.body.input.id,'e\u0301😀');
+  assert.equal(Object.isFrozen(retained.body),true);assert.equal(Object.hasOwn(retained.body,'parameters'),false);
+  assert.equal(producer.body,retained.body);assert.equal(producer.preparation.snapshot,retained.body);
+  assert.equal(f.requestProducers.get(f.request).deref(),producer);
+  assert.throws(()=>f.view.retainRequestInput(f.request,undefined,captured),{code:'ForeignInstalledSourceProducer'});
+});
+
+test('retained manager refuses ambiguous captured and typed intent inputs before opening a parent', () => {
+  for(const missing of [false,true]){
+    const f=retainedRequestManagerFixture();
+    assert.throws(()=>f.view.retainRequestInput(f.request,missing?undefined:f.intent,
+      missing?undefined:Object.freeze({kind:'program',input:{}})),{code:'ForeignInstalledSourceProducer'});
+    assert.deepEqual(f.calls,[]);
+  }
 });
