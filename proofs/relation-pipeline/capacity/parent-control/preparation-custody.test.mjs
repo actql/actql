@@ -8,8 +8,8 @@ import {inspectPreparationStorage} from './preparation-arrays.mjs';
 function fixture() {
   const record=(id,bytes,fields)=>({id,requestedBytes:bytes,
     captures:fields.map(([offset,id])=>({offset,id}))});
-  const prep=(id,inputs,selected,read)=>record(id,112,
-    [[0,'100'],[16,inputs],[24,'102'],[32,selected],[40,'103'],[48,'104'],[80,null],[88,read]]);
+  const prep=(id,inputs,selected,read)=>record(id,104,
+    [[0,'100'],[16,inputs],[24,'102'],[32,selected],[40,'103'],[48,'104'],[72,null],[80,read]]);
   const read=(id,bound,columns,name,actual)=>record(id,96,
     [[0,bound],[8,'105'],[16,columns],[64,name],[72,actual]]);
   const pending={phase:0,preparation:prep('110','101','111','112'),read:read('112','113','114','115','116')};
@@ -59,7 +59,7 @@ test('rejects lost pending inputs or binding during cleanup',()=>{
     assert.throws(()=>inspectPreparationChainCustody(records,facts),/Pending/);}
 });
 test('rejects a detached or unretired metadata cursor',()=>{
-  for(const phase of [0,1,2,3]) {const {records,facts}=fixture();at(facts[phase].preparation,88).id='999';
+  for(const phase of [0,1,2,3]) {const {records,facts}=fixture();at(facts[phase].preparation,80).id='999';
     assert.throws(()=>inspectPreparationChainCustody(records,facts),/cursor|different chain preparation/);}
 });
 test('same-size sequence and binding substitutions pass storage alone but fail joined custody',()=>{
@@ -75,7 +75,7 @@ test('rejects binding or schema substitution at transfer despite the same column
     assert.throws(()=>inspectPreparationChainCustody(records,facts),/Transfer substitutes/);}
 });
 test('rejects changed receiving schema and retained matched input after transfer',()=>{
-  const changes=[f=>at(f[2].read,8).id='999',f=>at(f[3].preparation,80).id='999'];
+  const changes=[f=>at(f[2].read,8).id='999',f=>at(f[3].preparation,72).id='999'];
   for(const change of changes) {const {records,facts}=fixture();change(facts);
     assert.throws(()=>inspectPreparationChainCustody(records,facts),/schema|matched input/);}
 });

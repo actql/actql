@@ -12,7 +12,7 @@ function fixture() {
   const array=(owner,backing,length,slots,width,first)=>({owner,backing,length,slots,
     elementBytes:width,ownerBytes:24,backingBytes:8+width*slots,staticBacking:slots===0,firstInitialized:first});
   const point=(phase,prep,readId,selected,columns,transferred=null)=>({phase,ports:1,fields:1,
-    preparation:record(prep,112,[{offset:32,id:selected.owner}]),
+    preparation:record(prep,104,[{offset:32,id:selected.owner}]),
     read:record(readId,96,[{offset:16,id:columns.owner}]),selected,columns,
     transferred,transferredColumns:transferred?columns.owner:null});
   const pending=point(0,'101','102',array('103','104',0,0,8,null),array('105','106',1,8,4,0));
