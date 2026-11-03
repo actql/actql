@@ -363,7 +363,8 @@ test "standard dispatcher completes native fixed Compute without Node" {
     16777216L,
   ).unwrap()
   let ledger = @strategy.captured_dag_ledger(run)
-  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+  // Registration reserves the same task; actual driver entry spends its attempt.
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_execution_bytes,
     16777216L +
@@ -389,6 +390,7 @@ test "standard dispatcher completes native fixed Compute without Node" {
   )
   assert_false(@strategy.captured_task_completed(run, 1))
   let output = @native_host.execute_native_strategy_compute_runtime(runtime).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).attempts, 1)
   assert_true(@strategy.captured_task_completed(run, 1))
   assert_eq(@execution.completed_row_count(output), 1)
   assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
