@@ -9274,8 +9274,10 @@ async function exerciseStrategyGraph(
     first: {from: {stage: 'consumer_a', result: 'r'}},
     second: {from: {stage: 'consumer_b', result: 'r'}},
   };
-  const retainedValuesFixture = fixture.strategyFixtureCreate(
-    ...args, JSON.stringify(retainedValuesProgram));
+  // This successful publication retains all three original Result occurrences
+  // and their evidence, beyond the strict 32 MB refusal fixture's allowance.
+  const retainedValuesFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(
+    ...args, JSON.stringify(retainedValuesProgram)));
   const retainedValuesCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(retainedValuesFixture),
