@@ -98,10 +98,24 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
   funded = await openFundedClientPreparation({moon, environment: checkingEnvironment,
     http: entrance === 'https'});
   const prepare = entrance === 'https' ? funded.prepareSubmit : funded.prepare;
-  const prepareSubmit = Object.freeze(Object.assign(request => {
+  // This routes DATA to the existing owner, never certifies a failure/report.
+  // The nested original SubmissionRef distinguishes concurrent calls even if
+  // a caller throws the same Error object; the manager still checks identity.
+  const failedRequests = new WeakMap();
+  const prepareSubmit = Object.freeze(Object.assign(async request => {
     preparations++;
     received.push(structuredClone({input: request.input, parameters: request.parameters}));
-    return prepare(request);
+    const originalRequest = entrance === 'https' ? funded.originalRequest(request) : request;
+    try {return await prepare(request);}
+    catch (failure) {
+      if (failure !== null && (typeof failure === 'object' || typeof failure === 'function') &&
+          request.submissionRef !== null && typeof request.submissionRef === 'object') {
+        let requests = failedRequests.get(failure);
+        if (requests === undefined) {requests = new WeakMap(); failedRequests.set(failure, requests);}
+        requests.set(request.submissionRef, originalRequest);
+      }
+      throw failure;
+    }
   }, {assertSubmittedIntent: prepare.assertSubmittedIntent}));
   const check = installNodeClientCheck({moon, environment: checkingEnvironment, publication, sourceAccesses});
   const configuration = {
@@ -143,7 +157,21 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
     ...(entrance === 'https' ? funded.submission : {}),
     authorizedScope: () => authorized ? scope : undefined,
     prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
-    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check});
+    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check,
+    async observeOriginalPreparationFailure(failure, value) {
+      const request = failedRequests.get(failure)?.get(value.submissionRef);
+      if (request === undefined) return undefined;
+      const current = () => {
+        if (!authorized) throw Object.assign(new Error('ClientConnectionDenied'), {code: 'ClientConnectionDenied'});
+      };
+      current();
+      const outcome = await funded.manager.observeOriginalCheckOutcome(request, failure, project =>
+        check.projectOriginal({principalId: value.principalId, connection: value.connection,
+          kind: value.kind === 'program' ? 'program' : 'text', scope: 'bound_input',
+          input: value.input, parameters: value.parameters, signal: value.signal}, project));
+      current();
+      return outcome;
+    }});
   Object.assign(configuration, {submitIntent: submission.submitAttempt,
     lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;
