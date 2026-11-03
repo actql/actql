@@ -108,13 +108,25 @@ pub fn client_program_project_original_check_outcome(
       hidden = true
     }
   }
-  // Only the same original binder refusal proves a supplied violation. Keep
-  // the original private-Source filter: whether binding was reached after
-  // private registration must not reveal that registration's availability.
-  let supplied_refusal = if !hidden &&
-    outcome is @checked.Rejected(diagnostic) &&
-    @checked.diagnostic_cause(diagnostic)
-    is Source(SourceView(Binding(Binding(issue)))) &&
+  // A completed input read before Source resolution is independent of every
+  // private Source's availability. The old later binder keeps its original
+  // disclosure filter; absence of this original never starts another read.
+  let independent = @checked.independent_supplied_binding_issue(
+    outcome, program, supplied,
+  )
+  let supplied_issue = match independent {
+    Some(issue) => Some(issue)
+    None =>
+      if !hidden &&
+        outcome is @checked.Rejected(diagnostic) &&
+        @checked.diagnostic_cause(diagnostic)
+        is Source(SourceView(Binding(Binding(issue)))) {
+        Some(issue)
+      } else {
+        None
+      }
+  }
+  let supplied_refusal = if supplied_issue is Some(issue) &&
     issue is BindingInput(Supplied, _) &&
     check_binding_fault(issue) is Invalid {
     findings.push(

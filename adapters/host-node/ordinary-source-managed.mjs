@@ -656,7 +656,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       // Source/account/namespace metadata visitor can await or do work.
       assertSame();
       return visit(metadata => {
-        if (!Array.isArray(metadata) || metadata.length !== 11) fail('InvalidOriginalCheckObservation');
+        if (!Array.isArray(metadata) || metadata.length !== 12) fail('InvalidOriginalCheckObservation');
         assertSame();
         // Preserve the original Result wrapper. Only the typed C bridge may
         // match its terminal; no Err/Option or Error.cause is rebuilt in JS.

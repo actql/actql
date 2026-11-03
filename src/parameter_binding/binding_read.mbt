@@ -40,6 +40,8 @@ struct BindingReadInput {
   limits : @value.Limits
   mut origin : Origin
   mut state : BindingReadState
+  mut value_nodes : Int
+  mut value_text : Int
 }
 
 ///|
@@ -57,6 +59,8 @@ pub fn prepare_binding_read(
     limits,
     origin: Supplied,
     state: AwaitingBindingHeader,
+    value_nodes: 0,
+    value_text: 0,
   })
 }
 
@@ -216,10 +220,16 @@ fn binding_read_value(
   let declaration = body.declaration.unwrap()
   let cursor = body.selected.unwrap()
   let (value, origin) = if body.provided {
-    (
-      check_value(cursor, declaration.syntax.parameter_type, original.limits),
-      Supplied,
+    let (value, nodes, text) = check_value_usage(
+      cursor,
+      declaration.syntax.parameter_type,
+      original.limits,
     )
+    // Value admission has a fresh per-value budget; selected-value preflight
+    // separately charges the cumulative binding budget, including names.
+    original.value_nodes = Int::max(original.value_nodes, nodes)
+    original.value_text = Int::max(original.value_text, text)
+    (value, Supplied)
   } else {
     (declaration.default_value.unwrap(), Default)
   }

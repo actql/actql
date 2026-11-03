@@ -11,12 +11,6 @@ fn[I] request_check_observation_bytes(
   publication : String,
   input_label_bytes : Int64,
 ) -> Int64? {
-  let (parse, _) = @source_publication.source_publication_input_limits()
-  let units = publication.length().to_int64()
-  if units > parse.max_input_bytes.to_int64() {
-    return None
-  }
-  let nodes = Int64::min(units + 1L, parse.max_nodes.to_int64())
   let requests = match outcome {
     @checked.NeedsInputs(value) => @checked.input_request_count(value)
     _ => 0
@@ -24,42 +18,12 @@ fn[I] request_check_observation_bytes(
   let findings = @parameters.declaration_count(@stages.declarations(source)).to_int64() +
     2L * requests.to_int64() +
     4L
-  guard @encode.text_writer_construction_inventory(65536, 4096, 16)
-    is Some(writer) &&
-    @execution.preparation_representation_cost({
-      record_headers: writer.record_headers,
-      reference_slots: writer.reference_slots,
-      scalar_words: writer.scalar_words,
-      owned_utf16_units: writer.owned_utf16_units + 65536L,
-      owned_wire_bytes: 0L,
-    })
-    is Some(output) &&
-    @execution.execution_capacity_inventory_bytes([
-      // Source/index plus the borrowed alias/cursor inspection vectors.
-      { unit: @execution.ValueNodeSlots, count: nodes, copies: 4, },
-      { unit: @execution.DecodedTextBytes, count: units, copies: 2, },
-      // Original collected Source labels coexist with one expected URI and
-      // its sequential concatenation intermediates, not one copy per alias.
-      {
-        unit: @execution.DecodedTextBytes,
-        count: input_label_bytes,
-        copies: 4,
-      },
-      // Findings and the writer's sequential reason/requirement vectors.
-      { unit: @execution.ValueNodeSlots, count: findings, copies: 4, },
-      // Existing report labels are bounded to256 before pointer emission.
-      { unit: @execution.DecodedTextBytes, count: 256L * findings, copies: 4, },
-      // UTF-8 publication encoding coexists with its reader. Small borrowed
-      // context/revision strings and call frames use trusted Host overhead.
-      { unit: @execution.QuotedBytes, count: 4L * units, copies: 1, },
-    ])
-    is Some(data) else {
-    return None
-  }
   // The same retained semantic envelope remains live through the report. Its
   // existing quote is not refunded or reused as this additional output budget.
   guard child.check_data is Some(_) else { return None }
-  @execution.checked_preparation_add_product(output, data, 1L)
+  request_check_observation_inventory_bytes(
+    publication, findings, input_label_bytes,
+  )
 }
 
 ///|
@@ -100,7 +64,15 @@ pub fn[I] project_request_check_outcome(
   parameters_bytes : Int,
   correlation_ref : String,
   selector_namespace : @local_preparation.ClientCheckSourceSelectorNamespace?,
+  source_namespace? : @local_preparation.ClientCheckSourceNamespace? = None,
 ) -> Result[String?, ClientRequestPreparationIssue] {
+  if terminal is QuerySyntax(_) || terminal is QueryLowering(_) {
+    return project_request_query_check_outcome(
+      owner, input, terminal, visible_publication, context_ref, input_kind, input_revision,
+      input_bytes, declarations_revision, declarations_bytes, parameters_revision,
+      parameters_bytes, correlation_ref, source_namespace,
+    )
+  }
   let original = match terminal {
     CheckOutcome(value) => value
     _ => return Ok(None)
@@ -265,4 +237,52 @@ pub fn[I] project_request_check_outcome(
       }
     },
   )
+}
+
+///|
+// The same writer and proportional findings tariff for both original phases.
+fn request_check_observation_inventory_bytes(
+  publication : String,
+  findings : Int64,
+  input_label_bytes : Int64,
+) -> Int64? {
+  let (parse, _) = @source_publication.source_publication_input_limits()
+  let units = publication.length().to_int64()
+  if units > parse.max_input_bytes.to_int64() {
+    return None
+  }
+  let nodes = Int64::min(units + 1L, parse.max_nodes.to_int64())
+  guard @encode.text_writer_construction_inventory(65536, 4096, 16)
+    is Some(writer) &&
+    @execution.preparation_representation_cost({
+      record_headers: writer.record_headers,
+      reference_slots: writer.reference_slots,
+      scalar_words: writer.scalar_words,
+      owned_utf16_units: writer.owned_utf16_units + 65536L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(output) &&
+    @execution.execution_capacity_inventory_bytes([
+      // Source/index plus the borrowed alias/cursor inspection vectors.
+      { unit: @execution.ValueNodeSlots, count: nodes, copies: 4, },
+      { unit: @execution.DecodedTextBytes, count: units, copies: 2, },
+      // Original collected Source labels coexist with one expected URI and
+      // its sequential concatenation intermediates, not one copy per alias.
+      {
+        unit: @execution.DecodedTextBytes,
+        count: input_label_bytes,
+        copies: 4,
+      },
+      // Findings and the writer's sequential reason/requirement vectors.
+      { unit: @execution.ValueNodeSlots, count: findings, copies: 4, },
+      // Existing report labels are bounded to256 before pointer emission.
+      { unit: @execution.DecodedTextBytes, count: 256L * findings, copies: 4, },
+      // UTF-8 publication encoding coexists with its reader. Small borrowed
+      // context/revision strings and call frames use trusted Host overhead.
+      { unit: @execution.QuotedBytes, count: 4L * units, copies: 1, },
+    ])
+    is Some(data) else {
+    return None
+  }
+  @execution.checked_preparation_add_product(output, data, 1L)
 }

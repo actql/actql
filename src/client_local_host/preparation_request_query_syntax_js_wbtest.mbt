@@ -40,7 +40,7 @@ test "same Request query syntax uses one original current and refuses reentry wi
   assert_eq(calls.val - before, 1)
   assert_eq(flags.val, 3)
   let selected = parent.query_syntax.unwrap()
-  assert_true(physical_equal(selected.query.unwrap(), query))
+  assert_true(physical_equal(selected.query.unwrap().unwrap(), query))
   assert_true(
     physical_equal(prepared_request_query_syntax(parent, input).unwrap(), query),
   )

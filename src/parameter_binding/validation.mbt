@@ -215,10 +215,21 @@ fn check_value(
   parameter : @contract.ParameterType,
   limits : @value.Limits,
 ) -> @value.CheckedValue raise Abort {
-  let value = match @value.admit(parameter.contract, cursor, limits) {
-    Ok(value) => value
+  check_value_usage(cursor, parameter, limits).0
+}
+
+///|
+// Preserve the original admission's measured usage without another Value
+// read. Constraints run in the same order and failures expose no measurement.
+fn check_value_usage(
+  cursor : @decode.Cursor,
+  parameter : @contract.ParameterType,
+  limits : @value.Limits,
+) -> (@value.CheckedValue, Int, Int) raise Abort {
+  let admitted = match @value.admit_usage(parameter.contract, cursor, limits) {
+    Ok(admitted) => admitted
     Err(issue) => raise Abort(Value(issue))
   }
   constraints(cursor, parameter)
-  value
+  admitted
 }

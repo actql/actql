@@ -38613,18 +38613,22 @@
     {
       "module": "src/client_local_host/preparation_request_check_observation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3a625e9b92111883c57a0c46d0a8c3be00a2733f648146a6d62e6b94373bff10",
+      "sha256": "961b34e9a91c91301fafae341e8bf7c8b06959e8ce173f5b0a5eb71dc9b9bf86",
       "role": "common-semantics",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
       "operations": [
         {
           "name": "[I]project_request_check_outcome",
-          "declaration": "[ I ] project_request_check_outcome ( owner : ClientRequestPreparation [ I ] , input : I , terminal : ClientRequestTerminalIssue , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , ) - > Result [ String ? , ClientRequestPreparationIssue ]"
+          "declaration": "[ I ] project_request_check_outcome ( owner : ClientRequestPreparation [ I ] , input : I , terminal : ClientRequestTerminalIssue , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : @ local_preparation . ClientCheckSourceSelectorNamespace ? , source_namespace ? : @ local_preparation . ClientCheckSourceNamespace ?"
         },
         {
           "name": "[I]request_check_observation_bytes",
           "declaration": "[ I ] request_check_observation_bytes ( child : ClientProgramCheckPreparation [ I , Unit ] , source : @ stages . Source , outcome : @ checked . CheckOutcome , publication : String , input_label_bytes : Int64 , ) - > Int64 ?"
+        },
+        {
+          "name": "request_check_observation_inventory_bytes",
+          "declaration": "request_check_observation_inventory_bytes ( publication : String , findings : Int64 , input_label_bytes : Int64 , ) - > Int64 ?"
         },
         {
           "name": "request_check_observation_reference",
@@ -38637,6 +38641,7 @@
             "<module>",
             "[I]project_request_check_outcome",
             "[I]request_check_observation_bytes",
+            "request_check_observation_inventory_bytes",
             "request_check_observation_reference"
           ],
           "exports": [],
@@ -40550,7 +40555,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fce88980187a014090195c3ba3c598a7f1f9159a5ef89ed958fe84adf4a40dbf",
+      "sha256": "f12c554bb691eae633972a62fefdb9820ee338fbca0cb4ebb140ecad2d4bfec9",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -42327,7 +42332,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "144bce99d9ec2e49c34346789f403295b1727ff28dde84a46fd0d8aceeb4ed98",
+      "sha256": "85ec104188bca32e3a5cf1f4088bcbafe766282fcc0bd3d33e6159df8499a731",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -42467,7 +42472,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_syntax.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "e56b6aafdaf23043786fe00d48666f5bed430e2408b4792e915f1c03afbddc32",
+      "sha256": "ea8818782aadff4c3765baee5900f8c95dc20a7c202129013f8d831a9b6d3d2d",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -43888,7 +43893,7 @@
     {
       "module": "src/client_local_preparation/client_check_original_outcome.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ccb4e4e35fae0a6d6cba0e82ad74029643c5f59b3edfd89d3ca3a00c6862e12c",
+      "sha256": "8a7b1ee5047a4c71f01512ad912c4883e9f89e990f684dd9815961ed1087c00c",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -43976,6 +43981,10 @@
               {
                 "path": "src/client_local_preparation/client_check_original_outcome_wbtest.mbt",
                 "anchor": "test \"retained original binder refusal"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_supplied_observation_js_wbtest.mbt",
+                "anchor": "test \"Request original protected Source report"
               }
             ]
           }
@@ -47942,7 +47951,7 @@
     {
       "module": "src/connectors_builtin_node/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1b97785eab88ec7b8c066862c80a210fd3081e469d796804d1da88f68ed50209",
+      "sha256": "efc5fe037345f5eeb1fc6b0c17e15bd8d109471fb4aa369c77e00b63386bf877",
       "role": "generated-binding",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -47953,7 +47962,7 @@
         },
         {
           "name": "client_program_project_request_check_outcome",
-          "declaration": "client_program_project_request_check_outcome ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original_result : Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ] , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , ) - > Result [ String ? , @ client_local_host . ClientRequestPreparationIssue ]"
+          "declaration": "client_program_project_request_check_outcome ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original_result : Result [ Unit , @ client_local_host . ClientRequestTerminalIssue ] , visible_publication : String , context_ref : String , input_kind : String , input_revision : String , input_bytes : Int , declarations_revision : String ? , declarations_bytes : Int , parameters_revision : String ? , parameters_bytes : Int , correlation_ref : String , selector_namespace : ClientCheckSourceSelectorNamespace ? , source_namespace : ClientCheckSourceNamespace ? , ) - > Result [ String ? , @ client_local_host . ClientRequestPreparationIssue ]"
         }
       ],
       "contracts": [

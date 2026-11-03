@@ -75,7 +75,10 @@ test "Request original Query lowers once and hands the same Program and Catalog 
     assert_eq(calls.val - before, 1)
     assert_eq(flags.val, 3)
     assert_true(
-      physical_equal(parent.query_syntax.unwrap().query.unwrap(), query),
+      physical_equal(
+        parent.query_syntax.unwrap().query.unwrap().unwrap(),
+        query,
+      ),
     )
     let program = original.0.program.unwrap()
     assert_true(physical_equal(parent.held_program.unwrap(), program))

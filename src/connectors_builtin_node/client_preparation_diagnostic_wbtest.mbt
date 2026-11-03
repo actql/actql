@@ -206,6 +206,7 @@ test "Request original observation bridge returns optional String through the ac
       0,
       "corr:" + "c".repeat(32),
       None,
+      None,
     )
   }
   let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
@@ -259,6 +260,7 @@ test "Request original observation bridge never upgrades undisclosable NeedsInpu
       None,
       0,
       "corr:" + "c".repeat(32),
+      None,
       None,
     )
     .unwrap()

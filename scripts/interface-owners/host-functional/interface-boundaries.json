@@ -19722,7 +19722,7 @@
     {
       "module": "adapters/host-node/client-check.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d2cb4c13fbf4360aa788d2045b877020be52b177a8c154fb354a1a402be6ea3",
+      "sha256": "c8967faba555891303c0d9ff0dbcdd0139cd995a7567c7afce2817444e53eeb2",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -113930,7 +113930,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "e3e5d0eef9eb14cdc05bb06319447c2ea7c4e02461cc43a27b68d4c5a769b7c7"
+      "sha256": "5c36f1078b016910552e45c494ce80fe99a91978bb97b5a1e7392196720ea606"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

@@ -9,15 +9,16 @@ pub fn binding_header_construction_extent(
   if root_path_depth < 0 || !(original.state is AwaitingBindingHeader) {
     return None
   }
-  // Original reader4R1W/state1R1W, body7R3W/Budget3W, object Some1R1W,
+  // Original reader4R3W/state1R1W, body7R3W/Budget3W, object Some1R1W,
   // names projection closure1R, completed usage2W/result3R/Ready1R1W/
   // Ok1R1W/state1R1W. Empty completion and in-progress Header alternatives
-  // coexist in this conservative constructor envelope:11H20R14W.
+  // coexist in this conservative constructor envelope:11H20R16W. The reader's
+  // two added scalars retain actual successful per-value admission maxima.
   // Three Arrays are names plus the same initially empty entries/missing.
   let header : @shape.CollectionConstructionInventory = {
     records: 11L,
     record_references: 20L,
-    record_words: 14L,
+    record_words: 16L,
     reference_arrays: 3L,
     reference_items: original.declarations.entries.length().to_int64(),
     scalar_arrays: 0L,

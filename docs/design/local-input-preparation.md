@@ -2283,6 +2283,32 @@ for its original constructors and held evidence. It executes the existing
 remaining checker once and retains its typed result; it does not replay the
 previous input, Parameter or imported-evidence phases.
 
+That existing remaining-check quotation also includes the original supplied
+Parameter input's cached admitted-node and UTF16 dimensions. These dimensions
+back later typed Value/container construction; they neither bind values nor
+change semantic limits, Source resolution or refusal order. An independently
+admitted supplied root contributes its own admission. A child Cursor retains
+the conservative dimensions of its complete admitted owner, without a new
+subtree walk. Re-observing the quote does not spend semantic work or perform
+Parameter binding, and missing or unavailable originals supply no quote.
+
+At the completed Request-contract boundary, the same remaining-check frame
+can observe supplied values before Program Source resolution. It uses only
+the same complete Program's retained declarations under the existing fitting
+declaration limits. The ordinary Source/topology construction still selects
+its actual later binding limits. A fitting completed read forwards the same
+typed values; a changed or tighter incompatible selection keeps the original
+full binding path, and failed reads require exact limits for reuse.
+
+This independent input result remains diagnostic DATA beside the original
+primary checker outcome. It neither replaces a Source refusal nor certifies
+the remaining Program. Projection borrows that result only for the same
+Program and supplied tree position; it starts no binder or checker. Native
+normalized input has no retained raw-key spelling or authored text spans,
+so this observation does not manufacture an original input location.
+The quote covers the independent result and a possible simultaneous ordinary
+fallback without increasing either consumer's semantic limits.
+
 The original Delta transfer is itself one retained semantic body, shared by
 operation/final evidence synchronization and the existing produced-projection
 consumer. Empty and value-preserving branches return the original evidence.
@@ -5049,14 +5075,15 @@ Source dependency whose original collected inputs are unavailable stays
 unresolved; reporting does not collect or resolve it again. Native originals
 without an authored text mapping do not acquire invented text coordinates.
 
-When that same retained refusal contains an invalid supplied-input binder issue
-and its Source dependencies are public in the current audience, projection uses
-the existing binder-owned type explanation beside independent missing-value
-requirements. It does not bind again or add an unavailable Parameters pointer.
-Budget and invalid-setting issues keep the original classification path. A
-private registration that stopped before binding supplies no binder proof;
-whether binding was reached after private registration must not disclose that
-registration's availability. The existing protected-Source filter remains.
+When that same retained refusal contains an independent supplied-input result
+completed before Source resolution, projection can use its original type
+explanation beside missing-value requirements for every audience. The later
+ordinary binder's issue remains subject to the existing public-Source filter.
+Projection does not bind again or add an unavailable Parameters pointer.
+Budget and invalid-setting issues keep the original classification path.
+Private registration itself supplies no binder proof; absent an independent
+original, whether binding was reached after registration must not disclose
+that registration's availability. The existing protected-Source filter remains.
 
 Before reading current publication metadata or constructing report output,
 the same Request grows its retained and working extents for the bounded report

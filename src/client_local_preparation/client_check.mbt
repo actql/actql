@@ -336,243 +336,8 @@ fn check_source_findings(
       command_targets~,
     ) {
     Ok(value) => value
-    Err(issue) => {
-      match issue {
-        QuerySyntax(diagnostic) =>
-          if check_syntax_budget(diagnostic.issue) {
-            findings.push(Limit("analysis_budget_exhausted"))
-          } else {
-            findings.push(check_syntax_finding(diagnostic))
-          }
-        WrongQueryForm => findings.push(Violation("query_syntax_invalid"))
-        // A filtered omission alone has no negative authority. Only the exact
-        // resolver witness and this call's admitted full namespace can close it.
-        QueryLowering(UnresolvedRelation(_) as reference) =>
-          findings.push(check_source_alias_absence(source_namespace, reference))
-        QueryLowering(UnknownRelation) =>
-          findings.push(Unresolved("source_resolution"))
-        QueryLowering(StoreTargetBinding(WorkLimit)) =>
-          findings.push(Limit("analysis_budget_exhausted"))
-        // A visible STORE publication is not a complete namespace absence or
-        // uniqueness proof, just like the original UPDATE publication.
-        QueryLowering(StoreTargetBinding(_)) =>
-          findings.push(Unresolved("source_resolution"))
-        QueryLowering(CommandTargetBinding(WorkLimit)) =>
-          findings.push(Limit("analysis_budget_exhausted"))
-        // The visible Command publication retains original selections, not a
-        // complete namespace proof or authority to disclose hidden targets.
-        QueryLowering(CommandTargetBinding(_)) =>
-          findings.push(Unresolved("source_resolution"))
-        QueryLowering(UpdateTargetBinding(WorkLimit)) =>
-          findings.push(Limit("analysis_budget_exhausted"))
-        // A visible metadata subset cannot establish complete UPDATE target
-        // uniqueness or disclose hidden Mapping names, identities, or counts.
-        QueryLowering(UpdateTargetBinding(_)) =>
-          findings.push(Unresolved("source_resolution"))
-        QueryLowering(TableWriteBinding(UnknownTable)) =>
-          findings.push(Unresolved("source_resolution"))
-        QueryLowering(TableWriteBinding(AmbiguousTable)) =>
-          findings.push(Violation("query_invalid"))
-        QueryLowering(TableWriteBinding(ActionMismatch)) =>
-          findings.push(Violation("query_invalid"))
-        QueryLowering(TableWriteBinding(WorkLimit)) =>
-          findings.push(Limit("analysis_budget_exhausted"))
-        QueryLowering(TableWriteBinding(InvalidBinding)) =>
-          return Failed("check_context_invalid")
-        QueryLowering(FileListing(MissingCatalog)) =>
-          return Failed("check_context_invalid")
-        QueryLowering(
-          FileListing(
-            InstalledSourceRequired
-            | MissingProfile
-            | UnsupportedSelector
-          )
-        ) => findings.push(Limit("implementation_limit"))
-        QueryLowering(FileListing(InvalidSelector | FixedSelectorConflict)) =>
-          findings.push(Violation("query_invalid"))
-        QueryLowering(FileListing(Resolution({ kind: Unresolved, .. }))) =>
-          findings.push(Unresolved("source_resolution"))
-        QueryLowering(FileListing(Resolution({ kind: Ambiguous(_), .. }))) =>
-          findings.push(Violation("query_invalid"))
-        QueryLowering(FileListing(ParameterDeclarations(Declarations(issue)))) =>
-          match check_binding_fault(issue) {
-            Budget => findings.push(Limit("analysis_budget_exhausted"))
-            _ => return Failed("check_internal")
-          }
-        QueryLowering(
-          FileListing(
-            Source(WorkLimit | OrderLimit)
-            | Resolution({ kind: WorkLimit | InputLimit | ViewLimit, .. })
-            | RequestSlots(WorkLimit | SlotLimit)
-            | Bindings(WorkLimit | BindingLimit)
-            | Request({ kind: WorkLimit | PairLimit, .. })
-            | Request(
-              {
-                kind: Literal(
-                  ValueIssue(BudgetExceeded, ..)
-                  | Decode({ kind: BudgetExceeded, .. })
-                ),
-                ..
-              }
-            )
-            | ParameterDeclarations(Collection(WorkLimit))
-          )
-        ) => findings.push(Limit("analysis_budget_exhausted"))
-        QueryLowering(
-          FileListing(
-            Request({ kind: InvalidLimits | ForeignSource | ForeignInput, .. })
-            | Source(_)
-            | Resolution(_)
-            | RequestSlots(_)
-            | ParameterDeclarations(_)
-            | Bindings(_)
-            | Identity(_)
-          )
-        ) => return Failed("check_internal")
-        // Remaining Request failures are issued by the common Request owner;
-        // generated cursors are not fabricated authored source locations.
-        QueryLowering(FileListing(Request(_))) =>
-          findings.push(Violation("query_invalid"))
-        QueryLowering(
-          UnsupportedProjection
-          | UnsupportedGrouping
-          | UnsupportedAggregate
-          | UnsupportedHaving
-          | UnsupportedOrdering
-          | UnsupportedAnalytic
-          | UnsupportedSet
-          | UnsupportedJoin
-          | UnsupportedCte
-          | UnsupportedGraph
-          | UnsupportedInfer
-          | UnsupportedNearest
-          | UnsupportedResult
-          | UnsupportedEffect
-        ) => findings.push(Limit("implementation_limit"))
-        QueryLowering(InferKeyLabel(_, _)) =>
-          findings.push(check_query_finding(issue))
-        // Resolved against visible relations only: a disclosable fact.
-        // Direct column selection retains a typed resolution failure but no
-        // authored origin. Explain that failure without manufacturing a span.
-        QueryLowering(UnknownColumn) =>
-          findings.push(ExpressionViolation("unknown_reference", None))
-        QueryLowering(BindingPreparation(issue)) =>
-          if check_binding_preparation_findings(findings, issue, scope)
-            is Some(failure) {
-            return Failed(failure)
-          }
-        QueryLowering(BindingPreparationSource(issue, source)) =>
-          if check_binding_preparation_findings(
-              findings,
-              issue,
-              scope,
-              diagnostic_source=Some(source),
-            )
-            is Some(failure) {
-            return Failed(failure)
-          }
-        QueryLowering(GraphExpected(origin)) => {
-          findings.push(Violation("query_invalid"))
-          if check_authored_range(origin) is Some((start, end)) {
-            findings.push(QueryOrigin(start, end))
-          }
-        }
-        QueryLowering(
-          InvalidQuery
-          | RangeAliasRequiresRelation
-          | AmbiguousRelation
-          | AmbiguousColumn
-          | DuplicateOutput
-        ) => findings.push(Violation("query_invalid"))
-        // A Frontend scope probe retains the same typed cause as ordinary
-        // Program checking. No generated cursor becomes an authored location.
-        QueryLowering(ExpressionTyping(issue)) =>
-          match issue.kind {
-            UnknownParameter(name) if name.length() <= 256 =>
-              findings.push(UndeclaredParameter(name, None))
-            InvalidLimits | InvalidScope(_) => return Failed("check_internal")
-            BudgetExceeded => findings.push(Limit("analysis_budget_exhausted"))
-            _ => findings.push(Violation("query_invalid"))
-          }
-        // Expression lowering wraps the same construction owner and its
-        // budgets. The wrapper cannot turn its own limit into bad input.
-        QueryLowering(
-          Expression(
-            {
-              issue: WorkLimit
-              | Construction(
-                InputLimit
-                | NodeLimit
-                | DepthLimit
-                | StringLimit
-                | OriginLimit
-                | OutputLimit
-                | Admission({ kind: BudgetExceeded, .. })
-              )
-              | Admission(
-                {
-                  kind: BudgetExceeded
-                  | Decode(BudgetExceeded)
-                  | Text(
-                    CapacityExceeded
-                    | TreeAdmission(BudgetExceeded)
-                    | Lexical(ByteLimit | TokenLimit)
-                  ),
-                  ..
-                }
-              ),
-              ..
-            }
-          )
-        ) => findings.push(Limit("analysis_budget_exhausted"))
-        // Other failures of generated construction/admission and invalid
-        // lowering limits belong to the checker, not to the author.
-        QueryLowering(
-          Expression(
-            { issue: InvalidLimits | Construction(_) | Admission(_), .. }
-          )
-        ) => return Failed("check_internal")
-        // This lowerer issue conflates unknown names with unsupported forms.
-        // Without a distinct input violation it cannot justify author blame.
-        // The existing generic limit has no cast-specific public facts.
-        // Keep the original authored range in the lowerer's diagnostic; do
-        // not label a conversion as a function or invent a reason payload.
-        QueryLowering(Expression({ issue: UnsupportedCast, .. })) =>
-          findings.push(Limit("implementation_limit"))
-        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>
-          findings.push(FunctionLimit(check_authored_range(origin)))
-        QueryLowering(
-          Expression(
-            { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
-          )
-        ) => findings.push(check_query_finding(issue))
-        // Host query context, not the caller's input.
-        QueryLowering(InvalidContext) => return Failed("check_context_invalid")
-        // A construction budget of this check: undetermined, never invalid.
-        QueryLowering(
-          Construction(
-            InputLimit
-            | NodeLimit
-            | DepthLimit
-            | StringLimit
-            | OriginLimit
-            | OutputLimit
-            | Admission({ kind: BudgetExceeded, .. })
-          )
-          | Admission(
-            Structure(StageLimit, ..)
-            | RetentionLimit(_, ..)
-            | Decode({ kind: BudgetExceeded, .. })
-          )
-        ) => findings.push(Limit("analysis_budget_exhausted"))
-        // The Program built from accepted source: never blamed on the author.
-        QueryLowering(Construction(_) | Admission(_))
-        | InvalidFormat
-        | MissingQueryContext
-        | Encoding => return Failed("check_internal")
-      }
-      return Report
-    }
+    Err(issue) =>
+      return check_frontend_issue(findings, issue, scope, source_namespace)
   }
   if findings
     .iter()
@@ -2843,4 +2608,248 @@ fn check_graph_argument_range(
     _ => None
   }
   check_authored_range(origin)
+}
+
+///|
+// Share the original typed failure projection with the retained Request.
+// This function does not parse, lower, resolve or check another input.
+fn check_frontend_issue(
+  findings : Array[CheckFinding],
+  issue : @frontend.Issue,
+  scope : @checked.CheckScope,
+  source_namespace : ClientCheckSourceNamespace?,
+) -> CheckStop {
+  match issue {
+    QuerySyntax(diagnostic) =>
+      if check_syntax_budget(diagnostic.issue) {
+        findings.push(Limit("analysis_budget_exhausted"))
+      } else {
+        findings.push(check_syntax_finding(diagnostic))
+      }
+    WrongQueryForm => findings.push(Violation("query_syntax_invalid"))
+    // A filtered omission alone has no negative authority. Only the exact
+    // resolver witness and this call's admitted full namespace can close it.
+    QueryLowering(UnresolvedRelation(_) as reference) =>
+      findings.push(check_source_alias_absence(source_namespace, reference))
+    QueryLowering(UnknownRelation) =>
+      findings.push(Unresolved("source_resolution"))
+    QueryLowering(StoreTargetBinding(WorkLimit)) =>
+      findings.push(Limit("analysis_budget_exhausted"))
+    // A visible STORE publication is not a complete namespace absence or
+    // uniqueness proof, just like the original UPDATE publication.
+    QueryLowering(StoreTargetBinding(_)) =>
+      findings.push(Unresolved("source_resolution"))
+    QueryLowering(CommandTargetBinding(WorkLimit)) =>
+      findings.push(Limit("analysis_budget_exhausted"))
+    // The visible Command publication retains original selections, not a
+    // complete namespace proof or authority to disclose hidden targets.
+    QueryLowering(CommandTargetBinding(_)) =>
+      findings.push(Unresolved("source_resolution"))
+    QueryLowering(UpdateTargetBinding(WorkLimit)) =>
+      findings.push(Limit("analysis_budget_exhausted"))
+    // A visible metadata subset cannot establish complete UPDATE target
+    // uniqueness or disclose hidden Mapping names, identities, or counts.
+    QueryLowering(UpdateTargetBinding(_)) =>
+      findings.push(Unresolved("source_resolution"))
+    QueryLowering(TableWriteBinding(UnknownTable)) =>
+      findings.push(Unresolved("source_resolution"))
+    QueryLowering(TableWriteBinding(AmbiguousTable)) =>
+      findings.push(Violation("query_invalid"))
+    QueryLowering(TableWriteBinding(ActionMismatch)) =>
+      findings.push(Violation("query_invalid"))
+    QueryLowering(TableWriteBinding(WorkLimit)) =>
+      findings.push(Limit("analysis_budget_exhausted"))
+    QueryLowering(TableWriteBinding(InvalidBinding)) =>
+      return Failed("check_context_invalid")
+    QueryLowering(FileListing(MissingCatalog)) =>
+      return Failed("check_context_invalid")
+    QueryLowering(
+      FileListing(
+        InstalledSourceRequired
+        | MissingProfile
+        | UnsupportedSelector
+      )
+    ) => findings.push(Limit("implementation_limit"))
+    QueryLowering(FileListing(InvalidSelector | FixedSelectorConflict)) =>
+      findings.push(Violation("query_invalid"))
+    QueryLowering(FileListing(Resolution({ kind: Unresolved, .. }))) =>
+      findings.push(Unresolved("source_resolution"))
+    QueryLowering(FileListing(Resolution({ kind: Ambiguous(_), .. }))) =>
+      findings.push(Violation("query_invalid"))
+    QueryLowering(FileListing(ParameterDeclarations(Declarations(issue)))) =>
+      match check_binding_fault(issue) {
+        Budget => findings.push(Limit("analysis_budget_exhausted"))
+        _ => return Failed("check_internal")
+      }
+    QueryLowering(
+      FileListing(
+        Source(WorkLimit | OrderLimit)
+        | Resolution({ kind: WorkLimit | InputLimit | ViewLimit, .. })
+        | RequestSlots(WorkLimit | SlotLimit)
+        | Bindings(WorkLimit | BindingLimit)
+        | Request({ kind: WorkLimit | PairLimit, .. })
+        | Request(
+          {
+            kind: Literal(
+              ValueIssue(BudgetExceeded, ..)
+              | Decode({ kind: BudgetExceeded, .. })
+            ),
+            ..
+          }
+        )
+        | ParameterDeclarations(Collection(WorkLimit))
+      )
+    ) => findings.push(Limit("analysis_budget_exhausted"))
+    QueryLowering(
+      FileListing(
+        Request({ kind: InvalidLimits | ForeignSource | ForeignInput, .. })
+        | Source(_)
+        | Resolution(_)
+        | RequestSlots(_)
+        | ParameterDeclarations(_)
+        | Bindings(_)
+        | Identity(_)
+      )
+    ) => return Failed("check_internal")
+    // Remaining Request failures are issued by the common Request owner;
+    // generated cursors are not fabricated authored source locations.
+    QueryLowering(FileListing(Request(_))) =>
+      findings.push(Violation("query_invalid"))
+    QueryLowering(
+      UnsupportedProjection
+      | UnsupportedGrouping
+      | UnsupportedAggregate
+      | UnsupportedHaving
+      | UnsupportedOrdering
+      | UnsupportedAnalytic
+      | UnsupportedSet
+      | UnsupportedJoin
+      | UnsupportedCte
+      | UnsupportedGraph
+      | UnsupportedInfer
+      | UnsupportedNearest
+      | UnsupportedResult
+      | UnsupportedEffect
+    ) => findings.push(Limit("implementation_limit"))
+    QueryLowering(InferKeyLabel(_, _)) =>
+      findings.push(check_query_finding(issue))
+    // Resolved against visible relations only: a disclosable fact.
+    // Direct column selection retains a typed resolution failure but no
+    // authored origin. Explain that failure without manufacturing a span.
+    QueryLowering(UnknownColumn) =>
+      findings.push(ExpressionViolation("unknown_reference", None))
+    QueryLowering(BindingPreparation(issue)) =>
+      if check_binding_preparation_findings(findings, issue, scope)
+        is Some(failure) {
+        return Failed(failure)
+      }
+    QueryLowering(BindingPreparationSource(issue, source)) =>
+      if check_binding_preparation_findings(
+          findings,
+          issue,
+          scope,
+          diagnostic_source=Some(source),
+        )
+        is Some(failure) {
+        return Failed(failure)
+      }
+    QueryLowering(GraphExpected(origin)) => {
+      findings.push(Violation("query_invalid"))
+      if check_authored_range(origin) is Some((start, end)) {
+        findings.push(QueryOrigin(start, end))
+      }
+    }
+    QueryLowering(
+      InvalidQuery
+      | RangeAliasRequiresRelation
+      | AmbiguousRelation
+      | AmbiguousColumn
+      | DuplicateOutput
+    ) => findings.push(Violation("query_invalid"))
+    // A Frontend scope probe retains the same typed cause as ordinary
+    // Program checking. No generated cursor becomes an authored location.
+    QueryLowering(ExpressionTyping(issue)) =>
+      match issue.kind {
+        UnknownParameter(name) if name.length() <= 256 =>
+          findings.push(UndeclaredParameter(name, None))
+        InvalidLimits | InvalidScope(_) => return Failed("check_internal")
+        BudgetExceeded => findings.push(Limit("analysis_budget_exhausted"))
+        _ => findings.push(Violation("query_invalid"))
+      }
+    // Expression lowering wraps the same construction owner and its
+    // budgets. The wrapper cannot turn its own limit into bad input.
+    QueryLowering(
+      Expression(
+        {
+          issue: WorkLimit
+          | Construction(
+            InputLimit
+            | NodeLimit
+            | DepthLimit
+            | StringLimit
+            | OriginLimit
+            | OutputLimit
+            | Admission({ kind: BudgetExceeded, .. })
+          )
+          | Admission(
+            {
+              kind: BudgetExceeded
+              | Decode(BudgetExceeded)
+              | Text(
+                CapacityExceeded
+                | TreeAdmission(BudgetExceeded)
+                | Lexical(ByteLimit | TokenLimit)
+              ),
+              ..
+            }
+          ),
+          ..
+        }
+      )
+    ) => findings.push(Limit("analysis_budget_exhausted"))
+    // Other failures of generated construction/admission and invalid
+    // lowering limits belong to the checker, not to the author.
+    QueryLowering(
+      Expression({ issue: InvalidLimits | Construction(_) | Admission(_), .. })
+    ) => return Failed("check_internal")
+    // This lowerer issue conflates unknown names with unsupported forms.
+    // Without a distinct input violation it cannot justify author blame.
+    // The existing generic limit has no cast-specific public facts.
+    // Keep the original authored range in the lowerer's diagnostic; do
+    // not label a conversion as a function or invent a reason payload.
+    QueryLowering(Expression({ issue: UnsupportedCast, .. })) =>
+      findings.push(Limit("implementation_limit"))
+    QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>
+      findings.push(FunctionLimit(check_authored_range(origin)))
+    QueryLowering(
+      Expression(
+        { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
+      )
+    ) => findings.push(check_query_finding(issue))
+    // Host query context, not the caller's input.
+    QueryLowering(InvalidContext) => return Failed("check_context_invalid")
+    // A construction budget of this check: undetermined, never invalid.
+    QueryLowering(
+      Construction(
+        InputLimit
+        | NodeLimit
+        | DepthLimit
+        | StringLimit
+        | OriginLimit
+        | OutputLimit
+        | Admission({ kind: BudgetExceeded, .. })
+      )
+      | Admission(
+        Structure(StageLimit, ..)
+        | RetentionLimit(_, ..)
+        | Decode({ kind: BudgetExceeded, .. })
+      )
+    ) => findings.push(Limit("analysis_budget_exhausted"))
+    // The Program built from accepted source: never blamed on the author.
+    QueryLowering(Construction(_) | Admission(_))
+    | InvalidFormat
+    | MissingQueryContext
+    | Encoding => return Failed("check_internal")
+  }
+  Report
 }

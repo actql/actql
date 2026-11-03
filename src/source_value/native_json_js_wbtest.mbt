@@ -225,3 +225,53 @@ test "native captured input never invokes a copied accessor and still refuses ma
     is Err({ issue: InvalidUnicodeEscape, .. }),
   )
 }
+
+///|
+#cfg(target="js")
+test "native normalized keys do not claim an unavailable original spelling" {
+  // These distinct combining-mark orders have equal byte/UTF16 geometry.
+  // Both normalize to the same key; a normalized Cursor and its measurements
+  // cannot determine which original JSON Pointer was actually submitted.
+  let first = "q\u{0301}\u{0323}"
+  let second = "q\u{0323}\u{0301}"
+  let canonical = "q\u{0323}\u{0301}"
+  let limits : ParseLimits = {
+    max_input_bytes: 1000,
+    max_nodes: 100,
+    max_depth: 8,
+  }
+  let originals : Array[ParsedSource] = []
+  for key in [first, second] {
+    let document = "{\"" + key + "\":\"caller-owned\"}"
+    let native = admit_captured_json(
+      native_json_test_input(document),
+      native_json_reader,
+      limits,
+      normalize_keys=true,
+    ).unwrap()
+    guard native.node.value is Object(fields) else {
+      fail("the original supplied input must remain an object")
+    }
+    assert_eq(fields[0].key, canonical)
+    assert_eq(fields[0].key_span.start_byte, 0)
+    assert_eq(fields[0].key_span.end_byte, 0)
+    originals.push(native)
+    // The existing textual reader has the corresponding retained bytes.
+    // Its scalar span recovers each exact spelling without normalizing it.
+    let bytes = @utf8.encode(document)
+    let textual = parse_json_measured(document, limits).unwrap()
+    guard textual.node.value is Object(text_fields) else {
+      fail("the original text must remain an object")
+    }
+    let span = text_fields[0].key_span
+    assert_true(span.end_byte > span.start_byte)
+    let scalar = parse_json_bytes_preserving(
+      bytes[span.start_byte:span.end_byte].to_owned(),
+      { max_input_bytes: 100, max_nodes: 1, max_depth: 0, },
+    ).unwrap()
+    assert_true(scalar.value is String(actual) && actual == key)
+  }
+  assert_true(first != second)
+  assert_eq(originals[0].usage, originals[1].usage)
+  assert_true(native_json_same_node(originals[0].node, originals[1].node))
+}

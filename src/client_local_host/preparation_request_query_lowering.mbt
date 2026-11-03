@@ -7,11 +7,14 @@ priv struct ClientRequestQueryLowering {
   declarations : String?
   public_primary : Bool
   quote : (Int64, Int64)
-  mut output : (
-    @frontend.Lowered,
-    @checked.PreparedSourceCatalog,
-    @frontend.DiagnosticSource,
-  )?
+  mut output : Result[
+    (
+      @frontend.Lowered,
+      @checked.PreparedSourceCatalog,
+      @frontend.DiagnosticSource,
+    ),
+    ClientRequestQueryLoweringIssue,
+  ]?
 }
 
 ///|
@@ -69,7 +72,7 @@ pub fn[I] lower_request_published_query(
   }
   guard (owner.phase == QuerySyntaxParsed || owner.phase == QueryLoweringQuoted) &&
     owner.query_syntax is Some(query) &&
-    query.query is Some(parsed) else {
+    query.query is Some(Ok(parsed)) else {
     return Err(Request(WrongPhase))
   }
   let source = if owner.source_input is Some(context) {
@@ -171,13 +174,13 @@ pub fn[I] lower_request_published_query(
     ).map_err(issue => Publication(issue))
   }
   owner.phase = QueryLoweringFailed
+  selected.output = Some(outcome)
   match outcome {
     Err(issue) => Err(issue)
     Ok(output) => {
       guard output.0.program is Some(program) else {
         return Err(Request(WrongPhase))
       }
-      selected.output = Some(output)
       owner.held_program = Some(program)
       owner.phase = QueryLowered
       Ok(output)
@@ -205,7 +208,7 @@ pub fn[I] prepared_request_query_lowering(
   guard owner.phase != Selecting &&
     owner.query_syntax is Some(query) &&
     query.lowering is Some(selected) &&
-    selected.output is Some(output) else {
+    selected.output is Some(Ok(output)) else {
     return Err(Request(WrongPhase))
   }
   Ok(output)

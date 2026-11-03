@@ -325,6 +325,8 @@ pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
+pub fn independent_supplied_binding_issue(CheckOutcome, @stage_syntax.Program, @decode_core.Cursor?) -> @parameter_binding.Issue?
+
 pub fn infer_item_limit_claim(InferItemLimit) -> @capacity_witness.LimitClaim
 
 pub fn infer_item_limit_matches(InferItemLimit, CheckedProgram, Int, Int) -> Bool

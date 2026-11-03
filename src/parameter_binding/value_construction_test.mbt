@@ -46,7 +46,7 @@ test "original declaration Value quantities retain sequential families and exact
       inventory.constraints.reference_slots,
       inventory.constraints.scalar_words,
     ),
-    (37L, 94L, 44L),
+    (38L, 95L, 46L),
   )
   assert_true(
     physical_equal(

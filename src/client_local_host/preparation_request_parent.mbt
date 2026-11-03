@@ -489,7 +489,7 @@ fn[I] prepare_request_check_preparation_owned(
       owner.query_syntax is Some(query) &&
       query.lowering is Some(lowering) &&
       physical_equal(lowering.environment, environment) &&
-      lowering.output is Some((_, catalog, _)) else {
+      lowering.output is Some(Ok((_, catalog, _))) else {
       return Err(ForeignOriginal)
     }
     let catalog = match source_catalog {

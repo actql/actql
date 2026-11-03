@@ -43,14 +43,27 @@ pub fn client_program_project_request_check_outcome(
   parameters_bytes : Int,
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  source_namespace : ClientCheckSourceNamespace?,
 ) -> Result[String?, @client_local_host.ClientRequestPreparationIssue] {
   let terminal = match original_result {
     Err(value) => value
     Ok(_) => return Ok(None)
   }
   @client_local_host.project_request_check_outcome(
-    parent, input, terminal, visible_publication, context_ref, input_kind, input_revision,
-    input_bytes, declarations_revision, declarations_bytes, parameters_revision,
-    parameters_bytes, correlation_ref, selector_namespace,
+    parent,
+    input,
+    terminal,
+    visible_publication,
+    context_ref,
+    input_kind,
+    input_revision,
+    input_bytes,
+    declarations_revision,
+    declarations_bytes,
+    parameters_revision,
+    parameters_bytes,
+    correlation_ref,
+    selector_namespace,
+    source_namespace~,
   )
 }

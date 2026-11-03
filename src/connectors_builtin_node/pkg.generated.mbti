@@ -2908,7 +2908,7 @@ pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModel
 
 pub fn client_program_project_public_model_task_environment(String, String, Array[@check_environment.NormalizedPublicModelTask], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, String, Int), @check_environment.ModelTaskIssue]
 
-pub fn client_program_project_request_check_outcome(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Result[Unit, @client_local_host.ClientRequestTerminalIssue], String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?) -> Result[String?, @client_local_host.ClientRequestPreparationIssue]
+pub fn client_program_project_request_check_outcome(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Result[Unit, @client_local_host.ClientRequestTerminalIssue], String, String, String, String, Int, String?, Int, String?, Int, String, @client_local_preparation.ClientCheckSourceSelectorNamespace?, @client_local_preparation.ClientCheckSourceNamespace?) -> Result[String?, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_public_model_task_name(@check_environment.PublicModelTaskDeclaration) -> String
 
