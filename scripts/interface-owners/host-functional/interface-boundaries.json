@@ -72645,7 +72645,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-profile.mjs",
-      "sha256": "07f6b4c464ad61f007fb402861fea6419bf1bd0acb409253a2e6872648b6bca4",
+      "sha256": "1d75a8fe3b18e6aeeac7fdf96fffcbd6d68a07f1e2dea9caf04f4fe1ff382ec2",
       "exports": [
         "selectInstalledProjectProfile"
       ],

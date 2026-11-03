@@ -660,7 +660,7 @@ installation. In particular, a mock choice cannot inherit production Provider
 configuration or silently continue through configured live connections.
 
 Only the original mock choice projects its same configuration's explicit
-`mock.data` and `mock.answers` locators. Other named profiles retain their exact
+`mock.catalog`, `mock.data` and `mock.answers` locators. Other named profiles retain their exact
 name without acquiring those fixtures. Missing mock locators are declared
 absence, not undiscovered files or permission to invent records or answers.
 The existing physical Source/Model Owners must acquire and admit the selected

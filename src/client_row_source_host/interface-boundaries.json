@@ -174,12 +174,13 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "5d0cb07dff1fbd618116672d4dbea5bf4561b58423ceef779b79947dec954f4d",
+      "sha256": "5f0dd88d6cc268e14601b9958d55b7a88f44d6ddd934734a040ff7ceb511f4c3",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
         "pub fn abort_row_run(RowRun) -> Unit",
         "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]",
+        "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]",
         "pub fn accept_charged_row_run_values(RowRun, RowPageCharge, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
@@ -187,6 +188,7 @@
         "pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]",
         "pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]",
         "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]",
+        "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
         "pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]",
         "pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]",
         "pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]",
@@ -249,6 +251,7 @@
         "pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?",
         "pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int",
         "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]",
+        "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
         "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_declared_row_acquisition_with_contracts(RowSourcePreparation, String, @query_planning.QueryEvidenceContracts, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
@@ -258,6 +261,7 @@
         "pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]",
         "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits) -> Result[RowInputAcquisition, RowHostIssue]",
@@ -266,6 +270,12 @@
         "pub fn project_row_declaration(String, String, String, String, String, Array[String], Array[RowDeclaredView], Array[String], String, String) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]",
         "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]",
+        "pub fn relation_target_before(RelationTargetRow) -> String?",
+        "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
+        "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
+        "pub fn relation_target_text(RelationTargetRow, String) -> String?",
+        "pub fn relation_target_text_bytes(RelationTargetRow, String) -> Bytes?",
+        "pub fn relation_target_version(RelationTargetRow) -> String?",
         "pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn restore_row_original_read(@query_planning.QueryRequirement, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[RowRestoredOriginalInput, RowOriginalCaptureIssue]",
@@ -326,6 +336,8 @@
         "pub struct MockChurnRiskCatalogue {",
         "pub struct MockTargetDocument {",
         "pub struct MockTargetRow {",
+        "pub struct RelationTargetDocument {",
+        "pub struct RelationTargetRow {",
         "pub struct RowDeclaration {",
         "pub struct RowDeclaredView {",
         "pub enum RowKeyedPagePoll {",
@@ -341,6 +353,10 @@
         {
           "name": "accept_charged_mock_churn_risk_document",
           "declaration": "pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]"
+        },
+        {
+          "name": "accept_charged_relation_document",
+          "declaration": "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]"
         },
         {
           "name": "accept_charged_row_run_page",
@@ -369,6 +385,10 @@
         {
           "name": "admit_mock_churn_risk_target_document",
           "declaration": "pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]"
+        },
+        {
+          "name": "admit_relation_target_document",
+          "declaration": "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]"
         },
         {
           "name": "admit_row_acquisition_contracts",
@@ -619,6 +639,10 @@
           "declaration": "pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]"
         },
         {
+          "name": "observe_relation_target",
+          "declaration": "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]"
+        },
+        {
           "name": "prepare_churn_risk_mock_update_mapping",
           "declaration": "pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
@@ -655,6 +679,10 @@
           "declaration": "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
         {
+          "name": "prepare_relation_target_update",
+          "declaration": "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]"
+        },
+        {
           "name": "prepare_row_acquisition",
           "declaration": "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]"
         },
@@ -685,6 +713,30 @@
         {
           "name": "project_row_source_typed_json_page",
           "declaration": "pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]"
+        },
+        {
+          "name": "relation_target_before",
+          "declaration": "pub fn relation_target_before(RelationTargetRow) -> String?"
+        },
+        {
+          "name": "relation_target_row_count",
+          "declaration": "pub fn relation_target_row_count(RelationTargetDocument) -> Int?"
+        },
+        {
+          "name": "relation_target_row_identity",
+          "declaration": "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?"
+        },
+        {
+          "name": "relation_target_text",
+          "declaration": "pub fn relation_target_text(RelationTargetRow, String) -> String?"
+        },
+        {
+          "name": "relation_target_text_bytes",
+          "declaration": "pub fn relation_target_text_bytes(RelationTargetRow, String) -> Bytes?"
+        },
+        {
+          "name": "relation_target_version",
+          "declaration": "pub fn relation_target_version(RelationTargetRow) -> String?"
         },
         {
           "name": "restore_relation_row_declaration",
@@ -2720,6 +2772,96 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "accept_charged_relation_document",
+            "admit_relation_target_document",
+            "observe_relation_target",
+            "prepare_relation_target_update",
+            "relation_target_before",
+            "relation_target_row_count",
+            "relation_target_row_identity",
+            "relation_target_text",
+            "relation_target_text_bytes",
+            "relation_target_version"
+          ],
+          "exports": [
+            "pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]",
+            "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
+            "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
+            "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
+            "pub fn relation_target_before(RelationTargetRow) -> String?",
+            "pub fn relation_target_row_count(RelationTargetDocument) -> Int?",
+            "pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?",
+            "pub fn relation_target_text(RelationTargetRow, String) -> String?",
+            "pub fn relation_target_text_bytes(RelationTargetRow, String) -> Bytes?",
+            "pub fn relation_target_version(RelationTargetRow) -> String?",
+            "pub struct RelationTargetDocument {",
+            "pub struct RelationTargetRow {"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-document-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }

@@ -89,6 +89,8 @@ pub fn admit_client_native_local_runtime(String, String, String, String) -> Resu
 
 pub fn admit_client_native_product_members(String, String, String, String) -> Result[ClientNativeProductMembers, ClientNativeLocalRuntimeIssue]
 
+pub fn admit_client_project_catalog(String) -> Result[ClientProjectCatalog, ClientProjectCatalogIssue]
+
 pub fn admit_client_project_configuration(String) -> Result[ClientProjectConfiguration, ClientProjectConfigurationIssue]
 
 pub fn admit_client_project_connections(String) -> Result[ClientProjectConnections, ClientProjectBindingsIssue]
@@ -3610,11 +3612,21 @@ pub(all) enum ClientProjectBindingsIssue {
   BindingsUnavailable
 } derive(Eq, @debug.Debug)
 
+type ClientProjectCatalog
+pub fn ClientProjectCatalog::at(Self, Int) -> (String, String)?
+pub fn ClientProjectCatalog::count(Self) -> Int
+pub fn ClientProjectCatalog::original_wire(Self) -> String
+
+pub(all) enum ClientProjectCatalogIssue {
+  InvalidCatalog
+} derive(Eq, @debug.Debug)
+
 type ClientProjectConfiguration
 pub fn ClientProjectConfiguration::connectors_file(Self) -> String?
 pub fn ClientProjectConfiguration::lock_file(Self) -> String?
 pub fn ClientProjectConfiguration::mock_answer_at(Self, Int) -> (String, String)?
 pub fn ClientProjectConfiguration::mock_answer_count(Self) -> Int
+pub fn ClientProjectConfiguration::mock_catalog_file(Self) -> String?
 pub fn ClientProjectConfiguration::mock_data_file(Self) -> String?
 pub fn ClientProjectConfiguration::model_tasks_file(Self) -> String?
 pub fn ClientProjectConfiguration::selected_profile(Self) -> String?
@@ -3659,6 +3671,7 @@ pub(all) enum ClientProjectProfileIssue {
 type ClientProjectProfileSelection
 pub fn ClientProjectProfileSelection::mock_answer_at(Self, Int) -> Result[(String, String)?, ClientProjectProfileIssue]
 pub fn ClientProjectProfileSelection::mock_answer_count(Self) -> Result[Int, ClientProjectProfileIssue]
+pub fn ClientProjectProfileSelection::mock_catalog_file(Self) -> Result[String?, ClientProjectProfileIssue]
 pub fn ClientProjectProfileSelection::mock_data_file(Self) -> Result[String?, ClientProjectProfileIssue]
 pub fn ClientProjectProfileSelection::selected_profile(Self) -> Result[String?, ClientProjectProfileIssue]
 

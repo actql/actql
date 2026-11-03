@@ -27,6 +27,8 @@ pub fn abort_row_run(RowRun) -> Unit
 
 pub fn accept_charged_mock_churn_risk_document(RowRun, RowPageCharge, RowAcquisition, RowDeclaration, RowDeclaration, Bytes, Int) -> Result[Int, RowHostIssue]
 
+pub fn accept_charged_relation_document(RowRun, RowPageCharge, RowAcquisition, RelationTargetDocument, Int) -> Result[Int, RowHostIssue]
+
 pub fn accept_charged_row_run_page(RowRun, RowPageCharge, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_charged_row_run_projected_page(RowRun, RowPageCharge, RowSourceProjectedJsonPage) -> Result[Int, RowHostIssue]
@@ -40,6 +42,8 @@ pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
 
 pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]
+
+pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]
 
 pub fn admit_row_acquisition_contracts(String, String) -> Result[@query_planning.QueryEvidenceContracts, RowHostIssue]
 
@@ -165,6 +169,8 @@ pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int
 
 pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]
 
+pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]
+
 pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_declared_row_acquisition(RowSourcePreparation, String, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
@@ -183,6 +189,8 @@ pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, 
 
 pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
+pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
+
 pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
 pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
@@ -198,6 +206,18 @@ pub fn project_row_declaration(String, String, String, String, String, Array[Str
 pub fn project_row_source_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceJsonPage, RowSourceJsonPageIssue]
 
 pub fn project_row_source_typed_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[RowSourceProjectedJsonPage, RowSourceJsonPageIssue]
+
+pub fn relation_target_before(RelationTargetRow) -> String?
+
+pub fn relation_target_row_count(RelationTargetDocument) -> Int?
+
+pub fn relation_target_row_identity(RelationTargetDocument, Int) -> String?
+
+pub fn relation_target_text(RelationTargetRow, String) -> String?
+
+pub fn relation_target_text_bytes(RelationTargetRow, String) -> Bytes?
+
+pub fn relation_target_version(RelationTargetRow) -> String?
 
 pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
@@ -325,6 +345,14 @@ pub struct MockTargetDocument {
 }
 
 pub struct MockTargetRow {
+  // private fields
+}
+
+pub struct RelationTargetDocument {
+  // private fields
+}
+
+pub struct RelationTargetRow {
   // private fields
 }
 

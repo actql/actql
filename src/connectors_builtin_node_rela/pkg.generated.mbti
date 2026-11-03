@@ -1765,6 +1765,28 @@ pub fn client_program_recovered_table_preview_operation_json(@run_publication_ho
 
 pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.RecoveredClientTablePreview) -> String
 
+pub fn client_program_relation_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_relation_admit_target_document(@client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String], Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_target_before(@client_row_source_host.RelationTargetRow) -> String?
+
+pub fn client_program_relation_target_row_count(@client_row_source_host.RelationTargetDocument) -> Int?
+
+pub fn client_program_relation_target_row_identity(@client_row_source_host.RelationTargetDocument, Int) -> String?
+
+pub fn client_program_relation_target_text(@client_row_source_host.RelationTargetRow, String) -> String?
+
+pub fn client_program_relation_target_text_bytes(@client_row_source_host.RelationTargetRow, String) -> Bytes?
+
+pub fn client_program_relation_target_version(@client_row_source_host.RelationTargetRow) -> String?
+
+pub fn client_program_relation_update_mapping(@client_row_source_host.RowDeclaration, String, String, Array[String], String, String) -> Result[String, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_release_effect_input(@physical_strategy_host.CapturedEffectInput) -> Bool
 
 pub fn client_program_release_effect_inputs(@physical_strategy_host.CapturedEffectInputs) -> Bool
@@ -2175,6 +2197,16 @@ pub fn client_program_whole_source_target(@client_row_source_host.RowInputAcquis
 
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
 
+pub fn client_project_catalog_admit(String) -> Result[@run_publication_host.ClientProjectCatalog, @run_publication_host.ClientProjectCatalogIssue]
+
+pub fn client_project_catalog_count(@run_publication_host.ClientProjectCatalog) -> Int
+
+pub fn client_project_catalog_entry_original_json(@run_publication_host.ClientProjectCatalog, Int) -> String?
+
+pub fn client_project_catalog_name(@run_publication_host.ClientProjectCatalog, Int) -> String?
+
+pub fn client_project_catalog_original_wire(@run_publication_host.ClientProjectCatalog) -> String
+
 pub fn client_project_configuration_admit(String) -> Result[@run_publication_host.ClientProjectConfiguration, @run_publication_host.ClientProjectConfigurationIssue]
 
 pub fn client_project_configuration_connectors_file(@run_publication_host.ClientProjectConfiguration) -> String?
@@ -2186,6 +2218,8 @@ pub fn client_project_configuration_mock_answer_count(@run_publication_host.Clie
 pub fn client_project_configuration_mock_answer_file(@run_publication_host.ClientProjectConfiguration, Int) -> String?
 
 pub fn client_project_configuration_mock_answer_task(@run_publication_host.ClientProjectConfiguration, Int) -> String?
+
+pub fn client_project_configuration_mock_catalog_file(@run_publication_host.ClientProjectConfiguration) -> String?
 
 pub fn client_project_configuration_mock_data_file(@run_publication_host.ClientProjectConfiguration) -> String?
 
@@ -2234,6 +2268,8 @@ pub fn client_project_profile_mock_answer_count(@run_publication_host.ClientProj
 pub fn client_project_profile_mock_answer_file(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 
 pub fn client_project_profile_mock_answer_task(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_catalog_file(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 
 pub fn client_project_profile_mock_data_file(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 

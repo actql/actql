@@ -222,13 +222,17 @@ contracts retain their existing meaning.
 The project template is a finite set of authored inputs. `deal-review-mock`
 selects the root README Program, its typed task and answer files, and raw
 Opportunity rows and Drive documents. `churn-risk-mock` retains the Quickstart
-inputs and its `mock` profile. The deal-review project selects the distinct
-`deal-review-mock` profile; an explicit profile override retains its exact
+inputs. Both projects select the common `mock` profile and an explicit
+`mock.catalog` declaration file. Template selection changes only authored data,
+not the installed runtime. An explicit profile override retains its exact
 meaning and does not acquire consent from a project default.
 
 Drive document inputs contain IDs, original revision names, MIME types and
 UTF-8 text. Their declared key is the ID, not the document name used by the
-join. They contain no serialized Resource or ContentRef. The selected Source
+join. Their catalog separately declares the physical row schema, logical
+listing and keyed Content views, aliases, writable fields and physical byte
+bindings using existing contracts. They contain no serialized Resource or
+ContentRef. The selected Source
 and Content Owners issue and capture those originals, while the Model Owner
 checks the declared Content role, original bytes, issuer, currentness and
 egress. Authored answer keys supply no uniqueness or execution evidence.
