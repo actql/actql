@@ -573,8 +573,11 @@ fn[I, P] preparation_capacity_usage_isolated(
   if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
     return false
   }
-  if ledger.quantity_usage.reserved != zero_quantities() ||
-    ledger.quantity_usage.uncertain != zero_quantities() {
+  // Undispatched quantities still belong to a live reservation. Dispatched
+  // unknown usage is cumulative history even after its original physical
+  // child has settled; retaining it must not pin this preparation forever.
+  // The exact live reservation/holding/delegation census below stays required.
+  if ledger.quantity_usage.reserved != zero_quantities() {
     return false
   }
   // Zero-byte children still occupy original identities. Byte equality alone

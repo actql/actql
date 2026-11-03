@@ -83,3 +83,96 @@ test "unavailable original preparation remains retained and cannot authorize cle
   assert_true(run.prepared is Some(_))
   assert_true(preparation_body_borrow_value(run_holder) is Some(_))
 }
+
+///|
+// Actual Resource/adoption/quantity owners with the existing nominal imported
+// child ports. Explicit attempt settlement is a fixture physical-stop witness,
+// not ordinary Model IO, a provider ACK or a replacement quantity observation.
+test "settled unknown Model quantities do not pin preparation or reset same parent history" {
+  for census in [false, true] {
+    let input = [1]
+    let body = [2]
+    let initial = prepare_node_preparation_original(
+      preparation_adoption_child(),
+      input,
+      () => Ok(()),
+    )
+    let ledger = start_node_preparation_admission(initial).unwrap()
+    let amounts : QuantityAmounts = {
+      tokens: 33L,
+      cost_units: 0L,
+      duration_ms: 500L,
+    }
+    configure_quantities(ledger, amounts).unwrap()
+    let capacity : PreparationCapacity[Array[Int], Array[Int]] = if census {
+      let value = reserve_preparation_capacity_inventory(
+        ledger,
+        input,
+        50L,
+        70L,
+        max_borrowers=2,
+      ).unwrap()
+      grow_preparation_capacity_inventory(value, input, 50L, 70L, 8, 2, 2).unwrap()
+      value
+    } else {
+      reserve_preparation_capacity(ledger, input, 40L, 60L, max_borrowers=2).unwrap()
+    }
+    let (retained, execution) = if census { (40L, 10L) } else { (30L, 0L) }
+    complete_preparation_capacity(capacity, input, body, retained, execution).unwrap()
+    let (run, same, retirement, run_holder) = adopt_node_preparation_admission(
+      initial, input, capacity, body,
+    ).unwrap()
+    assert_true(physical_equal(ledger, same))
+    let attempt = reserve_attempt(ledger, 0L, 0L, 0L, quantities=Some(amounts)).unwrap()
+    assert_false(node_preparation_usage_isolated(run, ledger))
+    assert_eq(quantity_usage(ledger).reserved, amounts)
+    mark_quantities_uncertain(ledger, attempt).unwrap()
+    observe_quantities(ledger, attempt, tokens=Some(3L), cost_units=Some(0L)).unwrap()
+    mark_cleanup_pending(ledger, attempt).unwrap()
+    assert_false(node_preparation_usage_isolated(run, ledger))
+    // Only the same original physical child's explicit settlement removes its
+    // live reservation. It does not turn unobserved duration into zero.
+    settle_reservation(ledger, attempt).unwrap()
+    let history = quantity_usage(ledger)
+    assert_eq(history.reserved, zero_quantities())
+    assert_eq(history.consumed.tokens, 3L)
+    assert_eq(history.uncertain.duration_ms, 500L)
+    assert_true(node_preparation_usage_isolated(run, ledger))
+    assert_true(configure_quantities(ledger, amounts) is Err(InvalidCharge))
+    assert_true(
+      reserve_attempt(
+        ledger,
+        0L,
+        0L,
+        0L,
+        quantities=Some({ ..zero_quantities(), duration_ms: 1L, }),
+      )
+      is Err(DurationLimit),
+    )
+    // A separate zero-byte child/holding remains an actual identity even when
+    // every historical quantity has already moved out of reserved usage.
+    let neutral = reserve_attempt(
+      ledger,
+      0L,
+      0L,
+      0L,
+      quantities=quantity_neutral_amounts(ledger),
+    ).unwrap()
+    assert_false(node_preparation_usage_isolated(run, ledger))
+    let holding = retain_allocation(ledger, neutral, 0L).unwrap()
+    settle_reservation(ledger, neutral).unwrap()
+    assert_false(node_preparation_usage_isolated(run, ledger))
+    release_allocation(ledger, holding).unwrap()
+    assert_true(node_preparation_usage_isolated(run, ledger))
+    assert_eq(quantity_usage(ledger), history)
+    // The two original preparation borrowers still own retirement in order.
+    assert_false(retire_transferred_preparation(retirement).unwrap())
+    assert_false(return_preparation_body_borrow(run_holder).unwrap())
+    assert_true(release_node_preparation_holder(run).unwrap())
+    assert_true(retire_transferred_preparation(retirement).unwrap())
+    cleanup_node_managed_run_admission(run).unwrap()
+    assert_eq(ledger_usage(ledger).live_reservations, 0)
+    assert_eq(ledger_usage(ledger).holdings, 0)
+    assert_eq(quantity_usage(ledger), history)
+  }
+}
