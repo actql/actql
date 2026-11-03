@@ -38,7 +38,8 @@ export function salesforceEffectSiteHooks(effect) {
         unit: salesforceEffectUnit(moon, compilation), signal: facts.signal,
         targetReads: facts.targetReads,
         updateTargetSelections: facts.updateTargetSelections,
-        assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent});
+        assertUpdateSelectionCurrent: facts.assertUpdateSelectionCurrent,
+        assertContinuationCurrent: facts.assertContinuationCurrent});
     },
     prepareRecovered: facts => effect.prepareRecovered({moon: facts.moon,
       control: facts.control, store: facts.store, recovered: facts.recovered,
@@ -47,6 +48,7 @@ export function salesforceEffectSiteHooks(effect) {
       signal: facts.signal, retainRecoveryOwner: facts.retainRecoveryOwner,
       targetReads: facts.targetReads,
       updateTargetSelections: facts.recovered.updateTargetSelections,
-      assertUpdateSelectionCurrent: facts.recovered.assertUpdateSelectionCurrent}),
+      assertUpdateSelectionCurrent: facts.recovered.assertUpdateSelectionCurrent,
+      assertContinuationCurrent: facts.assertContinuationCurrent}),
   });
 }
