@@ -263,8 +263,8 @@
       "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
     },
     "owned_inventory.inc": {
-      "bytes": 3412,
-      "sha256": "57bf2a27176ce61aaa835cadcfe21fbf435fb809a48dc3d5c3f5487b2eb7dc8c"
+      "bytes": 3410,
+      "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
     }
   },
   "normal_profile": null,
