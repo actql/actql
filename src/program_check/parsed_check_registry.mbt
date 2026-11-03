@@ -71,6 +71,7 @@ pub struct ParsedCheckRegistry {
   priv prelude : ParsedCheckPrelude
   priv mut start : EnvironmentAdmissionStart
   priv mut available : Bool
+  priv collected_source_inputs : Ref[@source_inputs.Inputs?]
 }
 
 ///|
@@ -169,8 +170,9 @@ pub fn parsed_catalog_construction_extent(
   // These are fixed constructor roles, not borrowed Catalog/body backing.
   {
     ..domain,
-    record_headers: domain.record_headers + 9L,
-    reference_slots: domain.reference_slots + 9L,
+    // One fixed Ref and its existing-registry field retain original Inputs.
+    record_headers: domain.record_headers + 10L,
+    reference_slots: domain.reference_slots + 11L,
     scalar_words: domain.scalar_words + 15L,
   }
 }
@@ -202,7 +204,7 @@ pub fn observe_parsed_check_registry(
     } else {
       Registry(prepare_environment_registry(wire, b, None), b, None)
     }
-    Ok({ prelude, start, available: true, })
+    Ok({ prelude, start, available: true, collected_source_inputs: Ref(None), })
   } catch {
     issue => Err(Check(Environment(issue)))
   }
@@ -394,7 +396,21 @@ fn construct_after_parsed_check_registry(
     source_preparation~,
     environment_start=Some(prepared.start),
     source_context~,
+    collected_inputs_out=Some(prepared.collected_source_inputs),
   )
+}
+
+///|
+/// Immutable declaration DATA retained by this same consumed checker. No
+/// collection, binding, resolution, authority or completed check is issued.
+pub fn parsed_check_collected_source_inputs(
+  prepared : ParsedCheckRegistry,
+) -> @source_inputs.Inputs? {
+  if prepared.available {
+    None
+  } else {
+    prepared.collected_source_inputs.val
+  }
 }
 
 ///|
@@ -416,8 +432,9 @@ pub fn parsed_catalog_retained_extent(
   // Keep the original continuation/budget/control envelope conservatively.
   {
     ..domain,
-    record_headers: domain.record_headers + 9L,
-    reference_slots: domain.reference_slots + 9L,
+    // One fixed Ref and its existing-registry field retain original Inputs.
+    record_headers: domain.record_headers + 10L,
+    reference_slots: domain.reference_slots + 11L,
     scalar_words: domain.scalar_words + 15L,
   }
 }

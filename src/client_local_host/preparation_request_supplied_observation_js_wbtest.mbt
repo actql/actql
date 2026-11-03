@@ -108,3 +108,99 @@ test "Request original protected Source report retains independent supplied type
     }
   }
 }
+
+///|
+// The same ordinary remaining checker has already collected this declared
+// input. Reporting borrows it once and applies fresh disclosure metadata;
+// no registration phase, second collector/check or execution is added here.
+test "Request missing values keeps original Source inputs while fresh disclosure still protects them" {
+  let declaration = pure_provider_declaration()
+  let environment = pure_provider_environment(declaration)
+  let document =
+    #|{"version":"actql/0.1","id":"missing-visible","params":{"minimum":{"type":"number"}},"stages":[{"id":"main","inputs":{"rows":{"connector":"pure-provider","resource":"records","view":"records"}},"steps":[{"filter":"id >= $minimum","as":"filtered"},{"select":["id"],"as":"selected"}],"results":{"out":{"from":"selected","fields":["id"]}}}],"results":{"out":{"from":{"stage":"main","result":"out"}}}}
+  let program_limits = @publication_host.client_standard_program_preparation_limits()
+  let (parent, child, source, input) = registration_parent_fixture(
+    text=document,
+    environment=Some(environment),
+    computation_limits=Some(
+      (
+        program_limits,
+        @publication_host.client_standard_effect_computation_limits(),
+      ),
+    ),
+  )
+  let terminal = match finish_request_computation_check(parent, input) {
+    Err(issue) => issue
+    Ok(_) => fail("the same original requires its missing parameter")
+  }
+  assert_true(child.check_outcome.unwrap() is @checked.NeedsInputs(_))
+  assert_true(child.source_registration is None)
+  let original_inputs = @checked.parsed_check_collected_source_inputs(
+    child.check_registry.unwrap(),
+  ).unwrap()
+  assert_true(physical_equal(@sourceview_input.source(original_inputs), source))
+  assert_eq(@sourceview_input.count(original_inputs), 1)
+  for visible in [true, false] {
+    let aliases = if visible {
+      "[{\"name\":\"records\",\"sourceRef\":\"connector://pure-provider/records#records\"}]"
+    } else {
+      "[]"
+    }
+    let publication = "{\"environmentCid\":\"" +
+      @checked.checking_environment_cid(environment) +
+      "\",\"aliases\":" +
+      aliases +
+      "}"
+    let report = project_request_check_outcome(
+        parent,
+        input,
+        terminal,
+        publication,
+        "ctx:" + "a".repeat(64),
+        "program",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(report.contains("\"verdict\":\"undetermined\""))
+    assert_true(report.contains("parameter_value_required"))
+    assert_true(report.contains("bound_values_missing"))
+    assert_eq(report.contains("unresolved_protected"), !visible)
+    assert_true(
+      physical_equal(
+        @checked.parsed_check_collected_source_inputs(
+          child.check_registry.unwrap(),
+        ).unwrap(),
+        original_inputs,
+      ),
+    )
+  }
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_true(
+    project_request_check_outcome(
+      parent,
+      input,
+      terminal,
+      "{}",
+      "ctx:" + "a".repeat(64),
+      "program",
+      "rev:" + "b".repeat(64),
+      document.length(),
+      None,
+      0,
+      None,
+      0,
+      "corr:" + "c".repeat(32),
+      None,
+    ).unwrap()
+    is None,
+  )
+}

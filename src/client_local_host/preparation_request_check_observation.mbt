@@ -126,12 +126,18 @@ pub fn[I] project_request_check_outcome(
     return Err(ForeignOriginal)
   }
   let registration = child.source_registration
+  let registry = child.check_registry
   let inputs = match registration {
     Some(value) =>
       @context.source_registration_collected_inputs(
         @checked.parsed_source_registration_read(value),
       )
-    None => None
+    None =>
+      match registry {
+        Some(original) =>
+          @checked.parsed_check_collected_source_inputs(original)
+        None => None
+      }
   }
   // Cached admission usage bounds the authored label bytes without walking or
   // copying the Program again. Collection is borrowed, never repeated here.
@@ -192,12 +198,24 @@ pub fn[I] project_request_check_outcome(
       }) else {
         return Err(ForeignOriginal)
       }
+      guard (match (registry, child.check_registry) {
+        (None, None) => true
+        (Some(original), Some(current)) => physical_equal(original, current)
+        _ => false
+      }) else {
+        return Err(ForeignOriginal)
+      }
       let current_inputs = match child.source_registration {
         Some(value) =>
           @context.source_registration_collected_inputs(
             @checked.parsed_source_registration_read(value),
           )
-        None => None
+        None =>
+          match child.check_registry {
+            Some(original) =>
+              @checked.parsed_check_collected_source_inputs(original)
+            None => None
+          }
       }
       guard (match (inputs, current_inputs) {
         (None, None) => true

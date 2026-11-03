@@ -26,6 +26,7 @@ import {
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
   "actql/actql/source_value",
+  "actql/actql/sourceview_input",
   "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
@@ -532,6 +533,8 @@ pub fn parsed_catalog_retained_extent(ParsedCatalogInput) -> @check_environment.
 pub fn parsed_catalog_semantic_work(ParsedCatalogInput) -> Int
 
 pub fn parsed_check_carriers_inspection_bound(ParsedCheckRegistry) -> Int64
+
+pub fn parsed_check_collected_source_inputs(ParsedCheckRegistry) -> @sourceview_input.Inputs?
 
 pub fn parsed_check_contents_inspection_bound(ParsedCheckRegistry) -> Int64
 

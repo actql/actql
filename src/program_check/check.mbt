@@ -235,6 +235,7 @@ fn check_after_prelude(
   environment_start? : EnvironmentAdmissionStart? = None,
   source_preparation? : @stages.Source? = None,
   source_context? : @context.SourceViewContextInput? = None,
+  collected_inputs_out? : Ref[@source_inputs.Inputs?]? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   let conversions : Array[ProofConversion] = []
   let references : Array[@environment.CatalogReferences] = []
@@ -261,6 +262,7 @@ fn check_after_prelude(
     source_preparation~,
     environment_start~,
     source_context~,
+    collected_inputs_out~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
