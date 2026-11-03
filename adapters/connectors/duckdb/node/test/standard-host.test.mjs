@@ -10413,6 +10413,9 @@ async function exerciseStrategyGraph(
       throw new Error(`${name}: fixture preparation failed: ${String(error)}`,
         {cause: error});
     }
+    // Every success in this corpus retains the producer and two consumers,
+    // plus their complete publication evidence, under the accounted profile.
+    binaryFixture = fixture.strategyFixtureAccounted(binaryFixture);
     assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, producerTask),
       program.stages.find(stage => stage.id === producerStage).steps.length,
       `${name}: the producer must remain one physical task`);
