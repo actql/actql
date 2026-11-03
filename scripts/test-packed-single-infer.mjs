@@ -3,10 +3,12 @@ import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
+import {createRequire} from 'node:module';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packClientPackages, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {selectInstalledLocalMaterializationEnvironment} from '../adapters/host-node/installed-host-policy.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const approvalOnly = process.argv.includes('--approval-only');
@@ -42,8 +44,15 @@ async ({root, directory, run, recordTarball}) => {
     await writeFile(join(root, name),
       await readFile(join(repository, 'scripts', 'fixtures', name)));
   }
+  // Fixture publication must use the SAME Local selector as its installed
+  // Host. Read the policy original from this exact normal installation's
+  // public runtime export; no checkout Common or copied numerical profile.
+  const installedRequire = createRequire(join(root, 'package.json'));
+  const installedRuntime = await import(pathToFileURL(
+    installedRequire.resolve('@actql/local-node/runtime')).href);
   await writeFile(join(root, 'base-environment.json'),
-    await readFile(join(repository, 'spec/local-check-environment.json')));
+    selectInstalledLocalMaterializationEnvironment(installedRuntime,
+      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
   const runtimeEnv = {...env, PATH: `${dirname(process.execPath)}:/usr/bin:/bin`};
   for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
     'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];

@@ -17,6 +17,12 @@ import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
   './fixtures/composed-infer-effect-input.mjs';
+import {configuration as inferConfiguration, canonical as inferCanonical, cid as inferCid} from
+  './fixtures/installed-infer-fixture.mjs';
+import {selectInstalledLocalMaterializationEnvironment} from '../adapters/host-node/installed-host-policy.mjs';
+import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-check-environment.mjs';
+import {contentCid} from '../adapters/host-node/local-account-config.mjs';
+import {canonicalText} from './check-canonical-json.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -26,6 +32,88 @@ const consumers = ['client-distribution', 'client-packed'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
+});
+
+test('packed INFER metadata uses the same installed Local policy without reidentifying its Model', async () => {
+  const script=readFileSync(new URL('./test-packed-single-infer.mjs',import.meta.url),'utf8');
+  const tree=parseJavaScript(script,{ecmaVersion:'latest',sourceType:'module'});
+  let writer;
+  (function visit(node){if(!node||typeof node!=='object')return;
+    if(node.type==='CallExpression'&&node.callee.name==='writeFile'&&
+        node.arguments[0]?.type==='CallExpression'&&node.arguments[0].callee.name==='join'&&
+        node.arguments[0].arguments.some(arg=>arg.type==='Literal'&&arg.value==='base-environment.json')){
+      assert.equal(writer,undefined);writer=node;
+    }
+    for(const value of Object.values(node))if(Array.isArray(value))value.forEach(visit);
+    else if(value&&typeof value==='object')visit(value);
+  })(tree);assert(writer);
+  const wire=readFileSync(new URL('../spec/local-check-environment.json',import.meta.url),'utf8');
+  const originalPolicy=Object.freeze({}), moon={
+    clientLocalResourcePolicyOriginal(){return originalPolicy;},
+    clientLocalResourcePolicyRowCeiling(value){assert.equal(value,originalPolicy);return 203;},
+    clientProgramCheckEnvironment(value,cid){assert.equal(JSON.parse(value).evidence_bundle_cid,cid);return {};},
+  };
+  const actualHost=selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd());
+  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  const produce=new AsyncFunction('root','repository','readFile','join','installedRuntime',
+    'selectInstalledLocalMaterializationEnvironment','return ('+
+    script.slice(writer.arguments[1].start,writer.arguments[1].end)+');');
+  const prepared=await produce('/app','/repo',async(path,encoding)=>{
+    assert.equal(path,join('/repo','spec/local-check-environment.json'));
+    return encoding==='utf8'?wire:Buffer.from(wire);
+  },join,moon,selectInstalledLocalMaterializationEnvironment);
+  const configured=inferConfiguration(JSON.parse(prepared));
+  const composed=composeInstalledCheckEnvironment(moon,actualHost,actualHost,
+    configured.installation.environmentWire);
+  assert.deepEqual(JSON.parse(composed).host_policy_profile,JSON.parse(actualHost).host_policy_profile);
+  const raw=inferConfiguration(JSON.parse(wire));
+  assert.equal(configured.taskCid,raw.taskCid);
+  assert.deepEqual(configured.installation.executionContracts,raw.installation.executionContracts);
+  assert.deepEqual(configured.installation.dependencyBodies,raw.installation.dependencyBodies);
+  assert.deepEqual(JSON.parse(configured.installation.environmentWire).model_task_contracts,
+    JSON.parse(raw.installation.environmentWire).model_task_contracts);
+  const {evidence_bundle_cid: ignored,...changed}=JSON.parse(configured.installation.environmentWire);
+  void ignored;
+  changed.host_policy_profile.capacity.max_effect_items++;
+  assert.throws(()=>composeInstalledCheckEnvironment(moon,actualHost,actualHost,
+    inferCanonical({...changed,evidence_bundle_cid:inferCid(changed)})), error=>{
+    assert.equal(error.code,'InstalledCheckEnvironmentConflict');assert.equal(error.cause,'EnvironmentBase');return true;
+  });
+  const originalFailure=new Error('OriginalLocalPolicyUnavailable');
+  await assert.rejects(produce('/app','/repo',async()=>wire,join,
+    {...moon,clientLocalResourcePolicyRowCeiling(){throw originalFailure;}},
+    selectInstalledLocalMaterializationEnvironment), error=>error===originalFailure);
+});
+
+test('public check Source fixture keeps original declarations under the actual Local policy', async () => {
+  const script=readFileSync(new URL('../adapters/host-node/client-check.test.mjs',import.meta.url),'utf8');
+  const tree=parseJavaScript(script,{ecmaVersion:'latest',sourceType:'module'});
+  const producer=tree.body.find(n=>n.type==='FunctionDeclaration'&&n.id.name==='installedSource');
+  assert(producer);
+  const end=producer.body.body.findIndex(n=>n.type==='VariableDeclaration'&&n.declarations[0]?.id.name==='database');
+  assert.equal(end,4,'Only the original metadata prefix precedes provider setup');
+  const source=JSON.parse(readFileSync(new URL('../adapters/host-node/fixtures/query-amount-environment.json',import.meta.url),'utf8'));
+  const before=structuredClone(source);
+  const wire=readFileSync(new URL('../spec/local-check-environment.json',import.meta.url),'utf8');
+  const originalPolicy=Object.freeze({}), moon={
+    clientLocalResourcePolicyOriginal(){return originalPolicy;},
+    clientLocalResourcePolicyRowCeiling(value){assert.equal(value,originalPolicy);return 203;},
+    clientProgramCheckEnvironment(value,cid){assert.equal(JSON.parse(value).evidence_bundle_cid,cid);return {};},
+  };
+  const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+  const construct=new AsyncFunction('environment','repository','readFile','join','contentCid','moon',
+    'selectInstalledLocalMaterializationEnvironment',
+    producer.body.body.slice(0,end).map(n=>script.slice(n.start,n.end)).join('\n')+'\nreturn environment;');
+  const document=await construct(source,'/repo',async path=>{
+    assert.equal(path,join('/repo','spec/local-check-environment.json'));return wire;
+  },join,contentCid,moon,selectInstalledLocalMaterializationEnvironment);
+  const selected=selectInstalledLocalMaterializationEnvironment(moon,wire.trimEnd());
+  const composed=composeInstalledCheckEnvironment(moon,selected,canonicalText(document));
+  assert.deepEqual(JSON.parse(composed).host_policy_profile,JSON.parse(selected).host_policy_profile);
+  for(const name of Object.keys(before).filter(n=>!['host_policy_profile','evidence_bundle_cid'].includes(n))){
+    assert.strictEqual(document[name],source[name]);assert.deepEqual(document[name],before[name]);
+  }
+  assert.deepEqual(source,before);
 });
 
 // Evaluate the existing CLI selection prelude, including its admission flags.

@@ -26,6 +26,7 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {selectInstalledLocalMaterializationEnvironment} from './installed-host-policy.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -34,6 +35,9 @@ import {createHostObservationConnection} from '../host-common/observation.mjs';
 import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
+const moon = await import(pathToFileURL(join(repository,
+  '_build/js/release/build/connectors_builtin_node/' +
+  'connectors_builtin_node.js')).href);
 const {exerciseGraphArgumentChecks, graphArgumentCheckInventory} = await import(
   '../../scripts/fixtures/graph-argument-check.mjs');
 const graphArgumentOriginCases = JSON.parse(await readFile(
@@ -100,8 +104,8 @@ async function installedSource(root, {readOutcome, aliases,
   environment = sourceEnvironment, seedAuthoringRows = false}) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
-  const base = JSON.parse(await readFile(join(repository,
-    'spec/local-check-environment.json'), 'utf8'));
+  const base = JSON.parse(selectInstalledLocalMaterializationEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
   environment = {...environment, host_policy_profile: base.host_policy_profile};
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = contentCid(environment);
@@ -1818,9 +1822,6 @@ test('http: a malformed check request is refused before checking',
 // The Host check owner with a fixed context key, so that whole outcomes,
 // context references included, are compared across installations. The same
 // acceptance runs against mutated owners below; each mutation must fail it.
-const moon = await import(pathToFileURL(join(repository,
-  '_build/js/release/build/connectors_builtin_node/' +
-  'connectors_builtin_node.js')).href);
 const environment = moon.clientProgramCheckEnvironment(
   canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid,
   false, false, true, true, false, false, false);
