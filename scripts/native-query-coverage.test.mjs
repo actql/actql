@@ -11,7 +11,7 @@ const repositorySources = readNativeQuerySources(root);
 // readers are covered by the repository check below and must permit fallback.
 const sources = {
   ...Object.fromEntries(Object.entries(repositorySources).filter(([path]) =>
-    Object.hasOwn(nativeQueryCoverage.files, path))),
+    Object.hasOwn(nativeQueryCoverage.files, path) || path.endsWith('/moon.pkg'))),
   'src/platform_native/remote_journal/inspection_stub.c': 'getenv("TMPDIR")',
   'src/platform_native/executor_slot/executor_slot_stub.c':
     'extern char **environ;\nposix_spawn(&pid, path, &actions, NULL, argv, environ)',
@@ -206,4 +206,57 @@ test('exact successful execution summaries are required', () => {
     {...summary(33), stdout: 'Total tests: 33, passed: 32, failed: 1.\n'}]) {
     assert.throws(() => assertNativeQueryExecution(selection, result));
   }
+});
+
+test('fallback counts Native declarations while retaining compiler-excluded JS cases', () => {
+  const js = query + 'only_js_wbtest.mbt';
+  const native = query + 'new_native_wbtest.mbt';
+  const input = {...sources,
+    [query + 'moon.pkg']: 'supported_targets = "+js+wasm+native"\n' +
+      'options(targets: {"only_js_wbtest.mbt": ["js"]}, link: {"native": {"cc": "cc"}})',
+    [js]: 'test "JS one" {}\ntest "JS two" {}',
+    [native]: 'test "new Native" { @env.get_env_var("ACTQL_TEST_NEW") }',
+  };
+  const selection = select('http-client', input);
+  assert.equal(selection.mode, 'full-fallback');
+  assert.deepEqual(selection.paths, ['src/query_integration', 'src/native_values_integration']);
+  assert.equal(selection.expected, 36);
+  assert.doesNotThrow(() => assertNativeQueryExecution(selection, summary(36)));
+  assert.throws(() => assertNativeQueryExecution(selection, summary(35)), /coverage mismatch/u);
+  assert.throws(() => assertNativeQueryExecution(selection, summary(38)), /coverage mismatch/u);
+});
+
+test('required Native ownership cannot be hidden through package or file targets', () => {
+  for (const metadata of ['supported_targets = "js"',
+    'options(targets: {"duckdb_native_compute_wbtest.mbt": ["js"]})']) {
+    assert.throws(() => select('http-client', {...sources,
+      [query + 'moon.pkg']: metadata}), /Required native query target is excluded/u);
+  }
+});
+
+test('unfamiliar and ambiguous target metadata never lower the required count', () => {
+  for (const list of ['[]', '["not js"]', '["native", "native"]']) {
+    assert.throws(() => select('http-client', {...sources,
+      [query + 'moon.pkg']: `options(targets: {"only_js_wbtest.mbt": ${list}})`}),
+    /Unsupported native file target expression/u);
+  }
+  assert.throws(() => select('http-client', {...sources,
+    [query + 'moon.pkg']: 'options(targets: {})\noptions(targets: {})'}),
+  /duplicate native file targets/u);
+  const missing = {...sources};
+  delete missing[query + 'moon.pkg'];
+  assert.throws(() => select('http-client', missing), /Missing native package metadata/u);
+});
+
+test('the actual fallback retains Native Values and excludes only the two declared JS tests', () => {
+  const js = query + 'strategy_cleanup_current_js_wbtest.mbt';
+  assert.equal([...repositorySources[js].matchAll(/^test "/gmu)].length, 2);
+  const declarations = Object.entries(repositorySources)
+    .filter(([path]) => path.startsWith(query) || path.startsWith('src/native_values_integration/'))
+    .reduce((sum, [, source]) => sum + [...source.matchAll(/^test "/gmu)].length, 0);
+  const selection = select('http-client', {...repositorySources,
+    [query + 'force_full_stub.c']: 'getenv("ACTQL_TEST_FORCE_FULL");'});
+  assert.equal(selection.mode, 'full-fallback');
+  assert.equal(selection.expected, declarations - 2);
+  assert.ok(selection.paths.includes('src/native_values_integration'));
 });

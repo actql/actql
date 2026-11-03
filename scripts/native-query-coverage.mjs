@@ -5,6 +5,7 @@ import {readFileSync, readdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {assertTestExecution} from './test-execution.mjs';
+import {tokens, readPackageTargetOptions} from './portable-core.mjs';
 
 export const nativeQueryCoverage = JSON.parse(readFileSync(
   new URL('./native-query-coverage.json', import.meta.url), 'utf8'));
@@ -53,13 +54,90 @@ function queryEnvironmentHelpers(sources) {
   return affected;
 }
 
+// Count the same positive literal target lists that Moon selects. Unfamiliar
+// expressions fail closed; they never lower the required execution count.
+function nativeQueryTargets(sources) {
+  const targets = new Map();
+  const symbol = (token, value) => token?.kind === 'symbol' && token.value === value;
+  const backends = new Set(['js', 'wasm', 'wasm-gc', 'native']);
+  for (const root of packagePaths) {
+    const source = sources[`${root}/moon.pkg`];
+    if (typeof source !== 'string') throw new Error(`Missing native package metadata: ${root}`);
+    const list = tokens(source);
+    let packageNative = true, clause;
+    for (let index = 0; index < list.length; index++) {
+      const token = list[index];
+      if (token.kind === 'word' && token.value === 'supported_targets') {
+        const value = list[index + 2];
+        if (!symbol(list[index + 1], '=') || value?.kind !== 'string') {
+          throw new Error('Malformed native package targets');
+        }
+        const names = value.value.startsWith('+') ? value.value.slice(1).split('+') : [value.value];
+        if (!names.length || names.some(name => !backends.has(name)) || new Set(names).size !== names.length) {
+          throw new Error('Unsupported native package targets');
+        }
+        packageNative = names.includes('native');
+      }
+      if (token.kind !== 'word' || token.value !== 'options' || !symbol(list[index + 1], '(')) continue;
+      let round = 1, braces = 0, square = 0;
+      for (let cursor = index + 2; cursor < list.length && round > 0; cursor++) {
+        const item = list[cursor];
+        if (round === 1 && braces === 0 && square === 0 && item.kind === 'word' && item.value === 'targets') {
+          if (clause !== undefined || !symbol(list[cursor + 1], ':') || !symbol(list[cursor + 2], '{')) {
+            throw new Error('Malformed or duplicate native file targets');
+          }
+          let end = cursor + 2, depth = 1;
+          while (depth > 0 && ++end < list.length) {
+            if (symbol(list[end], '{')) depth++;
+            else if (symbol(list[end], '}')) depth--;
+          }
+          if (depth !== 0) throw new Error('Unclosed native file targets');
+          // Reuse the existing literal-map reader, independently of the other
+          // compiler-owned link/FFI options in this same options invocation.
+          const input = [{kind: 'symbol', value: '('}, ...list.slice(cursor, end + 1), {kind: 'symbol', value: ')'}];
+          let offset = 0;
+          clause = readPackageTargetOptions({
+            take(kind, value) {
+              const next = input[offset++];
+              if (!next || next.kind !== kind || value !== undefined && next.value !== value) {
+                throw new Error('Malformed native file targets');
+              }
+              return next.value;
+            },
+            peek: value => input[offset]?.value === value,
+          });
+        }
+        if (item.kind !== 'symbol') continue;
+        if (item.value === '(') round++;
+        else if (item.value === ')') round--;
+        else if (item.value === '{') braces++;
+        else if (item.value === '}') braces--;
+        else if (item.value === '[') square++;
+        else if (item.value === ']') square--;
+        if (round < 0 || braces < 0 || square < 0) throw new Error('Malformed native target options');
+      }
+      if (round !== 0) throw new Error('Unclosed native target options');
+    }
+    targets.set(root, packageNative);
+    for (const [file, names] of clause ?? []) {
+      if (!/^[A-Za-z0-9_]+\.mbt$/u.test(file) || !names.length ||
+          names.some(name => !backends.has(name)) || new Set(names).size !== names.length) {
+        throw new Error('Unsupported native file target expression');
+      }
+      targets.set(`${root}/${file}`, packageNative && names.includes('native'));
+    }
+  }
+  return path => targets.get(path) ?? targets.get(packagePaths.find(root => path.startsWith(`${root}/`)));
+}
+
 export function readNativeQuerySources(root) {
   const sources = {};
   function visit(path) {
     for (const entry of readdirSync(join(root, path), {withFileTypes: true})) {
       const name = `${path}/${entry.name}`;
       if (entry.isDirectory()) visit(name);
-      else if (/\.(?:mbt|c|cc|cpp|h)$/u.test(name)) {
+      else if (/\.(?:mbt|c|cc|cpp|h)$/u.test(name) ||
+          entry.name === 'moon.pkg' && packagePaths.includes(path)) {
         sources[name] = readFileSync(join(root, name), 'utf8');
       }
     }
@@ -78,6 +156,7 @@ export function selectNativeQueryTests(owner, sources, env,
   let expected = 0;
   let total = 0;
   const helpers = queryEnvironmentHelpers(sources);
+  const native = nativeQueryTargets(sources);
   for (const [file, entry] of entries) {
     if (!/^src\/(?:query_integration|native_values_integration)\/[a-z_]+_wbtest\.mbt$/u.test(file) ||
         !Array.isArray(entry.owners) || entry.owners.length === 0 ||
@@ -96,6 +175,7 @@ export function selectNativeQueryTests(owner, sources, env,
     if (!same(found, entry.tests) || !same(variables(source), entry.variables)) {
       reasons.push(`changed native query cases or environment: ${file}`);
     }
+    if (!native(file)) throw new Error(`Required native query target is excluded: ${file}`);
     if (entry.owners.includes(owner)) {
       selected.push(file);
       expected += found.length;
@@ -103,7 +183,7 @@ export function selectNativeQueryTests(owner, sources, env,
   }
   for (const [path, source] of Object.entries(sources)) {
     if (inHarnessPackage(path)) {
-      total += testNames(source).length;
+      if (native(path)) total += testNames(source).length;
       const file = path;
       const readsEnvironment = environmentReader.test(source) || queryReader.test(source) ||
         identifiers(source).some(name => helpers.has(name));
