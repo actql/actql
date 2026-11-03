@@ -198,12 +198,20 @@ test "fixed Request control envelope preserves original upper bound through the 
     @execution.preparation_representation_cost(
       request_preparation_fixed_control_envelope,
     ),
-    Some(10376L),
+    Some(10392L),
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14472L, 0L)),
+    Some((14488L, 0L)),
   )
+  let growth = @resources.preparation_inventory_growth_entry_construction()
+  assert_eq(@execution.preparation_representation_cost({
+    record_headers: growth.record_headers,
+    reference_slots: growth.reference_slots,
+    scalar_words: growth.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }), Some(368L))
   assert_eq(request_preparation_fixed_control_envelope.owned_utf16_units, 0L)
   assert_eq(request_preparation_fixed_control_envelope.owned_wire_bytes, 0L)
 }
@@ -218,7 +226,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   ).unwrap()
   let reservation = owner.capacity
   let before = @resources.ledger_usage(owner.ledger)
-  assert_eq(before.reserved_retention_bytes, 14472L)
+  assert_eq(before.reserved_retention_bytes, 14488L)
   reserve_request_snapshot(owner, input, 16L, 2L).unwrap()
   let small = @resources.ledger_usage(owner.ledger)
   reserve_request_snapshot(owner, input, 256L, 32L).unwrap()
@@ -235,7 +243,7 @@ test "fixed Request control envelope leaves proportional snapshot growth on its 
   )
   assert_eq(
     client_request_preparation_control_capacity(client_local_resource_policy()),
-    Some((14472L, 0L)),
+    Some((14488L, 0L)),
   )
   abort_request_preparation_after_cleanup(owner).unwrap()
   assert_eq(@resources.ledger_usage(owner.ledger).live_reservations, 0)

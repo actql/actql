@@ -133,12 +133,13 @@ test "source Host and response bindings retain one exact request and ordered pre
   assert_eq(request_binding.stage, 0)
   assert_eq(request_binding.index, 0)
   assert_eq(@sourceviews.keyed_join_step(request_binding.join), 1)
-  assert_eq(request_binding.counts.input_rows, 1L)
-  assert_eq(request_binding.counts.rows_per_key, 2L)
-  assert_eq(request_binding.counts.response_rows, 2L)
+  let estimate = @sourceviews.lookup_requirement_estimate(request_binding.requirement).unwrap()
+  assert_eq(estimate.input_rows, 1L)
+  assert_eq(estimate.rows_per_key, 2L)
+  assert_eq(estimate.response_rows, 2L)
   assert_true(
     physical_equal(
-      request_binding.producer,
+      request_binding.producer.unwrap(),
       @context.source_producer_at(request_binding.owner, 0, 0).unwrap(),
     ),
   )
@@ -288,7 +289,7 @@ test "keyed source audit binds every gate to the selected producer and prerequis
       { ..binding, owner: other.owner, },
       { ..binding, producer: other.producer, },
       { ..binding, bounds: other.bounds, },
-      { ..binding, counts: other.counts, },
+      { ..binding, requirement: other.requirement, },
       { ..binding, join: other.join, },
       { ..binding, stage: 1, },
       { ..binding, index: 1, },

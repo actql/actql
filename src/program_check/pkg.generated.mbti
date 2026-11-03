@@ -363,6 +363,8 @@ pub fn interval_search_limit_selection(IntervalSearchLimit) -> @pipeline_check_c
 
 pub fn interval_search_limit_source(IntervalSearchLimit) -> UnitOperationSource
 
+pub fn keyed_execution_requirement(KeyedExecution) -> @sourceview_resolution.LookupRequirement
+
 pub fn keyed_input_proof_acquired(KeyedInputProof) -> ReidentifiedSourceInput?
 
 pub fn keyed_input_proof_at(CheckedProgram, Int) -> KeyedInputProof?
@@ -374,6 +376,8 @@ pub fn keyed_input_proof_count(CheckedProgram) -> Int
 pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
+
+pub fn keyed_input_runtime_admission(KeyedInputProof) -> KeyedExecution?
 
 pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
 
@@ -1428,8 +1432,8 @@ pub struct KeyedExecution {
   index : Int
   join : @sourceview_resolution.KeyedJoin
   bounds : @sourceview_resolution.LookupBounds
-  counts : @sourceview_resolution.LookupCounts
-  producer : @capacity_graph_preflight.TargetMembership
+  requirement : @sourceview_resolution.LookupRequirement
+  producer : @capacity_graph_preflight.TargetMembership?
 }
 
 type KeyedInputProof

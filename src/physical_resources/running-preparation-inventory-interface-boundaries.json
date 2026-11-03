@@ -1,0 +1,130 @@
+{
+  "qualification": "Source semantics only; runtime caller, native allocation and artifact acceptance are separate",
+  "declarations": [
+    {
+      "module": "src/physical_resources/running_preparation_inventory.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "46d3662f6706bca23198b6ecbb84f5bb7c6a980928f6455ec418712debc8cd6c",
+      "role": "common-semantics",
+      "owner": "Existing PreparationCapacity and Ledger census owner",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]enter_preparation_inventory_growth",
+          "declaration": "[ I , P ] enter_preparation_inventory_growth ( owner : PreparationCapacity [ I , P ] , body : P , borrowed : PreparationCapacityBorrow [ I , P ] ? , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]grow_original_preparation_body_inventory",
+          "declaration": "[ I , P ] grow_original_preparation_body_inventory ( borrowed : PreparationCapacityBorrow [ I , P ] , body : P , identity : OriginalLedgerIdentity , retained_peak : Int64 , execution_peak : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]grow_running_preparation_capacity_inventory",
+          "declaration": "[ I , P ] grow_running_preparation_capacity_inventory ( owner : PreparationCapacity [ I , P ] , input : I , body : P , identity : OriginalLedgerIdentity , retained_peak : Int64 , execution_peak : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]grow_running_preparation_capacity_inventory_owned",
+          "declaration": "[ I , P ] grow_running_preparation_capacity_inventory_owned ( owner : PreparationCapacity [ I , P ] , input : I , body : P , identity : OriginalLedgerIdentity , retained_peak : Int64 , execution_peak : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , borrowed : PreparationCapacityBorrow [ I , P ] ? , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "[I,P]leave_preparation_inventory_growth",
+          "declaration": "[ I , P ] leave_preparation_inventory_growth ( owner : PreparationCapacity [ I , P ] ) - > Unit"
+        },
+        {
+          "name": "[I,P]running_preparation_borrow_matches",
+          "declaration": "[ I , P ] running_preparation_borrow_matches ( borrowed : PreparationCapacityBorrow [ I , P ] ? , owner : PreparationCapacity [ I , P ] , body : P , ) - > Bool"
+        },
+        {
+          "name": "[I,P]running_preparation_inventory_matches",
+          "declaration": "[ I , P ] running_preparation_inventory_matches ( owner : PreparationCapacity [ I , P ] , input : I , body : P , identity : OriginalLedgerIdentity , value : LedgerOriginalInventory , ) - > Bool"
+        },
+        {
+          "name": "[P]grow_preparation_body_inventory",
+          "declaration": "[ P ] grow_preparation_body_inventory ( holder : PreparationBodyBorrow [ P ] , body : P , identity : OriginalLedgerIdentity , retained_peak : Int64 , execution_peak : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ Unit , PreparationCapacityIssue ]"
+        },
+        {
+          "name": "preparation_inventory_growth_entry_construction",
+          "declaration": "preparation_inventory_growth_entry_construction ( ) - > PreparationInventoryGrowthConstruction"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]enter_preparation_inventory_growth",
+            "[I,P]grow_original_preparation_body_inventory",
+            "[I,P]grow_running_preparation_capacity_inventory",
+            "[I,P]grow_running_preparation_capacity_inventory_owned",
+            "[I,P]leave_preparation_inventory_growth",
+            "[I,P]running_preparation_borrow_matches",
+            "[I,P]running_preparation_inventory_matches",
+            "[P]grow_preparation_body_inventory",
+            "preparation_inventory_growth_entry_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/running-preparation-inventory-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -3600,6 +3600,7 @@ pub enum SourceProducerIssue {
   InvalidLimits
   StageCountMismatch
   JoinCountMismatch(Int)
+  MissingEstimate(Int, Int)
   BudgetExceeded
   Membership(Int, Int, @capacity_graph_preflight.TargetMembershipIssue)
 }

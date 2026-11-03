@@ -34,8 +34,30 @@ pub struct KeyedExecution {
   index : Int
   join : @sourceviews.KeyedJoin
   bounds : @sourceviews.LookupBounds
-  counts : @sourceviews.LookupCounts
-  producer : @capacity.TargetMembership
+  requirement : @sourceviews.LookupRequirement
+  producer : @capacity.TargetMembership?
+}
+
+///|
+fn keyed_execution_producer_matches(
+  bounds : @sourceviews.LookupBounds,
+  index : Int,
+  join : @sourceviews.KeyedJoin,
+  membership : @capacity.TargetMembership?,
+) -> Bool {
+  match
+    (
+      @sourceviews.keyed_rows_requirement_at(
+        @sourceviews.lookup_bounds_rows(bounds), index,
+      ),
+      membership,
+    ) {
+    (Some(@sourceviews.CheckedEstimate(rows)), Some(member)) =>
+      physical_equal(rows, @capacity.target_membership_rows(member))
+    (Some(@sourceviews.RuntimeAdmission(original)), None) =>
+      physical_equal(original, join)
+    _ => false
+  }
 }
 
 ///|
@@ -222,7 +244,12 @@ fn prepare_source_execution(
       let join = @sourceviews.keyed_join_at(joins, index).unwrap()
       guard admissions.get(@sourceviews.keyed_join_input(join))
         is Some((host, acquisition_resources, response)) &&
-        @context.source_producer_at(producer, stage, index) is Some(membership) else {
+        @sourceviews.lookup_requirement_at(bounds, index) is Some(requirement) else {
+        raise ForeignOwner
+      }
+      let membership = @context.source_producer_at(producer, stage, index)
+      guard physical_equal(@sourceviews.lookup_requirement_join(requirement), join) &&
+        keyed_execution_producer_matches(bounds, index, join, membership) else {
         raise ForeignOwner
       }
       guard host.subject.request is @sourceviews.Keyed(_, request) &&
@@ -247,7 +274,7 @@ fn prepare_source_execution(
             index,
             join,
             bounds,
-            counts: @sourceviews.lookup_bounds_at(bounds, index).unwrap(),
+            requirement,
             producer: membership,
           }
       }

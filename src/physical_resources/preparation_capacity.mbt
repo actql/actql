@@ -35,6 +35,7 @@ struct PreparationCapacity[I, P] {
   mut borrowers : Int
   max_borrowers : Int
   mut retirement_claimed : Bool
+  mut inventory_growth_active : Bool
   mut active_phase_work : Ref[PreparationWorkState]?
   mut last_work_phase : Int
 }
@@ -93,6 +94,7 @@ fn[I, P] make_preparation_capacity(
     borrowers: 0,
     max_borrowers,
     retirement_claimed: false,
+    inventory_growth_active: false,
     active_phase_work: None,
     last_work_phase: -1,
   }
@@ -445,6 +447,16 @@ pub fn retire_transferred_preparation(
 }
 
 ///|
+// Closed operations on the same retained body adapter. Publication keeps its
+// existing API; Run census growth cannot be confused with a publication call.
+priv enum PreparationBodyGrowth {
+  Publication
+  EnterRunningInventory
+  LeaveRunningInventory
+  RunningInventory(OriginalLedgerIdentity, Int, Int, Int)
+}
+
+///|
 /// An erased input-type adapter over one original Core borrower. The fixed
 /// closures capture the borrower token, never a separately retained raw body.
 /// Returning it clears that token's body and decrements the same owner once.
@@ -461,7 +473,7 @@ struct PreparationBodyBorrow[P] {
     PreparationCapacityIssue,
   ]
   isolated_usage_original : (Ledger) -> Bool
-  reserve_publication_original : (P, Int64, Int64) -> Result[
+  reserve_phase_original : (P, Int64, Int64, PreparationBodyGrowth) -> Result[
     Unit,
     PreparationCapacityIssue,
   ]
@@ -513,10 +525,15 @@ fn[I, P] make_preparation_body_borrow(
       !value.returned &&
       preparation_capacity_usage_isolated(value.owner, ledger)
     },
-    reserve_publication_original: (body, retained, execution) => {
-      reserve_original_preparation_publication_phase(
-        value, body, retained, execution,
-      )
+    reserve_phase_original: (body, retained, execution, inventory) => {
+      match inventory {
+        Publication => reserve_original_preparation_publication_phase(value, body, retained, execution)
+        EnterRunningInventory => enter_preparation_inventory_growth(value.owner, body, Some(value))
+        LeaveRunningInventory => { value.owner.inventory_growth_active = false; Ok(()) }
+        RunningInventory(identity, reservations, holdings, delegations) =>
+          grow_original_preparation_body_inventory(value, body, identity, retained, execution,
+            reservations, holdings, delegations)
+      }
     },
   }
 }

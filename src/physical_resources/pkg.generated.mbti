@@ -252,7 +252,11 @@ pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) ->
 
 pub fn grow_platform_vm_working_capacity(PlatformVMWorkingCapacity, Int64, Int64) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P] grow_preparation_body_inventory(PreparationBodyBorrow[P], P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
+
+pub fn[I, P] grow_running_preparation_capacity_inventory(PreparationCapacity[I, P], I, P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 
@@ -405,6 +409,8 @@ pub fn[I, P] preparation_capacity_inventory_original(PreparationCapacity[I, P], 
 pub fn[I, P] preparation_capacity_reservation_retired(PreparationCapacity[I, P]) -> Bool
 
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
+
+pub fn preparation_inventory_growth_entry_construction() -> PreparationInventoryGrowthConstruction
 
 pub fn preparation_inventory_initial_control_slots(Int, Int, Int) -> (Int64, Int64, Int64)?
 
@@ -1056,6 +1062,12 @@ pub(all) enum PreparationCapacityIssue {
   BorrowReturned
   InvalidExtent
   Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PreparationInventoryGrowthConstruction {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
 } derive(Eq, @debug.Debug)
 
 type PreparationIo

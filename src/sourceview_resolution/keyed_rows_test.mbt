@@ -91,11 +91,35 @@ fn check_keyed_rows_fixture(
       check_keyed_row_bounds(checked_facts, [target], -1).unwrap_err(),
       InvalidLimits,
     )
+    let unknown = check_keyed_row_estimates(checked_facts, [None], 1).unwrap()
+    assert_true(keyed_rows_at(unknown, 0) is None)
+    guard keyed_rows_requirement_at(unknown, 0) is Some(RuntimeAdmission(join)) else {
+      fail("unknown estimate must retain a runtime obligation")
+    }
+    assert_true(physical_equal(join, keyed_join_at(joins, 0).unwrap()))
+    let policy = @environment.check_lookup_execution(
+      pipeline_environment(prepared),
+      { max_work: 100000, max_bytes: 10000, },
+    ).unwrap()
+    if lookup != 0 {
+      let runtime = check_lookup_bounds(unknown, policy, 1).unwrap()
+      let requirement = lookup_requirement_at(runtime, 0).unwrap()
+      assert_true(lookup_bounds_at(runtime, 0) is None)
+      assert_true(lookup_requirement_admission(requirement) is RuntimeAdmission)
+      assert_true(physical_equal(lookup_requirement_join(requirement), join))
+    }
     if zero {
-      assert_eq(
-        check_keyed_row_bounds(checked_facts, [target], 100).unwrap_err(),
-        NonPositiveBound(0),
-      )
+      let checked = check_keyed_row_bounds(checked_facts, [target], 100).unwrap()
+      assert_true(physical_equal(keyed_rows_at(checked, 0).unwrap(), target))
+      if lookup != 0 {
+        let counts = lookup_bounds_at(check_lookup_bounds(checked, policy, 1).unwrap(), 0).unwrap()
+        assert_eq(counts.input_rows, 0L)
+        assert_eq(counts.batches, 0L)
+        assert_eq(counts.requests, 0L)
+        assert_eq(counts.network_attempts, 0L)
+        assert_eq(counts.response_rows, 0L)
+        assert_eq(counts.decoded_response_bytes, 0L)
+      }
     } else {
       let arguments = [target]
       let checked = check_keyed_row_bounds(checked_facts, arguments, 3).unwrap()
@@ -113,7 +137,11 @@ fn check_keyed_rows_fixture(
       if lookup == 0 {
         assert_true(result is Err(MissingPolicy(2)))
       } else if lookup == 2 {
-        assert_true(result is Err(DecodedResponseLimit(2)))
+        let resolved = result.unwrap()
+        let requirement = lookup_requirement_at(resolved, 0).unwrap()
+        assert_true(lookup_requirement_admission(requirement) is RuntimeAdmission)
+        assert_eq(lookup_bounds_at(resolved, 0).unwrap().input_rows, 3L)
+        assert_true(lookup_requirement_estimate(requirement) is Some(_))
       } else {
         let resolved = result.unwrap()
         assert_true(physical_equal(lookup_bounds_rows(resolved), checked))

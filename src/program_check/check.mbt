@@ -593,12 +593,15 @@ fn audit_source_execution(
         binding.index == index &&
         physical_equal(binding.join, join) &&
         physical_equal(binding.bounds, bounds) &&
-        physical_equal(
-          binding.counts,
-          @sourceviews.lookup_bounds_at(bounds, index).unwrap(),
-        ) &&
-        @context.source_producer_at(producer, stage, index) is Some(membership) &&
-        physical_equal(binding.producer, membership) &&
+        @sourceviews.lookup_requirement_at(bounds, index) is Some(requirement) &&
+        physical_equal(binding.requirement, requirement) &&
+        physical_equal(@sourceviews.lookup_requirement_join(requirement), join) &&
+        keyed_execution_producer_matches(bounds, index, join, binding.producer) &&
+        (match (binding.producer, @context.source_producer_at(producer, stage, index)) {
+          (Some(actual), Some(expected)) => physical_equal(actual, expected)
+          (None, None) => true
+          _ => false
+        }) &&
         subject.request is @sourceviews.Keyed(_, request) &&
         physical_equal(request, @sourceviews.keyed_join_request(join)) else {
         raise ForeignOwner
