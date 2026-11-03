@@ -347,12 +347,7 @@ try {
     principalId: userInfo().username})).digest('hex')}`;
   for (const role of ['model_call_attempt', 'model_attempt_accounting',
     'model_attempt_outcome', 'model_dispatch_authority']) {
-    const holding = mode === 'cancel' || mode === 'failure'
-      ? scopedModelHolding(root, run.ref.runDefinitionCid, storeCid, role)
-      : cid({role, slot: 0,
-      run_definition_cid: run.ref.runDefinitionCid,
-      store_authority_cid: storeCid,
-      version: 'actql-model-private-holding/0.1'});
+    const holding = scopedModelHolding(root, run.ref.runDefinitionCid, storeCid, role);
     const record = JSON.parse(readFileSync(join(root, 'publication',
       'physical-holdings', `${holding.slice(7)}.json`), 'utf8'));
     assert.equal(record.holding_cid, holding);
