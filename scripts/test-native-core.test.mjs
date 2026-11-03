@@ -298,6 +298,16 @@ test('Compiler stop diagnostic preserves inputs and private environment with fre
   const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace, env},
     (command, args, options) => {
       calls++;
+      if (command === driver.tool) {
+        assert.deepEqual(options.env, env);
+        assert.equal(options.cwd, '/checkout');
+        assert.equal(options.stdio, 'ignore');
+        assert.equal(options.timeout, 15000);
+        assert.deepEqual(args.filter((_, i) => i !== 2 && i !== 4),
+          driver.args.filter((_, i) => i !== 2 && i !== 4));
+        assert.equal(args[2], args[4].replace('serial-metadata.json', 'serial-driver.mbt'));
+        return {status: 0, signal: null};
+      }
       assert.equal(command, 'xcrun');
       assert.equal(options.timeout, 60000);
       assert.equal(options.env.DYLD_INSERT_LIBRARIES, undefined);
@@ -319,8 +329,10 @@ test('Compiler stop diagnostic preserves inputs and private environment with fre
           frames: [{module: 'dyld', symbol: 'observed_symbol', registers: 'PRIVATE_REGISTERS'}],
           environment: 'PRIVATE_TOKEN'}) + '\n', stderr: 'PRIVATE_STDERR'};
     });
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   assert.equal(result.cause, 'SIGTRAP');
+  assert.deepEqual(result.serial, {attempted: true, exitStatus: 0, signal: null,
+    timedOut: false, errorCode: null});
   assert.deepEqual(result.frames, [{module: 'dyld', symbol: 'observed_symbol'}]);
   assert(!JSON.stringify(result).includes('PRIVATE_'));
 });
@@ -330,9 +342,14 @@ test('Compiler stop diagnostic validates launch input and distinguishes inferior
   t.after(() => rmSync(namespace, {recursive: true, force: true}));
   const driver = failedCoreDriver('/checkout', '/pinned');
   driver.write('failed: ' + [driver.tool, ...driver.args].join(' ') + '\n');
-  for (const scenario of ['exit', 'arguments-mismatch', 'image-mismatch', 'stopped']) {
+  for (const scenario of ['exit', 'arguments-mismatch', 'image-mismatch', 'stopped',
+    'stopped-environment-mismatch', 'stopped-environment-unobserved', 'stopped-reader-unobserved']) {
+    const env = {TOKEN: 'PRIVATE_TOKEN', DYLD_INSERT_LIBRARIES: '/original/runtime-reader-custody.dylib',
+      ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: '/original/root'};
     const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace,
-      env: {TOKEN: 'PRIVATE_TOKEN'}}, (command, args, options) => {
+      env}, (command, args, options) => {
+      if (command === driver.tool) return scenario === 'exit'
+        ? {status: null, signal: 'SIGTRAP'} : {status: 0, signal: null};
       const program = JSON.parse(options.input.slice('script exec('.length,
         options.input.indexOf(')\nquit')));
       const expected = args.slice(args.indexOf('--') + 1);
@@ -359,7 +376,10 @@ class LaunchInfo:
         return "wrong" if scenario == "arguments-mismatch" and i == 1 else self.args[i]
     def GetExecutableFile(self): return self.exe
     def SetEnvironmentEntries(self, entries, append):
-        assert entries == ["TOKEN=PRIVATE_TOKEN"] and append is False
+        assert entries == payload["environment"] and append is False
+        self.env = entries
+    def GetNumEnvironmentEntries(self): return len(self.env)
+    def GetEnvironmentEntryAtIndex(self, index): return self.env[index]
     def SetWorkingDirectory(self, path): assert path == "/checkout"
     def GetLaunchFlags(self): return 7
     def SetLaunchFlags(self, flags): assert flags == 4
@@ -367,6 +387,21 @@ class LaunchInfo:
     def AddSuppressFileAction(self, fd, read, write): assert fd in (1, 2) and not read and write
 class Error:
     def Success(self): return True
+class ExpressionError:
+    def Success(self): return scenario != "stopped-environment-unobserved"
+class ExpressionOptions:
+    def SetTimeoutInMicroSeconds(self, value): assert value == 1000000
+    def SetIgnoreBreakpoints(self, value): assert value is True
+    def SetUnwindOnError(self, value): assert value is True
+    def SetLanguage(self, value): assert value == 17
+class Value:
+    def __init__(self, expression): self.expression = expression
+    def IsValid(self): return True
+    def GetError(self): return ExpressionError()
+    def GetValueAsUnsigned(self):
+        return 0 if scenario == "stopped-environment-mismatch" and 'getenv("DYLD_INSERT_LIBRARIES")' in self.expression else 1
+class Module:
+    def GetFileSpec(self): return FileSpec("/original/runtime-reader-custody.dylib")
 class Frame:
     def IsValid(self): return False
 class Thread:
@@ -375,7 +410,7 @@ class Thread:
 class Process:
     def __init__(self, valid=False):
         self.valid = valid
-        self.state = 1 if scenario == "stopped" else 3
+        self.state = 1 if scenario.startswith("stopped") else 3
     def IsValid(self): return self.valid
     def GetState(self): return self.state
     def GetExitStatus(self):
@@ -394,26 +429,45 @@ class Target:
         assert info.args == expected and info.exe.path == expected[0]
         self.launches += 1
         return Process(True)
+    def GetNumModules(self): return 1
+    def GetModuleAtIndex(self, index): return Module()
+    def IsLoaded(self, module): return scenario != "stopped-reader-unobserved"
+    def EvaluateExpression(self, expression, options):
+        assert 'getenv(' in expression and 'PRIVATE_TOKEN' not in expression
+        return Value(expression)
 target = Target()
 sys.modules["lldb"] = types.SimpleNamespace(
     debugger=types.SimpleNamespace(GetSelectedTarget=lambda: target, SetAsync=lambda value: None),
-    SBFileSpec=FileSpec, SBError=Error, SBProcess=Process,
+    SBFileSpec=FileSpec, SBError=Error, SBProcess=Process, SBExpressionOptions=ExpressionOptions,
+    eLanguageTypeC=17,
     eLaunchFlagDisableASLR=1, eLaunchFlagStopAtEntry=2,
     eStateStopped=1, eStateCrashed=2, eStateExited=3, eStateDetached=4, eStateInvalid=5)
 exec(payload["program"])
-assert target.launches == (0 if scenario.endswith("mismatch") else 1)
+assert target.launches == (0 if scenario in ("arguments-mismatch", "image-mismatch") else 1)
 `;
       const control = spawnSync('python3', ['-c', port], {encoding: 'utf8', timeout: 10000,
-        input: JSON.stringify({program, expected, scenario})});
+        input: JSON.stringify({program, expected, scenario,
+          environment: Object.entries(env).map(([key, value]) => key + '=' + value)})});
       assert.equal(control.status, 0, control.stderr);
       return control;
     });
     assert.equal(result.launchArgumentsMatch, scenario !== 'arguments-mismatch');
     assert.equal(result.launchImageMatch, scenario !== 'image-mismatch');
-    assert.equal(result.launchSucceeded, !scenario.endsWith('mismatch'));
+    assert.equal(result.launchSucceeded, !['arguments-mismatch', 'image-mismatch'].includes(scenario));
     assert.equal(result.inferiorExitStatus, scenario === 'exit' ? 43 : null);
-    assert.equal(result.terminatedByDiagnostic, scenario === 'stopped');
-    assert.equal(result.cause, scenario === 'stopped' ? 'SIGTRAP' : 'unobserved');
+    assert.equal(result.serial.signal, scenario === 'exit' ? 'SIGTRAP' : null);
+    assert.equal(result.serial.exitStatus, scenario === 'exit' ? null : 0);
+    assert.equal(result.terminatedByDiagnostic, scenario.startsWith('stopped'));
+    assert.equal(result.cause, scenario.startsWith('stopped') ? 'SIGTRAP' : 'unobserved');
+    assert.deepEqual(result.launchEnvironmentMatches, {DYLD_INSERT_LIBRARIES: true,
+      LD_PRELOAD: true, ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: true});
+    const observed = scenario.startsWith('stopped') && scenario !== 'stopped-environment-unobserved';
+    assert.deepEqual(result.targetEnvironmentMatches, {
+      DYLD_INSERT_LIBRARIES: observed ? scenario !== 'stopped-environment-mismatch' : null,
+      LD_PRELOAD: observed ? true : null,
+      ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: observed ? true : null});
+    assert.equal(result.readerLibraryLoaded,
+      scenario.startsWith('stopped') && scenario !== 'stopped-reader-unobserved' ? true : null);
     assert(!JSON.stringify(result).includes('PRIVATE_'));
   }
 });
@@ -428,6 +482,7 @@ test('Compiler stop diagnostic timeout stays unobserved without raw debugger pay
     '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox\n');
   const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace,
     env: {TOKEN: 'PRIVATE_TOKEN'}}, (command, args, options) => {
+    if (command === driver.tool) return {status: null, signal: 'SIGKILL', error: {code: 'ETIMEDOUT', message: 'PRIVATE_SERIAL'}};
     const program = JSON.parse(options.input.slice('script exec('.length,
       options.input.indexOf(')\nquit')));
     const syntax = spawnSync('python3', ['-c', 'import ast,sys; ast.parse(sys.stdin.read())'],
@@ -443,6 +498,8 @@ test('Compiler stop diagnostic timeout stays unobserved without raw debugger pay
   assert.equal(result.cause, 'unobserved');
   assert.equal(result.cleanup, 'unobserved');
   assert.equal(result.timedOut, true);
+  assert.deepEqual(result.serial, {attempted: true, exitStatus: null, signal: 'SIGKILL',
+    timedOut: true, errorCode: 'ETIMEDOUT'});
   assert(!JSON.stringify(result).includes('PRIVATE_'));
 });
 

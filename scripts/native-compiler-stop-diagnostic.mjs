@@ -37,6 +37,10 @@ def image_path(spec):
 arguments_match = [info.GetArgumentAtIndex(i) for i in range(info.GetNumArguments())] == command
 image_match = image_path(target.GetExecutable()) == command[0] and image_path(info.GetExecutableFile()) == command[0]
 info.SetEnvironmentEntries(json.loads(base64.b64decode("ENVIRONMENT")), False)
+expected_environment = dict(entry.split("=", 1) for entry in json.loads(base64.b64decode("OBSERVATION_ENVIRONMENT")))
+environment_keys = ("DYLD_INSERT_LIBRARIES", "LD_PRELOAD", "ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT")
+launch_environment = dict(info.GetEnvironmentEntryAtIndex(i).split("=", 1) for i in range(info.GetNumEnvironmentEntries()))
+launch_environment_matches = {key: launch_environment.get(key) == expected_environment.get(key) for key in environment_keys}
 info.SetWorkingDirectory(json.loads(base64.b64decode("DIRECTORY")))
 flags = info.GetLaunchFlags()
 flags &= ~lldb.eLaunchFlagDisableASLR
@@ -46,16 +50,34 @@ info.SetDetachOnError(False)
 info.AddSuppressFileAction(1, False, True)
 info.AddSuppressFileAction(2, False, True)
 error = lldb.SBError()
-process = target.Launch(info, error) if arguments_match and image_match else lldb.SBProcess()
+launch_matches = arguments_match and image_match and all(launch_environment_matches.values())
+process = target.Launch(info, error) if launch_matches else lldb.SBProcess()
 result = {"attempted": True, "frames": [], "cause": "unobserved", "cleanup": "unobserved",
           "launchArgumentsMatch": arguments_match, "launchImageMatch": image_match,
-          "launchSucceeded": arguments_match and image_match and error.Success() and process.IsValid(),
+          "launchSucceeded": launch_matches and error.Success() and process.IsValid(),
+          "launchEnvironmentMatches": launch_environment_matches,
+          "targetEnvironmentMatches": {key: None for key in environment_keys}, "readerLibraryLoaded": None,
           "inferiorExitStatus": None, "terminatedByDiagnostic": False}
+def observe_reader_image():
+    # A true value requires an actually loaded target image. A missed short
+    # process or an unavailable module list remains unobserved, not absent.
+    expected = expected_environment.get("DYLD_INSERT_LIBRARIES") or expected_environment.get("LD_PRELOAD")
+    if not expected or not process.IsValid() or process.GetState() == lldb.eStateExited:
+        return
+    try:
+        for index in range(target.GetNumModules()):
+            module = target.GetModuleAtIndex(index)
+            if target.IsLoaded(module) and os.path.realpath(image_path(module.GetFileSpec())) == os.path.realpath(expected):
+                result["readerLibraryLoaded"] = True
+    except Exception:
+        pass
 deadline = time.monotonic() + 52
 terminal = (lldb.eStateStopped, lldb.eStateCrashed, lldb.eStateExited, lldb.eStateDetached, lldb.eStateInvalid)
 while process.IsValid() and process.GetState() not in terminal and time.monotonic() < deadline:
+    observe_reader_image()
     time.sleep(0.05)
 if process.IsValid() and process.GetState() in (lldb.eStateStopped, lldb.eStateCrashed):
+    observe_reader_image()
     thread = process.GetSelectedThread()
     reason = thread.GetStopDescription(256) or ""
     selected = re.search(r"EXC_[A-Z_]+|SIG[A-Z0-9]+", reason)
@@ -71,6 +93,24 @@ if process.IsValid() and process.GetState() in (lldb.eStateStopped, lldb.eStateC
             re.fullmatch(r"[A-Za-z0-9_.+-]+", module) and
             re.fullmatch(r"[A-Za-z0-9_:$<>~.,()*\\[\\] +/=-]+", symbol)):
             result["frames"].append({"module": module, "symbol": symbol})
+    # Read only equality bits for fixed keys from this stopped inferior. Do
+    # this after saving the original stop and frames; never print values or
+    # expression errors. Exited inferiors have no target readback evidence.
+    for key in environment_keys:
+        try:
+            value = expected_environment.get(key)
+            predicate = "value == 0" if value is None else "value != 0 && strcmp(value, " + json.dumps(value) + ") == 0"
+            expression = "({ extern char *getenv(const char *); extern int strcmp(const char *, const char *); const char *value = getenv(" + json.dumps(key) + "); " + predicate + "; })"
+            options = lldb.SBExpressionOptions()
+            options.SetTimeoutInMicroSeconds(1000000)
+            options.SetIgnoreBreakpoints(True)
+            options.SetUnwindOnError(True)
+            options.SetLanguage(lldb.eLanguageTypeC)
+            observed = target.EvaluateExpression(expression, options)
+            if observed.IsValid() and observed.GetError().Success():
+                result["targetEnvironmentMatches"][key] = observed.GetValueAsUnsigned() == 1
+        except Exception:
+            pass
 if process.IsValid() and process.GetState() not in (lldb.eStateExited, lldb.eStateDetached, lldb.eStateInvalid):
     result["terminatedByDiagnostic"] = True
     killed = process.Kill()
@@ -91,15 +131,24 @@ export function diagnoseFailedCoreDriver({driver, root, namespace, env}, run = s
   args[2] = join(output, 'blackbox-driver.mbt');
   args[4] = join(output, 'blackbox-metadata.json');
   const encode = value => Buffer.from(JSON.stringify(value)).toString('base64');
+  const entries = Object.entries(env).filter(([, value]) => value !== undefined)
+    .map(([key, value]) => `${key}=${value}`);
   const program = debuggerProgram
     .replace('COMMAND', encode([driver.tool, ...args]))
-    .replace('ENVIRONMENT', encode(Object.entries(env).filter(([, value]) => value !== undefined)
-      .map(([key, value]) => `${key}=${value}`)))
+    .replace('ENVIRONMENT', encode(entries))
+    .replace('OBSERVATION_ENVIRONMENT', encode(entries))
     .replace('DIRECTORY', encode(root));
   const input = 'script exec(' + JSON.stringify(program) + ')\nquit\n';
   const debuggerEnv = {...env};
   delete debuggerEnv.DYLD_INSERT_LIBRARIES;
   delete debuggerEnv.LD_PRELOAD;
+  // One failure-only serial control uses the same image, inputs and original
+  // environment outside LLDB. Its separate fresh outputs cannot supply tests.
+  const serialArgs = [...args];
+  serialArgs[2] = join(output, 'serial-driver.mbt');
+  serialArgs[4] = join(output, 'serial-metadata.json');
+  const serial = run(driver.tool, serialArgs, {cwd: root, env, stdio: 'ignore',
+    timeout: 15000, killSignal: 'SIGKILL'});
   const result = run('xcrun', ['lldb', '--batch', '--no-lldbinit', '--source-quietly', '--source',
     '/dev/stdin', '--', driver.tool, ...args], {cwd: root, env: debuggerEnv,
     input, encoding: 'utf8', timeout: 60000, killSignal: 'SIGKILL', maxBuffer: 1048576});
@@ -115,6 +164,11 @@ export function diagnoseFailedCoreDriver({driver, root, namespace, env}, run = s
           launchArgumentsMatch: value.launchArgumentsMatch === true,
           launchImageMatch: value.launchImageMatch === true,
           launchSucceeded: value.launchSucceeded === true,
+          ...Object.fromEntries(['launchEnvironmentMatches', 'targetEnvironmentMatches'].map(field =>
+            [field, Object.fromEntries(['DYLD_INSERT_LIBRARIES', 'LD_PRELOAD',
+              'ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT'].map(key =>
+              [key, typeof value[field]?.[key] === 'boolean' ? value[field][key] : null]))])),
+          readerLibraryLoaded: value.readerLibraryLoaded === true ? true : null,
           inferiorExitStatus: Number.isInteger(value.inferiorExitStatus) &&
             value.terminatedByDiagnostic === false ? value.inferiorExitStatus : null,
           terminatedByDiagnostic: value.terminatedByDiagnostic === true,
@@ -126,6 +180,12 @@ export function diagnoseFailedCoreDriver({driver, root, namespace, env}, run = s
     } catch { /* A malformed debugger result is not a compiler diagnosis. */ }
   }
   return {...(selected ?? {attempted: true, cause: 'unobserved', cleanup: 'unobserved', frames: []}),
+    serial: {attempted: true,
+      exitStatus: Number.isInteger(serial.status) && serial.error?.code !== 'ETIMEDOUT' ? serial.status : null,
+      signal: /^SIG[A-Z0-9]+$/u.test(serial.signal ?? '') ? serial.signal : null,
+      timedOut: serial.error?.code === 'ETIMEDOUT',
+      errorCode: ['ENOENT', 'EACCES', 'EPERM', 'ETIMEDOUT', 'ENOBUFS'].includes(serial.error?.code)
+        ? serial.error.code : null},
     debuggerStatus: result.status, debuggerSignal: result.signal,
     timedOut: result.error?.code === 'ETIMEDOUT', relocatedOutputOperands: [2, 4]};
 }
