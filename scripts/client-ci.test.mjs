@@ -824,3 +824,31 @@ test('packed checkpoint observes only the existing dispatch event and preserves 
   assert.deepEqual(records, [{kind: 'diagnostic:dispatch_failed',
     data: {primaryCode: 'OriginalFailure', issueTag: 12}}]);
 });
+
+test('Client distribution retains public foundation history for its unchanged historical SDK refusals', () => {
+  const checkout = jobs['client-distribution'].steps.find(step =>
+    step.uses?.startsWith('actions/checkout@'));
+  assert.equal(checkout.with['persist-credentials'], false);
+  assert.equal(checkout.with['fetch-depth'], 0);
+});
+
+// Execute only the authored fixture's account guard. No runtime, Store,
+// historical record, signing key or operational writer is imported here.
+test('synthetic held Salesforce fixture retains distinct Host observation and Run entries', () => {
+  const source = readFileSync(new URL('./fixtures/synthetic-historical-held-salesforce.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'assertSyntheticSalesforceHostAccount');
+  assert(definition);
+  const check = new Function('assert', source.slice(definition.start, definition.end) +
+    ';return assertSyntheticSalesforceHostAccount;')(assert);
+  const entries = [{entry_id: 'host-results', outcome: 'allow', operation: {any_of: ['read']}},
+    {entry_id: 'host-run', outcome: 'allow', operation: {any_of: ['write']}}];
+  check({entries});
+  for (const invalid of [entries.slice(1), [entries[1], entries[0]],
+    [entries[0], {...entries[1], outcome: 'delegate'}],
+    [{...entries[0], operation: {any_of: ['write']}}, entries[1]],
+    [entries[0], {...entries[1], operation: {any_of: ['read']}}]]) {
+    assert.throws(() => check({entries: invalid}), {code: 'ERR_ASSERTION'});
+  }
+});
