@@ -89,6 +89,30 @@ export function capacityNativeParentInputs(report,read) {
     assert.equal(parent.archives[artifact],path,'Foreign native parent binary path');
     assert.equal(hash(input(path)),digest,'Changed native parent binary');
   }
+  // The caller's mandatory Native audit already regenerates and checks these
+  // observations against the same executed object/executable and tools.
+  // Claim only those exact original inputs, never the whole code directory.
+  const scalar=parent.providerCallbackCode,references=parent.parentReferenceCode;
+  assert.equal(scalar?.status,'established','Missing native parent scalar code');
+  assert.equal(references?.status,'established','Missing native parent reference code');
+  assert.equal(references.objectDigest,scalar.objectDigest,'Different native parent code object');
+  assert.equal(references.archive,scalar.archive,'Different native parent code object');
+  const code=directory+'code/';
+  for(const [proof,keys,extension] of [
+    [scalar,['symbols','disassembly','linkedDisassembly'],''],
+    [references,['symbols','object','linked'],'parent-ref-'],
+  ]) {
+    assert.equal(proof.platform,parent.runtime.platform,'Foreign native parent code platform');
+    assert(hex.test(proof.objectDigest),'Invalid native parent code object identity');
+    assert.equal(proof.archive,code+proof.objectDigest+'.o','Foreign native parent code object path');
+    assert.equal(hash(input(proof.archive)),proof.objectDigest,'Changed native parent code object');
+    for(const key of keys) {
+      const entry=proof.logs[key];
+      assert(hex.test(entry.digest),'Invalid native parent code log identity');
+      assert.equal(entry.path,code+entry.digest+'.'+extension+key,'Foreign native parent code log path');
+      assert.equal(hash(input(entry.path)),entry.digest,'Changed native parent code log');
+    }
+  }
   return [...paths].sort();
 }
 export function inspectPart(directory, partId, expected) {

@@ -69,15 +69,25 @@ test('capacity transport keeps current Native evidence distinct from generic exe
 function nativeParentInputs() {
  const root='.artifacts/relation-pipeline/',directory=root+'current-chain-native/';
  const log=Buffer.from('original transport log\n'),binary=Buffer.from('original transport binary');
+ const object=Buffer.from('original compiled object transport bytes'),code=directory+'code/';
+ const objectDigest=hash(object),archive=code+objectDigest+'.o',codeFiles=new Map([[archive,object]]);
+ const proof=keys=>({status:'established',platform:'linux-x64',objectDigest,archive,
+  logs:Object.fromEntries(keys.map(([key,suffix])=>{
+   const bytes=Buffer.from('original '+suffix+' transport bytes'),digest=hash(bytes),path=code+digest+'.'+suffix;
+   codeFiles.set(path,bytes);return [key,{path,digest}];
+  }))});
+ const providerCallbackCode=proof(['symbols','disassembly','linkedDisassembly'].map(key=>[key,key]));
+ const parentReferenceCode=proof(['symbols','object','linked'].map(key=>[key,'parent-ref-'+key]));
  const source={digest:'a'.repeat(64),sources:{'src/original.mbt':'b'.repeat(64)}};
  const body={version:'actql-current-chain-native-diagnostic/0.1',target:'native',revision:'c'.repeat(40),source,
+  runtime:{platform:'linux-x64'},providerCallbackCode,parentReferenceCode,
   command:['moon','test','--target','native','src/connectors/local/current_chain_capacity_wbtest.mbt','--deny-warn'],exit:0,
   executedSource:source,logPath:directory+'logs/'+hash(log)+'.log',logDigest:hash(log),
   artifacts:{'_build/native/debug/test/connectors/local/local.whitebox_test.exe':hash(binary)},
   archives:{'_build/native/debug/test/connectors/local/local.whitebox_test.exe':directory+'binaries/'+hash(binary)}};
  const parent={...body,providerConstruction:{transportOnly:true}};
  const json=value=>Buffer.from(JSON.stringify(value,null,2)+'\n');
- const files=new Map([[root+'capacity/parent-control-probe/all.json',json(parent)],
+ const files=new Map([...codeFiles,[root+'capacity/parent-control-probe/all.json',json(parent)],
   [directory+'source.json',json(source)],[directory+'native.log',log],[parent.logPath,log],
   [directory+'binaries/'+hash(binary),binary],
   [directory+'originals/'+hash(JSON.stringify(body))+'.json',json(body)],
@@ -89,6 +99,31 @@ function nativeParentInputs() {
 test('capacity transport binds only exact current Native report and payload paths',()=>{
  const f=nativeParentInputs();
  assert.deepEqual(transport.capacityNativeParentInputs(f.report,f.read),[...f.files.keys()].sort());
+});
+test('capacity transport leaves an unreferenced Native code sibling unclaimed',()=>{
+ const f=nativeParentInputs(),bytes=Buffer.from('unreferenced original');
+ const extra='.artifacts/relation-pipeline/current-chain-native/code/'+hash(bytes)+'.symbols';
+ const expected=[...f.files.keys()].sort();f.files.set(extra,bytes);
+ assert.deepEqual(transport.capacityNativeParentInputs(f.report,f.read),expected);
+});
+function resealNativeTransport(f) {
+ const parent=f.report.parentStartup,root='.artifacts/relation-pipeline/';
+ const json=value=>Buffer.from(JSON.stringify(value,null,2)+'\n');
+ f.files.set(root+'capacity/parent-control-probe/all.json',json(parent));
+ const {providerConstruction:ignored,...original}=parent;void ignored;
+ for(const value of [original,parent]) f.files.set(root+'current-chain-native/originals/'+hash(JSON.stringify(value))+'.json',json(value));
+}
+for(const [label,change,message] of [
+ ['missing compiled object',f=>f.files.delete(f.report.parentStartup.providerCallbackCode.archive),/Missing native parent transport input/],
+ ['changed compiled object',f=>f.files.set(f.report.parentStartup.providerCallbackCode.archive,Buffer.from('changed')),/Changed native parent code object/],
+ ['changed scalar code log',f=>f.files.set(f.report.parentStartup.providerCallbackCode.logs.symbols.path,Buffer.from('changed')),/Changed native parent code log/],
+ ['changed parent reference log',f=>f.files.set(f.report.parentStartup.parentReferenceCode.logs.linked.path,Buffer.from('changed')),/Changed native parent code log/],
+ ['foreign code path',f=>{f.report.parentStartup.providerCallbackCode.logs.symbols.path='../foreign';resealNativeTransport(f);},/Foreign native parent code log path/],
+ ['different reference object',f=>{f.report.parentStartup.parentReferenceCode.objectDigest='d'.repeat(64);resealNativeTransport(f);},/Different native parent code object/],
+ ['foreign code platform',f=>{f.report.parentStartup.providerCallbackCode.platform='darwin-arm64';resealNativeTransport(f);},/Foreign native parent code platform/],
+]) test(`capacity transport refuses ${label}`,()=>{
+ const f=nativeParentInputs();change(f);
+ assert.throws(()=>transport.capacityNativeParentInputs(f.report,f.read),message);
 });
 for(const [label,change,message] of [
  ['missing original',(f)=>f.files.delete(f.report.parentStartup.logPath),/Missing native parent transport input/],
