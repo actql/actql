@@ -51,6 +51,7 @@ test "Request projection keeps original syntax and unresolved Query terminals" {
         "corr:" + "c".repeat(32),
         None,
         supplied_namespace,
+        None,
       )
       .unwrap()
       .unwrap()
@@ -74,6 +75,7 @@ test "Request projection keeps original syntax and unresolved Query terminals" {
         "corr:" + "c".repeat(32),
         None,
         supplied_namespace,
+        None,
       ).unwrap()
       is None,
     )
@@ -120,6 +122,7 @@ test "Request Query projection refuses another equal-input original failure" {
       None,
       0,
       "corr:" + "c".repeat(32),
+      None,
       None,
       None,
     )

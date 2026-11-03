@@ -32,6 +32,7 @@ const issueCodes = Object.freeze({
   // Only the original frontend's typed implementation limits select this
   // category. The submission's current disclosure gate still owns visibility.
   source_implementation_limit: 'ClientProgramImplementationLimit',
+  source_analysis_limit: 'ClientProgramAnalysisLimit',
   source_missing_input: 'ClientProgramNeedsInputs',
   source_declarations: 'ClientParametersInvalid',
   source_limit: 'ClientProgramRejected',

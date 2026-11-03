@@ -44,6 +44,7 @@ pub fn client_program_project_request_check_outcome(
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
   source_namespace : ClientCheckSourceNamespace?,
+  original_parameters : String?,
 ) -> Result[String?, @client_local_host.ClientRequestPreparationIssue] {
   let terminal = match original_result {
     Err(value) => value
@@ -65,5 +66,6 @@ pub fn client_program_project_request_check_outcome(
     correlation_ref,
     selector_namespace,
     source_namespace~,
+    original_parameters~,
   )
 }

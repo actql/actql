@@ -16,6 +16,7 @@ fn[I] project_request_query_check_outcome(
   parameters_bytes : Int,
   correlation_ref : String,
   source_namespace : @local_preparation.ClientCheckSourceNamespace?,
+  original_parameters : String?,
 ) -> Result[String?, ClientRequestPreparationIssue] {
   let phase = owner.phase
   if phase != QuerySyntaxFailed && phase != QueryLoweringFailed {
@@ -109,7 +110,11 @@ fn[I] project_request_query_check_outcome(
     (declarations_revision is Some(_)) ||
     (declarations_revision is None && declarations_bytes != 0) ||
     (owner.native_parameters is Some(_)) != (parameters_revision is Some(_)) ||
-    (parameters_revision is None && parameters_bytes != 0) {
+    (parameters_revision is None && parameters_bytes != 0) ||
+    (
+      original_parameters is Some(body) &&
+      (owner.native_parameters is None || body.length() > parameters_bytes)
+    ) {
     return Err(ForeignOriginal)
   }
   // Original declaration geometry bounds the diagnostic vectors without
@@ -129,6 +134,21 @@ fn[I] project_request_query_check_outcome(
     )
     is Some(bytes) else {
     return Err(Policy)
+  }
+  // Only a completed original binding can emit a supplied-key location.
+  // Back the same existing scalar-key/pointer workspace used by semantic
+  // reports before any decoding. A Syntax or unbound refusal uses none.
+  let bytes = match (binding_supplied, original_parameters) {
+    (Some(supplied), Some(body)) => {
+      guard request_check_original_pointer_bytes(body, supplied)
+        is Some(pointer) &&
+        @execution.checked_preparation_add_product(bytes, pointer, 1L)
+        is Some(total) else {
+        return Err(Policy)
+      }
+      total
+    }
+    _ => bytes
   }
   owner.phase = Selecting
   preparation_module_call(
@@ -245,6 +265,7 @@ fn[I] project_request_query_check_outcome(
             binding_declarations~,
             binding_supplied~,
             binding_limits~,
+            original_parameters~,
           ),
         ),
       )

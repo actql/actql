@@ -47,7 +47,26 @@ fn client_source_preparation_issue_code(
             | UnsupportedSet
             | UnsupportedJoin
             | UnsupportedCte
-            | UnsupportedGraph => "source_implementation_limit"
+            | UnsupportedGraph
+            | Expression({ issue: UnsupportedFunction | UnsupportedCast, .. }) =>
+              "source_implementation_limit"
+            // Only the original frontend's typed construction/admission
+            // budget is an analysis limit. Opaque Source/array limits above
+            // retain their existing protected fallback.
+            Construction(
+              InputLimit
+              | NodeLimit
+              | DepthLimit
+              | StringLimit
+              | OriginLimit
+              | OutputLimit
+              | Admission({ kind: BudgetExceeded, .. })
+            )
+            | Admission(
+              Structure(StageLimit, ..)
+              | RetentionLimit(_, ..)
+              | Decode({ kind: BudgetExceeded, .. })
+            ) => "source_analysis_limit"
             // These typed facts come from the existing lowerer. The public
             // submission projection must still establish audience disclosure.
             InvalidQuery
@@ -85,7 +104,7 @@ fn client_source_preparation_issue_code(
               "source_rejected"
             _ => "source_rejected"
           }
-        QuerySyntax({ issue: Limit(_), .. }) => "source_limit"
+        QuerySyntax({ issue: Limit(_), .. }) => "source_analysis_limit"
         _ => "source_invalid_input"
       }
   }

@@ -2346,7 +2346,7 @@ fn check_original_pointer(
           })
         }
         guard decoded is Ok({ value: String(name), .. }) else { return None }
-        if format == Yaml && name != key {
+        if name != key {
           guard @canonical_value.normalize_nfc_lf(name) is Ok(normalized) &&
             normalized == key else {
             return None

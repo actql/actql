@@ -187,11 +187,13 @@ test('selected funded row limit refuses an unmatched original bound without lega
 });
 
 
-test('original frontend implementation limit keeps its cause and leaves unavailable capabilities generic', () => {
+test('original frontend limits keep their causes and leave opaque capabilities generic', () => {
   // Explicit issue-code port: this is a JS projection control, not a Core
   // Request, a new check, or evidence that a Source/Run was accepted.
   for (const [category, code] of [
     ['source_implementation_limit', 'ClientProgramImplementationLimit'],
+    ['source_analysis_limit', 'ClientProgramAnalysisLimit'],
+    ['source_limit', 'ClientProgramRejected'],
     ['source_unsupported', 'ClientProgramRejected'],
   ]) {
     const issue = {}, original = {$tag: 0, _0: issue};

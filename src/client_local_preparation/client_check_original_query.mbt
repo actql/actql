@@ -22,6 +22,7 @@ pub fn client_program_project_original_query_issue(
   binding_declarations? : @parameters.Declarations? = None,
   binding_supplied? : @decode.Cursor? = None,
   binding_limits? : @admitted.Limits? = None,
+  original_parameters? : String? = None,
 ) -> String {
   if source_namespace is Some(complete) &&
     (
@@ -58,8 +59,23 @@ pub fn client_program_project_original_query_issue(
       Supplied,
       Value(Decode({ kind: WrongType | UnexpectedNull, .. }))
     )) {
+    // Match the existing semantic-report projection of these SAME admitted
+    // declaration and supplied originals. This names only absent caller
+    // values, never a private Source; it does not bind or check again. The
+    // Request report inventory already covers two findings per declaration.
+    check_missing_value_findings(
+      findings,
+      declarations,
+      Some(supplied),
+      BoundInput,
+    )
     findings.push(
-      check_supplied_type_finding(issue, declarations, Some(supplied), None),
+      check_supplied_type_finding(
+        issue,
+        declarations,
+        Some(supplied),
+        original_parameters,
+      ),
     )
   }
   // This typed issue and the exact retained parsed shape prove that unrelated

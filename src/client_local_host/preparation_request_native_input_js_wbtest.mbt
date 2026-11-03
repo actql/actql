@@ -758,3 +758,254 @@ test "refused Query binding foreign boundary retains undefined as a present fail
   assert_true(query_refusal_test_is_undefined(original))
   assert_eq(finished.val, 1)
 }
+
+///|
+fn query_pointer_original_fixture(
+  raw : String,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  ClientRequestTerminalIssue,
+  String,
+  String,
+  String,
+  String,
+) raise {
+  let name = if raw == "minimum" { "minimum" } else { "K" }
+  let text = "SELECT missing AS n FROM records WHERE amount >= @" + name
+  let declarations = "{\"" + name + "\":{\"type\":\"number\"}}"
+  let parameters = "{\"" + raw + "\":\"caller-private\"}"
+  let captured = "{\"format\":\"sql\",\"text\":\"" +
+    text +
+    "\",\"parameterDeclarations\":" +
+    declarations +
+    "}"
+  let (environment, publication) = request_query_publication_fixture()
+  let (parent, input) = native_driver_parent(captured + parameters)
+  let terminal = match
+    prepare_request_native_source_computation_check(
+      parent,
+      input,
+      request_native_test_value(captured),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+      supplied=Some(request_native_test_value(parameters)),
+    ) {
+    Err(issue) => issue
+    Ok(_) => fail("the protected original Source must remain a refusal")
+  }
+  guard terminal is QueryLowering(WithBinding(_, _)) else {
+    fail("only the completed original binding supplies this finding")
+  }
+  let visible = "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  (parent, input, terminal, text, declarations, parameters, visible)
+}
+
+///|
+fn query_pointer_original_report(
+  parent : ClientRequestPreparation[Array[Int]],
+  input : Array[Int],
+  terminal : ClientRequestTerminalIssue,
+  text : String,
+  declarations : String,
+  parameters : String,
+  visible : String,
+  body : String?,
+) -> Result[String?, ClientRequestPreparationIssue] {
+  project_request_check_outcome(
+    parent,
+    input,
+    terminal,
+    visible,
+    "ctx:" + "a".repeat(64),
+    "text",
+    "rev:" + "b".repeat(64),
+    @utf8.encode(text).length(),
+    Some("rev:" + "d".repeat(64)),
+    @utf8.encode(declarations).length(),
+    Some("rev:" + "e".repeat(64)),
+    @utf8.encode(parameters).length(),
+    "corr:" + "c".repeat(32),
+    None,
+    original_parameters=body,
+  )
+}
+
+///|
+test "refused original Query locations require matching raw supplied keys and current originals" {
+  for raw in ["minimum", "K", "\u{212a}"] {
+    let (parent, input, terminal, text, declarations, parameters, visible) = query_pointer_original_fixture(
+      raw,
+    )
+    let query = parent.query_syntax.unwrap()
+    let lowering = query.lowering.unwrap()
+    let original_failure = lowering.output.unwrap()
+    let binding = lowering.refusal_binding.unwrap()
+    let work = @resources.ledger_usage(parent.ledger).planning_work
+    let project = (body : String?) => {
+      query_pointer_original_report(
+        parent, input, terminal, text, declarations, parameters, visible, body,
+      )
+    }
+    let absent = project(None).unwrap().unwrap()
+    assert_true(absent.contains("supplied_value_type_mismatch"))
+    assert_false(absent.contains("\"pointer\":"))
+    let present = project(Some(parameters)).unwrap().unwrap()
+    assert_true(present.contains("\"pointer\":\"/" + raw + "\""), msg=present)
+    assert_true(present.contains("unresolved_protected"), msg=present)
+    assert_false(present.contains("caller-private"))
+    assert_false(present.contains("\"parameter\":\"missing\""))
+    // A moved key and malformed scalar spelling cannot acquire a location.
+    for body in ["{\"Z\":\"caller-private\"}", "{\""] {
+      let moved = project(Some(body)).unwrap().unwrap()
+      assert_true(moved.contains("supplied_value_type_mismatch"))
+      assert_false(moved.contains("\"pointer\":"), msg=moved)
+    }
+    assert_true(
+      project(Some(parameters + " ".repeat(16))) is Err(ForeignOriginal),
+    )
+    let supplied = parent.native_parameters
+    parent.native_parameters = Some(
+      @local_preparation.admit_captured_local_parameters(
+        request_native_test_value(parameters),
+        native_json_reader,
+      ).unwrap(),
+    )
+    assert_true(project(Some(parameters)) is Err(ForeignOriginal))
+    parent.native_parameters = supplied
+    assert_true(physical_equal(lowering.output.unwrap(), original_failure))
+    assert_true(physical_equal(lowering.refusal_binding.unwrap(), binding))
+    assert_true(parent.phase == QueryLoweringFailed)
+    assert_eq(@resources.ledger_usage(parent.ledger).planning_work, work)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+    assert_true(project(Some(parameters)).unwrap() is None)
+  }
+}
+
+///|
+test "refused Query raw pointer workspace cannot borrow a one-short reservation" {
+  let (parent, input, terminal, text, declarations, parameters, visible) = query_pointer_original_fixture(
+    "minimum",
+  )
+  let project = (body : String?) => {
+    query_pointer_original_report(
+      parent, input, terminal, text, declarations, parameters, visible, body,
+    )
+  }
+  let _ = project(None).unwrap().unwrap()
+  let query = parent.query_syntax.unwrap()
+  let lowering = query.lowering.unwrap()
+  let binding = lowering.refusal_binding.unwrap()
+  let original = lowering.output.unwrap()
+  let (declaration_root, declared) = parent.native_query_declarations.unwrap()
+  let units = text.length().to_int64() +
+    @decode.admission_usage(declaration_root).nodes.to_int64() +
+    1L
+  let findings = 2L * @parameters.declaration_count(declared).to_int64() + 4L
+  let report_bytes = request_check_observation_inventory_bytes(
+    visible, findings, units,
+  ).unwrap()
+  let pointer_bytes = request_check_original_pointer_bytes(
+    parameters,
+    parent.native_parameters.unwrap(),
+  ).unwrap()
+  let (retained, _) = @resources.preparation_capacity_working_extents(
+    parent.capacity,
+    input,
+  ).unwrap()
+  let policy = @resources.ledger_limits(parent.ledger)
+  let blocker = @resources.reserve_capacity(
+    parent.ledger,
+    policy.retained_bytes - retained - report_bytes - pointer_bytes + 1L,
+    0L,
+  ).unwrap()
+  let work = @resources.ledger_usage(parent.ledger).planning_work
+  assert_true(project(Some(parameters)) is Err(Capacity(_)))
+  assert_true(parent.phase == QueryLoweringFailed)
+  assert_true(physical_equal(lowering.output.unwrap(), original))
+  assert_true(physical_equal(lowering.refusal_binding.unwrap(), binding))
+  assert_eq(@resources.ledger_usage(parent.ledger).planning_work, work)
+  @resources.settle_capacity(parent.ledger, blocker).unwrap()
+  let report = project(Some(parameters)).unwrap().unwrap()
+  assert_true(report.contains("\"pointer\":\"/minimum\""), msg=report)
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "refused Query reports original missing declarations beside an independent wrong value" {
+  let text = "SELECT @a AS n, @b AS m FROM records"
+  let declarations = "{\"a\":{\"type\":\"number\"},\"b\":{\"type\":\"number\"}}"
+  let captured = "{\"format\":\"sql\",\"text\":\"" +
+    text +
+    "\",\"parameterDeclarations\":" +
+    declarations +
+    "}"
+  for (missing, wrong) in [("a", "b"), ("b", "a")] {
+    let parameters = "{\"" + wrong + "\":\"caller-private\"}"
+    let (environment, publication) = request_query_publication_fixture()
+    let (parent, input) = native_driver_parent(captured + parameters)
+    let terminal = match
+      prepare_request_native_source_computation_check(
+        parent,
+        input,
+        request_native_test_value(captured),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+        supplied=Some(request_native_test_value(parameters)),
+      ) {
+      Err(issue) => issue
+      Ok(_) => fail("the unavailable original Source remains a refusal")
+    }
+    guard terminal is QueryLowering(WithBinding(_, _)) else {
+      fail("the same complete binding must retain its wrong-value finding")
+    }
+    let original = parent.query_syntax.unwrap().lowering.unwrap()
+    let reader = original.refusal_binding.unwrap().reader
+    let failure = original.output.unwrap()
+    let work = @resources.ledger_usage(parent.ledger).planning_work
+    let report = query_pointer_original_report(
+        parent,
+        input,
+        terminal,
+        text,
+        declarations,
+        parameters,
+        "{\"environmentCid\":\"" +
+        @checked.checking_environment_cid(environment) +
+        "\",\"aliases\":[]}",
+        Some(parameters),
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+    assert_true(report.contains("supplied_value_type_mismatch"), msg=report)
+    assert_true(report.contains("\"pointer\":\"/" + wrong + "\""), msg=report)
+    assert_true(report.contains("parameter_value_required"), msg=report)
+    assert_true(
+      report.contains("\"parameter\":\"" + missing + "\""),
+      msg=report,
+    )
+    assert_true(report.contains("bound_values_missing"), msg=report)
+    assert_true(report.contains("unresolved_protected"), msg=report)
+    assert_false(report.contains("caller-private"))
+    assert_true(
+      physical_equal(original.refusal_binding.unwrap().reader, reader),
+    )
+    assert_true(physical_equal(original.output.unwrap(), failure))
+    assert_eq(@resources.ledger_usage(parent.ledger).planning_work, work)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}

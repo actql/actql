@@ -204,3 +204,95 @@ test "Request missing values keeps original Source inputs while fresh disclosure
     is None,
   )
 }
+
+///|
+test "Request original supplied locations use the matching representation without rechecking" {
+  let limits = @publication_host.client_standard_program_preparation_limits()
+  for raw in ["wrong", "K", "\u{212a}"] {
+    let canonical = if raw == "wrong" { "wrong" } else { "K" }
+    let document = "{\"version\":\"actql/0.1\",\"id\":\"protected-location\",\"params\":{\"missing\":{\"type\":\"number\"},\"" +
+      canonical +
+      "\":{\"type\":\"number\"}},\"stages\":[{\"id\":\"main\",\"inputs\":{\"rows\":{\"connector\":\"crm/main\",\"resource\":\"r\",\"view\":\"v\"}},\"steps\":[{\"select\":[\"private_field\"],\"as\":\"selected\"}],\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"private_field\"]}}}],\"results\":{\"out\":{\"from\":{\"stage\":\"main\",\"result\":\"out\"}}}}"
+    let supplied_text = "{\"" + raw + "\":\"caller-private\"}"
+    let supplied = @local_preparation.admit_captured_local_parameters(
+      request_native_test_value(supplied_text),
+      native_json_reader,
+    ).unwrap()
+    let (parent, child, _, input) = registration_parent_fixture(
+      text=document,
+      supplied=Some(supplied),
+      computation_limits=Some(
+        (limits, @publication_host.client_standard_effect_computation_limits()),
+      ),
+    )
+    let terminal = match finish_request_computation_check(parent, input) {
+      Err(issue) => issue
+      Ok(_) => fail("the original protected Source must remain unresolved")
+    }
+    let original = child.check_outcome.unwrap()
+    let project = (body : String?) => {
+      project_request_check_outcome(
+        parent,
+        input,
+        terminal,
+        request_observation_publication(child),
+        "ctx:" + "a".repeat(64),
+        "program",
+        "rev:" + "b".repeat(64),
+        @utf8.encode(document).length(),
+        None,
+        0,
+        Some("rev:" + "d".repeat(64)),
+        @utf8.encode(supplied_text).length(),
+        "corr:" + "c".repeat(32),
+        None,
+        original_parameters=body,
+      )
+    }
+    let absent = project(None).unwrap().unwrap()
+    assert_false(absent.contains("\"pointer\":\"/" + raw + "\""))
+    let pointer_bytes = request_check_observation_bytes(
+      child,
+      child.arguments.unwrap().source_preparation.unwrap(),
+      original,
+      request_observation_publication(child),
+      0L,
+      Some(supplied_text),
+    ).unwrap()
+    let (retained, _) = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    let policy = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      policy.retained_bytes - retained - pointer_bytes + 1L,
+      0L,
+    ).unwrap()
+    assert_true(project(Some(supplied_text)) is Err(Capacity(_)))
+    assert_true(physical_equal(child.check_outcome.unwrap(), original))
+    assert_true(parent.phase == ProgramCheck && !child.busy)
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    let other = if raw == "wrong" {
+      "other"
+    } else if raw == "K" {
+      "Z"
+    } else {
+      "Ω"
+    }
+    let moved = project(Some("{\"" + other + "\":\"caller-private\"}"))
+      .unwrap()
+      .unwrap()
+    assert_false(moved.contains("\"pointer\":\"/" + other + "\""))
+    assert_false(moved.contains("\"pointer\":\"/" + raw + "\""))
+    let present = project(Some(supplied_text)).unwrap().unwrap()
+    assert_true(present.contains("supplied_value_type_mismatch"))
+    assert_true(present.contains("\"pointer\":\"/" + raw + "\""))
+    assert_true(present.contains("unresolved_protected"))
+    assert_false(present.contains("caller-private"))
+    assert_false(present.contains("private_field"))
+    assert_true(physical_equal(child.check_outcome.unwrap(), original))
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}

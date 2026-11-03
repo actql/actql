@@ -6,8 +6,9 @@
 ///
 /// The trusted Host supplies fresh audience metadata AFTER its actual Source
 /// and Account decisions. The visible publication is a disclosure filter, not
-/// a new Source grant. Native originals have no authored text coordinates;
-/// this projection never manufactures a location from another parse.
+/// a new Source grant. Native originals have no authored text coordinates.
+/// A matching retained Parameters representation may explain its existing
+/// scalar key spans; no Program or Parameters document is parsed again.
 pub fn client_program_project_original_check_outcome(
   program : @syntax.Program,
   source : @stage_parameters.Source,
@@ -26,6 +27,7 @@ pub fn client_program_project_original_check_outcome(
   parameters_bytes : Int,
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  original_parameters? : String? = None,
 ) -> String {
   if outcome is @checked.Checked(_) || !["program", "text"].contains(input_kind) {
     return check_failed_json("check_request_invalid", correlation_ref)
@@ -134,7 +136,7 @@ pub fn client_program_project_original_check_outcome(
         issue,
         @stage_parameters.declarations(source),
         supplied,
-        None,
+        original_parameters,
       ),
     )
     true

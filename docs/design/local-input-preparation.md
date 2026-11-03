@@ -136,6 +136,16 @@ null produced from a nonfinite native value remains supplied and cannot turn
 into a default. The existing compiler/Plan/Run handoff retains the same parent;
 its actual retirement cuts the remaining captured-input aliases.
 
+Original Query refusals use the same optional Parameters representation as
+semantic-check reports. A completed same-declaration binding supplies the
+finding; the raw representation only recovers its existing key correspondence
+and RFC 6901 location. Missing, changed or malformed key material omits the
+location rather than guessing an admitted or normalized spelling. Before the
+scalar-key reader runs, the same Request reserves the existing original-pointer
+construction inventory in addition to its report writer. A refused grow retains
+the original failure, reader, currentness and cleanup obligations. Reporting
+does not bind values, parse the Parameters object or check the Query again.
+
 The native SDK traversal retains separate geometric high-water marks for its
 value visits and combined key/Text units. Observing long Text does not invent
 thousands of source nodes. Either actual envelope expansion grows the original
@@ -2304,8 +2314,12 @@ This independent input result remains diagnostic DATA beside the original
 primary checker outcome. It neither replaces a Source refusal nor certifies
 the remaining Program. Projection borrows that result only for the same
 Program and supplied tree position; it starts no binder or checker. Native
-normalized input has no retained raw-key spelling or authored text spans,
-so this observation does not manufacture an original input location.
+normalized keys alone cannot identify an original spelling. Their sole input
+read can retain compact-JSON scalar key offsets, while Node spans remain
+unavailable as authored text coordinates. Only the same caller's matching
+Parameters representation permits the existing scalar reader to recover an
+original structured pointer. A missing representation or incompatible key
+correspondence supplies no location and never triggers another input check.
 The quote covers the independent result and a possible simultaneous ordinary
 fallback without increasing either consumer's semantic limits.
 
@@ -5105,7 +5119,10 @@ These report fields are DATA, never Source permission or resource backing.
 Namespace correspondence uses the same admitted environment wire owner. A
 Source dependency whose original collected inputs are unavailable stays
 unresolved; reporting does not collect or resolve it again. Native originals
-without an authored text mapping do not acquire invented text coordinates.
+do not acquire invented authored text coordinates. The trusted caller may
+forward the exact Parameters representation already used for its input
+revision and byte label; this adds neither a serializer nor another input
+admission. Compact-JSON key offsets explain only that matching representation.
 
 When that same retained refusal contains an independent supplied-input result
 completed before Source resolution, projection can use its original type
@@ -5127,6 +5144,13 @@ Host/Request controls cover the synchronous call frame and borrowed references.
 The existing busy guard excludes reentrant preparation and retirement, and the
 post-current fence verifies the same parent, input, arguments, outcome and
 original Source registration/collection before projection.
+
+Original Parameters location work uses the actual retained String's UTF16
+length and admitted Cursor depth. Editable report byte labels supply no
+physical capacity. The UTF8 buffer, selected scalar and retained path/output
+are backed separately. The scalar parser returns before key correspondence
+normalization, whose original scalar remains held; the quote takes those
+actual sequential peaks rather than summing two complete constructors.
 
 Projection does not parse another Program or Parameters document, repeat a
 semantic check, lower or compile, transfer the original outcome, or cache a

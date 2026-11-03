@@ -252,7 +252,7 @@ export function installNodeClientCheck({moon, environment, publication,
           context, original.revision, bindings?.revision, correlationRef, scope, namespace)
         : projectOriginal(Object.freeze([visiblePublication, context, 'program',
           original.revision, original.byte_length, undefined, 0,
-          bindings?.revision, bindings?.byte_length ?? 0, correlationRef, namespace, undefined]));
+          bindings?.revision, bindings?.byte_length ?? 0, correlationRef, namespace, undefined, supplied]));
       if (projectOriginal !== undefined && wire === undefined) return undefined;
       if (projectOriginal !== undefined && typeof wire !== 'string') throw new TypeError('InvalidOriginalCheckObservation');
       const outcome = JSON.parse(wire);
@@ -303,7 +303,7 @@ export function installNodeClientCheck({moon, environment, publication,
       : projectOriginal(Object.freeze([visiblePublication, context, 'text',
         original.revision, original.byte_length, declared?.revision,
         declared?.byte_length ?? 0, bindings?.revision, bindings?.byte_length ?? 0,
-        correlationRef, undefined, namespace])); // Query-alias and nominal Source selector namespaces stay distinct.
+        correlationRef, undefined, namespace, supplied])); // Query-alias and nominal Source selector namespaces stay distinct.
     if (projectOriginal !== undefined && wire === undefined) return undefined;
     if (projectOriginal !== undefined && typeof wire !== 'string') throw new TypeError('InvalidOriginalCheckObservation');
     const outcome = JSON.parse(wire);
