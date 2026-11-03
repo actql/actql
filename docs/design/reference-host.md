@@ -3173,6 +3173,10 @@ independently. The pending input survives definition admission and the awaited
 physical-start handoff; only that caller's finish returns its preparation input.
 An adopted Run retains its own actual parent/children after that handoff. A
 failed reconstruction preserves its primary cause and same cleanup retry.
+If input retirement refuses after a successful start, the original cleanup
+handle retries only that input return, never the start. A failed abandonment
+admission keeps its original cause, including a thrown `undefined`, while
+retaining the same input cleanup duty.
 Promise settlement, cancellation and a finished input are not physical-stop or
 resource-return acknowledgements. No registry currentness or foreign/retired
 original check is weakened.

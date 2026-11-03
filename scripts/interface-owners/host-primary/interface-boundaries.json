@@ -6997,6 +6997,16 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/acquisitionDescriptor/acquisitionDescriptor",
           "parameters": [
             "prepared"
@@ -8111,6 +8121,11 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
           "parameters": [],
           "async": false
         },
@@ -18984,7 +18999,10 @@
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission/heldSubmission",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4"
           ],
           "exports": [],
           "attributes": {
@@ -19278,7 +19296,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d3f0785ffaf55b10794ef694a9a26df1942e798f4f0792798639913cdad5a6fd"
+      "sha256": "1ab15f5d475814e2da118590be0611793eaeae94ad4b01402cb6746a5b9ec2d8"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
