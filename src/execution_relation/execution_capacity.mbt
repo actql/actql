@@ -211,10 +211,11 @@ fn generated_sequence_capacity_with_roots(
     }
     let live_capacity = match leaf {
       Some(bytes) => Some(bytes)
-      None => execution_capacity_inventory_bytes([
-        { unit: ValueNodeSlots, count: live, copies: 1, },
-        { unit: CanonicalWireBytes, count: live, copies: 1, },
-      ])
+      None =>
+        execution_capacity_inventory_bytes([
+          { unit: ValueNodeSlots, count: live, copies: 1, },
+          { unit: CanonicalWireBytes, count: live, copies: 1, },
+        ])
     }
     guard live_capacity is Some(live_capacity) else { return None }
     guard execution_capacity_inventory_bytes([

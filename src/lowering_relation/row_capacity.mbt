@@ -84,7 +84,12 @@ pub fn node_input_independent_row_count_bound(node : PreparedNode) -> Int? {
     Values(values) => Some(@values.row_count(values))
     // Successful serialization emits one Content metadata row, including for
     // empty input. This does not bound the separate input/sort workload.
-    Serialize(_) => if node.input_targets.length() == 1 { Some(1) } else { None }
+    Serialize(_) =>
+      if node.input_targets.length() == 1 {
+        Some(1)
+      } else {
+        None
+      }
     InnerJoin(join) =>
       declared_join_row_bound(
         @join.output_guard(join),
