@@ -1,7 +1,7 @@
 // Four independently owned fresh producers. Original report/receipt bytes are
 // immutable; only the complete, audited union is a scientific success claim.
 import assert from 'node:assert/strict';
-import {constants, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, linkSync, unlinkSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {hash, snapshot} from './inventory.mjs';
@@ -264,8 +264,35 @@ export function validatePartInputs(inputs) {
   }
 }
 export function materializeVerifiedMember(from,to,sha256) {
-  copyFileSync(from,to,constants.COPYFILE_EXCL);chmodSync(to,0o444);
-  assert.equal(fileDigest(to),sha256);
+  // All part seals and scientific bindings are checked before this transfer.
+  // Consume only the private extraction name; the original TAR stays exact.
+  const before=lstatSync(from);
+  assert(before.isFile()&&before.nlink===1,'Evidence must be an unlinked regular file');
+  assert.equal(fileDigest(from),sha256,'Verified member bytes changed');
+  noLinks(dirname(to));
+  linkSync(from,to); // Exclusive, same-volume name creation; never copy on error.
+  try {
+    const source=lstatSync(from),target=lstatSync(to);
+    for(const key of ['dev','ino','mode','size','mtimeMs']) {
+      assert.equal(source[key],before[key],'Verified source identity changed');
+      assert.equal(target[key],before[key],'Verified target identity changed');
+    }
+    assert.equal(source.nlink,2);assert.equal(target.nlink,2);
+    unlinkSync(from);
+  } catch(cause) {
+    // Remove our new link only while the original source name still owns the
+    // SAME inode. An uncertain removal retains the canonical bytes for failure.
+    let source,target;
+    try {source=lstatSync(from);target=lstatSync(to);} catch {}
+    if(source?.dev===before.dev&&source.ino===before.ino&&
+        target?.dev===before.dev&&target.ino===before.ino) {
+      try {unlinkSync(to);}
+      catch(cleanup) {throw new AggregateError([cause,cleanup],'Verified member link cleanup failed',{cause});}
+    }
+    throw cause;
+  }
+  chmodSync(to,0o444);
+  assert.equal(fileDigest(to),sha256,'Materialized member bytes changed');
 }
 export function joinParts({inputs,expected,destination}) {
   validatePartInputs(inputs); assert(!existsSync(destination),'Union destination exists');
