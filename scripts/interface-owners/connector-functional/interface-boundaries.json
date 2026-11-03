@@ -12268,7 +12268,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "da8e5b3d6eff18efea6e8fbb76433c5697a76b3ae6131f09da03f035c3db837d",
+      "sha256": "f83ba8efb8735a1b41b11d35a381c1fdea7f5e350d3ddc7d9f2f6564ce80fdde",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -13935,7 +13935,8 @@
             "declaration",
             "writesJson",
             "resource",
-            "sources"
+            "sources",
+            "operation"
           ],
           "async": false
         },
@@ -14125,7 +14126,6 @@
             "prepareImmutablePhysicalTargets/mismatch/mismatch",
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
-            "rowSourceMapping",
             "text/text",
             "valueCid/valueCid",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
@@ -14139,8 +14139,7 @@
             "installRowSourceAuthorization",
             "openRowSourceCredentialCustody",
             "openRowSourceCredentialSite",
-            "rowSourceCheckEnvironment",
-            "rowSourceMapping"
+            "rowSourceCheckEnvironment"
           ],
           "attributes": {
             "responsibility": [
@@ -16915,6 +16914,76 @@
               {
                 "path": "adapters/host-node/installed-whole-source-row-run.test.mjs",
                 "anchor": "whole Source transfers its original reference only after the RowRun constructor returns"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "rowSourceMapping"
+          ],
+          "exports": [
+            "rowSourceMapping"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Verification"
               }
             ]
           }

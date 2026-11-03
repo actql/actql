@@ -946,6 +946,34 @@ function createInstalledSourceContext(original, material, installation, connecto
       reconcileSource(original, material);
       return Object.freeze({...projected, ...prepared});
     },
+    prepareBorrowedDeclaration(sourceContext) {
+      const source = sourceContexts.get(sourceContext);
+      if (this !== context || scope.role !== 'effect' || !scope.active ||
+          scope.prepared !== undefined || scope.source !== undefined || scope.declarationAttempted ||
+          material.phase !== 'working' || material.busy || source === undefined ||
+          source.original !== original || source.material !== material ||
+          source.scope.role !== 'source' || source.scope.installation !== scope.installation ||
+          source.scope.connectorId !== scope.connectorId ||
+          source.scope.baseEnvironmentWire !== scope.baseEnvironmentWire ||
+          !source.scope.active || source.scope.closed || source.scope.prepared?.declaration === undefined ||
+          source.scope.prepared.commands !== undefined || typeof source.scope.declarationBasis !== 'bigint') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prepared = source.scope.prepared;
+      scope.declarationAttempted = true;
+      // Both contexts already belong to this exact material. Borrow the
+      // existing immutable tuple without a copied declaration or new owner.
+      // The original constructor quantity remains retained by that material.
+      reserveSource(original, material);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined ||
+          !source.scope.active || source.scope.closed || source.scope.prepared !== prepared) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      scope.prepared = prepared;
+      scope.declarationBasis = source.scope.declarationBasis;
+      scope.borrowedDeclaration = source.scope;
+      return prepared;
+    },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
           scope.role !== 'effect' || scope.source !== undefined || scope.mappingsAttempted ||
@@ -972,7 +1000,13 @@ function createInstalledSourceContext(original, material, installation, connecto
         const write = field(writes, String(i)), resource = field(write, 'resource'), sources = field(write, 'sources');
         if (typeof resource !== 'string' || !Array.isArray(sources) || nodeTypes.isProxy(sources) ||
             !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
-        units += BigInt(resource.length);
+        const operationField = Object.getOwnPropertyDescriptor(write, 'operation');
+        const operation = operationField === undefined ? 'create' : field(write, 'operation');
+        if (operation !== 'create' && operation !== 'update' ||
+            operation === 'update' && typeof original.prepareUpdateMapping !== 'function') {
+          fail('InvalidInstalledEffectMappings');
+        }
+        units += BigInt(resource.length + operation.length);
         for (let j = 0; j < sources.length; j++) {
           const source = field(sources, String(j));
           for (const name of ['target', 'field', 'null_behavior']) {
@@ -997,9 +1031,12 @@ function createInstalledSourceContext(original, material, installation, connecto
       material.busy = true;
       try {
         const runtime = Object.freeze({clientProgramRowSourcePrepareMapping: (...args) =>
-          Reflect.apply(original.prepareMapping, original.moon, args)});
+          Reflect.apply(original.prepareMapping, original.moon, args),
+          clientProgramRowSourcePrepareUpdateMapping: (...args) =>
+            Reflect.apply(original.prepareUpdateMapping, original.moon, args)});
         const mappings = Object.freeze(writes.map(write => Object.freeze({resource: write.resource,
-          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources)})));
+          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources,
+            Object.getOwnPropertyDescriptor(write, 'operation')?.value ?? 'create')})));
         const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, scope.prepared.declared,
           mappings.map(mapping => mapping.body));
         prepared = Object.freeze({...scope.prepared, environment, mappings});
@@ -1316,6 +1353,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       current(); return value;
     },
     prepareAuthoredDeclaration: prepare('prepareAuthoredDeclaration'),
+    prepareBorrowedDeclaration: prepare('prepareBorrowedDeclaration'),
     prepareMappings: prepare('prepareMappings'),
     prepareDeclaredCommands: prepare('prepareDeclaredCommands'),
     prepareDerivedDeclaredCommands: prepare('prepareDerivedDeclaredCommands'),
@@ -2062,9 +2100,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const admitAcquisitionContracts = moon.clientProgramRowSourceAdmitAcquisitionContracts;
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
+  const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping});
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping});
   return services;
 }
 

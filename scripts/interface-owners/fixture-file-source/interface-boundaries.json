@@ -1,0 +1,362 @@
+{
+  "qualification": "Reviewed fixture transport source/semantic correspondence and explicit-port callback evidence only; not integrated Source/Content/Effect execution, physical cleanup or resource funding",
+  "declarations": [
+    {
+      "module": "adapters/local-node/fixture-file-source.mjs",
+      "sha256": "b80a85e13e60597773e866429658954ccc541fdc919a7cfff4809480126db68b",
+      "exports": [
+        "createFixtureFileSupplier"
+      ],
+      "operations": [
+        {
+          "name": "callbacks/callbacks",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "callbacks/callbacks/callbacks",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "callbacks/callbacks/captured/captured",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier",
+          "parameters": [
+            "moon",
+            "physical",
+            "fields",
+            "limits",
+            "readOriginalBytes",
+            "projectOriginalDocument",
+            "issueResource",
+            "resolveResource",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/createFixtureFileSupplier",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/createFixtureFileSupplier#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/createFixtureFileSupplier#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/createFixtureFileSupplier#4",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/current/current",
+          "parameters": [
+            "verifyRead",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createFixtureFileSupplier/init:readContent/init:readContent",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createFixtureFileSupplier/init:readContent/init:readContent/init:readContent",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/init:readContent/init:readContent/init:readContent#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/init:readListing/init:readListing",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createFixtureFileSupplier/pathFor/pathFor",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/read/read",
+          "parameters": [
+            "options",
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "createFixtureFileSupplier/rowFor/rowFor",
+          "parameters": [
+            "document",
+            "identity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/rowText/rowText",
+          "parameters": [
+            "row",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createFixtureFileSupplier/versionFor/versionFor",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing installed Source original document read and issued Resource inventory; Common RowRun admission and Run-owned Store capture retain authority and cleanup",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "callbacks/callbacks",
+            "callbacks/callbacks/callbacks",
+            "callbacks/callbacks/captured/captured",
+            "createFixtureFileSupplier",
+            "createFixtureFileSupplier/call/call",
+            "createFixtureFileSupplier/createFixtureFileSupplier",
+            "createFixtureFileSupplier/createFixtureFileSupplier#2",
+            "createFixtureFileSupplier/createFixtureFileSupplier#3",
+            "createFixtureFileSupplier/createFixtureFileSupplier#4",
+            "createFixtureFileSupplier/current/current",
+            "createFixtureFileSupplier/init:readContent/init:readContent",
+            "createFixtureFileSupplier/init:readContent/init:readContent/init:readContent",
+            "createFixtureFileSupplier/init:readContent/init:readContent/init:readContent#2",
+            "createFixtureFileSupplier/init:readListing/init:readListing",
+            "createFixtureFileSupplier/pathFor/pathFor",
+            "createFixtureFileSupplier/read/read",
+            "createFixtureFileSupplier/rowFor/rowFor",
+            "createFixtureFileSupplier/rowText/rowText",
+            "createFixtureFileSupplier/versionFor/versionFor",
+            "fail/fail",
+            "integer/integer",
+            "text/text"
+          ],
+          "exports": [
+            "createFixtureFileSupplier"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "export function createFixtureFileSupplier("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "const identity = resolveResource(request.resource);"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "declared_version: declared, row_version_cid: rowVersion,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "const charge = selected.chargePage(bytes);"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "const document = projectOriginalDocument(bytes, options);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "if (versionFor(row) !== request.version) fail('FixtureFileVersionMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.mjs",
+                "anchor": "if (Buffer.byteLength(rowText(row, fields.contentUtf8), 'utf8') > limits.maxContentBytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/fixture-file-source.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture files use original charged document and Source-issued IDs, not nonunique names or invented paths'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture content consumes raw ticket before exact UTF8 Store capture and preserves the request correlation'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture content bound rejects before UTF8 allocation, even when the original document fits'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture admission refusal retains the original pending ticket and issues no references'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture post-read current refusal charges received bytes but never admits or captures'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture pre-abort and malformed keyed request never enter physical I/O'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture replacement with unchanged declared version rejects the old exposed version before capture'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture equal rows in a different Source inventory do not authorize a foreign ResourceRef'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture provider version refuses an unavailable original row digest before reference issuance'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture foreign parent projection cannot issue a Resource or capture Content'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture physical failure keeps the same parent cleanup carrier without retry or close acknowledgement'"
+              },
+              {
+                "path": "adapters/local-node/fixture-file-source.test.mjs",
+                "anchor": "test('fixture oversized original is charged but rejected before the parent projection'"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

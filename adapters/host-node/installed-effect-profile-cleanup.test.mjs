@@ -307,7 +307,7 @@ for (const malformed of [false, true]) {
 // Actual loader, initial owner, Mapping/Environment constructor and RowEffect
 // adapter together. Native semantic/Resource and Site ports are explicit:
 // this is not a Common, Account, physical Site or normal public execution.
-async function constructionFixture(t, {refuseMapping = false, beforeAdapter} = {}) {
+async function constructionFixture(t, {refuseMapping = false, beforeAdapter, operation = 'create'} = {}) {
   const root = await fs.mkdtemp(join(tmpdir(), 'actql-effect-initial-construction-'));
   t.after(() => fs.rm(root, {recursive: true, force: true}));
   const version = 'actql-installed-effect-construction-fixture/0.1';
@@ -345,21 +345,28 @@ async function constructionFixture(t, {refuseMapping = false, beforeAdapter} = {
       assert.equal(value, declaration);assert.equal(writes, '{"original":"writes"}');
       assert.equal(resource, 'records');assert.deepEqual(JSON.parse(sources), [{target: 'label', field: 'label', null_behavior: 'reject'}]);
       assert.equal(events.at(-1), 'reserve');events.push('mapping');
-      return JSON.stringify({mapping_ref: 'mapping:construction/create.v1', mapping_cid: cid,
+      return JSON.stringify({mapping_ref: `mapping:construction/${operation}.v1`, mapping_cid: cid,
         body: JSON.stringify({mapping_contract_cid: cid, target_ref: 'connector://construction/records',
-          minimum_approval: 'required', permission_rules: [{effect_kind: 'create', permissions: ['write']}]}),
+          minimum_approval: 'required', permission_rules: [{effect_kind: operation, permissions: ['write']}]}),
         write_fields: ['label'], omittable: []});
     },
   });
+  if (operation === 'update') {
+    moon.clientProgramRowSourcePrepareUpdateMapping = moon.clientProgramRowSourcePrepareMapping;
+    moon.clientProgramRowSourcePrepareMapping = () => assert.fail('UPDATE must not select CREATE');
+  }
   const services = createInstalledHostServices({root, principalId: 'fixture', moon,
     initialPreparation: initial, assertCurrent() {}});
-  const writes = Object.freeze([Object.freeze({resource: 'records', sources: Object.freeze([
+  const writes = Object.freeze([Object.freeze({resource: 'records',
+    ...(operation === 'update' ? {operation} : {}), sources: Object.freeze([
     Object.freeze({target: 'label', field: 'label', null_behavior: 'reject'})])})]);
   const unused = () => assert.fail('No provider/Account operation in this constructor component');
   const site = {issueEffectGrant: unused, issueReadGrant: unused,
     async close() {if (closePending === 'false') return false;if (closePending) throw pendingClose;}};
-  const driver = {kinds: ['create'], prepareRequest: unused, requestFacts: unused,
-    writeOperation: unused, send: unused, project: unused, footprint: unused};
+  const driver = {kinds: [operation], prepareRequest: unused, requestFacts: unused,
+    writeOperation: unused, send: unused, project: unused, footprint: unused,
+    ...(operation === 'update' ? {targetRead: {operation: 'read'}, observeTargets: unused,
+      recoveryEntry: unused, recoverRequests: unused, requestCid: unused} : {})};
   const connectorTable = createInstalledConnectorTable([{name: 'effect_construction_fixture',
     registration: 'effect_construction_fixture', revision: 'effect_construction_fixture/0.1', effect: {
       profileVersion: version, load: async () => ({check: value => value, identityParts: unused,
@@ -955,4 +962,24 @@ test('Source Command optional definition must be own DATA when supplied', () => 
   assert.equal(getterCalls, 0);
   assert.equal(f.completions.length, 0, 'invalid output never selects a retained-only quantity');
   f.finish(); assert.equal(f.retire(), true);
+});
+
+// Native Mapping semantics are covered by Core tests. These cases exercise
+// the existing Host reservation and real adapter custody boundary.
+test('Effect UPDATE construction selects its typed continuation under the same reservation', async t => {
+  const f = await constructionFixture(t, {operation: 'update'}), adapter = await f.run();
+  assert.equal(f.events.filter(value => value === 'mapping').length, 1);
+  assert.match(f.options().mappings[0].mappingRef, /update/);
+  f.allowClose();
+  await adapter.close();
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+});
+
+test('Effect UPDATE backing refusal never enters either Mapping constructor', async t => {
+  const f = await constructionFixture(t, {operation: 'update', refuseMapping: true});
+  await assert.rejects(f.run(), sameInitializationFailure(f.refusal));
+  assert.equal(f.events.includes('mapping'), false);
+  assert.throws(() => f.context().prepareMappings('{"original":"writes"}', f.writes),
+    {code: 'ForeignInstalledSourceInitialization'});
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
 });

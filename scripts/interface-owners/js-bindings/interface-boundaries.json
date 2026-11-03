@@ -80457,7 +80457,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "da8e5b3d6eff18efea6e8fbb76433c5697a76b3ae6131f09da03f035c3db837d",
+      "sha256": "f83ba8efb8735a1b41b11d35a381c1fdea7f5e350d3ddc7d9f2f6564ce80fdde",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -82137,7 +82137,8 @@
             "declaration",
             "writesJson",
             "resource",
-            "sources"
+            "sources",
+            "operation"
           ],
           "async": false
         },
