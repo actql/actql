@@ -23,6 +23,8 @@
 // the private evidence of continuations with no remaining need; waiting
 // evidence is kept. A deletion that fails stays owned and is reported under
 // `retention`; `retire` retries it.
+// A failed close preserves the known command output and reports its pending
+// cleanup under `retention`, with the existing partial-command exit code 1.
 import {parseArgs} from 'node:util';
 import {initializeLocalHost, openLocalHost, readSigner} from './local-host.mjs';
 
@@ -92,18 +94,37 @@ async function main(argv) {
     if (!Number.isSafeInteger(leaseMs) || leaseMs < 1) throw usage('Invalid --lease-ms');
   }
   const host = await openLocalHost(values.config);
+  let result, commandFailure, commandFailed = false;
   try {
-    const result = await dispatch(host, command, values, positionals, one,
+    result = await dispatch(host, command, values, positionals, one,
       signer, leaseMs);
-    if (!SETTLES.has(command)) return result;
-    let retention;
-    try { retention = await host.retire(); }
-    catch (error) { retention = {error: error.code ?? error.message}; }
-    return retention.error === undefined && retention.pending.length === 0
-      ? result : {...result, output: {...result.output, retention}};
-  } finally {
-    await host.close();
+    if (SETTLES.has(command)) {
+      let retention;
+      try { retention = await host.retire(); }
+      catch (error) { retention = {error: error.code ?? error.message}; }
+      if (retention.error !== undefined || retention.pending.length !== 0) {
+        result = {...result, output: {...result.output, retention}};
+      }
+    }
+  } catch (error) {
+    commandFailed = true;
+    commandFailure = error;
   }
+  try {await host.close();} catch (cleanupFailure) {
+    const cleanupError = cleanupFailure?.code ?? cleanupFailure?.message ?? 'LocalHostCleanupFailed';
+    if (commandFailed) {
+      // Keep both original failures without substituting cleanup for the
+      // command's outcome or treating the failed close as an acknowledgement.
+      throw Object.assign(new AggregateError([commandFailure, cleanupFailure],
+        commandFailure?.message ?? 'LocalHostCommandFailed', {cause: commandFailure}),
+      {code: commandFailure?.code, cleanupError});
+    }
+    return {exit: 1, output: {...result.output, retention: {
+      ...result.output.retention, cleanup_pending: true, cleanup_error: cleanupError,
+    }}};
+  }
+  if (commandFailed) throw commandFailure;
+  return result;
 }
 
 async function dispatch(host, command, values, positionals, one, signer, leaseMs) {
@@ -178,6 +199,7 @@ try {
   process.exitCode = exit;
 } catch (error) {
   process.stderr.write(`${JSON.stringify({error: error.code ?? error.message,
+    ...(error.cleanupError ? {cleanup_error: error.cleanupError} : {}),
     ...(error.runtimeCode ? {runtime_code: error.runtimeCode} : {}),
     ...(error.cause ? {detail: String(error.cause?.message ?? error.cause)} : {}),
   })}\n`);
