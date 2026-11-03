@@ -45,16 +45,56 @@ export function partState(root, env = process.env) {
 export function capacityPartExecutions(report) {
   assert(['L-C0','L-C1'].includes(report.part));
   assert(Array.isArray(report.executions));
-  if(report.part==='L-C0') {
-    assert(report.parentStartup?.execution,'Missing independent native-parent execution');
-    return [...report.executions,report.parentStartup.execution];
-  }
+  if(report.part==='L-C0') currentNativeParent(report);
+  // The independent Native diagnostic has its own audited schema, not a
+  // generic fixture/workspace receipt. Never manufacture a second execution.
   return [...report.executions];
+}
+function currentNativeParent(report) {
+  const parent=report.parentStartup;
+  assert.equal(parent?.version,'actql-current-chain-native-diagnostic/0.1','Missing current native parent execution');
+  assert.equal(parent.target,'native','Foreign native parent target');
+  assert.equal(parent.exit,0,'Failed native parent execution');
+  assert.deepEqual(parent.source,report.source,'Foreign native parent source');
+  assert.deepEqual(parent.command,['moon','test','--target','native',
+    'src/connectors/local/current_chain_capacity_wbtest.mbt','--deny-warn'],'Foreign native parent command');
+  return parent;
+}
+// Production calls this only after validateCapacityPart has performed the
+// existing full Native audit (one actual case, log/binary/platform, original
+// Source and ledger/custody facts). This binds its distinct transport files;
+// it is not another scientific validator or a generic receipt adapter.
+export function capacityNativeParentInputs(report,read) {
+  assert.equal(report.part,'L-C0');
+  const parent=currentNativeParent(report),directory=prefix+'current-chain-native/';
+  const paths=new Set();
+  const input=path=>{safePath(path.slice(prefix.length));paths.add(path);return read(path);};
+  const json=(path,value,message)=>assert.deepEqual(input(path),Buffer.from(encode(value)),message);
+  json(prefix+'capacity/parent-control-probe/all.json',parent,'Changed native parent report');
+  assert(hex.test(parent.logDigest),'Invalid native parent log identity');
+  assert.equal(parent.logPath,directory+'logs/'+parent.logDigest+'.log','Foreign native parent log path');
+  const log=input(parent.logPath);
+  assert.equal(hash(log),parent.logDigest,'Changed native parent log');
+  assert.deepEqual(input(directory+'native.log'),log,'Changed native parent original log');
+  json(directory+'source.json',parent.executedSource,'Changed native parent executed source');
+  assert(Object.hasOwn(parent,'providerConstruction'),'Missing native parent construction audit');
+  const {providerConstruction:ignored,...original}=parent;void ignored;
+  for(const value of [original,parent]) json(directory+'originals/'+hash(JSON.stringify(value))+'.json',
+    value,'Changed native parent sealed original');
+  assert(Object.keys(parent.artifacts).length>0,'Missing native parent binary');
+  assert.deepEqual(Object.keys(parent.archives).sort(),Object.keys(parent.artifacts).sort(),'Foreign native parent archive');
+  for(const [artifact,digest] of Object.entries(parent.artifacts)) {
+    assert(hex.test(digest),'Invalid native parent binary identity');
+    const path=directory+'binaries/'+digest;
+    assert.equal(parent.archives[artifact],path,'Foreign native parent binary path');
+    assert.equal(hash(input(path)),digest,'Changed native parent binary');
+  }
+  return [...paths].sort();
 }
 export function inspectPart(directory, partId, expected) {
   assert(partIds.includes(partId));
   const {local, read, report} = reader(directory);
-  const reports = [], refs = [];
+  const reports = [], refs = [], nativeParentPaths = new Set();
   const acceptReport = (path, value = report(path)) => {
     assert.equal(value.revision, expected.context.testedSha, 'Report from another checkout');
     assert.equal(value.source.digest, expected.source.digest, 'Report from another source');
@@ -75,8 +115,13 @@ export function inspectPart(directory, partId, expected) {
     validateCapacityPart(value,value.source,targets,read);
     refs.push(...capacityPartExecutions(value));
     if (partId === 'L-C0') {
-      // The native-parent child has an independent executor and immutable
-      // root-level receipt; it is not one of the capacity primary executions.
+      assert.equal(value.parentStartup.revision,value.revision,'Foreign native parent revision');
+      const path='capacity/parent-control-probe/all.json';
+      assert.deepEqual(report(path),value.parentStartup,'Changed native parent report');
+      for(const path of capacityNativeParentInputs(value,read)) nativeParentPaths.add(path.slice(prefix.length));
+      reports.push({path,sha256:fileDigest(join(directory,path))});
+      // Keep the independently audited Native report and exact payloads in
+      // their original schema, separate from these final corpus receipts.
       for (const target of targets) normal(`${target}.json`,registry,target);
     }
   } else {
@@ -120,7 +165,7 @@ export function inspectPart(directory, partId, expected) {
       || /^sources\/[0-9a-f]{64}\.json$/u.test(file.path)
       || new RegExp(`^${partId}-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\\.(json|inputs\\.json|fixture\\.mbt|log)$`,'u').test(file.path);
     const owned=partFamily(partId)==='capacity'
-      ? (partId==='L-C0' ? file.path.startsWith('capacity/') : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partId==='L-C0' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
+      ? (partId==='L-C0' ? file.path.startsWith('capacity/') || nativeParentPaths.has(file.path) : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partId==='L-C0' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
       : ['exploration-decision.json',`base-js-${partId}.json`,`fixed-mutations-${partId}.json`,...(expected.exploration.required?[`mutations-${partId}.json`]:[])].includes(file.path);
     assert(common||owned,'Unexpected part evidence file');
     if(file.path.startsWith('capacity/parts/')) assert.equal(file.path,`capacity/parts/${partId}.json`,'Foreign capacity part report');

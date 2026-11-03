@@ -3,6 +3,7 @@ import test from 'node:test';
 import {hash} from './inventory.mjs';
 import {partIds,planDigest,plan} from './proof-parts.mjs';
 import {partSchema,partStages,capacityPartExecutions,validatePartEnvelope,validatePartInputs,requireValidation} from './ci-parts.mjs';
+import * as transport from './ci-parts.mjs';
 const digest='a'.repeat(64);
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
  source:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
@@ -54,9 +55,57 @@ test('synthetic validation is mandatory and bound to exact source and plan',()=>
  assert.throws(()=>requireValidation(undefined,expected));
 });
 
-test('capacity transport includes independent native-parent receipt without duplicating recovery receipts',()=>{
- const primary={path:'primary'},parent={path:'parent'},restored={path:'restored'};
- assert.deepEqual(capacityPartExecutions({part:'L-C0',executions:[primary],parentStartup:{execution:parent}}),[primary,parent]);
+test('capacity transport keeps current Native evidence distinct from generic execution receipts',()=>{
+ const primary={path:'primary'},restored={path:'restored'};
+ const {report}=nativeParentInputs();
+ assert.deepEqual(capacityPartExecutions({...report,executions:[primary]}),[primary]);
  assert.deepEqual(capacityPartExecutions({part:'L-C1',executions:[primary,restored],postRestore:{executions:[restored]}}),[primary,restored]);
  assert.throws(()=>capacityPartExecutions({part:'L-C0',executions:[primary]}));
+ assert.throws(()=>capacityPartExecutions({part:'L-C0',executions:[primary],parentStartup:{execution:primary}}));
+});
+
+// Synthetic transport bytes only. Production inspectPart first runs the real
+// current Native auditor; these DATA do not establish a Native execution.
+function nativeParentInputs() {
+ const root='.artifacts/relation-pipeline/',directory=root+'current-chain-native/';
+ const log=Buffer.from('original transport log\n'),binary=Buffer.from('original transport binary');
+ const source={digest:'a'.repeat(64),sources:{'src/original.mbt':'b'.repeat(64)}};
+ const body={version:'actql-current-chain-native-diagnostic/0.1',target:'native',revision:'c'.repeat(40),source,
+  command:['moon','test','--target','native','src/connectors/local/current_chain_capacity_wbtest.mbt','--deny-warn'],exit:0,
+  executedSource:source,logPath:directory+'logs/'+hash(log)+'.log',logDigest:hash(log),
+  artifacts:{'_build/native/debug/test/connectors/local/local.whitebox_test.exe':hash(binary)},
+  archives:{'_build/native/debug/test/connectors/local/local.whitebox_test.exe':directory+'binaries/'+hash(binary)}};
+ const parent={...body,providerConstruction:{transportOnly:true}};
+ const json=value=>Buffer.from(JSON.stringify(value,null,2)+'\n');
+ const files=new Map([[root+'capacity/parent-control-probe/all.json',json(parent)],
+  [directory+'source.json',json(source)],[directory+'native.log',log],[parent.logPath,log],
+  [directory+'binaries/'+hash(binary),binary],
+  [directory+'originals/'+hash(JSON.stringify(body))+'.json',json(body)],
+  [directory+'originals/'+hash(JSON.stringify(parent))+'.json',json(parent)]]);
+ return {report:{part:'L-C0',source,parentStartup:parent},files,read:path=>{
+  assert(files.has(path),'Missing native parent transport input');return files.get(path);
+ }};
+}
+test('capacity transport binds only exact current Native report and payload paths',()=>{
+ const f=nativeParentInputs();
+ assert.deepEqual(transport.capacityNativeParentInputs(f.report,f.read),[...f.files.keys()].sort());
+});
+for(const [label,change,message] of [
+ ['missing original',(f)=>f.files.delete(f.report.parentStartup.logPath),/Missing native parent transport input/],
+ ['changed log',(f)=>f.files.set(f.report.parentStartup.logPath,Buffer.from('changed')),/Changed native parent log/],
+ ['foreign report',(f)=>f.files.set('.artifacts/relation-pipeline/capacity/parent-control-probe/all.json',Buffer.from('{}\n')),/Changed native parent report/],
+ ['escaped archive',(f)=>{
+  const parent=f.report.parentStartup,root='.artifacts/relation-pipeline/';
+  for(const key of Object.keys(parent.archives)) parent.archives[key]='../foreign';
+  const json=value=>Buffer.from(JSON.stringify(value,null,2)+'\n');
+  f.files.set(root+'capacity/parent-control-probe/all.json',json(parent));
+  const {providerConstruction:ignored,...original}=parent;void ignored;
+  for(const value of [original,parent]) f.files.set(root+'current-chain-native/originals/'+hash(JSON.stringify(value))+'.json',json(value));
+ },/Foreign native parent binary path/],
+ ['stale source',(f)=>f.report.source={digest:'d'.repeat(64)},/Foreign native parent source/],
+ ['wrong platform',(f)=>f.report.parentStartup.target='js',/Foreign native parent target/],
+ ['nonzero execution',(f)=>f.report.parentStartup.exit=1,/Failed native parent execution/],
+]) test(`capacity transport refuses ${label}`,()=>{
+ const f=nativeParentInputs();change(f);
+ assert.throws(()=>transport.capacityNativeParentInputs(f.report,f.read),message);
 });
