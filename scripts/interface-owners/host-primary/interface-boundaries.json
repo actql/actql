@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "f789f443f1b66c02e2020a301f09b08eb403383d1e8674600945e3d0b6d9d884",
+      "sha256": "783f29a01ba0ab20115019454ef429e1aaafab4314bf209d460471b2c7972d3f",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -58,7 +58,8 @@
             "originalPreparation",
             "originalModelPlan",
             "originalModelComponent",
-            "originalModelSelection"
+            "originalModelSelection",
+            "originalContent"
           ],
           "async": true
         },
@@ -7259,6 +7260,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
+          "parameters": [
+            "retainCleanup"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
           "parameters": [
             "facts"
@@ -9411,14 +9419,14 @@
           "async": false
         },
         {
-          "name": "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
+          "name": "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRetirement/init:prepareEffectCaptureRetirement",
           "parameters": [
-            "view"
+            "runtime",
+            "request",
+            "definition",
+            "limits",
+            "originalCurrent",
+            "retain"
           ],
           "async": false
         },
@@ -9526,7 +9534,8 @@
             "facts",
             "selection",
             "inputs",
-            "modelSelection"
+            "modelSelection",
+            "prepareContent"
           ],
           "async": false
         },
@@ -9852,6 +9861,32 @@
           "name": "openPreparedInstalledHost/preparation/init:submittedIntentOriginal/init:submittedIntentOriginal",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/prepareEffectCaptureFrame",
+          "parameters": [
+            "runtime",
+            "request",
+            "definition",
+            "limits",
+            "managed",
+            "originalCurrent",
+            "retain",
+            "assertHost"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/prepareEffectCaptureFrame/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/prepareEffectCaptureFrame/init:retain/init:retain",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -12385,8 +12420,6 @@
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects",
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
             "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery",
-            "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/current/current",
-            "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRecovery/init:prepareEffectCaptureRecovery/init:retain/init:retain",
             "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
             "openPreparedInstalledHost/preparation/init:prepareManagedContentGraph/init:prepareManagedContentGraph/init:prepareManagedContentGraph",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelBinding/init:prepareManagedModelBinding",
@@ -13731,7 +13764,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection)"
+                "anchor": "prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -19105,6 +19138,118 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
+            "openPreparedInstalledHost/preparation/init:prepareEffectCaptureRetirement/init:prepareEffectCaptureRetirement",
+            "openPreparedInstalledHost/prepareEffectCaptureFrame",
+            "openPreparedInstalledHost/prepareEffectCaptureFrame/current/current",
+            "openPreparedInstalledHost/prepareEffectCaptureFrame/init:retain/init:retain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareEffectCaptureFrame"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-project-store-host.actual.test.mjs",
+                "anchor": "signed rejection"
+              },
+              {
+                "path": "adapters/host-node/recovered-effect-parent-custody.test.mjs",
+                "anchor": "test('selected recovered Content stays in the original parent across await and pending cleanup'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -19222,7 +19367,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "cecce9efff2680cd85bbcc5cdf399cf0017b37ddd97ff6241e77e168c2e7c788"
+      "sha256": "0f5d9a446e5862ef691dcfd18844c95346f1a528a06b67d0ba8cf5081206b62f"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

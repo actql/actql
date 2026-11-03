@@ -6899,7 +6899,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c60c95f9b2c144b0212e73812b4febb39ab4a4062edb877221e0ab74aee4b59f",
+      "sha256": "c42972fbe220f41ff000f95cb32a110fb32f6746e6528e28e49848f93bd0ff7f",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6909,6 +6909,7 @@
         "closePreparedLocalPublicationStoreOwnership",
         "openLocalPublicationStore",
         "originalLocalExecutionOwnerStopped",
+        "physicalContentReadWindowBytes",
         "prepareLocalPublicationStoreOwnership",
         "readBoundedLocalMetadata"
       ],
@@ -15938,6 +15939,110 @@
               }
             ]
           }
+        },
+        {
+          "operations": [],
+          "exports": [
+            "physicalContentReadWindowBytes"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "physicalContentReadWindowBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/stored-content-consumption.test.mjs",
+                "anchor": "test('stored Content family refuses copied input"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -15950,6 +16055,7 @@
         "./prepared-custody-queue.mjs",
         "./prepared-holder-owner.mjs",
         "./publication-commit-owner.mjs",
+        "./publication-owner-lease.mjs",
         "./result-deletion-owner.mjs",
         "node:buffer",
         "node:crypto",

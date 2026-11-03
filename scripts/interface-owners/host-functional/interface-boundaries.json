@@ -59186,7 +59186,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a9de4fcdde1d0560c936c5db94c577d1e90550fcf383727c08d9d037cc1ca45",
+      "sha256": "d4ded9502dec20223347c5f64160d6d72ce8bf248827447526d0dac110305e3d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -59217,7 +59217,8 @@
             "outputLimits",
             "faultInjection",
             "restored",
-            "retainCleanup"
+            "retainCleanup",
+            "managedOriginal"
           ],
           "async": false
         },
@@ -59248,6 +59249,13 @@
           "parameters": [
             "captured",
             "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/init:bindExecution/init:bindExecution",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -59364,13 +59372,6 @@
           "async": false
         },
         {
-          "name": "installEffectContentFamily/provider/provider",
-          "parameters": [
-            "step"
-          ],
-          "async": false
-        },
-        {
           "name": "installEffectContentFamily/releaseTemporary/releaseTemporary",
           "parameters": [],
           "async": true
@@ -59385,6 +59386,13 @@
         {
           "name": "installEffectContentFamily/selectedForContent/selectedForContent/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installEffectContentFamily/selectedProvider/selectedProvider",
+          "parameters": [
+            "step"
+          ],
           "async": false
         }
       ],
@@ -59413,7 +59421,6 @@
             "installEffectContentFamily/port/init:cancel/init:cancel",
             "installEffectContentFamily/port/port",
             "installEffectContentFamily/port/port#2",
-            "installEffectContentFamily/provider/provider",
             "installEffectContentFamily/releaseTemporary/releaseTemporary",
             "installEffectContentFamily/selectedForContent/selectedForContent",
             "installEffectContentFamily/selectedForContent/selectedForContent/current/current"
@@ -60048,6 +60055,115 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installEffectContentFamily/init:bindExecution/init:bindExecution",
+            "installEffectContentFamily/selectedProvider/selectedProvider"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-content-family.mjs",
+                "anchor": "bindExecution"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('early managed Content keeps its same provider and binds physical execution only once'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "test('Content provider constructor failure retains its original cleanup before throwing'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -60060,7 +60176,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3bdbea58fd8a6bce690837f5e281dded97ac49c01c2caa8bebf7798c5114573d",
+      "sha256": "bdbb58a735c6d83a857098edc3ad2200be52bb45dc80df8b6ba94b93170f2114",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -60302,6 +60418,15 @@
           "async": false
         },
         {
+          "name": "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
+          "parameters": [
+            "workspace",
+            "physical",
+            "retain"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeContentRun/installNodeContentRun/recheck/recheck",
           "parameters": [],
           "async": false
@@ -60319,6 +60444,13 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#10",
           "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#11",
+          "parameters": [
             "preparedProgram",
             "plan",
             "sourceCapacity"
@@ -60326,7 +60458,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#11",
+          "name": "installNodeContentRun/installNodeContentRun#12",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -60338,7 +60470,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#12",
+          "name": "installNodeContentRun/installNodeContentRun#13",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -60414,12 +60546,9 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
-            "prepared",
-            "plan",
+            "facts",
             "store",
             "principalId",
-            "signal",
-            "restored",
             "retainCleanup"
           ],
           "async": false
@@ -60427,7 +60556,14 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#9",
           "parameters": [
-            "options"
+            "prepared",
+            "plan",
+            "store",
+            "principalId",
+            "signal",
+            "restored",
+            "retainCleanup",
+            "managedOriginal"
           ],
           "async": false
         },
@@ -62244,6 +62380,115 @@
               {
                 "path": "src/client_local_host/content_original_execution_demand_js_wbtest.mbt",
                 "anchor": "same checked Content input shape selects original row and column demand before prefix construction"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
+            "installNodeContentRun/installNodeContentRun#13"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "managedOriginal"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('source-free Content family uses its checked Values input without inventing Source proof'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-family-custody.test.mjs",
+                "anchor": "test('retained Content cleanup joins the same pending append before reporting completion'"
               }
             ]
           }
@@ -122224,7 +122469,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "6ee0dca1bfff30124c1efc9ef84ca4b6e287786ed6a69737d31137905a565e59",
+      "sha256": "400e99ff69ed9ac0c765c37691d7b7cca2f447d7692f698563b58249154914b1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -122334,6 +122579,7 @@
             "model",
             "modelSelection",
             "publicationControl",
+            "prepareContent",
             "assertCurrent",
             "checked"
           ],
@@ -122370,19 +122616,26 @@
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
           "parameters": [
-            "cause"
+            "value"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#6",
           "parameters": [
-            "value"
+            "cause"
           ],
           "async": false
         },
         {
           "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#7",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#8",
           "parameters": [
             "name"
           ],
@@ -122433,6 +122686,7 @@
       "imports": [
         "./acquired-effect-sources.mjs",
         "./infer-operation.mjs",
+        "./installed-effect-plan.mjs",
         "node:util"
       ],
       "compilerFields": [],
@@ -122905,6 +123159,110 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#8"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-managed-run.mjs",
+                "anchor": "prepareInstalledEffectManagedPlanRun"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
+                "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
               }
             ]
           }

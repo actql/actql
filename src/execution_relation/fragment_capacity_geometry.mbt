@@ -36,7 +36,7 @@ fn bounded_leaf_fragment_capacity(
       | @lower.Literal(_)
       | @lower.TypedNull => ()
       @lower.Field(_, @relation.PriorSlot(slot)) =>
-        if !ordered || slot < 0 || slot >= index { return None }
+        if !bounded_leaf_prior_slot_supported(ordered, index, slot) { return None }
       _ => return None
     }
   }
@@ -65,4 +65,11 @@ fn bounded_leaf_fragment_capacity(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
+}
+
+///|
+// Kept explicit so malformed references, normally refused by checked lowering,
+// can be tested without constructing a counterfeit checked kernel.
+fn bounded_leaf_prior_slot_supported(ordered : Bool, index : Int, slot : Int) -> Bool {
+  ordered && slot >= 0 && slot < index
 }

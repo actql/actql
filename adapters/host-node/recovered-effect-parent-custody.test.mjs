@@ -60,9 +60,13 @@ test('selected recovered Content stays in the original parent across await and p
   assert(f.events.indexOf('retain parent')<f.events.indexOf('construct child'));
   assert.equal(f.events.includes('capability'),false);
   assert.equal(f.parent().cleanupPending(),true);
-  await assert.rejects(f.parent().close(),{code:'InstalledRowEffectContentCleanupPending'});
+  // The original opening owner reports pending without rejecting. Closing
+  // also fences publication when its already-retained child finishes opening.
+  assert.equal(await f.parent().close(),false);
   assert.equal(f.events.includes('close ledger'),false);
-  release();assert.strictEqual(await observed,f.stop);
+  release();assert.equal((await observed).code,'InstalledRowEffectRouteRetired');
+  assert.equal(f.events.includes('capability'),false);
+  assert.equal(f.events.includes('exact terminal'),false);
   f.ack();assert.equal(await f.parent().cleanup(),true);
   assert.equal(f.parent().cleanupPending(),false);
   assert.equal(f.events.filter(value=>value==='close ledger').length,1);

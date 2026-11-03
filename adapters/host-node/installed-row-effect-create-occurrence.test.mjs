@@ -42,7 +42,7 @@ test('actual capture failure input callback retires only its pins after the shar
   const actual = Function('moon', 'checked', 'limits', 'fail', 'releaseInstalledRowCapture',
     `return (${source.slice(capture.start, capture.end)});`)(moon, checked, {maxPinnedResults: 1}, fail,
     releaseInstalledRowCapture);
-  await assert.rejects(actual({ownChildren(original) {
+  await assert.rejects(actual({members:[],ownChildren(original) {
     original.push({prepared: {status() {observations++; return {pending: false};},
       release() {assert.fail('already retired');}, retry() {assert.fail('already retired');}}});
     children.push(...original);
@@ -209,9 +209,12 @@ test('actual route retirement waits for its active refresh before severing reque
     admitCapability:()=>assert.fail('No capability'),routeOf:()=>assert.fail('No route')})({
       members:[],entries:[[{}]],previewRows:[],dispatches:[],subjectCid:'subject'});
   const currents=[{}],rowsOf=[{}],observations=[{}],proposals=[{}];
-  const node=variable('retireRequestAliases');
+  const declarations=nodes.filter(({node,parents})=>node.type==='VariableDeclarator'&&
+    node.id.name==='retireRequestAliases'&&parents.includes(capture));
+  assert.equal(declarations.length,1,'capture owner retirement');
+  const node=declarations[0].node.init;
   const scope=Function('route','currents','rowsOf','observations','proposals',`
-    let captureOpen=true,entries=Object.freeze([[{}]]);
+    let captureOpen=true,entries=Object.freeze([[{}]]),memberCaptures=[];
     const retire=${source.slice(node.start,node.end)};
     return {retire,finish(){captureOpen=false;},entries:()=>entries};
   `)(route,currents,rowsOf,observations,proposals);
@@ -572,12 +575,16 @@ test('CREATE inventory consumes the original checked proposal wire before any lo
   const moon={clientProgramEffectCreateRowInventory(wires,count){
     assert.deepEqual(wires,[wire]);assert.equal(count,1);
     return {ok:[runtimeTupleFromFields({0:0,1:JSON.stringify(originalIdentity)})]};}};
-  const canonicalRows=expression('canonicalRows',{moon,checked,fail,runtimeField,parseExactJson:JSON.parse,
-    limits:{preview:{maxWireBytes:10000,maxNodes:100,maxDepth:10}}});
-  const row=Object.freeze({value,proposalWire:wire});
-  const result=canonicalRows([row]);
-  assert.equal(result[0].entry,row);
-  assert.deepEqual(result[0].identity,originalIdentity);
+  const declaration=nodes.find(({node})=>node.type==='FunctionDeclaration'&&
+    node.id.name==='prepareInstalledCreateRows').node;
+  const prepare=Function('checked','runtimeField','fail','parseExactJson',
+    `return (${source.slice(declaration.start,declaration.end)});`)(checked,runtimeField,fail,JSON.parse);
+  const result=prepare(moon,[Object.freeze({changesWire:wire})],
+    {maxWireBytes:10000,maxNodes:100,maxDepth:10});
+  assert.strictEqual(result.rows[0],result.createRows[0].entry);
+  assert.equal(result.rows[0].proposalWire,wire);
+  assert.deepEqual(result.rows[0].value,value);
+  assert.deepEqual(result.createRows[0].identity,originalIdentity);
 });
 
 test('actual managed row loop completes each original workspace before the next constructor while retaining all outputs', async () => {
