@@ -261,6 +261,18 @@ const rightConfiguration = name => ({...configurations[name],
   environment: rightEnvironment,
   aliases: name === 'absent' ? [] : [rightAlias]});
 
+// Only callers inspecting their original submission need the Host's separate
+// run/read tuple. Keep other HTTP fixtures' missing/explicit Account controls.
+async function submissionObservationClient(t, entrance, configuration) {
+  if (entrance === 'local') return localClient(t, configuration);
+  return httpClient(t, configuration, undefined, {authorization: {accountConfiguration: canonicalJson({
+    version: 'actql-execution-account-config/0.1', account_id: 'client-check-host-observation',
+    entries: [{entry_id: 'host-run-read', outcome: 'allow',
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []}],
+  })}});
+}
+
 const entrances = Object.freeze({local: localClient, http: httpClient});
 
 for (const [entrance, open] of Object.entries(entrances)) {
@@ -326,7 +338,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: submitted preparation categories use the disclosure-approved Source view`, async t => {
     for (const visibility of ['absent', 'denied', 'undecidable', 'allowed']) {
-      const client = await open(t, configurations[visibility]);
+      const client = await submissionObservationClient(t, entrance, configurations[visibility]);
       for (const [text, expectedProblem] of [
         ['SELECT missing AS n', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}],
         ['SELECT missing AS n FROM records', visibility === 'allowed'
@@ -1103,7 +1115,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: rejected source submission carries original syntax checking without stored input observation`, async t => {
-    const client = await open(t, configurations.denied);
+    const client = await submissionObservationClient(t, entrance, configurations.denied);
     for (const [text, byte, position] of [
       ['SELECT', 6, {line: 0, character: 6}],
       ['/*😀*/\r\nSELECT', 16, {line: 1, character: 6}],
@@ -1137,7 +1149,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: rejected original submission exposes review-required fixes without granting retry`, async t => {
-    const client = await open(t, configurations.denied);
+    const client = await submissionObservationClient(t, entrance, configurations.denied);
     // Byte intervals and editor positions are independently counted.
     for (const [text, bytes, comment, position] of [
       ['SELECT 1 AS n /*', 16, 14, {line: 0, character: 14}],
@@ -1207,7 +1219,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: missing submitted values retain requirements instead of invalid input`, async t => {
-    const client = await open(t, configurations.allowed);
+    const client = await submissionObservationClient(t, entrance, configurations.allowed);
     let error;
     try {await client.startSource(query, {format: 'sql', parameterDeclarations: declarations});}
     catch (cause) {error = cause;}
@@ -6216,7 +6228,7 @@ for (const entrance of ['local', 'http']) {
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: semantic query violations remain distinct from implementation limits`, async t => {
-    const client = await open(t, configurations.allowed);
+    const client = await submissionObservationClient(t, entrance, configurations.allowed);
     // SQL does not admit a nested Pipe body; these fail during parsing,
     // before semantic checking of otherwise well-formed query bodies.
     const syntaxInvalid = [
