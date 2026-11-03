@@ -28,17 +28,22 @@ function visit(node, select) {
   }
 }
 function admission(preparation, sourceProfile, prepared, request, count, prepareTimedRunInvocation) {
-  let declaration;
+  let declaration, route;
   visit(ast, node => {
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
         node.declarations[0].id.name === 'admitPreparedSubmission') declaration = node;
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
+        node.declarations[0].id.name === 'prepareOrdinaryManagedRun') route = node;
   });
-  assert(declaration);
+  const captureRoute=ast.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='captureInstalledManagedRunRoute');
+  assert(declaration&&route&&captureRoute);
   return new Function('preparation', 'sourceProfile', 'prepared', 'request', 'count', 'prepareTimedRunInvocation', `
     const requestOf=()=>({requested:request,acquisitionCount:count,effectful:false});
     const moon={clientProgramSerializationOccurrences:()=>[]},inferSelections=new WeakMap();
     const admissionFailures=new WeakMap(),holderRefusal=undefined;
     const clientOperationError=code=>Object.assign(new Error(code),{code});
+    ${source.slice(captureRoute.start,captureRoute.end)}
+    ${source.slice(route.start,route.end)}
     ${source.slice(declaration.start, declaration.end)}
     return admitPreparedSubmission({preparedProgram:prepared});
   `)(preparation, sourceProfile, prepared, request, count, prepareTimedRunInvocation);

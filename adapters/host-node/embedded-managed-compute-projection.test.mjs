@@ -12,7 +12,7 @@ function actual(name, ports) {
     node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === name);
   assert(node, name);
   const helpers = ast.body.flatMap(node => node.type === 'ExportNamedDeclaration' ? [node.declaration] : [node]).filter(node => node?.type === 'FunctionDeclaration' &&
-    ['installedManagedRunContracts','prepareInstalledSequenceContractOriginal'].includes(node.id.name) && node.id.name !== name);
+    ['installedManagedRunContracts','prepareInstalledSequenceContractOriginal','retainedManagedCaptureInventory'].includes(node.id.name) && node.id.name !== name);
   return new Function(...Object.keys(ports),
     helpers.map(node => source.slice(node.start, node.end)).join('\n') + '\n' +
     source.slice(node.declaration.start, node.declaration.end) + `;return ${name};`)(...Object.values(ports));
@@ -418,6 +418,14 @@ test('installed Source demand retains actual checked occurrence capacities befor
   const run = {runtime: f.moon, prepared: f.prepared, request: f.request, sourceProfile: profile};
   Object.assign(f.originals.installation, {managedSourceProfile: profile, computeRuns: new WeakMap([[f.prepared, run]])});
   f.moon.clientProgramAcquisitionCount = value => {assert.strictEqual(value, f.prepared); return 2;};
+  f.moon.clientProgramSelectInstalledSourceInput = (value, request, stage, input) => {
+    assert.strictEqual(value,f.prepared);assert.strictEqual(request,f.request);assert.equal(input,0);
+    return requirements[stage];
+  };
+  f.moon.clientProgramSelectedSourceInputKind = value => {
+    assert(requirements.includes(value));return 'query';
+  };
+  f.moon.clientProgramSelectedSourceInputRef = value => 'source:' + requirements.indexOf(value);
   f.moon.clientProgramPrepareLocalQueryRequirement = (value, stage, input, contracts) => {
     assert.strictEqual(value, f.prepared); assert.equal(input, 0); assert.strictEqual(contracts, f.contractAdmission);
     return requirements[stage];
@@ -506,7 +514,7 @@ test('retired raw Effect Model quote refuses before original current or static p
   assert.equal(calls, 0); assert.deepEqual(f.installationCalls, []);
 });
 
-test('retired raw LocalFiles Effect constructor refuses before a replacement Root or record', () => {
+test('retired positional LocalFiles constructor refuses before a replacement Root or record', () => {
   const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
   const tree = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
   const install = tree.body.find(n => n.type === 'ExportNamedDeclaration' &&
@@ -519,12 +527,12 @@ test('retired raw LocalFiles Effect constructor refuses before a replacement Roo
   const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
     text.slice(node.start, node.end) + ';return prepareRun;')(
     no, runs, no, {}, {prepareEffectRun: no, prepareRun: no}, fail, no);
-  assert.throws(() => prepare({}, {}, true), {code: 'InstalledEffectPlanUnavailable'});
+  assert.throws(() => prepare({}, {}, true), {code: 'InvalidInstalledManagedRunRequest'});
   assert.equal(calls, 0); assert.equal(runs.size, 0);
 });
 
 
-// Actual unchanged Pure constructor and Source-read callee, with explicit
+// Actual Host-delegating Pure constructor and Source-read callee, with explicit
 // manager/Core ports only; this does not supply a physical/native parent.
 test('LocalFiles Pure admission preserves original identity and Effect read cannot borrow it', () => {
   const text = readFileSync(new URL('../connectors/local/host/installed-project-files.mjs', import.meta.url), 'utf8');
@@ -532,31 +540,33 @@ test('LocalFiles Pure admission preserves original identity and Effect read cann
   const install = tree.body.find(n => n.type === 'ExportNamedDeclaration' &&
     n.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
   const node = install.body.body.find(n => n.type === 'FunctionDeclaration' && n.id.name === 'prepareRun');
-  const prepared = {}, request = {}, original = {}, admission = {}, parent = {}, runs = new Map(), calls = [];
+  const prepared = {}, request = {}, parent = {}, sharedRuns = new Map(), calls = [], profile = {};
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const current = () => {calls.push('current');};
-  const sameRun = value => {assert.equal(value, prepared); return runs.get(value);};
-  const moon = {
-    clientProgramNodeManagedRunPrepare(o, p) {assert.equal(o, original); assert.equal(p, prepared); calls.push('admit'); return admission;},
-    clientProgramInstalledManagedRunBegin(a, p, r) {assert.equal(a, admission); assert.equal(p, prepared); assert.equal(r, request); calls.push('begin'); return parent;},
-    clientProgramInstalledManagedRunCheck(p, owner, r) {assert.equal(p, parent); assert.equal(owner, prepared); assert.equal(r, request); calls.push('check');},
+  const prepareManagedRun = facts => {
+    assert.equal(facts.preparedProgram,prepared);assert.equal(facts.requestIdentity,request);
+    assert.equal(facts.sourceProfile,profile);assert.equal(Object.isFrozen(facts),true);
+    calls.push('original-host');return parent;
   };
-  const sourceManaged = {prepareRun(p) {assert.equal(p, prepared); calls.push('original'); return original;}};
-  const prepare = new Function('current', 'runs', 'checked', 'moon', 'sourceManaged', 'fail', 'sameRun',
+  const prepare = new Function('current', 'sharedRuns', 'prepareManagedRun', 'profile', 'fail',
     text.slice(node.start, node.end) + ';return prepareRun;')(
-    current, runs, value => value, moon, sourceManaged, fail, sameRun);
-  prepare(prepared, request, false); prepare(prepared, request, false);
-  assert.equal(runs.get(prepared).value, parent); assert.equal(runs.get(prepared).original, original);
-  assert.equal(calls.filter(x => x === 'original').length, 1); assert.equal(calls.filter(x => x === 'begin').length, 1);
+    current, sharedRuns, prepareManagedRun, profile, fail);
+  prepare({preparedProgram:prepared,requestIdentity:request});
+  const originalRecord=sharedRuns.get(prepared);
+  prepare({preparedProgram:prepared,requestIdentity:request});
+  assert.equal(sharedRuns.get(prepared),originalRecord);assert.equal(originalRecord.value,parent);
+  assert.equal(calls.filter(x => x === 'original-host').length,2,'Both observations use the same Host owner, never a Connector admission');
   const found = [];
   const visit = n => {if (!n || typeof n !== 'object') return;
     if (n.type === 'Property' && n.key?.name === 'prepareSourceRead') found.push(n);
     for (const value of Object.values(n)) {if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);}};
   visit(install); assert.equal(found.length, 1);
-  const read = new Function('sameRun', 'fail', 'return ({' + text.slice(found[0].start, found[0].end) + '}).prepareSourceRead;')(
-    () => assert.fail('No Pure Run borrow from Effect read'), fail);
-  assert.throws(() => read({checkedOwner: prepared, effectful: true, occurrence: {stage: 0}}),
-    {code: 'InstalledEffectPlanUnavailable'});
+  const declaration={},entry={declaration};
+  const read = new Function('current','sharedRuns','entry','fail', 'return ({' + text.slice(found[0].start, found[0].end) + '}).prepareSourceRead;')(
+    current,sharedRuns,entry,fail);
+  assert.throws(() => read({checkedOwner:prepared,effectful:true,declaration,
+    occurrence:{stage:0,input:0},managedRun:parent,originalRead:{},requestIdentity:request}),
+    {code:'LocalFilesSourcePreparationMismatch'});
 });
 
 // Execute the real Local cleanup owner with explicit typed-read/parent and
@@ -568,8 +578,8 @@ function localReadCleanupFixture({keyed = false, physical = false} = {}) {
   const install = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
     node.declaration?.id?.name === 'installPreparedProjectLocalFiles').declaration;
   const functions = install.body.body.filter(node => node.type === 'FunctionDeclaration' &&
-    ['captureClose', 'closeRead', 'close'].includes(node.id.name));
-  assert.equal(functions.length, 3);
+    ['captureClose','closeSharedReadExternal','releaseSharedRead','closeRead','close'].includes(node.id.name));
+  assert.equal(functions.length,5);
   const acknowledgment = tree.body.find(node => node.type === 'VariableDeclaration' &&
     node.declarations.some(value => value.id.name === 'acknowledged'));
   assert(acknowledgment);
@@ -590,6 +600,8 @@ function localReadCleanupFixture({keyed = false, physical = false} = {}) {
   const read = {raw, keyed, value: typedRead, physical: physical ? native : undefined,
     close: undefined, closeCaptured: false, closed: false};
   const run = {value: parent, reads: new Map([[0, read]]), retired: false};
+  read.owner=run;read.index=0;
+  const sharedReads=new Set([read]),reads=new WeakMap([[typedRead,{run,read}]]);
   const runs = new Map([[{}, run]]);
   const retireRead = kind => function(value) {
     assert.strictEqual(value, typedRead); state.readRetireCalls++; state.readReceivers.push(this);
@@ -603,11 +615,11 @@ function localReadCleanupFixture({keyed = false, physical = false} = {}) {
       state.parentRetireCalls++; events.push('parent');
     }, clientProgramNodeManagedRunCleanup() {assert.fail('No replacement parent cleanup');}};
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const cleanup = new Function('runs', 'moon', 'checked', 'fail',
+  const cleanup = new Function('sharedReads','reads', 'moon', 'checked', 'fail',
     text.slice(acknowledgment.start, acknowledgment.end) + ';let closing=false;\n' +
     functions.map(node => text.slice(node.start, node.end)).join('\n') +
-    ';return {close,closeRead};')(runs, moon, value => value, fail);
-  return {...cleanup, state, read, raw, run, runs, moon, events};
+    ';return {close,closeRead};')(sharedReads,reads, moon, value => value, fail);
+  return {...cleanup, state, read, raw, run, runs, sharedReads, moon, events};
 }
 
 test('Local Source typed read and parent remain live until the original raw child acknowledges', async () => {
@@ -617,9 +629,10 @@ test('Local Source typed read and parent remain live until the original raw chil
   assert.equal(f.state.parentRetireCalls, 0); assert.equal(f.read.closed, false);
   f.raw.close = () => assert.fail('Replacement close must not be selected');
   f.state.rawAck = {pending: false}; await f.close();
-  assert.deepEqual(f.events, ['raw', 'raw', 'typed-read', 'parent']);
+  assert.deepEqual(f.events, ['raw', 'raw', 'typed-read']);
   assert.deepEqual(f.state.readReceivers, [f.moon]);
-  assert.equal(f.read.closed, true); assert.equal(f.run.retired, true); assert.equal(f.runs.size, 0);
+  assert.equal(f.read.closed,true);assert.equal(f.sharedReads.size,0);assert.equal(f.run.reads.get(0),undefined);
+  assert.equal(f.run.retired,false);assert.equal(f.runs.size,1,'Local child cleanup does not retire the Host parent');
 });
 
 test('Local keyed cleanup preserves an original thrown undefined before typed retirement', async () => {
@@ -629,7 +642,7 @@ test('Local keyed cleanup preserves an original thrown undefined before typed re
   assert.equal(f.state.readRetireCalls, 0); assert.equal(f.state.parentRetireCalls, 0);
   assert.equal(f.read.closed, false); f.state.rawThrows = false; await f.close();
   assert.deepEqual(f.state.readKinds, ['keyed']); assert.deepEqual(f.state.readReceivers, [f.moon]);
-  assert.equal(f.state.parentRetireCalls, 1);
+  assert.equal(f.state.parentRetireCalls, 0, 'The Host retains its original parent retirement duty');
 });
 
 test('Local cleanup waits for physical and raw acknowledgments before typed retirement', async () => {
@@ -640,7 +653,7 @@ test('Local cleanup waits for physical and raw acknowledgments before typed reti
   await assert.rejects(f.close(), {name: 'AggregateError'});
   assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 0);
   f.state.rawAck = {pending: false}; await f.close();
-  assert.equal(f.state.readRetireCalls, 1); assert.equal(f.state.parentRetireCalls, 1);
+  assert.equal(f.state.readRetireCalls, 1); assert.equal(f.state.parentRetireCalls, 0, 'The Host retains its original parent retirement duty');
 });
 
 test('Local cleanup retains the same stopped child while typed retirement fails', async () => {
@@ -650,7 +663,7 @@ test('Local cleanup retains the same stopped child while typed retirement fails'
   assert.equal(f.state.rawCalls, 1); assert.equal(f.state.readRetireCalls, 1);
   assert.equal(f.read.closed, false); assert.equal(f.state.parentRetireCalls, 0);
   f.state.retireThrows = false; await f.close();
-  assert.equal(f.state.readRetireCalls, 2); assert.equal(f.state.parentRetireCalls, 1);
+  assert.equal(f.state.readRetireCalls, 2); assert.equal(f.state.parentRetireCalls, 0, 'The Host retains its original parent retirement duty');
   assert.deepEqual(f.state.readReceivers, [f.moon, f.moon]);
 });
 
