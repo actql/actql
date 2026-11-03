@@ -990,8 +990,9 @@ const modelModuleConstructor = parse(hostSource, {ecmaVersion: 'latest', sourceT
 assert(modelModuleConstructor);
 
 test('Source-free Model module retains the output required by its existing configured Host', () => {
-  for (const {physical, serialized, retainedOutput, expected} of [
+  for (const {physical, serialized, retainedOutput, mock = false, expected} of [
     {physical: false, serialized: false, retainedOutput: false, expected: true},
+    {physical: false, serialized: false, retainedOutput: false, mock: true, expected: false},
     {physical: true, serialized: false, retainedOutput: false, expected: false},
     {physical: false, serialized: true, retainedOutput: false, expected: false},
     {physical: true, serialized: false, retainedOutput: true, expected: true},
@@ -1008,7 +1009,7 @@ test('Source-free Model module retains the output required by its existing confi
       },
       clientProgramPrepareRequestModelSourceFreeModule() {},
     };
-    const model = {compiled, runDefinition: definition, occurrence, graph, selection: {selectedBounds: bounds}};
+    const model = {compiled, runDefinition: definition, occurrence, graph, selection: {selectedBounds: bounds, localMock: mock}};
     if (physical) model.originalReadInstallation = {
       nodeInstallation: {layout: {retained_bytes: 31n, execution_bytes: 41n}},
       modelRetainedBytes: 51n, modelExecutionBytes: 61n,

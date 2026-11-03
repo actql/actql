@@ -743,7 +743,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // This configured source-free consumer opens the existing retained-output
     // Host. Quote that same choice before module/Model Scope construction,
     // rather than the installation's unrelated optional output hint.
-    const retainedModelOutput = physical === undefined &&
+    const retainedModelOutput = physical === undefined && model.selection?.localMock !== true &&
       model.serializationGraph === undefined ? true : retainedRelationOutput;
     run.preparedSequences = model.control.prepareCheckedClientRequestModelSourceFreeModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
