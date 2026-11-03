@@ -4331,8 +4331,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       ...(captured.updateTargetPreparedOriginal === undefined ? {} :
         {updateTargetPreparedOriginal: captured.updateTargetPreparedOriginal}),
       ...(captured.submission === undefined ? {} : {submission: captured.submission})};
+    // This is an actual pending Checkpoint restoration, not an SDK ingress or
+    // authority inferred from equal DATA. Keep its original captured input and
+    // Request parent through the existing Run admission/start handoff.
+    const requestInput = preparation.retainEffectRequestInput(moon, submission, undefined, captured);
+    try {
     localPreparationCustody.attach(submission,
       localPreparationCustody.adopt(await prepareCapturedSubmission(submission), submission));
+    preparation.bindSourceRequest(submission, submission.preparedProgram);
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
@@ -4350,7 +4356,12 @@ async function openInstalledHost(originalInstallation, preparation) {
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames, preparedSource, preparedSources, keyedSource, effectful};
+    return {submission, requested, resultNames, preparedSource, preparedSources, keyedSource, effectful, requestInput};
+    } catch (cause) {
+      // The original failed producer remains owned if retirement refuses.
+      // Preserve the primary cause and the SAME retry; no reprepare or ACK.
+      throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('failed'));
+    }
   };
   const definitionOf = captured => journal.lookupDefinition({namespaceId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
@@ -4459,7 +4470,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       throw error;
     }
     const {submission, requested, resultNames, preparedSource, preparedSources, keyedSource,
-      effectful} = resolved;
+      effectful, requestInput} = resolved;
+    let failed = false;
+    try {
     if (effectful) {
       effectRun.checkSupported(submission.preparedProgram);
       const accepted = await admitEffectDefinition(submission);
@@ -4497,7 +4510,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
       try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
-      return observedStart;
+      return await observedStart;
     }
     const held = {preparedSource, preparedSources, keyedSource,
       preparedSourceAccess: preparedSource === undefined ? undefined :
@@ -4517,9 +4530,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     if (definitionOf(captured)?.cancellationRequested) return 'not_started';
     const runId = runIdOf(accepted);
-    return startDispatch(submission, requested, accepted, held,
+    return await startDispatch(submission, requested, accepted, held,
       () => settleHeldRun(accepted, runId),
       {beforePhysicalStart, started: () => started(runId)});
+    } catch (cause) {
+      failed = true;
+      throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('failed'));
+    } finally {if (!failed) requestInput.finish('returned');}
   };
   // A held request whose authorization no longer holds before any physical
   // start: its Run (if already defined) fails before dispatch; nothing runs.
@@ -4528,10 +4545,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (accepted === undefined || accepted.physicalStartReserved === true ||
         accepted.preDispatchFailureConfirmed) return;
     if (accepted.dispatchReserved !== true) {
-      const start = await startRun({identity: (await heldSubmission(
-        captured)).requested, namespaceId, principalId: captured.principalId,
-      connection: captured.connection});
-      if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
+      const restored = await heldSubmission(captured);
+      try {
+        const start = await startRun({identity: restored.requested,
+          namespaceId, principalId: captured.principalId, connection: captured.connection});
+        if (start.kind !== 'reserved' && start.kind !== 'reconcile') return;
+      } finally {restored.requestInput.finish('returned');}
     }
     journal.markPreDispatchFailure(accepted.ref);
   };
@@ -6246,7 +6265,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.submittedIntentOriginal?.(originalSourceManagedHostRequest(originals, request));
     },
-    retainEffectRequestInput(runtime, request, intent) {
+    retainEffectRequestInput(runtime, request, intent, captured) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.retainRequestInput !== 'function') {
         throw clientOperationError('InstalledEffectRequestPreparationUnavailable');
@@ -6258,7 +6277,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       profiles.retainRequest(host, originalInstallation, host, request, pending);
       let original, finished = false;
       const finishProducer = manager.finishSourceProducer;
-      try {original = manager.retainRequestInput(request, intent);}
+      try {original = captured === undefined ? manager.retainRequestInput(request, intent)
+        : manager.retainRequestInput(request, undefined, captured);}
       catch (cause) {settled(); throw cause;}
       return Object.freeze({body: original.body,
         finish(terminal) {

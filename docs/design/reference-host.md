@@ -3149,3 +3149,30 @@ and its managed sequence was already refused without complete construction.
 A scalar request-byte field still refuses instead of selecting an ordinary
 page recipe. This removal does not remove a previously admitted Source route
 or enable an unimplemented provider protocol.
+
+### Held Checkpoint Request reconstruction
+
+A held Checkpoint can precede any Run Definition or modern submission epoch.
+Its authenticated, currently claimed capture remains the logical request; it
+cannot be replaced by a caller packet, matching CID or fabricated pending entry.
+The actual Host restoration retains its real pending operation in the existing
+registry before funded preparation. The same existing Request-input retainer
+selects either the Journal's opaque intent or the Checkpoint's captured input,
+never both and never a fallback after a failed constructor.
+
+Captured input uses the existing observed Client snapshot on that same physical
+Request parent before native check/compile. It creates no submitted intent, CID,
+epoch, Run or approval. Historical omitted Parameters remain absent when passed
+to the native preparation bridge using its literal-null sentinel; new SDK input
+validation and the original snapshot remain unchanged. The original captured
+Program/data strings are not normalized or reinterpreted by the Host.
+
+The prepared alias is bound to this actual pending request before deriving its
+Request identity. Complete capture and Result-inventory comparisons still run
+independently. The pending input survives definition admission and the awaited
+physical-start handoff; only that caller's finish returns its preparation input.
+An adopted Run retains its own actual parent/children after that handoff. A
+failed reconstruction preserves its primary cause and same cleanup retry.
+Promise settlement, cancellation and a finished input are not physical-stop or
+resource-return acknowledgements. No registry currentness or foreign/retired
+original check is weakened.
