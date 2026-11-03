@@ -301,7 +301,13 @@ test('public Vectors Bridge publishes managed producer and two consumer Results'
 
 test('installed Host admits only an exact Result policy original', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-result-policy-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  let host, completed = false;
+  t.after(async () => {
+    // Node runs after hooks in registration order. Keep the original Store
+    // available until its actual Host close completes; pending close keeps it.
+    await host?.close();
+    if (completed) await rm(directory, {recursive: true, force: true});
+  });
   const wire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
   const original = {kind: 'data_policy',
     cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`, wire};
@@ -313,10 +319,10 @@ test('installed Host admits only an exact Result policy original', async t => {
     authenticate: () => userInfo().username,
     resultDataPolicy: {kind: original.kind, cid: original.cid}}),
   {name: 'TypeError', message: 'InvalidHostResultDataPolicy'});
-  const host = await openInstalledRemoteHttpHost({directory,
+  host = await openInstalledRemoteHttpHost({directory,
     authenticate: () => userInfo().username, resultDataPolicy: original});
-  t.after(async () => host.close());
   assert.equal(typeof host.handler, 'function');
+  completed = true;
 });
 
 test('installed Effect identity compares declarations and generation semantics',
