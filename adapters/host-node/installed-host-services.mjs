@@ -1692,10 +1692,13 @@ export function completeInstalledSourceInitialization(services, sourceOriginal, 
   releaseFinishedSourceWorkspaces(material);
   if (material.ioPending !== 0 || material.constructors !== 0 || material.workspaces.size !== 0 || environment === undefined ||
       typeof environmentWire !== 'string') fail('InstalledSourceInitializationPending');
-  const bytes = BigInt(Buffer.byteLength(environmentWire));
-  reserveSource(original, material, 16n * bytes, 16n * bytes, 8n * bytes);
+  // The original final checker already constructed this body. Fund its actual
+  // retained tree/text before adopting the SAME body; completion adds no parse,
+  // canonicalization or second construction workspace.
+  const retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  reserveSource(original, material, 0n, 0n, 0n, undefined, retained);
   material.inputs.push(environmentWire);
-  material.nodes += 16n * bytes; material.text += 16n * bytes; material.wire += 8n * bytes;
+  material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
   sourceCall(original, material, 'CompleteInstalledSourceMaterial', [material.capacity, material.input,
     sourceOriginal, environment, sourceQuote(original, material)]);
   material.sourceOriginal = sourceOriginal; material.environment = environment;

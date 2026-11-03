@@ -8,7 +8,7 @@ import * as loader from './installed-effect.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation,
-  retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization,
+  retireInstalledSourceInitialization, beginInstalledSourceInitialization, finishInstalledSourceInitialization, completeInstalledSourceInitialization,
   assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction, reserveInstalledSourceEnvironment, prepareInstalledSourceAcquisitionContracts, installedSourceConfigurationReader, readInstalledSourceAcquisitionContract} from './installed-host-services.mjs';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -494,7 +494,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
   const base = {catalog_cid: cid, catalog: '{}', contracts: [], view_bodies: [],
     evidence_schemas: [], evidence_capabilities: [], manifest_entry: '{}'};
   const declared = {...base, command_bodies: ['{}']};
-  const events = [], quotes = [], reservedQuotes = [], completions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
+  const events = [], quotes = [], reservedQuotes = [], completions = [], sourceCompletions = [], refusal = new Error('original command reservation refused'), contractOriginal={original:'contracts'};
   let reserveCalls = 0, retired = 0, context, pending;
   const originalIo=new Set();
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction','CompleteInstalledSourceMaterial',
@@ -502,6 +502,10 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     'AbortUncontinuedSourceMaterial','BeginInstalledSourceIo','ChargeInstalledSourceIo',
     'MarkInstalledSourceIoTransferUncertain','FinishInstalledSourceIoAfterCleanup'].map(name => ['clientProgram' + name, () => ok()]));
   Object.assign(moon, {
+    clientProgramCompleteInstalledSourceMaterial(value, original, source, environment, quote) {
+      assert.equal(value, capacity);assert.equal(original, input);assert.equal(source,input);
+      sourceCompletions.push({source,environment,quote});events.push('source-complete');return ok();
+    },
     clientProgramBeginInstalledSourceIo(value,original,bytes) {assert.equal(value,capacity);assert.equal(original,input);assert.equal(typeof bytes,'bigint');const operation=Object.freeze({original:'fixture-io'});originalIo.add(operation);events.push('io-begin');return ok(operation);},
     clientProgramChargeInstalledSourceIo(operation,bytes) {assert(originalIo.has(operation));assert.equal(typeof bytes,'bigint');events.push('io-charge');return ok();},
     clientProgramFinishInstalledSourceIoAfterCleanup(operation) {assert(originalIo.delete(operation));events.push('io-finish');return ok();},
@@ -537,7 +541,7 @@ function commandConstructionFixture({refuseReserve = false, failProjection, duri
     if (failProjection === 'async') return new Promise(resolve => {pending = resolve;});
     return Object.freeze({declared, commands, definition: Object.freeze({installed:commands[0]}), wire:JSON.stringify(declared)});
   }});
-  return {context,services,projection,commands,declared,declaration,quotes,reservedQuotes,completions,events,refusal,contractOriginal,installed,moon,native,environment,
+  return {context,services,input,projection,commands,declared,declaration,quotes,reservedQuotes,completions,sourceCompletions,events,refusal,contractOriginal,installed,moon,native,environment,
     prepare:expected=>context.prepareDeclaredCommands('{"views":[]}',projection,expected),
     finish:()=>finishInstalledSourceInitialization(context, undefined, new Error('original unit terminal'), true),
     retire:()=>retireInstalledSourceInitialization(services), retired:()=>retired,originalIo,
@@ -955,4 +959,28 @@ test('Source Command optional definition must be own DATA when supplied', () => 
   assert.equal(getterCalls, 0);
   assert.equal(f.completions.length, 0, 'invalid output never selects a retained-only quantity');
   f.finish(); assert.equal(f.retire(), true);
+});
+
+test('final Source handoff retains the built Environment without another parser workspace', () => {
+  function complete(text) {
+    const f = commandConstructionFixture();f.prepare();f.finish();
+    const environment = Object.freeze({original: 'checked Environment'});
+    completeInstalledSourceInitialization(f.services, f.input, environment,
+      JSON.stringify({name: text}));
+    assert.equal(f.sourceCompletions.length, 1);
+    assert.strictEqual(f.sourceCompletions[0].environment, environment);
+    assert.deepEqual(f.reservedQuotes.at(-1).original.values.slice(3), [0n,0n,0n],
+      'The original checked body already exists; completion does not parse it again');
+    assert.deepEqual(f.events.slice(-2), ['reserve','source-complete']);
+    assert.equal(f.retire(), true);
+    return f.sourceCompletions[0].quote.original.values;
+  }
+  const short = complete('x'), long = complete('x'.repeat(100000));
+  assert.equal(long[0], short[0], 'A String retains text bytes, not one Value node per byte');
+  assert.ok(long[1] > short[1]);
+  const f = commandConstructionFixture({refuseReserve:true,reserveAt:4});f.prepare();f.finish();
+  assert.throws(() => completeInstalledSourceInitialization(f.services,f.input,{},'{}'),
+    error => error === f.refusal);
+  assert.equal(f.sourceCompletions.length,0,'Original refusal precedes the existing completion');
+  assert.equal(f.retire(),true);
 });
