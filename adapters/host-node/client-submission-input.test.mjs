@@ -64,6 +64,32 @@ const notAccepted = code => error => {
   assert.deepEqual(outcome.submissionRef, sdk.getSubmissionInput(error).submissionRef);
   return true;
 };
+// These actual Request failures precede an original semantic CheckOutcome.
+// Preserve the SDK's owned input/phase without manufacturing a report or
+// invoking a second checker to obtain a verdict, limits or text coordinates.
+function assertOriginalPreparationRefusal(fixture, error, program) {
+  assert.equal(error?.code, 'SubmissionNotAccepted');
+  const outcome = sdk.getSubmissionOutcome(error), input = sdk.getSubmissionInput(error);
+  assert.equal(outcome?.kind, 'not_accepted');
+  assert.equal(input.kind, 'program');
+  assert.deepEqual(input.input, program);
+  assert.deepEqual(Object.keys(input.input), Object.keys(program));
+  assert.notStrictEqual(input.input, program);
+  assert.equal(Object.isFrozen(input), true); assert.equal(Object.isFrozen(input.input), true);
+  assert.deepEqual(outcome.submissionRef, input.submissionRef);
+  const before = [...fixture.operations];
+  const checked = sdk.getSubmissionCheckObservation(error);
+  assert.equal(checked, undefined, '[check-mutation:program-presemantic-observation]');
+  assert.equal(sdk.getCheckInput(checked, 'program'), undefined);
+  assert.equal(sdk.getCheckFixes(checked), undefined);
+  assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
+  assert.equal(sdk.getSubmissionInput({...error}), undefined);
+  assert.equal(sdk.getSubmissionOutcome({...error}), undefined);
+  assert.strictEqual(sdk.getSubmissionInput(error), input);
+  assert.deepEqual(fixture.operations, before, '[check-mutation:program-presemantic-passive]');
+  assert.deepEqual(fixture.stored(), []);
+  assert.deepEqual(fixture.counts(), {submits:0, issues:0});
+}
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'principal-a', capabilities: ['aql-document'],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
@@ -511,45 +537,28 @@ for (const entrance of ['local', 'https']) {
     }
   });
 
-  test(`${entrance}: structured Program implementation and budget limits retain input pointers`, async t => {
+  test(`${entrance}: structured Program preparation limits retain input without a semantic observation`, async t => {
     const f = await fixture(t, entrance);
     const unsupported = JSON.parse(document);
     unsupported.bindings = {opaque: {type: 'string'}};
     const budget = JSON.parse(document);
     budget.stages = Array.from({length: 33}, (_, index) => ({...budget.stages[0], id: `stage-${index}`}));
-    for (const [program, code, pointer] of [[unsupported, 'implementation_limit', '/bindings'],
-      [budget, 'analysis_budget_exhausted', '/stages']]) {
+    for (const program of [unsupported, budget]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
-      const checked = sdk.getSubmissionCheckObservation(rejected);
-      assert.equal(checked?.report.verdict, 'undetermined', '[check-mutation:program-limit-verdict]');
-      assert.deepEqual(checked.report.reasons, []);
-      const owned = sdk.getCheckInput(checked, 'program');
-      assert.deepEqual(checked.report.coverage.limits, [{code, ...(pointer === undefined ? {} : {
-        location: {kind: 'structured', document_id: 'program', revision: owned.revision, pointer}})}],
-      '[check-mutation:program-limit-facts]');
-      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      assertOriginalPreparationRefusal(f, rejected, program);
     }
   });
 
-  test(`${entrance}: structured Program Unicode pointers and declaration types retain exact input`, async t => {
+  test(`${entrance}: structured Program Unicode and declaration refusals retain exact preparation input`, async t => {
     const f = await fixture(t, entrance);
     const unicode = {...JSON.parse(document), 'e\u0301/😀~': null};
     const defaultType = {...JSON.parse(document), params: {n: {type: 'number', default: 'private-default'}}};
-    for (const [program, code, pointer, facts] of [[unicode, 'program_structure_invalid', '/e\u0301~1😀~0', {issue: 'invalid_structure'}],
-      [defaultType, 'parameter_default_type_mismatch', '/params/n/default', {parameter: 'n', expected_type: 'number', actual_type: 'string'}]]) {
+    for (const program of [unicode, defaultType]) {
       let rejected;
       try {await f.client.start(program);} catch (error) {rejected = error;}
-      const checked = sdk.getSubmissionCheckObservation(rejected);
-      assert.equal(checked?.report?.verdict, 'invalid');
-      const input = sdk.getCheckInput(checked, 'program');
-      assert.deepEqual(checked.report.reasons, [{code, facts,
-        location: {kind: 'structured', document_id: 'program', revision: input.revision, pointer}}],
-      '[check-mutation:program-unicode-location]');
-      assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, input);
-      assert.deepEqual(input.value, program);
-      assert.equal(JSON.stringify(checked).includes('private-default'), false);
-      assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      assertOriginalPreparationRefusal(f, rejected, program);
+      assert.equal(JSON.stringify(sdk.getSubmissionOutcome(rejected)).includes('private-default'), false);
     }
   });
 

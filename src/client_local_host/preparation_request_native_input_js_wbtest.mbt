@@ -60,6 +60,66 @@ extern "js" fn request_native_test_value(document : String) -> NativeJsonValue =
   #|(document) => JSON.parse(document)
 
 ///|
+// The authored SDK values fixture and its four original refusal mutations.
+// This constructs test DATA only; the existing Request driver below performs
+// the actual native admission, declaration and semantic-phase selection.
+extern "js" fn request_native_presemantic_case(index : Int) -> String =
+  #|(index) => {
+  #| const program = {version:'actql/0.1', id:'client-values', stages:[{
+  #|   id:'source', inputs:{}, steps:[{values:{schema:{id:{type:'number',nullable:false}},
+  #|     rows:[{id:1},{id:2}]}, as:'selected'}],
+  #|   results:{rows:{from:'selected',fields:['id']}}}],
+  #|   results:{answer:{from:{stage:'source',result:'rows'}}}};
+  #| if (index === 0) program.bindings = {opaque:{type:'string'}};
+  #| else if (index === 1) program.stages = Array.from({length:33}, (_,i) =>
+  #|   ({...program.stages[0], id:`stage-${i}`}));
+  #| else if (index === 2) program['e\u0301/😀~'] = null;
+  #| else if (index === 3) program.params = {n:{type:'number',default:'private-default'}};
+  #| else throw new Error('Unknown authored refusal case');
+  #| return JSON.stringify(program);
+  #|}
+
+///|
+test "native submission preparation refusals have no original semantic observation" {
+  let (environment, publication) = request_query_publication_fixture()
+  for index in 0..<4 {
+    let text = request_native_presemantic_case(index)
+    let (parent, input) = native_driver_parent(text)
+    let terminal = match
+      prepare_request_native_computation_check(
+        parent,
+        input,
+        request_native_test_value(text),
+        native_json_reader,
+        environment,
+        publication,
+        [],
+        @publication_host.client_standard_program_preparation_limits(),
+        @publication_host.client_standard_effect_computation_limits(),
+      ) {
+      Err(issue) => issue
+      Ok(_) => fail("the authored refusal was accepted: " + index.to_string())
+    }
+    guard terminal is Preparation(_) else {
+      fail("the original semantic checker was reached: " + index.to_string())
+    }
+    assert_true(
+      parent.compiled_program is None && parent.compiled_effect is None,
+    )
+    let before = @resources.ledger_usage(parent.ledger)
+    // An absent original cannot supply a report, location or verdict. Even a
+    // malformed audience body must not invoke a replacement projection.
+    assert_true(
+      request_observation_project(parent, input, terminal, "malformed")
+      is Ok(None),
+    )
+    assert_eq(@resources.ledger_usage(parent.ledger), before)
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
 test "Request native input reaches the existing Program and original checker on one capacity" {
   let input = [1]
   let calls = Ref(0)
