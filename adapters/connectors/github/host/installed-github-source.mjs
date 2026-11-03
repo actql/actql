@@ -379,10 +379,10 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
     const repository = Object.freeze({nodeId:publication.repository.node_id,
       databaseId:publication.repository.id,nameWithOwner:`${site.owner}/${site.repo}`});
     const providerReader = construction.createSourceReader({implementation,
-      prepareReadSequence(input) {
+      prepareReadSequence(input,retireProjection) {
         return prepareGitHubSourceReadSequence({moon:providerMoon,site:opened.site,repository,
           preparedRead:input.preparedRead,originalAuthorization:input.originalAuthorization,
-          limits:readLimits,responseCapacity});
+          limits:readLimits,responseCapacity,retireProjection});
       }});
     return await construction.createRowSource({
       readOperation: GITHUB_GRAPHQL_READ_OPERATION, physicalTarget,

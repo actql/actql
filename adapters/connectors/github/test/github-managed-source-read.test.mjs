@@ -10,7 +10,8 @@ import {createInstalledCredentialSourceReader} from '../../../host-node/installe
 // Actual entire GitHub protocol and actual shared Reader; native codec,
 // Site/authorization, original-response and capacity ports are explicit.
 // This is a caller/lifetime component, not real Core/IO/funding or ACK proof.
-function protocolFixture({foreign = false, pagePending, projectionFailure, resource = 'issues'} = {}) {
+function protocolFixture({foreign = false, pagePending, projectionFailure, resource = 'issues',
+  beforeFinish, finishFailure, closeFailure, closeFailures = 0} = {}) {
   const events = [], grant = {}, scope = Object.freeze({operation:'github:graphql:read',
     runInvocationCid:'original-run',dispatchRequestCid:'original-dispatch'});
   const original = Object.freeze({grant,scope,useId:'nonce-read-0'});
@@ -19,14 +20,14 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
     identity(actual) {assert.equal(actual,grant);return 'original-grant';},
     useProjection(value) {return value;},
   }),journal:{}});
-  let commentReplies = 0, sends = 0;
+  let commentReplies = 0, sends = 0, closeAttempts = 0;
   const methods = {
     githubIssuesRequestJson() {events.push('request');return '{"body":"original native request"}';},
     githubIssuePageReadBegin() {events.push('decode');if(projectionFailure)throw projectionFailure;return {$tag:1,_0:{}};},
     githubIssuePageReadNextRequestJson() {return {$tag:1,_0:'{"body":null}'};},
     githubIssuePageReadAccept(){assert.fail('No nested page');},
-    githubIssuePageReadFinishJson() {return {$tag:1,_0:'{"rows":[{"id":"original"}],"hasNextPage":false,"endCursor":null}'};},
-    githubIssuePageReadClose() {events.push('codec-close');},
+    githubIssuePageReadFinishJson() {beforeFinish?.();if(finishFailure!==undefined)throw finishFailure;return {$tag:1,_0:'{"rows":[{"id":"original"}],"hasNextPage":false,"endCursor":null}'};},
+    githubIssuePageReadClose() {events.push('codec-close');if(closeAttempts++<closeFailures)throw closeFailure;},
     githubGraphqlReadIssueJson() {assert.fail('No codec refusal');},
     githubRequestHeadersJson(){return '[]';},githubResponseHeadersJson(){return '[]';},
     githubRateLimitBasisJson(){return '{"remaining":3}';},githubClassifyFailureJson(){assert.fail('No HTTP refusal');},
@@ -74,12 +75,12 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
     }});
   const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,assertCurrent(){},
     maxResponses:10,maxResponseBytes:4000000,maxTotalResponseBytes:40000000,maxRequestBytes:16384,
-    prepareReadSequence(input){
+    prepareReadSequence(input,retireProjection){
       assert.equal(input.originalAuthorization,original);
       provider=prepare({moon,site,repository:{nodeId:'R_original',databaseId:13,nameWithOwner:'o/r'},
         preparedRead:input.preparedRead,originalAuthorization:original,
         limits:{maxPages:10,maxRows:100,maxBytes:4000000,maxNodes:400000,maxDepth:32,perPage:100,maxRequestBytes:16384,maxSubjects:100},
-        responseCapacity(bytes){events.push('grow-before-decode');return {bytes};}});
+        retireProjection,responseCapacity(bytes){events.push('grow-before-decode');return {bytes};}});
       return provider;
     }});
   const reader=factory.prepare(Object.freeze({resource,columns:['id'],originalAuthorization:original,
@@ -101,10 +102,11 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
 test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement', async () => {
   const f=protocolFixture();
   assert.deepEqual(await f.reader.read(),{pages:1,rowCount:1});
-  assert.deepEqual(f.events,['request','original-occurrence','receive','charge','grow-before-decode','grow-retained','decode','codec-close','consume']);
+  assert.deepEqual(f.events,['request','original-occurrence','receive','charge','grow-before-decode','grow-retained','decode','consume']);
   assert.equal(f.capacities.length,1);assert.equal(f.reader.observe().cleanupConfirmed,false);
   f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);assert.equal(f.factory.retire(),true);
-  assert.equal(f.provider().retire(),true);assert.equal(f.events.at(-1),'binding-close');
+  assert.equal(f.provider().retire(),true);assert.equal(f.events.at(-1),'codec-close');
+  assert(f.events.indexOf('binding-close')<f.events.indexOf('codec-close'));
 });
 
 test('GitHub native Source refuses foreign original before request or physical child', async () => {
@@ -170,7 +172,8 @@ test('GitHub actual loader forwards original native capacity sequence and comple
   const prepared=await rowOptions.prepareRead({resource:'issues',nonce:'original-nonce',runInvocationCid:'original-run',dispatchRequestCid:'original-dispatch'});
   assert.deepEqual(prepared,{resource:'issues',nonce:'original-nonce',runInvocationCid:'original-run',dispatchRequestCid:'original-dispatch',signal:undefined});
   const originalAuthorization={grant:{},scope:{operation:'github:graphql:read',runInvocationCid:'original-run',dispatchRequestCid:'original-dispatch'}};
-  const protocol=readerOptions.prepareReadSequence({preparedRead:prepared,originalAuthorization});
+  const protocol=readerOptions.prepareReadSequence({preparedRead:prepared,originalAuthorization},
+    (method,receiver,args)=>Reflect.apply(method,receiver,args));
   assert.equal(typeof protocol.read,'function');assert.equal(protocol.retire(),true);
 });
 
@@ -192,4 +195,22 @@ test('GitHub managed comments consume the same enumeration charge before the dep
   assert.equal(f.events.filter(value=>value==='consume').length,1);
   assert(f.events.indexOf('observation')<f.events.lastIndexOf('receive'));
   f.reader.requestStop();assert.equal(f.factory.retire(),true);
+});
+
+
+test('GitHub original decoder failure survives caller stop and its same close remains retryable', async () => {
+  const primary=new Error('original native finish failure'),stop=new Error('same caller stop');
+  const cleanup=new Error('original decoder close pending');
+  let f;
+  f=protocolFixture({beforeFinish(){f.reader.requestStop(stop);},finishFailure:primary,
+    closeFailure:cleanup,closeFailures:1});
+  await assert.rejects(f.reader.read(),error=>error===primary);
+  assert.equal(f.events.filter(value=>value==='receive').length,1);
+  assert.equal(f.events.includes('consume'),false);
+  assert.equal(f.events.filter(value=>value==='codec-close').length,1);
+  assert.equal(f.reader.observe().cleanupConfirmed,false);
+  assert.equal(f.factory.retire(),true);
+  assert.equal(f.events.filter(value=>value==='codec-close').length,2);
+  assert.equal(f.events.filter(value=>value==='binding-close').length,1);
+  assert.equal(f.reader.observe().cleanupConfirmed,true);
 });
