@@ -4340,6 +4340,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       localPreparationCustody.adopt(await prepareCapturedSubmission(submission), submission));
     preparation.bindSourceRequest(submission, submission.preparedProgram);
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
+    // A restored non-Effect request needs the SAME pre-admitted Plan as a
+    // fresh submission before Source preparation or publication reads it.
+    // Effect definitions retain their existing constructor below.
+    if (!effectful) admitPreparedSubmission(submission);
     const preparedSources = acquisitionCount === 2
       ? await prepareAcquisitions(submission.preparedProgram) : undefined;
     const keyedPrepared = keyedAcquisition === undefined ? undefined :
