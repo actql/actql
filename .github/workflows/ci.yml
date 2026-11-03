@@ -317,7 +317,7 @@ jobs:
           node scripts/local-checks.mjs test node --timeout-seconds 300 --
           --test-name-pattern '^Reader custody callbacks preserve'
           scripts/test-native-core.test.mjs
-      # Use one test job per actual runner CPU. Building is unaffected.
+      # Keep test invocation parallelism at the actual runner CPU count.
       - name: Test common core
         # A diagnostic failure still fails this job, but must not suppress the
         # original Native campaign after its actual prerequisites succeeded.
@@ -336,7 +336,10 @@ jobs:
             fi
             # Reopen remains within a run; the full run below starts fresh.
             node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
-            node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)" --verbose
+            # Pinned macOS compiler processes have trapped during the cold
+            # parallel build. Prepare the same artifacts serially in the same
+            # fixture, then retain the original parallel test invocation.
+            ACTQL_TEST_NATIVE_SERIAL_BUILD=1 node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)" --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then

@@ -11,6 +11,7 @@ import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
 import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
+import {runNativeCoreTestSequence} from './native-core-test-sequence.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
@@ -59,6 +60,64 @@ test('Native Effect capture progress missing evidence remains unavailable', asyn
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
+
+test('Native Core serial preparation keeps the original parallel test selection and one deadline', () => {
+  const args = Object.freeze(['--target', 'native', '--deny-warn', '-j', '3', '--verbose']);
+  const env = Object.freeze({DYLD_INSERT_LIBRARIES: '/original/reader.dylib',
+    ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: '/original/fixture'});
+  const times = [0, 1200.1];
+  let builds = 0, tests = 0;
+  const status = runNativeCoreTestSequence(args, {serialBuild: true, timeout: 1800000,
+    cwd: '/same/source', env, evidenceScratch: '/same/fixture'}, {
+    platform: 'darwin', now: () => times.shift(),
+    build(command, actual, options) {
+      builds++;
+      assert.equal(command, 'moon');
+      assert.deepEqual(actual, ['test', '--target', 'native', '--deny-warn', '--verbose', '--build-only', '-j', '1']);
+      assert.equal(options.env, env); assert.equal(options.cwd, '/same/source');
+      assert.equal(options.timeout, 1800000); assert.equal(options.stdio, 'inherit');
+      return {status: 0, signal: null};
+    },
+    test(kind, actual, options) {
+      tests++;
+      assert.equal(kind, 'moon'); assert.equal(actual, args);
+      assert.equal(options.env, env); assert.equal(options.cwd, '/same/source');
+      assert.equal(options.evidenceScratch, '/same/fixture');
+      assert.equal(options.timeout, 1798799);
+      return 7; // The real nonzero-execution/test failure remains a failure.
+    },
+  });
+  assert.equal(status, 7); assert.equal(builds, 1); assert.equal(tests, 1);
+});
+
+test('Native Core failed or expired serial preparation never counts as test success', () => {
+  for (const result of [{status: 2}, {status: null, signal: 'SIGTRAP'},
+    {status: null, error: {code: 'ETIMEDOUT'}}]) {
+    let tests = 0;
+    const status = runNativeCoreTestSequence(['--target', 'native', '--deny-warn', '-j3'],
+      {serialBuild: true, timeout: 100}, {platform: 'darwin',
+        build: () => result, test: () => { tests++; }, now: () => 0});
+    assert.notEqual(status, 0); assert.equal(tests, 0);
+  }
+  const times = [0, 100];
+  assert.equal(runNativeCoreTestSequence(['--target', 'native', '--jobs=3'],
+    {serialBuild: true, timeout: 100}, {platform: 'darwin', now: () => times.shift(),
+      build: () => ({status: 0}), test: () => assert.fail('expired build started tests')}), 1);
+});
+
+test('Native Core serial preparation is opt-in and refuses a foreign platform', () => {
+  const args = ['--target', 'native', '-j', '3'];
+  assert.equal(runNativeCoreTestSequence(args, {timeout: 100}, {
+    build: () => assert.fail('unselected serial build'),
+    test: (kind, actual) => { assert.equal(actual, args); return 0; }}), 0);
+  assert.throws(() => runNativeCoreTestSequence(args, {serialBuild: true, timeout: 100},
+    {platform: 'linux', build: () => assert.fail('foreign compiler build')}), /only on Darwin/u);
+  assert.equal(workflow.jobs.core['timeout-minutes'], 30);
+  assert.match(coreStep.run, /ACTQL_TEST_NATIVE_SERIAL_BUILD=1 node scripts\/test-native-core\.mjs --deny-warn -j "\$\(getconf _NPROCESSORS_ONLN\)" --verbose/u);
+  assert.equal((coreStep.run.match(/ACTQL_TEST_NATIVE_SERIAL_BUILD/gu) ?? []).length, 1);
+  assert.match(coreStep.run, /moon test --target "\$\{\{ matrix.target \}\}" --deny-warn -j "\$\(getconf _NPROCESSORS_ONLN\)"/u);
+  assert.doesNotMatch(coreStep.run, /--no-parallelize/u);
+});
 
 test('Reader custody injection loads on the supported Native host profile', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
