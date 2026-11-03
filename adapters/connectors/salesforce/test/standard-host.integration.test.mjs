@@ -74,10 +74,23 @@ const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
   sign: bytes => sign(null, bytes, reviewerKeys.privateKey)};
 const tokens = new Map([['owner-token', owner],
   ['reviewer-token', 'reviewer-principal']]);
+// The provider Account cannot authorize Host observations. These exact Named
+// Results are authored below; run/read never grants a Result or Source read.
+const hostReadEntry = {entry_id:'host-results', outcome:'allow', exclusions:[],
+  principal:{any_of:[owner]}, connection:{any_of:['actql-remote-host']},
+  resource:{any_of:['result/answer','result/audit','result/consumed_a','result/consumed_b','result/joined','result/published','result/records','run']},
+  operation:{any_of:['read']}};
+const sourceHostAuthorization = {accountConfiguration:canonicalJson({
+  version:'actql-execution-account-config/0.1', account_id:'salesforce-host-account',
+  entries:[hostReadEntry,{entry_id:'source-run',outcome:'allow',exclusions:[],
+    principal:{any_of:[owner]},connection:{any_of:['actql-remote-host']},
+    // The installed Source declares this existing realization, not a provider
+    // operation or a grant inferred from the Program/Result name.
+    resource:{any_of:['salesforce-acquired']},operation:{any_of:['write']}}]})};
 const checkpointAuthorization = extra => ({
   accountConfiguration: canonicalJson({
     version: 'actql-execution-account-config/0.1',
-    account_id: 'host-account', entries: [{entry_id: 'host-run',
+    account_id: 'host-account', entries: [hostReadEntry, {entry_id: 'host-run',
       outcome: 'allow', principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {any_of: ['write']},
       exclusions: []}]}),
@@ -209,7 +222,7 @@ async function installation(t, {readable = ['Test_Record__c'],
     return first;
   };
   const open = async ({authenticate = header =>
-    tokens.get(header?.replace(/^Bearer /u, '')), authorization} = {}) => {
+    tokens.get(header?.replace(/^Bearer /u, '')), authorization = sourceHostAuthorization} = {}) => {
     const host = await openInstalledRemoteHttpHost({directory: hostRoot,
       authenticate,
       ...(secondInstallation ? {sourceProfilePaths: [profilePath,
@@ -290,7 +303,13 @@ test('public Client reads a published Salesforce source to a Named Result',
     const setup = await installation(t);
     const start = setup.org.seen.length;
     // A Host start without a publication refuses before any provider I/O.
-    await assert.rejects(setup.open(), {code: 'SalesforcePublicationMissing'});
+    await assert.rejects(setup.open(), error => {
+      assert.equal(error.code,'InstalledHostInitializationFailed');
+      assert.equal(error.primaryFailure?.code,'SalesforcePublicationMissing');
+      assert.strictEqual(error.cause,error.primaryFailure,'The same missing publication remains primary');
+      assert.equal(error.cleanupHandle.status().pending,false);
+      return true;
+    });
     assert.equal(setup.org.seen.length, start);
     await setup.publish();
     const published = setup.org.seen.length;
