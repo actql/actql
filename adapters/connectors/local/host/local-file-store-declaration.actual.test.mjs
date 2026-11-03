@@ -929,7 +929,7 @@ test('actual Local STORE cold capture refuses altered original source schema',as
           Reflect.apply(store.readPrivateEvidence,store,args)});
       await assert.rejects(recoverCompletedEffectfulComputation({store:changedStore,control,runDefinition,
         contractLimits:{maxWireBytes:1000000,maxNodes:100000,maxDepth:100}}),
-        error=>error?.code===code,name);
+        error=>{assert.equal(error?.code,code,name);return true;});
     }
     assert.deepEqual(JSON.parse((await store.readPrivateEvidence('effect_capture',
       stage.computation.capturedRun.identity,recordCid)).toString('utf8')),original,
