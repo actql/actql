@@ -1,3 +1,4 @@
+import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // The standard installed Host reading a Salesforce source: an explicit
@@ -2300,26 +2301,34 @@ test('installed Salesforce Read has only the neutral capture owner', async t => 
   }
 });
 
-test('typed row handoff rejects a foreign field map or contract before capture',
+test('typed provider pages reject missing bound fields and incompatible values before capture',
   async t => {
-    const setup = await installation(t, {numberFields: true});
-    await setup.publish();
     for (const fault of ['field', 'contract']) {
+      // The native provider owns its original typed page. Fault the actual
+      // physical reply; the retired Host Values callback cannot replace it.
+      const setup = await installation(t, {numberFields: true,
+        queryResponse(body) {
+          if (fault === 'field') {
+            body.records[0].foreign = body.records[0].Id;
+            delete body.records[0].Id;
+          } else body.records[0].Amount__c = 'not-a-number';
+          return body;
+        }});
+      await setup.publish();
       let captures = 0;
       const runtime = {...commonMoon,
         clientProgramRowSourceCapture(...args) {
           captures++;
           return commonMoon.clientProgramRowSourceCapture(...args);
-        },
-        clientProgramRowSourceAcceptChargedValues(run, charge, columns, rows) {
-          if (fault === 'field') columns = columns.map(() => 'foreign');
-          else rows = rows.map(row => row.map(() => row[0]));
-          return commonMoon.clientProgramRowSourceAcceptChargedValues(
-            run, charge, columns, rows);
         }};
-      const {adapter, common} = await installedAdapter(setup, numberProgram, runtime);
+      const {adapter, common, openAccounted} = await installedAdapter(setup, numberProgram, runtime);
       try {
-        await assert.rejects(adapter.open(common), error => error.outcome === 'stopped');
+        await assert.rejects(openAccounted(common), error => {
+          assert.ok(error instanceof AcquisitionOpenError);
+          assert.equal(error.outcome, 'stopped');
+          return true;
+        });
+        assert.equal(setup.queries().length, 1);
         assert.equal(captures, 0);
       } finally { adapter.close(); }
     }
@@ -2330,12 +2339,14 @@ test('a complete typed read cannot capture before its exact transport settles',
     const setup = await installation(t);
     await setup.publish();
     const runtime = {...commonMoon,
-      clientProgramRowSourceStart(acquisition, nonce) {
-        return commonMoon.clientProgramRowSourceStart(acquisition, nonce, () => false);
+      clientProgramRowSourceStartProviderAccounted(acquisition, provider, nonce, _settled,
+        ledger, transferBytes, executionBytes) {
+        return commonMoon.clientProgramRowSourceStartProviderAccounted(
+          acquisition, provider, nonce, () => false, ledger, transferBytes, executionBytes);
       }};
-    const {adapter, common} = await installedAdapter(setup, program, runtime);
+    const {adapter, common, openAccounted} = await installedAdapter(setup, program, runtime);
     try {
-      await assert.rejects(adapter.open(common), error => error.outcome === 'stopped');
+      await assert.rejects(openAccounted(common), error => error.outcome === 'stopped');
       assert.equal(setup.queries().length, 1);
     } finally { adapter.close(); }
 });
