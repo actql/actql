@@ -277,6 +277,81 @@ pub fn recheck_installed_salesforce_row_projection(
 }
 
 ///|
+/// Recheck the same complete-input acquisition without constructing a Query
+/// requirement. Its exact declared view fixes the bounded snapshot/empty
+/// request protocol; authored operations remain in the original full sequence.
+pub fn recheck_installed_salesforce_input_projection(
+  declaration : InstalledSalesforceDeclaration,
+  acquisition : @rows.RowInputAcquisition,
+  current : @catalog.CatalogObservation,
+  max_soql_bytes : Int,
+) -> Result[@catalog.ReadProjection, InstalledSalesforceIssue] {
+  guard current.binding is @catalog.SiteCatalog(binding) else {
+    return Err(ForeignBinding)
+  }
+  if !site_binding_matches(declaration.site, binding) {
+    return Err(ForeignBinding)
+  }
+  let facts = @rows.row_input_acquisition_facts(acquisition)
+  let (resource, columns) = @rows.row_input_acquisition_target(acquisition)
+  let mut declared = false
+  for view in declaration.declaration.views {
+    if view.source_ref == facts.source_ref &&
+      view.resource == resource &&
+      view.view_cid == facts.source_contract_cid &&
+      view.view_cid == facts.source_view_contract_cid &&
+      view.carrier_schema_cid == facts.carrier_schema_contract_cid &&
+      view.data_policy_cid == facts.source_data_policy_cid &&
+      facts.data_classification == "unknown" &&
+      view.fields.length() == columns.length() &&
+      columns.all(name => view.fields.contains(name)) {
+      declared = true
+      break
+    }
+  }
+  if !declared {
+    return Err(UndeclaredSource)
+  }
+  let plan = match
+    @catalog.prepare_read_projection(
+      current, binding, resource, columns, max_soql_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Projection(issue))
+  }
+  // Bind the actual input contracts in the native plan's field order. A
+  // separately admitted equal schema cannot stand in for these originals.
+  let contracts = []
+  for name in @catalog.read_projection_fields(plan) {
+    let mut original = None
+    for index, column in columns {
+      if column == name {
+        original = @rows.row_input_acquisition_column_contract(
+          acquisition, index,
+        )
+        break
+      }
+    }
+    guard original is Some(contract) else {
+      return Err(Preparation(InvalidInputSchema))
+    }
+    contracts.push(contract)
+  }
+  guard @catalog.bind_read_projection_contracts(plan, contracts) is Some(bound) else {
+    return Err(Preparation(InvalidInputSchema))
+  }
+  match
+    @catalog.check_declared_read(
+      declaration.declaration,
+      bound,
+      facts.source_view_contract_cid,
+    ) {
+    Ok(_) => Ok(bound)
+    Err(issue) => Err(Preparation(Undeclared(issue)))
+  }
+}
+
+///|
 /// Compatibility preparation for callers that already hold a fresh describe.
 /// Installed dispatch prepares first, then rechecks this exact acquisition.
 pub fn prepare_installed_salesforce_row_acquisition(

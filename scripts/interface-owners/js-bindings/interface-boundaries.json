@@ -8891,7 +8891,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "86160b56c38261fb2fe4324b87b42302ed411a16b1df55bec28ba4f3cd0bcbb0",
+      "sha256": "768dfc6fac90d3efdffeb39e295858c01693903b83f3eee4a2bda0d8f8abbace",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -9027,6 +9027,7 @@
           "parameters": [
             "prepared",
             "acquisition",
+            "wholeInput",
             "decision",
             "granted",
             "resource",
@@ -12160,7 +12161,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "76ca158213b1a1cd275be1707f431e90e41c6fbb01109fd2418a7c6f6bf7586a",
+      "sha256": "a3f179c7bb8cade15f2b479eefdcafde406945879517a9f6bda6b6d9c433282d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -81785,7 +81786,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9a3f06fb6a3f7f7df8f5ecbc3c51020c9ea05df4debe5f2d0e8cbed9743dbb16",
+      "sha256": "1a7589a968861c7b95b72ea5a5d6b029de800b4847bf11c900a5f3aa8431e835",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

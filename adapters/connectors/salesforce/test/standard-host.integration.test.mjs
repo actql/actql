@@ -2472,7 +2472,7 @@ test('Salesforce preparation owns its occurrence across caller mutation', async 
   }
 });
 
-test('acquisition-only Named Result refuses before physical start', async t => {
+test('acquisition-only Named Result keeps the same Salesforce scan and authored residual', async t => {
   const setup = await installation(t);
   await setup.publish();
   const observations = [];
@@ -2483,49 +2483,41 @@ test('acquisition-only Named Result refuses before physical start', async t => {
   t.after(close);
   const providerBefore = setup.org.seen.length;
   const queriesBefore = setup.queries().length;
-  // This is the current admitted positive fixture with only its Compute
-  // consumer removed. The acquisition and its checked Result stay identical.
+  // The declared bounded snapshot request remains unchanged. Only the later
+  // Compute stage is removed; the original Name filter and three fields must
+  // now run in the selected whole-input Plan before this same root Result.
   const input = JSON.parse(program);
   input.id = 'issue324-acquisition-result';
   input.stages = [input.stages[0]];
   input.results.records.from.stage = 'acquire';
   const submissionRef = client.newSubmission({nonce: 'issue324-acquisition-result'});
-  let execution, state, rejection;
-  try {
-    execution = await client.startSource(JSON.stringify(input), {format: 'json', submissionRef});
-    state = await execution.wait();
-  } catch (error) {
-    rejection = {name: error.name, code: error.code, message: error.message};
+  const execution = await client.startSource(JSON.stringify(input), {format: 'json', submissionRef});
+  const state = await execution.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify({status: state.status,
+    nextAction: state.next_action?.kind, code: state.terminal_error?.code}));
+  assert.deepEqual((await execution.result('records').all()).sort((a, b) => a.Id.localeCompare(b.Id)), [
+    {Id: 'a00000000000001', Name: 'record-1', External_Key__c: 'key-1'},
+    {Id: 'a00000000000003', Name: 'record-3', External_Key__c: 'key-3'},
+  ]);
+  assert.equal(setup.queries().length - queriesBefore, 1);
+  const providerRequests = setup.org.seen.slice(providerBefore).map(value =>
+    decodeURIComponent(value.path).split('?')[0]);
+  assert.deepEqual(providerRequests, [
+    '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    '/services/data/v62.0/sobjects/Test_Record__c/describe',
+    '/services/data/v62.0/query',
+  ]);
+  for (const name of ['physical_start_reserved', 'acquisition_started', 'acquisition_completed', 'computed']) {
+    assert.equal(observations.filter(value => value.name === name).length, 1, name);
   }
-  const providerRequests = setup.org.seen.slice(providerBefore).map(value => value.path);
-  const queryCount = setup.queries().length - queriesBefore;
-  const relevant = observations.filter(value => ['dispatch_reserved',
-    'physical_start_reserved', 'acquisition_started', 'acquisition_completed',
-    'computed', 'dispatch_failed', 'cleanup_completed'].includes(value.name));
-  t.diagnostic(JSON.stringify({input, rejection, ref: execution?.ref, state,
-    queryCount, providerRequests, observations: relevant}));
-  assert.equal(rejection, undefined, 'the checked shape must reach its existing Run owner');
-  assert.equal(state.status, 'failed');
-  assert.equal(state.terminal_error.code, 'ACTQL_E_UNPUBLISHED_RUN');
-  assert.equal(state.next_action.kind, 'none');
-  assert.equal(state.control.physical_stop, 'confirmed');
-  assert.equal(queryCount, 0);
-  assert.deepEqual(providerRequests, []);
-  assert.equal(relevant.filter(value => value.name === 'physical_start_reserved').length, 0);
-  assert.equal(relevant.filter(value => value.name === 'acquisition_started').length, 0);
-  assert.equal(relevant.filter(value => value.name === 'acquisition_completed').length, 0);
-  assert.equal(relevant.filter(value => value.name === 'computed').length, 0);
-  assert.equal(state.result_available, false);
-  assert.equal(state.result_availability.records.state, 'unavailable');
-  assert.deepEqual(relevant.filter(value => value.name === 'dispatch_failed')
-    .map(value => value.detail.code), ['InstalledAcquisitionResultPublicationUnsupported']);
+  assert.equal(observations.filter(value => value.name === 'dispatch_failed').length, 0);
   const requests = new DatabaseSync(join(setup.root,
     'state/requests/client-requests.sqlite3'), {readOnly: true});
   try {
     assert.deepEqual(requests.prepare('SELECT dispatch_reserved, ' +
       'physical_start_reserved, pre_dispatch_failure_confirmed FROM client_requests')
       .all().map(row => ({...row})), [{dispatch_reserved: 1,
-      physical_start_reserved: 0, pre_dispatch_failure_confirmed: 1}]);
+      physical_start_reserved: 1, pre_dispatch_failure_confirmed: 0}]);
   } finally {requests.close();}
   await close();
 });

@@ -2670,6 +2670,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         // accounted Run starts. Its native protocol owns every physical child;
         // the original session catches and retires a failed preparation too.
         preparedRead = await prepareRead(Object.freeze({prepared, acquisition,
+          wholeInput: owner.wholeInput,
           decision, granted, resource: owner.resource, nonce, runInvocationCid,
           dispatchRequestCid, signal}));
       }

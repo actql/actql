@@ -299,7 +299,11 @@ export function prepareSalesforceSourceReadSequence(options) {
   let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity} = options;
   options = undefined;
   let describe = method(site, 'describeForAcquisition');
-  let recheck = method(moon, 'clientProgramRecheckSalesforceRowProjection');
+  // The common owner selected this original acquisition before dispatch.
+  // Its complete-input variant is not a QueryRequirement or a Query cast.
+  let recheck = method(moon, preparedRead.wholeInput === true
+    ? 'clientProgramRecheckSalesforceInputProjection'
+    : 'clientProgramRecheckSalesforceRowProjection');
   let values = method(moon, 'clientProgramSalesforceQueryPageValues');
   let credential = own(site, 'credential'), apiVersion = own(site, 'apiVersion');
   const scope = own(originalAuthorization, 'scope');

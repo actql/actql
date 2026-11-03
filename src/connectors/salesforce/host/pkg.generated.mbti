@@ -64,6 +64,8 @@ pub fn prepare_managed_query(@catalog.ReadProjection, String, @catalog.QueryPage
 
 pub fn prepare_salesforce_row_projection(@query_planning.QueryRequirement, @catalog.ReadProjection, String, @catalog.StaticDeclaration) -> Result[SalesforceReadPreparation, SalesforceReadPreparationIssue]
 
+pub fn recheck_installed_salesforce_input_projection(InstalledSalesforceDeclaration, @client_row_source_host.RowInputAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, InstalledSalesforceIssue]
+
 pub fn recheck_installed_salesforce_row_projection(InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @catalog.CatalogObservation, Int) -> Result[@catalog.ReadProjection, InstalledSalesforceIssue]
 
 pub fn recover_installed_salesforce_observation(InstalledSalesforceSite, String, String, String, String, Array[String], Array[Bytes?], Array[Int], Array[String?], Array[String?], @catalog.DescribeLimits, Int, String?) -> Result[@catalog.CatalogObservation, InstalledSalesforceIssue]

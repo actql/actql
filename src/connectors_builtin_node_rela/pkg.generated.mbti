@@ -1749,6 +1749,8 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_read_request_policy_subject(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, Int) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
 
+pub fn client_program_recheck_salesforce_input_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowInputAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
+
 pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_reconcile_program_check_carriers(@client_local_host.ClientProgramCheckPreparation[ClientLocalPreparationInputOriginal, Unit]) -> Result[Unit, @client_local_host.ClientProgramCheckPreparationIssue]

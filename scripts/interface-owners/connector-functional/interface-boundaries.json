@@ -2880,7 +2880,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "86160b56c38261fb2fe4324b87b42302ed411a16b1df55bec28ba4f3cd0bcbb0",
+      "sha256": "768dfc6fac90d3efdffeb39e295858c01693903b83f3eee4a2bda0d8f8abbace",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -3017,6 +3017,7 @@
           "parameters": [
             "prepared",
             "acquisition",
+            "wholeInput",
             "decision",
             "granted",
             "resource",
@@ -3979,7 +3980,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "76ca158213b1a1cd275be1707f431e90e41c6fbb01109fd2418a7c6f6bf7586a",
+      "sha256": "a3f179c7bb8cade15f2b479eefdcafde406945879517a9f6bda6b6d9c433282d",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
@@ -13019,7 +13020,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "9a3f06fb6a3f7f7df8f5ecbc3c51020c9ea05df4debe5f2d0e8cbed9743dbb16",
+      "sha256": "1a7589a968861c7b95b72ea5a5d6b029de800b4847bf11c900a5f3aa8431e835",
       "operations": [
         {
           "name": "byCid/byCid",
