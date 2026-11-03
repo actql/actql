@@ -140,9 +140,12 @@ export async function effectHost(t, installation, state, {effect,
       await releaseCompletedRunPreparedPayloads(stage.storedResults, control);
       return;
     }
-    for (const item of stage.storedResults.results) {
-      if (item.prepared.status().pending) await item.prepared.release();
-    }
+    // Release the SAME completed Result owner's process-local children,
+    // including restored private dependency schemas. Releasing only public
+    // Result handles leaves the recovered capture's original Store custody.
+    // Suspension retains durable evidence and any already-selected terminal
+    // release mode; it does not acknowledge an unknown physical operation.
+    await suspendCompletedEffectfulComputation(stage.publication);
   };
   let closed = false;
   const close = async () => {
@@ -201,7 +204,8 @@ export async function effectHost(t, installation, state, {effect,
           continuation, contractLimits: limits, retainRecoveryOwner});
       } catch (error) {
         outcomes.push({stage: {dispose() {},
-          storedResults: recovery.computation.storedResults}});
+          storedResults: recovery.computation.storedResults,
+          publication: {store, control, ...recovery.computation}}});
         throw error;
       }
       try {
