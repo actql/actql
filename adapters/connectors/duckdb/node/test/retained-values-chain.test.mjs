@@ -672,7 +672,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                     // The old atomic issuer cannot reach this observation.
                     receiptProgress = result._0.progress;
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // Cancel this still-pending original receipt. A timer can
+                    // arrive after the remaining quanta and a later dispatch.
+                    cancellation.abort();
                   }
                   return result;
                 };

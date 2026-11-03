@@ -167,3 +167,88 @@ test('fixture assertion sites ignore operand frames, unknown operators and overs
   Object.defineProperty(oversized, 'stack', {value: 'x'.repeat(32769)});
   assert.equal(managedFixtureCleanupDiagnostic(oversized), 'ERR_ASSERTION/none/none');
 });
+
+// Exercise the actual receipt observer without importing another Common or
+// constructing a second implementation of its cancellation boundary.
+function receiptFinalizationObserver(operation, dispatch, cancellation) {
+  const source = readFileSync(new URL('./retained-values-chain.test.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("              if (name === 'advance_finalization' && mode === 'cancel-during-receipt') {");
+  const end = source.indexOf("              if (name !== 'advance')", start);
+  assert(start >= 0 && end > start);
+  return new Function('operation', 'dispatch', 'cancellation', `
+    const observedDispatch = 5, name = 'advance_finalization', mode = 'cancel-during-receipt';
+    let scheduled = false, receiptProgress = 0n;
+    const receiptTrace = [];
+    const advance = (() => {${source.slice(start, end)}})();
+    return {advance, observations: () => ({scheduled, receiptProgress, receiptTrace})};
+  `)(operation, dispatch, cancellation);
+}
+
+test('receipt cancellation is delivered at the original pending dispatch before another quantum', () => {
+  const controller = new AbortController(), calls = [];
+  const result = {$tag: 1, _0: {complete: false, progress: 4n, work: 1n}};
+  const operation = {advance_finalization(quantum) { calls.push(quantum); return result; },
+    material: () => null};
+  const observer = receiptFinalizationObserver(operation, 5, controller);
+  assert.strictEqual(observer.advance(32), result);
+  assert.equal(controller.signal.aborted, true,
+    'the selected pending receipt must receive cancellation before returning to the driver');
+  assert.deepEqual(calls, [1]);
+  assert.deepEqual(observer.observations(), {scheduled: true, receiptProgress: 4n,
+    receiptTrace: [{progress: 4n, complete: false, material: false}]});
+});
+
+test('receipt cancellation uses the original bounded driver stop before a following dispatch', async () => {
+  const source = readFileSync(new URL('../../../../local-node/strategy-bundle.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('const yieldToHost =');
+  const end = source.indexOf('export function localStrategyContribution(', start);
+  assert(start >= 0 && end > start);
+  const finalize = new Function(source.slice(start, end) + '\nreturn runManagedFinalization;')();
+  const controller = new AbortController();
+  let advances = 0, cancels = 0, stopped = false, followingDispatch = false;
+  const operation = {
+    prepare_finalization: () => ({$tag: 1}),
+    advance_finalization() { advances++; return {$tag: 1, _0: {complete: false, progress: 4n, work: 1n}}; },
+    material: () => null,
+    request_cancel() { cancels++; stopped = true; },
+    execution_stopped: () => stopped,
+    advance() { assert.fail('the original stop already settled its execution'); },
+  };
+  const observer = receiptFinalizationObserver(operation, 5, controller);
+  const original = new Proxy(operation, {get(target, name, receiver) {
+    return name === 'advance_finalization' ? observer.advance : Reflect.get(target, name, receiver);
+  }});
+  await assert.rejects(async () => {
+    await finalize(original, value => { assert.equal(value.$tag, 1); return value._0; },
+      controller.signal, 1, 0n, () => 0n);
+    followingDispatch = true;
+  }, error => error === controller.signal.reason);
+  assert.equal(advances, 1);
+  assert.equal(cancels, 1);
+  assert.equal(followingDispatch, false);
+});
+
+test('receipt observer preserves dispatch, completion, material and single-request fences', () => {
+  for (const {dispatch = 5, complete = false, progress = 4n, material = null, failed = false} of [
+    {dispatch: 4}, {progress: 3n}, {progress: 5n}, {complete: true},
+    {material: {}}, {failed: true},
+  ]) {
+    const controller = new AbortController();
+    const result = failed ? {$tag: 0} : {$tag: 1, _0: {complete, progress, work: 1n}};
+    const observer = receiptFinalizationObserver({advance_finalization: () => result,
+      material: () => material}, dispatch, controller);
+    assert.strictEqual(observer.advance(32), result);
+    assert.equal(controller.signal.aborted, false);
+    assert.equal(observer.observations().scheduled, false);
+  }
+  const controller = new AbortController();
+  let requests = 0;
+  const observer = receiptFinalizationObserver({
+    advance_finalization: () => ({$tag: 1, _0: {complete: false, progress: 4n, work: 1n}}),
+    material: () => null,
+  }, 5, {abort() { requests++; controller.abort(); }});
+  observer.advance(32);
+  observer.advance(32);
+  assert.equal(controller.signal.aborted, true);
+  assert.equal(requests, 1);
+});
