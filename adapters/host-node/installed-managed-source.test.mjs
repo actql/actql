@@ -27,6 +27,55 @@ function visit(node, select) {
     else if (child && typeof child === 'object') visit(child, select);
   }
 }
+// These are the actual loader/binder/publication call sites with explicit
+// service ports, not a second Host or a namespace authorization decision.
+async function publishLoadedSources(profile) {
+  let loading, publication;
+  visit(ast, node => {
+    if (node.type === 'BlockStatement' && node.body.some(statement =>
+      statement.type === 'ExpressionStatement' &&
+      statement.expression.type === 'AssignmentExpression' &&
+      statement.expression.left.name === 'sourceProfile' &&
+      statement.expression.right.type === 'AwaitExpression' &&
+      statement.expression.right.argument.callee?.name === 'loadInstalledSources')) loading = node;
+    if (node.type === 'AssignmentExpression' && node.left.name === 'sourcePublication' &&
+        node.right.callee?.name === 'sourceAliasPublication') publication = node;
+  });
+  assert(loading && publication);
+  return new Function('loadInstalledSources', 'preparation', 'moon', 'sourceAliasPublication', `
+    return (async () => {
+      let sourceProfile, sourcePublication, sourcePublicationSources;
+      const selectedSourcePaths=['/original/source.json'];
+      const root='/host', principalId='reader', environment={};
+      const runtimeUrl=undefined, baseEnvironmentWire=undefined, resolveSourceSecret=undefined;
+      const connectorTable=undefined, installationServices=undefined;
+      const installedEffect=undefined, effectInstallation=undefined, environmentWire=undefined;
+      const sourceNamespace='queries', sourceSelectorNamespace=undefined;
+      ${source.slice(loading.start, loading.end)}
+      ${source.slice(publication.start, publication.end)};
+      return {execution: sourceProfile, publication: sourcePublication};
+    })();
+  `)(async () => profile, {bindManagedSources: (_moon, selected) =>
+    bindInstalledManagedSources(selected, () => assert.fail('Metadata does not admit a Run'))}, {},
+  (_moon, _environment, _aliases, _writes, options) => options.installedSources);
+}
+for (const plural of [false, true]) {
+  test(`Host namespace publication retains loader originals through ${plural ? 'plural' : 'single'} managed binding`, async () => {
+    const originals = Array.from({length: plural ? 2 : 1}, () => ({
+      managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
+    }));
+    const profile = plural ? {sources: originals} : originals[0];
+    const issuedMetadata = new WeakMap(originals.map(original => [original, {}]));
+    const result = await publishLoadedSources(profile);
+    const execution = result.execution.sources ?? [result.execution];
+    assert.equal(result.publication.length, originals.length);
+    for (const [index, original] of originals.entries()) {
+      assert.notStrictEqual(execution[index], original);
+      assert.strictEqual(result.publication[index], original);
+      assert.strictEqual(issuedMetadata.get(result.publication[index]), issuedMetadata.get(original));
+    }
+  });
+}
 function admission(preparation, sourceProfile, prepared, request, count, prepareTimedRunInvocation) {
   let declaration, route;
   visit(ast, node => {

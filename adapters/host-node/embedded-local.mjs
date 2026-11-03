@@ -1476,6 +1476,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
+  let sourcePublicationSources;
   let installedEffect;
   let environmentWire, effectiveHostCapacityPolicyCid;
   let environmentBody, environmentEvidenceCid;
@@ -1726,6 +1727,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       sourceProfile = await loadInstalledSources(selectedSourcePaths,
         {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
           resolveSecret: resolveSourceSecret, connectorTable, installationServices});
+      // Namespace closure belongs to these loader originals. Managed views
+      // retain execution custody but do not carry the loader's metadata proof.
+      sourcePublicationSources = sourceProfile?.sources ??
+        (sourceProfile === undefined ? [] : [sourceProfile]);
       if (preparation !== undefined) sourceProfile = preparation.bindManagedSources(moon, sourceProfile);
     }
     if (!mockSourceInstallation) {
@@ -1926,7 +1931,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           name: sourceNamespace, profilePaths: selectedSourcePaths},
           selectorNamespace: sourceSelectorNamespace === undefined ? undefined : {
             name: sourceSelectorNamespace, profilePaths: selectedSourcePaths},
-          installedSources: sourceProfile?.sources ?? (sourceProfile === undefined ? [] : [sourceProfile])});
+          installedSources: sourcePublicationSources ?? sourceProfile?.sources ??
+            (sourceProfile === undefined ? [] : [sourceProfile])});
       const sourceEnvironmentOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication);
       if (sourceEnvironmentOriginal !== undefined) {
         completeInstalledSourceInitialization(installationServices, originalInstallation,
