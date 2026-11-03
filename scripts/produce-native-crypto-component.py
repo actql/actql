@@ -451,10 +451,11 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
             or int.from_bytes(header[52:54], 'little') != 64):
         raise ValueError('Crypto component requires ELF64 little-endian x86-64 shared image')
     definitions = execute(['/usr/bin/nm', '-D', '--defined-only', str(library)], text=True)
+    undefined = execute(['/usr/bin/nm', '-D', '--undefined-only', str(library)], text=True)
+    dynamic = execute(['/usr/bin/readelf', '--dynamic', '--wide', str(library)], text=True)
     names = {line.split()[-1] for line in definitions.splitlines() if line.strip()}
     if names != set(EXPORTS):
         raise ValueError('Unexpected Linux Crypto component exports')
-    undefined = execute(['/usr/bin/nm', '-D', '--undefined-only', str(library)], text=True)
     imports = set()
     for line in undefined.splitlines():
         if not line.strip():
@@ -471,7 +472,6 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
             raise ValueError('Unexpected Linux Crypto component system import')
     if imports != PROVIDER_IMPORTS:
         raise ValueError('Original Linux Crypto process provider imports differ')
-    dynamic = execute(['/usr/bin/readelf', '--dynamic', '--wide', str(library)], text=True)
     dependencies = re.findall(r'\(NEEDED\).*\[([^\]]+)\]', dynamic)
     if ('libc.so.6' not in dependencies or len(dependencies) != len(set(dependencies))
             or not set(dependencies) <= LINUX_SYSTEM_LIBRARIES):
@@ -558,7 +558,11 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
     runtime_inputs, tool_aliases = original_tool_inputs({'linker': Path(commands[0][0]), **startup})
     inputs.update(runtime_inputs)
     run('link', link)
-    inspected = inspect_linux_component(library)
+    def observe(arguments, text):
+        kind = ('dynamic' if arguments[0] == '/usr/bin/readelf' else
+                'exports' if '--defined-only' in arguments else 'imports')
+        return run('observed-' + kind, arguments)
+    inspected = inspect_linux_component(library, execute=observe)
     dependencies = shlex.split((output / 'component.d').read_text().replace('\\\n', ' ').split(':', 1)[1])
     compiled, aliases = {}, {}
     for name in sorted(set(dependencies)):
