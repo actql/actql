@@ -15602,3 +15602,117 @@ async function exerciseStrategyGraph(
     } finally { capture.close(); for (const output of outputs) output.close(); }
   }
 }
+
+
+async function withAttemptAccountingSource(body) {
+  const fixture = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
+  const runtime = await import(pathToFileURL(join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
+  const catalogs = await readFile(join(root,
+    'src/query_integration/query_amount_catalog_wbtest.mbt'), 'utf8');
+  const catalog = catalogs.slice(catalogs.indexOf('fn query_amount_nullable_catalog'))
+    .match(/query_catalog_from_wire\(\s*("(?:[^"\\]|\\.)*")\s*,\s*expected="([^"]+)"/);
+  assert(catalog);
+  const args = [JSON.parse(catalog[1]), catalog[2], ...await pinnedEngineContracts(root),
+    await readFile(join(root, 'spec/contracts/actql-query-acquisition.json'), 'utf8'),
+    await readFile(join(root, 'spec/contracts/actql-query-process-evidence.json'), 'utf8'),
+    await readFile(join(root, 'spec/contracts/actql-query-two-receipt.json'), 'utf8')];
+  const stage = (id, producer, filter) => ({id,
+    inputs: {x: {result: {stage: producer, result: 'r'}}},
+    steps: [{filter}, {select: ['id'], as: 'out'}],
+    results: {r: {from: 'out', fields: ['id']}}});
+  const program = JSON.stringify({version: 'actql/0.1', id: 'p',
+    params: {minimum: {type: 'number', nullable: false}},
+    stages: [{id: 'a', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+      steps: [{filter: 'id > $minimum', as: 'filtered'},
+        {select: ['id'], as: 'captured'}],
+      results: {r: {from: 'captured', fields: ['id']}}},
+    stage('compute_a', 'a', 'id > 2'), stage('compute_b', 'a', 'id > 0'),
+    stage('compute_c', 'compute_a', 'id < 9')],
+    results: {b: {from: {stage: 'compute_b', result: 'r'}},
+      c: {from: {stage: 'compute_c', result: 'r'}}}});
+  const base = join(root, '_build/duckdb-fixtures');
+  await mkdir(base, {recursive: true});
+  const directory = await mkdtemp(join(base, 'attempt-accounting-'));
+  const path = join(directory, 'source.duckdb');
+  const database = await DuckDBInstance.create(path);
+  const connection = await database.connect();
+  try {
+    await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+    await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),(2,20),(3,30)');
+  } finally { connection.closeSync(); database.closeSync(); }
+  let passed = false;
+  try {
+    const grant = await authorizeLocalDatabase(path, fixtureSourceAccess);
+    await body({fixture, runtime, args, program, grant});
+    passed = true;
+  } finally {
+    if (passed) await rm(directory, {recursive: true, force: true});
+  }
+}
+
+test('DuckDB Compute actual resource-start attempt accounting', async t => {
+  for (const mode of ['pre-abort', 'preparation', 'transfer', 'success']) {
+    await t.test(`Compute actual resource-start attempt accounting: ${mode}`, () =>
+      withAttemptAccountingSource(async ({fixture, runtime, args, program, grant}) => {
+        const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+        const capture = await runStrategyNativeHostQuery(grant,
+          fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), limits);
+        assert.equal(fixture.strategyFixtureAttach(f,
+          capture.openDAG(fixture.strategyFixtureGraph(f))), true);
+        const dispatch = fixture.strategyFixtureDispatch(f);
+        const before = fixture.strategyFixtureUsage(f, 3);
+        let result, after;
+        try {
+          const setup = fixture.strategyFixtureCompute(f, 1);
+          const abort = new AbortController();
+          if (mode === 'pre-abort') abort.abort();
+          const transport = mode === 'preparation' ? {...limits, maxCells: 2000000}
+            : mode === 'transfer' ? {...limits, maxTransportBytes: 1} : limits;
+          const execute = () => runStrategyHostCompute(setup, transport,
+            {maxRows: 100, maxCells: 1000}, abort.signal);
+          if (mode === 'success') {
+            result = await execute();
+            assert.equal(fixture.strategyFixtureCid(f, 1), hash([{id: 3}, {id: 3}]));
+          } else await assert.rejects(execute);
+          after = fixture.strategyFixtureUsage(f, 3);
+        } finally {
+          result?.close();
+          runtime.strategyHostStop(dispatch);
+          runtime.strategyHostCloseOutputs(dispatch);
+          capture.close();
+        }
+        assert.equal(after - before, mode === 'transfer' || mode === 'success' ? 1n : 0n);
+        assert.equal(fixture.strategyFixtureUsage(f, 3), after, 'cleanup never refunds an actual start');
+        for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(f, field), 0n);
+      }));
+  }
+});
+
+test('DuckDB Broad actual resource-start attempt accounting', async t => {
+  for (const mode of ['unauthorized', 'pre-abort', 'transfer', 'success']) {
+    await t.test(`Broad actual resource-start attempt accounting: ${mode}`, () =>
+      withAttemptAccountingSource(async ({fixture, runtime, args, program, grant}) => {
+        assert.equal(typeof runtime.clientBroadResidualPrepare, 'function');
+        const budget = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
+        const original = fixture.issuedBroadCreate(...args.slice(0, -1), 100, () => true);
+        const setup = fixture.issuedBroadConfiguration(original);
+        fixture.issuedBroadClose(original);
+        const abort = new AbortController();
+        if (mode === 'pre-abort') abort.abort();
+        let capture, after;
+        try {
+          const execute = () => runBroadHostQuery(mode === 'unauthorized' ? {} : grant,
+            setup, mode === 'transfer' ? {...limits, maxTransportBytes: 0} : limits,
+            abort.signal, runtime, fixture.strategyFixtureLedger(budget));
+          if (mode === 'success') capture = await execute();
+          else await assert.rejects(execute);
+          after = fixture.strategyFixtureUsage(budget, 3);
+        } finally { capture?.close(); }
+        assert.equal(after, mode === 'transfer' || mode === 'success' ? 1n : 0n);
+        assert.equal(fixture.strategyFixtureUsage(budget, 3), after, 'cleanup never refunds an actual start');
+        for (const field of [1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(budget, field), 0n);
+      }));
+  }
+});

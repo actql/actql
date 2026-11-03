@@ -15,7 +15,7 @@
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c8894633c87a30e68ca01beeb7230ae90379a00c78a6c89ff8215c1263931dd7",
+      "sha256": "0274909c80b3d54f0776e246053b22224ade8f50a02df58b41e12e24dbba77f5",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
