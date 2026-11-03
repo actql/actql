@@ -12849,6 +12849,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
     const fixedStream = checked(retainedBridge.nativeRetainedStrategyHostOpen(setupOnly, ledgerOnly,
       'fixed-stream', () => true, 100000n, 134217728n, 100000n, 4096, () => true));
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
     // The lower retention reservation never exposes a switchable receiver.
     assert.throws(() => checked(retainedBridge.nativeHostStreamPrepare(fixedStream, 4096)));
     // Even confirmed native stop cannot turn a missing sealed body into a
@@ -12864,7 +12865,8 @@ async function exerciseStrategyGraph(
     retainedBridge.nativeHostClose(fixedStream);
     checked(retainedBridge.nativeHostPhysicalSettle(fixedStream, true));
     for (const field of [0, 1, 2, 4, 5]) assert.equal(fixture.strategyFixtureUsage(preparedOnly, field), 0n);
-    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 1n);
+    // This admission-only probe never entered a physical session.
+    assert.equal(fixture.strategyFixtureUsage(preparedOnly, 3), 0n);
     for (const adopt of [false, true]) {
       const f = fixture.strategyFixtureAccounted(fixture.strategyFixtureCreate(...args, program));
       const captured = await runRetainedStrategyNativeHostQuery(grant,
@@ -14521,8 +14523,8 @@ async function exerciseStrategyGraph(
       bridge.computeHostManagedPrepare(managedLedgerRun, managedProfile, () => true));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
       baseRetention + 100000n + indexBytes);
-    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 1n,
-      'metadata capacity must not create another physical attempt');
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 0n,
+      'metadata preparation must not start a physical attempt');
     port = Object.freeze({
       importCount: () => bridge.computeHostImportCount(managedLedgerRun),
       rowCount: index => Number(accepted(bridge.computeHostCount(managedLedgerRun, index, false))),
@@ -14567,8 +14569,18 @@ async function exerciseStrategyGraph(
         storedFields, storedColumns, chunk.rowCount, managedRows));
       managedRows += chunk.rowCount;
     };
+    let managedNativeSettled;
     managedLedgerResult = await runFixedCompute(port, suppliedLimits,
-      {maxRows: 100, maxCells: 1000}, consume);
+      {maxRows: 100, maxCells: 1000}, consume, undefined, Object.freeze({
+        started() { accepted(bridge.computeHostPhysicalStart(managedLedgerRun)); },
+        chargeTransfer(bytes) {
+          accepted(bridge.computeHostPhysicalCharge(managedLedgerRun, BigInt(bytes)));
+        },
+        settled(confirmed) { managedNativeSettled = confirmed; },
+      }));
+    assert.equal(managedNativeSettled, true);
+    assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 3), 1n,
+      'the actual driver consumes the original attempt exactly once');
     accepted(bridge.managedOutputFinish(managedLedgerOutput));
     assert.equal(accepted(bridge.managedOutputMeasurementIndexCells(managedLedgerOutput)), 6);
     assert.throws(() => accepted(
@@ -14586,7 +14598,7 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 5),
       baseRetention + 100000n - managedBodyBytes,
       'exact body bytes move from the admitted file ceiling into a holding');
-    accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, true));
+    accepted(bridge.computeHostPhysicalSettle(managedLedgerRun, managedNativeSettled));
     assert.equal(fixture.strategyFixtureUsage(managedLedgerFixture, 4), indexBytes + managedBodyBytes,
       'native settlement must not release a live managed body or its index');
     accepted(bridge.managedOutputVerifyCompute(managedLedgerOutput));
