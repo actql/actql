@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createPrivateKey, createPublicKey} from 'node:crypto';
+import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
 import {lstatSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -36,6 +36,52 @@ for (const path of ['/fixture/effect-review-report', '/fixture/effect-review', '
       checkpointReportRequests: 0, checkpointReportWire: undefined, reviewUploadBodies: []});
   });
 }
+
+test('Native review peer isolates independent original reports and retains each original ACK and uncertain save', async t => {
+  const fixture = nativeEffectReviewFixture('Bearer original-secret');
+  const server = createServer((request, response) => {
+    if (!fixture.handle(request, response)) response.writeHead(404).end();
+  });
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  });
+  server.listen(0, '127.0.0.1'); await once(server, 'listening');
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const cid = body => 'sha256:' + createHash('sha256').update(body).digest('hex');
+  const dispatch = cid('same authored dispatch in independent Native fixture journals');
+  const reports = ['first original', 'second original', 'first original'].map((name, index) => {
+    const checkpoint = cid(name);
+    const wire = JSON.stringify({version: 'actql-remote-effect-checkpoint-report/0.1',
+      dispatch_request_cid: dispatch, checkpoint_wire: JSON.stringify({checkpoint_cid: checkpoint})});
+    return {wire, checkpoint, identity: cid(wire), journal: cid('independent journal ' + index)};
+  });
+  const post = (path, report, wire = report.wire) => fetch(origin + path + '?original=' + report.identity + '&journal=' + report.journal, {
+    method: 'POST', headers: {authorization: 'Bearer original-secret', 'content-type': 'application/json',
+      'actql-dispatch-cid': dispatch}, body: wire});
+  for (const original of reports) {
+    const bare = await post('/fixture/effect-review-report', original);
+    assert.equal(bare.status, 200); assert.deepEqual(await bare.json(), {});
+    const other = reports.find(report => report.wire !== original.wire);
+    const foreign = await post('/fixture/effect-review-report', original, other.wire);
+    assert.equal(foreign.status, 409); assert.equal(await foreign.text(), '');
+    const replaced = await post('/fixture/effect-review-report', {...other, journal: original.journal});
+    assert.equal(replaced.status, 409); assert.equal(await replaced.text(), '');
+    const accepted = await post('/fixture/effect-review-report', original);
+    assert.equal(accepted.status, 200);
+    assert.deepEqual(await accepted.json(), {version: 'actql-remote-effect-checkpoint-reply/0.1',
+      checkpoint_cid: original.checkpoint, dispatch_request_cid: dispatch,
+      report_cid: original.identity, outcome: 'accepted', reason: ''});
+    const uncertain = await post('/fixture/effect-review', original, '{"review":"original projection"}');
+    assert.equal(uncertain.status, 503); await uncertain.text();
+    const saved = await post('/fixture/effect-review', original, '{"review":"original projection"}');
+    assert.equal(saved.status, 204); assert.equal(await saved.text(), '');
+  }
+  const facts = fixture.facts();
+  assert.equal(facts.checkpointReportRequests, 6); assert.equal(facts.reviewUploads, 6);
+  assert.equal(facts.resolutionRequests, 0);
+  assert.equal(facts.reviewUploadBodies.length, 6);
+});
 
 test('filesystem fixture is private even under the ordinary permissive umask', () => {
   const parent = mkdtempSync(join(tmpdir(), 'actql-private-fixture-'));
