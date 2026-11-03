@@ -128,7 +128,8 @@ test('verified union member retains the final hash check after transfer',t=>{
 // Synthetic stat identities model values the Number API rounds together. The
 // real fixture still owns its original TAR, files and filesystem operations.
 for(const changed of ['source','target'])test(`verified union member detects rounded ${changed} inode identity`,t=>{
- const f=stagedMember(t),stat=fs.lstatSync,link=fs.linkSync,original=2n**53n;
+ const f=stagedMember(t),stat=fs.lstatSync,descriptorStat=fs.fstatSync,link=fs.linkSync,original=2n**53n;
+ const physical=fs.statSync(f.from,{bigint:true}).ino;
  let linked=false;
  assert.equal(Number(original),Number(original+1n));
  transferFaults(t,{
@@ -140,6 +141,11 @@ for(const changed of ['source','target'])test(`verified union member detects rou
    }
    return info;
   },
+  fstatSync(fd,options){
+   const info=Reflect.apply(descriptorStat,fs,[fd,options]);
+   if(BigInt(info.ino)===physical)info.ino=options?.bigint?original:Number(original);
+   return info;
+  },
   linkSync(from,to){const value=Reflect.apply(link,fs,[from,to]);linked=true;return value;}
  });
  assert.throws(()=>transport.materializeVerifiedMember(f.from,f.to,f.sha256),new RegExp(`Verified ${changed} identity changed`));
@@ -148,7 +154,8 @@ for(const changed of ['source','target'])test(`verified union member detects rou
  originalArchiveUnchanged(f);
 });
 test('verified union member preserves a distinct rounded inode during rollback',t=>{
- const f=stagedMember(t),stat=fs.lstatSync,unlink=fs.unlinkSync,original=2n**53n;
+ const f=stagedMember(t),stat=fs.lstatSync,descriptorStat=fs.fstatSync,unlink=fs.unlinkSync,original=2n**53n;
+ const physical=fs.statSync(f.from,{bigint:true}).ino;
  const failure=new Error('fixture original source removal failure');
  let failed=false,targetRemovals=0;
  transferFaults(t,{
@@ -157,6 +164,11 @@ test('verified union member preserves a distinct rounded inode during rollback',
    if(path===f.from||path===f.to){
     const ino=original+(failed&&path===f.to?1n:0n);info.ino=options?.bigint?ino:Number(ino);
    }
+   return info;
+  },
+  fstatSync(fd,options){
+   const info=Reflect.apply(descriptorStat,fs,[fd,options]);
+   if(BigInt(info.ino)===physical)info.ino=options?.bigint?original:Number(original);
    return info;
   },
   unlinkSync(path){
