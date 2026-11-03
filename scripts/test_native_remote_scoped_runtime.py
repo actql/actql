@@ -397,6 +397,44 @@ class BundleInstallerComposition(unittest.TestCase):
 
 
 
+class LinuxResidentComposition(unittest.TestCase):
+    def test_selected_resident_uses_one_pinned_provider_and_own_capture_header(self):
+        fixture = RemoteScopedComposition()
+        fixture.setUp()
+        planned = MODULE.commands_for('\n'.join(shlex.join(c) for c in fixture.commands),
+            fixture.home, fixture.emission, fixture.stage, fixture.clang, None,
+            source_sha=fixture.source, resident_control_header=fixture.header,
+            target='linux-x64', stock_file_control_bytes=4096)
+        c = [step for step in planned if step[0] == str(fixture.clang)]
+        for step in c:
+            self.assertIn('-DACTQL_NATIVE_LINUX_X64_RESIDENT_ENTRY', step)
+            self.assertIn('-DACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY', step)
+            self.assertIn('-DACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS=170', step)
+        self.assertEqual(sum(any(arg.startswith('-DACTQL_SCOPED_READ_PROVIDER=') for arg in step)
+                             for step in c), 1)
+        self.assertEqual(sum(any(arg.startswith('-DACTQL_RESIDENT_INITIAL_CONTROL_HEADER=') for arg in step)
+                             for step in c), 1)
+        exports = {'-Wl,--export-dynamic-symbol=' + symbol
+                   for symbol in MODULE.LOCAL_COMPONENT_PROVIDER_EXPORTS}
+        self.assertEqual({arg for arg in planned[-1] if arg in exports}, exports)
+        self.assertFalse(any(arg in exports for step in planned[:-1] for arg in step))
+
+    def test_linux_resident_recipe_keeps_original_extents_and_exact_file_control_page(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            record = MODULE.command_initial_control_header('a' * 40,
+                Path(temporary) / 'resident.h', MODULE.ENTRY, 'linux-x64')
+            old = json.loads((MODULE.ROOT / MODULE.RESIDENT_RECIPE).read_bytes())
+            selected = record['selected'].copy()
+            self.assertEqual(selected.pop('target'), 'linux-x64')
+            self.assertEqual(selected.pop('stockFileControlBytes'), 4096)
+            old.pop('target')
+            self.assertEqual(selected, old)
+            text = Path(record['header']['path']).read_text()
+            self.assertIn('#define ACTQL_RESIDENT_TARGET_LINUX_X64 1\n', text)
+            self.assertIn('#define ACTQL_RESIDENT_SQLITE_HEAP 33554432\n', text)
+            self.assertIn('#define ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES 4096\n', text)
+
+
 class LinuxBundleComposition(unittest.TestCase):
     def setUp(self):
         self.fixture = BundleInstallerComposition()

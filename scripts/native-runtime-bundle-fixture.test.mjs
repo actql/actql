@@ -5,8 +5,9 @@ import {mkdirSync,mkdtempSync,realpathSync,rmSync,symlinkSync,writeFileSync} fro
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
+import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 
-function fixture(t, platform) {
+function fixture(t, platform, entry = 'native_runtime_bundle') {
   const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-bundle-producer-port-')));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const tool=join(root,'tool');mkdirSync(tool);
@@ -15,8 +16,8 @@ function fixture(t, platform) {
   symlinkSync(compiler,join(tool,'compiler-alias'));
   symlinkSync(sdk,join(tool,'SDK-alias'));
   const source='a'.repeat(40),destination=join(root,'selected');
-  const executable=join(destination,'emission/native/release/build/cmd/native_runtime_bundle/native_runtime_bundle.exe');
-  const calls=[];let originalFailure;
+  const executable=join(destination,`emission/native/release/build/cmd/${entry}/${entry}.exe`);
+  const calls=[];let originalFailure,receiptEntry=entry;
   const execute=(command,args)=>{
     calls.push([command,args]);
     if(command==='git')return args[0]==='rev-parse'?source+'\n':'';
@@ -24,7 +25,7 @@ function fixture(t, platform) {
     if(command==='sh')return join(tool,'compiler-alias')+'\n';
     assert.equal(command,'python3');
     assert.equal(args[0],join(root,'scripts/produce-native-remote-scoped-runtime.py'));
-    assert.equal(args[args.indexOf('--entry')+1],'src/cmd/native_runtime_bundle');
+    assert.equal(args[args.indexOf('--entry')+1],'src/cmd/'+entry);
     assert.equal(args[args.indexOf('--target')+1],platform==='darwin'?'darwin-arm64':'linux-x64');
     assert.equal(args[args.indexOf('--source')+1],source);
     assert.equal(args[args.indexOf('--clang')+1],compiler);
@@ -32,15 +33,40 @@ function fixture(t, platform) {
     if(platform==='darwin')assert.equal(args[args.indexOf('--sdk')+1],sdk);
     if(originalFailure)throw originalFailure;
     const bytes=Buffer.from('explicit Source-only artifact port; never executable');
-    mkdirSync(join(destination,'emission/native/release/build/cmd/native_runtime_bundle'),{recursive:true});
+    mkdirSync(join(destination,'emission/native/release/build/cmd',entry),{recursive:true});
     writeFileSync(executable,bytes,{mode:0o700});
-    writeFileSync(join(destination,'build.json'),JSON.stringify({source,entry:'src/cmd/native_runtime_bundle',
+    writeFileSync(join(destination,'build.json'),JSON.stringify({source,entry:'src/cmd/'+receiptEntry,
       target:platform==='darwin'?'darwin-arm64':'linux-x64',plan_only:false,moon_build_exit:0,providers:1,
       executable:{path:executable,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}}));
     return '';
   };
-  return {root,tool,destination,executable,calls,execute,fail(error){originalFailure=error;}};
+  return {root,tool,destination,executable,calls,execute,fail(error){originalFailure=error;},
+    receiptEntry(value){receiptEntry=value;}};
 }
+
+test('Resident consumers select their original producer entry and receipt on both actual platforms',t=>{
+  for(const [platform,arch] of [['darwin','arm64'],['linux','x64']]){
+    const f=fixture(t,platform,'native_remote_resident_site');
+    assert.equal(selectedEntries.prepareNativeResidentSite(f.root,f.destination,
+      {execute:f.execute,platform,arch,moonHome:f.tool}),f.executable);
+    assert.equal(f.calls.filter(([command])=>command==='python3').length,1);
+    assert(!f.calls.some(([command])=>command==='moon'));
+  }
+});
+test('Resident producer refusal propagates without selecting a raw executable',t=>{
+  const f=fixture(t,'darwin','native_remote_resident_site');
+  const original=Object.assign(new Error('original Resident producer refusal'),{status:9});
+  f.fail(original);
+  assert.throws(()=>selectedEntries.prepareNativeResidentSite(f.root,f.destination,
+    {execute:f.execute,platform:'darwin',arch:'arm64',moonHome:f.tool}),error=>error===original);
+  assert.equal(f.calls.filter(([command])=>command==='python3').length,1);
+});
+test('Resident preparation rejects a valid bundle receipt for a different original entry',t=>{
+  const f=fixture(t,'darwin','native_remote_resident_site');
+  f.receiptEntry('native_runtime_bundle');
+  assert.throws(()=>selectedEntries.prepareNativeResidentSite(f.root,f.destination,
+    {execute:f.execute,platform:'darwin',arch:'arm64',moonHome:f.tool}),/Expected values to be strictly equal/u);
+});
 
 test('bundle consumers select the same existing producer for actual Darwin and explicit Linux entry recipes',t=>{
   for(const [platform,arch] of [['darwin','arm64'],['linux','x64']]){
