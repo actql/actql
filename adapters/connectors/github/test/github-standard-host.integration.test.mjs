@@ -72,7 +72,7 @@ const accountConfiguration = connection => canonicalJson({
 const hostReadEntry = {entry_id:'host-original-observations',outcome:'allow',exclusions:[],
   principal:{all:true},connection:{any_of:['actql-remote-host']},
   resource:{any_of:['run',...['issues','audit','grouped','windowed','consumed','consumed_a','consumed_b','joined']
-    .map(name=>'result/'+name)]},operation:{any_of:['read']}};
+    .map(name=>'result/'+name)].sort()},operation:{any_of:['read']}};
 const sourceHostAuthorization = {accountConfiguration:canonicalJson({
   version:'actql-execution-account-config/0.1',account_id:'github-source-host',entries:[hostReadEntry]})};
 
@@ -188,10 +188,10 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
   const hostAuthorization = hostKeys === undefined ? undefined : {
     accountConfiguration: canonicalJson({
       version: 'actql-execution-account-config/0.1',
-      account_id: 'github-retained-host', entries: [{entry_id: 'query',
+      account_id: 'github-retained-host', entries: [hostReadEntry, {entry_id: 'query',
         outcome: 'allow', principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']},
-        exclusions: []},hostReadEntry]}),
+        exclusions: []}]}),
     hostKey: {keyId: 'host', privateKey: hostKeys.privateKey.export({
       type: 'pkcs8', format: 'pem'})},
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
