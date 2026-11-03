@@ -23,6 +23,15 @@ runs:
         python-version: '3.12'
     - shell: bash
       run: npm ci
+    - name: Ensure the Linux descriptor observation tool is available
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        if ! test -x /usr/bin/lsof; then
+          sudo apt-get update
+          sudo apt-get install --yes lsof
+        fi
+        test -x /usr/bin/lsof
     - name: Install pinned native DuckDB transport
       shell: bash
       run: npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts

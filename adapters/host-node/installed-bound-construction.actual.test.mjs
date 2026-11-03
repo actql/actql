@@ -256,7 +256,8 @@ for (const role of ['source', 'effect']) {
       assert.deepEqual(Object.keys(adapter).sort(), ['realizationKey',
         'supportsRetainedRelationOutput', 'connectorRegistration', 'connectorRevision',
         'environmentWire', 'generationCid', 'connectorBindings', 'readAuthorization',
-        'sourceAccess', 'sourceReadAccesses', 'admitsSource', 'ledgerCapacity', 'prepare',
+        'sourceAccess', 'sourceReadAccesses', 'admitsSource', 'ledgerCapacity',
+        'managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection', 'prepare',
         'open', 'close', 'discovery', 'queryAliases'].sort());
       assert.equal(adapter.realizationKey, 'salesforce-acquired');
       assert.equal(adapter.supportsRetainedRelationOutput, true);

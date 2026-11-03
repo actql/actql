@@ -1,12 +1,51 @@
 import assert from 'node:assert/strict';
+import childProcess from 'node:child_process';
 import fs, {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {captureStandardRestRead} from './conformance.mjs';
+import {captureStandardRestRead, observeOwnScopedStateFds, scopedStateFdCommand} from './conformance.mjs';
 import {cancelStandardRestAtPageBarrier} from './cancel-conformance.mjs';
+
+test('scoped FD observations select the existing Linux and Darwin lsof locations', () => {
+  assert.equal(scopedStateFdCommand('linux'), '/usr/bin/lsof');
+  assert.equal(scopedStateFdCommand('darwin'), '/usr/sbin/lsof');
+});
+
+test('scoped FD command failure or nonempty output cannot become an empty observation', t => {
+  // Explicit command results cover only this observer's refusal logic, not a
+  // physical descriptor observation or product cleanup acknowledgement.
+  let result;
+  const calls = [];
+  t.mock.method(childProcess, 'spawnSync', (command, args, options) => {
+    calls.push({command, args, options}); return result;
+  });
+  syncBuiltinESMExports();
+  try {
+    for (const [value, empty] of [
+      [{status: 1, stdout: '', stderr: ''}, true],
+      [{status: null, stdout: '', stderr: '',
+        error: Object.assign(new Error('authored unavailable command'), {code: 'ENOENT'})}, false],
+      [{status: 2, stdout: '', stderr: 'authored failure'}, false],
+      [{status: 0, stdout: 'p1\nf3\nn/authored-root/file\n', stderr: ''}, false],
+      [{status: 1, stdout: '', stderr: 'authored warning'}, false],
+    ]) {
+      result = value;
+      const observed = observeOwnScopedStateFds(['/authored-root']);
+      assert.equal(observed.scopedStateFd0, empty);
+      assert.equal(observed.observations[0].command, scopedStateFdCommand(process.platform));
+    }
+    assert.equal(calls.length, 5);
+    for (const call of calls) {
+      assert.equal(call.command, scopedStateFdCommand(process.platform));
+      assert.deepEqual(call.args, ['-nP', '-a', '-p', String(process.pid), '+D', '/authored-root', '-F', 'pfn']);
+    }
+  } finally {
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
 
 async function fixture(t) {
   const root = await mkdtemp(join(realpathSync(tmpdir()), 'actql-rest-caller-mechanism-'));
