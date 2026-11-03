@@ -713,7 +713,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         await captured.issueSourceEvidence({authorityScopeCid: options.authorityScopeCid,
           effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
         {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
-      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid,
+      effectiveDataPolicyCid: moon.clientProgramPublicationDataPolicyCid(prepared),
       captureStartedAt: captured.captureStartedAt,
       captureCompletedAt: captured.captureCompletedAt}) : sourceFreeTaskPlan(options);
     if (route.withoutClientSelection) {
