@@ -58,10 +58,12 @@ export function validateCheckReasonCatalog(catalog) {
 export const readCheckReasonCatalog = () => validateCheckReasonCatalog(JSON.parse(readFileSync(checkReasonCatalogPath, 'utf8')));
 export function checkReasonSchemaFromCatalog(catalog, parameterContractSchemaCid) {
   const schema = structuredClone(validateCheckReasonCatalog(catalog).reason_schema);
-  // The existing declaration condition refers to the current checked contract.
-  // Preserve the existing schema and its ordinary canonical preimage.
+  // The public catalog must already name the current checked contract. Do not
+  // silently replace a stale public pin while generating a different body.
   for (const facts of schema.properties.facts.oneOf) {
-    if (facts.properties.admission) facts.properties.admission.properties.contract_schema_cid.const = parameterContractSchemaCid;
+    if (facts.properties.admission) assert.equal(
+      facts.properties.admission.properties.contract_schema_cid.const,
+      parameterContractSchemaCid, 'StaleCheckReasonParameterContractSchema');
   }
   return schema;
 }
