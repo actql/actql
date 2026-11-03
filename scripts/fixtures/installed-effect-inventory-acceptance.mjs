@@ -93,6 +93,12 @@ function accountConfiguration(connections) {
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}},
+      // Observing the original Run and its named Result is separate from
+      // submission and provider access. Grant only this fixture's owner.
+      {entry_id: 'host-run-result-read', outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}},
       entry('target-read', 'allow', 'read', ['issue_comments', 'issues']),
     ]});
 }
