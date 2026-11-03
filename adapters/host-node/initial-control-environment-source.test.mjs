@@ -37,7 +37,7 @@ function route({scope, originals, readAsset, select = (moon, wire) => wire,
     'return function () {' + source.slice(method.value.body.start + 1, method.value.body.end - 1) + '};',
     ['readInitialControlInstallationAsset', 'control', 'originals'],
   )(readAsset, scope, originals);
-  const read = compileFunction('return async function (preparation, moon, hostCapacityPolicy, hostLookupExecutionPolicy, mode = "local", effectInstallation) {' +
+  const read = compileFunction('return async function (preparation, moon, hostCapacityPolicy, hostLookupExecutionPolicy, mode = "local", effectInstallation, selectedEffectPaths = []) {' +
     source.slice(entryGuard.start, entryGuard.end) + '\n' +
     source.slice(environmentSource.start, environmentSource.end) + '\n' +
     source.slice(selectedLookupPolicy.start, selectedLookupPolicy.end) + '\n' +
@@ -170,4 +170,24 @@ test('Remote ordinary materialization retains its original Local selector withou
   assert.strictEqual(await r.read(r.preparation, moon, policy, lookup, 'remote'), selected);
   assert.equal(selections, 1); assert.equal(f.assetReads, 1);
   assert.equal((await f.scope.close()).pending, false);
+});
+
+
+test('profile-loaded Effects preserve their published generic policy on Local and Remote Hosts', async () => {
+  for (const mode of ['local', 'remote']) {
+    const f = fixture(), moon = {}, capacity = {}, lookup = {}, selected = {};
+    let selections = 0;
+    const r = route({...f, readAsset: f.owner.readAsset,
+      select() {assert.fail('Loading a published Effect must not select a different Local row policy');},
+      selectRemote(runtime, wire, originalCapacity, originalLookup) {
+        selections++;
+        assert.strictEqual(runtime, moon); assert.equal(wire, f.source.trimEnd());
+        assert.strictEqual(originalCapacity, capacity); assert.strictEqual(originalLookup, lookup);
+        return selected;
+      }});
+    assert.strictEqual(await r.read(r.preparation, moon, capacity, lookup, mode, undefined,
+      Object.freeze(['/original-effect-profile.json'])), selected);
+    assert.equal(selections, 1); assert.equal(f.assetReads, 1);
+    assert.equal((await f.scope.close()).pending, false);
+  }
 });
