@@ -11,5 +11,11 @@ import {
 } for "wbtest"
 
 options(
+  link: {
+    "native": {
+      "stub-cc-flags": "-D_GNU_SOURCE",
+      "cc-link-flags": "-pthread",
+    },
+  },
   "native-stub": [ "bootstrap_stub.c" ],
 )
