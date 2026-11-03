@@ -73,7 +73,12 @@ test "Carrier handoff inventory is bounded before every retained edge" {
 
 ///|
 test "closed Events bounds follow typed conversion watermark and projection without row coercion" {
-  let prepared = @lowering_relation.bound_preparation(event_owner())
+  let prepared = @lowering_relation.bound_preparation(
+    carrier_projection_owner(
+      "[{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\",\"time\":\"occurred_at\"}},{\"watermark_events\":{\"watermark_ms\":12.5,\"policy\":\"mark\"}},{\"events\":true}]",
+      [("rows", event_relation())],
+    ),
+  )
   assert_eq(@lowering_relation.node_count(prepared), 3)
   for index in 0..<3 {
     let node = @lowering_relation.node_at(prepared, index).unwrap()
