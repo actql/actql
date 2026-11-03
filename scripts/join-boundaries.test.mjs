@@ -1,24 +1,16 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
+import {productionDependencyClosure} from './source-dependency-closure.mjs';
 
 const source = new URL('../src/', import.meta.url);
 
-// Conservative closure: include test imports too. The lower join package must
-// never reach evidence or the upper facade through any repository dependency.
-function closure(root) {
-  const seen = new Set();
-  const pending = [root];
-  while (pending.length) {
-    const name = pending.pop();
-    if (seen.has(name)) continue;
-    seen.add(name);
-    const manifest = readFileSync(new URL(`${name}/moon.pkg`, source), 'utf8');
-    for (const match of manifest.matchAll(/"actql\/actql\/([^"\n]+)"/g)) {
-      pending.push(match[1]);
-    }
-  }
-  return seen;
+// Check the production dependency direction. Explicit test composition is not
+// a dependency of the installed checker; the existing scoped reader validates
+// each import instead of treating every quoted package spelling as an edge.
+const readManifest = name => readFileSync(new URL(`${name}/moon.pkg`, source), 'utf8');
+function closure(root, read = readManifest) {
+  return new Set([root, ...productionDependencyClosure(root, read)]);
 }
 
 test('checked join shape remains below key evidence and as-of completion', () => {
@@ -47,4 +39,20 @@ test('Graph input capacity admission remains below Program applications and cons
   const facade = closure('capacity_graph_preflight');
   assert.ok(facade.has('capacity_graph_input'));
   assert.ok(facade.has('capacity_program_step'));
+});
+
+test('scoped test composition cannot hide a direct or transitive production facade edge', () => {
+  const actual = [...closure('relation_evidence')];
+  for (const scope of ['test', 'wbtest']) {
+    const read = name => readManifest(name) + (name === 'relation_evidence'
+      ? `\nimport { "actql/actql/relation_join", } for "${scope}"\n` : '');
+    assert.deepEqual([...closure('relation_evidence', read)], actual);
+  }
+  for (const owner of ['relation_evidence', 'check_environment']) {
+    const read = name => readManifest(name) + (name === owner
+      ? '\nimport { "actql/actql/relation_join", }\n' : '');
+    const dependencies = closure('relation_evidence', read);
+    assert.ok(dependencies.has('relation_join'), 'production facade edge remains visible');
+    assert.throws(() => assert.ok(!dependencies.has('relation_join')), {code: 'ERR_ASSERTION'});
+  }
 });
