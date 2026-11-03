@@ -32,6 +32,7 @@ PROVIDER_IMPORTS = frozenset(('actql_native_owned_current', 'actql_native_owned_
 LINUX_TARGET = 'x86_64-unknown-linux-gnu'
 LINUX_LIBRARY = 'libactql_crypto_component.so'
 LINUX_SYSTEM_LIBRARIES = frozenset(('libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0'))
+LINUX_WEAK_C_RUNTIME_IMPORTS = frozenset(('_ITM_deregisterTMCloneTable', '_ITM_registerTMCloneTable', '__gmon_start__'))
 
 
 def original(path: Path, maximum: int = 32 * 1024 * 1024) -> dict[str, object]:
@@ -64,7 +65,7 @@ def original_tool_inputs(tools: dict) -> tuple[dict, dict]:
         if path != resolved:
             before = path.lstat()
             aliases[str(path)] = {'resolved_path': str(resolved), **{
-                key: getattr(before, key) for key in ('st_dev', 'st_ino', 'st_mtime_ns', 'st_ctime_ns')}}
+                key: str(getattr(before, key)) for key in ('st_dev', 'st_ino', 'st_mtime_ns', 'st_ctime_ns')}}
     return inputs, aliases
 
 
@@ -73,7 +74,7 @@ def verify_tool_aliases(aliases: dict) -> None:
         path = Path(name)
         current = path.lstat()
         if (str(path.resolve(strict=True)) != expected['resolved_path']
-                or any(getattr(current, key) != expected[key]
+                or any(str(getattr(current, key)) != expected[key]
                        for key in ('st_dev', 'st_ino', 'st_mtime_ns', 'st_ctime_ns'))):
             raise ValueError('Original Crypto compiler tool alias changed')
 
@@ -401,7 +402,9 @@ def linux_source_inputs(openssl: Path, selected: dict, *, query=subprocess.check
     """Select exact official Noble package members; no shared crypto loading."""
     if (selected['target'] != LINUX_TARGET or selected['required_defines'] != ['_GNU_SOURCE']
             or selected['archive']['path'] != 'lib/x86_64-linux-gnu/libcrypto.a'
-            or selected['header_roots'] != ['include/openssl', 'include/x86_64-linux-gnu/openssl']):
+            or selected['header_roots'] != ['include/openssl', 'include/x86_64-linux-gnu/openssl']
+            or selected['link_startup'] != 'compiler-selected-shared'
+            or selected['weak_c_runtime_imports'] != sorted(LINUX_WEAK_C_RUNTIME_IMPORTS)):
         raise ValueError('Unselected Linux Crypto source profile')
     packages = query(['/usr/bin/dpkg-query', '--show',
         '--showformat=${Package}\t${Version}\t${Architecture}\n',
@@ -456,9 +459,14 @@ def inspect_linux_component(library: Path, *, execute=subprocess.check_output) -
     for line in undefined.splitlines():
         if not line.strip():
             continue
-        name = line.split()[-1]
+        fields = line.split()
+        name = fields[-1]
         if name.startswith('actql_'):
             imports.add(name)
+        elif (name in LINUX_WEAK_C_RUNTIME_IMPORTS and len(fields) >= 2 and fields[-2].lower() == 'w'):
+            # These optional weak references belong to the selected compiler
+            # CRT, not a provider or a callable stock-Crypto import.
+            continue
         elif re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*@GLIBC_[0-9]+(?:\.[0-9]+)*', name) is None:
             raise ValueError('Unexpected Linux Crypto component system import')
     if imports != PROVIDER_IMPORTS:
@@ -530,10 +538,26 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
         '-c', str(SOURCE / 'component.c'), '-o', str(obj)])
     exports = output / 'component.exports'
     exports.write_text('{ global:\n' + ''.join('  ' + name + ';\n' for name in EXPORTS) + 'local: *;\n};\n')
-    run('link', [str(clang), '-shared', '-nostartfiles', str(obj), str(openssl / selected['archive']['path']),
+    link = [str(clang), '-shared', str(obj), str(openssl / selected['archive']['path']),
         '-Wl,--exclude-libs,ALL', '-Wl,--version-script=' + str(exports), '-Wl,-Bsymbolic',
         '-Wl,-soname,' + LINUX_LIBRARY, '-Wl,-z,now', '-Wl,-z,relro', '-o', str(library),
-        '-ldl', '-lpthread', '-lm'])
+        '-ldl', '-lpthread', '-lm']
+    # The official static input calls atexit, whose glibc binding needs the
+    # private DSO handle in the ordinary compiler CRT. Never synthesize one.
+    run('link-plan', [str(clang), '-###', *link[1:]])
+    commands = [shlex.split(line) for line in (output / 'link-plan.stderr').read_text().splitlines()
+                if line.lstrip().startswith('"')]
+    commands = [arguments for arguments in commands if '-shared' in arguments]
+    if len(commands) != 1:
+        raise ValueError('Original Linux Crypto shared-link plan unavailable')
+    startup = {Path(value).name: Path(value) for value in commands[0]
+               if Path(value).is_absolute() and Path(value).name in
+               ('crti.o', 'crtbeginS.o', 'crtendS.o', 'crtn.o')}
+    if set(startup) != {'crti.o', 'crtbeginS.o', 'crtendS.o', 'crtn.o'}:
+        raise ValueError('Unselected Linux Crypto C runtime startup objects')
+    runtime_inputs, tool_aliases = original_tool_inputs({'linker': Path(commands[0][0]), **startup})
+    inputs.update(runtime_inputs)
+    run('link', link)
     inspected = inspect_linux_component(library)
     dependencies = shlex.split((output / 'component.d').read_text().replace('\\\n', ' ').split(':', 1)[1])
     compiled, aliases = {}, {}
@@ -546,6 +570,7 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
             aliases[name] = str(resolved)
         compiled[str(resolved)] = original(resolved, 16 * 1024 * 1024)
     verify_original_inputs(inputs, compiled)
+    verify_tool_aliases(tool_aliases)
     if clean() != source:
         raise ValueError('Original Linux Crypto source changed')
     (output / 'OPENSSL-COPYRIGHT').write_bytes((openssl / selected['license']['path']).read_bytes())
@@ -554,6 +579,8 @@ def produce_linux(output: Path, openssl: Path, clang: Path, seconds: int) -> dic
         'source_qualification': selected['qualification'], 'package': selected['package'],
         'provider_binding': 'existing original process provider; actual binding required before first allocation',
         'compiler_target': compiler_target, 'compiler_version': compiler_version,
+        'compiler_tool_aliases': tool_aliases,
+        'startup_objects': {name: str(path) for name, path in startup.items()},
         'inputs': inputs, 'compiled_inputs': compiled, 'compiler_header_aliases': aliases,
         **inspected, 'loaded': False, 'initialized': False, 'providers': 0}
     (output / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')

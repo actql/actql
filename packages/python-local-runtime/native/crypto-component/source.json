@@ -96,7 +96,13 @@
           "bytes": 1945300,
           "sha256": "219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797"
         }
-      }
+      },
+      "link_startup": "compiler-selected-shared",
+      "weak_c_runtime_imports": [
+        "_ITM_deregisterTMCloneTable",
+        "_ITM_registerTMCloneTable",
+        "__gmon_start__"
+      ]
     }
   },
   "source_builds": {

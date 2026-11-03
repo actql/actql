@@ -60,12 +60,18 @@ class LinuxCryptoImage(unittest.TestCase):
         for attribute, extra in (('definitions', '\n0000 T EVP_sha256'),
                                  ('imports', '\nU actql_other_provider'),
                                  ('imports', '\nU EVP_sha256'),
-                                 ('imports', '\nU EVP_sha256@OPENSSL_3.0.0')):
+                                 ('imports', '\nU EVP_sha256@OPENSSL_3.0.0'),
+                                 ('imports', '\nU _ITM_registerTMCloneTable'),
+                                 ('imports', '\nw foreign_runtime')):
             with self.subTest(extra=extra):
                 old = getattr(self, attribute)
                 setattr(self, attribute, old + extra)
                 with self.assertRaises(ValueError): self.inspect()
                 setattr(self, attribute, old)
+
+    def test_only_selected_optional_weak_c_runtime_references_are_accepted(self):
+        self.imports += '\n' + '\n'.join('w ' + name for name in P.LINUX_WEAK_C_RUNTIME_IMPORTS)
+        self.inspect()
 
     def test_shared_crypto_and_ambient_search_paths_cannot_substitute_the_static_original(self):
         for extra in ('(NEEDED) Shared library: [libcrypto.so.3]',
@@ -121,6 +127,14 @@ class LinuxCryptoSources(unittest.TestCase):
         archive.write_bytes(b'original static archive')
         self.selected['header_census_sha256'] = '0' * 64
         with self.assertRaisesRegex(ValueError, 'header membership'): self.select()
+
+    def test_another_startup_or_weak_runtime_profile_cannot_replace_the_selected_one(self):
+        for key, value in (('link_startup', 'none'), ('weak_c_runtime_imports', ['foreign_runtime'])):
+            with self.subTest(key=key):
+                original = self.selected[key]; self.selected[key] = value
+                with self.assertRaisesRegex(ValueError, 'Unselected Linux Crypto source profile'):
+                    self.select()
+                self.selected[key] = original
 
     def test_compiler_observation_cannot_replace_an_overlapping_original_header_pin(self):
         header = self.root / 'include/openssl/original.h'
