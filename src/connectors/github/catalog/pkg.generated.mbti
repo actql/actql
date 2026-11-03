@@ -10,6 +10,8 @@ pub let add_comment_mutation : String
 
 pub fn add_comment_request(String, String) -> Result[String, CommentRequestIssue]
 
+pub fn admit_original_marked_comment_request(Bytes, PageLimits, String, String, String) -> Result[Unit, GraphqlResponseIssue]
+
 pub let api_version : String
 
 pub fn begin_issue_comments_read(GraphqlRepository, PageLimits, Int, Int) -> Result[IssueCommentsRead, GraphqlResponseIssue]
@@ -23,6 +25,10 @@ pub fn canonical_timestamp(String) -> String?
 pub fn classify_comment_response(Int, HeaderObservation, Bytes, PageLimits, String) -> CommentOutcome
 
 pub fn classify_failure(Int, HeaderObservation) -> ExchangeFailure
+
+pub let comment_confirmation_query : String
+
+pub fn comment_confirmation_request(String) -> Result[String, CommentRequestIssue]
 
 pub fn comment_read_query_units() -> Int
 
@@ -61,6 +67,8 @@ pub let max_comment_characters : Int
 pub let max_comment_subject_units : Int
 
 pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
+
+pub fn project_comment_confirmation_response(Bytes, PageLimits, Int64, String, String, GraphqlRepository, String, String) -> Result[Unit, GraphqlResponseIssue]
 
 pub fn project_comment_subject_response(Bytes, PageLimits, String, String, Int64, String) -> Result[CommentSubject, GraphqlResponseIssue]
 

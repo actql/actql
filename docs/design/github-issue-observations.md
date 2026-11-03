@@ -176,3 +176,26 @@ fence on cleanup. A rejected/stopped read therefore keeps its original failure;
 a failed decoder close keeps that same original page for retirement retry.
 Read projections still enforce their unchanged current/stop fences. Closing
 a decoder returns Unit, never a physical acknowledgement or new permission.
+
+## Original comment confirmation
+
+Comment CREATE first retains its logical input. The same fixed Preview supplies
+the original DispatchKey for the physical marked request before the existing
+durable claim. Recovery validates those saved bytes against that Preview and
+key; it neither encodes another mutation nor creates a replacement request tag.
+
+A Created mutation reply remains provider evidence. The common Row Effect uses
+a distinct initial or restored confirmation occurrence, with its own current
+read decision and credential grant under the same Request and Ledger. The
+provider checks that exact returned comment node, original Issue/repository,
+logical body and request marker before the existing receipt/CAS can record
+`applied`. An absent, foreign, refused or interrupted confirmation cannot make
+the mutation successful. A lost mutation reply supplies no node for this read;
+the original uncertain send is never retried or searched by matching content.
+
+The whole native seven-role construction profile reaches the existing Host
+composer unchanged. Logical construction, marked-request finalization and both
+physical confirmation occurrences have separate original operation slots.
+Returned request/reply material and control work remain charged to their
+existing owners; stopped or pending reads retire through the same physical
+child. A settled Promise or a validated response is not a cleanup acknowledgement.

@@ -5832,7 +5832,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ff822212d6dc687ee813c2ab7ad46a4fc1fcaaf48336bb75ab44d0c65673c081",
+      "sha256": "34f787cc437808d7ad814f92a06da8dff0016265cd232458f7c10c637f46cdb3",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5970,12 +5970,46 @@
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
           "parameters": [
-            "request"
+            "request",
+            "requestTag"
           ],
           "async": false
         },
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
+          "parameters": [
+            "request",
+            "logical",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+          "parameters": [
+            "providerEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
+          "parameters": [
+            "request",
+            "providerEvidence",
+            "observation",
+            "accepted"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6",
           "parameters": [
             "request",
             "observation",
@@ -6204,6 +6238,117 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "test('standard GitHub subject read preserves observed refusal and uncertain reply categories'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "test("
               }
             ]
           }
@@ -6687,7 +6832,7 @@
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44c26084ec1d8d38108033984d5e98129b057bacfdf23e67539da89f1f33fb05",
+      "sha256": "534f72608d1435ca107e906e9b8729dd7bcecb4d4dc6e722abd171eb96ebc055",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
       "exports": [
@@ -6695,11 +6840,14 @@
         "GITHUB_COMMENT_STAMP_RECIPE",
         "checkGitHubCommentSubject",
         "finalizeGitHubCommentRequest",
+        "prepareGitHubCommentConfirmationRequest",
         "prepareGitHubCommentLogicalRequest",
         "prepareGitHubCommentRequest",
         "prepareGitHubCommentSubjectRequest",
+        "projectGitHubCommentConfirmation",
         "projectGitHubCommentObservation",
         "projectGitHubCommentSubjectResponse",
+        "restoreGitHubCommentRequest",
         "sendGitHubIssueComment"
       ],
       "operations": [
@@ -6784,6 +6932,28 @@
           "async": false
         },
         {
+          "name": "ownCommentLogicalRequest",
+          "parameters": [
+            "request",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCommentLogicalRequest/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCommentLogicalRequest/ownCommentLogicalRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "pairs/pairs",
           "parameters": [
             "headers"
@@ -6801,6 +6971,14 @@
           "name": "pairs/pairs/pairs#2",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmationRequest",
+          "parameters": [
+            "moon",
+            "providerEvidence"
           ],
           "async": false
         },
@@ -6834,6 +7012,19 @@
           "async": false
         },
         {
+          "name": "projectGitHubCommentConfirmation",
+          "parameters": [
+            "moon",
+            "request",
+            "providerEvidence",
+            "repository",
+            "limits",
+            "accepted",
+            "observation"
+          ],
+          "async": false
+        },
+        {
           "name": "projectGitHubCommentObservation",
           "parameters": [
             "moon",
@@ -6860,6 +7051,31 @@
           "parameters": [
             "code",
             "details"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreGitHubCommentRequest",
+          "parameters": [
+            "moon",
+            "request",
+            "logical",
+            "requestTag",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreGitHubCommentRequest/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreGitHubCommentRequest/restoreGitHubCommentRequest",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -7151,6 +7367,125 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-marker.test.mjs",
                 "anchor": "Comment marker refuses malformed or missing DATA without invoking an encoder or accessor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "ownCommentLogicalRequest",
+            "ownCommentLogicalRequest/original/original",
+            "ownCommentLogicalRequest/ownCommentLogicalRequest",
+            "prepareGitHubCommentConfirmationRequest",
+            "projectGitHubCommentConfirmation",
+            "restoreGitHubCommentRequest",
+            "restoreGitHubCommentRequest/original/original",
+            "restoreGitHubCommentRequest/restoreGitHubCommentRequest"
+          ],
+          "exports": [
+            "prepareGitHubCommentConfirmationRequest",
+            "projectGitHubCommentConfirmation",
+            "restoreGitHubCommentRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "test("
               }
             ]
           }

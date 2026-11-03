@@ -60,16 +60,27 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     }
     return (...args) => Reflect.apply(field.value, receiver, args);
   };
-  const profile = originalMethod(providerMoon, 'installedStandardCreateConstructionProfile');
+  const confirmed = construction.confirmation !== undefined;
+  if (confirmed !== (construction.finalization !== undefined)) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
+  const profile = originalMethod(providerMoon, confirmed
+    ? 'installedStandardCreateConfirmedConstructionProfile' : 'installedStandardCreateConstructionProfile');
   const captureField = Object.getOwnPropertyDescriptor(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
   const captureProfile = captureField === undefined ? undefined
     : originalMethod(providerMoon, 'installedStandardDriverCaptureConstructionCapacity');
+  if (confirmed && captureProfile !== undefined) fail('InstalledStandardCreateConstructionUnavailable');
   const capacitiesFor = originalMethod(moon, captureProfile === undefined
     ? 'clientProgramInstalledStandardCreateRequestRecipeCapacities' : 'clientProgramInstalledStandardDriverRecipeCapacities');
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const captureFor = originalMethod(moon, captureProfile === undefined
     ? 'clientProgramInstalledEffectCaptureExtentPrepare' : 'clientProgramInstalledEffectCaptureRecipeExtentPrepare');
   const {write, check} = construction;
+  const confirmation = construction.confirmation;
+  if (confirmed && (check === undefined || confirmation.maxRequestBytes !== check.maxRequestBytes ||
+      confirmation.maxResponseBytes !== check.maxResponseBytes)) {
+    fail('InstalledStandardCreateConstructionUnavailable');
+  }
   const secret = credentialSite.construction;
   if (![write.maxRequestBytes,write.maxResponseBytes,limits.maxWireBytes,limits.maxNodes,limits.maxDepth,
     requestInput?.maxWireBytes,requestInput?.maxNodes,requestInput?.maxDepth,
@@ -94,7 +105,8 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
     Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth),
     units, httpsCredentialResponseReadQuantum));
-  if (!Array.isArray(capacities) || capacities.length !== (check === undefined ? 5 : 6) + (captureProfile === undefined ? 0 : 1)) {
+  if (!Array.isArray(capacities) || capacities.length !== (confirmed ? 8
+    : (check === undefined ? 5 : 6) + (captureProfile === undefined ? 0 : 1))) {
     fail('InstalledStandardCreateConstructionUnavailable');
   }
   const memberOperations = [Object.freeze({operation:write.operation,
@@ -102,6 +114,9 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
       : captureFor(write.operation,capacities))})];
   const rowOperations = [Object.freeze({operation:write.operation,
     extent:checked(extentFor(write.operation,capacities[2],0n,false))})];
+  const requestFinalization = confirmed ? Object.freeze({operationIndex: rowOperations.length}) : undefined;
+  if (confirmed) rowOperations.push(Object.freeze({operation: write.operation,
+    extent: checked(extentFor(write.operation, capacities[6], 0n, false))}));
   const credentialOperations = [];
   const physical = (phase, selected, capacity) => {
     const operationIndex = rowOperations.length;
@@ -116,10 +131,14 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
     if (check.beforeSend) physical('write-check',check,capacities[5]);
   }
   physical('write',write,capacities[3]);
+  if (confirmed) {
+    for (const phase of ['apply-confirm', 'resume-confirm']) physical(phase, confirmation, capacities[7]);
+  }
   return captureInstalledEffectPlanRecipe(Object.freeze({
     memberOperations:Object.freeze(memberOperations),rowOperations:Object.freeze(rowOperations),
     controlsPerRow:capacities[4],captureConstruction:Object.freeze({operationIndex:0}),
     requestConstruction:Object.freeze({operationIndex:0}),credentialOperations:Object.freeze(credentialOperations),
+    ...(requestFinalization === undefined ? {} : {requestFinalization}),
   }), rowOperations.length + memberOperations.length);
 }
 
@@ -144,6 +163,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'controlsPerRow') ? ['controlsPerRow'] : []),
     ...(Object.hasOwn(recipe, 'savedControlCodec') ? ['savedControlCodec'] : []),
     ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'requestFinalization') ? ['requestFinalization'] : []),
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
@@ -187,6 +207,16 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }
     requestConstruction = Object.freeze({operationIndex});
   }
+  let requestFinalization;
+  if (fields.requestFinalization !== undefined) {
+    const selected = own(fields.requestFinalization.value, ['operationIndex']);
+    const operationIndex = selected.operationIndex.value;
+    if (!Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= rowOperations.length ||
+        requestConstruction === undefined || operationIndex === requestConstruction.operationIndex) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    requestFinalization = Object.freeze({operationIndex});
+  }
   let captureConstruction;
   if (fields.captureConstruction !== undefined) {
     const selected = own(fields.captureConstruction.value, ['operationIndex',
@@ -208,6 +238,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     const entries = own(values, ['length', ...Array.from({length: values.length}, (_, index) => String(index))]);
     const phases = new Set(), indexes = new Set([
       ...(requestConstruction === undefined ? [] : [`row:${requestConstruction.operationIndex}`]),
+      ...(requestFinalization === undefined ? [] : [`row:${requestFinalization.operationIndex}`]),
       ...(captureConstruction === undefined ? [] : [`member:${captureConstruction.operationIndex}`]),
     ]);
     credentialOperations = Object.freeze(Array.from({length: values.length}, (_, index) => {
@@ -220,7 +251,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
         perRow = entry.perRow === undefined ? true : entry.perRow.value,
         maxRequestBytes = entry.maxRequestBytes.value, maxResponseBytes = entry.maxResponseBytes.value;
       const describe = ['capture-describe', 'apply-describe', 'resume-describe'].includes(phase);
-      const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write',
+      const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write', 'apply-confirm', 'resume-confirm',
         'capture-target', 'apply-target', 'resume-target'].includes(phase);
       const selected = perRow ? rowOperations : memberOperations;
       const key = `${perRow ? 'row' : 'member'}:${operationIndex}`;
@@ -253,6 +284,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(savedControlCodec === undefined ? {} : {savedControlCodec}),
     ...(controlsPerRow === undefined ? {} : {controlsPerRow}),
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
+    ...(requestFinalization === undefined ? {} : {requestFinalization}),
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});

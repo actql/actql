@@ -275,7 +275,7 @@ pub fn installed_standard_create_constructor_capacities(
   ]?,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
-    (entries.length() == 2 || entries.length() == 4) else {
+    (entries.length() == 2 || entries.length() == 4 || entries.length() == 7) else {
     return Err(Unsupported)
   }
   let capacities = []

@@ -462,7 +462,8 @@ fn installed_standard_recipe_capacities(
       !checks &&
       (check_request_bytes != 0 || check_response_bytes != 0 || before_send)
     ) ||
-    (checks && entries.length() != 4) {
+    (checks && entries.length() != 4 && entries.length() != 7) ||
+    (entries.length() == 7 && !checks) {
     return Err(Unsupported)
   }
   let constructors = match
@@ -471,7 +472,8 @@ fn installed_standard_recipe_capacities(
     Ok(value) => value
   }
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
-  let write_output = if entries.length() == 4 { 2 } else { 1 }
+  let confirmed = entries.length() == 7
+  let write_output = if entries.length() >= 4 { 2 } else { 1 }
   guard installed_standard_host_capture_row_capacity(
       row_input_bytes, row_input_nodes, row_input_depth,
     )
@@ -573,18 +575,31 @@ fn installed_standard_recipe_capacities(
     }
     controls = next
   }
+  if confirmed {
+    // Original confirmation reply and saved marked-request validation use
+    // this SAME synchronous control frame. Keep their returned holders and
+    // only share completed private scratch; failure retains the full peak.
+    for selected in [constructors[5], constructors[6]] {
+      guard standard_create_sequence_pair_capacity(controls, selected)
+        is Some(next) else {
+        return Err(Unsupported)
+      }
+      controls = next
+    }
+  }
   // Capture/read, apply/read, optional resume/read and the write have distinct
   // slots. Preserve the existing declared resume occurrence even when this
   // process has not restored anything; do not alias it to an earlier call.
-  let grant_occurrences = if checks {
-    if before_send {
-      5
+  let grant_occurrences = (if checks {
+      if before_send {
+        5
+      } else {
+        4
+      }
     } else {
-      4
-    }
-  } else {
-    1
-  }
+      1
+    }) +
+    (if confirmed { 2 } else { 0 })
   for _ in 0..<grant_occurrences {
     // The SAME controlConstruction frame completes each synchronous Grant,
     // Ledger read and projector before the next begins. Keep every returned
@@ -634,6 +649,44 @@ fn installed_standard_recipe_capacities(
       return Err(Unsupported)
     }
     capacities.push(read_body)
+  }
+  if confirmed {
+    // The old physical request constructor still runs exactly once, after
+    // the Preview supplies its original DispatchKey. The logical carrier
+    // borrows the approved input. Its marker/body concatenation can fail
+    // before Native validates that body, so keep this original input bound.
+    let empty : @execution.PreparationRepresentationUnits = {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }
+    guard standard_create_representation_capacity(
+        {
+          ..empty,
+          // Original logical body, marked body and exact-request hash input
+          // may coexist with the existing native/Host returned request.
+          owned_utf16_units: 3L * row_input_bytes.to_int64() +
+          3L * request_bytes.to_int64(),
+        },
+        empty,
+      )
+      is Some(marker) &&
+      standard_create_sum_capacities([constructors[0], marker])
+      is Some(finalization) &&
+      installed_effect_http_response_construction_capacity(
+        check_response_bytes,
+        header_bytes,
+        response_read_quantum~,
+      )
+      is Some(confirm_receive) &&
+      standard_create_sum_capacities([confirm_receive, secret, constructors[4]])
+      is Some(confirm_body) else {
+      return Err(Unsupported)
+    }
+    capacities.push(finalization)
+    capacities.push(confirm_body)
   }
   if capture_original is Some(capture) {
     capacities.push(if capture.length() == 3 { capture[2] } else { empty })

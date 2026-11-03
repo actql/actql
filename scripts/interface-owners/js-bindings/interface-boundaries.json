@@ -71161,7 +71161,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9d7dc0d485992ca23581e52587fa89ab025a5e7bdd9646c1b7434defc61595f7",
+      "sha256": "b9c04d65cf7ba5c83dd4155953d193e6c1f1973c46e71431e048c8e41acb8827",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -71311,6 +71311,63 @@
           "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
           "parameters": [
             "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation",
+          "parameters": [
+            "driver",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/captureResponseConfirmation",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/captureResponseConfirmation#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/captureResponseConfirmation#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/matches/matches",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/selected/selected",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/used/used",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/used/used#2",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -71851,18 +71908,25 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/captureStage#11",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createRowEffectStage/captureStage/captureStage#12",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#13",
           "parameters": [],
           "async": true
         },
@@ -72037,6 +72101,16 @@
         },
         {
           "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
           "parameters": [],
           "async": false
         },
@@ -72526,6 +72600,24 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
+          "parameters": [
+            "memberIndex",
+            "rowIndex",
+            "projected",
+            "description",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/current/current",
           "parameters": [
             "signal",
@@ -72761,7 +72853,8 @@
           "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
           "parameters": [
             "claims",
-            "ledgerPreview"
+            "ledgerPreview",
+            "recoverySignal"
           ],
           "async": true
         },
@@ -72816,7 +72909,22 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/prepareRecovered#2",
+          "parameters": [
+            "rows",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#3",
           "parameters": [],
           "async": true
         },
@@ -72920,7 +73028,9 @@
             "recorded",
             "previewWire",
             "runInvocationCid",
-            "dispatches"
+            "dispatches",
+            "requestTags",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -72991,6 +73101,15 @@
           "parameters": [
             "_",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
+          "parameters": [
+            "owned",
+            "method",
+            "facts"
           ],
           "async": false
         },
@@ -73223,12 +73342,22 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/bindLogical",
+          "parameters": [
+            "request",
+            "resource",
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/bindRequest",
           "parameters": [
             "request",
             "resource",
             "value",
-            "expectedCid"
+            "expectedCid",
+            "logical"
           ],
           "async": false
         },
@@ -73258,12 +73387,33 @@
         {
           "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
           "parameters": [
-            "context"
+            "method"
           ],
           "async": false
         },
         {
           "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
           "parameters": [
             "value"
           ],
@@ -73283,6 +73433,29 @@
           "name": "deriveInstalledRowWrite/driver/driver#3",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:assertRequestFinalized/init:assertRequestFinalized",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:capabilityRequestCid/init:capabilityRequestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:finalizeRequest/init:finalizeRequest",
+          "parameters": [
+            "request",
+            "requestTag"
           ],
           "async": false
         },
@@ -73404,9 +73577,30 @@
           "async": true
         },
         {
+          "name": "deriveInstalledRowWrite/init:confirmResponse/init:confirmResponse",
+          "parameters": [
+            "request",
+            "providerEvidence",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal",
+            "controlConstruction"
+          ],
+          "async": true
+        },
+        {
           "name": "deriveInstalledRowWrite/original/original",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/physicalOriginal",
+          "parameters": [
+            "request",
+            "requestTag"
           ],
           "async": false
         },
@@ -73422,6 +73616,8 @@
           "parameters": [
             "durable",
             "members",
+            "body",
+            "requestTags",
             "indexes"
           ],
           "async": false
@@ -73436,7 +73632,8 @@
         {
           "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
           "parameters": [
-            "row"
+            "row",
+            "rowIndex"
           ],
           "async": false
         },
@@ -80019,6 +80216,138 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.test.mjs",
                 "anchor": "test('owned Content request child keeps one constructor token until its exact physical cleanup ACK'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureResponseConfirmation",
+            "captureResponseConfirmation/captureResponseConfirmation",
+            "captureResponseConfirmation/captureResponseConfirmation#2",
+            "captureResponseConfirmation/captureResponseConfirmation#3",
+            "captureResponseConfirmation/matches/matches",
+            "captureResponseConfirmation/selected/selected",
+            "captureResponseConfirmation/used/used",
+            "captureResponseConfirmation/used/used#2",
+            "createRowEffectStage/captureStage/captureStage#13",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
+            "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
+            "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
+            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
+            "createRowEffectStage/prepareRecovered/prepareRecovered#3",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
+            "deriveInstalledRowWrite/bindLogical",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
+            "deriveInstalledRowWrite/driver/init:assertRequestFinalized/init:assertRequestFinalized",
+            "deriveInstalledRowWrite/driver/init:capabilityRequestCid/init:capabilityRequestCid",
+            "deriveInstalledRowWrite/driver/init:finalizeRequest/init:finalizeRequest",
+            "deriveInstalledRowWrite/init:confirmResponse/init:confirmResponse",
+            "deriveInstalledRowWrite/physicalOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "test("
               }
             ]
           }

@@ -263,6 +263,19 @@ const subjectChecks = api => api.seen()
   .map(entry => JSON.parse(entry.body))
   .filter(request => request.query.startsWith('query ActqlCommentSubject('));
 
+// The visible provider body preserves the authored logical text and appends
+// exactly one Common DispatchKey marker. Equality/foreign-key controls bind
+// that marker to the original key in the shared route tests; this fixture
+// independently checks the provider content and distinct occurrence markers.
+function logicalCommentBody(body) {
+  const marker = /\n\n<!-- actql:effect:(sha256:[0-9a-f]{64}) -->$/u.exec(body);
+  assert.ok(marker, 'the physical body carries its original Common request marker');
+  return body.slice(0, marker.index);
+}
+const confirmationReads = api => api.seen().filter(entry => entry.pathname === '/graphql')
+  .map(entry => JSON.parse(entry.body))
+  .filter(request => request.query.startsWith('query ActqlConfirmComment('));
+
 test('a comment waits for approval across a restart, is sent once and never again',
   async t => {
     const setup = await installation(t);
@@ -281,10 +294,13 @@ test('a comment waits for approval across a restart, is sent once and never agai
     const {host: third, state: done} = await resumed(setup, execution);
     assert.equal(done.status, 'succeeded', JSON.stringify(done));
     // Exactly one comment, on Issue 7, with the exact body.
-    assert.deepEqual(setup.state.comments, [{subjectId: 'I_7',
+    assert.deepEqual(setup.state.comments.map(comment => ({...comment,
+      body: logicalCommentBody(comment.body)})), [{subjectId: 'I_7',
       body: 'hello from actql', databaseId: 1000}]);
     assert.deepEqual(commentSends(setup.api).map(request =>
-      request.variables), [{subjectId: 'I_7', body: 'hello from actql'}]);
+      ({...request.variables, body: logicalCommentBody(request.variables.body)})),
+    [{subjectId: 'I_7', body: 'hello from actql'}]);
+    assert.deepEqual(confirmationReads(setup.api).map(request => request.variables), [{id: 'IC_1000'}]);
     // The subject was checked again before the approved send.
     assert.equal(subjectChecks(setup.api).length, 3);
     await third.close();
@@ -387,6 +403,30 @@ test('a reply lost after the comment was created stays unknown and is never rese
     assert.equal(setup.state.comments.length, 1);
   });
 
+test('an absent original comment confirmation stays unresolved without another mutation after restart',
+  async t => {
+    const setup = await installation(t);
+    setup.state.commentConfirmationAnswer = () => ({data: {node: null}});
+    const first = await setup.openHost();
+    const {execution} = await submitted(setup, first, 'comment-unconfirmed',
+      [{node_id: 'I_7', comment: 'hello'}]);
+    await approvedAndStopped(setup, first, execution);
+    const {host: second, state} = await resumed(setup, execution);
+    assert.equal(state.status, 'needs_reconciliation', JSON.stringify(state));
+    assert.equal(commentSends(setup.api).length, 1);
+    assert.equal(setup.state.comments.length, 1);
+    assert.deepEqual(confirmationReads(setup.api).map(request => request.variables), [{id: 'IC_1000'}]);
+    await second.close();
+    const third = await setup.openHost();
+    const again = await (await third.as('owner-token')).attach(execution.ref);
+    assert.equal((await waitFor(async () => {
+      const current = await again.status();
+      return terminal.includes(current.status) ? current : undefined;
+    })).status, 'needs_reconciliation');
+    assert.equal(commentSends(setup.api).length, 1);
+    assert.equal(setup.state.comments.length, 1);
+  });
+
 test('an account allow without approval sends nothing: the Mapping requires approval',
   async t => {
     const setup = await installation(t, {commit: 'allow'});
@@ -437,11 +477,13 @@ for (const [name, rows, bodies] of [
       const {host: third, state: done} = await resumed(setup, execution);
       assert.equal(done.status, 'succeeded', JSON.stringify(done));
       const sent = () => commentSends(setup.api).map(request =>
-        request.variables.body).sort();
+        logicalCommentBody(request.variables.body)).sort();
       assert.deepEqual(sent(), bodies);
       assert.deepEqual(setup.state.comments.map(comment =>
-        [comment.subjectId, comment.body]).sort(),
+        [comment.subjectId, logicalCommentBody(comment.body)]).sort(),
       bodies.map(body => ['I_7', body]));
+      assert.equal(new Set(commentSends(setup.api).map(request =>
+        /sha256:[0-9a-f]{64}/u.exec(request.variables.body)?.[0])).size, bodies.length);
       await third.close();
       // A further restart sends nothing more.
       const fourth = await setup.openHost();

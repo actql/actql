@@ -62,6 +62,56 @@ test('automatic standard recipe forwards original constructor capacities and kee
   }
 });
 
+test('confirmed CREATE forwards the original seven-role Native profile and owns separate finalization and read occurrences', () => {
+  const profile = {}, capacities = Array.from({length: 8}, () => Object.freeze({}));
+  const construction = Object.freeze({
+    write: Object.freeze({operation: 'comment-write', maxRequestBytes: 128, maxResponseBytes: 64}),
+    check: Object.freeze({operation: 'subject-read', maxRequestBytes: 32, maxResponseBytes: 16}),
+    confirmation: Object.freeze({operation: 'comment-read', maxRequestBytes: 32, maxResponseBytes: 16}),
+    finalization: Object.freeze({}), metadataTextUnits: 17,
+  });
+  const credentialSite = Object.freeze({construction: Object.freeze({
+    scope: Object.freeze({principal: 'original', siteGeneration: 1}),
+    issuer: Object.freeze({authority: 'issuer', keyId: 'key'}),
+    limits: Object.freeze({maxBindings: 91, maxSecretBytes: 23}),
+  })});
+  const providerMoon = {
+    installedStandardCreateConfirmedConstructionProfile() {assert.equal(this, providerMoon); return profile;},
+    installedStandardCreateConstructionProfile() {assert.fail('no legacy profile substitution');},
+  };
+  const moon = {
+    clientProgramInstalledStandardCreateRequestRecipeCapacities(original) {
+      assert.equal(this, moon); assert.strictEqual(original, profile); return {$tag: 1, _0: capacities};
+    },
+    clientProgramInstalledEffectCaptureExtentPrepare(operation, fixed, row) {
+      assert.deepEqual([operation, fixed, row], ['comment-write', capacities[0], capacities[1]]);
+      return {$tag: 1, _0: {capture: true}};
+    },
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
+      return {$tag: 1, _0: {operation, capacity, transfer, physical}};
+    },
+  };
+  const recipe = prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, construction, credentialSite,
+    limits: {maxWireBytes: 512, maxNodes: 32, maxDepth: 8},
+    requestInput: {maxWireBytes: 128, maxNodes: 16, maxDepth: 4}, resourceTextUnits: 7});
+  assert.equal(recipe.requestConstruction.operationIndex, 0);
+  assert.equal(recipe.requestFinalization.operationIndex, 1);
+  assert.equal(recipe.rowOperations.length, 8);
+  assert.strictEqual(recipe.rowOperations[1].extent.capacity, capacities[6]);
+  assert.equal(recipe.rowOperations[1].extent.physical, false);
+  assert.equal(recipe.rowOperations[1].extent.transfer, 0n);
+  assert.deepEqual(recipe.credentialOperations.map(value => value.phase),
+    ['capture-check', 'apply-check', 'resume-check', 'write', 'apply-confirm', 'resume-confirm']);
+  assert.deepEqual(recipe.credentialOperations.map(value => value.operationIndex), [2, 3, 4, 5, 6, 7]);
+  for (const phase of ['apply-confirm', 'resume-confirm']) {
+    const slot = recipe.credentialOperations.find(value => value.phase === phase);
+    assert.strictEqual(recipe.rowOperations[slot.operationIndex].extent.capacity, capacities[7]);
+    assert.equal(recipe.rowOperations[slot.operationIndex].extent.physical, true);
+    assert.equal(recipe.rowOperations[slot.operationIndex].extent.transfer, 49n);
+  }
+  assert.strictEqual(recipe.controlsPerRow, capacities[4]);
+});
+
 // These are the actual installed Plan selector's ports. No native capacity,
 // Run, Source I/O or Model permission is issued by these caller regressions.
 for (const model of [false, true]) test(`Effect Plan forwards the same retained ${model ? 'Source and Model' : 'Source'} inputs before execution`, () => {

@@ -33096,7 +33096,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "89a210efda870f342b5727abbf6888365bac2de54100363462a1b9ecc9d55852",
+      "sha256": "86ea4f1eed2688ce071e4fce06dab39c5d78bae5fbbe0279378aeda614364ec3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -34958,7 +34958,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "4ab3028c6acde388ed6e8f4303e4fb762bd4c5e5529971091ef8856feb919897",
+      "sha256": "c48af494ad47757cefd3386a9f4876a5655b3f9b92ad07a5b214206ab54d262e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -74711,6 +74711,431 @@
               {
                 "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
                 "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/github/catalog/comment_confirmation.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3a61a57c5e1df24ffa2d69f2451c1bff153741c3f10062d09eca3161342435f2",
+      "role": "connector-semantics",
+      "owner": "Existing GitHub original comment confirmation semantics and native construction; common Request, Ledger and physical child retain authority",
+      "exports": [],
+      "operations": [
+        {
+          "name": "admit_original_marked_comment_request",
+          "declaration": "admit_original_marked_comment_request ( body : Bytes , limits : PageLimits , subject_id : String , logical_body : String , request_tag : String , ) - > Result [ Unit , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "comment_confirmation_request",
+          "declaration": "comment_confirmation_request ( comment_node_id : String , ) - > Result [ String , CommentRequestIssue ]"
+        },
+        {
+          "name": "comment_confirmation_tag_valid",
+          "declaration": "comment_confirmation_tag_valid ( tag : String ) - > Bool"
+        },
+        {
+          "name": "original_comment_marked_body",
+          "declaration": "original_comment_marked_body ( logical_body : String , request_tag : String , ) - > Result [ String , GraphqlResponseIssue ]"
+        },
+        {
+          "name": "project_comment_confirmation_response",
+          "declaration": "project_comment_confirmation_response ( body : Bytes , limits : PageLimits , comment_id : Int64 , comment_node_id : String , subject_id : String , repository : GraphqlRepository , logical_body : String , request_tag : String , ) - > Result [ Unit , GraphqlResponseIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_original_marked_comment_request",
+            "comment_confirmation_request",
+            "comment_confirmation_tag_valid",
+            "original_comment_marked_body",
+            "project_comment_confirmation_response"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/catalog/comment_confirmation_wbtest.mbt",
+                "anchor": "comment confirmation requires exact original content and marker without normalization"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "422d8666ee2bdbc977a53d19dd581ad1d4b88095138bf66790c772c17faae4e4",
+      "role": "connector-semantics",
+      "owner": "Existing GitHub original comment confirmation semantics and native construction; common Request, Ledger and physical child retain authority",
+      "exports": [],
+      "operations": [
+        {
+          "name": "github_comment_confirmation_json",
+          "declaration": "github_comment_confirmation_json ( body : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , comment_id : Double , comment_node_id : String , subject_id : String , repository_node_id : String , repository_database_id : Double , repository_name_with_owner : String , logical_body : String , request_tag : String , ) - > String"
+        },
+        {
+          "name": "github_comment_confirmation_request_json",
+          "declaration": "github_comment_confirmation_request_json ( node_id : String ) - > String"
+        },
+        {
+          "name": "github_original_marked_comment_request_json",
+          "declaration": "github_original_marked_comment_request_json ( body : Bytes , max_bytes : Int , max_nodes : Int , max_depth : Int , subject_id : String , logical_body : String , request_tag : String , ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "github_comment_confirmation_json",
+            "github_comment_confirmation_request_json",
+            "github_original_marked_comment_request_json"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_bridge_wbtest.mbt",
+                "anchor": "comment confirmation bridge returns only matched original provider DATA"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dfe850cfdac27a0283af30f91b2b08ae25a53e19a90482a96b14e11fbc429560",
+      "role": "connector-semantics",
+      "owner": "Existing GitHub original comment confirmation semantics and native construction; common Request, Ledger and physical child retain authority",
+      "exports": [],
+      "operations": [
+        {
+          "name": "github_comment_confirmation_projection_capacity",
+          "declaration": "github_comment_confirmation_projection_capacity ( original_report : @ execution . ExecutionCapacity , saved_request : Bool , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "github_comment_confirmation_request_capacity",
+          "declaration": "github_comment_confirmation_request_capacity ( ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "github_comment_confirmation_request_inventory",
+          "declaration": "github_comment_confirmation_request_inventory ( ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "github_comment_confirmation_semantic_workspace",
+          "declaration": "github_comment_confirmation_semantic_workspace ( saved_request : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "installed_standard_create_confirmed_construction_profile",
+          "declaration": "installed_standard_create_confirmed_construction_profile ( ) - > Array [ ( @ execution . ExecutionCapacity , @ source . ParseLimits ? , @ source . ParseLimits ? ) , ] ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "github_comment_confirmation_projection_capacity",
+            "github_comment_confirmation_request_capacity",
+            "github_comment_confirmation_request_inventory",
+            "github_comment_confirmation_semantic_workspace",
+            "installed_standard_create_confirmed_construction_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction.mbt",
+                "anchor": "fn "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "src/connectors/github/host_node/comment_confirmation_construction_wbtest.mbt",
+                "anchor": "confirmed native profile preserves original four roles"
               }
             ]
           }
