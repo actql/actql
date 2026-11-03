@@ -4993,6 +4993,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               let sourceResume;
               let targetResumption = false;
               let leaseFailure;
+              let requestInput, inputFailed = false;
               const leaseMs = authorization?.leaseMs ?? 60000;
               const renewal = setInterval(() => {
                 try {
@@ -5004,10 +5005,18 @@ async function openInstalledHost(originalInstallation, preparation) {
               }, Math.max(1, Math.min(1000, Math.floor(leaseMs / 3))));
               renewal.unref?.();
               try {
+              try {
                 const continuation = await checkpoints.runUnitReadContinuation(view);
                 targetResumption = continuation.version === EFFECT_TARGET_CONTINUATION;
                 const submission = {...continuation.submission};
-                submission.preparedProgram = await prepareCapturedSubmission(submission, ref);
+                // This is the independently admitted Checkpoint's pending
+                // restoration, not a new SDK request. Retain its same captured
+                // input before preparation, as on the existing held-request path.
+                requestInput = preparation.retainEffectRequestInput(moon,
+                  submission, undefined, continuation.submission);
+                localPreparationCustody.attach(submission,
+                  localPreparationCustody.adopt(await prepareCapturedSubmission(submission, ref), submission));
+                preparation.bindSourceRequest(submission, submission.preparedProgram);
                 const request = requestOf(submission);
                 if (!request.effectful || !targetResumption && inferSelections.has(submission.preparedProgram)) {
                   throw new Error('UnsupportedAcquiredEffectContinuation');
@@ -5046,7 +5055,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                 }
               } catch (error) {
                 if (['ResumeClaimStale', 'PriorAdmissionUnresolved'].includes(error?.code) ||
-                    error.authorization?.detail === 'ResumeClaimStale') throw error;
+                    error?.authorization?.detail === 'ResumeClaimStale') throw error;
                 const refusal = (targetResumption
                   ? checkpoints.journal.refuseUnsentReadResume
                   : checkpoints.journal.refuseUnsentSourceResume)(
@@ -5059,8 +5068,19 @@ async function openInstalledHost(originalInstallation, preparation) {
                     status: sourceResume.observedTerminalOutcome});
                 }
                 throw error;
+              }
+              } catch (cause) {
+                inputFailed = true;
+                if (requestInput === undefined) throw cause;
+                throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('failed'));
               } finally {
                 clearInterval(renewal);
+                if (requestInput !== undefined && !inputFailed) {
+                  try {requestInput.finish('returned');}
+                  catch (cause) {
+                    throw retainInstalledHostRuntimeFailure(cause, () => requestInput.finish('returned'));
+                  }
+                }
               }
             })();
             effectResumeFlights.set(key, flight);

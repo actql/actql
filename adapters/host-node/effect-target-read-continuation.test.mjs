@@ -360,7 +360,7 @@ async function capturedReadResumeFixture({rejectPrepare = false, failFinish = fa
     adopt(actual, request) {assert.equal(actual, prepared);assert.equal(request, retainedRequest);events.push('adopt');return actual;},
     attach(request, actual) {assert.equal(request, retainedRequest);assert.equal(actual, prepared);request.preparedProgram = actual;events.push('attach');},
   };
-  const ports = {authorization: {}, checkpoints, view, claimed: {claim}, ref, preparation, moon,
+  const ports = {authorization: {}, checkpoints, view, claimed: {claim}, ref, preparation, moon, control: {},
     localPreparationCustody, prepareCapturedSubmission,
     requestOf(request) {assert.equal(request, retainedRequest);assert.equal(request.preparedProgram, prepared);return {effectful: true};},
     inferSelections: new Map(), EFFECT_TARGET_CONTINUATION: 'target',
