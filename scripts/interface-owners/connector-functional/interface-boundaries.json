@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
-      "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
+      "sha256": "0274909c80b3d54f0776e246053b22224ade8f50a02df58b41e12e24dbba77f5",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
