@@ -183,8 +183,8 @@ test "request bootstrap independently covers generic JSON entry allocated carrie
   let (retained, execution) = client_request_preparation_control_capacity(
     client_local_resource_policy(),
   ).unwrap()
-  assert_eq(retained, 14472L)
-  assert_eq(16L * 220L + 8L * 402L + 8L * 455L + 4096L, 14472L)
+  assert_eq(retained, 14488L)
+  assert_eq(16L * 220L + 8L * 402L + 8L * 457L + 4096L, 14488L)
   assert_eq(execution, 0L)
   assert_eq(16L * 10L + 8L * 7L + 8L * 13L, 320L)
 }
@@ -203,7 +203,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
       let usage = @resources.ledger_usage(parent.ledger)
       backed_before_resize.val = parent.phase == Selecting &&
         parent.program_json is None &&
-        usage.reserved_retention_bytes == 14472L &&
+        usage.reserved_retention_bytes == 14488L &&
         usage.reserved_execution_bytes == 0L
     }
     true
@@ -227,7 +227,7 @@ test "original request bootstrap entry carriers are already debited at the sole 
   // +preflight17H35R58W =585H228R1254W=21216, once. It neither
   // replaces nor supplies the pre-entry carriers observed by that callback.
   assert_eq(16L * 585L + 8L * 228L + 8L * 1254L, 21216L)
-  assert_eq(usage.reserved_retention_bytes, 14472L + 21216L)
+  assert_eq(usage.reserved_retention_bytes, 14488L + 21216L)
   assert_eq(usage.reserved_execution_bytes, 21216L)
   assert_true(physical_equal(child.capacity, parent.capacity))
   abort_request_preparation_after_cleanup(parent).unwrap()

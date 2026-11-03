@@ -208,7 +208,8 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 ///|
 // One conservative fixed Host/Request control envelope, expressed through the
 // existing common representation tariff. Preserve the original 10,368-byte
-// envelope plus one Source-context reference slot: 10,376 logical bytes and
+// envelope plus one Source-context reference slot and two growth-fence words
+// for the existing old/new typed capacity continuation: 10,392 logical bytes and
 // the existing separate 4,096-byte installed group.
 // This is intentionally independent of JS closure, carrier and array spelling.
 // Input/AST/wire/row/operation storage, selected domain construction and live
@@ -217,7 +218,7 @@ pub impl Debug for ClientProgramCheckPreparationIssue with fn to_repr(self) {
 let request_preparation_fixed_control_envelope : @execution.PreparationRepresentationUnits = {
   record_headers: 220L,
   reference_slots: 402L,
-  scalar_words: 455L,
+  scalar_words: 457L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
 }
@@ -241,6 +242,17 @@ pub fn client_request_preparation_control_capacity(
   // the exclusive read-only capture-recovery quote/reader controls, or the
   // pre-compiler Content Graph measurement/selection call frame. This is
   // installed coarse control overhead, not variable wire/body admission.
+  // The same group covers later Run growth entry. Its original owner fences
+  // recursion before payload construction, so only one refused nested entry
+  // overlaps. The fixed carriers are backed NOW, not by a later resize.
+  let growth = @resources.preparation_inventory_growth_entry_construction()
+  guard @execution.preparation_representation_cost({
+    record_headers: growth.record_headers,
+    reference_slots: growth.reference_slots,
+    scalar_words: growth.scalar_words,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }) is Some(entry) && entry <= 4096L else { return None }
   if retained > limits.retained_bytes {
     return None
   }

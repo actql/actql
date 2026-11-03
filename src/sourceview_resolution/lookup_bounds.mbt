@@ -26,12 +26,30 @@ pub struct LookupCounts {
 struct LookupBounds {
   rows : KeyedRowBounds
   policy : @environment.LookupExecution
-  entries : Array[LookupCounts]
+  entries : Array[LookupRequirement]
   work : Int
 }
 
 ///|
+/// Whether the optional estimate fits the declared planning envelope. Neither
+/// variant grants resources: every acquisition still requires runtime admission.
+pub enum LookupAdmission {
+  EstimatedEnvelope
+  RuntimeAdmission
+}
+
+///|
+pub struct LookupRequirement {
+  join : KeyedJoin
+  estimate : LookupCounts?
+  admission : LookupAdmission
+}
+
+///|
 fn lookup_product(a : Int64, b : Int64) -> Int64? {
+  if a == 0 || b == 0 {
+    return Some(0L)
+  }
   if a > 9007199254740991L / b {
     None
   } else {
@@ -48,7 +66,22 @@ fn lookup_counts(
   page_bytes : Int64,
   attempts : Int64,
 ) -> LookupCounts? {
-  // All integer arguments come from admitted positive safe-integer contracts.
+  // The estimate can be genuinely zero. All capability arguments are admitted
+  // positive safe integers. No batch, page or provider attempt is needed then.
+  if rows == 0 {
+    return Some({
+      input_rows: 0L,
+      distinct_keys: 0L,
+      keys_per_batch: 0L,
+      batches: 0L,
+      pages_per_batch: pages,
+      requests: 0L,
+      network_attempts: 0L,
+      rows_per_key: per_key,
+      response_rows: 0L,
+      decoded_response_bytes: 0L,
+    })
+  }
   // Clamp the declared batch capability before conversion: it can exceed 2^53.
   let keys = match batch_cap {
     None => 1L
@@ -99,7 +132,7 @@ pub fn check_lookup_bounds(
   }
   let mut work = 0
   let entries = []
-  for i in 0..<rows.bounds.length() {
+  for i in 0..<rows.requirements.length() {
     if work >= max_work {
       return Err(WorkLimit)
     }
@@ -115,9 +148,9 @@ pub fn check_lookup_bounds(
       @environment.source_batching_max_keys,
     )
     let capacity = facts.capacity
-    let counts = match
+    let counts = keyed_rows_at(rows, i).bind(bound =>
       lookup_counts(
-        @capacity.target_rows_value(rows.bounds[i]),
+        @capacity.target_rows_value(bound),
         batch,
         @environment.lookup_capacity_pages_per_request(capacity),
         @environment.lookup_capacity_rows_per_key(capacity),
@@ -126,18 +159,19 @@ pub fn check_lookup_bounds(
           selected,
           @environment.NetworkAttemptsPerRequest,
         ),
-      ) {
-      Some(v) => v
-      None => return Err(UnrepresentableBound(step))
-    }
-    if counts.decoded_response_bytes >
-      @environment.lookup_execution_ceiling(
+      ),
+    )
+    let admission = match counts {
+      Some(counts) if counts.decoded_response_bytes <= @environment.lookup_execution_ceiling(
         selected,
         @environment.TotalResponseDecodedBytes,
-      ) {
-      return Err(DecodedResponseLimit(step))
+      ) => LookupAdmission::EstimatedEnvelope
+      _ => LookupAdmission::RuntimeAdmission
     }
-    entries.push(counts)
+    // A conservative upper estimate exceeding a ceiling is not a proof that
+    // actual execution exceeds it. Retain the estimate, original join and
+    // policy, then require actual runtime admission before allocation/access.
+    entries.push({ join: facts.join, estimate: counts, admission, })
   }
   Ok({ rows, policy, entries, work, })
 }
@@ -164,5 +198,25 @@ pub fn lookup_bounds_count(v : LookupBounds) -> Int {
 
 ///|
 pub fn lookup_bounds_at(v : LookupBounds, i : Int) -> LookupCounts? {
+  v.entries.get(i).bind(entry => entry.estimate)
+}
+
+///|
+pub fn lookup_requirement_at(v : LookupBounds, i : Int) -> LookupRequirement? {
   v.entries.get(i)
+}
+
+///|
+pub fn lookup_requirement_join(v : LookupRequirement) -> KeyedJoin {
+  v.join
+}
+
+///|
+pub fn lookup_requirement_estimate(v : LookupRequirement) -> LookupCounts? {
+  v.estimate
+}
+
+///|
+pub fn lookup_requirement_admission(v : LookupRequirement) -> LookupAdmission {
+  v.admission
 }

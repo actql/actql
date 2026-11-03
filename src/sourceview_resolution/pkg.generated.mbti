@@ -57,6 +57,8 @@ pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Resu
 
 pub fn check_keyed_row_bounds(CheckedKeyedFacts, Array[@capacity_program_step.TargetRows], Int) -> Result[KeyedRowBounds, KeyedRowsIssue]
 
+pub fn check_keyed_row_estimates(CheckedKeyedFacts, Array[@capacity_program_step.TargetRows?], Int) -> Result[KeyedRowBounds, KeyedRowsIssue]
+
 pub fn check_lookup_bounds(KeyedRowBounds, @check_environment.LookupExecution, Int) -> Result[LookupBounds, LookupBoundsIssue]
 
 pub fn check_pipeline_requests(PipelineUses, RequestParameters, RequestLimits) -> Result[PipelineRequests, AcquisitionIssue]
@@ -163,6 +165,8 @@ pub fn keyed_rows_count(KeyedRowBounds) -> Int
 
 pub fn keyed_rows_facts(KeyedRowBounds) -> CheckedKeyedFacts
 
+pub fn keyed_rows_requirement_at(KeyedRowBounds, Int) -> KeyedRowRequirement?
+
 pub fn keyed_rows_work(KeyedRowBounds) -> Int
 
 pub fn keyed_source_capacity(KeyedSourceFacts) -> @check_environment.LookupCapacity
@@ -180,6 +184,14 @@ pub fn lookup_bounds_policy(LookupBounds) -> @check_environment.LookupExecution
 pub fn lookup_bounds_rows(LookupBounds) -> KeyedRowBounds
 
 pub fn lookup_bounds_work(LookupBounds) -> Int
+
+pub fn lookup_requirement_admission(LookupRequirement) -> LookupAdmission
+
+pub fn lookup_requirement_at(LookupBounds, Int) -> LookupRequirement?
+
+pub fn lookup_requirement_estimate(LookupRequirement) -> LookupCounts?
+
+pub fn lookup_requirement_join(LookupRequirement) -> KeyedJoin
 
 pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
@@ -505,6 +517,11 @@ pub enum KeyedRowRequestPoll {
   KeyedRowRequestFailed(KeyedRowRequestIssue)
 }
 
+pub enum KeyedRowRequirement {
+  CheckedEstimate(@capacity_program_step.TargetRows)
+  RuntimeAdmission(KeyedJoin)
+}
+
 type KeyedRowResponseCursor
 
 pub(all) enum KeyedRowResponseIssue {
@@ -540,6 +557,11 @@ pub(all) struct Limits {
   max_views : Int
 }
 
+pub enum LookupAdmission {
+  EstimatedEnvelope
+  RuntimeAdmission
+}
+
 type LookupBounds
 
 pub(all) enum LookupBoundsIssue {
@@ -563,6 +585,12 @@ pub struct LookupCounts {
   response_rows : Int64
   decoded_response_bytes : Int64
 } derive(Eq, @debug.Debug)
+
+pub struct LookupRequirement {
+  join : KeyedJoin
+  estimate : LookupCounts?
+  admission : LookupAdmission
+}
 
 type ModeCheckpoint
 
