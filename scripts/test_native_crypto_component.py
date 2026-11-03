@@ -191,6 +191,19 @@ class CompatibleDarwinSource(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'selected Darwin arm64'):
                 P.produce_darwin_source(self.root / 'output', Path('/foreign/cc'), Path('/foreign/sdk'), 60)
 
+    def test_original_multicall_tool_alias_keeps_its_invocation_name_and_canonical_bytes(self):
+        binary = self.root / 'libtool'; binary.write_bytes(b'original selected tool')
+        alias = self.root / 'ranlib'; alias.symlink_to(binary)
+        tools = {'ranlib': alias}
+        inputs, aliases = P.original_tool_inputs(tools)
+        self.assertEqual(tools['ranlib'], alias)
+        self.assertEqual(inputs, {str(binary): P.original(binary)})
+        P.verify_tool_aliases(aliases)
+        replacement = self.root / 'foreign'; replacement.write_bytes(b'foreign tool')
+        alias.unlink(); alias.symlink_to(replacement)
+        with self.assertRaisesRegex(ValueError, 'tool alias changed'):
+            P.verify_tool_aliases(aliases)
+
 
 if __name__ == '__main__':
     unittest.main()

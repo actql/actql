@@ -56,6 +56,28 @@ def verify_original_inputs(*inventories: dict) -> None:
                 raise ValueError('Original Crypto build input changed: ' + name)
 
 
+def original_tool_inputs(tools: dict) -> tuple[dict, dict]:
+    inputs, aliases = {}, {}
+    for path in tools.values():
+        resolved = path.resolve(strict=True)
+        inputs[str(resolved)] = original(resolved, 512 * 1024 * 1024)
+        if path != resolved:
+            before = path.lstat()
+            aliases[str(path)] = {'resolved_path': str(resolved), **{
+                key: getattr(before, key) for key in ('st_dev', 'st_ino', 'st_mtime_ns', 'st_ctime_ns')}}
+    return inputs, aliases
+
+
+def verify_tool_aliases(aliases: dict) -> None:
+    for name, expected in aliases.items():
+        path = Path(name)
+        current = path.lstat()
+        if (str(path.resolve(strict=True)) != expected['resolved_path']
+                or any(getattr(current, key) != expected[key]
+                       for key in ('st_dev', 'st_ino', 'st_mtime_ns', 'st_ctime_ns'))):
+            raise ValueError('Original Crypto compiler tool alias changed')
+
+
 def produce(output: Path, openssl: Path, clang: Path, sdk: Path, *,
             source_static: dict | None = None) -> dict[str, object]:
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
@@ -270,9 +292,10 @@ def produce_darwin_source(output: Path, clang: Path, sdk: Path, seconds: int, *,
     tools = {name: Path('/Library/Developer/CommandLineTools/usr/bin') / name
              for name in ('ar', 'ranlib', 'otool', 'lipo')}
     tools.update(make=Path('/usr/bin/make'), perl=Path('/usr/bin/perl'))
-    inputs = {str(path): original(path, 512 * 1024 * 1024)
-              for path in (*tools.values(), clang, sdk / 'SDKSettings.json',
-                           recipe_path, Path(__file__).resolve(), Path(sys.executable).resolve(), source_archive)}
+    inputs, tool_aliases = original_tool_inputs(tools)
+    inputs.update({str(path): original(path, 512 * 1024 * 1024)
+              for path in (clang, sdk / 'SDKSettings.json', recipe_path,
+                           Path(__file__).resolve(), Path(sys.executable).resolve(), source_archive)})
     receipts = output / 'compiler-receipts'; receipts.mkdir()
     driver = output / 'cc'
     # Dependency capture alone changes -MMD to -MD. Original compile/link flags
@@ -359,12 +382,14 @@ raise SystemExit(result.returncode)
     if not archive_members or run('archive-target', [str(tools['lipo']), '-archs', str(archive)]).strip() != 'arm64':
         raise ValueError('Static source archive does not contain the selected arm64 members')
     verify_original_inputs(inputs, compiled)
+    verify_tool_aliases(tool_aliases)
     proof = {'source': head, 'target': 'aarch64-apple-darwin', 'profile': profile,
         'prefix': str(prefix), 'archive': {'path': str(archive), **original(archive)},
         'archive_members': archive_members, 'source_members': members,
         'header_count': len(headers), 'header_census_sha256': hashlib.sha256(
             json.dumps(headers, sort_keys=True, separators=(',', ':')).encode()).hexdigest(),
         'compiler_target': target, 'compiler_flags': flags, 'compiler_invocations': len(records),
+        'compiler_tool_aliases': tool_aliases,
         'inputs': inputs, 'compiled_inputs': compiled, 'loaded': False, 'providers': 0}
     (output / 'static-source.json').write_text(json.dumps(proof, indent=2) + '\n')
     inputs[str(output / 'static-source.json')] = original(output / 'static-source.json')
