@@ -416,3 +416,61 @@ test('packed checkpoint failure capture reads only own scalar DATA without gette
   assert.deepEqual(capture({name: 'OriginalPublicFailure', code: 'UnexpectedOriginalCode'}),
     {name: 'OriginalPublicFailure', code: 'UnexpectedOriginalCode'});
 });
+
+test('packed checkpoint dispatch capture excludes messages, identities, getters and opaque values', () => {
+  const {functionSource} = checkpointObservationDeclarations();
+  const capture = new Function('nodeTypes', functionSource('checkpointDispatchFailureData') +
+    ';return checkpointDispatchFailureData;')(nodeTypes);
+  let reads = 0;
+  const getter = {get() {reads++; throw new Error('must not inspect');}};
+  const detail = Object.create({primaryCode: 'InheritedCode', issueTag: 1});
+  for (const key of ['primaryCode', 'issueTag', 'nestedIssueTag', 'ref', 'cause']) {
+    Object.defineProperty(detail, key, getter);
+  }
+  assert.deepEqual(capture(detail), {});
+  const proxy = new Proxy({}, {getOwnPropertyDescriptor() {reads++; throw new Error('opaque');}});
+  for (const value of [proxy, undefined, null, 1, 'failure', () => {}]) {
+    assert.equal(capture(value), undefined);
+  }
+  const original = {primaryCode: 'OriginalFailure:Preparation', issueTag: 12, nestedIssueTag: 5,
+    code: 'private message', message: 'private payload', ref: {opaque: true}, cause: proxy};
+  const data = capture(original);
+  assert.deepEqual(data, {primaryCode: 'OriginalFailure:Preparation', issueTag: 12, nestedIssueTag: 5});
+  assert(Object.isFrozen(data));
+  original.primaryCode = 'LaterFailure';
+  assert.equal(data.primaryCode, 'OriginalFailure:Preparation');
+  for (const primaryCode of ['', 'private message', 'X'.repeat(129), proxy, 1]) {
+    assert.deepEqual(capture({primaryCode}), {});
+  }
+  for (const issueTag of [-1, 65536, 1.5, NaN, Infinity, '12', proxy]) {
+    assert.deepEqual(capture({issueTag, nestedIssueTag: issueTag}), {});
+  }
+  assert.deepEqual(capture({issueTag: 0, nestedIssueTag: 65535}), {issueTag: 0, nestedIssueTag: 65535});
+  assert.equal(reads, 0);
+});
+
+test('packed checkpoint observes only the existing dispatch event and preserves its first DATA', () => {
+  const {source, ast, functionSource} = checkpointObservationDeclarations();
+  const assignment = ast.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AssignmentExpression' && node.expression.left.type === 'MemberExpression' &&
+    node.expression.left.object.name === 'authorization' && node.expression.left.property.name === 'observe');
+  assert(assignment);
+  const opening = ast.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(declaration => declaration.id.name === 'open'));
+  assert(assignment.end < opening.start, 'the existing observer is configured before the original connect');
+  const callback = source.slice(assignment.expression.right.start, assignment.expression.right.end);
+  const records = [];
+  const observe = new Function('nodeTypes', 'records', `
+    ${functionSource('checkpointDispatchFailureData')}
+    ${functionSource('checkpointObservationRecord')}
+    const record=(kind,data)=>checkpointObservationRecord(records,kind,data);
+    return ${callback};`)(nodeTypes, records);
+  const opaque = new Proxy({}, {get() {throw new Error('must not read unrelated events');}});
+  assert.equal(observe('resume_failed', opaque), undefined);
+  assert.equal(observe('dispatch_settlement_failed', opaque), undefined);
+  assert.equal(observe('dispatch_failed', null), undefined);
+  assert.equal(observe('dispatch_failed', {primaryCode: 'OriginalFailure', issueTag: 12}), undefined);
+  for (let index = 0; index < 100; index++) observe('dispatch_failed', {primaryCode: 'LaterFailure'});
+  assert.deepEqual(records, [{kind: 'diagnostic:dispatch_failed',
+    data: {primaryCode: 'OriginalFailure', issueTag: 12}}]);
+});

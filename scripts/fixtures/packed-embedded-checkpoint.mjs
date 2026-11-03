@@ -34,6 +34,22 @@ function checkpointFailureData(error) {
   return data;
 }
 
+// The existing Host event may put an error message in `code`. Retain only
+// its own bounded primary code and numeric tags, never refs or opaque causes.
+function checkpointDispatchFailureData(detail) {
+  if (detail === null || typeof detail !== 'object' || nodeTypes.isProxy(detail)) return undefined;
+  const data = {};
+  const code = Object.getOwnPropertyDescriptor(detail, 'primaryCode');
+  if (code && Object.hasOwn(code, 'value') && typeof code.value === 'string' &&
+      /^[A-Za-z][A-Za-z0-9_.:-]{0,127}$/u.test(code.value)) data.primaryCode = code.value;
+  for (const key of ['issueTag', 'nestedIssueTag']) {
+    const field = Object.getOwnPropertyDescriptor(detail, key);
+    if (field && Object.hasOwn(field, 'value') && Number.isSafeInteger(field.value) &&
+        field.value >= 0 && field.value <= 65535) data[key] = field.value;
+  }
+  return Object.freeze(data);
+}
+
 function checkpointObservationRecord(records, kind, data) {
   if (records.some(record => record.kind === kind)) return undefined;
   const record = Object.freeze({kind, data: Object.freeze({...data})});
@@ -56,6 +72,11 @@ const record = (kind, data) => {
   if (item !== undefined) appendFileSync(observationPath, JSON.stringify(item) + '\n');
 };
 record('schedule', schedule);
+authorization.observe = (name, detail) => {
+  if (name !== 'dispatch_failed') return;
+  const data = checkpointDispatchFailureData(detail);
+  if (data !== undefined) record('diagnostic:dispatch_failed', data);
+};
 let firstResumeFailure, retryClaimAfterFailure = false, recoveryAfterFailure = false;
 authorization.faultInjection = (name, detail) => {
   appendFileSync('embedded-events.log', `${name}\n`);
