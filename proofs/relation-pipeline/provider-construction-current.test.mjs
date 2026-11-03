@@ -3,12 +3,24 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {hash} from './inventory.mjs';
 import {providerConstructionBound, retainedProviderConstructionBound, inspectProviderConstruction} from './capacity/parent-control/provider-construction.mjs';
 import {adoptedConstructionReview, beforeAdoptedConstructionSource, retainedConstructionRead} from './capacity/parent-control/provider-construction-adopted-review.mjs';
 import {adoptedConstructionFixtureRead, retainedConstructionFixtureRead}
   from './fixtures/retained-construction-source.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
+test('retained constructor fixtures bind every provider to its original source identity', () => {
+  const original = JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json'));
+  assert.equal(original.providers.length, 11);
+  for (const provider of original.providers) {
+    assert.equal(hash(retainedConstructionFixtureRead(provider.path)), provider.sourceDigest, provider.name);
+  }
+  for (const name of ['selected_relation_provider', 'append_provider', 'values_provider']) {
+    const provider = original.providers.find(provider => provider.name === name);
+    assert.notEqual(hash(read(provider.path)), provider.sourceDigest, 'Current Source must not replace retained fixture input');
+  }
+});
 test('current five-field candidate component derives 2432 without promoting historical observations', () => {
   const current = providerConstructionBound(read);
   assert.equal(current.recordBytes, 48);
