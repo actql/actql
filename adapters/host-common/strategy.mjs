@@ -71,6 +71,8 @@ function ownedStrategyFailure(reason, fallbackCode) {
   const code = typeof failureMember(reason, 'code') === 'string'
     ? failureMember(reason, 'code') : fallbackCode;
   const failure = new StrategyHostError(code);
+  const name = failureMember(reason, 'name');
+  if (typeof name === 'string') failure.name = name;
   failure.cause = reason;
   failure.primaryFailure = reason;
   const errors = failureMember(reason, 'cleanupErrors');
