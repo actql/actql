@@ -1,12 +1,14 @@
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {createFixtureFileSupplier} from './fixture-file-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {installedProjectOriginalsForRuntime} from '../host-node/installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from '../host-node/installed-project-connections.mjs';
-import {loadDeclaredProjectCatalog} from './declared-project-catalog.mjs';
+import {loadDeclaredProjectCatalog, inspectDeclaredProjectCatalog} from './declared-project-catalog.mjs';
+import {assertDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
 import {composeInstalledCheckEnvironment} from '../host-node/installed-check-environment.mjs';
 import {contentCid} from '../host-node/local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from '../host-node/installed-host-cleanup.mjs';
@@ -29,8 +31,34 @@ export function installedMockRequestRealization(preparation, runtime) {
 // phase, before any fixture acquisition. The bundled declarations are not
 // inferred from rows, a Task, pathname or the original connection's secrets.
 // This view supplies no read decision, physical child, Run or capacity.
-export async function prepareInstalledProjectMock(moon, project, profile,
-  {assertCurrent, openFile, installationInventory} = {}) {
+function capturedPreparationOptions(options) {
+  if (options === null || typeof options !== 'object' || Array.isArray(options) ||
+      nodeTypes.isProxy(options)) fail('ForeignDeclaredFileInstallation');
+  const captured = {};
+  for (const name of ['assertCurrent', 'openFile', 'installationInventory']) {
+    const field = Object.getOwnPropertyDescriptor(options, name);
+    if (field !== undefined && !Object.hasOwn(field, 'value')) fail('ForeignDeclaredFileInstallation');
+    captured[name] = field?.value;
+  }
+  return Object.freeze(captured);
+}
+
+export async function prepareInstalledProjectMock(moon, project, profile, options = {}) {
+  options = capturedPreparationOptions(options);
+  assertDeclaredFileInstallationInventory(options.installationInventory, moon,
+    installedProjectOriginalsForRuntime(project, moon));
+  return prepareProjectMockDeclarations(moon, project, profile, options, loadDeclaredProjectCatalog);
+}
+
+// Explicit metadata inspection. It cannot produce issued installation members.
+export async function inspectProjectMockDeclarations(moon, project, profile, options = {}) {
+  options = capturedPreparationOptions(options);
+  if (options.installationInventory !== undefined) fail('ForeignDeclaredFileInstallation');
+  return prepareProjectMockDeclarations(moon, project, profile, options, inspectDeclaredProjectCatalog);
+}
+
+async function prepareProjectMockDeclarations(moon, project, profile,
+  {assertCurrent, openFile, installationInventory}, loadCatalog) {
   let projectOriginal = installedProjectOriginalsForRuntime(project, moon);
   if (typeof assertCurrent !== 'function' || typeof project.directory !== 'string' ||
       !project.directory || typeof profile?.originalsForRuntime !== 'function' ||
@@ -78,7 +106,7 @@ export async function prepareInstalledProjectMock(moon, project, profile,
   if (!Number.isSafeInteger(count) || count < 0 || count > 128) {
     fail('InstalledMockConnectionCountUnavailable');
   }
-  let catalog = await loadDeclaredProjectCatalog(moon, {directory: project.directory,
+  let catalog = await loadCatalog(moon, {directory: project.directory,
     catalogFile: locators.catalogFile, dataFile: locators.dataFile, connectionOriginal,
     connections: connectionOriginal.connections,
     assertCurrent: current, openFile, installationInventory});
@@ -133,6 +161,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       typeof sourceManaged?.prepareRead !== 'function') fail('NodeManagedRunAdmissionUnavailable');
   const bundle = mockPreparation.originalsForRuntime(moon);
   if (bundle.sources.length < 1) fail('InstalledMockCatalogueUnavailable');
+  if (bundle.sources.some(source => source.sourceMember === undefined ||
+      source.sourcePrepared === undefined)) fail('DeclaredFileInstallationUnavailable');
   let closing = false;
   const prepareRequestModel = prepareManagedModelRun;
   const prepareRequestSource = prepareManagedSourceRun;
@@ -614,7 +644,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         if (view === undefined) fail('InstalledMockCatalogueUnavailable');
         return Object.freeze({name: alias.name, sourceRef: view.source_ref,
           sourceViewContractCid: view.view_cid,
-          schemaContractCid: view.carrier_schema_cid});
+          schemaContractCid: view.carrier_schema_cid,
+          ...(Object.hasOwn(alias, 'request') ? {request: alias.request} : {})});
       }));
       sources.push(Object.freeze({...adapter, queryAliases,
         ...(original.fileBindings.length === 0 ? {} : {requiresRunContentCapture: true}),

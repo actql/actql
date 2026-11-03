@@ -6,7 +6,7 @@ import test from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {loadDeclaredProjectCatalog} from './declared-project-catalog.mjs';
+import {inspectDeclaredProjectCatalog} from './declared-project-catalog.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME, 'Select the actual matching builtin Common runtime');
 const moon = await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_PROFILE_RUNTIME));
@@ -34,7 +34,7 @@ async function fixture(t, template = templates[0]) {
       typeof connections === 'string' ? connections : JSON.stringify(connections)));
     await writeFile(catalogPath, originalWire);
     state.opens.length = 0;
-    const result = await loadDeclaredProjectCatalog(moon, {
+    const result = await inspectDeclaredProjectCatalog(moon, {
       directory, catalogFile, dataFile: configuration.mock.data, connections: originalConnections,
       assertCurrent() {state.currentChecks++;},
       openFile(path, ...args) {

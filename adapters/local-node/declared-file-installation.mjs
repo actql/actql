@@ -13,6 +13,17 @@ import {createInstalledRowEffect} from '../host-node/installed-row-effect.mjs';
 import {installedProjectOriginalsForRuntime} from '../host-node/installed-project-configuration.mjs';
 
 const fail = code => {throw Object.assign(new TypeError(code), {code});};
+const issuedInventories = new WeakMap();
+
+// Lookup only: the existing Source material remains the construction owner.
+export function assertDeclaredFileInstallationInventory(inventory, moon, projectOriginal) {
+  const retained = issuedInventories.get(inventory);
+  if (retained === undefined || retained.moon !== moon || retained.projectOriginal !== projectOriginal) {
+    fail('ForeignDeclaredFileInstallation');
+  }
+  retained.current();
+}
+
 const registration = 'declared_file', revision = 'declared_file/0.1';
 const versions = Object.freeze({source: 'actql-installed-declared-file-source/0.1',
   effect: 'actql-installed-declared-file-effect/0.1'});
@@ -229,5 +240,6 @@ export function createDeclaredFileInstallationInventory({moon, project, services
     },
   });
   current();
+  issuedInventories.set(inventory, {moon, projectOriginal, current});
   return inventory;
 }

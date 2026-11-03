@@ -3,11 +3,21 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-file-installation.mjs",
-      "sha256": "3998d75831e7f280238d5aedc5090e9e76f6d0c890bc5e0774514d14169b7035",
+      "sha256": "d4f9434565a7ff97ae7d766d25b43dcab40a356d7d1f42233a62be7c2bd40504",
       "exports": [
+        "assertDeclaredFileInstallationInventory",
         "createDeclaredFileInstallationInventory"
       ],
       "operations": [
+        {
+          "name": "assertDeclaredFileInstallationInventory",
+          "parameters": [
+            "inventory",
+            "moon",
+            "projectOriginal"
+          ],
+          "async": false
+        },
         {
           "name": "checkProfile",
           "parameters": [
@@ -276,6 +286,7 @@
         {
           "operations": [
             "<module>",
+            "assertDeclaredFileInstallationInventory",
             "checkProfile",
             "createDeclaredFileInstallationInventory",
             "createDeclaredFileInstallationInventory/createDeclaredFileInstallationInventory",
@@ -284,6 +295,9 @@
             "createDeclaredFileInstallationInventory/failRecord/failRecord",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#2",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#3",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#4",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/init:begin",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load",
@@ -296,9 +310,6 @@
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/memberCurrent/memberCurrent",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare/prepare",
-            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#2",
-            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#3",
-            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#4",
             "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/previous/previous",
             "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail",
             "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail/init:fail",
@@ -316,6 +327,7 @@
             "text/text"
           ],
           "exports": [
+            "assertDeclaredFileInstallationInventory",
             "createDeclaredFileInstallationInventory"
           ],
           "attributes": {

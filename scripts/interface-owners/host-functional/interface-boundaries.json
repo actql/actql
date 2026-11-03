@@ -70839,8 +70839,9 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "8c1d8981c102c5ecd45fb04eca120d190b3e121034db14bf8654213c6c72c56a",
+      "sha256": "cf26746a34c4ec41a856c85cc700398581c86f6d4125f24f3b4e6723a19cd548",
       "exports": [
+        "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
         "prepareInstalledProjectMock"
@@ -70850,6 +70851,13 @@
           "name": "canonical/canonical",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturedPreparationOptions",
+          "parameters": [
+            "options"
           ],
           "async": false
         },
@@ -70866,6 +70874,16 @@
             "code"
           ],
           "async": false
+        },
+        {
+          "name": "inspectProjectMockDeclarations",
+          "parameters": [
+            "moon",
+            "project",
+            "profile",
+            "options"
+          ],
+          "async": true
         },
         {
           "name": "installedMockRequestRealization",
@@ -71114,6 +71132,13 @@
         {
           "name": "installPreparedProjectMockSources/installPreparedProjectMockSources#3",
           "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/installPreparedProjectMockSources#4",
+          "parameters": [
             "ref"
           ],
           "async": false
@@ -71266,14 +71291,25 @@
             "moon",
             "project",
             "profile",
-            "assertCurrent",
-            "openFile",
-            "installationInventory"
+            "options"
           ],
           "async": true
         },
         {
-          "name": "prepareInstalledProjectMock/call/call",
+          "name": "prepareProjectMockDeclarations",
+          "parameters": [
+            "moon",
+            "project",
+            "profile",
+            "assertCurrent",
+            "openFile",
+            "installationInventory",
+            "loadCatalog"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareProjectMockDeclarations/call/call",
           "parameters": [
             "name",
             "args"
@@ -71281,33 +71317,33 @@
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/current",
+          "name": "prepareProjectMockDeclarations/current",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/init:originalsForRuntime/init:originalsForRuntime",
+          "name": "prepareProjectMockDeclarations/init:originalsForRuntime/init:originalsForRuntime",
           "parameters": [
             "runtime"
           ],
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/init:retire/init:retire",
+          "name": "prepareProjectMockDeclarations/init:retire/init:retire",
           "parameters": [
             "runtime"
           ],
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/prepareInstalledProjectMock",
+          "name": "prepareProjectMockDeclarations/prepareProjectMockDeclarations",
           "parameters": [
             "port"
           ],
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/same",
+          "name": "prepareProjectMockDeclarations/same",
           "parameters": [
             "runtime",
             "receiver"
@@ -71315,21 +71351,21 @@
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/select/select",
+          "name": "prepareProjectMockDeclarations/select/select",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/targets/targets",
+          "name": "prepareProjectMockDeclarations/targets/targets",
           "parameters": [
             "source"
           ],
           "async": false
         },
         {
-          "name": "prepareInstalledProjectMock/targets/targets/targets",
+          "name": "prepareProjectMockDeclarations/targets/targets/targets",
           "parameters": [
             "write"
           ],
@@ -71346,10 +71382,12 @@
         "../host-node/installed-project-configuration.mjs",
         "../host-node/installed-project-connections.mjs",
         "../host-node/local-account-config.mjs",
+        "./declared-file-installation.mjs",
         "./declared-project-catalog.mjs",
         "./fixture-file-source.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -71361,18 +71399,22 @@
           "operations": [
             "fail/fail",
             "installedMockRequestRealization",
+            "prepareProjectMockDeclarations",
+            "prepareProjectMockDeclarations/call/call",
+            "prepareProjectMockDeclarations/current",
+            "prepareProjectMockDeclarations/init:originalsForRuntime/init:originalsForRuntime",
+            "prepareProjectMockDeclarations/init:retire/init:retire",
+            "prepareProjectMockDeclarations/prepareProjectMockDeclarations",
+            "prepareProjectMockDeclarations/same",
+            "prepareProjectMockDeclarations/select/select",
+            "inspectProjectMockDeclarations",
             "prepareInstalledProjectMock",
-            "prepareInstalledProjectMock/call/call",
-            "prepareInstalledProjectMock/current",
-            "prepareInstalledProjectMock/init:originalsForRuntime/init:originalsForRuntime",
-            "prepareInstalledProjectMock/init:retire/init:retire",
-            "prepareInstalledProjectMock/prepareInstalledProjectMock",
-            "prepareInstalledProjectMock/same",
-            "prepareInstalledProjectMock/select/select"
+            "capturedPreparationOptions"
           ],
           "exports": [
             "installedMockRequestRealization",
-            "prepareInstalledProjectMock"
+            "prepareInstalledProjectMock",
+            "inspectProjectMockDeclarations"
           ],
           "attributes": {
             "responsibility": [
@@ -71499,7 +71541,8 @@
             "installPreparedProjectMockSources/queryAliases/queryAliases",
             "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
             "installPreparedProjectMockSources/releaseEffectSourceAliases",
-            "installPreparedProjectMockSources/sameRun/sameRun"
+            "installPreparedProjectMockSources/sameRun/sameRun",
+            "installPreparedProjectMockSources/installPreparedProjectMockSources#4"
           ],
           "exports": [
             "installPreparedProjectMockSources"
@@ -72473,8 +72516,8 @@
             "installPreparedProjectMockSources/readOriginal",
             "installPreparedProjectMockSources/referenceIssuer/referenceIssuer",
             "installPreparedProjectMockSources/referenceIssuer/referenceIssuer#2",
-            "prepareInstalledProjectMock/targets/targets",
-            "prepareInstalledProjectMock/targets/targets/targets"
+            "prepareProjectMockDeclarations/targets/targets",
+            "prepareProjectMockDeclarations/targets/targets/targets"
           ],
           "exports": [],
           "attributes": {

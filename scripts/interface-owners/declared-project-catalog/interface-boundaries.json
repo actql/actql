@@ -3,11 +3,19 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "b587ff34bf295a8d507addce0da74f6ac6031260330813b27deb8235a40ecfb9",
+      "sha256": "0b3cedad927e403199b29dc6ea39392f85491659626d40e13da7f7390f321f30",
       "exports": [
+        "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog"
       ],
       "operations": [
+        {
+          "name": "capturedCatalogOptions",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
         {
           "name": "cid/cid",
           "parameters": [
@@ -53,6 +61,14 @@
           "async": false
         },
         {
+          "name": "inspectDeclaredProjectCatalog",
+          "parameters": [
+            "moon",
+            "options"
+          ],
+          "async": true
+        },
+        {
           "name": "invalid/invalid",
           "parameters": [],
           "async": false
@@ -68,384 +84,9 @@
           "name": "loadDeclaredProjectCatalog",
           "parameters": [
             "moon",
-            "directory",
-            "catalogFile",
-            "dataFile",
-            "connections",
-            "connectionOriginal",
-            "assertCurrent",
-            "openFile",
-            "installationInventory"
+            "options"
           ],
           "async": true
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/admit/admit",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts/content/content",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts/facts",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts/facts#2",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts/factViews/factViews",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts/listing/listing",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/facts/facts#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/finalInput/finalInput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/finalInput/finalInput#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/inputStage/inputStage",
-          "parameters": [
-            "member",
-            "geometry",
-            "project",
-            "metadata"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#10",
-          "parameters": [
-            "spec"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#2",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#3",
-          "parameters": [
-            "sum",
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#9",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/mappingInput/mappingInput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/mappingInput/mappingInput/mappings/mappings",
-          "parameters": [
-            "spec"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/mappingInput/mappingInput/writesJson/writesJson",
-          "parameters": [
-            "spec"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/mappingInput/mappingInput#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/methods/methods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/original/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/overrideCount/overrideCount",
-          "parameters": [
-            "count",
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/overrideInputs/overrideInputs",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/overrideInputs/overrideInputs/overrideInputs",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/overrideInputs/overrideInputs#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/parsed/parsed",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/parsed/parsed#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/restoreInput/restoreInput",
-          "parameters": [
-            "member",
-            "connectorId",
-            "registration",
-            "revision",
-            "input",
-            "final"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/restoreInput/restoreInput/project/project",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput",
-          "parameters": [
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#2",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#3",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#4",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#5",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#6",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#7",
-          "parameters": [
-            "view"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/selected/selected",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/selected/selected/queryAliases/queryAliases",
-          "parameters": [
-            "alias"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/selected/selected/selected",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/selected/selected/selected#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/selected/selected/selected#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/selected/selected#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/source/source",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/source/source/source",
-          "parameters": [
-            "spec"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/source/source/source/source",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/source/source/writes/writes",
-          "parameters": [
-            "spec",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "loadDeclaredProjectCatalog/source/source#2",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "names/names",
@@ -469,6 +110,389 @@
           "async": false
         },
         {
+          "name": "projectDeclaredCatalog",
+          "parameters": [
+            "moon",
+            "directory",
+            "catalogFile",
+            "dataFile",
+            "connections",
+            "connectionOriginal",
+            "assertCurrent",
+            "openFile",
+            "installationInventory"
+          ],
+          "async": true
+        },
+        {
+          "name": "projectDeclaredCatalog/admit/admit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/content/content",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/facts",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/facts#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/factViews/factViews",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts/listing/listing",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/facts/facts#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/finalInput/finalInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/finalInput/finalInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/inputStage/inputStage",
+          "parameters": [
+            "member",
+            "geometry",
+            "project",
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput/writesJson/writesJson",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/mappingInput/mappingInput#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/original/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideCount/overrideCount",
+          "parameters": [
+            "count",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideInputs/overrideInputs",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideInputs/overrideInputs/overrideInputs",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/parsed/parsed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/parsed/parsed#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#10",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#3",
+          "parameters": [
+            "sum",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/projectDeclaredCatalog#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/restoreInput/restoreInput",
+          "parameters": [
+            "member",
+            "connectorId",
+            "registration",
+            "revision",
+            "input",
+            "final"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#3",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#4",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#5",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#6",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/savedInput/savedInput/savedInput#7",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/queryAliases/queryAliases",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/selected",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/selected#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected/selected#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/selected/selected#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source/source",
+          "parameters": [
+            "spec"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source/source/source",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source/writes/writes",
+          "parameters": [
+            "spec",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "projectDeclaredCatalog/source/source#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -488,8 +512,10 @@
         "../host-common/runtime-result.mjs",
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/source-profile-json.mjs",
+        "./declared-file-installation.mjs",
         "node:crypto",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -500,80 +526,84 @@
         {
           "operations": [
             "<module>",
+            "capturedCatalogOptions",
             "cid/cid",
             "closed/closed",
             "closed/closed/closed",
             "closed/closed/closed#2",
             "fail/fail",
             "freeze/freeze",
+            "inspectDeclaredProjectCatalog",
             "invalid/invalid",
             "list/list",
             "loadDeclaredProjectCatalog",
-            "loadDeclaredProjectCatalog/admit/admit",
-            "loadDeclaredProjectCatalog/call/call",
-            "loadDeclaredProjectCatalog/facts/facts",
-            "loadDeclaredProjectCatalog/facts/facts#2",
-            "loadDeclaredProjectCatalog/facts/facts/content/content",
-            "loadDeclaredProjectCatalog/facts/facts/factViews/factViews",
-            "loadDeclaredProjectCatalog/facts/facts/facts",
-            "loadDeclaredProjectCatalog/facts/facts/facts#2",
-            "loadDeclaredProjectCatalog/facts/facts/listing/listing",
-            "loadDeclaredProjectCatalog/finalInput/finalInput",
-            "loadDeclaredProjectCatalog/finalInput/finalInput#2",
-            "loadDeclaredProjectCatalog/inputStage/inputStage",
-            "loadDeclaredProjectCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#10",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#2",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#3",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#4",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#5",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#6",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#7",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#8",
-            "loadDeclaredProjectCatalog/loadDeclaredProjectCatalog#9",
-            "loadDeclaredProjectCatalog/mappingInput/mappingInput",
-            "loadDeclaredProjectCatalog/mappingInput/mappingInput#2",
-            "loadDeclaredProjectCatalog/mappingInput/mappingInput/mappings/mappings",
-            "loadDeclaredProjectCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
-            "loadDeclaredProjectCatalog/mappingInput/mappingInput/writesJson/writesJson",
-            "loadDeclaredProjectCatalog/methods/methods",
-            "loadDeclaredProjectCatalog/original/init:capacity/init:capacity",
-            "loadDeclaredProjectCatalog/overrideCount/overrideCount",
-            "loadDeclaredProjectCatalog/overrideInputs/overrideInputs",
-            "loadDeclaredProjectCatalog/overrideInputs/overrideInputs#2",
-            "loadDeclaredProjectCatalog/overrideInputs/overrideInputs/overrideInputs",
-            "loadDeclaredProjectCatalog/parsed/parsed",
-            "loadDeclaredProjectCatalog/parsed/parsed#2",
-            "loadDeclaredProjectCatalog/restoreInput/restoreInput",
-            "loadDeclaredProjectCatalog/restoreInput/restoreInput/project/project",
-            "loadDeclaredProjectCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
-            "loadDeclaredProjectCatalog/savedInput/savedInput",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#2",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#3",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#4",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#5",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#6",
-            "loadDeclaredProjectCatalog/savedInput/savedInput/savedInput#7",
-            "loadDeclaredProjectCatalog/selected/selected",
-            "loadDeclaredProjectCatalog/selected/selected#2",
-            "loadDeclaredProjectCatalog/selected/selected/queryAliases/queryAliases",
-            "loadDeclaredProjectCatalog/selected/selected/selected",
-            "loadDeclaredProjectCatalog/selected/selected/selected#2",
-            "loadDeclaredProjectCatalog/selected/selected/selected#3",
-            "loadDeclaredProjectCatalog/source/source",
-            "loadDeclaredProjectCatalog/source/source#2",
-            "loadDeclaredProjectCatalog/source/source/source",
-            "loadDeclaredProjectCatalog/source/source/source/source",
-            "loadDeclaredProjectCatalog/source/source/writes/writes",
             "names/names",
             "object/object",
             "path/path",
+            "projectDeclaredCatalog",
+            "projectDeclaredCatalog/admit/admit",
+            "projectDeclaredCatalog/call/call",
+            "projectDeclaredCatalog/facts/facts",
+            "projectDeclaredCatalog/facts/facts#2",
+            "projectDeclaredCatalog/facts/facts/content/content",
+            "projectDeclaredCatalog/facts/facts/factViews/factViews",
+            "projectDeclaredCatalog/facts/facts/facts",
+            "projectDeclaredCatalog/facts/facts/facts#2",
+            "projectDeclaredCatalog/facts/facts/listing/listing",
+            "projectDeclaredCatalog/finalInput/finalInput",
+            "projectDeclaredCatalog/finalInput/finalInput#2",
+            "projectDeclaredCatalog/inputStage/inputStage",
+            "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
+            "projectDeclaredCatalog/mappingInput/mappingInput",
+            "projectDeclaredCatalog/mappingInput/mappingInput#2",
+            "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
+            "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings/mappings",
+            "projectDeclaredCatalog/mappingInput/mappingInput/writesJson/writesJson",
+            "projectDeclaredCatalog/methods/methods",
+            "projectDeclaredCatalog/original/init:capacity/init:capacity",
+            "projectDeclaredCatalog/overrideCount/overrideCount",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs/overrideInputs",
+            "projectDeclaredCatalog/parsed/parsed",
+            "projectDeclaredCatalog/parsed/parsed#2",
+            "projectDeclaredCatalog/projectDeclaredCatalog",
+            "projectDeclaredCatalog/projectDeclaredCatalog#10",
+            "projectDeclaredCatalog/projectDeclaredCatalog#2",
+            "projectDeclaredCatalog/projectDeclaredCatalog#3",
+            "projectDeclaredCatalog/projectDeclaredCatalog#4",
+            "projectDeclaredCatalog/projectDeclaredCatalog#5",
+            "projectDeclaredCatalog/projectDeclaredCatalog#6",
+            "projectDeclaredCatalog/projectDeclaredCatalog#7",
+            "projectDeclaredCatalog/projectDeclaredCatalog#8",
+            "projectDeclaredCatalog/projectDeclaredCatalog#9",
+            "projectDeclaredCatalog/restoreInput/restoreInput",
+            "projectDeclaredCatalog/restoreInput/restoreInput/project/project",
+            "projectDeclaredCatalog/restoreInput/restoreInput/projection/init:capacity/init:capacity",
+            "projectDeclaredCatalog/savedInput/savedInput",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#2",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#3",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#4",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#5",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#6",
+            "projectDeclaredCatalog/savedInput/savedInput/savedInput#7",
+            "projectDeclaredCatalog/selected/selected",
+            "projectDeclaredCatalog/selected/selected#2",
+            "projectDeclaredCatalog/selected/selected/queryAliases/queryAliases",
+            "projectDeclaredCatalog/selected/selected/selected",
+            "projectDeclaredCatalog/selected/selected/selected#2",
+            "projectDeclaredCatalog/selected/selected/selected#3",
+            "projectDeclaredCatalog/source/source",
+            "projectDeclaredCatalog/source/source#2",
+            "projectDeclaredCatalog/source/source/source",
+            "projectDeclaredCatalog/source/source/source/source",
+            "projectDeclaredCatalog/source/source/writes/writes",
             "text/text",
             "wire/wire"
           ],
           "exports": [
+            "inspectDeclaredProjectCatalog",
             "loadDeclaredProjectCatalog"
           ],
           "attributes": {

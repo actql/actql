@@ -5,7 +5,9 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
-import {prepareInstalledProjectMock} from '../local-node/installed-project-mock.mjs';
+import {inspectProjectMockDeclarations, prepareInstalledProjectMock,
+  installPreparedProjectMockSources} from '../local-node/installed-project-mock.mjs';
+import {installPreparedProjectMockEffects} from '../local-node/installed-mock-row-effect.mjs';
 import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
 
 assert.ok(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME, 'Select the matching actual Common runtime');
@@ -35,7 +37,7 @@ test('actual Mock preparation retains original Project/Profile/connections and b
   const f = await fixture();
   const opened = [];
   let checks = 0;
-  const view = await prepareInstalledProjectMock(moon, f.project, f.profile, {
+  const view = await inspectProjectMockDeclarations(moon, f.project, f.profile, {
     assertCurrent() {checks++;}, async openFile(path, flags) {
       assert.ok([f.path, f.catalogPath].includes(path)); opened.push(path); return open(path, flags);
     },
@@ -69,7 +71,7 @@ test('actual Mock preparation retains original Project/Profile/connections and b
 test('actual Mock preparation refuses foreign original Profile before connection acquisition', async () => {
   const a = await fixture(), b = await fixture();
   let opened = 0;
-  await assert.rejects(prepareInstalledProjectMock(moon, a.project, b.profile, {
+  await assert.rejects(inspectProjectMockDeclarations(moon, a.project, b.profile, {
     assertCurrent() {}, openFile() {opened++; assert.fail('No foreign metadata read');},
   }), {code: 'ForeignInstalledMockPreparation'});
   assert.equal(opened, 0);
@@ -79,7 +81,7 @@ test('actual Mock preparation does not infer a catalogue from the file name or a
   for (const connections of [{salesforce: {connector: 'salesforce'}},
     {other: {connector: 'salesforce'}, snowflake: {connector: 'snowflake'}}]) {
     const f = await fixture({connections});
-    await assert.rejects(prepareInstalledProjectMock(moon, f.project, f.profile,
+    await assert.rejects(inspectProjectMockDeclarations(moon, f.project, f.profile,
       {assertCurrent() {}}), error => ['InstalledMockCatalogueUnavailable',
       'InvalidInstalledMockCatalog'].includes(error.code));
   }
@@ -89,7 +91,7 @@ test('actual Mock preparation preserves after-await current refusal and closes o
   const f = await fixture();
   let current = true, opens = 0, closes = 0;
   const failure = Object.freeze(new Error('OriginalSourceGenerationChanged'));
-  await assert.rejects(prepareInstalledProjectMock(moon, f.project, f.profile, {
+  await assert.rejects(inspectProjectMockDeclarations(moon, f.project, f.profile, {
     assertCurrent() {if (!current) throw failure;},
     async openFile(path, flags) {
       assert.equal(path, f.path); opens++;
@@ -104,7 +106,7 @@ test('actual Mock preparation preserves after-await current refusal and closes o
 
 test('actual Mock preparation keeps same-view/runtime retirement separate from Source cleanup', async () => {
   const f = await fixture();
-  const view = await prepareInstalledProjectMock(moon, f.project, f.profile, {assertCurrent() {}});
+  const view = await inspectProjectMockDeclarations(moon, f.project, f.profile, {assertCurrent() {}});
   assert.throws(() => view.originalsForRuntime({...moon}), {code: 'ForeignInstalledMockPreparation'});
   assert.throws(() => ({...view}).originalsForRuntime(moon), {code: 'ForeignInstalledMockPreparation'});
   assert.throws(() => ({...view}).retire(moon), {code: 'ForeignInstalledMockPreparation'});
@@ -120,11 +122,48 @@ test('actual Mock preparation keeps same-view/runtime retirement separate from S
 // oracle. SourceRef uses the connection identity, not the provider identity.
 test('actual Mock preparation keeps same-provider connection identities distinct', async () => {
   const f = await fixture({connections: {salesforce: {connector: 'snowflake'}, snowflake: {connector: 'snowflake'}}});
-  const prepared = await prepareInstalledProjectMock(moon, f.project, f.profile, {assertCurrent() {}});
+  const prepared = await inspectProjectMockDeclarations(moon, f.project, f.profile, {assertCurrent() {}});
   const bundle = prepared.originalsForRuntime(moon);
   assert.equal(bundle.writable.source.catalogue.connectorId, 'salesforce');
   assert.equal(bundle.writable.source.catalogue.provider, 'snowflake');
   assert.deepEqual(bundle.sources.map(source => source.catalogue.connectorId), ['salesforce', 'snowflake']);
   assert.equal(JSON.parse(bundle.mappingWire).target_ref, 'connector://salesforce/Account');
   prepared.retire(moon);
+});
+
+
+test('installed Mock preparation never falls back to unfunded declaration inspection', async () => {
+  const f = await fixture();let reads = 0;
+  for (const installationInventory of [undefined, {}, Object.freeze({})]) {
+    await assert.rejects(prepareInstalledProjectMock(moon, f.project, f.profile,
+      {installationInventory, assertCurrent() {}, openFile() {reads++;assert.fail('No read');}}),
+      {code: 'ForeignDeclaredFileInstallation'});
+  }
+  assert.equal(reads, 0);
+});
+
+test('metadata-only Mock inspection cannot enter Source or Effect factories', async () => {
+  const f = await fixture();
+  const inspected = await inspectProjectMockDeclarations(moon, f.project, f.profile, {assertCurrent() {}});
+  let calls = 0;const forbidden = () => {calls++;assert.fail('No authorization or physical callback');};
+  await assert.rejects(installPreparedProjectMockSources({moon, mockPreparation: inspected,
+    sourceManaged: {assertCurrent() {}, prepareRead: forbidden}, authorizationFor: forbidden,
+    readAsset: forbidden, prepareManagedSourceRun: forbidden}), {code: 'DeclaredFileInstallationUnavailable'});
+  await assert.rejects(installPreparedProjectMockEffects({moon, mockPreparation: inspected,
+    authorizationFor: forbidden, assertCurrent() {}, principalId: 'diagnostic',
+    runtimeBundleCid: 'sha256:' + '0'.repeat(64), bindingCid: 'sha256:' + '0'.repeat(64),
+    effectResources: {bindRunOriginal: forbidden, assertCurrent: forbidden, limits: forbidden}}),
+    {code: 'InstalledSourceInitializationUnavailable'});
+  assert.equal(calls, 0);inspected.retire(moon);
+});
+
+
+test('installed and diagnostic Mock entrypoints never evaluate changing inventory getters', async () => {
+  const f = await fixture();let gets = 0, reads = 0;
+  for (const prepare of [prepareInstalledProjectMock, inspectProjectMockDeclarations]) {
+    const options = {assertCurrent() {}, openFile() {reads++;assert.fail('No read');},
+      get installationInventory() {gets++;return gets % 2 ? undefined : {};}};
+    await assert.rejects(prepare(moon, f.project, f.profile, options), {code: 'ForeignDeclaredFileInstallation'});
+  }
+  assert.equal(gets, 0);assert.equal(reads, 0);
 });

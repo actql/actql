@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
-import {loadDeclaredProjectCatalog} from './declared-project-catalog.mjs';
+import {loadDeclaredProjectCatalog, inspectDeclaredProjectCatalog} from './declared-project-catalog.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {declaredProjectCatalogJsonParseConstructionGeometry}
   from '../host-node/declared-project-catalog-construction.mjs';
@@ -513,4 +513,40 @@ for (const thrown of [undefined, null]) test(`component ${String(thrown)} native
   await f.inventory.fail(thrown);assert.equal(f.retire(), false);
   f.state.sourcePending = false;await adapter.close();
   assert.equal(f.retire(), true);assert.equal(f.state.retires, 1);
+});
+
+test('installed catalog requires its exact live inventory before metadata constructors', async t => {
+  const f = await catalogFixture(t);
+  const base = {directory: f.root, catalogFile: 'catalog.json', dataFile: 'absent-data.json',
+    connections: f.connectionOriginal.connections, connectionOriginal: f.connectionOriginal,
+    assertCurrent() {}, openFile() {assert.fail('No diagnostic read fallback');}};
+  const before = f.events.length;
+  for (const inventory of [undefined, {}, {...f.inventory}]) {
+    await assert.rejects(loadDeclaredProjectCatalog(f.moon, {...base, installationInventory: inventory}),
+      {code: 'ForeignDeclaredFileInstallation'});
+  }
+  await assert.rejects(loadDeclaredProjectCatalog({...f.moon}, {...base, installationInventory: f.inventory}),
+    {code: 'ForeignDeclaredFileInstallation'});
+  await assert.rejects(loadDeclaredProjectCatalog(f.moon, {...base, installationInventory: f.inventory,
+    connectionOriginal: {...f.connectionOriginal, project: {}}}), {code: 'ForeignDeclaredFileInstallation'});
+  assert.equal(f.events.length, before);
+  assert.equal(f.state.nativeRestores, 0);
+  await f.inventory.fail(new Error('closed original'));
+  await assert.rejects(loadDeclaredProjectCatalog(f.moon, {...base, installationInventory: f.inventory}),
+    {code: 'DeclaredFileInstallationClosed'});
+});
+
+
+test('catalog entrypoints reject changing inventory accessors without invoking them', async t => {
+  const f = await catalogFixture(t);let gets = 0;
+  for (const load of [loadDeclaredProjectCatalog, inspectDeclaredProjectCatalog]) {
+    const options = {directory: f.root, catalogFile: 'catalog.json', dataFile: 'absent-data.json',
+      connections: f.connectionOriginal.connections, connectionOriginal: f.connectionOriginal,
+      assertCurrent() {}, get installationInventory() {gets++;return gets % 2 ? f.inventory : undefined;}};
+    const before = f.events.length;
+    await assert.rejects(load(f.moon, options), {code: 'ForeignDeclaredFileInstallation'});
+    assert.equal(f.events.length, before);
+  }
+  assert.equal(gets, 0);assert.equal(f.state.nativeRestores, 0);
+  await f.inventory.fail(new Error('accessor refusal complete'));
 });

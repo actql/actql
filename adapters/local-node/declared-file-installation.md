@@ -42,6 +42,12 @@ registered adapter, not a descriptor standing in for a completed factory.
 Use inventory `fail` for cancellation while construction is pending: it closes
 admission and joins retained work before cleanup.
 
+The inventory is indexed by its issued object identity. Installed entrypoints
+require the same runtime and Project original and call its existing currentness
+fence before reading metadata or constructing declarations. A copied descriptor,
+foreign Project, missing inventory or retired material cannot select a fallback
+constructor. This index creates no capacity, owner or independent lifetime.
+
 ## Identity
 
 The logical `connectorId` is the exact configured connection name. The

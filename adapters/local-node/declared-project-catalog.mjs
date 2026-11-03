@@ -1,6 +1,8 @@
 // Explicit model declarations only. This reader acquires no fixture records,
 // credentials, permission, Source, Run, ContentRef or Effect approval.
 import {createHash} from 'node:crypto';
+import {types as nodeTypes} from 'node:util';
+import {assertDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
 import {resolve} from 'node:path';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -38,7 +40,34 @@ const invalid = () => fail('InvalidInstalledMockCatalog');
 
 // The Common catalog parser first admits the exact bounded original, including
 // duplicate keys and Unicode. Only its original entry spans are projected here.
-export async function loadDeclaredProjectCatalog(moon, {directory, catalogFile, dataFile,
+function capturedCatalogOptions(options) {
+  if (!object(options) || nodeTypes.isProxy(options)) fail('ForeignDeclaredFileInstallation');
+  const captured = {};
+  for (const name of ['directory', 'catalogFile', 'dataFile', 'connections',
+    'connectionOriginal', 'assertCurrent', 'openFile', 'installationInventory']) {
+    const field = Object.getOwnPropertyDescriptor(options, name);
+    if (field !== undefined && !Object.hasOwn(field, 'value')) fail('ForeignDeclaredFileInstallation');
+    captured[name] = field?.value;
+  }
+  return Object.freeze(captured);
+}
+
+export async function loadDeclaredProjectCatalog(moon, options) {
+  options = capturedCatalogOptions(options);
+  assertDeclaredFileInstallationInventory(options?.installationInventory, moon,
+    options?.connectionOriginal?.project);
+  return projectDeclaredCatalog(moon, options);
+}
+
+// Metadata-only inspection is explicit. Its result has no issued installation
+// members or prepared Source/Effect tuples and cannot enter physical factories.
+export async function inspectDeclaredProjectCatalog(moon, options) {
+  options = capturedCatalogOptions(options);
+  if (options?.installationInventory !== undefined) fail('ForeignDeclaredFileInstallation');
+  return projectDeclaredCatalog(moon, options);
+}
+
+async function projectDeclaredCatalog(moon, {directory, catalogFile, dataFile,
   connections, connectionOriginal, assertCurrent, openFile, installationInventory}) {
   if (!text(catalogFile) || !text(dataFile) || !text(directory) || typeof assertCurrent !== 'function') {
     fail('InstalledMockCatalogueUnavailable');

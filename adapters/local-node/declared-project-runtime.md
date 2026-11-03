@@ -26,6 +26,12 @@ and keyed content delivery use `createFixtureFileSupplier` and the same original
 read. Effect observation and update use the selected projection and the original
 prepared Mapping, without restoring declarations or reserializing Mappings.
 
+`prepareInstalledProjectMock` requires its nominal installation inventory before
+connection or catalog reads. Explicit `inspectProjectMockDeclarations` is only a
+metadata diagnostic and supplies no prepared installation members. Source and
+Effect factories reject those diagnostic results before authorization or physical
+callbacks. Both entrances share private metadata projection, not separate runners.
+
 ## Identity
 
 Project, runtime, profile selection and connections remain exact retained

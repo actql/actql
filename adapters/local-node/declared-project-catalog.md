@@ -35,6 +35,12 @@ The existing Request checker retains responsibility for required fields, types
 and keyed/static conflicts. These values grant no parameter, binding, Source or
 Effect authority.
 
+Installed `loadDeclaredProjectCatalog` requires the actual nominal inventory.
+Metadata-only `inspectDeclaredProjectCatalog` is a separately named entrance
+sharing the private projection implementation, not an omitted-inventory mode of
+the installed API. Inspection produces no issued Source/Effect member or
+prepared installation tuple, and cannot enter physical factories.
+
 ## Identity
 
 Connection selection scans the bounded admitted collection to obtain the exact
