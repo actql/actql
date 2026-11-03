@@ -241,7 +241,7 @@ test('Local STORE approved send preserves an original undefined failure after co
   const writer={async execute(){executions++;throw undefined;},async close(){closes++;return {pending:false};},
     status:()=>({pending:false}),retry(){assert.fail('no retry');}};
   const send=Function('memberCurrent','description','own','grants','decisionCurrent','prepareLocalStoredContentWrite',
-    'nativeFilesystem','entry','randomUUID','limits','runCurrent','cid','wire','fail',
+    'nativeFilesystem','entry','randomUUID','limits','runCurrent','cid','wire','fail','writerProfile',
     'return (async function '+source.slice(found[0].start,found[0].end)+');')(
     ()=>{},()=>observed,()=>original,new WeakMap([[proof,grant]]),()=>{},()=>writer,{},
     {rootPath:'/original'},()=> 'temporary',{maxFileBytes:1024,maxResponseBytes:65536},()=>{},
@@ -261,7 +261,7 @@ test('Local STORE keeps cleanup pending for an undefined close failure without r
     for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(visit);else if(value&&typeof value==='object')visit(value);}};
   visit(tree);assert.equal(found.length,1);
   const construct=Function('memberCurrent','description','own','grants','decisionCurrent','prepareLocalStoredContentWrite',
-    'nativeFilesystem','entry','randomUUID','limits','runCurrent','cid','wire','fail',
+    'nativeFilesystem','entry','randomUUID','limits','runCurrent','cid','wire','fail','writerProfile',
     'return (async function '+source.slice(found[0].start,found[0].end)+');');
   for(const primaryFailed of [false,true]){
     const proof={},observed={runInvocationCid:cid('1'),dispatchRequestCid:cid('2')};

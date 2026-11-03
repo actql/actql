@@ -41,9 +41,10 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
 fn client_local_value_node_proof_retained_bytes() -> Int64? {
   @execution.preparation_representation_cost({
     record_headers: 2L,
-    reference_slots: 3L,
-    // Existing optional demand controls plus the immutable Carrier-mode bit.
-    scalar_words: 5L,
+    // Two original coheld optional weighted scalars plus the independent
+    // immutable Carrier-mode bit; retain both existing proof inventories.
+    reference_slots: 5L,
+    scalar_words: 7L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
@@ -116,6 +117,7 @@ fn client_local_json_schema_nodes(
   schema : @schema.Schema,
   max_work : Int,
   depth : Int,
+  content? : (@contract.Contract, Int)? = None,
 ) -> (Int64, Int)? {
   // The outer inventory already charged every root field. Only additional
   // nested contracts spend its remaining work; this is not Ledger work or a
@@ -127,14 +129,19 @@ fn client_local_json_schema_nodes(
   let work = Ref(max_work + roots)
   let mut nodes = 1L
   for index in 0..<@schema.field_count(schema) {
-    guard @schema.field_at(schema, index) is Some(field) &&
-      client_local_json_contract_nodes(
-        @schema.field_contract(field),
-        work,
-        depth,
-      )
-      is Some(child) &&
-      nodes <= 2147483647L - child else {
+    guard @schema.field_at(schema, index) is Some(field) else { return None }
+    let original = @schema.field_contract(field)
+    let child = match content {
+      Some((contract, nodes)) if physical_equal(original, contract) &&
+        @schema.field_reference_name(field) == "content" &&
+        work.val > 0 &&
+        depth >= 0 => {
+        work.val -= 1
+        Some(nodes.to_int64())
+      }
+      _ => client_local_json_contract_nodes(original, work, depth)
+    }
+    guard child is Some(child) && nodes <= 2147483647L - child else {
       return None
     }
     nodes += child

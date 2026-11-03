@@ -1813,7 +1813,8 @@
             "identitySlots",
             "physical",
             "retain",
-            "recovery"
+            "recovery",
+            "managedOriginal"
           ],
           "async": false
         },
@@ -1846,7 +1847,7 @@
           "async": false
         },
         {
-          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/provider/provider",
+          "name": "contentGenerationControl/init:effectFamily/init:effectFamily/retainOriginal/retainOriginal",
           "parameters": [
             "active"
           ],
@@ -4140,6 +4141,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
+          "parameters": [
+            "compiled",
+            "selection"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
           "parameters": [
             "compiled",
@@ -5559,6 +5568,21 @@
             "policy",
             "inferGraph",
             "compilationOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "graph",
+            "bodies",
+            "workspace",
+            "physical",
+            "retain"
           ],
           "async": false
         },
@@ -9184,7 +9208,6 @@
             "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily",
             "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#2",
             "contentGenerationControl/init:effectFamily/init:effectFamily/init:effectFamily#3",
-            "contentGenerationControl/init:effectFamily/init:effectFamily/provider/provider",
             "contentGenerationControl/init:encoder/init:encoder",
             "contentGenerationControl/init:familyAcknowledgePiece/init:familyAcknowledgePiece",
             "contentGenerationControl/init:familyByteCompletion/init:familyByteCompletion",
@@ -14120,6 +14143,116 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "contentGenerationControl/init:effectFamily/init:effectFamily/retainOriginal/retainOriginal",
+            "publicationControl/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
+            "publicationControl/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('early managed Content keeps its same provider and binds physical execution only once'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
+                "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -14135,7 +14268,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d516fd0e54faca9108406bad23fd0a18f11f7dbe4b9760fa917ce435f11ab883"
+      "sha256": "a2d168b966ff2d0ef14734bf7fc38e3c6b865491b3aedb1860b778a79fad0336"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -30393,7 +30526,7 @@
           }
         }
       ],
-      "sha256": "bc17fd0eae09f12f5ecaab0756b832eb6e8b75adee45bc96e64f350975eba9db",
+      "sha256": "5401f328c7fbcd3ce843d740a2220d05bf36a2c43e8365ad9c8d77ce1ffd9d4b",
       "exports": [],
       "operations": [
         {
@@ -42921,7 +43054,7 @@
     },
     {
       "module": "src/client_local_host/schema_proof_inventory.mbt",
-      "sha256": "e9737a6270abad628a0f7eb92d15763fde9864fd95aaf44f89042e37996f2660",
+      "sha256": "ddc80d44a8778a187188e45a04ed6d57305b275497d7f001c329c9880b99db34",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -43200,7 +43333,7 @@
     },
     {
       "module": "src/client_local_host/value_node_demand.mbt",
-      "sha256": "6b0380219906b871e369dd12a2a0450555f2cf7b1b794ecd7c4c301546ec9a49",
+      "sha256": "8d311551b61c333eb4c43f958984bbd32117191bbbdb12cfc98c2b194fb21b6f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -43213,7 +43346,7 @@
         },
         {
           "name": "client_local_json_schema_nodes",
-          "declaration": "client_local_json_schema_nodes ( schema : @ schema . Schema , max_work : Int , depth : Int , ) - > ( Int64 , Int ) ?"
+          "declaration": "client_local_json_schema_nodes ( schema : @ schema . Schema , max_work : Int , depth : Int , content ? : ( @ contract . Contract , Int ) ?"
         },
         {
           "name": "client_local_value_node_demand",

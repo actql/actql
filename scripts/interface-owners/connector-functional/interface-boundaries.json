@@ -4445,13 +4445,14 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "872e15b1950755ca8534bc4cf45a16ce911aa3d515870bd5994017c3b127ab8e",
+      "sha256": "15871caf9fbf00f6dec92afbe428c98c02d37cc5aa55e4f7fed2793807b8a15f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
+        "installedRowEffectConstructionLimits",
         "installedRowEffectDescriptors",
         "installedRowEffectOwnerBinding",
         "installedRowEffectUnit",
@@ -5295,6 +5296,11 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins",
           "parameters": [],
           "async": true
@@ -5448,6 +5454,20 @@
           "parameters": [
             "member",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/controlEntryBytes/controlEntryBytes",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/controlRecipes/controlRecipes",
+          "parameters": [
+            "owner"
           ],
           "async": false
         },
@@ -5658,8 +5678,10 @@
         },
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
-          "parameters": [],
-          "async": true
+          "parameters": [
+            "physicalOperation"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
@@ -5667,6 +5689,11 @@
             "context"
           ],
           "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
@@ -5807,6 +5834,11 @@
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
@@ -6599,6 +6631,13 @@
           "name": "installationFacts/installationFacts",
           "parameters": [
             "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowEffectConstructionLimits/installedRowEffectConstructionLimits",
+          "parameters": [
+            "supplied"
           ],
           "async": false
         },
@@ -11148,6 +11187,121 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
+            "createRowEffectStage/controlEntryBytes/controlEntryBytes",
+            "createRowEffectStage/controlRecipes/controlRecipes",
+            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+            "installedRowEffectConstructionLimits/installedRowEffectConstructionLimits"
+          ],
+          "exports": [
+            "installedRowEffectConstructionLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/recovered-effect-parent-custody.test.mjs",
+                "anchor": "test('recovered physical operation waits for its original Content writer close without blocking that close'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('owned Content request child keeps one constructor token until its exact physical cleanup ACK'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11168,6 +11322,7 @@
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
         "./installed-connectors.mjs",
+        "./installed-effect-owned-operation.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
@@ -18792,9 +18947,12 @@
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "installedEffectRecipeForControlEntryLimit",
+        "installedEffectSavedControlEntryLimit",
         "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
         "prepareInstalledEffectManagedPlan",
+        "prepareInstalledEffectOwnedRequestChild",
         "prepareInstalledEffectRequestChild",
         "prepareInstalledStandardCreatePlanRecipe"
       ],
@@ -18879,6 +19037,28 @@
           "name": "fail/fail",
           "parameters": [
             "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectRecipeForControlEntryLimit",
+          "parameters": [
+            "recipe",
+            "maxEntryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSavedControlEntryLimit",
+          "parameters": [
+            "recipes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
+          "parameters": [
+            "recipe"
           ],
           "async": false
         },
@@ -19169,6 +19349,63 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectOwnedRequestChild",
+          "parameters": [
+            "constructChild",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/captureMethods/captureMethods",
+          "parameters": [
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/managed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectRequestChild",
           "parameters": [
             "run",
@@ -19283,7 +19520,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6695d05b042cbd2346223c4c458beda60b9417878ec7eac0a5b64b3069ee0e72",
+      "sha256": "60bd7a277eb617d4afdddb42080dcffc0d09cd66beb6ea8001253447c95b30a6",
       "contracts": [
         {
           "operations": [
@@ -19511,6 +19748,195 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedEffectRecipeForControlEntryLimit",
+            "installedEffectSavedControlEntryLimit",
+            "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit"
+          ],
+          "exports": [
+            "installedEffectRecipeForControlEntryLimit",
+            "installedEffectSavedControlEntryLimit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "recipe.savedControlCodec.fallbackCapacity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure selection of the same captured recipe DATA; no control operation or cleanup is started."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "controlsPerRow: recipe.savedControlCodec.fallbackCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectOwnedRequestChild",
+            "prepareInstalledEffectOwnedRequestChild/captureMethods/captureMethods",
+            "prepareInstalledEffectOwnedRequestChild/drain/drain",
+            "prepareInstalledEffectOwnedRequestChild/drain/drain/drain",
+            "prepareInstalledEffectOwnedRequestChild/drain/drain/drain#2",
+            "prepareInstalledEffectOwnedRequestChild/init:prepare/init:prepare",
+            "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
+            "prepareInstalledEffectOwnedRequestChild/managed/managed",
+            "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild",
+            "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild#2"
+          ],
+          "exports": [
+            "prepareInstalledEffectOwnedRequestChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "prepareInstalledEffectOwnedRequestChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "prepareInstalledEffectOwnedRequestChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "checkOriginal: managed.checkOriginal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "child = constructChild(); // Retain before even a fallible method getter."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "if (invoking) fail('InstalledEffectRequestChildReentrantPrepare')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "captureMethods([retry ? 'retry' : 'release', 'status']);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "if (opening || invoking) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "if (result === false || Reflect.apply(methods.status, child, [])?.pending !== false) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "requestsRetired: () => retired && requestsRetired() === true"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "return managed.release();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "prepareInstalledEffectOwnedRequestChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('owned request failure and reentrant close preserve the same child without repeating its factory'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('owned request cleanup retains native backing on rejected or pending original release'"
               }
             ]
           }
@@ -19989,6 +20415,194 @@
               {
                 "path": "src/connectors/kintone/host/record_create_standard_js_wbtest.mbt",
                 "anchor": "test \"standard CREATE declaration consumes original change wire and cold native restoration without fresh prepare\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-effect-owned-operation.mjs",
+      "sha256": "754ae858a011f86faf52d5f4acfcc6a59818689b023aa18ffe725ba777b9415f",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect operation occurrence; original Content child retains physical cleanup and authority",
+      "exports": [
+        "prepareInstalledEffectOwnedPhysicalChild"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild",
+          "parameters": [
+            "run",
+            "memberIndex",
+            "rowIndex",
+            "operationIndex",
+            "operation",
+            "transferBytes",
+            "invoke",
+            "requestsRetired"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/chargeBytes/chargeBytes",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "prepareInstalledEffectOwnedPhysicalChild",
+            "prepareInstalledEffectOwnedPhysicalChild/chargeBytes/chargeBytes",
+            "prepareInstalledEffectOwnedPhysicalChild/current/current",
+            "prepareInstalledEffectOwnedPhysicalChild/init:prepare/init:prepare",
+            "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
+            "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
+            "prepareInstalledEffectOwnedPhysicalChild/release/release",
+            "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild"
+          ],
+          "exports": [
+            "prepareInstalledEffectOwnedPhysicalChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "prepareInstalledEffectOwnedPhysicalChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "prepareInstalledEffectOwnedPhysicalChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "run.request !== request || run.operationPlan !== plan || run.readPlan !== readPlan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "child = original; // Before any fallible observation or the first acquisition."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "if (attempted || stopping) fail('InstalledEffectOperationAlreadyPrepared')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "accountingFailed = true; throw error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "if (preparing || accountingFailed) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "if (requestsRetired() !== true) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "checked(Reflect.apply(charge, runtime, [token, bytes]))"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "checked(Reflect.apply(retire, runtime, [token, true]))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "prepareInstalledEffectOwnedPhysicalChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "anchor": "test('same physical child starts once and charges chunks without a second writer or cleanup owner'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "anchor": "test('original undefined failure keeps its physical child until actual cleanup and request retirement'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "anchor": "test('physical extent refusal precedes any borrow and foreign Run cannot dispatch'"
               }
             ]
           }

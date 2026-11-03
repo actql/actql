@@ -26,7 +26,9 @@ fn values_provider(
       is Some(@lower.ValuesStep(_))
     },
     sequence => {
-      @execution.generated_sequence_capacity(sequence, limits, measurement)
+      @execution.generated_bounded_sequence_capacity(
+        sequence, limits, measurement,
+      )
     },
     (sequence, inputs, max_rows, max_value_bytes, execution) => {
       guard inputs is [] &&

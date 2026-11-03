@@ -903,7 +903,7 @@ pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKer
 
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
-pub fn prepared_closed_row_bound(Prepared, Int) -> (Int, Int)?
+pub fn prepared_closed_row_bound(Prepared, Int, target_step? : Int?) -> (Int, Int)?
 
 pub fn prepared_frame_end(PreparedRowsFrame) -> PreparedFrameBoundary
 

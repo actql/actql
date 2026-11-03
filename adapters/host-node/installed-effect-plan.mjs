@@ -142,9 +142,11 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   };
   const fields = own(recipe, ['memberOperations', 'rowOperations',
     ...(Object.hasOwn(recipe, 'controlsPerRow') ? ['controlsPerRow'] : []),
+    ...(Object.hasOwn(recipe, 'savedControlCodec') ? ['savedControlCodec'] : []),
     ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
-    ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : [])]);
+    ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
+    ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
   const operations = name => {
     const values = fields[name].value;
     if (!Array.isArray(values) || values.length > maxOperations) {
@@ -163,6 +165,17 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
   const controlsPerRow = fields.controlsPerRow?.value;
   if (fields.controlsPerRow !== undefined && (controlsPerRow === null || typeof controlsPerRow !== 'object' ||
       nodeTypes.isProxy(controlsPerRow))) fail('InvalidInstalledEffectPlanRecipe');
+  let savedControlCodec;
+  if (fields.savedControlCodec !== undefined) {
+    const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);
+    const maxEntryBytes = codec.maxEntryBytes.value, fallbackCapacity = codec.fallbackCapacity.value;
+    if (controlsPerRow === undefined || !Number.isSafeInteger(maxEntryBytes) || maxEntryBytes < 1 ||
+        maxEntryBytes > effectLedgerImplementationBounds.maxEntryBytes || fallbackCapacity === null ||
+        typeof fallbackCapacity !== 'object' || nodeTypes.isProxy(fallbackCapacity)) {
+      fail('InvalidInstalledEffectPlanRecipe');
+    }
+    savedControlCodec = Object.freeze({maxEntryBytes, fallbackCapacity});
+  }
   if (memberOperations.length + rowOperations.length === 0 ||
       memberOperations.length + rowOperations.length > maxOperations) fail('InvalidInstalledEffectPlanRecipe');
   let requestConstruction;
@@ -203,11 +216,22 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
   }
+  let physicalWrite;
+  if (fields.physicalWrite !== undefined) {
+    const selected = own(fields.physicalWrite.value, ['operationIndex', 'transferBytes']);
+    const operationIndex = selected.operationIndex.value, transferBytes = selected.transferBytes.value;
+    if (credentialOperations !== undefined || !Number.isSafeInteger(operationIndex) || operationIndex < 0 ||
+        operationIndex >= rowOperations.length || operationIndex === requestConstruction?.operationIndex ||
+        typeof transferBytes !== 'bigint' || transferBytes < 0n) fail('InvalidInstalledEffectPlanRecipe');
+    physicalWrite = Object.freeze({operationIndex, transferBytes});
+  }
   return Object.freeze({memberOperations, rowOperations,
+    ...(savedControlCodec === undefined ? {} : {savedControlCodec}),
     ...(controlsPerRow === undefined ? {} : {controlsPerRow}),
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
-    ...(credentialOperations === undefined ? {} : {credentialOperations})});
+    ...(credentialOperations === undefined ? {} : {credentialOperations}),
+    ...(physicalWrite === undefined ? {} : {physicalWrite})});
 }
 
 export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members, recipeFor}) {
@@ -249,7 +273,11 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       ...(recipe.controlsPerRow === undefined ? [] : [recipe.controlsPerRow])]));
   });
   const model = inputs.modelDemand !== undefined, providers = sources?.providers;
-  const construct = model ? providers === undefined
+  const content = inputs.contentPreparation;
+  if (content !== undefined && (model || providers !== undefined || (sources?.declarations?.length ?? 0) !== 0)) {
+    fail('UnsupportedInstalledContentEffectClosure');
+  }
+  const construct = content !== undefined ? moon.clientProgramInstalledEffectContentManagedPlanPrepare : model ? providers === undefined
     ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
     : moon.clientProgramInstalledEffectModelManagedProviderPlanPrepare
     : providers !== undefined ? facts.queryTimePreparation === undefined
@@ -260,12 +288,13 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
       : moon.clientProgramInstalledEffectManagedPlanPrepareAtQueryTime;
   if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
   const original = [facts.prepared, facts.identity,
-    ...(model || facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
+    ...(content !== undefined || model || facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
     sources?.declarations ?? [], ...(providers !== undefined ? [providers] : []),
     sources?.queryContract ?? '', sources?.evidenceContract ?? '',
     sources?.transferBytes ?? [], sources?.executionBytes ?? [], inputs.installedContracts,
     inputs.values, inputs.fragment, inputs.ordered, demands,
-    ...(model ? [inputs.modelDemand, inputs.modelComponents, facts.queryTimePreparation] : [])];
+    ...(model ? [inputs.modelDemand, inputs.modelComponents, facts.queryTimePreparation] : []),
+    ...(content === undefined ? [] : [content, facts.queryTimePreparation])];
   // Empty query/evidence strings are unused arguments only for zero Sources;
   // they issue no query contract. Existing Core validates the checked graph.
   return checked(Reflect.apply(construct, moon, original));
@@ -275,6 +304,74 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
 // Owner. The selected implementation's native occurrence is debited before the
 // constructor. Its output stays charged until the enclosing original route and
 // request aliases have actually retired, including failed constructor prefixes.
+// A driver may already own a Content-borrowing request child. Retain that
+// SAME child under the existing constructor token; do not replace its prepare
+// or physical cleanup with a second request or a successful-looking snapshot.
+export function prepareInstalledEffectOwnedRequestChild({constructChild, ...options}) {
+  if (typeof constructChild !== 'function' || options.construct !== undefined) {
+    fail('InstalledEffectConstructorUnavailable');
+  }
+  let child, methods, retired = false, opening = false, invoking = false, stopping = false, flight;
+  const requestsRetired = options.requestsRetired;
+  if (typeof requestsRetired !== 'function') fail('InstalledEffectConstructorUnavailable');
+  const captureMethods = names => {
+    for (const name of names) {
+      if (!Object.hasOwn(methods, name)) methods[name] = child[name];
+      if (typeof methods[name] !== 'function') fail('InvalidInstalledRowRequestChild');
+    }
+  };
+  const managed = prepareInstalledEffectRequestChild({...options,
+    requestsRetired: () => retired && requestsRetired() === true,
+    construct() {
+      child = constructChild(); // Retain before even a fallible method getter.
+      constructChild = undefined;
+      if (child === null || !['object', 'function'].includes(typeof child)) {
+        fail('InvalidInstalledRowRequestChild');
+      }
+      methods = {};
+      captureMethods(['release', 'retry', 'status', 'prepare']);
+      if (typeof Reflect.apply(methods.status, child, [])?.pending !== 'boolean') {
+        fail('InvalidInstalledRowRequestChild');
+      }
+      if (stopping) fail('InstalledEffectRequestChildRetired');
+      const result = Reflect.apply(methods.prepare, child, []);
+      if (stopping) fail('InstalledEffectRequestChildRetired');
+      return result;
+    }});
+  const drain = retry => {
+    stopping = true;
+    if (opening || invoking) return false;
+    if (flight !== undefined) return flight;
+    opening = true;
+    try {
+      flight = (async () => {
+        if (!retired) {
+          if (child !== undefined) {
+            // Retry only still-unobserved methods on this same retained child;
+            // successfully captured cleanup methods can never be replaced.
+            if (methods === undefined) fail('InvalidInstalledRowRequestChild');
+            captureMethods([retry ? 'retry' : 'release', 'status']);
+            const release = retry ? methods.retry : methods.release;
+            const result = await Reflect.apply(release, child, []);
+            if (result === false || Reflect.apply(methods.status, child, [])?.pending !== false) return false;
+          }
+          child = methods = constructChild = undefined;
+          retired = true;
+        }
+        return managed.release();
+      })().finally(() => {flight = undefined;});
+    } finally {opening = false;}
+    return flight;
+  };
+  return Object.freeze({prepare() {
+    if (stopping) fail('InstalledEffectRequestChildRetired');
+    if (invoking) fail('InstalledEffectRequestChildReentrantPrepare');
+    invoking = true;
+    try {return managed.prepare();} finally {invoking = false;}
+  }, checkOriginal: managed.checkOriginal,
+    release: () => drain(false), retry: () => drain(true), status: managed.status});
+}
+
 export function prepareInstalledEffectRequestChild({run, memberIndex, rowIndex,
   operationIndex, operation, perRow = true, construct: originalConstruct, requestsRetired}) {
   if (run === undefined || typeof perRow !== 'boolean' || typeof originalConstruct !== 'function' ||
@@ -641,4 +738,14 @@ export function prepareInstalledEffectControlConstruction(run) {
     return true;
   };
   return Object.freeze(Object.assign(work, {retire}));
+}
+
+// A composed generic owner keeps its original codec and full control quote.
+export function installedEffectSavedControlEntryLimit(recipes) {
+  return Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??
+    effectLedgerImplementationBounds.maxEntryBytes));
+}
+export function installedEffectRecipeForControlEntryLimit(recipe, maxEntryBytes) {
+  return recipe?.savedControlCodec !== undefined && maxEntryBytes > recipe.savedControlCodec.maxEntryBytes
+    ? Object.freeze({...recipe, controlsPerRow: recipe.savedControlCodec.fallbackCapacity}) : recipe;
 }

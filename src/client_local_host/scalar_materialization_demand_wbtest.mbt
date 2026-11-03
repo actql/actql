@@ -5,6 +5,7 @@ fn materialization_test_inventory() -> ClientLocalSchemaProofInventory {
     _observed_owner_count: 1,
     _observed_work_used: 2,
     max_node_width: 2L,
+    closed_value_nodes: None,
     max_name_width: 2L,
     fields: 1,
     names: 2,

@@ -1437,3 +1437,11 @@ pub fn client_program_issue_generated_content(
     max_text_units,
   })
 }
+
+///|
+#export_name("clientProgramSerializationInputRowBound")
+pub fn client_program_serialization_input_row_bound(
+  graph : @publication_host.ClientSerializationPlanGraph,
+) -> Int {
+  @client_local_host.client_serialization_input_row_bound(graph).unwrap_or(-1)
+}

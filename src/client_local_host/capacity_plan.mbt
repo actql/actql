@@ -41,6 +41,7 @@ fn client_local_capacity_plan(
   scalar_values? : Bool = false,
   graph? : @strategy.CheckedDAG? = None,
   graph_offset? : Int = 0,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> ClientLocalCapacityPlan {
   let ordinary_inventory = if scalar_values {
     client_local_schema_proof_inventory(sequences, graph~, graph_offset~)
@@ -71,6 +72,7 @@ fn client_local_capacity_plan(
           graph_offset~,
           scalar_only=false,
           leaf_only=true,
+          content~,
         )
       } else {
         None
@@ -127,14 +129,40 @@ fn client_local_capacity_plan(
     value_node_demand is Some(original) {
     Some({
       ..original,
-      text_bound: client_local_decimal_text_bound(
-        sequences,
-        original,
-        values.max_text_bytes,
-      ),
+      text_bound: match content {
+        Some(selected) =>
+          installed_content_text_bound(
+            selected,
+            sequences,
+            original,
+            values.max_text_bytes,
+          )
+        None =>
+          client_local_decimal_text_bound(
+            sequences,
+            original,
+            values.max_text_bytes,
+          )
+      },
     })
   } else {
     value_node_demand
+  }
+  // The SAME contextual inventory sums every original input port and output
+  // schema before taking their maximum. The physical guard shares one node
+  // budget across input and final-output scans; two sides bound that budget.
+  // Configure its actual constructor as well as the quote. Unknown/foreign
+  // references keep the original envelope; byte/depth/work and Fragment
+  // execution limits are independent and remain unchanged.
+  let measurement = if content is Some(_) &&
+    value_node_demand is Some(demand) &&
+    demand.nodes <= 1073741823 {
+    {
+      ..measurement,
+      max_nodes: Int::min(measurement.max_nodes, 2 * demand.nodes),
+    }
+  } else {
+    measurement
   }
   // IO observes scalar cells plus row field names, not evaluator intermediates.
   // Keep expression text independent unless every original typed child and
@@ -205,6 +233,38 @@ fn client_local_capacity_plan(
     },
     result_workspace_entries: imports.max_rows,
     retained_bytes: 0L,
+  }
+  // The same producer proof bounds every JSON node, including its opaque
+  // reference envelope; arbitrary ContentRef still has no such proof. Use a
+  // conservative punctuation/numeric envelope per node and escaped text.
+  let content_wire = if content is Some(_) &&
+    decimal_text is Some(bytes) &&
+    value_node_demand is Some(demand) {
+    client_local_json_leaf_wire_byte_bound(demand.nodes, 1, bytes.to_int64())
+  } else {
+    None
+  }
+  let imports = match content_wire {
+    Some(bytes) =>
+      {
+        ..imports,
+        wire: {
+          ..imports.wire,
+          max_bytes: Int::min(imports.wire.max_bytes, bytes),
+        },
+      }
+    None => imports
+  }
+  let exports = match content_wire {
+    Some(bytes) =>
+      {
+        ..exports,
+        wire: {
+          ..exports.wire,
+          max_bytes: Int::min(exports.wire.max_bytes, bytes),
+        },
+      }
+    None => exports
   }
   let result_envelope = match graph {
     Some(original) => client_local_result_envelope(original, max_rows)

@@ -63,8 +63,9 @@ test "closed Carrier Node factory retains actual simultaneous envelopes within o
     )
     assert_true(limits[3] <= 536870912L)
     assert_true(limits[4] <= 536870912L)
+    assert_true(limits[5] <= 536870912L)
     println(
-      "CONFIGURED_CARRIER \{family} tasks=\{tasks} retained=\{limits[3]} execution=\{limits[4]}",
+      "CONFIGURED_CARRIER \{family} tasks=\{tasks} transfer=\{limits[3]} retained=\{limits[4]} execution=\{limits[5]}",
     )
   }
 }
