@@ -138,6 +138,9 @@ const observationFailures = [];
 // It is not another production ledger or independent execution authority.
 const retainedCoordinatorRecords = new Map();
 const running = new Set();
+// Select the same original Site environment as the bundle/application callers;
+// build tools retain their separate producer environment.
+const siteProcessEnvironment = Object.freeze({PATH: '/usr/bin:/bin', LANG: 'C'});
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
@@ -363,9 +366,9 @@ try {
     'resident-install', '--signature-key-id', 'key-a', '--bundle-cid',
     envelope.runtimeBundleCid, '--input-root', bundleInput, '--manifest-name',
     'manifest.json', '--signature-name', 'signature.txt', '--component-name',
-    'component.bin'], {stdio: 'inherit'});
+    'component.bin'], {env: siteProcessEnvironment, stdio: 'inherit'});
   execFileSync(bundleTool, [...bundleCommon, 'activate', '--bundle-cid',
-    envelope.runtimeBundleCid], {stdio: 'inherit'});
+    envelope.runtimeBundleCid], {env: siteProcessEnvironment, stdio: 'inherit'});
   const [registry, values, fragment] = await pinnedEngineContracts(repository);
   await writeFile(join(engineRoot, 'registry.json'), registry);
   await writeFile(join(engineRoot, 'values.json'), values);
@@ -609,7 +612,7 @@ try {
     const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
       ...extra], {
-      cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
+      cwd: root, env: siteProcessEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
     const lines = [];
     let buffer = '';
     child.stdout.on('data', chunk => {

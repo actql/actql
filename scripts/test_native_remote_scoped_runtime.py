@@ -517,12 +517,14 @@ class ResidentCaptureComponent(unittest.TestCase):
                     (['x' * (record['selected']['maximumArgumentBytes'] + 1)],
                      'PASS argument bound checked before original copy')):
                 result = subprocess.run([str(selected), *arguments], check=True,
-                    capture_output=True, text=True, timeout=10)
+                    capture_output=True, text=True, timeout=10,
+                    env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
                 self.assertTrue(result.stdout.startswith(expected), result.stdout)
             compile_capture([compiler, '-std=c11', *warnings, '-pthread',
                 str(source), '-o', str(unselected)])
             result = subprocess.run([str(unselected)], check=True,
-                capture_output=True, text=True, timeout=10)
+                capture_output=True, text=True, timeout=10,
+                env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
             self.assertEqual(result.stdout, 'PASS unselected entry refuses without capture\n')
 
 
@@ -563,7 +565,8 @@ class ResidentFfiComponent(unittest.TestCase):
             result = subprocess.run(arguments, capture_output=True, text=True, timeout=45)
             self.assertEqual(result.returncode, 0, result.stderr)
             for mode in (('components', 'partial', 'stderr') if selected else ('unselected',)):
-                result = subprocess.run([str(executable), mode], capture_output=True, text=True, timeout=10)
+                result = subprocess.run([str(executable), mode], capture_output=True, text=True, timeout=10,
+                    env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
                 self.assertEqual(result.returncode, 0, result.stderr)
                 if mode == 'stderr':
                     self.assertEqual(result.stderr, 'command diagnostic\n')
