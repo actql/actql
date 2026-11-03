@@ -20423,7 +20423,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-owned-operation.mjs",
-      "sha256": "9fe8951b0f5709eae415a75e8d84995dbfdaa7be27526b4891611dd4c04a67c5",
+      "sha256": "754ae858a011f86faf52d5f4acfcc6a59818689b023aa18ffe725ba777b9415f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Effect operation occurrence; original Content child retains physical cleanup and authority",

@@ -55,8 +55,11 @@ export function prepareInstalledEffectOwnedPhysicalChild({run, memberIndex, rowI
     if (!preparing || stopping || !started || typeof bytes !== 'bigint' || bytes < 0n) {
       fail('ForeignInstalledEffectPhysicalChild');
     }
-    try {checked(Reflect.apply(charge, runtime, [token, bytes])); current();}
+    try {checked(Reflect.apply(charge, runtime, [token, bytes]));}
     catch (error) {accountingFailed = true; throw error;}
+    // A later current refusal does not make this successful charge unknown.
+    // Original physical cleanup and request retirement still gate release.
+    current();
   };
   const release = () => {
     if (retired) return true;
