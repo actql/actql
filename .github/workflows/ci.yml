@@ -313,7 +313,7 @@ jobs:
             fi
             # Reopen remains within a run; the full run below starts fresh.
             node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
-            node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+            node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)" --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then
