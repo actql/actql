@@ -263,6 +263,10 @@ export function validatePartInputs(inputs) {
     for (const key of ['artifactDigest','archiveDigest','manifestDigest']) assert(hex.test(input[key]),`Invalid ${key}`);
   }
 }
+export function materializeVerifiedMember(from,to,sha256) {
+  copyFileSync(from,to,constants.COPYFILE_EXCL);chmodSync(to,0o444);
+  assert.equal(fileDigest(to),sha256);
+}
 export function joinParts({inputs,expected,destination}) {
   validatePartInputs(inputs); assert(!existsSync(destination),'Union destination exists');
   const files=new Map(), owners=new Set(), observations=new Set(), manifests=[];
@@ -284,8 +288,7 @@ export function joinParts({inputs,expected,destination}) {
   mkdirSync(dirname(destination),{recursive:true});noLinks(dirname(destination));mkdirSync(destination);
   for (const {file,directory} of files.values()) {
     const to=join(destination,file.path);mkdirSync(dirname(to),{recursive:true});
-    copyFileSync(join(directory,file.path),to,constants.COPYFILE_EXCL);chmodSync(to,0o444);
-    assert.equal(fileDigest(to),file.sha256);
+    materializeVerifiedMember(join(directory,file.path),to,file.sha256);
   }
   const {read,report}=reader(destination);
   const capacity=unionCapacityParts(['L-C0','L-C1'].map(id=>({path:`${prefix}capacity/parts/${id}.json`,report:report(`capacity/parts/${id}.json`)})),read);

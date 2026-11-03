@@ -1,10 +1,47 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs';
+import {tmpdir} from 'node:os';
+import {dirname,join} from 'node:path';
+import {fileDigest,packArchive,unpackArchive} from './ci-artifacts.mjs';
 import {hash} from './inventory.mjs';
 import {partIds,planDigest,plan} from './proof-parts.mjs';
 import {partSchema,partStages,capacityPartExecutions,validatePartEnvelope,validatePartInputs,requireValidation} from './ci-parts.mjs';
 import * as transport from './ci-parts.mjs';
 const digest='a'.repeat(64);
+const identity=path=>{
+ const info=fs.statSync(path);
+ return Object.fromEntries(['dev','ino','mode','size','mtimeMs','ctimeMs','nlink','blocks'].map(key=>[key,info[key]]));
+};
+// Real owned filesystem/TAR transport only; no Native execution is asserted.
+function stagedMember(t) {
+ const root=fs.realpathSync(fs.mkdtempSync(join(tmpdir(),'actql-part-member-')));
+ t.after(()=>fs.rmSync(root,{recursive:true}));
+ const producer=join(root,'producer'),bytes=Buffer.alloc(2*1024**2,0xa5);
+ const sha256=hash(bytes),member='capacity/custody/binaries/'+sha256;
+ fs.mkdirSync(dirname(join(producer,member)),{recursive:true});
+ fs.writeFileSync(join(producer,member),bytes);
+ fs.writeFileSync(join(producer,'ci-seal.json'),'{}\n');
+ const archive=join(root,'evidence.tar'),archiveDigest=packArchive(producer,archive),archiveIdentity=identity(archive);
+ const verified=join(root,'verified');unpackArchive(archive,verified,archiveDigest);
+ const from=join(verified,member),to=join(root,'union',member);
+ fs.mkdirSync(dirname(to),{recursive:true});
+ return {root,from,to,bytes,sha256,archive,archiveDigest,archiveIdentity};
+}
+function originalArchiveUnchanged(f) {
+ assert.equal(fileDigest(f.archive),f.archiveDigest);
+ assert.deepEqual(identity(f.archive),f.archiveIdentity);
+}
+test('verified union member consumes one extracted inode without duplicating payload storage',t=>{
+ const f=stagedMember(t),before=identity(f.from);
+ transport.materializeVerifiedMember(f.from,f.to,f.sha256);
+ assert.equal(fs.existsSync(f.from),false,'Verified staging allocation must transfer to the union');
+ const after=identity(f.to);
+ for(const key of ['dev','ino','size','mtimeMs','blocks'])assert.equal(after[key],before[key],key);
+ assert.equal(after.nlink,1);assert.equal(after.mode&0o777,0o444);
+ assert.deepEqual(fs.readFileSync(f.to),f.bytes);
+ originalArchiveUnchanged(f);
+});
 const expected={context:{repository:'actql/actql',runId:'1',runAttempt:'1',testedSha:'b'.repeat(40),prHeadSha:null},
  source:{digest},exploration:{required:true},toolchain:{moonbit:{moonc:'pin'}},
  workflow:{ref:'actql/actql/.github/workflows/ci.yml@refs/heads/main',sha:'b'.repeat(40)},planDigest};
