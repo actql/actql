@@ -77,7 +77,7 @@ const account = outcome => canonicalJson({
 const query = 'SELECT id FROM records WHERE amount >= @minimum';
 const declarations = Object.freeze({minimum: {type: 'number'}});
 const expectedNumberAdmission = Object.freeze({kind: 'parameter_declaration',
-  contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947',
+  contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1',
   contract: {nullable: false, type: 'number'},
   constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'});
 const requests = Object.freeze({
@@ -431,7 +431,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       [{parameter: 'b', expected_type: 'string', admission: {
         kind: 'parameter_declaration', supplier: 'caller',
         contract: {type: 'string', nullable: false}, constraints: [],
-        contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947'}}]);
+        contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1'}}]);
     assert.notEqual(changed.report.context_ref, first.report.context_ref);
     assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, changed), false, '[check-mutation:frontier-context]');
     const anotherBinding = await client.check(text, {...options, parameters: {a: 2}});
@@ -965,7 +965,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         facts: {parameter: 'missing', expected_type: 'string', admission: {
           kind: 'parameter_declaration', supplier: 'caller',
           contract: {type: 'string', nullable: false}, constraints: [],
-          contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947'}},
+          contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1'}},
         location: {document_id: 'parameter_declarations', revision: declared.revision,
           kind: 'structured', pointer: '/missing'}}], '[check-mutation:nested-missing-requirement]');
       assert.deepEqual(original.value, parameters);
@@ -2163,7 +2163,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-07.ja.10'});
+        {locale: 'ja', translationRevision: '2026-10-25.ja.11'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -3814,7 +3814,7 @@ for (const entrance of ['local', 'http']) {
       [{code: 'query_syntax_invalid'}]);
     assert.equal(outcome.report.reasons[0].location.document_id, 'source');
     assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
-      {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
+      {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 39, end_byte: 39, precision: 'exact'});
     assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
   });
 
@@ -5141,7 +5141,7 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: missing parameter Requirements expose admitted recursive declaration conditions`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const contractSchemaCid = 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947';
+    const contractSchemaCid = 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1';
     const cases = [
       [{type: 'number', nullable: true, integer: true, minimum: -2.5, maximum: 4.5,
         meta: {note: 'private-admission-note', instruction: 'private-admission-instruction'}},
@@ -5339,8 +5339,8 @@ for (const entrance of ['local', 'http']) {
 }
 
 const expectedCapacityRequirement = Object.freeze({code: 'host_capacity_policy_required', facts: {
-  contract_cid: 'sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164',
-  schema_cid: 'sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3',
+  contract_cid: 'sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9',
+  schema_cid: 'sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265',
   schema_pointer: '/schema', supplier: 'checking_context_owner', stage: 'checking'}});
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: known context requirements retain Owner conditions without input blame`, async t => {
@@ -6206,9 +6206,13 @@ for (const entrance of ['local', 'http']) {
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: semantic query violations remain distinct from implementation limits`, async t => {
     const client = await open(t, configurations.allowed);
-    const invalid = [
+    // SQL does not admit a nested Pipe body; these fail during parsing,
+    // before semantic checking of otherwise well-formed query bodies.
+    const syntaxInvalid = [
       'WITH chosen AS (FROM records |> RESULT saved) SELECT id FROM chosen',
       'SELECT id FROM (FROM records |> RESULT saved) AS chosen',
+    ];
+    const invalid = [
       'SELECT * FROM records GROUP BY id',
       'SELECT r.* FROM records AS r GROUP BY id',
       'SELECT * EXCEPT (id) FROM records GROUP BY id',
@@ -6224,15 +6228,24 @@ for (const [entrance, open] of Object.entries(entrances)) {
       'SELECT COUNTIF(amount > 0) OVER (ORDER BY id) AS n FROM records',
       'SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS value FROM records',
     ];
-    for (const [texts, verdict, expectedProblem] of [
-      [invalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}],
+    for (const [texts, verdict, expectedProblem, reasonCode] of [
+      [syntaxInvalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, 'query_syntax_invalid'],
+      [invalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, 'query_invalid'],
       [unsupported, 'undetermined', {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}],
     ]) {
       for (const text of texts) {
         const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
         assert.equal(checked.outcome, 'completed', text);
         assert.equal(checked.report.verdict, verdict, text);
-        assert.deepEqual(checked.report.reasons, verdict === 'invalid' ? [{code: 'query_invalid'}] : [], text);
+        if (reasonCode === 'query_syntax_invalid') {
+          assert.equal(checked.report.reasons.length, 1, text);
+          const [reason] = checked.report.reasons;
+          assert.equal(reason.code, reasonCode, text);
+          assert.equal(reason.location.precision, 'exact');
+          assert.equal(resolveCheckLocation(checked, reason.location).input,
+            getCheckInput(checked, 'source'));
+        } else assert.deepEqual(checked.report.reasons,
+          verdict === 'invalid' ? [{code: reasonCode}] : [], text);
         assert.deepEqual(checked.report.coverage, {
           limits: verdict === 'invalid' ? [] : [{code: 'implementation_limit'}], unresolved: [],
         }, text);
