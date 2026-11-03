@@ -10742,6 +10742,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/run-host-prepared-environment.md",
+                "anchor": "## Independently supplied Remote Effects"
               }
             ],
             "inputsOutputs": [
@@ -11860,6 +11864,14 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances"
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "test('Remote supplied Effect environment retains the original generic selector before publication composition'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "test('Remote ordinary materialization retains its original Local selector without an independent Effect'"
               }
             ]
           }
@@ -19300,7 +19312,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "569ea17c6c62654f568162d249d54848a66647c918771322cd72a5405df44268"
+      "sha256": "a9be5bd711b9a537e3989bcbd380e56ba5d2f0e75546e04b6b1fd681ac0edadc"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

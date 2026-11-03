@@ -1464,8 +1464,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   const environmentSource = preparation.readEnvironmentSource();
   const selectedLookupPolicy = hostLookupExecutionPolicy ??
     preparation?.localFilesLookupExecutionPolicy?.(moon);
-  const baseEnvironmentWire = selectInstalledLocalMaterializationEnvironment(moon, environmentSource.trimEnd(), hostCapacityPolicy,
-    selectedLookupPolicy);
+  // An independently supplied Remote Effect carries its published generic
+  // policy identity. Its transport does not select a Local row profile.
+  // Ordinary Local materialization, including Remote Values/Source callers,
+  // continues to consume the same installed Local Resource row selector.
+  const baseEnvironmentWire = (mode === 'remote' && effectInstallation !== undefined
+    ? selectInstalledHostEnvironment : selectInstalledLocalMaterializationEnvironment)(
+    moon, environmentSource.trimEnd(), hostCapacityPolicy, selectedLookupPolicy);
   // Both adapters restore published declarations without provider I/O. The
   // combined environment is admitted before either can dispatch work.
   let sourceProfile;
