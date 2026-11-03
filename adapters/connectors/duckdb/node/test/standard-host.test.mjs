@@ -3172,9 +3172,12 @@ async function exerciseStrategyGraph(
       consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
     },
   };
-  const rankingPublicationFixture = fixture.strategyFixtureVecaCreate(
+  // This success fixture keeps every output and its publication evidence.
+  // Select the existing accounted profile before capture, retaining all other
+  // graph limits rather than weakening the actual capacity quote or cleanup.
+  const rankingPublicationFixture = fixture.strategyFixtureAccounted(fixture.strategyFixtureVecaCreate(
     ...args, JSON.stringify(rankingPublicationProgram), orderedContract,
-  );
+  ));
   const rankingCapture = await runNativeHostQuery(
     grant,
     fixture.strategyFixtureAcquisition(rankingPublicationFixture),
