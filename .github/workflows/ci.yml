@@ -325,6 +325,8 @@ jobs:
           ${{ (matrix.target == 'native' && !cancelled() &&
                steps['native-compiler-diagnostic-start'].outcome == 'success') ||
               (matrix.target != 'native' && success()) }}
+        env:
+          ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB

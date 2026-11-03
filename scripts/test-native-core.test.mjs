@@ -10,6 +10,7 @@ import test from 'node:test';
 import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
+import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
@@ -59,7 +60,7 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
 
-test('Reader custody injection loads across the selected host helper CPU subtypes', () => {
+test('Reader custody injection loads on the supported Native host profile', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
   const parent = join(checkout, '_build', 'native-reader-helper-tests');
   mkdirSync(parent, {recursive: true});
@@ -69,10 +70,10 @@ test('Reader custody injection loads across the selected host helper CPU subtype
   const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
   const source = join(scratch, 'helper.c');
   writeFileSync(source, 'int main(void) { return 0; }\n');
-  // Apple's compiler/launcher helpers can use arm64e while the Native test
-  // binaries use arm64. Exercise the real loader for both, without changing
-  // the product's admitted Darwin arm64 profile or its injection semantics.
-  const subtypes = process.platform === 'darwin' ? ['arm64', 'arm64e'] : [undefined];
+  // The existing Core profile requires Darwin arm64. Extra injected-library
+  // slices are checked against the actual pinned tools below; a standalone
+  // experimental arm64e executable is not a substitute for those binaries.
+  const subtypes = process.platform === 'darwin' ? ['arm64'] : [undefined];
   for (const subtype of subtypes) {
     const helper = join(scratch, 'helper-' + (subtype ?? process.arch));
     const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
@@ -96,6 +97,23 @@ test('Reader custody callbacks preserve ordinary FDs and exact pending/acked beh
   mkdirSync(parent, {recursive: true});
   const scratch = realpathSync(mkdtempSync(join(parent, 'callbacks-')));
   const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  if (process.platform === 'darwin') {
+    const library = spawnSync('xcrun', ['lipo', '-archs', injected.DYLD_INSERT_LIBRARIES],
+      {encoding: 'utf8', timeout: 10000});
+    assert.equal(library.status, 0, library.stderr);
+    const available = library.stdout.trim().split(/\s+/u);
+    assert(available.includes('arm64') && available.includes('arm64e'));
+    for (const name of ['moon', 'moonc']) {
+      const tool = join(process.env.MOON_HOME, 'bin', name);
+      const image = spawnSync('xcrun', ['lipo', '-archs', tool],
+        {encoding: 'utf8', timeout: 10000});
+      assert.equal(image.status, 0, image.stderr);
+      const required = image.stdout.trim().split(/\s+/u);
+      assert(required.includes('arm64'), `${name}: ${image.stdout}`);
+      assert(required.every(subtype => available.includes(subtype)), `${name}: ${image.stdout}`);
+      process.stdout.write(`# Reader custody pinned ${name} image slices: ${required.join(',')}\n`);
+    }
+  }
   for (const name of ['ordinary.json', 'runtime-constructor-pending/local-runtime.json',
     'runtime-constructor-acked/local-runtime.json']) {
     writeFileSync(join(scratch, name), 'original bounded callback fixture');
@@ -138,7 +156,11 @@ int main(int argc, char **argv) {
   return 0;
 }
 `);
-  const subtypes = process.platform === 'darwin' ? ['arm64', 'arm64e'] : [undefined];
+  // The existing Core job requires Darwin arm64. A standalone arm64e user
+  // executable is a different diagnostic, not that product profile. Keep both
+  // injected-library slices for the actual pinned tools, checked above and by
+  // their original entrypoints below; retain every required physical FD check.
+  const subtypes = process.platform === 'darwin' ? ['arm64'] : [undefined];
   for (const subtype of subtypes) {
     const helper = join(scratch, 'callback-helper-' + (subtype ?? process.arch));
     const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
@@ -195,6 +217,21 @@ test('Reader custody callbacks preserve the original empty Moon driver command',
   assert.doesNotThrow(() => JSON.parse(readFileSync(metadata, 'utf8')));
 });
 
+test('Reader custody callbacks preserve the original pinned Moonc loader', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'compiler-loader-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const tool = join(process.env.MOON_HOME, 'bin', 'moonc');
+  const observed = spawnSync(tool, ['-v'], {cwd: checkout, encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected}});
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+  assert.match(observed.stdout.trim(), /^v[0-9]+\.[0-9]+\.[0-9]+/u);
+});
+
 test('Native Core full campaign remains selected after callback diagnosis failure', () => {
   const core = workflow.jobs.core;
   const start = core.steps.findIndex(step => step.id === 'native-compiler-diagnostic-start');
@@ -223,6 +260,97 @@ test('Native Core full campaign remains selected after callback diagnosis failur
     {timeout: 100});
     assert.equal(selected, expected, `${target}/${previousSuccess}/${startOutcome}/${cancelled}`);
   }
+});
+
+test('Compiler stop diagnostic requires the actual failed blackbox input', () => {
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  const line = 'failed: /pinned/bin/moon generate-test-driver --output-driver ' +
+    '/checkout/_build/native/debug/test/__generated_driver_for_blackbox_test.mbt ' +
+    '--output-metadata /checkout/_build/native/debug/test/__blackbox_test_info.json ' +
+    '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox';
+  driver.write(line.replace('blackbox', 'internal') + '\n');
+  assert.equal(driver.observed, false);
+  driver.write(line.slice(0, 30));
+  driver.write('unrelated partial stdout', 'stdout');
+  driver.write(line.slice(30) + '\n');
+  assert.equal(driver.observed, true);
+});
+
+test('Compiler stop diagnostic refuses unobserved failure without a child', () => {
+  let calls = 0;
+  const result = diagnoseFailedCoreDriver({driver: failedCoreDriver('/checkout', '/pinned')},
+    () => { calls++; });
+  assert.equal(calls, 0);
+  assert.deepEqual(result, {attempted: false, cause: 'original-failure-not-observed'});
+});
+
+test('Compiler stop diagnostic preserves inputs and private environment with fresh outputs', t => {
+  const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-stop-control-'));
+  t.after(() => rmSync(namespace, {recursive: true, force: true}));
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  driver.write('failed: /pinned/bin/moon generate-test-driver --output-driver ' +
+    '/checkout/_build/native/debug/test/__generated_driver_for_blackbox_test.mbt ' +
+    '--output-metadata /checkout/_build/native/debug/test/__blackbox_test_info.json ' +
+    '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox\n');
+  const env = {PATH: '/pinned/bin', DYLD_INSERT_LIBRARIES: '/original/injection.dylib',
+    ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: '/original/root', TOKEN: 'PRIVATE_TOKEN'};
+  let calls = 0;
+  const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace, env},
+    (command, args, options) => {
+      calls++;
+      assert.equal(command, 'xcrun');
+      assert.equal(options.timeout, 60000);
+      assert.equal(options.env.DYLD_INSERT_LIBRARIES, undefined);
+      const program = JSON.parse(options.input.slice('script exec('.length,
+        options.input.indexOf(')\nquit')));
+      const encoded = /SetEnvironmentEntries\(json.loads\(base64.b64decode\("([^"]+)"/u.exec(program)[1];
+      assert.deepEqual(JSON.parse(Buffer.from(encoded, 'base64')), Object.entries(env)
+        .map(([key, value]) => `${key}=${value}`));
+      const actual = args.slice(args.indexOf('--') + 2);
+      assert.deepEqual(actual.filter((_, i) => i !== 2 && i !== 4),
+        ['generate-test-driver', '--output-driver', '--output-metadata',
+          '/checkout/src/environment_test.mbt', '--target', 'native', '--pkg-name',
+          'actql/actql', '--driver-kind', 'blackbox']);
+      assert(actual[2].startsWith(namespace + '/compiler-stop-'));
+      assert(actual[4].startsWith(namespace + '/compiler-stop-'));
+      assert(!args.join(' ').includes('PRIVATE_TOKEN'));
+      return {status: 0, signal: null, stdout: 'PRIVATE_HEADER\nACTQL_COMPILER_STOP ' +
+        JSON.stringify({attempted: true, cause: 'SIGTRAP', cleanup: 'exited',
+          frames: [{module: 'dyld', symbol: 'observed_symbol', registers: 'PRIVATE_REGISTERS'}],
+          environment: 'PRIVATE_TOKEN'}) + '\n', stderr: 'PRIVATE_STDERR'};
+    });
+  assert.equal(calls, 1);
+  assert.equal(result.cause, 'SIGTRAP');
+  assert.deepEqual(result.frames, [{module: 'dyld', symbol: 'observed_symbol'}]);
+  assert(!JSON.stringify(result).includes('PRIVATE_'));
+});
+
+test('Compiler stop diagnostic timeout stays unobserved without raw debugger payload', t => {
+  const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-timeout-control-'));
+  t.after(() => rmSync(namespace, {recursive: true, force: true}));
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  driver.write('failed: /pinned/bin/moon generate-test-driver --output-driver ' +
+    '/checkout/_build/native/debug/test/__generated_driver_for_blackbox_test.mbt ' +
+    '--output-metadata /checkout/_build/native/debug/test/__blackbox_test_info.json ' +
+    '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox\n');
+  const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace,
+    env: {TOKEN: 'PRIVATE_TOKEN'}}, (command, args, options) => {
+    const program = JSON.parse(options.input.slice('script exec('.length,
+      options.input.indexOf(')\nquit')));
+    const syntax = spawnSync('python3', ['-c', 'import ast,sys; ast.parse(sys.stdin.read())'],
+      {input: program, encoding: 'utf8', timeout: 10000});
+    assert.equal(syntax.status, 0, syntax.stderr);
+    assert.equal(options.timeout, 60000);
+    assert(options.input.includes('time.monotonic() + 52'));
+    assert(options.input.includes('process.Kill()'));
+    assert(args.includes('--no-lldbinit'));
+    return {status: null, signal: 'SIGKILL', error: {code: 'ETIMEDOUT'},
+      stdout: 'PRIVATE_MEMORY', stderr: 'PRIVATE_ENV'};
+  });
+  assert.equal(result.cause, 'unobserved');
+  assert.equal(result.cleanup, 'unobserved');
+  assert.equal(result.timedOut, true);
+  assert(!JSON.stringify(result).includes('PRIVATE_'));
 });
 
 test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {

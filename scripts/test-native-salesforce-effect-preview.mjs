@@ -9,6 +9,8 @@ import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixtu
 import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
+import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
+import {redactCommandEvidence} from './packed-query-evidence.mjs';
 const residentMappedCreate = process.argv.includes('--resident-original-mapped-create-write');
 const residentApprovedRow = residentMappedCreate || process.argv.includes('--resident-approved-row-write');
 const adoptedInitialHost = process.argv.includes('--adopted-initial-host-attestation');
@@ -364,14 +366,39 @@ try {
       : residentPreview ? ['--filter', 'Native retained consumer*']
       : residentEffectRuntimeCapture ? ['--filter', 'Effect retained consumer completes through Runtime*'] : [])]
     : ['--target', 'native', ...coreArgs];
+  const compilerDriver = coreArgs !== undefined && process.platform === 'darwin' &&
+      process.env.ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC === '1'
+    ? failedCoreDriver(process.cwd(), process.env.MOON_HOME) : undefined;
   child = spawn(process.execPath, ['--input-type=module', '-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
     "process.exitCode = runFocusedTests('moon', " + JSON.stringify(moonArgs) + ", " +
     "{timeout: " + (originalLocalReview ? 600000 : coreArgs === undefined ? 180000 : 1800000) + ", evidenceScratch: " + JSON.stringify(root) + "});"],
 
-  {env: testEnv, stdio: 'inherit'});
+  {env: testEnv, stdio: compilerDriver ? ['inherit', 'pipe', 'pipe'] : 'inherit'});
+  if (compilerDriver) {
+    child.stdout.on('data', chunk => {
+      process.stdout.write(chunk);
+      compilerDriver.write(chunk, 'stdout');
+    });
+    child.stderr.on('data', chunk => {
+      process.stderr.write(chunk);
+      compilerDriver.write(chunk, 'stderr');
+    });
+  }
   const [code, signal] = await once(child, 'close');
   child = undefined;
+  if (code !== 0 && compilerDriver) {
+    let diagnostic;
+    try {
+      diagnostic = diagnoseFailedCoreDriver({driver: compilerDriver, root: process.cwd(),
+        namespace: root, env: testEnv});
+    } catch {
+      // A failed observation must never replace the original test failure.
+      diagnostic = {attempted: true, cause: 'unobserved', cleanup: 'unobserved'};
+    }
+    console.error('ACTQL_COMPILER_FAILURE_DIAGNOSTIC ' +
+      redactCommandEvidence(JSON.stringify(diagnostic), testEnv));
+  }
   await writeFile(join(root, 'physical-receipt.json'), JSON.stringify({
     code, signal, requests: paths, writes, rejectedWrites, writeBodies, resolutionRequests, localRejectionRequests, reviewUploads, reviewUploadBodies,
     effectCurrentReports,
