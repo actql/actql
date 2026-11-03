@@ -73,7 +73,7 @@ pub fn reserve_program_publication(
       source_free.capacity_plan
     }
   }
-  let snapshot_prequoted = plan.scalar_demand is Some(_) ||
+  let mut snapshot_prequoted = plan.scalar_demand is Some(_) ||
     plan.value_node_demand is Some(_)
   let (inventory, rows, text) = match plan.scalar_demand {
     Some(demand) => {
@@ -176,6 +176,16 @@ pub fn reserve_program_publication(
       let schema = @results.port_schema(
         @execution.managed_result_occurrence_port(occurrence),
       )
+      // A node-demand proof also covers bounded ARRAY/STRUCT. Only the
+      // original leaf schemas justify this flat snapshot layout. Otherwise
+      // keep the same Run/export and fund each recursive copy from its exact
+      // completed writer extent before entering that snapshot constructor.
+      if !client_local_json_leaf_schema(schema) {
+        snapshot_prequoted = false
+        retained = 0L
+        execution = 0L
+        break
+      }
       guard scalar_snapshot_layout(
           @schema.field_count(schema),
           @schema.field_reference_name_bytes(schema),

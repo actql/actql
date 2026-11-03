@@ -585,7 +585,7 @@
               },
               {
                 "path": "adapters/connectors/notion/test/installed-notion-source.test.mjs",
-                "anchor": "installed Notion lost original reply keeps same recovery journal Unknown and reservation without resend"
+                "anchor": "installed Notion lost original reply keeps Journal Unknown after original reader retirement without resend"
               },
               {
                 "path": "docs/design/slack-user-pages.md",

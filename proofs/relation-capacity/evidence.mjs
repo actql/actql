@@ -10,7 +10,7 @@ export const modelObservationUnits = (output, exit) => chain.modelObservationUni
 export const fixture = 'src/query_integration/relation_chain_capacity_wbtest.mbt';
 export const identityFixture = 'src/execution_relation/relation_capacity_identity_wbtest.mbt';
 const inventoryPath = 'proofs/relation-capacity/allocations.json';
-export const inventoryDigest = '4945d5aebfd02f7865c0e9d20e9dde3015b6ca4fede67d8d1f1b1e740b17bc24';
+export const inventoryDigest = '7803891e6bf94d186f30d4ccd2d3547cb9d507978ee63b3638494a20421de9fc';
 const clone = x => JSON.parse(JSON.stringify(x));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const reviewed = Object.freeze(chain.bindings().map(b => Object.freeze({
@@ -50,6 +50,21 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
     const source = read(entry.source).toString('utf8');
     for (const symbol of entry.symbols) if (!source.includes(symbol)) throw new Error(`Missing inventory connection ${symbol}`);
     for (const path of entry.additionalSources ?? []) read(path);
+  }
+  // Bind the current retained quote inside its actual selected constructor.
+  // These are logical input dimensions, not a measured physical byte census.
+  const capacity = chain.checkedInputFunction(chain.executableMoonSource(
+    read('src/execution_relation/execution_capacity.mbt').toString('utf8')),
+  'generated_sequence_capacity');
+  const retainedQuote = 'guardexecution_capacity_inventory_bytes([' +
+    '{unit:CursorRootSlots,count:rows.retained_entries.to_int64(),copies:1,},' +
+    '{unit:CursorRootSlots,count:rows.metadata_entries.to_int64(),copies:1,},' +
+    '{unit:ValueNodeSlots,count:rows.output_values.max_nodes.to_int64(),copies:1,},' +
+    '{unit:DecodedTextBytes,count:rows.output_values.max_text_bytes.to_int64(),copies:1,},' +
+    '])isSome(retained)&&';
+  if (!capacity.includes(retainedQuote) ||
+      !capacity.includes('Some({retained_bytes:retained,execution_bytes:execution,})')) {
+    throw new Error('Missing current retained capacity quote connection');
   }
   // The reviewed scopes all start with TimeSeries, so the existing sum-of-child
   // model must not be silently applied to the built-in-only max-scratch branch.

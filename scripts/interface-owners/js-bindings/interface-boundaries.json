@@ -43466,6 +43466,16 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/acquisitionDescriptor/acquisitionDescriptor",
           "parameters": [
             "prepared"
@@ -43955,6 +43965,11 @@
             "captured"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission/heldSubmission",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations",
@@ -44570,6 +44585,16 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
           "parameters": [],
           "async": false
         },
@@ -46222,7 +46247,8 @@
           "parameters": [
             "runtime",
             "request",
-            "intent"
+            "intent",
+            "captured"
           ],
           "async": false
         },
@@ -57624,7 +57650,12 @@
             "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending"
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission/heldSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/abandonHeld/abandonHeld/abandonHeld#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4"
           ],
           "exports": [],
           "attributes": {
@@ -57632,60 +57663,104 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('held request reconstruction retains its actual pending original before funded preparation'"
               }
             ]
           }
@@ -57761,6 +57836,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -57871,11 +57947,9 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "cecce9efff2680cd85bbcc5cdf399cf0017b37ddd97ff6241e77e168c2e7c788"
+      "sha256": "1ab15f5d475814e2da118590be0611793eaeae94ad4b01402cb6746a5b9ec2d8"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -80473,7 +80547,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2759f3cec0a96394d1e6fd3b6847dc72272e0648a50d6f0770750bee6d5a4669",
+      "sha256": "5b6e7bde236731e808a78e4a7e30d556593ac427458aa299118f5178e7e4a746",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -82697,6 +82771,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "inputsOutputs": [
@@ -82715,6 +82793,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "identity": [
@@ -82745,6 +82827,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "ownership": [
@@ -82775,6 +82861,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "synchronization": [
@@ -82809,6 +82899,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "failure": [
@@ -82831,6 +82925,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "cancellation": [
@@ -82853,6 +82951,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "await currentRead(prepared, access, signal);"
               }
             ],
             "resources": [
@@ -82883,6 +82985,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "extension": [
@@ -82905,6 +83011,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "verification": [
@@ -82967,6 +83077,14 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization spends each ordinal once within its existing page budget"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks"
               }
             ]
           }

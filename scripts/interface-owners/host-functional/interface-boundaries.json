@@ -109718,7 +109718,8 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
           "parameters": [
             "request",
-            "intent"
+            "intent",
+            "captured"
           ],
           "async": false
         },
@@ -109812,6 +109813,7 @@
         "./client-program-preparation.mjs",
         "./ordinary-node-resource-runtime.cjs",
         "./source-profile-json.mjs",
+        "@actql/client-wire",
         "node:fs/promises",
         "node:util"
       ],
@@ -113310,67 +113312,111 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Retained Effect Request restoration"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Held Checkpoint Request reconstruction"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
+                "anchor": "test('held request reconstruction retains its actual pending original before funded preparation'"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "8159face143e0e3d7b4150b45dacb56822c39f441464cb2a071b90a50c0699a7"
+      "sha256": "e3e5d0eef9eb14cdc05bb06319447c2ea7c4e02461cc43a27b68d4c5a769b7c7"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

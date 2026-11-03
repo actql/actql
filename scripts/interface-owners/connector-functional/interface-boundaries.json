@@ -12317,7 +12317,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "2759f3cec0a96394d1e6fd3b6847dc72272e0648a50d6f0770750bee6d5a4669",
+      "sha256": "5b6e7bde236731e808a78e4a7e30d556593ac427458aa299118f5178e7e4a746",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14268,6 +14268,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "inputsOutputs": [
@@ -14314,6 +14318,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "identity": [
@@ -14376,6 +14384,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "ownership": [
@@ -14438,6 +14450,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "synchronization": [
@@ -14512,6 +14528,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "failure": [
@@ -14566,6 +14586,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "cancellation": [
@@ -14612,6 +14636,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "await currentRead(prepared, access, signal);"
               }
             ],
             "resources": [
@@ -14682,6 +14710,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "extension": [
@@ -14728,6 +14760,10 @@
               {
                 "path": "adapters/host-node/installed-row-source.mjs",
                 "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "verification": [
@@ -14886,6 +14922,14 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
                 "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization spends each ordinal once within its existing page budget"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks"
               }
             ]
           }

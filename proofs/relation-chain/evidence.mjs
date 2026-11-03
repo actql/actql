@@ -119,7 +119,7 @@ export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
 // Lexical masking preserves offsets while refusing unterminated source. This
 // scanner does not interpret predicates: the finite witness below still names
 // each exact checked operation and guarded handoff.
-function executableMoonSource(source) {
+export function executableMoonSource(source) {
   let out = '', index = 0;
   const blank = text => text.replace(/[^\n]/gu, ' ');
   while (index < source.length) {
@@ -149,7 +149,7 @@ function executableMoonSource(source) {
   return out;
 }
 
-function checkedInputFunction(source, name) {
+export function checkedInputFunction(source, name) {
   const matches = [...source.matchAll(new RegExp(`\\bfn\\s+${name}\\s*\\(`, 'gu'))];
   if (matches.length !== 1) throw new Error(`Missing current checked input cursor route: ${name}`);
   const start = source.indexOf('{', matches[0].index); let depth = 0;

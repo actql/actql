@@ -9,9 +9,9 @@ test "original unqualified presence inventory counts each distinct retained sche
   assert_eq(q.scratch, {
     record_headers: 201L,
     reference_slots: 330L,
-    scalar_words: 716L,
+    scalar_words: 708L,
   })
-  assert_eq(q.scratch_utf16_units, 42L)
+  assert_eq(q.scratch_utf16_units, 22L)
   assert_eq(
     @relation_schema.unqualified_presence_retained_extent(2, 2),
     Some({ record_headers: 28L, reference_slots: 86L, scalar_words: 24L, }),

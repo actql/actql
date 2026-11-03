@@ -5,6 +5,7 @@ import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs
 // discovery, Program Check, acquisition and computation through the public
 // Client, and the Named Result read. The org is a local HTTPS mock.
 import assert from 'node:assert/strict';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
@@ -22,6 +23,10 @@ import * as salesforceMoon from
 import {connect, getSubmissionOutcome} from '../../../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost, publishInstalledEffect} from
   '../../../host-node/embedded-local.mjs';
+import {openHostInitializationPreparation, closeHostInitializationPreparation}
+  from '../../../local-node/request-preparation-adapter.mjs';
+import {createInstalledHostServices, retireInstalledSourceInitialization}
+  from '../../../host-node/installed-host-services.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {splitSourceAliasProfile} from '../../../host-node/source-alias-publication.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
@@ -235,7 +240,8 @@ async function installation(t, {readable = ['Test_Record__c'],
   const queries = () => org.seen.filter(item =>
     item.path.startsWith('/services/data/v62.0/query'));
   return {org, root, profile, profilePath, sitePath, siteDocument, publish,
-    open, queries, connection: `salesforce:${org.orgId}`};
+    open, queries, retainCleanup: close => closers.push(close),
+    connection: `salesforce:${org.orgId}`};
 }
 
 test('published Salesforce original views explicitly supply visible query aliases for Check', async t => {
@@ -1273,12 +1279,41 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
     '../../../host-node/installed-source.mjs');
   const spec = name => readFile(join(repository, name), 'utf8');
   const base = (await spec('spec/local-check-environment.json')).trimEnd();
-  const adapter = await loadInstalledSource(setup.profilePath, {
-    root: join(setup.root, 'adapter-state'), principalId: owner,
-    moon: runtime, runtimeUrl: new URL(
-      '../../../../_build/js/release/build/connectors_builtin_node/' +
-      'connectors_builtin_node.js', import.meta.url),
-    baseEnvironmentWire: base, resolveSecret: secret});
+  const root = join(setup.root, 'adapter-state'), state = {};
+  let active = true, childrenPending = false, closed = false;
+  let adapter, services, initializationFailure;
+  const current = () => assert.equal(active, true, 'same original initializer remains current');
+  // Retain the actual parent before any constructor. Existing fixture cleanup
+  // runs these same duties before deleting its owned directory, including a
+  // failed load; Promise settlement alone never retires an original child.
+  setup.retainCleanup(async () => {
+    if (closed) return;
+    if (initializationFailure?.cleanupHandle?.status().pending === true) {
+      await initializationFailure.cleanupHandle.retry();
+      assert.equal(initializationFailure.cleanupHandle.status().pending, false);
+    }
+    await adapter?.close();
+    if (services !== undefined) assert.equal(retireInstalledSourceInitialization(services), true);
+    childrenPending = false;
+    closeHostInitializationPreparation(state);
+    active = false; closed = true;
+  });
+  const input = Object.freeze({root, purpose: 'original Salesforce adapter component'});
+  const parent = openHostInitializationPreparation(state, runtime, input, current, () => childrenPending);
+  services = createInstalledHostServices({root, principalId: owner, moon: runtime,
+    initialPreparation: parent, assertCurrent: current});
+  childrenPending = true;
+  try {
+    adapter = await loadInstalledSource(setup.profilePath, {
+      root, principalId: owner,
+      moon: runtime, runtimeUrl: new URL(
+        '../../../../_build/js/release/build/connectors_builtin_node/' +
+        'connectors_builtin_node.js', import.meta.url),
+      baseEnvironmentWire: base, resolveSecret: secret, installationServices: services});
+  } catch (cause) {
+    initializationFailure = cause;
+    throw cause;
+  }
   const environment = runtime.clientProgramCheckEnvironment(
     adapter.environmentWire, JSON.parse(adapter.environmentWire)
       .evidence_bundle_cid, false, false, true, false, false, false, false);
@@ -1286,12 +1321,17 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
     runtime.clientProgramPrepareEffectFreeWithParameters(source, 'json',
       environment, undefined));
   const aoa = JSON.parse(await spec('spec/contracts/actql-aoa.json'));
-  const common = {preparedProgram,
-    registry: await spec('spec/dependencies/aoa-pipeline-registry.json'),
+  const contracts = {
     values: JSON.stringify(aoa.execution_contracts['REL.values']),
     fragment: JSON.stringify(
       aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  // The existing Core query ports consume the retained checked contract
+  // original, never the former raw registry String or a reconstructed tuple.
+  const registry = checked(runtime.clientPrepareInstalledSequenceContracts(
+    await spec('spec/dependencies/aoa-pipeline-registry.json'),
+    contracts.values, contracts.fragment, contracts.ordered));
+  const common = {preparedProgram, registry, ...contracts};
   return {adapter, common};
 }
 
@@ -2421,11 +2461,14 @@ test('shared Salesforce Source preserves original read and credential preimages 
   const originalCid = body => `sha256:${createHash('sha256')
     .update(JSON.stringify(body)).digest('hex')}`;
   const runtime = {...commonMoon,
-    clientProgramRowSourceStart(acquisition, originalNonce, current) {
+    clientProgramRowSourceStartProviderAccounted(acquisition, provider, originalNonce, current,
+      ledger, transferBytes, executionBytes) {
       starts++; nonce = originalNonce;
-      // The original one Describe-plan observation still precedes the RowRun.
-      assert.equal(setup.org.seen.length, before + 1);
-      return commonMoon.clientProgramRowSourceStart(acquisition, originalNonce, current);
+      // The accounted RowRun must exist before this managed sequence's I/O.
+      // Both original Describe observations remain inside that same reader.
+      assert.equal(setup.org.seen.length, before);
+      return commonMoon.clientProgramRowSourceStartProviderAccounted(acquisition, provider,
+        originalNonce, current, ledger, transferBytes, executionBytes);
     },
     clientProgramRowSourceBegin(...args) {
       begins++;
@@ -2446,6 +2489,13 @@ test('shared Salesforce Source preserves original read and credential preimages 
         assert.equal(grants[0].max_uses, 10);
       } finally { journal.close(); }
       return commonMoon.clientProgramRowSourceBegin(...args);
+    },
+    clientProgramSalesforceBeginQueryRead(...args) {
+      assert.equal(starts, 1); assert.equal(begins, 1);
+      assert.equal(setup.org.seen.length, before + 2,
+        'the same reader owns initial Describe and current recheck before query');
+      assert.equal(setup.queries().length, 0);
+      return commonMoon.clientProgramSalesforceBeginQueryRead(...args);
     }};
   const {adapter, common} = await installedAdapter(setup, program, runtime);
   const access = {...adapter.sourceAccess, authorization: {
@@ -2462,7 +2512,12 @@ test('shared Salesforce Source preserves original read and credential preimages 
     const expectedSubject = originalCid({version: 'actql-salesforce-acquisition-read/0.1',
       requirementCid: preparedSource.checkedSource.requirementCid,
       physicalBinding: preparedSource.physicalBinding});
-    capture = await adapter.open({...common, sourceAccess: access, preparedSource});
+    const capacity = adapter.ledgerCapacity(preparedSource);
+    const ledger = runtime.clientProgramPrepareMultiCapturedLocalInstalledLedger(
+      common.preparedProgram, [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
+      common.registry, common.values, common.fragment, common.ordered);
+    assert.notEqual(ledger, undefined, 'the same prepared acquisition has an actual accounted capture');
+    capture = await adapter.open({...common, sourceAccess: access, preparedSource, ledger});
     assert.equal(starts, 1); assert.equal(begins, 1);
     assert(subjects.length >= 3, 'prepare, initial current and final capture current remain');
     assert(subjects.every(subject => subject === expectedSubject));

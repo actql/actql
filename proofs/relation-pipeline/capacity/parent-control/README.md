@@ -6,7 +6,7 @@ seven-field `RelationChainExecutionState` and five primitive Refs (`used`,
 and overlay are removed. Historical reports remain original execution records;
 they are not accepted by the current consumer or rewritten to current source.
 
-The independently typed census covers the state, the sixteen-field
+The independently typed census covers the state, the fourteen-field
 `RelationChainInputPreparation`, the sixteen-field `ProducerReadPreparation`,
 and the existing selected/configuration and provider-construction records.
 `chain-source.mjs` binds the explicit constructor capture roles and release
@@ -41,19 +41,25 @@ bind their pointer fields and actual capture identities.
 | Record | Requested bytes | Source/ABI basis |
 | --- | ---: | --- |
 | Aggregated state | 56 | 48-byte payload, refs at 0/8/16/40 |
-| Lifted start-next environment | 80 | 72-byte payload; integers at 32/64 introduce padding |
-| Advance callback | 104 | 96-byte payload; integers at 16/48/88 introduce padding |
+| Lifted start-next environment | 80 | 72-byte payload; integers at 24/64 introduce padding |
+| Advance callback | 96 | 88-byte payload; original prefix/count integers at 16/80; byte limit stays in start-next |
 | Cancel / stopped / cleanup / child-work callback | 40 / 24 / 48 / 24 | Code pointer plus actual source capture fields |
-| Chain input preparation | 112 | 104-byte payload, eight reference fields |
+| Chain input preparation | 104 | 96-byte payload, eight reference fields; four cursor Ints after the node |
 | Producer metadata preparation | 96 | 88-byte payload, five reference fields |
 | Int/Bool Ref / Int64 Ref | 12 / 16 | Generated scalar constructor requests; not inferred from scalar GC metadata |
+
+The current fourteen-field input preparation has `matched` and `read` at payload
+offsets 72 and 80. The earlier sixteen-field validator inputs remain historical
+fixtures; their 112-byte record and offsets 80/88 do not describe this constructor.
+The independent declared-field ABI model and the actual typed Native census must
+agree before the current report is admitted.
 
 `current-reader.c` borrows live objects synchronously, stores no MoonBit pointer,
 and adds no RC or persistent holder. Its observations are point-in-time identity
 and requested extents, not a lifetime union or allocator/RSS measurement.
 
-The two-child startup subtotal is **600 requested bytes**: five Ref requests
-64, reported-work 16, owner 56, state 56, five callbacks 240, start-next environment
+The two-child startup subtotal is **592 requested bytes**: five Ref requests
+64, reported-work 16, owner 56, state 56, five callbacks 232, start-next environment
 80, initial children container 40, and fixed completed container 48. Distinct
 roles must remain distinct. The subtotal exceeds the separate 512-byte logical
 component allowance; it does **not** establish a total reservation violation.
@@ -62,7 +68,8 @@ The extra 512-byte input-preparation declaration is also not a physical upper.
 The existing conditional retained-core model is updated to
 `664 + 16*C(n) + 8*n`, including five Ref upper components, state, padded captures,
 old/new children backing and completed Array owner overlap. At n=2 it is 808.
-This is a **conditional component upper**, with explicit source/ABI and lifetime
+Its unchanged 240-byte callback component conservatively includes the current
+232-byte requests plus eight bytes of slack. This is a **conditional component upper**, with explicit source/ABI and lifetime
 premises; it is not a whole-parent bound. In particular, preparation records,
 selected/columns arrays, payload and shared configuration referents, wrappers,
 allocator overhead and the complete reservation retirement union remain outside

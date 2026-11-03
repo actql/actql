@@ -58,10 +58,12 @@ fn provider_work_attempt(
     row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
     max_batch_bytes: 64,
   }
+  // Keep the same compiled sequence/contexts across installation and wrapping.
+  let generated = task_test_generated(owner)
   let implementation = @local_connector.prepare_local_compute_module(
     registry,
     @connector.capability_registration_at(registry, 0).unwrap(),
-    [task_test_generated(owner)],
+    [generated],
     { ..compute_test_limits(), max_work, },
     { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
     100,
@@ -71,14 +73,12 @@ fn provider_work_attempt(
     None => implementation
     Some(transform) => {
       let provider = @local_connector.local_module_managed_provider(
-        implementation,
-        0,
-        task_test_generated(owner),
+        implementation, 0, generated,
       ).unwrap()
       @local_connector.prepare_local_compute_module(
         registry,
         @connector.capability_registration_at(registry, 0).unwrap(),
-        [task_test_generated(owner)],
+        [generated],
         { ..compute_test_limits(), max_work, },
         { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
         100,

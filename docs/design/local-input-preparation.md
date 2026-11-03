@@ -3754,7 +3754,11 @@ RelA and ordinary acceptance require matching artifacts and callers separately.
 An adopted Request can execute checked ARRAY and STRUCT values without a flat
 leaf schema proof. Publication retains that same checked dispatch inventory,
 row bound, Run and Result occurrence. Flat snapshots keep their existing
-schema-derived prequote. Recursive snapshot construction instead consumes the
+schema-derived prequote only when every original Result schema satisfies the
+existing JSON-leaf predicate. A complete value-node demand proof can also cover
+bounded ARRAY and STRUCT cells; it does not make those cells flat snapshots.
+Finding such a Result discards only the unentered flat quote calculation, not
+any live reservation or original output. Recursive snapshot construction consumes the
 exact completed export's byte, value-node and open-container-depth observations.
 The existing finished writer supplies these facts without another traversal,
 hash, schema check or caller-provided dimensions. Equal-content exports cannot

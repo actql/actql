@@ -4,14 +4,14 @@ test "original object assembler construction separates borrowed children from na
   assert_eq(q.retained, {
     record_headers: 8L,
     reference_slots: 26L,
-    scalar_words: 4L,
+    scalar_words: 5L,
   })
   assert_eq(q.scratch, {
     record_headers: 147L,
     reference_slots: 187L,
-    scalar_words: 644L,
+    scalar_words: 636L,
   })
-  assert_eq(q.scratch_utf16_units, 42L)
+  assert_eq(q.scratch_utf16_units, 22L)
   let child = @value_contract.primitive(NumberType, nullable=false)
   let value = @value_contract.object_contract(
     [("b", child), ("a", child)],

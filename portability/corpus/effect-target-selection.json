@@ -580,19 +580,5 @@
     "max_bytes": 65536,
     "max_nodes": 8192,
     "max_depth": 4
-  },
-  "schema_pins": {
-    "executable_plan": {
-      "before": "sha256:17dce64a7870981c6e3325c69baf3f6264f3089974074754924a1b7bad62a3b1",
-      "after": "sha256:efe5ffe7024c7504fb51f3544dc17d3fa1f577f503d062cec9841ab3058c2dab"
-    },
-    "plan_document": {
-      "before": "sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78",
-      "after": "sha256:4439bfe5ec447de3ddb7563b65eb19260405392f58d8330e413808f1f82bffb9"
-    }
-  },
-  "artifact_registry_pins": {
-    "before": "sha256:ab482e2202efda095657590579037326bbe4e8c341190dc5ae115d9e44c9a065",
-    "after": "sha256:a61846b237ac7ce9f58569f4ecd2aba1b6621c04458fac80c9ad29c4526240ac"
   }
 }

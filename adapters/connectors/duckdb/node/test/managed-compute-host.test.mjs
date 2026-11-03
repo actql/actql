@@ -26,7 +26,8 @@ const root = fileURLToPath(new URL('../../../../..', import.meta.url));
 const limits = {maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
   maxChunkRows: 2, maxChunkBytes: 4096, memoryBytes: 128 * 1024 * 1024, threads: 1};
-const profileCid = 'sha256:e171e524aac08ada3129953d34b1b5f9017de8d7d90899f8a8701e58f33d9db8';
+// SHA-256 of the independently canonicalized selected managed-profile contract.
+const profileCid = 'sha256:e9e0e4f42fd3d4b512385ae918096d00e766d343a98864cf1f959d01dbae8fb0';
 const fieldsFrame = fields => JSON.stringify(fields.map(({name, type}) =>
   [name, type.id, type.precision == null ? null : String(type.precision),
     type.scale == null ? null : String(type.scale)]));

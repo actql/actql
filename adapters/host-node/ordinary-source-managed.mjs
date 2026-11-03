@@ -1,3 +1,4 @@
+import {snapshotClientRequest} from '@actql/client-wire';
 import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {open} from 'node:fs/promises';
@@ -487,17 +488,20 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     // Only the installed Host supplies this Journal-retained opaque original.
     // It is a new physical-process input lifetime for the SAME logical Request,
     // not an SDK snapshot publication, semantic issuer or physical read grant.
-    retainRequestInput(request, intent) {
-      if (request === null || typeof request !== 'object' || requestProducers.has(request)) {
+    retainRequestInput(request, intent, captured) {
+      if (request === null || typeof request !== 'object' || requestProducers.has(request) ||
+          (intent === undefined) === (captured === undefined)) {
         fail('ForeignInstalledSourceProducer');
       }
       let retainIntent, intentWire;
       const receipt = beginProducer(undefined, (state, original, assertCurrent, childrenPending) => {
         const moon = state.context.runtime;
-        retainIntent = Object.getOwnPropertyDescriptor(moon, 'clientProgramRetainRequestSubmittedIntent')?.value;
-        intentWire = Object.getOwnPropertyDescriptor(moon, 'clientSubmittedIntentWire')?.value;
-        if (typeof retainIntent !== 'function' || typeof intentWire !== 'function') {
-          fail('NodeManagedRunRuntimeUnavailable');
+        if (captured === undefined) {
+          retainIntent = Object.getOwnPropertyDescriptor(moon, 'clientProgramRetainRequestSubmittedIntent')?.value;
+          intentWire = Object.getOwnPropertyDescriptor(moon, 'clientSubmittedIntentWire')?.value;
+          if (typeof retainIntent !== 'function' || typeof intentWire !== 'function') {
+            fail('NodeManagedRunRuntimeUnavailable');
+          }
         }
         openRequestPreparation(state, original, assertCurrent, childrenPending);
         return true;
@@ -506,6 +510,17 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       try {
         if (state === undefined) fail('NodeLocalPreparationAdmissionUnavailable');
         state.preparing = true;
+        if (captured !== undefined) {
+          // Only the Host's admitted Checkpoint reconstruction supplies this
+          // original capture. Reuse the existing Source snapshot observer and
+          // SAME new physical-process Request; issue no intent/CID or epoch.
+          const body = view.captureSourceSnapshot(receipt, captured, snapshotClientRequest);
+          freezeInput(body);
+          producer.kind = body.kind;
+          view.bindSourceSnapshot(receipt, body);
+          view.bindSourceRequest(receipt, body, request);
+          return Object.freeze({receipt, body});
+        }
         const moon = state.context.runtime;
         // Source observes geometry and grows this SAME parent before JSON.parse.
         // Retain the opaque intent itself; no serializer/hash/new identity runs.
@@ -704,7 +719,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             assertPreparingOriginal();
             const valuesMaxRows = Object.getOwnPropertyDescriptor(state.context, 'valuesMaxRows')?.value;
             const originalCheckResult = Reflect.apply(prepareCheck, moon, [
-              parent, producer.receipt, producer.body.input, producer.body.parameters,
+              parent, producer.receipt, producer.body.input,
+              producer.body.parameters === undefined ? null : producer.body.parameters,
               environment, state.context.preparedEnvironment, valuesMaxRows,
             ]);
             // This failed Request already owns the child and its cleanup.

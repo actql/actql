@@ -5,29 +5,103 @@ import {sign, createPrivateKey} from 'node:crypto';
 import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import {types as nodeTypes} from 'node:util';
 import {connect} from '@actql/node';
 import {getSubmissionOutcome} from '@actql/sdk';
 import {writeSyntheticHistoricalHeldValues, syntheticHeldSnapshot, heldValuesExpected}
   from './synthetic-historical-held-values.mjs';
 
+// Fixture observation covers two configured ordinary retry intervals. It
+// never schedules a product retry or changes the unchanged 120s child guard.
+function checkpointObservationSchedule(leaseMs) {
+  assert(Number.isSafeInteger(leaseMs) && leaseMs >= 1000);
+  const pollMs = 25, retryMs = leaseMs + 100;
+  const polls = Math.ceil(2 * retryMs / pollMs);
+  assert(3 * polls * pollMs < 120000,
+    'Three observation phases must fit the existing child budget');
+  return Object.freeze({pollMs, retryMs, polls});
+}
+
+// Keep only the public failure's own scalar DATA; no getter, cause traversal
+// or compiled value inspection is needed to preserve the original throw.
+function checkpointFailureData(error) {
+  const data = {name: null, code: null};
+  if (error === null || typeof error !== 'object' || nodeTypes.isProxy(error)) return data;
+  for (const key of ['name', 'code']) {
+    const field = Object.getOwnPropertyDescriptor(error, key);
+    if (field && Object.hasOwn(field, 'value') && typeof field.value === 'string') data[key] = field.value;
+  }
+  return data;
+}
+
+function checkpointObservationRecord(records, kind, data) {
+  if (records.some(record => record.kind === kind)) return undefined;
+  const record = Object.freeze({kind, data: Object.freeze({...data})});
+  records.push(record);
+  return record;
+}
+
 const step = process.argv[2];
 const requestId = 'packed-embedded-values';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
 authorization.resumeAfterAnswer = step === 'resume' || step === 'recheck';
-authorization.faultInjection = name => appendFileSync('embedded-events.log', `${name}\n`);
+const schedule = checkpointObservationSchedule(authorization.leaseMs);
+const observationPath = `checkpoint-observations-${step}.jsonl`;
+writeFileSync(observationPath, '', {flag: 'wx'});
+const observations = [];
+const observationStarted = performance.now();
+const record = (kind, data) => {
+  const item = checkpointObservationRecord(observations, kind,
+    {elapsedMs: performance.now() - observationStarted, ...data});
+  if (item !== undefined) appendFileSync(observationPath, JSON.stringify(item) + '\n');
+};
+record('schedule', schedule);
+let firstResumeFailure, retryClaimAfterFailure = false, recoveryAfterFailure = false;
+authorization.faultInjection = (name, detail) => {
+  appendFileSync('embedded-events.log', `${name}\n`);
+  if (name === 'resume_failed' || name === 'sweep_failed') {
+    const data = {event: name, code: detail?.code ?? null};
+    firstResumeFailure ??= data;
+    record('first-resume-failure', data);
+  } else if (name === 'resume_claimed') {
+    record('first-resume-claim', {generation: detail.generation});
+    if (firstResumeFailure !== undefined) {
+      retryClaimAfterFailure = true;
+      record('resume-claim-after-failure', {generation: detail.generation});
+    }
+  } else if (name === 'run_observed' && firstResumeFailure !== undefined) {
+    recoveryAfterFailure = true;
+    record('run-observed-after-failure', {});
+  }
+};
 const directory = join(process.cwd(), step === 'unsupported' ? 'epoch-state' : 'state');
 const open = () => connect({mode: 'local', owner: 'local', durability: 'durable',
   installation: {directory, authorization}});
 let client = await open();
 const document = readFileSync('values.json', 'utf8');
-const pause = () => new Promise(resolve => setTimeout(resolve, 25));
+const pause = () => new Promise(resolve => setTimeout(resolve, schedule.pollMs));
+const closedClients = new WeakSet();
+async function closeClient(label) {
+  const selected = client, first = !closedClients.has(selected);
+  closedClients.add(selected);
+  record(`close-attempt:${label}`, {first});
+  try {
+    const value = await selected.close();
+    record(`close-returned:${label}`, {first});
+    return value;
+  } catch (error) {
+    record(`close-failed:${label}`, {first, ...checkpointFailureData(error)});
+    throw error;
+  }
+}
+let primaryFailure, operationFailed = false;
 let original;
 try {
   if (step === 'hold') {
     // Open alone retains lazy services. This existing public read activates
     // the same empty Checkpoint owner without submitting or approving a Run.
     assert.deepEqual((await client.checkpoints({limit: 1})).items, []);
-    await client.close();
+    await closeClient('before-historical-input');
     original = await writeSyntheticHistoricalHeldValues({directory, document, requestId, authorization,
       runtimeRootUrl: new URL('.', import.meta.resolve('@actql/local-node')),
       expressionContractUrl: new URL('actql-expressions.json', import.meta.url)});
@@ -71,22 +145,34 @@ try {
     console.log('approved');
   } else if (step === 'resume' || step === 'recheck') {
     let lookup;
-    for (let attempt = 0; attempt < 400; attempt++) {
+    for (let attempt = 0; attempt < schedule.polls; attempt++) {
       lookup = await client.lookupRequest(requestId);
-      if (lookup.kind === 'found') break;
+      record('first-lookup', {kind: lookup.kind, state: lookup.state ?? null,
+        endReason: lookup.endReason ?? null, terminalErrorCode: lookup.terminalErrorCode ?? null});
+      if (lookup.kind === 'found' || lookup.kind === 'held' && lookup.state === 'ended') break;
       await pause();
     }
-    assert.equal(lookup.kind, 'found', JSON.stringify(lookup));
+    record('last-lookup', {kind: lookup.kind, state: lookup.state ?? null,
+      endReason: lookup.endReason ?? null, terminalErrorCode: lookup.terminalErrorCode ?? null});
+    assert.equal(lookup.kind, 'found', JSON.stringify({lookup, observations}));
+    writeFileSync(`lookup-ref-${step}.json`, JSON.stringify(lookup.ref), {flag: 'wx', mode: 0o600});
+    // A Run already accepted before an error may be observed without claiming
+    // another resume. Record the actual path; never demand a second dispatch.
+    record('retry-observation', {firstFailureObserved: firstResumeFailure !== undefined,
+      resumeClaimAfterFailureObserved: retryClaimAfterFailure,
+      recoveryAfterFailureObserved: recoveryAfterFailure});
     assert.equal(lookup.ref.namespaceId, 'local');
     assert.equal(lookup.ref.authorityScopeCid, original.authorityScopeCid);
     const execution = await client.attach(lookup.ref);
     let state;
-    for (let attempt = 0; attempt < 400; attempt++) {
+    for (let attempt = 0; attempt < schedule.polls; attempt++) {
       state = await execution.wait();
-      if (state.status === 'succeeded') break;
+      record('first-run-state', {status: state.status});
+      if (['succeeded', 'failed', 'cancelled', 'needs_reconciliation'].includes(state.status)) break;
       await pause();
     }
-    assert.equal(state.status, 'succeeded');
+    record('last-run-state', {status: state.status});
+    assert.equal(state.status, 'succeeded', JSON.stringify({state, observations}));
     assert.equal((await execution.status()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), heldValuesExpected);
     const cancellation = await execution.cancel();
@@ -94,8 +180,10 @@ try {
     assert.equal(cancellation.cancellation.kind, 'already_terminal');
     assert.equal((await client.cancelRequest(requestId)).kind, 'already_terminal');
     let snapshot;
-    for (let attempt = 0; attempt < 400; attempt++) {
+    for (let attempt = 0; attempt < schedule.polls; attempt++) {
       snapshot = await syntheticHeldSnapshot(directory, original);
+      record('first-retention', {holdings: snapshot.holdings,
+        physicalHoldings: snapshot.physicalHoldings, pendingPhysicalDeletions: snapshot.pendingPhysicalDeletions});
       if (Object.entries(snapshot.holdings).every(([name, status]) =>
         status === (name === 'invocation_request' ? 'held' : 'retired')) &&
         Object.entries(snapshot.physicalHoldings).every(([name, present]) => present ===
@@ -141,8 +229,21 @@ try {
       assert.deepEqual(requests.prepare('SELECT phase FROM client_submitted_intents').all().map(row => row.phase), ['preparation_failed']);
     } finally {database.close(); requests.close();}
     assert.deepEqual((await client.checkpoints()).items, []);
-    await client.close(); client = await open();
+    await closeClient('before-submission-reopen'); client = await open();
     assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
     console.log('unsupported');
   } else assert.fail(`Unknown packed step: ${step}`);
-} finally {await client.close();}
+} catch (error) {
+  primaryFailure = error; operationFailed = true;
+  record('operation-failed', checkpointFailureData(error));
+  throw error;
+} finally {
+  try { await closeClient('final'); }
+  catch (cleanup) {
+    if (operationFailed) throw new AggregateError([primaryFailure, cleanup],
+      'PackedCheckpointOperationAndCleanupFailed', {cause: primaryFailure});
+    throw cleanup;
+  } finally {
+    console.error('CHECKPOINT_OBSERVATIONS', JSON.stringify(observations));
+  }
+}

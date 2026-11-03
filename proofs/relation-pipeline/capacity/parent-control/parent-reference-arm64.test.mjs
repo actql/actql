@@ -4,7 +4,8 @@ import {arm64ReferenceHelpers,inspectParentReferenceArm64} from './parent-refere
 const parent='__M0FP45actql5actql10connectors5local42bounded__relation__chain__execution__state';
 const malloc='_moonbit_malloc',incref='_moonbit_incref',observer='_actql_proof_current_chain_start';
 const owner='__M0FP45actql5actql10connectors5local54managed__provider__execution__with__child__work__issue',decref='_moonbit_decref';
-const addresses=new Map([[arm64ReferenceHelpers[0],0x4000],[arm64ReferenceHelpers[1],0x5000],
+const prefix='__M0FP45actql5actql10connectors5local34relation__chain__reclaimed__prefix';
+const addresses=new Map([[prefix,0x9c00],[arm64ReferenceHelpers[0],0x4000],[arm64ReferenceHelpers[1],0x5000],
   [arm64ReferenceHelpers[2],0x6000],[malloc,0x7000],[incref,0x7100],[observer,0x8000],[owner,0x9a00],[decref,0x9b00]]);
 const slots=['0x48','0x50','0x58','0x60','0x68'];
 const types=[arm64ReferenceHelpers[0],...Array(3).fill(arm64ReferenceHelpers[1]),arm64ReferenceHelpers[2]];
@@ -115,4 +116,15 @@ test('ARM64 callback retirement cannot free a primitive Ref or precede retaining
   assert.throws(()=>check(duplicate),/retirement count/);
   const early=[...changed];early.splice(24,0,'mov x0, x24',{call:decref});
   assert.throws(()=>check(early),/retirement count|precedes/);
+});
+
+// The constructor now captures the original reclamation prefix Int, rather
+// than the former all-or-nothing scratch flag. Its pure query does not move
+// any private Ref slot or replace a callback/Owner handoff.
+test('ARM64 current original reclaimed-prefix query preserves private Ref custody',()=>{
+  const current=[...ops];current.splice(24,0,'mov x0, x19',{call:prefix});
+  assert.equal(check(current).pointRequestedBytes,64);
+  const prior='__M0FP45actql5actql10connectors5local42relation__chain__reclaims__completed__scratch';
+  addresses.set(prior,0x9d00);
+  assert.throws(()=>check(current.map(op=>op.call===prefix?{call:prior}:op)),/Unreviewed ARM64 custody call/);
 });
