@@ -165,3 +165,61 @@ pub fn original_captured_inputs_prefix_reservation_available(
   ledger.next_capacity_serial == Some(-2) &&
   original_prefix_attempt_count_is(value, originals.length() + 1)
 }
+
+///|
+// Cleanup only. Tokens are opaque originals issued by this Ledger; a retired
+// token is no longer in the live-slot index. Keep its immutable owner/serial
+// correspondence, and require physical identity whenever it is still indexed.
+// This does not make a closed capture available for another preparation.
+fn original_captured_inputs_cleanup_match(
+  ledger : Ledger,
+  originals : Array[(Reservation, Holding)],
+) -> Int? {
+  guard ledger.original_inventory is Some(inventory) && !originals.is_empty() else {
+    return None
+  }
+  let base = if original_inventory_preparation_owned(inventory) {
+    inventory.preparation_attempt_base
+  } else {
+    0
+  }
+  if base < 0 || originals.length() > 2147483647 - base {
+    return None
+  }
+  for index, pair in originals {
+    let (reservation, holding) = pair
+    if !physical_equal(reservation.owner, ledger) ||
+      !physical_equal(holding.owner, ledger) ||
+      reservation.serial != base + index ||
+      holding.reservation_serial != reservation.serial ||
+      (index > 0 && originals[index - 1].1.serial >= holding.serial) {
+      return None
+    }
+    match inventory.reservations.by_serial(reservation.serial) {
+      Some(current) => if !physical_equal(current, reservation) { return None }
+      None => if reservation.open || holding.live { return None }
+    }
+    match inventory.holdings.by_serial(holding.serial) {
+      Some(current) => if !physical_equal(current, holding) { return None }
+      None => if holding.live { return None }
+    }
+  }
+  Some(base + originals.length())
+}
+
+///|
+fn original_cleanup_reservation_matches(
+  ledger : Ledger,
+  reservation : Reservation,
+  serial : Int,
+) -> Bool {
+  guard physical_equal(reservation.owner, ledger) &&
+    reservation.serial == serial &&
+    ledger.original_inventory is Some(inventory) else {
+    return false
+  }
+  match inventory.reservations.by_serial(serial) {
+    Some(current) => physical_equal(current, reservation)
+    None => !reservation.open
+  }
+}

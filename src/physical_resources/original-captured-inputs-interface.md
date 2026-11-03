@@ -9,7 +9,7 @@
   the original prefix/assembly tokens and the private accepted-child count.
   They return eligibility or downstream-retirement facts. Single-input APIs
   retain their existing behavior and token layout.
-- Identity: Each supplied pair must occupy its exact original census position,
+- Identity: Preparation requires each supplied pair at its exact original live census position,
   belong to the same ledger, have matching reservation serials and strictly
   ordered issuance serials. Missing, swapped, duplicate, foreign or substituted
   originals fail. The prefix follows all originals; assembly and keyed child
@@ -17,8 +17,8 @@
 - Ownership: Source receivers retain their capture tokens, the existing prefix
   retains its reservation and keyed receivers retain their own physical children.
   Census predicates borrow those identities without taking their cleanup duties
-  or exposing a replacement ledger. Original holdings must remain in the census
-  while any dependent is borrowed.
+  or exposing a replacement ledger. Normal use retains original holdings while
+  dependents borrow them; cancellation does not make retired inputs usable.
 - Synchronization: These checks invoke no user callback. Their caller must use
   them after currentness/liveness callbacks and before the associated reservation
   or borrow. Original ledger preparation availability, immutable binding state,
@@ -28,12 +28,20 @@
   prefix preparation permits nonpending live Source backing; keyed-child and
   serialization eligibility require every original Source reservation settled.
   Failure does not reset consumed history or release allocations.
-- Cancellation: Closing a scope is not physical retirement. Cleanup predicates
-  authenticate the exact original pairs still present and then inspect actual
-  dependent reservations/holdings without requiring new-use eligibility. A
-  closed token may retain its historical pending flag after trusted ACK.
-  “Dependents retired” never acknowledges the prefix itself or permits early
-  retirement of its upstream captures.
+- Cancellation: Closing a scope is not physical retirement. Cleanup uses the
+  retained opaque originals and their same-ledger, contiguous issuance-serial
+  correspondence after cancelled Source tokens leave the live index. Any token
+  still indexed must match by physical identity; an absent token must actually
+  be closed, with its holding released. Prefix and assembly lookup use original
+  serials rather than compacted positions, and pending later reservations still
+  block cleanup. The final Row caller retains its privately validated
+  RowCapturedInputs snapshot before retirement and exposes no token-array
+  replacement. After census removal, exact identity rests on those retained
+  references and the Resource owner's private opaque-token issuance invariant;
+  caller-supplied closed serials alone are not a new witness or cleanup grant. A closed token may retain its historical pending flag after
+  trusted ACK. Repeated cleanup never reopens retired tokens or creates new-use
+  eligibility. “Dependents retired” never acknowledges the prefix itself or
+  permits normal early retirement of its upstream captures.
 - Resources: These are read-only bounded-by-inventory traversals with no copied
   census or new allocations. The caller must already fund and bound its ordered
   tuple inventory. Prefix, assembly, keyed children, captures and downstream
@@ -45,6 +53,8 @@
 - Verification: original_captured_inputs_wbtest.mbt covers exact tuple ordering,
   missing/duplicate/foreign tokens, live and pending source backing, prefixed and
   unprefixed layouts, spent attempts, failed capacity reservation and pending
-  downstream cleanup. Existing single-input keyed census tests remain applicable.
+  downstream cleanup, actual cancellation-driven index compaction, foreign
+  same-position serials and idempotent cleanup. Existing single-input keyed
+  census tests remain applicable.
   These focused tests do not establish installed Source authorization, full
   composition funding, runtime artifacts, publication or release acceptance.

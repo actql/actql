@@ -130,29 +130,27 @@ pub fn original_keyed_inputs_lookup_dependents_retired(
   assembly : Reservation,
   prefix? : Reservation? = None,
 ) -> Bool {
-  guard originals.length() < 2147483647 &&
-    original_captured_inputs_match(ledger, originals) &&
+  guard original_captured_inputs_cleanup_match(ledger, originals)
+    is Some(serial) &&
     ledger.original_inventory is Some(inventory) else {
     return false
   }
-  let assembly_index = originals.length() +
-    (if prefix is Some(_) { 1 } else { 0 })
-  guard inventory.reservations.length() > assembly_index &&
-    physical_equal(inventory.reservations[assembly_index], assembly) &&
-    physical_equal(assembly.owner, ledger) else {
-    return false
-  }
-  if prefix is Some(token) &&
-    (
-      !physical_equal(inventory.reservations[originals.length()], token) ||
-      !physical_equal(token.owner, ledger)
-    ) {
-    return false
-  }
-  for index in (assembly_index + 1)..<inventory.reservations.length() {
-    if inventory.reservations[index].open {
-      return false
+  let assembly_serial = match prefix {
+    None => serial
+    Some(token) => {
+      if serial == 2147483647 ||
+        !original_cleanup_reservation_matches(ledger, token, serial) {
+        return false
+      }
+      serial + 1
     }
   }
-  true
+  if !original_cleanup_reservation_matches(ledger, assembly, assembly_serial) {
+    return false
+  }
+  // Per-key settled holdings still belong to the existing assembly cleanup;
+  // downstream open reservations, including pending failures, block it.
+  !inventory.reservations.any(token => {
+    token.serial > assembly_serial && token.open
+  })
 }

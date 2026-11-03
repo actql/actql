@@ -203,22 +203,14 @@ pub fn original_keyed_inputs_prefix_dependents_retired(
   originals : Array[(Reservation, Holding)],
   prefix : Reservation,
 ) -> Bool {
-  guard original_captured_inputs_match(ledger, originals) &&
-    ledger.original_inventory is Some(inventory) &&
-    inventory.reservations.length() > originals.length() &&
-    physical_equal(inventory.reservations[originals.length()], prefix) &&
-    physical_equal(prefix.owner, ledger) else {
+  guard original_captured_inputs_cleanup_match(ledger, originals)
+    is Some(serial) &&
+    original_cleanup_reservation_matches(ledger, prefix, serial) &&
+    ledger.original_inventory is Some(inventory) else {
     return false
   }
-  for index in (originals.length() + 1)..<inventory.reservations.length() {
-    if inventory.reservations[index].open {
-      return false
-    }
-  }
-  for index in originals.length()..<inventory.holdings.length() {
-    if inventory.holdings[index].live {
-      return false
-    }
-  }
-  true
+  !inventory.reservations.any(token => token.serial > serial && token.open) &&
+  !inventory.holdings.any(token => {
+    token.reservation_serial >= serial && token.live
+  })
 }

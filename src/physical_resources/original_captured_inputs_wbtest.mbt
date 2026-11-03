@@ -430,7 +430,9 @@ test "plural unprefixed keyed census rejects lost capture or child holding and s
     ),
   )
   release_allocation(ledger, originals[1].1).unwrap()
-  assert_false(
+  // Losing an upstream capture still refuses preparation below, but must not
+  // strand the existing assembly after its downstream child really retired.
+  assert_true(
     original_keyed_inputs_lookup_dependents_retired(ledger, originals, assembly),
   )
   assert_false(
@@ -441,4 +443,120 @@ test "plural unprefixed keyed census rejects lost capture or child holding and s
   settle_reservation(ledger, assembly).unwrap()
   release_allocation(ledger, originals[0].1).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+}
+
+///|
+test "plural cleanup keeps exact original serials after cancelled captures compact live slots" {
+  let (ledger, _, originals) = original_captured_inputs_fixture()
+  let (foreign, _, foreign_originals) = original_captured_inputs_fixture()
+  let prefix = reserve_attempt(ledger, 0L, 2L, 2L).unwrap()
+  let assembly = reserve_attempt(ledger, 0L, 2L, 2L).unwrap()
+  let suffix = reserve_attempt(ledger, 0L, 2L, 2L).unwrap()
+  let foreign_prefix = reserve_attempt(foreign, 0L, 2L, 2L).unwrap()
+  mark_cleanup_pending(ledger, suffix).unwrap()
+  // Release through the actual API, which removes each settled reservation
+  // and holding from the live index. Numeric positions now shift twice.
+  for original in originals {
+    release_allocation(ledger, original.1).unwrap()
+    assert_true(release_allocation(ledger, original.1) is Err(ClosedHolding))
+    assert_false(
+      original_keyed_inputs_prefix_dependents_retired(ledger, originals, prefix),
+    )
+  }
+  for
+    invalid in [
+      [],
+      [originals[0]],
+      [originals[1], originals[0]],
+      [originals[0], originals[0]],
+      foreign_originals,
+    ] {
+    assert_false(
+      original_keyed_inputs_prefix_dependents_retired(ledger, invalid, prefix),
+    )
+    assert_false(
+      original_keyed_inputs_lookup_dependents_retired(
+        ledger,
+        invalid,
+        assembly,
+        prefix=Some(prefix),
+      ),
+    )
+  }
+  assert_false(
+    original_keyed_inputs_prefix_dependents_retired(
+      ledger, originals, foreign_prefix,
+    ),
+  )
+  assert_false(
+    original_keyed_inputs_prefix_dependents_retired(ledger, originals, assembly),
+  )
+  assert_false(
+    original_keyed_inputs_lookup_dependents_retired(
+      ledger,
+      originals,
+      assembly,
+      prefix=Some(prefix),
+    ),
+  )
+  settle_reservation(ledger, suffix).unwrap()
+  assert_true(
+    original_keyed_inputs_lookup_dependents_retired(
+      ledger,
+      originals,
+      assembly,
+      prefix=Some(prefix),
+    ),
+  )
+  mark_cleanup_pending(ledger, assembly).unwrap()
+  assert_false(
+    original_keyed_inputs_prefix_dependents_retired(ledger, originals, prefix),
+  )
+  settle_reservation(ledger, assembly).unwrap()
+  assert_true(
+    original_keyed_inputs_prefix_dependents_retired(ledger, originals, prefix),
+  )
+  mark_cleanup_pending(ledger, prefix).unwrap()
+  assert_true(
+    original_keyed_inputs_prefix_dependents_retired(ledger, originals, prefix),
+  )
+  settle_reservation(ledger, prefix).unwrap()
+  // Repeated cleanup observes the same retired original, never reopens it.
+  assert_true(
+    original_keyed_inputs_prefix_dependents_retired(ledger, originals, prefix),
+  )
+  assert_true(
+    original_keyed_inputs_lookup_dependents_retired(
+      ledger,
+      originals,
+      assembly,
+      prefix=Some(prefix),
+    ),
+  )
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+  settle_reservation(foreign, foreign_prefix).unwrap()
+  original_captured_inputs_release(foreign, foreign_originals)
+}
+
+///|
+test "plural live snapshot refuses an alternate Holding from the same Reservation" {
+  let (ledger, _, originals) = original_captured_inputs_fixture(settled=false)
+  let alternate = retain_allocation(ledger, originals[1].0, 0L).unwrap()
+  assert_false(
+    original_captured_inputs_prefix_available(ledger, [
+      originals[0],
+      (originals[1].0, alternate),
+    ]),
+  )
+  assert_false(original_captured_inputs_prefix_available(ledger, originals))
+  release_allocation(ledger, alternate).unwrap()
+  assert_true(original_captured_inputs_prefix_available(ledger, originals))
+  // Retired alternate identity does not replace the still-indexed original.
+  assert_false(
+    original_captured_inputs_prefix_available(ledger, [
+      originals[0],
+      (originals[1].0, alternate),
+    ]),
+  )
+  original_captured_inputs_release(ledger, originals)
 }
