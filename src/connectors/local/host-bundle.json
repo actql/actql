@@ -7,6 +7,7 @@
       "spec/contracts/actql-local-table-iceberg.json",
       "adapters/connectors/local/iceberg/catalog.py",
       "adapters/connectors/local/iceberg/custody.py",
+      "adapters/connectors/local/iceberg/manifest_read.py",
       "adapters/connectors/local/iceberg/physical.py",
       "adapters/connectors/local/iceberg/process_worker.py",
       "adapters/connectors/local/iceberg/requirements.in",

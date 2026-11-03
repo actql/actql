@@ -7966,7 +7966,7 @@
     {
       "module": "adapters/connectors/local/iceberg/catalog.py",
       "responsibilityFacet": "primary",
-      "sha256": "ed40469a82722ea6bc71c8b61981b627177a47a8f1c8ba9723c2bc8e4d16bd13",
+      "sha256": "503fb50a941ac4d84dcf3ffdd805fbf49ba43e1e30a924f42fe132f5bed2ab23",
       "role": "physical-io",
       "owner": "Iceberg metadata/Parquet and same SQLite head-CAS/original-receipt transaction; no Effect authority",
       "exports": [
@@ -8443,6 +8443,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "inputsOutputs": [
@@ -8465,6 +8469,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "identity": [
@@ -8487,6 +8495,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "ownership": [
@@ -8509,6 +8521,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "synchronization": [
@@ -8531,6 +8547,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "failure": [
@@ -8553,6 +8573,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "cancellation": [
@@ -8575,6 +8599,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "resources": [
@@ -8597,6 +8625,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "extension": [
@@ -8619,6 +8651,10 @@
               {
                 "path": "docs/design/table-materialization.md",
                 "anchor": "### Primitive Parquet schema before data allocation"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
               }
             ],
             "verification": [
@@ -8653,6 +8689,14 @@
               {
                 "path": "adapters/connectors/local/iceberg/catalog_test.py",
                 "anchor": "def test_rejected_original_parquet_schema_refuses_before_native_data_read"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "### Original manifest reader and constructor observations"
+              },
+              {
+                "path": "adapters/connectors/local/iceberg/catalog_test.py",
+                "anchor": "def test_original_manifest_file_codec_and_block_construct_only_after_geometry"
               }
             ]
           }

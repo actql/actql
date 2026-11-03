@@ -8,6 +8,7 @@ import json
 import math
 import os
 import struct
+from threading import RLock as _RLock
 
 PROTOCOL = "actql-local-execution/0.1"
 MAX_BYTES = 4 * 1024 * 1024
@@ -212,26 +213,48 @@ def serve(stream, catalog_factory=None):
             raise ProtocolRefusal("TableProcessSequence")
         sequence = 1
         calls = 0
+        observer_lock = _RLock()
+        observer_active = False
+        observer_failure = None
 
         def observe(geometry):
-            nonlocal calls
+            nonlocal calls, observer_active, observer_failure
             # Reuse the original bounded Host service port. The Host must
             # complete its same-parent constructor admission before this exact
             # physical call continues; null carries no budget or authority.
-            calls += 1
-            reply("host-request", sequence, {"call": calls, "payload": geometry})
-            continuation = read_frame(stream)
-            exact_keys(continuation, ENVELOPE)
-            if any(continuation[name] != hello[name] for name in ("protocol", "session", "run")) or \
-                    type(continuation["sequence"]) is not int or continuation["sequence"] != sequence:
-                raise ProtocolRefusal("TableProcessForeignContinuation")
-            if continuation["kind"] == "stop" and continuation["body"] is None:
-                raise _ProcessStopped()
-            body = continuation["body"]
-            exact_keys(body, {"call", "value"})
-            if continuation["kind"] != "host-reply" or type(body["call"]) is not int or \
-                    body["call"] != calls or body["value"] is not None:
-                raise ProtocolRefusal("TableProcessConstructionContinuation")
+            # Original manifest tasks may run on the existing executor. One
+            # request+reply pair owns this SAME stream at a time; no task may
+            # spend another task's continuation or resend after a refusal.
+            with observer_lock:
+                if observer_failure is not None:
+                    raise observer_failure
+                if observer_active:
+                    observer_failure = ProtocolRefusal("TableProcessConstructionReentrant")
+                    raise observer_failure
+                observer_active = True
+                try:
+                    calls += 1
+                    reply("host-request", sequence, {"call": calls, "payload": geometry})
+                    continuation = read_frame(stream)
+                    if observer_failure is not None:
+                        raise observer_failure
+                    exact_keys(continuation, ENVELOPE)
+                    if any(continuation[name] != hello[name] for name in ("protocol", "session", "run")) or \
+                            type(continuation["sequence"]) is not int or continuation["sequence"] != sequence:
+                        raise ProtocolRefusal("TableProcessForeignContinuation")
+                    if continuation["kind"] == "stop" and continuation["body"] is None:
+                        raise _ProcessStopped()
+                    body = continuation["body"]
+                    exact_keys(body, {"call", "value"})
+                    if continuation["kind"] != "host-reply" or type(body["call"]) is not int or \
+                            body["call"] != calls or body["value"] is not None:
+                        raise ProtocolRefusal("TableProcessConstructionContinuation")
+                except BaseException as cause:
+                    if observer_failure is None:
+                        observer_failure = cause
+                    raise observer_failure
+                finally:
+                    observer_active = False
 
         try:
             observed = isinstance(message["body"], dict) and \
@@ -240,6 +263,8 @@ def serve(stream, catalog_factory=None):
                 result = dispatch(message["body"], catalog_factory, before_materialization=observe)
             else:
                 result = dispatch(message["body"], catalog_factory)
+            if observer_failure is not None:
+                raise observer_failure
         except _ProcessStopped:
             return
         except Exception:

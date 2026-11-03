@@ -11,6 +11,9 @@ from contextlib import closing
 from unittest.mock import patch
 import pyarrow.parquet as pq
 from pyiceberg.serializers import FromByteStream
+from pyiceberg import manifest as manifest_module
+from pyiceberg.avro import file as avro_file_module
+from pyiceberg.avro.codecs.deflate import DeflateCodec
 from pathlib import Path
 
 from catalog import CatalogRefusal, TableCatalog, _parquet_thrift_limits
@@ -141,8 +144,12 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(actual[1]["id"], 9007199254740992)
             self.assertNotIn("p", actual[1])
             self.assertIsNone(actual[2]["p"])
+            # This existing fixture reuses setup's immutable manifest-list
+            # cache; only the data manifest is constructed in this scope.
+            # The distinct cold-cache constructor case observes both files.
             self.assertEqual([value["phase"] for value in seen],
                              ["metadata-hash", "metadata-input", "metadata-json",
+                              "manifest-file", "manifest-deflate", "manifest-block",
                               "parquet-footer", "parquet-read", "arrow-rows"])
         finally:
             catalog.engine.dispose()
@@ -497,6 +504,44 @@ class CatalogTests(unittest.TestCase):
                     self.assertNotIn("parquet-read", [value["phase"] for value in observed])
                 finally:
                     catalog.engine.dispose()
+
+    def test_original_manifest_file_codec_and_block_construct_only_after_geometry(self):
+        root = tempfile.mkdtemp(prefix="actql-table-manifest-construction-")
+        print("Retained original manifest constructor fixture:", root)
+        catalog = self.open(root)
+        rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2}, {"id": 3, "p": None}]
+        try:
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "2"), rows)
+            # Fixture setup runs outside this observed read. A fresh physical
+            # worker has no prior manifest cache; reproduce only that original
+            # cold-input condition in this private, serial component process.
+            manifest_module._manifests.cache_clear()
+            seen, entries = [], []
+            catalog.before_materialization = lambda value: seen.append(dict(value))
+            original_decoder = avro_file_module.new_decoder
+            original_decompress = DeflateCodec.decompress
+            def decoder(data):
+                phase = "manifest-file" if data.startswith(avro_file_module.MAGIC) else "manifest-block"
+                self.assertTrue(any(value["phase"] == phase for value in seen),
+                                "original Avro decoder entered before " + phase + " geometry")
+                entries.append(phase)
+                return original_decoder(data)
+            def decompress(data):
+                self.assertEqual(seen[-1]["phase"], "manifest-block",
+                                 "original codec entered without decoded-block constructor geometry")
+                self.assertGreaterEqual(seen[-1]["bytes"], 0)
+                entries.append("original-deflate")
+                return original_decompress(data)
+            with patch.object(avro_file_module, "new_decoder", decoder), \
+                    patch.object(DeflateCodec, "decompress", decompress):
+                actual = catalog.read_generation(receipt, mapping())
+            self.assertEqual(actual, rows)
+            self.assertIn("manifest-file", entries)
+            self.assertIn("manifest-block", entries)
+            self.assertIn("original-deflate", entries)
+        finally:
+            catalog.engine.dispose()
 
     def test_unsupported_carrier_refuses_before_any_staging_or_reservation(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-kind-") as root:

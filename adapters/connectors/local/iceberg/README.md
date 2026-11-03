@@ -89,6 +89,10 @@ Parquet types/field IDs and multiple Iceberg files; `physical_test.py` fixes
 the original presence and empty-schema cases; `process_worker_test.py` fixes
 fragmentation, truncation, byte bounds and foreign-frame refusal. These are
 physical owner tests, not public approval or whole-profile funding acceptance.
+`manifest_read.py` adds input-bound observations around the pinned original
+manifest reader and codecs; `manifest_read_test.py` checks its constructor
+boundaries and unchanged explicit diagnostic route. Its quantities and fixed
+streaming quantum are not a complete codec/record workspace reservation.
 
 ## Publication and physical custody
 

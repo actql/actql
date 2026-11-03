@@ -23,6 +23,7 @@ from pyiceberg.serializers import FromInputFile, FromByteStream as _FromByteStre
 from physical import (PhysicalRefusal, canonical_envelope, check_mapping, decode_physical,
                       encode_rows, envelope_cid, iceberg_schema, seal, _physical_schema_fields)
 from custody import CustodyIO, install_custody, reserve, claim_file, charge_file, cleanup_after_stop
+from manifest_read import observe_manifest_io as _observe_manifest_io
 
 
 # Original pinned PyArrow21 ReaderProperties defaults, not Run capacities.
@@ -115,7 +116,9 @@ class TableCatalog(SqlCatalog):
 
     def _load_file_io(self, properties, location=None):
         delegate = super()._load_file_io(properties, location)
-        return CustodyIO(self, self.context[0]["request_cid"], delegate) if self.context else delegate
+        if self.context:
+            return CustodyIO(self, self.context[0]["request_cid"], delegate)
+        return _observe_manifest_io(delegate, self._observe_material) if self.before_materialization is not None else delegate
 
     def claim_file(self, request_cid, path):
         claim_file(self, request_cid, path)

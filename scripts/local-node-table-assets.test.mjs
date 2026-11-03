@@ -17,7 +17,7 @@ test('Local package carries the finite optional Table worker and dependency pins
     assert.ifError(result.error);
     assert.equal(result.status, 0, result.stderr);
   }
-  const files = ['README.md', 'catalog.py', 'custody.py', 'physical.py',
+  const files = ['README.md', 'catalog.py', 'custody.py', 'manifest_read.py', 'physical.py',
     'process_worker.py', 'requirements.in', 'requirements.lock'];
   const destination = join(root, 'packages/local-node/adapters/connectors/local/iceberg');
   assert.deepEqual(readdirSync(destination).sort(), files);

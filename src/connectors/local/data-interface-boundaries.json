@@ -526,7 +526,7 @@
         ]
       }
     ],
-    "sha256": "839d7f0729ee3c1239410b0d307edfb32eb1a456f23e1076b6e32c40d60ae40f",
+    "sha256": "8a78bde347f1830a093d484c46c579b9d5da7a1dd535f4b36e15d30ed95fd240",
     "role": "physical-io",
     "owner": "Local Table physical data and managed-process adapter",
     "contracts": [
@@ -583,6 +583,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "### Original constructor observations on the existing Host port"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "inputsOutputs": [
@@ -597,6 +601,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "{call: originalCall, value: null}"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "identity": [
@@ -615,6 +623,10 @@
             {
               "path": "adapters/host-node/process-channel.mjs",
               "anchor": "message.sequence !== pending.sequence"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "ownership": [
@@ -633,6 +645,10 @@
             {
               "path": "adapters/host-node/process-channel.mjs",
               "anchor": "bodyAdmissionOriginal = result"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "synchronization": [
@@ -647,6 +663,10 @@
             {
               "path": "adapters/host-node/process-channel.mjs",
               "anchor": "observeConstruction(message.body.payload)"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "failure": [
@@ -665,6 +685,10 @@
             {
               "path": "adapters/host-node/process-channel.test.mjs",
               "anchor": "constructor observer ${label} refusal stops the same child"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "cancellation": [
@@ -679,6 +703,10 @@
             {
               "path": "adapters/connectors/local/iceberg/process_worker.py",
               "anchor": "except _ProcessStopped:"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "resources": [
@@ -701,6 +729,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "The installed Host fixes its finite"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "extension": [
@@ -719,6 +751,10 @@
             {
               "path": "docs/design/table-materialization.md",
               "anchor": "delegated execution-budget handshakes"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
             }
           ],
           "verification": [
@@ -737,6 +773,14 @@
             {
               "path": "adapters/connectors/local/iceberg/process_worker_test.py",
               "anchor": "def test_constructor_geometry_uses_same_host_call_before_original_dispatch_continues"
+            },
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker_test.py",
+              "anchor": "def test_parallel_manifest_observers_keep_one_original_host_request_reply_pair"
             }
           ]
         }
@@ -1306,6 +1350,394 @@
             {
               "path": "adapters/host-node/managed-source-reader.md",
               "anchor": "## Normal Table same-Request reader"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "module": "adapters/connectors/local/iceberg/manifest_read.py",
+    "responsibilityFacet": "primary",
+    "sha256": "721ed77a93b94f7a545b0a82ae40e0ee476ea2ac006e3c6671c621a879a5c3bc",
+    "role": "physical-io",
+    "owner": "Pinned original Local manifest input/reader/codec constructor observations; no resource, permission or cleanup issuer",
+    "exports": [
+      "observe_manifest_io"
+    ],
+    "operations": [
+      {
+        "async": false,
+        "name": "_AvroInputEntry",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_AvroInputEntry/__class_getitem__",
+        "parameters": [
+          "cls",
+          "_record_type"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_AvroInputEntry/__new__",
+        "parameters": [
+          "cls",
+          "input_file",
+          "*args",
+          "**kwargs"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockCodec",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_BlockCodec/__init__",
+        "parameters": [
+          "self",
+          "codec",
+          "decoder",
+          "observe",
+          "columns"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockCodec/decompress",
+        "parameters": [
+          "self",
+          "data"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockDecoder",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_BlockDecoder/__init__",
+        "parameters": [
+          "self",
+          "original"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockDecoder/read",
+        "parameters": [
+          "self",
+          "count"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockDecoder/read_bytes",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockDecoder/read_int",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockHeader",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_BlockHeader/__init__",
+        "parameters": [
+          "self",
+          "original",
+          "decoder",
+          "observe",
+          "columns"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockHeader/compression_codec",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_BlockHeader/sync",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ManifestSnapshot",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_ManifestSnapshot/open",
+        "parameters": [
+          "self",
+          "*args",
+          "**kwargs"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedAvroFile",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_ObservedAvroFile/__enter__",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedAvroFile/_read_block",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedIO",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_ObservedIO/__init__",
+        "parameters": [
+          "self",
+          "delegate",
+          "observe"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedIO/delete",
+        "parameters": [
+          "self",
+          "location"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedIO/new_input",
+        "parameters": [
+          "self",
+          "location"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedIO/new_output",
+        "parameters": [
+          "self",
+          "location"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedInput",
+        "parameters": []
+      },
+      {
+        "async": false,
+        "name": "_ObservedInput/__init__",
+        "parameters": [
+          "self",
+          "delegate",
+          "observe"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedInput/__len__",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedInput/exists",
+        "parameters": [
+          "self"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_ObservedInput/open",
+        "parameters": [
+          "self",
+          "*args",
+          "**kwargs"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_count_stream",
+        "parameters": [
+          "stream"
+        ]
+      },
+      {
+        "async": false,
+        "name": "_decoded_size",
+        "parameters": [
+          "codec",
+          "data"
+        ]
+      },
+      {
+        "async": false,
+        "name": "observe_manifest_io",
+        "parameters": [
+          "delegate",
+          "observe"
+        ]
+      }
+    ],
+    "contracts": [
+      {
+        "operations": [
+          "<module>",
+          "_AvroInputEntry",
+          "_AvroInputEntry/__class_getitem__",
+          "_AvroInputEntry/__new__",
+          "_BlockCodec",
+          "_BlockCodec/__init__",
+          "_BlockCodec/decompress",
+          "_BlockDecoder",
+          "_BlockDecoder/__init__",
+          "_BlockDecoder/read",
+          "_BlockDecoder/read_bytes",
+          "_BlockDecoder/read_int",
+          "_BlockHeader",
+          "_BlockHeader/__init__",
+          "_BlockHeader/compression_codec",
+          "_BlockHeader/sync",
+          "_ManifestSnapshot",
+          "_ManifestSnapshot/open",
+          "_ObservedAvroFile",
+          "_ObservedAvroFile/__enter__",
+          "_ObservedAvroFile/_read_block",
+          "_ObservedIO",
+          "_ObservedIO/__init__",
+          "_ObservedIO/delete",
+          "_ObservedIO/new_input",
+          "_ObservedIO/new_output",
+          "_ObservedInput",
+          "_ObservedInput/__init__",
+          "_ObservedInput/__len__",
+          "_ObservedInput/exists",
+          "_ObservedInput/open",
+          "_count_stream",
+          "_decoded_size",
+          "observe_manifest_io"
+        ],
+        "exports": [
+          "observe_manifest_io"
+        ],
+        "attributes": {
+          "responsibility": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            }
+          ],
+          "inputsOutputs": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/manifest_read.py",
+              "anchor": "def observe_manifest_io"
+            }
+          ],
+          "identity": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/manifest_read.py",
+              "anchor": "self.delegate.new_input(location)"
+            }
+          ],
+          "ownership": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/manifest_read.py",
+              "anchor": "class _AvroInputEntry"
+            }
+          ],
+          "synchronization": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/process_worker.py",
+              "anchor": "with observer_lock:"
+            }
+          ],
+          "failure": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/manifest_read.py",
+              "anchor": "TableManifestFileChanged"
+            }
+          ],
+          "cancellation": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            }
+          ],
+          "resources": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/manifest_read.py",
+              "anchor": "fixed output"
+            }
+          ],
+          "extension": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            }
+          ],
+          "verification": [
+            {
+              "path": "docs/design/table-materialization.md",
+              "anchor": "### Original manifest reader and constructor observations"
+            },
+            {
+              "path": "adapters/connectors/local/iceberg/manifest_read_test.py",
+              "anchor": "def test_original_null_deflate_bzip2_blocks_keep_exact_rows_and_expanded_sizes"
             }
           ]
         }

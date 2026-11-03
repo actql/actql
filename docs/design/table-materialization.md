@@ -652,3 +652,49 @@ These are observations on the file metadata and the returned data boundary,
 not two competing type policies. The prior Parquet row-count refusal remains
 ahead of the field-shape check. This connection grants no backing, permission,
 successful business evidence or physical return acknowledgement.
+
+### Original manifest reader and constructor observations
+
+The observed FileIO associates its original continuation with each input.
+The two existing PyIceberg manifest entrances use a stateless process-local
+construction entry: observed inputs receive a thin subclass, and all other
+inputs construct the original AvroFile class. That entry retains no Catalog,
+Request, observer, material or permission. It stays installed while original
+executor tasks may still run; it is not a per-Request global swap or a new
+provider registry. Actual managed reads use a fresh single-command worker.
+The existing upstream manifest cache is unchanged; a long-lived diagnostic
+that reuses it is not evidence of a cold constructor or same-parent funding.
+
+Before the original header/schema decoder, the same selected input stream is
+measured and read into a bounded immutable snapshot. Changed file length
+refuses before an enlarged read. Original header/schema resolution and
+read-schema/type/enum arguments remain upstream. Around `_read_block`, narrow
+forwarders retain its actual record count and raw block and observe the
+original selected codec before its decoded bytes, Block and decoder are
+constructed. The original block/sync/codec and record algorithms are delegated,
+not copied into a second Avro parser.
+
+`manifest-file` reports original wire bytes. A codec-specific observation
+reports the fixed streaming output quantum; `manifest-block` reports decoded
+bytes, actual Avro block records and original schema field count. Those records
+are not business Table rows and those fields are not Parquet columns. Raw
+deflate remains distinct from gzip; null and bzip2 keep their original data
+meaning. Optional codec absence keeps its existing dependency refusal. Snappy's
+[raw length preamble](https://github.com/google/snappy/blob/main/format_description.txt)
+supplies only output quantity; its original body/CRC validation remains with
+the selected codec. No integer amount, label or continuation grants capacity.
+
+The fixed quantum is not the full native codec workspace. Raw/input snapshots,
+schema/reader controls, simultaneous decoded blocks, retained records/queues,
+codec workspace and failed prefixes still require the same-parent constructor
+inventory before use. Fixed input/observer controls must already be backed
+before their first observation. These observations alone do not establish that
+inventory or normal acceptance.
+
+Original executor tasks share one request/reply pair on the existing Host
+stream at a time. Its original failure, including stop, is sticky: another
+task cannot send again, consume another call's continuation, or turn a caught
+refusal into successful material. A same-thread reentry refuses under that
+same continuation. The dispatch-return fence reads only the retained failure;
+it adds no external current callback, semantic checker or cleanup owner. Only
+the existing managed process retirement can acknowledge resource return.

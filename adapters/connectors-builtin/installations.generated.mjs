@@ -135,6 +135,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/local/iceberg/README.md", href: new URL("../connectors/local/iceberg/README.md", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/local/iceberg/catalog.py", href: new URL("../connectors/local/iceberg/catalog.py", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/local/iceberg/custody.py", href: new URL("../connectors/local/iceberg/custody.py", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/local/iceberg/manifest_read.py", href: new URL("../connectors/local/iceberg/manifest_read.py", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/local/iceberg/physical.py", href: new URL("../connectors/local/iceberg/physical.py", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/local/iceberg/process_worker.py", href: new URL("../connectors/local/iceberg/process_worker.py", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/local/iceberg/requirements.in", href: new URL("../connectors/local/iceberg/requirements.in", import.meta.url).href}),
