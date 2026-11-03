@@ -15,6 +15,14 @@ SPEC.loader.exec_module(P)
 
 
 class SignedInputs(unittest.TestCase):
+    def test_original_metadata_roundtrips_as_exact_decimal_strings(self):
+        with tempfile.TemporaryDirectory() as raw:
+            path=Path(raw)/'original';path.write_bytes(b'original');current=path.stat()
+            item=P.HTTP.original(path)
+            for key,value in [('dev',current.st_dev),('ino',current.st_ino),('mode',current.st_mode)]:
+                self.assertEqual(item[key],str(value))
+                self.assertEqual(json.loads(json.dumps(item))[key],str(value))
+
     def test_changed_original_is_refused_without_downloading_or_copying(self):
         with tempfile.TemporaryDirectory() as raw:
             root=Path(raw);original=root/'original';original.write_bytes(b'changed')

@@ -50,7 +50,7 @@ def original(path: Path) -> dict:
              before.st_mtime_ns, before.st_ctime_ns) ==
             (after.st_dev, after.st_ino, after.st_mode, after.st_size,
              after.st_mtime_ns, after.st_ctime_ns), 'Input changed while read')
-    return {**value, 'dev': after.st_dev, 'ino': after.st_ino, 'mode': after.st_mode}
+    return {**value, 'dev': str(after.st_dev), 'ino': str(after.st_ino), 'mode': str(after.st_mode)}
 
 
 def inspect_linux_component(library: Path, dynamic: str, exports: str) -> list[str]:

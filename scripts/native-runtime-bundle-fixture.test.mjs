@@ -197,6 +197,18 @@ test('Resident HTTP keeps the original macOS 26 component profile only on an act
     platform:'darwin',arch:'arm64',execute:()=> '14.7.2'}),/exceeds this actual macOS/u);
 });
 
+test('Resident HTTP retains decimal original identities and refuses rounding or noncanonical values',t=>{
+  const f=httpFixture(t,'darwin-arm64');
+  for(const key of ['dev','ino','mode'])f.receipt.library[key]=String(f.receipt.library[key]);
+  f.save();
+  const select=()=>selectedEntries.prepareNativeResidentHttpLibrary({receiptPath:f.receiptPath,
+    platform:'darwin',arch:'arm64',execute:()=> '14.0'});
+  assert.equal(select(),f.path);
+  for(const identity of [2**60,'01','+1','1e3','-1','18446744073709551616']) {
+    f.receipt.library.ino=identity;f.save();assert.throws(select);
+  }
+});
+
 test('bundle consumers select the same existing producer for actual Darwin and explicit Linux entry recipes',t=>{
   for(const [platform,arch] of [['darwin','arm64'],['linux','x64']]){
     const f=fixture(t,platform);

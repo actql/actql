@@ -80,7 +80,15 @@ function httpPreparation(t) {
 }
 test('Resident preparation retains the exact same-source owned TLS and HTTP originals',t=>{
   const f=httpPreparation(t);
+  for(const key of ['dev','ino','mode'])f.component.library[key]=String(f.component.library[key]);
+  f.publishHttp();
   assert.equal(preparedNativeHttpReceipt(f.root,f.selected),f.componentPath);
+});
+test('Resident prepared originals refuse unsafe numbers or noncanonical decimal identities',t=>{
+  for(const identity of [2**60,'01','+1','1e3','-1','18446744073709551616']) {
+    const f=httpPreparation(t);f.component.library.ino=identity;f.publishHttp();
+    assert.throws(()=>preparedNativeHttpReceipt(f.root,f.selected));
+  }
 });
 test('Resident preparation refuses incomplete, foreign, old deployment or changed originals',t=>{
   for(const change of [f=>{f.record.http=null;f.publish();},

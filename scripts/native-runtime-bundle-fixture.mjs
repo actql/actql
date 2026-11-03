@@ -86,8 +86,8 @@ export function prepareNativeResidentHttpLibrary({
     const sdk=platform==='darwin'?realpathSync(run('xcrun',['--show-sdk-path']).trim()):undefined;
     assert.equal(receiptPath,preparedNativeHttpReceipt(preparation,{source,target,clang,sdk}));
   }
-  const receiptFile = lstatSync(receiptPath);
-  assert(receiptFile.isFile() && !receiptFile.isSymbolicLink() && receiptFile.size <= 4 * 1024 ** 2);
+  const receiptFile = lstatSync(receiptPath,{bigint:true});
+  assert(receiptFile.isFile() && !receiptFile.isSymbolicLink() && receiptFile.size <= 4n * 1024n ** 2n);
   const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
   const recipeBytes = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
   const recipe = JSON.parse(recipeBytes);
@@ -124,15 +124,20 @@ export function prepareNativeResidentHttpLibrary({
   assert(receipt.ownedOpenSSLReceipt && typeof receipt.ownedOpenSSLReceipt.path === 'string',
     'HTTP component lacks its original owned TLS construction');
   const item = receipt.library;
-  const before = lstatSync(item.path);
-  assert(before.isFile() && !before.isSymbolicLink() && before.size > 0 && before.size <= 64 * 1024 ** 2);
-  for (const key of ['dev', 'ino', 'mode']) assert.equal(before[key], item[key]);
+  const before = lstatSync(item.path,{bigint:true});
+  assert(before.isFile() && !before.isSymbolicLink() && before.size > 0n && before.size <= 64n * 1024n ** 2n);
+  for (const key of ['dev', 'ino', 'mode']) {
+    if(typeof item[key]==='string')assert.match(item[key],/^(?:0|[1-9][0-9]{0,19})$/u);
+    else assert(Number.isSafeInteger(item[key]) && item[key]>=0);
+    const expected=BigInt(item[key]);assert(expected<=0xffffffffffffffffn);
+    assert.equal(before[key],expected);
+  }
   const bytes = readFileSync(item.path);
   assert.equal(bytes.length, item.bytes);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
   for (const [path, original] of [[item.path, before], [receiptPath, receiptFile]]) {
-    const after = lstatSync(path);
-    for (const key of ['dev','ino','size','mode','mtimeMs','ctimeMs']) assert.equal(after[key], original[key]);
+    const after = lstatSync(path,{bigint:true});
+    for (const key of ['dev','ino','size','mode','mtimeNs','ctimeNs']) assert.equal(after[key], original[key]);
   }
   return item.path;
 }

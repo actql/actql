@@ -20,7 +20,10 @@ function data(path, item) {
     assert.equal(createHash('sha256').update(bytes).digest('hex'),item.sha256,
       'Original preparation input digest changed');
     for(const key of ['dev','ino','mode'])if(item[key]!==undefined) {
-      assert(Number.isSafeInteger(item[key]));assert.equal(before[key],BigInt(item[key]));
+      if(typeof item[key]==='string')assert.match(item[key],/^(?:0|[1-9][0-9]{0,19})$/u);
+      else assert(Number.isSafeInteger(item[key]) && item[key]>=0);
+      const expected=BigInt(item[key]);assert(expected<=0xffffffffffffffffn);
+      assert.equal(before[key],expected);
     }
   }
   return bytes;
