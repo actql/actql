@@ -113934,7 +113934,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-      "sha256": "6e34e942f5b3e640e4d734eea7c700c5751174afdc49ab3df6881ed2261b7279",
+      "sha256": "9d2f8ce21ebf3d0497213b20cfe481ec3f745939be0004974160c759800d8aee",
       "exports": [
         "commonjs:assertOrdinaryManagedRunCurrent",
         "commonjs:ordinaryManagedRunStatus",
@@ -114083,7 +114083,8 @@
         {
           "name": "retainedPorts/init:status/init:status/init:status",
           "parameters": [
-            "value"
+            "value",
+            "index"
           ],
           "async": false
         },
