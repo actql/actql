@@ -159,9 +159,16 @@ test "Effect physical occurrence spends once and original lost reply stays uncer
     )
     is Err(AlreadyBound),
   )
-  // Actual physical cleanup does not invent an observed byte amount or
-  // erase the existing B uncertainty history. Root remains pending here.
-  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  // The same physical cleanup has acknowledged this original occurrence.
+  // Its cumulative uncertainty/attempt history remains charged, but does not
+  // invent a live child after the real retirement above completed.
+  retire_installed_managed_run(owner).unwrap()
+  let retired = @resources.ledger_usage(ledger)
+  assert_eq(retired.attempts, unknown.attempts)
+  assert_eq(retired.transferred_bytes, unknown.transferred_bytes)
+  assert_eq(retired.uncertain_transfer_bytes, unknown.uncertain_transfer_bytes)
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), retired)
 }
 
 ///|

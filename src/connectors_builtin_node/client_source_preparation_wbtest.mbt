@@ -76,7 +76,17 @@ test "Source preparation keeps unsupported forms separate from input violations"
   for issue in issues {
     assert_eq(
       client_source_preparation_issue_code(Frontend(QueryLowering(issue))),
-      "source_unsupported",
+      "source_implementation_limit",
     )
+  }
+  // Unsupported carriers remain distinct from these recognized frontend
+  // forms and from the typed authored-input violations checked above.
+  for
+    issue in [
+      UnsupportedCarrier,
+      CommandTargetOriginalsUnavailable,
+      RecordTargetOriginalsUnavailable,
+    ] {
+    assert_eq(client_source_preparation_issue_code(issue), "source_unsupported")
   }
 }
