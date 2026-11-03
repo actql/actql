@@ -1,5 +1,48 @@
 import assert from 'node:assert/strict';
 import {setTimeout as yieldCleanup} from 'node:timers/promises';
+import {types} from 'node:util';
+
+const nativeStackGetter = Object.getOwnPropertyDescriptor(new Error(), 'stack')?.get;
+const originalStackFormatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace');
+const assertionOperators = new Set(['strictEqual', 'deepStrictEqual', '==', 'fail', 'match']);
+const fixtureFrame = /^\s+at .*\/adapters\/connectors\/duckdb\/node\/test\/(retained-values-chain\.test\.mjs|managed-fixture-cleanup\.mjs):(\d{1,5}):(\d{1,4})\)?$/u;
+
+// Only the two fixture locations and a closed assertion operator escape.
+// Never invoke a supplied stack/message accessor or a custom stack formatter.
+function fixtureAssertionSite(error) {
+  try {
+    if (!types.isNativeError(error) || Object.getPrototypeOf(error) !== assert.AssertionError.prototype ||
+        Object.getOwnPropertyDescriptor(error, 'code')?.value !== 'ERR_ASSERTION') return '';
+    const operator = Object.getOwnPropertyDescriptor(error, 'operator')?.value;
+    if (!assertionOperators.has(operator)) return '';
+    const formatter = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace');
+    if ((formatter && !Object.hasOwn(formatter, 'value')) ||
+        (originalStackFormatter && !Object.hasOwn(originalStackFormatter, 'value')) ||
+        formatter?.value !== originalStackFormatter?.value) return '';
+    for (const object of [error, assert.AssertionError.prototype, Error.prototype]) {
+      for (const name of ['name', 'message', 'constructor']) {
+        const property = Object.getOwnPropertyDescriptor(object, name);
+        if (property && !Object.hasOwn(property, 'value')) return '';
+      }
+    }
+    const message = Object.getOwnPropertyDescriptor(error, 'message')?.value;
+    if (typeof message !== 'string' || message.length > 32768) return '';
+    const descriptor = Object.getOwnPropertyDescriptor(error, 'stack');
+    let stack = descriptor?.value;
+    if (stack === undefined && nativeStackGetter && descriptor?.get === nativeStackGetter) {
+      stack = Reflect.apply(nativeStackGetter, error, []);
+    }
+    if (typeof stack !== 'string' || stack.length > 32768) return '';
+    const header = stack.indexOf(message);
+    if (header < 0) return '';
+    // Skip the complete original message, including any operand newlines.
+    for (const line of stack.slice(header + message.length).split('\n').slice(0, 16)) {
+      const frame = fixtureFrame.exec(line);
+      if (frame) return `@${frame[1]}:${Number(frame[2])}:${Number(frame[3])}:${operator}`;
+    }
+  } catch { /* An unavailable location never changes the original failure. */ }
+  return '';
+}
 
 // Fixture consumer for the existing explicit recovery contract. A bounded
 // admission-scratch retirement can outlive close; this is not permission to
@@ -83,7 +126,8 @@ export function managedFixtureCleanupDiagnostic(error) {
     if(value===undefined)return 'undefined';
     if(value===null)return 'null';
     try {
-      const code=own(value,'code');if(known.has(code))return code;
+      const code=own(value,'code');if(known.has(code))return code === 'ERR_ASSERTION'
+        ? code + fixtureAssertionSite(value) : code;
       const name=own(value,'name');
       if(['AbortError','AssertionError','TypeError','RangeError'].includes(name))return name;
       if(value instanceof AggregateError)return 'AggregateError';

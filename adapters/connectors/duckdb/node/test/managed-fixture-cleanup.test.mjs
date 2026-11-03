@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {closeManagedFixtureExecution, managedFixtureCleanupDiagnostic} from './managed-fixture-cleanup.mjs';
 
 function fixture(reason = new Error('LocalManagedOutputCleanupPending')) {
@@ -105,4 +106,64 @@ test('fixture pending diagnostics retain closed codes without exposing primary v
   assert.equal(managedFixtureCleanupDiagnostic(accessor),'opaque/none/none');assert.equal(reads,0);
   const proxy=new Proxy({}, {getOwnPropertyDescriptor(){throw undefined;}});
   assert.equal(managedFixtureCleanupDiagnostic(proxy),'opaque');
+});
+
+function originalFixtureAssertion(file = 'retained-values-chain.test.mjs') {
+  try {
+    runInNewContext('assert.equal("hidden-row", "hidden-key")', {assert}, {
+      filename: `file:///fixture/adapters/connectors/duckdb/node/test/${file}`,
+    });
+  } catch (error) { return error; }
+  assert.fail('the original assertion must fail');
+}
+
+test('fixture pending diagnostics identify the original assertion site and operator without operand data', () => {
+  const error = originalFixtureAssertion();
+  const diagnostic = managedFixtureCleanupDiagnostic(error);
+  assert.match(diagnostic, /^ERR_ASSERTION@retained-values-chain\.test\.mjs:\d+:\d+:strictEqual\/none\/none$/u);
+  for (const value of ['hidden-row', 'hidden-key', 'file://', '/fixture/']) {
+    assert.equal(diagnostic.includes(value), false);
+  }
+  assert.equal(error.actual, 'hidden-row');
+  assert.equal(error.expected, 'hidden-key');
+  const second = originalFixtureAssertion('managed-fixture-cleanup.mjs');
+  assert.match(managedFixtureCleanupDiagnostic(new AggregateError([error, second])),
+    /^AggregateError\/ERR_ASSERTION@retained-values-chain\.test\.mjs:\d+:\d+:strictEqual\/ERR_ASSERTION@managed-fixture-cleanup\.mjs:\d+:\d+:strictEqual$/u);
+});
+
+test('fixture assertion sites refuse foreign frames, accessors and custom stack formatters', () => {
+  assert.equal(managedFixtureCleanupDiagnostic(originalFixtureAssertion('foreign.mjs')), 'ERR_ASSERTION/none/none');
+  let reads = 0;
+  const accessor = originalFixtureAssertion();
+  Object.defineProperty(accessor, 'stack', {get() { reads++; throw Error('must not run'); }});
+  assert.equal(managedFixtureCleanupDiagnostic(accessor), 'ERR_ASSERTION/none/none');
+  const message = originalFixtureAssertion();
+  Object.defineProperty(message, 'message', {get() { reads++; throw Error('must not run'); }});
+  assert.equal(managedFixtureCleanupDiagnostic(message), 'ERR_ASSERTION/none/none');
+  const original = Object.getOwnPropertyDescriptor(Error, 'prepareStackTrace');
+  const formatted = originalFixtureAssertion();
+  try {
+    Object.defineProperty(Error, 'prepareStackTrace', {configurable: true,
+      get() { reads++; throw Error('must not run'); }});
+    assert.equal(managedFixtureCleanupDiagnostic(formatted), 'ERR_ASSERTION/none/none');
+    Object.defineProperty(Error, 'prepareStackTrace', {configurable: true,
+      value() { reads++; throw Error('must not run'); }});
+    assert.equal(managedFixtureCleanupDiagnostic(formatted), 'ERR_ASSERTION/none/none');
+  } finally {
+    if (original) Object.defineProperty(Error, 'prepareStackTrace', original);
+    else delete Error.prepareStackTrace;
+  }
+  assert.equal(reads, 0);
+});
+
+test('fixture assertion sites ignore operand frames, unknown operators and oversized stacks', () => {
+  const injected = new assert.AssertionError({actual: 1, expected: 2, operator: 'strictEqual',
+    message: 'hidden\n    at file:///fixture/adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs:999:8'});
+  assert.equal(managedFixtureCleanupDiagnostic(injected), 'ERR_ASSERTION/none/none');
+  const operator = originalFixtureAssertion();
+  operator.operator = 'hidden-operator';
+  assert.equal(managedFixtureCleanupDiagnostic(operator), 'ERR_ASSERTION/none/none');
+  const oversized = originalFixtureAssertion();
+  Object.defineProperty(oversized, 'stack', {value: 'x'.repeat(32769)});
+  assert.equal(managedFixtureCleanupDiagnostic(oversized), 'ERR_ASSERTION/none/none');
 });
