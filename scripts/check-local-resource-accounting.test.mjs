@@ -3334,6 +3334,30 @@ test('strict gate recognizes cross join after positive pair work', () => {
     /RelA cross_join: entrypoint boundary assurance is missing/);
 });
 
+test('strict cross join gate requires asynchronous cancellation during positive incomplete work', () => {
+  const file = join(root, 'adapters/connectors/duckdb/node/test/standard-host.test.mjs');
+  const original = sourceTemplate[file].text;
+  const begin = original.indexOf("name: 'external-cross-join-in-flight'");
+  const end = original.indexOf('// Retained Store Local:', begin);
+  assert(begin >= 0 && end > begin);
+  const selected = original.slice(begin, end);
+  for (const [before, after] of [
+    ['setImmediate(() => crossJoinCancellation.abort())', 'crossJoinCancellation.abort()'],
+    ['observation.work > 0n', 'observation.work >= 0n'],
+    ['observation?.complete === false', 'observation?.complete === true'],
+    ['crossJoinStopObservedAt >= crossJoinCancellationDeliveredAt', 'true'],
+    ['crossJoinCancellationExecution.cleanupPending(), false', 'undefined, false'],
+  ]) {
+    assert(selected.includes(before), before);
+    const text = original.slice(0, begin) + selected.replace(before, after) + original.slice(end);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text})});
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources, requireBoundaryComplete: true});
+    assert(result.errors.includes('RelA cross_join: in-flight Host cancellation evidence is missing'), before);
+  }
+});
+
 test('selected take needs both keyed and unkeyed resource branches', () => {
   assert.match(run(undefined, value => {
     const take = value.routes.find(entry => entry.family === 'RelA' &&

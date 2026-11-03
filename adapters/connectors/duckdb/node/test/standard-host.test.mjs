@@ -23,6 +23,7 @@ import {createNodeHostEntry,
 import {installStrategyContributions} from
   '../../../../connectors-builtin/strategy.generated.mjs';
 import {runInstalledStrategy} from '../../../../host-common/strategy.mjs';
+import {retainFirstAndLatestCleanupError} from '../../../../host-common/managed-failure.mjs';
 import {runtimeCore} from '../../../../host-common/runtime-core.mjs';
 import {duckdbStrategyContribution} from '../strategy-bundle.mjs';
 import {localStrategyContribution} from
@@ -9066,9 +9067,8 @@ async function exerciseStrategyGraph(
                     }
                     if (!crossJoinCancellationScheduled) {
                       crossJoinCancellationScheduled = true;
-                      // Keep cancellation at this observed incomplete join,
-                      // before later tasks can consume a completed output.
-                      crossJoinCancellation.abort();
+                      // Queue before the driver's matching host-yield callback.
+                      setImmediate(() => crossJoinCancellation.abort());
                     }
                   }
                   return result;
@@ -12626,6 +12626,7 @@ async function exerciseStrategyGraph(
       const f = fixture.strategyFixtureJoinCreate(...args, JSON.stringify(joined));
       const capture = await runNativeHostQuery(grant, fixture.strategyFixtureAcquisition(f), suppliedLimits);
       let execution;
+      let fanInHadPrimary = false, fanInPrimary;
       try {
         assert.equal(fixture.strategyFixtureOpen(f, capture.source()), true);
         await replaceRows('INSERT INTO records VALUES (99,99)');
@@ -12641,12 +12642,71 @@ async function exerciseStrategyGraph(
         if (placement === 'duckdb') freshTransfer = execution.usage().transferredBytes;
         if (placement === 'resident') assert(execution.usage().transferredBytes < freshTransfer,
           'actual shared import and intermediate reuse reduce bytes, not merely estimated cost');
-        capture.close();
         fixture.strategyFixtureCloseOutput(f, 1);
         fixture.strategyFixtureCloseOutput(f, 2);
         fixture.strategyFixtureCloseOutput(f, 3);
         assert.equal(fixture.strategyFixtureCid(f, 4), hash([{ n: 4 }]));
-      } finally { execution?.close(); capture.close(); }
+      } catch (cause) {
+        fanInHadPrimary = true;
+        fanInPrimary = cause;
+        throw cause;
+      } finally {
+        const child = execution, input = capture;
+        let rejectedChild, rejectionCaptured = false;
+        let closeStarted = false, childCleaned = false, rejectionCleaned = false;
+        let inputClosed = false, complete = false;
+        let flight, reported;
+        const cleanupErrors = [];
+        const cleanupHandle = Object.freeze({
+          status: () => Object.freeze({pending: !complete}),
+          retry() {
+            if (flight) return flight;
+            // Publish before invoking an original owner's borrowed callback.
+            flight = Promise.resolve().then(async () => {
+              if (!rejectionCaptured) {
+                rejectedChild = fanInHadPrimary ? fanInPrimary?.cleanupHandle : undefined;
+                rejectionCaptured = true;
+              }
+              if (child && !childCleaned) {
+                if (!closeStarted) {
+                  closeStarted = true;
+                  await child.close();
+                }
+                assert.equal(await child.cleanup(), true);
+                assert.equal(child.cleanupPending(), false);
+                childCleaned = true;
+              }
+              if (rejectedChild && !rejectionCleaned) {
+                if (rejectedChild.status().pending) await rejectedChild.retry();
+                assert.equal(rejectedChild.status().pending, false);
+                rejectionCleaned = true;
+              }
+              if (!inputClosed) {
+                // A failed acquisition close retains this same retryable owner.
+                input.close();
+                inputClosed = true;
+              }
+              complete = true;
+              if (reported) reported.cleanupPending = false;
+              return cleanupHandle.status();
+            }).catch(cause => {
+              retainFirstAndLatestCleanupError(cleanupErrors, cause);
+              throw cause;
+            }).finally(() => {flight = undefined;});
+            return flight;
+          },
+        });
+        try { await cleanupHandle.retry(); }
+        catch (cause) {
+          reported = Object.assign(new Error('CapturedFanInCleanupPending',
+            {cause: fanInHadPrimary ? fanInPrimary : cause}), {
+            primaryFailure: fanInHadPrimary ? fanInPrimary : cause,
+            cleanupErrors, cleanupPending: true, cleanupHandle,
+          });
+          throw reported;
+        }
+      }
+      assert.equal(await execution.cleanup(), true);
       assert.equal(execution.usage().heldBytes, 0n);
       assert.equal(execution.usage().reservedExecutionBytes, 0n);
       assert.equal(execution.cleanupPending(), false);

@@ -957,7 +957,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     try { await cleanupHandle.retry(); }
     catch (cause) {
       reportedCleanupFailure = Object.assign(
-        new Error('RetainedValuesCleanupPending',
+        new Error(`RetainedValuesCleanupPending [cleanup step ${nextCleanup}]`,
           {cause: hasPrimaryFailure ? primaryFailure : cause}), {
           primaryFailure: hasPrimaryFailure ? primaryFailure : cause,
           cleanupErrors, cleanupPending: true, cleanupHandle,
