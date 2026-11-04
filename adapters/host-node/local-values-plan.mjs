@@ -494,8 +494,9 @@ export function acquiredMultiEffectPublicationPlan({acquired, sources,
       {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt},
       limits) : control.checkedClientEffectInferInvocation(prepared,
         compilation, runDefinition, issuedModel);
-  const sourceEvidence = sources.map(source => control.admitRunEvidence(
-    'source_evidence', source.sourceEvidenceWire, limits));
+  const sourceEvidence = sources.map(source => source.sourceEvidence === undefined
+    ? control.admitRunEvidence('source_evidence', source.sourceEvidenceWire, limits)
+    : source.sourceEvidence);
   const run = JSON.parse(runDefinition.wire);
   const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
     control, admission, runDefinition, invocation, observation,
