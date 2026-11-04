@@ -1321,6 +1321,13 @@ async function modelEffectLifecycle({failure} = {}) {
     clientProgramInstalledEffectManagedOperationPlan(value, actual, request) {
       assert.equal(value, parent); assert.equal(actual, prepared); assert.equal(request, identity); return plan;
     },
+    clientProgramInstalledManagedRunQuiesce(value) {
+      assert.equal(this, runtime); assert.equal(value, parent);
+      const run = f.record.computeRuns.get(prepared);
+      assert.equal(run.value, parent); assert.equal(run.request, identity);
+      assert.equal(run.modelScope, scope); assert.equal(run.operationPlan, plan);
+      calls.push('quiesce-parent');
+    },
     clientProgramInstalledManagedRunRetire(value) {assert.equal(value, parent); assert.equal(pending, false); calls.push('retire-parent');},
   };
   const publicationControl = {
@@ -1369,9 +1376,9 @@ test('Host Model Request retirement waits for Scope then cuts compiler aliases b
   const f = await modelEffectLifecycle();
   assert.equal(f.preparation.prepareManagedEffectPlanRun(f.runtime, f.facts, f.selected, {}, f.model), f.parent);
   await assert.rejects(f.initialControl.close(), {code: 'InstalledEffectModelScopeCleanupPending'});
-  assert.deepEqual(f.calls, ['adopt', 'scope']);
+  assert.deepEqual(f.calls, ['adopt', 'quiesce-parent', 'scope']);
   f.settle(); await f.initialControl.close();
-  assert.deepEqual(f.calls, ['adopt', 'scope', 'scope', 'retire-parent', 'return-original-input',
+  assert.deepEqual(f.calls, ['adopt', 'quiesce-parent', 'scope', 'quiesce-parent', 'scope', 'retire-parent', 'return-original-input',
     'retire-parent', 'retire-original', 'manager-close']);
   assert.equal(f.record.computeLiveRuns.size, 0);
 });
