@@ -75,11 +75,15 @@ test('snapshot fixed projector admission is pinned to its finite constructor cal
  const normalization=calls('scalar_snapshot_layout','scalar_snapshot_name_normalization_layout');
  const nfc=normalization*calls('scalar_snapshot_name_normalization_layout','nfc_lf_construction_extent');
  const output=nfc*calls('nfc_lf_construction_extent','nfc_lf_retained_output_units');
+ const programArrays=calls('scalar_snapshot_layout','closed_values_program_arrays');
+ const arrayRepresentations=programArrays*calls('closed_values_program_arrays','preparation_array_representation');
+ const arraySlots=arrayRepresentations*calls('preparation_array_representation','preparation_array_slots');
  const sharedAdds=executionAdds*calls('checked_preparation_add_product','checked_nonnegative_add_product')+
   collections*calls('collection_construction_extent','checked_nonnegative_add_product')+
   maps*calls('map_construction_extent','checked_nonnegative_add_product')+
   additions*calls('add_collection_construction_extents','checked_nonnegative_add_product')+
-  output*calls('nfc_lf_retained_output_units','checked_nonnegative_add_product');
+  output*calls('nfc_lf_retained_output_units','checked_nonnegative_add_product')+
+  arraySlots*calls('preparation_array_slots','checked_nonnegative_add_product');
  const wire=calls('scalar_snapshot_layout','client_local_json_leaf_wire_byte_bound');
  const work=wire*calls('client_local_json_leaf_wire_byte_bound','client_local_schema_proof_work');
  const multiplicities={scalar_snapshot_layout:1,scalar_snapshot_name_normalization_layout:normalization,
@@ -88,7 +92,8 @@ test('snapshot fixed projector admission is pinned to its finite constructor cal
   closed_values_sort_scratch_layout:canonical*calls('compilation_canonical_layout','closed_values_sort_scratch_layout'),
   compose_preparation_representation:compositions,
   closed_values_units_subtract:calls('scalar_snapshot_layout','closed_values_units_subtract'),
-  closed_values_program_arrays:calls('scalar_snapshot_layout','closed_values_program_arrays'),
+  closed_values_program_arrays:programArrays,
+  preparation_array_representation:arrayRepresentations,preparation_array_slots:arraySlots,
   closed_values_program_maps:calls('scalar_snapshot_layout','closed_values_program_maps'),
   compilation_writer_ancestry_layout:writers,hash_writer_live_key_inventory:hashes,
   compilation_metadata_repeat_units:repeats,client_local_json_leaf_wire_byte_bound:wire,
@@ -103,10 +108,11 @@ test('snapshot fixed projector admission is pinned to its finite constructor cal
  assert.deepEqual(multiplicities,{scalar_snapshot_layout:1,scalar_snapshot_name_normalization_layout:1,
   closed_values_source_inventories:1,compilation_canonical_layout:1,closed_values_sort_scratch_layout:1,
   compose_preparation_representation:8,closed_values_units_subtract:2,closed_values_program_arrays:8,
+  preparation_array_representation:8,preparation_array_slots:8,
   closed_values_program_maps:1,compilation_writer_ancestry_layout:2,hash_writer_live_key_inventory:2,
   compilation_metadata_repeat_units:2,client_local_json_leaf_wire_byte_bound:1,preparation_representation_cost:11,
   checked_preparation_add_product:300,writer_frame_construction_extent:2,collection_construction_extent:4,
-  map_construction_extent:4,add_collection_construction_extents:2,checked_nonnegative_add_product:376,
+  map_construction_extent:4,add_collection_construction_extents:2,checked_nonnegative_add_product:408,
   nfc_lf_construction_extent:1,nfc_lf_retained_output_units:2,canonical_normalization_preparation_units:1,
   client_local_schema_proof_work:1,client_standard_program_preparation_limits:1});
  assert.deepEqual(Object.fromEntries(fixture.items.map(entry=>[entry.function,entry.multiplicity])),multiplicities);
@@ -118,11 +124,19 @@ test('snapshot fixed projector admission is pinned to its finite constructor cal
   scalar_words:11*records+2*options+2*arrays,owned_utf16_units:0,owned_wire_bytes:0};
  assert.deepEqual(units,fixture.census_units);
  const price=value=>16*value.record_headers+8*value.reference_slots+8*value.scalar_words;
- assert.equal(price(units),368688);
+ assert.equal(price(units),399856);
  assert.equal(price(units),fixture.census_logical_bytes);
- assert.equal(price(fixture.units),370128);
- assert.equal(fixture.logical_bytes,370128);
- assert.ok(price(units)<=fixture.logical_bytes,'current constructor census exceeds the unchanged allowance');
+ assert.equal(price(fixture.units),399856);
+ assert.equal(fixture.logical_bytes,399856);
+ assert.ok(price(units)<=fixture.logical_bytes,'current constructor census exceeds its admitted prequote');
+ // The same original publication owner admits this fixed construction work
+ // before calling the projector, in addition to its existing wrapper controls.
+ const owner=readFileSync(new URL('src/client_local_host/preparation_publication_owner.mbt',root),'utf8');
+ const prequote=/\blet publication_projection_execution\s*:\s*Int64\s*=\s*(\d+)L\b/.exec(owner);
+ assert.ok(prequote,'missing original publication prequote');
+ const wrapper=price({record_headers:32,reference_slots:64,scalar_words:64});
+ assert.equal(wrapper,1536);
+ assert.equal(Number(prequote[1]),fixture.logical_bytes+wrapper);
  // The static amount is specific to the authoritative v1 logical tariff.
  const tariff=fixture.items.find(entry=>entry.function==='preparation_representation_cost');
  assert.equal(hash(readFileSync(new URL(tariff.path,root))),tariff.source_sha256);

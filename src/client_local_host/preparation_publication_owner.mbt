@@ -38,11 +38,11 @@ fn publication_original_body(
 }
 
 ///|
-/// Static pre-quote allowance: snapshot projector H2552/R20371/W20791 =
-/// 370128, plus wrapper H32/R64/W64 =1536 for original occurrence/port/Schema
+/// Static pre-quote allowance: snapshot projector H2638/R22166/W22540 =
+/// 399856, plus wrapper H32/R64/W64 =1536 for original occurrence/port/Schema
 /// Some carriers, running totals, cost results and the returned handle.
 /// This is admitted BEFORE any projector constructor, including failed quotes.
-let publication_projection_execution : Int64 = 371664L
+let publication_projection_execution : Int64 = 401392L
 
 ///|
 /// Fixed adopted-owner entry. No supplied row count, policy override or bytes.
