@@ -22,7 +22,7 @@ const lookupSnapshots = ['local', 'https'].map(entrance => ({
     id: `delivery-lookup-${id}`, operator: 'strictEqual',
   })),
 }));
-const lookupAdmission = ['clone changes a previously valid field', 'reply cannot be cloned']
+const lookupAdmission = ['invalid field supplied at lookup boundary', 'lookup record cannot be captured']
   .map(fault => ({
     name: `local: delivery lookup rejects ${fault}`,
     assertions: [{id: 'delivery-lookup-admission', operator: 'strictEqual'}],

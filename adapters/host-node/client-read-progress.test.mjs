@@ -15,6 +15,8 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import * as resultAccess from '../host-common/result-access.mjs';
 import {createResultDeliveryFixture} from '../../scripts/fixtures/result-delivery-acceptance.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'),
@@ -38,7 +40,17 @@ async function installed(t, entrance, fixture, invalidRow, lookupReply) {
   const settled = entrance === 'local' ? Promise.resolve()
     : new Promise(resolve => { finished = resolve; });
   const mode = entrance === 'local' ? 'local' : 'remote';
+  let prepareRequest;
+  if (entrance !== 'local') {
+    const wire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
+    const body = JSON.parse(wire);
+    const environment = moon.clientProgramCheckEnvironment(wire.trimEnd(),
+      body.evidence_bundle_cid, false, false, true, true, false, false, false);
+    assert.ok(environment);
+    ({prepareRequest} = await fundedClientPreparation(t, {moon, environment, http: true}));
+  }
   const services = {
+    ...(prepareRequest === undefined ? {} : {prepareRequest}),
     authenticate: () => 'principal',
     authorizeConnection: ({operation}) => { operations.push(operation); return true; },
     negotiate: () => ({version: 'actql-client-host/0.1', mode, owner: mode,
@@ -494,24 +506,22 @@ for (const entrance of ['local', 'https']) {
   });
 }
 
-for (const fault of ['clone changes a previously valid field', 'reply cannot be cloned']) {
+for (const fault of ['invalid field supplied at lookup boundary', 'lookup record cannot be captured']) {
   test(`local: delivery lookup rejects ${fault}`, async t => {
     const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
       lookup: current => current,
     });
-    const f = await installed(t, 'local', fixture);
+    const f = await installed(t, 'local', fixture, undefined, value => {
+      if (fault === 'invalid field supplied at lookup boundary') {
+        return {...value, record: {...value.record, observed_at: 42}};
+      }
+      return new Proxy(value, {get(target, key, receiver) {
+        if (key === 'record') throw new Error('private-lookup-capture-failure');
+        return Reflect.get(target, key, receiver);
+      }});
+    });
     const reader = f.result.rows();
     assert.deepEqual(await Array.fromAsync(reader), [{value: 7}]);
-    const clone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = clone; });
-    globalThis.structuredClone = value => {
-      const copy = clone(value);
-      if (value?.kind === 'found' && value?.record !== undefined) {
-        if (fault === 'reply cannot be cloned') throw new Error('private-clone-failure');
-        copy.record.observed_at = 42;
-      }
-      return copy;
-    };
     let failure;
     try {await f.result.deliveryAttempt(reader.attemptId);} catch (error) {failure = error;}
     assert.equal(failure?.code, 'InvalidHostAttemptLookup', '[check-mutation:delivery-lookup-admission]');
