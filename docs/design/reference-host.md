@@ -1771,6 +1771,17 @@ capacity reservation settles. The installation's full selected extent must
 still cover this prefix, its failed construction and simultaneous outputs;
 reserving an unqualified numeric bound supplies none of those facts.
 
+Capture and approved-continuation request rebuilding are distinct pure
+construction occurrences on that same immutable Plan. The selected
+`recoveryConstruction` member index is appended after existing physical member
+indexes, using the original capture extent and input-extent method. Both hot
+and cold rebuilding select that recovery occurrence before reconstruction;
+neither may reissue a completed or retired capture slot. Each constructor
+remains one-shot. The original quote co-counts both retained outputs and their
+actual sequential workspace, and the same retained children own partial or
+failed reconstruction until alias retirement. No new Request, parent, physical
+attempt, grant or mutation follows from selecting this pure occurrence.
+
 The installed native CREATE implementation owns its fixed HTTP/JSON limits.
 The Host snapshots that original method and receiver once; it has no parallel
 numeric default table. These are codec/transport rejection bounds, never Run

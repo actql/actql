@@ -1723,3 +1723,66 @@ test "saved Ledger codec refused growth retains same prefix and permits only ori
   ).unwrap()
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "capture and recovery constructors spend distinct original slots on the same admitted Plan" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let extent = prepare_installed_effect_operation_extent(
+    "operation",
+    @execution.execution_capacity(50L, 70L).unwrap(),
+    0L,
+    false,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    prepared,
+    0,
+    "save",
+    [extent, extent],
+    [extent],
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    prepared,
+    request,
+    [],
+    "",
+    "",
+    [],
+    [],
+    contracts,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan,
+    prepared_installed_effect_managed_requirements(plan),
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  for index in 0..<2 {
+    let child = retain_installed_effect_operation_construction(
+      owner, prepared, request, plan, 0, false, index, 0, "operation",
+    ).unwrap()
+    begin_installed_effect_operation_construction(child).unwrap()
+    complete_installed_effect_operation_construction(child).unwrap()
+    assert_true(retire_installed_effect_operation(child, true).unwrap())
+    assert_true(
+      retain_installed_effect_operation_construction(
+        owner, prepared, request, plan, 0, false, index, 0, "operation",
+      )
+      is Err(AlreadyBound),
+    )
+  }
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, before.attempts)
+  assert_eq(after.reserved_attempts, before.reserved_attempts)
+  assert_eq(after.transferred_bytes, before.transferred_bytes)
+  assert_eq(after.reserved_transfer_bytes, before.reserved_transfer_bytes)
+  assert_eq(owner.effect_operations.length(), 2)
+  retire_installed_managed_run(owner).unwrap()
+}

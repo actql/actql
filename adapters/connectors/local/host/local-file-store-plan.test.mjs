@@ -33,7 +33,9 @@ test('Local STORE recipe consumes actual constructor bounds in distinct original
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     4321n, 4096, 1024, localFileWriteMaxComponents, 130, physicalContentReadWindowBytes];
   assert.deepEqual(calls, [[...expected,1510],[...expected,undefined]]);
-  assert.equal(recipe.memberOperations.length, 1);
+  assert.equal(recipe.memberOperations.length, 2);
+  assert.strictEqual(recipe.memberOperations[1].extent, recipe.memberOperations[0].extent);
+  assert.deepEqual(recipe.recoveryConstruction, {operationIndex: 1});
   assert.deepEqual(recipe.rowOperations.map(entry => entry.operation), ['files.write.request', 'files.write']);
   assert.deepEqual(recipe.rowOperations.map(entry => entry.extent.transfer), [0n, 123456n]);
   assert.deepEqual(recipe.rowOperations.map(entry => entry.extent.physical), [false, true]);

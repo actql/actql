@@ -46,7 +46,9 @@ test('automatic standard recipe forwards original constructor capacities and kee
     const recipe=prepareInstalledStandardCreatePlanRecipe({moon,providerMoon,construction,credentialSite,
       limits:{maxWireBytes:512,maxNodes:32,maxDepth:8},requestInput:{maxWireBytes:128,maxNodes:16,maxDepth:4},resourceTextUnits:7});
     assert.deepEqual(calls,['profile','capacities']);
-    assert.equal(recipe.memberOperations.length,1);
+    assert.equal(recipe.memberOperations.length,2);
+    assert.strictEqual(recipe.memberOperations[1].extent,recipe.memberOperations[0].extent);
+    assert.deepEqual(recipe.recoveryConstruction,{operationIndex:1});
     assert.equal(recipe.rowOperations.length,beforeSend?6:5);
     assert.strictEqual(recipe.controlsPerRow,capacities[4]);
     assert.deepEqual(recipe.credentialOperations.map(x=>x.phase),beforeSend
@@ -1283,4 +1285,27 @@ test('saved Ledger codec binds all original normalizing entries while retaining 
   assert.equal(selected.issueMemberReceiptFromRowPartition,original.issueMemberReceiptFromRowPartition);
   assert(calls.every(([,args])=>args[0]===wire&&args[1]===arg));
   assert.equal(bind(original,undefined),original);
+});
+
+test('capture and recovery constructors keep distinct original member slots and the same retained extent', () => {
+  const extent = {}, inputExtent = () => extent;
+  const original = Object.freeze({
+    memberOperations: Object.freeze([0, 1].map(() => Object.freeze({operation: 'capture', extent}))),
+    rowOperations: Object.freeze([]), captureConstruction: Object.freeze({operationIndex: 0}),
+    recoveryConstruction: Object.freeze({operationIndex: 1, inputExtent}),
+  });
+  const recipe = captureInstalledEffectPlanRecipe(original, 2);
+  assert.notStrictEqual(recipe.captureConstruction, recipe.recoveryConstruction);
+  assert.strictEqual(recipe.recoveryConstruction.inputExtent, inputExtent);
+  assert.strictEqual(recipe.memberOperations[0].extent, extent);
+  assert.strictEqual(recipe.memberOperations[1].extent, extent);
+  assert.ok(Object.isFrozen(recipe.recoveryConstruction));
+  for (const operationIndex of [-1, 0, 2, 0.5]) {
+    assert.throws(() => captureInstalledEffectPlanRecipe(Object.freeze({...original,
+      recoveryConstruction: Object.freeze({operationIndex})}), 2), {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+  let calls = 0;
+  const changed = Object.freeze({...original, get recoveryConstruction() {calls++; return {};}});
+  assert.throws(() => captureInstalledEffectPlanRecipe(changed, 2), {code: 'InvalidInstalledEffectPlanRecipe'});
+  assert.equal(calls, 0);
 });

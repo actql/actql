@@ -4834,7 +4834,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "d9894ba1804f81cb9f6a129888e4237ec375ffe7cce50b4ce354bf6d272cd083",
+      "sha256": "1c8cbf7f74c3f46b954526dc02abb601519495db3ac3b7a11b0d89082aee1cfb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -20833,6 +20833,13 @@
           "async": false
         },
         {
+          "name": "captureInstalledEffectPlanRecipe/memberConstruction/memberConstruction",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "captureInstalledEffectPlanRecipe/operations/operations",
           "parameters": [
             "name"
@@ -21460,7 +21467,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "db83976b08c5c4ea5b8f0ddd83de73735a8d4aa5696f69fffc74a61c45691369",
+      "sha256": "b98436205f396145d10a8cb61ba709a8643103574d722a8de9e488a9cd556f57",
       "contracts": [
         {
           "operations": [
@@ -21522,7 +21529,8 @@
             "prepareInstalledStandardCreatePlanRecipe/originalMethod/originalMethod/originalMethod",
             "prepareInstalledStandardCreatePlanRecipe/physical/physical",
             "prepareInstalledStandardCreatePlanRecipe/prepareInstalledStandardCreatePlanRecipe",
-            "text/text"
+            "text/text",
+            "captureInstalledEffectPlanRecipe/memberConstruction/memberConstruction"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -22777,7 +22785,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "287729885831b7f03d0c8d75ca86810abf4b629007717a26e3411b6705bc114b",
+      "sha256": "8abd2134e5893000fb7c47dd0a16a56d83fcc205ea2134560ff07c536a2cde07",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",

@@ -911,7 +911,7 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   assert.equal(calls.length, 2, 'consumed original never grants another operation');
 });
 
-function recoveredConstructorFixture({refuseSecond = false, failure = false} = {}) {
+function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false} = {}) {
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [], children = [];
   const members = [{memberIndex: 0}, {memberIndex: 1}], active = new Set(), tokens = [];
   let aliasesRetired = false, constructions = 0;
@@ -920,7 +920,8 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false} = {
     clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
     clientProgramInstalledEffectOperationConstructionRetain(p, v, r, selected, member, perRow, slot, row, operation) {
       assert.deepEqual([p, v, r, selected], [parent, prepared, request, plan]);
-      assert.deepEqual([perRow, slot, row, operation], [false, 0, 0, 'capture']);
+      if (capturedAlready && slot === 0) fail('AlreadyBound');
+      assert.deepEqual([perRow, slot, row, operation], [false, 1, 0, 'capture']);
       events.push(`retain-${member}`);
       if (refuseSecond && member === 1) throw undefined;
       const token = {member};tokens.push(token);return {$tag: 1, _0: token};
@@ -940,7 +941,8 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false} = {
   };
   const run = {runtime, value: parent, prepared, request, operationPlan: plan,
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
-  const recipe = {captureConstruction: {operationIndex: 0}, memberOperations: [{operation: 'capture'}]};
+  const recipe = {captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1},
+    memberOperations: [{operation: 'capture'}, {operation: 'capture'}]};
   const facts = {members, body: {}, durable: {}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
   const actual = expression('prepareRecoveredEntries', {moon: runtime, recipeOf: () => recipe, fail,
     retainInstalledRowCaptureChild, prepareInstalledEffectRequestChild,
@@ -986,4 +988,15 @@ test('cold provider constructor failure retains every original member prefix unt
   f.retire();
   for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
   assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
+});
+
+
+test('hot continuation preserves spent capture slots and uses its original distinct recovery construction', async () => {
+  const f = recoveredConstructorFixture({capturedAlready: true});
+  assert.strictEqual(f.invoke(), f.original);
+  assert.equal(f.constructions(), 1);
+  assert.deepEqual(f.events, ['retain-0', 'retain-1', 'begin-0', 'begin-1', 'rebuild', 'complete-1', 'complete-0']);
+  for (const child of f.children) {await child.prepared.release();assert.equal(child.prepared.status().pending, true);}
+  f.retire();
+  for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
 });

@@ -177,10 +177,12 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
       }
       physical('write', true, operation, capacities[3],
         limits.write.maxRequestBytes, limits.write.maxResponseBytes);
+      const recoveryConstruction = Object.freeze({operationIndex: memberOperations.length, inputExtent});
+      memberOperations.push(memberOperations[0]);
       recipes[kind] = captureInstalledEffectPlanRecipe(Object.freeze({
         memberOperations: Object.freeze(memberOperations), rowOperations: Object.freeze(rowOperations),
         savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
-        controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0, inputExtent}),
+        controlsPerRow: capacities[4], captureConstruction: Object.freeze({operationIndex: 0, inputExtent}), recoveryConstruction,
         requestConstruction: Object.freeze({operationIndex: 0}),
         credentialOperations: Object.freeze(credentialOperations),
       }), memberOperations.length + rowOperations.length);

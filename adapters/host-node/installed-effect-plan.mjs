@@ -135,9 +135,13 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   if (confirmed) {
     for (const phase of ['apply-confirm', 'resume-confirm']) physical(phase, confirmation, capacities[7]);
   }
+  // Recovery rebuilds requests after capture aliases retire. It is a distinct
+  // pure occurrence of the SAME typed extent, never a replay of a spent slot.
+  const recoveryConstruction = Object.freeze({operationIndex: memberOperations.length});
+  memberOperations.push(memberOperations[0]);
   return captureInstalledEffectPlanRecipe(Object.freeze({
     memberOperations:Object.freeze(memberOperations),rowOperations:Object.freeze(rowOperations),
-    controlsPerRow:capacities[4],captureConstruction:Object.freeze({operationIndex:0}),
+    controlsPerRow:capacities[4],captureConstruction:Object.freeze({operationIndex:0}),recoveryConstruction,
     requestConstruction:Object.freeze({operationIndex:0}),credentialOperations:Object.freeze(credentialOperations),
     ...(requestFinalization === undefined ? {} : {requestFinalization}),
   }), rowOperations.length + memberOperations.length);
@@ -190,16 +194,18 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
   const extent = (name, capacity, transfer, physical) => checked(
     moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(name, capacity, transfer, physical));
   return captureInstalledEffectPlanRecipe(Object.freeze({
-    memberOperations: Object.freeze([Object.freeze({operation: captureOperation, extent: capture})]),
+    memberOperations: Object.freeze([Object.freeze({operation: captureOperation, extent: capture}),
+      Object.freeze({operation: captureOperation, extent: capture})]),
     rowOperations: Object.freeze([
       Object.freeze({operation: requestOperation, extent: extent(requestOperation, quantities[2], 0n, false)}),
       Object.freeze({operation, extent: extent(operation, quantities[3], BigInt(limits.maxTransferBytes), true)}),
     ]),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
     controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
+    recoveryConstruction: Object.freeze({operationIndex: 1}),
     requestConstruction: Object.freeze({operationIndex: 0}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxTransferBytes)}),
-  }), 3);
+  }), 4);
 }
 
 // The selected Host supplies original typed extents from its actual implementation
@@ -225,6 +231,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(Object.hasOwn(recipe, 'requestConstruction') ? ['requestConstruction'] : []),
     ...(Object.hasOwn(recipe, 'requestFinalization') ? ['requestFinalization'] : []),
     ...(Object.hasOwn(recipe, 'captureConstruction') ? ['captureConstruction'] : []),
+    ...(Object.hasOwn(recipe, 'recoveryConstruction') ? ['recoveryConstruction'] : []),
     ...(Object.hasOwn(recipe, 'credentialOperations') ? ['credentialOperations'] : []),
     ...(Object.hasOwn(recipe, 'physicalWrite') ? ['physicalWrite'] : [])]);
   const operations = name => {
@@ -277,10 +284,10 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     }
     requestFinalization = Object.freeze({operationIndex});
   }
-  let captureConstruction;
-  if (fields.captureConstruction !== undefined) {
-    const selected = own(fields.captureConstruction.value, ['operationIndex',
-      ...(Object.hasOwn(fields.captureConstruction.value, 'inputExtent') ? ['inputExtent'] : [])]);
+  const memberConstruction = name => {
+    if (fields[name] === undefined) return undefined;
+    const selected = own(fields[name].value, ['operationIndex',
+      ...(Object.hasOwn(fields[name].value, 'inputExtent') ? ['inputExtent'] : [])]);
     const operationIndex = selected.operationIndex.value;
     if (!Number.isSafeInteger(operationIndex) || operationIndex < 0 || operationIndex >= memberOperations.length) {
       fail('InvalidInstalledEffectPlanRecipe');
@@ -288,8 +295,12 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     const inputExtent = selected.inputExtent?.value;
     if (inputExtent !== undefined && (typeof inputExtent !== 'function' || nodeTypes.isProxy(inputExtent) ||
         nodeTypes.isAsyncFunction(inputExtent))) fail('InvalidInstalledEffectPlanRecipe');
-    captureConstruction = Object.freeze({operationIndex, ...(inputExtent === undefined ? {} : {inputExtent})});
-  }
+    return Object.freeze({operationIndex, ...(inputExtent === undefined ? {} : {inputExtent})});
+  };
+  const captureConstruction = memberConstruction('captureConstruction');
+  const recoveryConstruction = memberConstruction('recoveryConstruction');
+  if (recoveryConstruction !== undefined && (captureConstruction === undefined ||
+      recoveryConstruction.operationIndex === captureConstruction.operationIndex)) fail('InvalidInstalledEffectPlanRecipe');
   let credentialOperations;
   if (fields.credentialOperations !== undefined) {
     const values = fields.credentialOperations.value;
@@ -300,6 +311,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
       ...(requestConstruction === undefined ? [] : [`row:${requestConstruction.operationIndex}`]),
       ...(requestFinalization === undefined ? [] : [`row:${requestFinalization.operationIndex}`]),
       ...(captureConstruction === undefined ? [] : [`member:${captureConstruction.operationIndex}`]),
+      ...(recoveryConstruction === undefined ? [] : [`member:${recoveryConstruction.operationIndex}`]),
     ]);
     credentialOperations = Object.freeze(Array.from({length: values.length}, (_, index) => {
       const original = entries[String(index)].value;
@@ -346,6 +358,7 @@ export function captureInstalledEffectPlanRecipe(recipe, maxOperations) {
     ...(requestConstruction === undefined ? {} : {requestConstruction}),
     ...(requestFinalization === undefined ? {} : {requestFinalization}),
     ...(captureConstruction === undefined ? {} : {captureConstruction}),
+    ...(recoveryConstruction === undefined ? {} : {recoveryConstruction}),
     ...(credentialOperations === undefined ? {} : {credentialOperations}),
     ...(physicalWrite === undefined ? {} : {physicalWrite})});
 }
