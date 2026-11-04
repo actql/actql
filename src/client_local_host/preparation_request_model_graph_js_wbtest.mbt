@@ -797,6 +797,89 @@ test "one acquired serialized Model retains its original Query module and prefix
 }
 
 ///|
+test "single generic acquired Model binds original Request module and Scope without a Node layout" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  let provider = @execution.execution_capacity(7L, 9L).unwrap()
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    providers=Some([Some(provider)]),
+  ).unwrap()
+  let before = @resources.ledger_usage(f.parent.ledger)
+  assert_true(
+    prepare_request_model_capture_plan(
+      f.parent,
+      f.input.copy(),
+      original,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrence,
+      f.graph,
+      effect_model_plan_limits,
+      500L,
+      700L,
+      20,
+      20,
+      20,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(f.parent.ledger), before)
+  let plan = prepare_request_model_capture_plan(
+    f.parent,
+    f.input,
+    original,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  assert_true(plan.content_prefix is None)
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  assert_true(
+    run.captured_preparation is Some(same) && physical_equal(same, original),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
 // Actual accounted RowRun/capture on the SAME Request Model Scope. The
 // installation/profile/Resource and transport verifier remain explicit test
 // ports; these tests issue no normal Account grant, Model send or physical IO.

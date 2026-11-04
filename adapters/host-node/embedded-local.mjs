@@ -762,7 +762,8 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     const plain = model.serializationGraph === undefined;
     const construct = plain ? moon.clientProgramPrepareRequestModelProviderComponentCaptureModule
       : moon.clientProgramPrepareRequestModelProviderCaptureModule;
-    if (physical === undefined ||
+    if (physical === undefined && (!plain ||
+          typeof model.control.prepareCheckedClientRequestModelCapturePlan !== 'function') ||
         plain && (model.selection?.graph !== model.graph || model.selection?.occurrence !== model.occurrence ||
           Object.getOwnPropertyDescriptor(model, 'component')?.value !== undefined ||
           Object.getOwnPropertyDescriptor(model, 'component')?.writable !== true) ||
@@ -893,9 +894,13 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     });
     run.preparedSequences = Reflect.apply(construct, model.control, args);
     current();
-    run.modelPlan = model.control.prepareCheckedClientRequestNodeModelCapturePlan(parent, input,
-      run.preparedSequences, run.request, model.compiled, model.runDefinition,
-      model.occurrence, model.graph, model.selectedBounds, physical);
+    run.modelPlan = physical === undefined
+      ? model.control.prepareCheckedClientRequestModelCapturePlan(parent, input,
+        run.preparedSequences, run.request, model.compiled, model.runDefinition,
+        model.occurrence, model.graph, model.selectedBounds)
+      : model.control.prepareCheckedClientRequestNodeModelCapturePlan(parent, input,
+        run.preparedSequences, run.request, model.compiled, model.runDefinition,
+        model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
     if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
@@ -3065,8 +3070,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const deferredModelInput = restoredInfer === undefined && preparation !== undefined &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
-          (!retain || acquisitionCount === 1 &&
-            (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) ||
+          (!retain || acquisitionCount === 1 ||
             acquisitionCount === 0 && physical.originalReadInstallation === undefined &&
               physical.originalReadRecipe === undefined);
         // A restored input already owns its original prefix. Its checked
@@ -3702,7 +3706,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (preparation === undefined || typeof preparation.prepareManagedModelRun !== 'function' ||
         inferSelections.get(prepared) !== selection || selection.localMock ||
         !group && selection.originalReadInstallation === undefined &&
-          (acquisitionCount !== 0 || selection.serializationGraph !== undefined) ||
+          (acquisitionCount > 1 || selection.serializationGraph !== undefined) ||
         (!group && selection.occurrence === undefined) ||
         (group && (!Array.isArray(selection.components) || !Object.isFrozen(selection.components) ||
           selection.components.length < 2 || !Array.isArray(selection.graph) ||
@@ -7088,7 +7092,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       originalInstallation.computeRuns = runs;
       const sourceProfile = model.components !== undefined
         ? record.managedSourceProfile ?? record.mockSourceProfile
-        : model.originalReadInstallation === undefined ? record.mockSourceProfile : record.managedSourceProfile;
+        : model.originalReadInstallation === undefined && runtime.clientProgramAcquisitionCount(prepared) === 0
+          ? record.mockSourceProfile : record.managedSourceProfile;
       const prior = runs.get(prepared);
       if (prior !== undefined) {
         if (Object.hasOwn(prior, 'failure')) throw prior.failure;

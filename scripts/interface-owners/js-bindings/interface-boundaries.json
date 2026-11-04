@@ -21943,7 +21943,8 @@
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule"
+            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan"
           ],
           "exports": [],
           "attributes": {
@@ -27418,6 +27419,21 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
           "parameters": [
             "parent",
@@ -31073,7 +31089,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "297e547f159f22ec8a5f28a9c8fbb4f29ed4bb18990aaa640accd0d3dd00be58"
+      "sha256": "f92aab6dfbc1cc3ee2f1bcccb6bfb694fc23dd4c6acc23e2028e68a8d21b6b08"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -62279,7 +62295,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "f4f42423f1d295c9280a1a4e603e04c4eff5cc08384e31e120d50c758f45e0ba"
+      "sha256": "d9013738089fcbc11306195643a9b264dc17fab7a19c9f5591f13f68efbd01fb"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -70067,7 +70083,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e57f4a05ae5bc0c3f4d2fd36d1ca827d9651ffceb5bf9f9c5e6a099d35cc777a",
+      "sha256": "1895119780215ff37832f5bec9d203ca5f78472158f848e213cc1f6de58d9157",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70417,13 +70433,28 @@
             "prepared",
             "plan",
             "selected",
-            "model"
+            "model",
+            "acquired"
           ],
           "async": false
         },
         {
           "name": "sourceFreeModelPreparation/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -70950,14 +70981,16 @@
             "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
             "sourceFreeModelsPreparation/init:retain/init:retain",
             "sourceFreeModelsPreparation/init:retire/init:retire",
-            "sourceFreeModelsPreparation/originals/originals"
+            "sourceFreeModelsPreparation/originals/originals",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model)"
+                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model, acquired)"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
