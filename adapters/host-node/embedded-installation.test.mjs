@@ -44,11 +44,17 @@ import {prepareCapturedDuckDBSource, openCapturedDuckDBSource} from
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
-function retainedAuthorization(accountId, observe) {
+function retainedAuthorization(accountId, resultNames, observe) {
   const keys = generateKeyPairSync('ed25519');
   return {
     accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
-      account_id: accountId, entries: [{entry_id: 'write', outcome: 'allow',
+      account_id: accountId, entries: [{entry_id: 'control-result-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        // Account selectors are canonical sets, including the Run read.
+        resource: {any_of: ['run', ...resultNames.map(name => `result/${name}`)].sort()},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'write', outcome: 'allow',
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}]}),
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
@@ -149,9 +155,8 @@ test('embedded Host reuses equivalent installation options, not object identity'
 test('public source-free Program uses installed retained Relation output',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     let outputRepresentations;
-    const authorization = retainedAuthorization('retained-source-free', (name, detail) => {
+    const authorization = retainedAuthorization('retained-source-free', ['rows'], (name, detail) => {
       if (name === 'computed') outputRepresentations = detail.outputRepresentations;
     });
     const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
@@ -159,7 +164,10 @@ test('public source-free Program uses installed retained Relation output',
         authorization}}).catch(error => {
       assert.fail(error.primaryFailure?.stack ?? error.stack);
     });
-    t.after(() => client.close());
+    t.after(async () => {
+      await client.close();
+      await rm(directory, {recursive: true, force: true});
+    });
     const program = {version: 'actql/0.1', id: 'public-retained-values',
       stages: [{id: 'source', inputs: {}, steps: [{values: {
         schema: {id: {type: 'number', nullable: false}},
@@ -178,14 +186,17 @@ test('public source-free Program uses installed retained Relation output',
 
 test('public Events Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-events-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   let outputRepresentations;
-  const authorization = retainedAuthorization('retained-events', (name, detail) => {
+  const authorization = retainedAuthorization('retained-events',
+    ['published', 'consumed_a', 'consumed_b'], (name, detail) => {
     if (name === 'computed') outputRepresentations = detail.outputRepresentations;
   });
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory, retainedRelationOutput: true, authorization}});
-  t.after(() => client.close());
+  t.after(async () => {
+    await client.close();
+    await rm(directory, {recursive: true, force: true});
+  });
   const program = {version: 'actql/0.1', id: 'public-retained-events', stages: [{
     id: 'values', inputs: {}, steps: [{values: {schema: {
       event_id: {type: 'number', nullable: false},
@@ -245,14 +256,17 @@ test('public Events Bridge publishes managed producer and two consumer Results',
 
 test('public Vectors Bridge publishes managed producer and two consumer Results', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-retained-vectors-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   let outputRepresentations;
-  const authorization = retainedAuthorization('retained-vectors', (name, detail) => {
+  const authorization = retainedAuthorization('retained-vectors',
+    ['published', 'consumed_a', 'consumed_b'], (name, detail) => {
     if (name === 'computed') outputRepresentations = detail.outputRepresentations;
   });
   const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory, retainedRelationOutput: true, authorization}});
-  t.after(() => client.close());
+  t.after(async () => {
+    await client.close();
+    await rm(directory, {recursive: true, force: true});
+  });
   const program = {version: 'actql/0.1', id: 'public-retained-vectors', stages: [{
     id: 'values', inputs: {}, steps: [{values: {schema: {
       id: {type: 'number', nullable: false},
