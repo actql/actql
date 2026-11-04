@@ -121,11 +121,12 @@ test('original Request observation awaits current audience and binds exact UTF8 
     let metadata;
     const pending = checker.projectOriginal(request, actual => {
       projected++; metadata = actual; assert.ok(Object.isFrozen(actual));
-      assert.equal(actual.length, 12); assert.equal(actual[2], kind);
+      assert.equal(actual.length, 13); assert.equal(actual[2], kind);
       assert.equal(actual[4], Buffer.byteLength(kind === 'text' ? request.input.text : JSON.stringify(request.input)));
       assert.equal(actual[8], Buffer.byteLength(JSON.stringify(request.parameters)));
       assert.equal(actual[10], undefined, 'No query-alias to Source-selector cast');
       assert.equal(actual[11], undefined, 'No namespace owner selected');
+      assert.equal(actual[12], JSON.stringify(request.parameters), 'Retain the same supplied parameter wire');
       assert.deepEqual(JSON.parse(actual[0]).aliases, [{name: 'original', sourceRef: 'fixture:original'}]);
       return JSON.stringify(boundOriginalReport(actual));
     });
