@@ -422,6 +422,7 @@ test('isolated production copy distinguishes explicit default aliases from impli
 test('target metadata keeps the actual manifest production and test imports distinct', () => {
   const source = readFileSync(new URL('../src/physical_resources/moon.pkg', import.meta.url), 'utf8');
   assert.deepEqual(packageImports(source), [
+    {path: 'actql/actql/capacity_arithmetic', alias: 'preparation_counts', scope: 'production'},
     {path: 'actql/actql/encode_core', alias: 'encode', scope: 'production'},
     {path: 'actql/actql/decode_core', alias: 'decode', scope: 'production'},
     {path: 'actql/actql/decode_shape', alias: 'shape', scope: 'production'},
