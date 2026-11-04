@@ -497,3 +497,81 @@ test('plural Model Plan forwards the same complete selected bounds and private c
   assert.throws(()=>object.prepareCheckedClientRequestModelsSourceFreePlan(parent,input,original,request,{...compiled},definition,occurrences,graphs,bounds),/Foreign Client compiled Infer preparation/);
   assert.equal(calls,1);
 });
+
+
+function completeModelPlanFixture({expireMember, badOrder = false} = {}) {
+  const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {},
+    compiled = {}, definition = {}, admission = {}, initialControl = {}, calls = [], prefixes = [{}, {}], providers = [{}, {}];
+  const selected = Object.freeze([0, 1].map(() => Object.freeze({graph: {}, occurrence: {}, selectedBounds: {}})));
+  const model = {prepared, compiled, runDefinition: definition,
+    selection: Object.freeze({components: selected}), graph: Object.freeze(selected.map(value => value.graph))};
+  model.components = Object.freeze(selected.map(selection => ({group: model, selection,
+    graph: selection.graph, occurrence: selection.occurrence, component: undefined})));
+  if (badOrder) model.components = Object.freeze([...model.components].reverse());
+  const run = {prepared, request, model}, primary = new Error('original Model member constructor current');
+  let live = true;
+  const current = () => {if (!live) throw primary;};
+  const moon = {
+    clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return 0;},
+    clientProgramPreparedComposedInferBounds() {assert.fail('Reuse each retained selected Limits');},
+    clientProgramComposedInferRetainedLimits(bounds) {
+      const index = selected.findIndex(value => value.selectedBounds === bounds); assert(index >= 0);
+      calls.push('bounds'+index); return [1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n];
+    },
+  };
+  const control = {
+    prepareCheckedClientRequestModelsSourceFreeComponentModule(...args) {
+      assert.equal(this, control);
+      assert.deepEqual(args.slice(0, 9), [parent, input, request, compiled, definition, compilation, admission, true, undefined]);
+      calls.push('one complete module');
+      for (let index = 0; index < 2; index++) {
+        assert.equal(args[9](index, {}, prefixes[index], () => {}), providers[index]);
+        assert.equal(model.components[index].component.provider, providers[index]);
+      }
+      return module;
+    },
+    prepareCheckedClientRequestModelsSourceFreePlan(...args) {
+      assert.equal(this, control); calls.push('one complete Plan');
+      assert.deepEqual(args.slice(0, 6), [parent, input, module, request, compiled, definition]);
+      assert.deepEqual(args[6], selected.map(value => value.occurrence));
+      assert.equal(args[7], model.graph);
+      assert.deepEqual(args[8], selected.map(value => value.selectedBounds));
+      assert(Object.isFrozen(args[6])); assert(Object.isFrozen(args[8]));
+      return plan;
+    },
+  };
+  model.control = control;
+  run.runtime = moon;
+  const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: false,
+    computeRuns: new WeakMap([[prepared, run]])}};
+  const ports = {assertSourceManagedHostPreparation: current, originalSourceManagedHostRequest: current,
+    prepareInstalledSequenceContractOriginal: () => ({moon, control: initialControl, contracts: {}, admission}),
+    runtimeCore: () => ({publicationControl: control}), checked: value => value,
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+    openNodeComposedInferProvider(options) {
+      const index = selected.indexOf(options.selected); assert(index >= 0);
+      assert.equal(options.moon, moon); assert.equal(options.inputPrefix, prefixes[index]); assert.equal(options.deferred, true);
+      calls.push('provider'+index); if (expireMember === index) live = false;
+      return Object.freeze({provider: providers[index], bindOriginal() {}});
+    }};
+  const construct = Function(...Object.keys(ports), 'return ' + source.slice(node.start, node.end))(...Object.values(ports));
+  return {calls, model, run, plan, module, primary, invoke: () => construct(originals, run, model, compilation, parent, input)};
+}
+
+test('complete Request Model caller constructs one module and Plan from every retained ordered Limits and provider', () => {
+  const f = completeModelPlanFixture(); assert.equal(f.invoke(), f.plan);
+  assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.modelPlan, f.plan);
+  assert.deepEqual(f.calls, ['bounds0', 'bounds1', 'one complete module', 'provider0', 'provider1', 'one complete Plan']);
+  assert(f.model.components.every(member => member.budget.readRetainedBytes === 3n && member.component !== undefined));
+});
+
+test('complete Request Model caller retains both original providers when the later current callback refuses', () => {
+  const f = completeModelPlanFixture({expireMember: 1});
+  assert.throws(f.invoke, cause => cause === f.primary);
+  assert(f.model.components.every(member => member.component !== undefined));
+  assert.equal(f.run.preparedSequences, undefined); assert.equal(f.run.modelPlan, undefined);
+  assert.deepEqual(f.calls, ['bounds0', 'bounds1', 'one complete module', 'provider0', 'provider1']);
+  const swapped = completeModelPlanFixture({badOrder: true});
+  assert.throws(swapped.invoke, {code: 'InstalledModelGroupPreparationUnavailable'});
+  assert.deepEqual(swapped.calls, []);
+});

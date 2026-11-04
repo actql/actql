@@ -1362,6 +1362,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           if (multiple) {
             model.scopes = issued;
             if (!Array.isArray(issued) || issued.length !== members.length) fail('NodeManagedRunAdmissionUnavailable');
+            // Keep the native return itself; callbacks cannot replace an
+            // original Scope slot before partial-constructor retirement.
+            Object.freeze(issued);
             for (let index = 0; index < members.length; index++) members[index].scope = issued[index];
             model.scope = issued[0];
           } else model.scope = issued;

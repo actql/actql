@@ -196,6 +196,7 @@ function adoptionFixture(family, failure, {multiple = false} = {}) {
       assert.equal(model.scope, scope, 'The existing caller must retain Scope before completion');
       if (multiple) {
         assert.equal(model.scopes, scopes, 'Keep the same native return before any fallible complete');
+        assert(Object.isFrozen(scopes), 'Keep each original Scope slot stable across completion/current callbacks');
         model.components.forEach((member, index) => assert.equal(member.scope, scopes[index]));
       }
       calls.push('complete'); if (failure) throw failure;

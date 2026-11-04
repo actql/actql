@@ -66,6 +66,33 @@ pub struct ObservationIssuance {
 }
 
 ///|
+// Compiler order is independent of which original finishes first and retains
+// the ONE whole-Run publication borrow. Find that actual nominal receiver
+// without reordering members; a non-owner comparison runs no current callback.
+fn complete_original_observation_funding_current(
+  owners : Array[Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+) -> Bool {
+  if owners.is_empty() || owners.length() > 128 {
+    return false
+  }
+  let found = owners.any(active => {
+    active.model is Some(model) &&
+    active.call_scope is Some(scope) &&
+    @model.original_model_publication_capacity_current(capacity, model, scope)
+  })
+  found &&
+  owners.all(active => {
+    original_infer_publication_owner_current(active) &&
+    @model.original_model_publication_capacity_matches_parent(
+      capacity,
+      active.model.unwrap(),
+      active.call_scope.unwrap(),
+    )
+  })
+}
+
+///|
 fn observation_issuance_funding_current(
   state : ObservationIssuanceState,
 ) -> Bool {
@@ -73,22 +100,8 @@ fn observation_issuance_funding_current(
     Some(Metadata(ledger, reservation)) =>
       @resources.reservation_open(reservation) &&
       @resources.check_original_resources_mutable(ledger) is Ok(_)
-    Some(Original(capacity)) => {
-      guard state.owners.get(0) is Some(active) &&
-        active.model is Some(model) &&
-        active.call_scope is Some(scope) else {
-        return false
-      }
-      @model.original_model_publication_capacity_current(capacity, model, scope) &&
-      state.owners.all(owner => {
-        original_infer_publication_owner_current(owner) &&
-        @model.original_model_publication_capacity_matches_parent(
-          capacity,
-          owner.model.unwrap(),
-          owner.call_scope.unwrap(),
-        )
-      })
-    }
+    Some(Original(capacity)) =>
+      complete_original_observation_funding_current(state.owners, capacity)
     None => false
   }
 }
@@ -105,14 +118,10 @@ fn charge_observation_issuance_step(
       @resources.charge_planning(ledger, 1).map_err(issue => {
         Model(@model.Ledger(issue))
       })
-    Original(capacity) => {
-      if !original_infer_publication_owner_current(state.owners[0]) {
-        return Err(Model(@model.OutputIdentity))
-      }
+    Original(capacity) =>
       @model.charge_original_model_observation_step(capacity).map_err(issue => {
         Model(issue)
       })
-    }
   }
 }
 
@@ -200,25 +209,8 @@ pub fn start_complete_original_observation_issuance(
   limits : ObservationIssuanceLimits,
   generations? : Array[@publication_host.ClientSerializationGeneration] = [],
 ) -> Result[ObservationIssuance, Issue] {
-  guard owners.length() > 0 &&
-    owners.length() <= 128 &&
-    original_infer_publication_owner_current(owners[0]) &&
-    @model.original_model_publication_capacity_current(
-      capacity,
-      owners[0].model.unwrap(),
-      owners[0].call_scope.unwrap(),
-    ) else {
+  if !complete_original_observation_funding_current(owners, capacity) {
     return Err(Model(@model.OutputIdentity))
-  }
-  for active in owners {
-    guard original_infer_publication_owner_current(active) &&
-      @model.original_model_publication_capacity_matches_parent(
-        capacity,
-        active.model.unwrap(),
-        active.call_scope.unwrap(),
-      ) else {
-      return Err(Model(@model.OutputIdentity))
-    }
   }
   start_observation_issuance_owned(
     owners,
@@ -340,12 +332,7 @@ fn start_observation_issuance_owned(
       ObservationIssuanceFunding::Metadata(ledger, reservation)
     }
     (None, Some(capacity)) => {
-      if !original_infer_publication_owner_current(owners[0]) ||
-        !@model.original_model_publication_capacity_current(
-          capacity,
-          owners[0].model.unwrap(),
-          owners[0].call_scope.unwrap(),
-        ) {
+      if !complete_original_observation_funding_current(owners, capacity) {
         return Err(Model(@model.OutputIdentity))
       }
       if !@model.original_model_publication_capacity_covers(
