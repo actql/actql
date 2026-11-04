@@ -41,3 +41,20 @@
   installed_direct_occurrences_js_wbtest.mbt checks wrong coordinates, duplicate
   and retired reads, same Run/Ledger and representation growth. These checks do
   not establish full keyed Content/Model/Effect composition or artifact acceptance.
+
+The Effect Source Plan also accepts inert installed Row or DuckDB descriptions
+in this same checked occurrence order. It prepares each original Query once,
+retaining either the existing Row acquisition or the existing pending DuckDB
+capacity. Native descriptions bind the exact checked Source reference and the
+three original acquisition/evidence/receipt contracts; they select neither a
+Native/Broad realization nor permission. The native getter crosses original
+current once and returns that same requirement/capacity without a Row read.
+Row declarations/acquisitions stay compact in their original relative order;
+read slots and capture capacities retain the full checked task order. Existing
+all-Row indexes and public Plan signatures are unchanged. Mixed plans keep the
+complete simultaneous Compute/capture envelope; the Row-provider-only phase
+reduction applies only when every capture has that original provider recipe.
+Focused Effect native/Row tests additionally cover both mixed orders, original
+Ledger/capacity identity, foreign and absent inputs, exhaustion without attempts,
+and synchronous current reentry. These are Core/source checks, not an installed
+DuckDB/Model/Effect execution or physical cleanup acknowledgement.

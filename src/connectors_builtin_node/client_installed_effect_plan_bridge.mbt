@@ -922,3 +922,109 @@ pub fn client_program_installed_physical_write_recipe_capacities(
     },
   )
 }
+
+///|
+#export_name("clientProgramInstalledEffectRowSourceInputPrepare")
+pub fn client_program_installed_effect_row_source_input_prepare(
+  declaration : @client_row_source_host.RowDeclaration,
+  provider : @execution.ExecutionCapacity?,
+) -> Result[
+  @client_local_host.ClientInstalledEffectSourceInput,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_row_source_input(
+    declaration, provider,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectDuckDBSourceInputPrepare")
+pub fn client_program_installed_effect_duckdb_source_input_prepare(
+  source_ref : String,
+  database_schema : String,
+  table : String,
+  query_contract : String,
+  evidence_contract : String,
+  two_receipt_contract : String,
+) -> Result[
+  @client_local_host.ClientInstalledEffectSourceInput,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_effect_duckdb_source_input(
+    source_ref, database_schema, table, query_contract, evidence_contract, two_receipt_contract,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedSourcePlanPrepare")
+pub fn client_program_installed_effect_managed_source_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  inputs : Array[@client_local_host.ClientInstalledEffectSourceInput],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  model : @client_local_host.ClientInstalledEffectModelDemand?,
+  components : Array[@local.ManagedProvider],
+  content : @client_local_host.ClientInstalledEffectContentPreparation?,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  if model is Some(_) && components.is_empty() {
+    return Err(Unsupported)
+  }
+  let components = components.copy()
+  @client_local_host.prepare_installed_effect_managed_source_plan(
+    prepared,
+    request,
+    inputs,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    query_time~,
+    model~,
+    content~,
+    provider_factory=capacity => {
+      let providers = installed_client_family_providers(capacity)
+      for component in components {
+        providers.push(component)
+      }
+      providers
+    },
+  )
+}
+
+///|
+#export_name("clientProgramInstalledEffectManagedDuckDBCapture")
+pub fn client_program_installed_effect_managed_duckdb_capture(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  occurrence : Int,
+) -> Result[
+  (
+    @planning.QueryRequirement,
+    @client_local_host.ClientInstalledCaptureCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_effect_managed_duckdb_capture(
+    run, prepared, request, occurrence,
+  )
+}

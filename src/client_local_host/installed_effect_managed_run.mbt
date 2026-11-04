@@ -264,19 +264,29 @@ fn prepare_planned_installed_effect_ledger(
     plan.transport_bytes != transport_bytes ||
     plan.transport_execution_bytes != transport_execution_bytes ||
     capacities.length() != plan.captures.length() ||
-    value.reads.length() != plan.declarations.length() {
+    value.reads.length() != plan.captures.length() {
     return Err(ForeignOriginal)
   }
   for index, capacity in capacities {
-    if !physical_equal(capacity, plan.captures[index]) ||
-      !capacity.original_input {
+    if !physical_equal(capacity, plan.captures[index]) {
+      return Err(ForeignOriginal)
+    }
+    if !capacity.original_input {
+      if capacity.acquisition is Some(_) ||
+        capacity.provider is Some(_) ||
+        value.reads[index] is Some(_) {
+        return Err(ForeignOriginal)
+      }
+      continue
+    }
+    guard installed_effect_source_row_index(plan, index) is Some(row_index) else {
       return Err(ForeignOriginal)
     }
     guard value.reads[index] is Some(read) &&
       read.declaration is Some(declaration) &&
-      physical_equal(declaration, plan.declarations[index]) &&
+      physical_equal(declaration, plan.declarations[row_index]) &&
       read.acquisition is Some(acquisition) &&
-      physical_equal(acquisition, plan.acquisitions[index]) &&
+      physical_equal(acquisition, plan.acquisitions[row_index]) &&
       read.requirement is Some(requirement) &&
       physical_equal(requirement, capacity.requirement) else {
       return Err(ForeignOriginal)

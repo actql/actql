@@ -445,7 +445,7 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "867074f8ccb19a52b6ec88e2df88069e4b9713766715b4da5ebff78291596a0d",
+      "sha256": "de57dfc1d75ad3e22be2b702a7a526073a2eee75a51adfaa55a00fa536af46bd",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -505,6 +505,10 @@
         {
           "name": "prepare_installed_effect_managed_plan",
           "declaration": "prepare_installed_effect_managed_plan ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_effect_managed_plan_owned",
+          "declaration": "prepare_installed_effect_managed_plan_owned ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
         {
           "name": "prepare_installed_effect_operation_demand",
@@ -575,7 +579,8 @@
             "prepared_installed_effect_managed_shape",
             "prepared_installed_effect_managed_source",
             "resolve_installed_effect_capture_extent",
-            "resolve_installed_effect_id_extent"
+            "resolve_installed_effect_id_extent",
+            "prepare_installed_effect_managed_plan_owned"
           ],
           "exports": [],
           "attributes": {
@@ -2223,6 +2228,116 @@
             "select_client_direct_acquisition_occurrences",
             "select_client_direct_acquisition_occurrences_owned",
             "select_client_effect_direct_acquisition_occurrences"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_native_source.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "9bce09a540e261a78c51dd4fe96a6a23e85bb7e83ddd2ff0c5c2d1a403c75dab",
+      "role": "common-semantics",
+      "owner": "Existing checked Effect Plan, original Row/DuckDB capture and managed Run/Ledger owners; installation DATA is not authority",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_effect_managed_duckdb_capture",
+          "declaration": "installed_effect_managed_duckdb_capture ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ ( @ planning . QueryRequirement , ClientInstalledCaptureCapacity ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_effect_source_row_index",
+          "declaration": "installed_effect_source_row_index ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Int ?"
+        },
+        {
+          "name": "prepare_installed_effect_duckdb_source_input",
+          "declaration": "prepare_installed_effect_duckdb_source_input ( source_ref : String , database_schema : String , table : String , query_contract : String , evidence_contract : String , two_receipt_contract : String , ) - > Result [ ClientInstalledEffectSourceInput , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_effect_managed_source_plan",
+          "declaration": "prepare_installed_effect_managed_source_plan ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , inputs : Array [ ClientInstalledEffectSourceInput ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_effect_row_source_input",
+          "declaration": "prepare_installed_effect_row_source_input ( declaration : @ row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledEffectSourceInput , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_effect_source_inputs",
+          "declaration": "prepare_installed_effect_source_inputs ( prepared : @ publication_host . PreparedClientEffectComputation , inputs : Array [ ClientInstalledEffectSourceInput ] , query_contract : String , evidence_contract : String , contracts : ClientInstalledSequenceContracts , values : String , fragment : String ? , ordered : String ? , occurrences : @ publication_host . ClientDirectAcquisitionOccurrences ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ? , ) - > Result [ ( Array [ @ row_source_host . RowDeclaration ] , Array [ @ row_source_host . RowAcquisition ] , Array [ ClientInstalledCaptureCapacity ] , ) , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_managed_duckdb_capture",
+            "installed_effect_source_row_index",
+            "prepare_installed_effect_duckdb_source_input",
+            "prepare_installed_effect_managed_source_plan",
+            "prepare_installed_effect_row_source_input",
+            "prepare_installed_effect_source_inputs"
           ],
           "exports": [],
           "attributes": {
