@@ -316,3 +316,118 @@ test "single capture inventory retains Native beside the Compute allowance" {
     assert_true(single_captured_capacity_limits(compute, native) is None)
   }
 }
+
+///|
+test "Source-free whole-run maximum does not veto finite runtime admission" {
+  let assets = @publication_host.client_local_product_assets()
+  let evidence = "sha256:65b8e4316a5fdf0a0e8d67a38d8d676e915653929bfe1ecdc64d823d177c9261"
+  let environment = @publication_host.admit_client_check_environment(
+    closed_carrier_demand_environment,
+    evidence,
+    { text_time: true, veca: true, },
+    { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
+    graph=true,
+  ).unwrap()
+  let catalog = @checked.prepare_source_catalog(environment, {
+    max_work: 1000000,
+    max_bytes: 1000000,
+    max_nodes: 100000,
+    max_depth: 100,
+  }).unwrap()
+  let query = "WITH n AS (SELECT node_key, node_key AS seed FROM UNNEST([3, 2, 1]) node_key) , e AS (SELECT 13 AS edge_key, 2 AS src, 3 AS dst UNION ALL SELECT 12 AS edge_key, 1 AS src, 1 AS dst UNION ALL SELECT 11 AS edge_key, 1 AS src, 2 AS dst UNION ALL SELECT 10 AS edge_key, 1 AS src, 2 AS dst) , g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (seed)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) , reached AS (FROM g |> reach(start: {where: 'seed = 1'}, direction: 'out', max_depth: 2)) FROM reached |> SELECT depth |> ORDER BY depth |> RESULT reached"
+  let lowered = match
+    @frontend.lower(
+      query,
+      @frontend.Text,
+      Some(
+        @frontend.bind_query_context(
+          [],
+          evidence,
+          source_catalog=Some(@checked.source_catalog_contracts(catalog)),
+        ).unwrap(),
+      ),
+      public_primary=true,
+    ) {
+    Ok(value) => value
+    Err(@frontend.QuerySyntax(issue)) =>
+      fail("original Graph syntax: " + @debug.to_string(issue))
+    Err(@frontend.QueryLowering(_)) => fail("original Graph lowering")
+    Err(_) => fail("original Graph frontend")
+  }
+  let prepared = match
+    @publication_host.prepare_effect_free_client_program(
+      lowered.document,
+      lowered.format,
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+      source_catalog=Some(catalog),
+    ) {
+    Ok(value) => value
+    Err(@publication_host.Check(issue)) =>
+      fail(
+        "original Graph check: " +
+        @debug.to_string(@checked.diagnostic_category(issue)) +
+        ": " +
+        (match @checked.diagnostic_cause(issue) {
+          @checked.Units(_) => "Units"
+          @checked.Closure(_) => "Closure"
+          @checked.Source(_) => "Source"
+          @checked.Program(_) => "Program"
+          @checked.CapacityInputs(_) => "CapacityInputs"
+          @checked.Environment(_) => "Environment"
+          @checked.Template(_, _) => "Template"
+          @checked.InvalidLimits => "InvalidLimits"
+        }),
+      )
+    Err(@publication_host.Syntax(_)) => fail("original Graph Program syntax")
+    Err(@publication_host.NeedsInputs(_)) => fail("original Graph NeedsInputs")
+    Err(@publication_host.Graph(_)) => fail("original Graph task construction")
+    Err(_) => fail("original Graph preparation")
+  }
+  let contracts = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let original = source_free_installed_managed_preparation_owned(
+    Pure(prepared),
+    contracts,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    false,
+  ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  let inputs = Array::make(count, 0)
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    inputs[@strategy.data_edge_consumer(edge)] += 1
+  }
+  // The old whole-future envelope cannot fit. It is still required by callers
+  // selecting that envelope, rather than silently converted to a small quote.
+  assert_true(
+    client_local_sequence_capacity_original(
+      original.sequences,
+      count,
+      capacity_plan=Some(original.capacity_plan),
+      retained_inputs=Some(inputs),
+      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+    )
+    is None,
+  )
+  assert_eq(original.limits.retained_bytes, 536870912L)
+  assert_true(
+    client_local_sequence_capacity_original(
+      original.sequences,
+      count,
+      capacity_plan=Some(original.capacity_plan),
+      retained_inputs=Some([]),
+      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+      runtime_admission=true,
+    )
+    is None,
+  )
+}
