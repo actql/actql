@@ -213,7 +213,10 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
     let i = @strategy.graph_result_count(graph) + 1
     let bridge = p * (3 * f + 2 * b + 8)
     let completion = 4 * p + 2 * b + 64 * i + 16
-    let exported = 24 * f + 2 * plan.execution.rows.max_rows + terms + 64
+    // The initial Result constructor retains one pair of row-index slots.
+    // Later actual rows grow that same metadata owner before construction;
+    // the independent row-policy ceiling above remains unchanged.
+    let exported = 24 * f + 2 + terms + 64
     let dispatch = 8 * p + 8 * i + 64
     let schema_bytes = 6 * n + 96 * f + 2
     let expected_metadata = (bridge + completion + exported + dispatch).to_int64() *

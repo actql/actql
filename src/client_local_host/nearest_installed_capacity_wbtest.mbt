@@ -128,13 +128,17 @@ fn nearest_failed_capture_fixture(
     Some(source_query_original_fragment),
     None,
   ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 15)
+  assert_eq(@strategy.graph_captured_prefix(graph), 2)
   let ledger = if historical_budget {
-    // Preserve the original short allowance as a negative control. Only this
-    // test ledger is changed; the graph, offers, memory and execution limits
-    // are identical to the positive case.
+    // A task-only Compute allowance counts thirteen tasks after the two
+    // captured Sources. The two acquisitions retain their separate transport.
+    // Fourteen row-wire receiving ports still make this allowance too short;
+    // the graph, offers, memory and execution limits match the positive case.
     @resources.create_ledger({
       ..@resources.ledger_admission_limits(ledger),
-      transfer_bytes: 15008192L,
+      transfer_bytes: 13L * 1000000L + 2L * 4096L,
     }).unwrap()
   } else {
     ledger
@@ -144,7 +148,7 @@ fn nearest_failed_capture_fixture(
   assert_eq(
     @resources.ledger_admission_limits(ledger).transfer_bytes,
     if historical_budget {
-      15008192L
+      13L * 1000000L + 2L * 4096L
     } else {
       16008192L
     },
@@ -182,7 +186,6 @@ fn nearest_failed_capture_fixture(
     let capture = @row_source_host.capture_row_run(run).unwrap()
     sources.push((task, @row_source_host.row_capture_source(capture).unwrap()))
   }
-  let graph = @publication_host.prepared_client_graph(prepared)
   let dag = match @strategy.open_multi_captured_dag(graph, sources, ledger) {
     Ok(run) => run
     Err(ForeignCapture) => fail("original installed nearest ForeignCapture")
@@ -351,7 +354,9 @@ fn nearest_failed_offer_boundary(
     if report.rejection is Some(@resources.ExecutionLimit) {
       fail("original nearest strategy ExecutionLimit")
     }
-    assert_eq(report.transfer_bytes, 16000000L)
+    // The authored graph has sixteen receiving ports. Its two nearest input
+    // Carrier views borrow vectors directly and never open row-wire importers.
+    assert_eq(report.transfer_bytes, (16L - 2L) * 1000000L)
     if historical_budget {
       assert_true(report.rejection is Some(@resources.TransferLimit))
     } else {

@@ -349,7 +349,17 @@ test "two captured Sources retain every Event task under the original execution 
   // A maximum-only fold would pass the ceiling but lose those obligations.
   assert_eq(@strategy.graph_task_count(capture.graph), 10)
   assert_eq(@strategy.graph_result_count(capture.graph), 2)
-  assert_eq(capture.limits.execution_bytes, all_tasks)
+  // Two Direct occurrences also retain owner/inventory/Some/coordinates
+  // (5H/6R/8W) and both original/check arrays (4H/26R/4W). The same
+  // retained selector overlaps every task; its graph and queries are borrowed.
+  let selector = @execution.preparation_representation_cost({
+    record_headers: 9L,
+    reference_slots: 32L,
+    scalar_words: 12L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  assert_eq(capture.limits.execution_bytes, all_tasks + selector)
   assert_true(all_tasks > largest_task)
   assert_eq(
     plan.measurement.max_nodes,

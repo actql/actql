@@ -452,7 +452,8 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     original_row_evidence_contract_fixture,
   ).unwrap()
   // Independently calculated existing empty assembly envelope:
-  // retention = 64*8 + 4096; workspace = 64*32 + 64*8 + 4096.
+  // No row containers are retained: 0*64 + 4096. Workspace still funds the
+  // bounded key/copy traversal: 64*32 + 64*8 + 4096.
   // These canonical-layout budgets are not a normal Node physical profile.
   let (scope, ledger) = original_row_scope(
     compiled,
@@ -461,7 +462,7 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     retained_bytes=@row_source_host.row_acquisition_retained_capacity(
         acquisition,
       ) +
-      4608L +
+      4096L +
       3L,
     execution_bytes=@row_source_host.row_acquisition_execution_capacity(
         acquisition,
@@ -553,7 +554,7 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     assembled_usage.reserved_attempts,
     captured_usage.reserved_attempts + 1,
   )
-  assert_eq(assembled_usage.reserved_retention_bytes, 4611L)
+  assert_eq(assembled_usage.reserved_retention_bytes, 4096L + 3L)
   assert_eq(assembled_usage.reserved_execution_bytes, 6658L)
   assert_eq(assembled_usage.holdings, 1)
   // Zero progress is neither cleanup acknowledgment nor permission to return

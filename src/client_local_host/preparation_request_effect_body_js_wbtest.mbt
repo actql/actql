@@ -274,12 +274,23 @@ test "Effect Request Plan grow keeps the same compiled original and quote at bot
     // before entry. The previous data-only fixture omitted those live frames.
     let proof_retained = client_local_value_node_proof_retained_bytes().unwrap()
     let proof_scratch = client_local_value_node_proof_scratch_bytes().unwrap()
+    // The empty Direct selection retains its original Plan reference even
+    // though this Effect fixture captures no Source or coordinate arrays.
+    let direct_selector_field = @execution.preparation_representation_cost({
+      record_headers: 0L,
+      reference_slots: 1L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }).unwrap()
     let retained = bytes +
       proof_retained +
+      direct_selector_field +
       @execution.execution_capacity_retained_bytes(phase)
     let execution = bytes +
       proof_retained +
       proof_scratch +
+      direct_selector_field +
       @execution.execution_capacity_execution_bytes(phase)
     let limits = @resources.ledger_limits(parent.ledger)
     let block = @resources.reserve_capacity(
