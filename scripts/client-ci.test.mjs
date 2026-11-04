@@ -320,7 +320,14 @@ test('packed composition Source publications retain the authored Host policy bef
       `../adapters/host-node/fixtures/two-source/${name}.environment.json`, import.meta.url), 'utf8'));
     const before = structuredClone(original);
     const unbound = await publicFixtureEnvironment(original);
-    assert.throws(() => composeInstalledCheckEnvironment(moon, baseWire, canonicalText(unbound)),
+    assert.deepEqual(JSON.parse(composeInstalledCheckEnvironment(moon, baseWire,
+      canonicalText(unbound))).host_policy_profile, base.host_policy_profile);
+    const {evidence_bundle_cid: ignored, ...differentHost} = structuredClone(base);
+    void ignored;
+    differentHost.host_policy_profile.capacity.max_relation_output_rows++;
+    const differentHostWire = canonicalText({...differentHost,
+      evidence_bundle_cid: contentCid(differentHost)});
+    assert.throws(() => composeInstalledCheckEnvironment(moon, differentHostWire, canonicalText(unbound)),
       error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
     const selected = await publicFixtureEnvironment(original, base.host_policy_profile);
     assert.deepEqual(selected.host_policy_profile, base.host_policy_profile);

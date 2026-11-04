@@ -141,6 +141,17 @@ const replacements = new Map();
 function refresh(environment, original) {
   const {evidence_bundle_cid: before, ...body} = environment;
   assert.equal(machineCid(body), before, 'complete original environment preimage');
+  // The same authored two-Source environment serves both this Core fixture
+  // and its public JSON publication. Keep the current Host policy identical;
+  // a historical CID must never select two different current bodies.
+  if (original === 'sha256:8dddb2a590629efb451ee5c579798da0ec64a674980601b49a97ff6a79140505' ||
+      original === 'sha256:806cd2ad9e32c71ac2a5879c896385a55d9ce388e7b782cb79209d93e556c771') {
+    const policy = JSON.parse(readFileSync('spec/local-check-environment.json', 'utf8'))
+      .host_policy_profile.text_time_evaluation;
+    if (body.host_policy_profile.text_time_evaluation === undefined) {
+      body.host_policy_profile.text_time_evaluation = policy;
+    } else assert.deepEqual(body.host_policy_profile.text_time_evaluation, policy);
+  }
   for (const capability of body.connector_capabilities) {
     capability.capability_contract_cids = capability.capability_contract_cids.map(pin => {
       assert(pins.has(pin), 'review unrecognized query capability instead of guessing its role');

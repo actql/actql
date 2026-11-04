@@ -2,7 +2,7 @@
 test "document preparation consumes the same original Catalog without changing query identity" {
   let environment = admit_client_check_environment(
     multi_source_environment,
-    "sha256:9b20c429c53c8eb9b5b057b26f86209d6964f1ca97d83e594b3a628aebe79c4a",
+    "sha256:c9cf17f3e181c97a69e3419d4543e98c9a04af6da9490b359511a673a64c49a7",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
