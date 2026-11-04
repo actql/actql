@@ -509,6 +509,47 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
+  if plan.models is Some(_) {
+    return Err(ForeignOriginal)
+  }
+  prepare_request_model_read_scopes_owned(
+    owner, input, plan, quantity_limits, bind_request_single_model_read_scope,
+  )
+}
+
+///|
+// These module-level binding functions capture nothing. The generic driver
+// below performs the original quote/current/census handoff once; no retained
+// callback, wrapper, duplicated checker or second admission is introduced.
+fn bind_request_single_model_read_scope(
+  plan : ClientInstalledManagedModelPlan,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @publication_host.bind_client_model_read_scope(
+    plan.compiled,
+    plan.definition,
+    plan.graph,
+    ledger,
+    identity,
+  )
+}
+
+///|
+fn[I, T] prepare_request_model_read_scopes_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedModelPlan,
+  quantity_limits : @resources.QuantityAmounts?,
+  bind : (
+    ClientInstalledManagedModelPlan,
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+  ) -> Result[T, @publication_host.ClientModelReadPreparationIssue],
+) -> Result[T, ClientInstalledManagedRunIssue] {
   // A mixed module carries the same already constructed prefix, not a
   // successful quote or a Model Scope standing in for Content retention.
   guard (match (plan.content_prefix, owner.program_content) {
@@ -542,7 +583,14 @@ pub fn[I] prepare_request_model_read_scope(
   guard (
       (
         owner.phase == ModelPlanReserved &&
-        owner.program_model is None &&
+        (
+          owner.program_model is None ||
+          (
+            plan.models is Some(_) &&
+            owner.program_model is Some(original_plan) &&
+            physical_equal(original_plan, plan)
+          )
+        ) &&
         owner.program_domain_quote is None
       ) ||
       (
@@ -581,6 +629,10 @@ pub fn[I] prepare_request_model_read_scope(
         plan.max_reservations,
         plan.max_holdings,
         plan.max_delegations,
+        model_count=match plan.models {
+          None => 1
+          Some(models) => models.length()
+        },
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
@@ -597,31 +649,9 @@ pub fn[I] prepare_request_model_read_scope(
     quantity_limits {
     None => Ok(())
     Some(installed) => {
-      let execution = @publication_host.client_infer_plan_graph_execution_contract(
-        plan.graph,
-      )
-      let selected : @resources.QuantityAmounts = {
-        tokens: Int64::min(
-          installed.tokens,
-          @environment.model_execution_ceiling(
-            execution,
-            @environment.TotalTokenReservation,
-          ),
-        ),
-        cost_units: Int64::min(
-          installed.cost_units,
-          @environment.model_execution_ceiling(
-            execution,
-            @environment.TotalCostUnits,
-          ),
-        ),
-        duration_ms: Int64::min(
-          installed.duration_ms,
-          @environment.model_execution_ceiling(
-            execution,
-            @environment.TotalDurationMs,
-          ),
-        ),
+      let selected = match request_model_plan_quantity_limits(plan, installed) {
+        None => return Err(InsufficientCapacity)
+        Some(value) => value
       }
       if @resources.quantity_configuration_matches(owner.ledger, Some(selected)) {
         Ok(())
@@ -641,10 +671,8 @@ pub fn[I] prepare_request_model_read_scope(
       Ok(_) => Err(ForeignOriginal)
     }
   }
-  let result : Result[
-    @publication_host.ClientModelReadScope,
-    ClientInstalledManagedRunIssue,
-  ] = match quantities_ready {
+  let result : Result[T, ClientInstalledManagedRunIssue] = match
+    quantities_ready {
     Err(issue) => Err(issue)
     Ok(_) =>
       if owner.phase != Selecting {
@@ -683,13 +711,9 @@ pub fn[I] prepare_request_model_read_scope(
               ) {
               Err(issue) => Err(Preparation(issue))
               Ok(identity) =>
-                @publication_host.bind_client_model_read_scope(
-                  plan.compiled,
-                  plan.definition,
-                  plan.graph,
-                  owner.ledger,
-                  identity,
-                ).map_err(issue => ModelRead(issue))
+                bind(plan, owner.ledger, identity).map_err(issue => {
+                  ModelRead(issue)
+                })
             }
           }
         }
@@ -755,6 +779,7 @@ pub fn[I] begin_request_model_managed_run(
   owner : ClientRequestPreparation[I],
   request : @publication_host.ClientRequestIdentity,
   scope : @publication_host.ClientModelReadScope,
+  scopes? : Array[@publication_host.ClientModelReadScope]? = None,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   guard owner.phase == ProgramBodyReady &&
     owner.input is Some(input) &&
@@ -770,17 +795,33 @@ pub fn[I] begin_request_model_managed_run(
     Err(issue) => return Err(Preparation(issue))
     Ok(value) => value
   }
-  if !@publication_host.client_model_read_scope_original_inventory(
-      scope,
-      owner.ledger,
-      identity,
-    ) ||
-    !@publication_host.client_model_read_scope_live(
-      scope,
-      plan.compiled,
-      plan.definition,
-      plan.graph,
-    ) {
+  let matching_scopes = match (plan.models, scopes) {
+    (None, None) =>
+      @publication_host.client_model_read_scope_original_inventory(
+        scope,
+        owner.ledger,
+        identity,
+      ) &&
+      @publication_host.client_model_read_scope_live(
+        scope,
+        plan.compiled,
+        plan.definition,
+        plan.graph,
+      )
+    (Some(models), Some(originals)) =>
+      originals.length() == models.length() &&
+      originals.length() > 1 &&
+      physical_equal(originals[0], scope) &&
+      @publication_host.client_model_read_scopes_match_originals(
+        originals,
+        plan.compiled,
+        plan.definition,
+        owner.ledger,
+        identity,
+      )
+    _ => false
+  }
+  if !matching_scopes {
     return Err(ForeignOriginal)
   }
   let content = owner.program_content

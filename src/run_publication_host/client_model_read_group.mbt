@@ -310,3 +310,38 @@ fn finish_client_model_group_scope(
   group.scopes.shrink_to_fit()
   Ok(true)
 }
+
+///|
+/// Pure closed-group identity/lifetime correspondence before Run adoption.
+/// This checks the same private compiler order and census; it performs no
+/// resource current callback, allocation, descriptor issue or Model send.
+pub fn client_model_read_scopes_match_originals(
+  scopes : Array[ClientModelReadScope],
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Bool {
+  if scopes.length() < 2 {
+    return false
+  }
+  guard scopes[0].group is Some(group) &&
+    !group.closed &&
+    !group.closing &&
+    scopes.length() == group.scopes.length() else {
+    return false
+  }
+  for index, scope in scopes {
+    if !physical_equal(scope, group.scopes[index]) ||
+      !client_model_read_scope_original_inventory(scope, ledger, identity) ||
+      !client_model_read_scope_live(
+        scope,
+        compiled,
+        definition,
+        scope.origin.plan,
+      ) {
+      return false
+    }
+  }
+  true
+}

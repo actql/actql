@@ -9,6 +9,7 @@ fn request_model_input_fixture(
   with_serialization? : Bool = false,
   nonterminal? : Bool = false,
   authored? : String? = None,
+  model_copies? : Int = 1,
   current? : () -> Bool = () => true,
   declaration? : @row_source_host.RowDeclaration? = None,
 ) -> (
@@ -95,7 +96,10 @@ fn request_model_input_fixture(
     retained_bytes: ordinary.retained_bytes,
     execution_bytes: ordinary.execution_bytes,
   }
-  let initial_limits = @resources.add_ledger_limits(ordinary, domain).unwrap()
+  let mut initial_limits = ordinary
+  for _ in 0..<model_copies {
+    initial_limits = @resources.add_ledger_limits(initial_limits, domain).unwrap()
+  }
   let (parent, child, _, input) = registration_parent_fixture(
     current~,
     text=document,

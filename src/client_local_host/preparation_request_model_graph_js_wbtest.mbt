@@ -2250,9 +2250,17 @@ test "same Request acquired Model prefix keeps live provider backing until origi
 // Actual checked Program, native graph constructors and one Request compiler.
 // Synthetic component initial allowances are not an installed Host/provider
 // recipe or normal runtime/physical qualification.
-test "multiple Model graphs retain complete original order on one Request compiler" {
-  let document =
+
+///|
+fn request_two_model_document() -> String {
+  (
     #|{"version":"actql/0.1","id":"request-two-models","stages":[{"id":"input","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  )
+}
+
+///|
+test "multiple Model graphs retain complete original order on one Request compiler" {
+  let document = request_two_model_document()
   let (parent, input, prepared) = request_model_input_fixture(
     authored=Some(document),
   )
@@ -2372,4 +2380,275 @@ test "multiple Model graphs retain complete original order on one Request compil
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+// Actual shared Request/check/compiler/module/Plan/Scope/adoption/retirement.
+// The two physical providers remain explicit ports, not ordinary Model IO.
+
+///|
+priv struct RequestTwoModelPlanFixture {
+  parent : ClientRequestPreparation[Array[Int]]
+  input : Array[Int]
+  prepared : @publication_host.PreparedClientProgram
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ]
+  occurrences : Array[@publication_host.ClientInferOccurrence]
+  graphs : Array[@publication_host.ClientInferPlanGraph]
+  compiled : @publication_host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  request : @publication_host.ClientRequestIdentity
+  selected_module : ClientInstalledManagedSourceFreePreparation
+  module_entries : Array[Int]
+}
+
+///|
+fn request_two_model_plan_fixture(
+  current? : () -> Bool = () => true,
+) -> RequestTwoModelPlanFixture raise {
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(request_two_model_document()),
+    model_copies=2,
+    current~,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  let compilation = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "two-model-aggregate", "original", "2026-11-04T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-aggregate",
+  ).unwrap()
+  let module_entries : Array[Int] = []
+  let selected_module = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    true,
+    2,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      module_entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  {
+    parent,
+    input,
+    prepared,
+    holder,
+    occurrences,
+    graphs,
+    compiled,
+    definition,
+    request,
+    selected_module,
+    module_entries,
+  }
+}
+
+///|
+test "two Model Request adopts one module and all original scopes with one aggregate demand and child first retirement" {
+  let f = request_two_model_plan_fixture()
+  let {
+    parent,
+    input,
+    prepared: _,
+    holder,
+    occurrences,
+    graphs,
+    compiled,
+    definition,
+    request,
+    selected_module,
+    module_entries,
+  } = f
+  let ledger = parent.ledger
+  let before_plan = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  let plan = prepare_request_models_source_free_plan(
+    parent,
+    input,
+    selected_module,
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    [effect_model_plan_limits, effect_model_plan_limits],
+    [7L, 9L],
+    [5L, 6L],
+    40,
+    40,
+    40,
+    bootstrap=Some((31L, 37L)),
+  ).unwrap()
+  assert_eq(module_entries, [0, 1])
+  // One original module demand, two Model demands, total read partitions,
+  // and the independent same-parent bootstrap exactly once.
+  assert_eq(
+    plan.limits.planning_work,
+    selected_module.limits.planning_work + 34,
+  )
+  assert_eq(plan.limits.attempts, selected_module.limits.attempts + 8)
+  assert_eq(
+    plan.limits.retained_bytes,
+    selected_module.limits.retained_bytes + 2000L + 16L + 31L,
+  )
+  assert_eq(
+    plan.limits.execution_bytes,
+    selected_module.limits.execution_bytes + 4000L + 11L + 37L,
+  )
+  let after_plan = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  assert_true(after_plan.0 > before_plan.0 && after_plan.1 > before_plan.1)
+  assert_true(physical_equal(parent.ledger, ledger))
+  assert_true(
+    prepare_request_model_read_scope(parent, input, plan)
+    is Err(ForeignOriginal),
+  )
+  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  assert_eq(scopes.length(), 2)
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  // Another group order cannot adopt the first Scope as a proxy for all.
+  assert_true(
+    begin_request_model_managed_run(
+      parent,
+      request,
+      scopes[0],
+      scopes=Some([scopes[1], scopes[0]]),
+    )
+    is Err(ForeignOriginal),
+  )
+  let run = begin_request_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), ledger))
+  let second = @publication_host.prepare_client_model_read(scopes[1], 9L, 6L).unwrap()
+  let first = @publication_host.prepare_client_model_read(scopes[0], 7L, 5L).unwrap()
+  @publication_host.settle_client_model_read(first, true).unwrap()
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scopes[0],
+      compiled,
+      definition,
+      graphs[0],
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    @publication_host.settle_client_model_read(second, false)
+    is Err(@publication_host.Resource(@resources.CleanupPending)),
+  )
+  @publication_host.settle_client_model_read(second, true).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scopes[1],
+      compiled,
+      definition,
+      graphs[1],
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "two Model Plan current mutation refuses changed original read partition and preserves its failed construction for abort" {
+  let armed = Ref(false)
+  let retained = [7L, 9L]
+  let f = request_two_model_plan_fixture(current=() => {
+    if armed.val {
+      retained[0] = -1L
+    }
+    true
+  })
+  let capacity = f.parent.program_capacity.unwrap()
+  let ledger = f.parent.ledger
+  armed.val = true
+  assert_true(
+    prepare_request_models_source_free_plan(
+      f.parent,
+      f.input,
+      f.selected_module,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrences,
+      f.graphs,
+      [effect_model_plan_limits, effect_model_plan_limits],
+      retained,
+      [5L, 6L],
+      40,
+      40,
+      40,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    f.parent.phase == ProgramBodyFailed && f.parent.program_model is None,
+  )
+  assert_true(physical_equal(f.parent.program_capacity.unwrap(), capacity))
+  assert_true(@resources.ledger_usage(ledger).live_reservations > 0)
+  armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }

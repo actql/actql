@@ -173,6 +173,7 @@ fn installed_request_model_compilation_matches(
     return false
   }
   installed_mock_model_compilation_matches(prepared, original) &&
+  original.infers.length() == 1 &&
   physical_equal(original.infers[0], graph) &&
   @publication_host.client_compiled_run_matches_tasks(
     compiled, prepared, original,
@@ -188,6 +189,7 @@ struct ClientInstalledManagedModelPlan {
   compiled : @publication_host.ClientCompiledRun
   definition : @publication.PublicationContract
   graph : @publication_host.ClientInferPlanGraph
+  models : Array[ClientInstalledModelReadPartition]?
   _occurrence : @publication_host.ClientInferOccurrence
   source_free : ClientInstalledManagedSourceFreePreparation?
   captured : ClientInstalledManagedCapturePlan?
@@ -199,12 +201,12 @@ struct ClientInstalledManagedModelPlan {
 }
 
 ///|
-// This exact record above: one header, ten retained references and three
+// This exact record above: one header, eleven retained references and three
 // scalar inventory words. The selected module/compiler, Option carriers,
 // Model Scope, provider and all nested construction frames are separate.
 let installed_model_plan_record : @execution.PreparationRepresentationUnits = {
   record_headers: 1L,
-  reference_slots: 10L,
+  reference_slots: 11L,
   scalar_words: 3L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -412,6 +414,7 @@ fn prepare_installed_mock_model_plan_owned(
     compiled,
     definition,
     graph,
+    models: None,
     _occurrence: occurrence,
     source_free,
     captured,
