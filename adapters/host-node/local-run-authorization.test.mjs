@@ -220,3 +220,39 @@ test('actual Account keeps Run-read and named-Result-read distinct and current',
   assert.equal(await authority.run({...request, principalId: 'foreign'}), false);
   assert.equal(await authority.run({...request, indexKey: {...facts.ref, namespaceId: 'foreign'}}), false);
 });
+
+test('Sheets public fixture admits only owner Run and answer reads while keeping business denial', async () => {
+  const source = readFileSync(new URL('../connectors/sheets/test/sheets-public-acceptance.fixture.mjs', import.meta.url), 'utf8');
+  const declarations = new Map();
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && ['entry', 'configuration'].includes(node.id.name)) {
+      assert.equal(declarations.has(node.id.name), false);
+      declarations.set(node.id.name, source.slice(node.init.start, node.init.end));
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(declarations.size, 2);
+  const configuration = new Function('canonicalJson', 'owner',
+    `const entry=(${declarations.get('entry')}); return (${declarations.get('configuration')});`)(canonicalJson, 'fixture-owner');
+  const moon = await loadExecutionAuthorizationRuntime();
+  const scope = {namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope'};
+  for (const commit of ['delegate', 'deny']) {
+    const wire = configuration('sheets:fixture/book', commit, true);
+    assert.equal(JSON.parse(moon.executionAuthorizationAccountJson(
+      moon.executionAuthorizationAdmit(wire))).state, 'admitted');
+    const body = JSON.parse(wire);
+    assert.equal(body.entries.find(entry => entry.entry_id === 'range-effect').outcome, commit);
+    for (const principalId of ['fixture-owner', 'foreign-reader']) {
+      const authority = createLocalReadAuthorizations({moon, authorization: {accountConfiguration: wire}, principalId, ...scope});
+      const facts = {principalId, indexKey: scope};
+      assert.equal(await authority.run(facts), principalId === 'fixture-owner');
+      assert.equal(await authority.result({...facts, resultName: 'answer'}), principalId === 'fixture-owner');
+      assert.equal(await authority.result({...facts, resultName: 'unrelated'}), false);
+    }
+  }
+});

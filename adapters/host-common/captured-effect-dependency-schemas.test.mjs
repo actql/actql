@@ -6,9 +6,13 @@ import * as common from '../../_build/js/release/build/connectors_builtin_node/c
 import {runtimeCore} from './runtime-core.mjs';
 const cid = `sha256:${'a'.repeat(64)}`;
 function fixture() {
+  const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 65536, maxDepth: 64});
   const moon = {
     ...common,
-    strategyPublicationAdmit: (name, wire) => ({$tag: 1, _0: {name, wire}}),
+    strategyPublicationAdmit: (name, wire, maxWireBytes, maxNodes, maxDepth) => {
+      assert.deepEqual({maxWireBytes, maxNodes, maxDepth}, limits);
+      return {$tag: 1, _0: {name, wire}};
+    },
     strategyPublicationContractName: value => value.name,
     strategyPublicationContractIdentityField: () => 'captured_run_cid',
     strategyPublicationContractIdentity: () => cid,
@@ -16,7 +20,7 @@ function fixture() {
   };
   const control = runtimeCore(moon).publicationControl;
   const capture = (inventory, name = 'captured_run') => control.admit(name,
-    JSON.stringify({effect_context: {effect_dependency_inventory: inventory}}), {});
+    JSON.stringify({effect_context: {effect_dependency_inventory: inventory}}), limits);
   return {control, capture};
 }
 
