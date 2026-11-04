@@ -596,9 +596,23 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       inventory: original, verifyRead});
     return frame;
   };
-  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup}) =>
+  run.prepareEffectFamily = ({facts, store, principalId, retainCleanup}) => {
+    const compiled = publications.adoptCheckedClientEffectSerializationRun(facts.allowed, facts.runDefinition);
+    const plan = Object.freeze({kind: 'effect', compiled, runDefinition: facts.runDefinition,
+      serializationGraph: publications.compiledSerializationGraph(compiled)});
+    const managedOriginal = Object.freeze({
+      inputRows: publications.checkedClientSerializationInputRows(compiled, plan.serializationGraph),
+      prepare(workspace, physical, retain) {
+      return publications.prepareCheckedClientEffectContentOriginal(facts.prepared, compiled,
+        facts.compilation, facts.runDefinition, plan.serializationGraph, bodies, workspace, physical, retain);
+    }});
+    const family = run.effectFamily({prepared: facts.prepared, plan, store, principalId,
+      retainCleanup, managedOriginal});
+    return Object.freeze({family, plan, preparation: family.preparation});
+  };
+  run.effectFamily = ({prepared, plan, store, principalId, signal, restored, retainCleanup, managedOriginal}) =>
     installEffectContentFamily({moon, control, publications, bodies,
-      prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
+      prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal, managedOriginal,
       namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
       referenceLimits, completionLimits,
       outputLimits: localOutputLimits, faultInjection, restored, retainCleanup});

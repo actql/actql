@@ -5,7 +5,7 @@ import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentCom
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry}
+import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
   from './installed-source-construction-geometry.mjs';
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
 import {createInstalledTableSource, installedTableReadSite} from './installed-table-source.mjs';
@@ -1469,6 +1469,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         const adapter = await createInstalledDuckDBSource(profile, original.moon, {
           root: original.root, principalId: original.principalId,
           sourceInitialization: context, environment: prepared.environment,
+          installation: scope.installation,
         });
         owned.adapter = adapter;
         current();
@@ -1719,18 +1720,16 @@ export function reserveInstalledSourceEnvironment(services, ...wires) {
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = original.material;
   if (material === undefined) return;
-  let basis = 0n;
   const selected = installedCheckEnvironmentInputs(wires[0], wires[1], wires[2]);
-  for (let index = 0; index < wires.length; index++) {
-    const wire = index < selected.length ? selected[index] : wires[index];
-    if (wire !== undefined) {
-      if (typeof wire !== 'string') fail('InvalidInstalledSourceEnvironment');
-      basis += BigInt(Buffer.byteLength(wire));
-    }
-  }
-  // Existing merge parses each input, builds canonical identities and emits
-  // the whole output while the old Source/declaration prefix stays retained.
-  reserveSource(original, material, 16n * basis, 16n * basis, 8n * basis);
+  const geometry = sourceEnvironmentCompositionGeometry(wires.map((wire, index) => {
+    const value = index < selected.length ? selected[index] : wire;
+    if (value !== undefined && typeof value !== 'string') fail('InvalidInstalledSourceEnvironment');
+    return value;
+  }));
+  // Reserve before the original parser/composer, separating its synchronous
+  // scratch from admitted output while all earlier Source material stays live.
+  reserveSource(original, material, geometry.nodes, geometry.text, geometry.wire,
+    undefined, geometry.retained);
 }
 
 export function reserveInstalledSourceRuntimeIdentity(services) {
@@ -1771,10 +1770,13 @@ export function completeInstalledSourceInitialization(services, sourceOriginal, 
   releaseFinishedSourceWorkspaces(material);
   if (material.ioPending !== 0 || material.constructors !== 0 || material.workspaces.size !== 0 || environment === undefined ||
       typeof environmentWire !== 'string') fail('InstalledSourceInitializationPending');
-  const bytes = BigInt(Buffer.byteLength(environmentWire));
-  reserveSource(original, material, 16n * bytes, 16n * bytes, 8n * bytes);
+  // The original final checker already constructed this body. Fund its actual
+  // retained tree/text before adopting the SAME body; completion adds no parse,
+  // canonicalization or second construction workspace.
+  const retained = sourceEnvironmentCompositionGeometry([environmentWire]).retained;
+  reserveSource(original, material, 0n, 0n, 0n, undefined, retained);
   material.inputs.push(environmentWire);
-  material.nodes += 16n * bytes; material.text += 16n * bytes; material.wire += 8n * bytes;
+  material.nodes += retained.nodes; material.text += retained.text; material.wire += retained.wire;
   sourceCall(original, material, 'CompleteInstalledSourceMaterial', [material.capacity, material.input,
     sourceOriginal, environment, sourceQuote(original, material)]);
   material.sourceOriginal = sourceOriginal; material.environment = environment;
@@ -2054,8 +2056,27 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
       const limits = implementation.value.limits, sequence = implementation.readSequenceConstruction;
       const constructor = sourceContexts.get(selection);
       if (constructor?.scope.reader !== undefined) fail('InstalledSourceReaderAlreadyConstructed');
+      // Optional separately bound Resources are declared by this SAME complete
+      // native sequence recipe. Names bound construction; only each original
+      // Site-issued decision/grant authorizes the actual child.
+      let resourceChildren;
+      const sequences = sequence?.sequences === undefined ? [sequence?.sequence]
+        : Object.values(sequence.sequences);
+      for (const originalSequence of sequences) {
+        for (const child of originalSequence?.children ?? []) {
+          const resource = Object.getOwnPropertyDescriptor(child, 'resource');
+          if (resource === undefined) continue;
+          if (!Object.hasOwn(resource, 'value') || typeof resource.value !== 'string' || resource.value.length === 0) {
+            fail('InvalidInstalledSourceResourceChildren');
+          }
+          resourceChildren ??= [];
+          if (!resourceChildren.includes(resource.value)) resourceChildren.push(resource.value);
+        }
+      }
+      if (resourceChildren !== undefined) Object.freeze(resourceChildren);
       const factory = createInstalledCredentialSourceReader({capacity: implementation.value.capacity,
         originalSite, [readerField]: fields[readerField].value, assertCurrent: current,
+        ...(resourceChildren === undefined ? {} : {resourceChildren}),
         maxResponses: limits.maxPages,
         ...(standard ? {operation: fields.operation.value,
           ...(implementation.requestConstruction === undefined ? {} : {maxRequestBytes:implementation.requestConstruction.maxRequestBytes}),

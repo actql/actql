@@ -49,6 +49,38 @@ other families keep the evaluator fallback even if their final schema is scalar.
 Field-name accounting includes UTF-8 names, every port, every original output,
 and external-input projection. It is not zero for numeric-only tables.
 
+## Closed Carrier demand
+
+The optional closed-item proof follows original checked Graph, Events and
+Vectors nodes and the exact producer targets of their original input edges.
+Graph construction counts every node/edge definition input occurrence, even
+when two roles use the same rows. A checked match emits at most one row per
+candidate element. Rows-to-Events, watermark mark/drop, rows-to-Vectors,
+normalization and their explicit record projections do not expand item counts.
+Other Carrier transforms, open inputs, ambiguous producer bindings and exhausted
+work or depth retain the general profile. No source text, sampled row or fixed
+three-row assumption supplies a bound.
+
+This proof changes the same configured value, evaluator, import and export
+profiles consumed by the Local constructors; it does not subtract from a quote
+while retaining larger allocations. Relation input/output schemas are still
+inventoried at every occurrence. Intermediate Carrier values do not acquire a
+synthetic row schema: their original provider storage, generations, constructor
+and failed-child limits remain separate and unchanged. Fixed-dimension Vector
+fields contribute one JSON array node and their original Number components.
+The complete graph, both independent consumers and all task occurrences remain
+retained in the Plan. Carrier graphs keep the general metadata layout and the
+existing expression-text fallback.
+
+The traversal borrows the original graph and retains no certificate cache.
+Temporary positional item arrays spend proof work before each appended result;
+the existing work bound therefore bounds all coexisting array entries, including
+ancestor frames. The existing compilation depth bounds recursion. Their header,
+reference and scalar representations are added to the original pre-Plan scratch
+admission using the shared representation-cost helper. Neither a successful
+count nor this configuration is backing, execution permission, publication
+acceptance or a physical release acknowledgement.
+
 ## Metadata funding
 
 [`capacity_metadata.mbt`](../../src/client_local_host/capacity_metadata.mbt)

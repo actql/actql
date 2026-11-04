@@ -8,18 +8,21 @@ const text = (value, max) => typeof value === 'string' && value.length > 0 &&
   value.isWellFormed() && !value.includes('\0') && Buffer.byteLength(value) <= max;
 const bufferBacking = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype), 'buffer').get;
 const ordinaryBacking = Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get;
+export const localFileWriteMaxComponents = 128;
 const operations = ['openFileRoot','openFileDirectory','openRootFileWriter',
   'fileRootCurrent','fileRootWrite','fileRootPublish','fileRootClose'];
 
 export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
-  maxBytes, overwrite = false, assertCurrent, signal}) {
+  maxBytes, overwrite = false, assertCurrent, signal, writeQuantumBytes = 65536, observeWriteBytes}) {
   if (!text(rootPath,4096) || !isAbsolute(rootPath) || !text(path,4096) || isAbsolute(path) ||
       !text(temporaryName,1024) || temporaryName.includes('/') ||
       ['.','..'].includes(temporaryName) || typeof overwrite !== 'boolean' ||
       !Number.isSafeInteger(maxBytes) || maxBytes < 0 || maxBytes > 2147483647 ||
-      typeof assertCurrent !== 'function') fail('InvalidLocalFileWrite');
+      typeof assertCurrent !== 'function' || !Number.isSafeInteger(writeQuantumBytes) ||
+      writeQuantumBytes < 1 || writeQuantumBytes > 65536 ||
+      observeWriteBytes !== undefined && typeof observeWriteBytes !== 'function') fail('InvalidLocalFileWrite');
   const components = path.split('/');
-  if (components.length > 128 || components.some(name =>
+  if (components.length > localFileWriteMaxComponents || components.some(name =>
     !text(name,1024) || name === '.' || name === '..') ||
     components.at(-1) === temporaryName) fail('InvalidLocalFileWrite');
   const methods = Object.freeze(Object.fromEntries(operations.map(name => {
@@ -94,8 +97,12 @@ export function prepareLocalFileWrite({native, rootPath, path, temporaryName,
         try {ordinaryBacking.call(bufferBacking.call(bytes));}
         catch {fail('InvalidLocalFileWriteBytes');}
         if (bytes.length > maxBytes-written) fail('LocalFileBytesLimit');
-        for (let offset=0;offset<bytes.length;offset+=65536) {
-          current();call('fileRootWrite',writer,Buffer.prototype.subarray.call(bytes,offset,offset+65536));
+        for (let offset=0;offset<bytes.length;offset+=writeQuantumBytes) {
+          current();
+          const end = Math.min(bytes.length, offset + writeQuantumBytes);
+          const observed = observeWriteBytes?.(BigInt(end - offset));
+          if (observed !== undefined) fail('InvalidLocalFileWriteObservation');
+          current();call('fileRootWrite',writer,Buffer.prototype.subarray.call(bytes,offset,end));
         }
         written += bytes.length;
       });

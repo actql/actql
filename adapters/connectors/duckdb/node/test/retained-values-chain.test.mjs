@@ -17,6 +17,7 @@ import {createNodeHostEntry} from '../../../../host-node/entry.mjs';
 import {installStrategyContributions} from '../../../../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../../host-common/compiler-binding.generated.mjs';
+import {retainFirstAndLatestCleanupError} from '../../../../host-common/managed-failure.mjs';
 import {sourceFreeTaskPlan, acquiredTaskRunAdmission,
   acquiredTaskPublicationPlan} from '../../../../host-node/local-values-plan.mjs';
 import {authorizeLocalDatabase} from '../session.mjs';
@@ -28,6 +29,7 @@ import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
 import {identifyRetainedCapturedSource} from '../../../../local-node/captured-source-identity.mjs';
 import {openLocalPublicationStore} from '../../../../store-local/publication-store.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
+import {closeManagedFixtureExecution, managedFixtureCleanupDiagnostic} from './managed-fixture-cleanup.mjs';
 
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -266,6 +268,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
   let retained, publication, owner, execution, captured, publicationFailure, preparation;
   let prepared, captureRun, capturePreparation, captureRequestIdentity;
+  let hasPrimaryFailure = false, primaryFailure;
   let permitCleanup = mode !== 'finalize-failure' && !route.publicationFault;
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
@@ -669,7 +672,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                     // The old atomic issuer cannot reach this observation.
                     receiptProgress = result._0.progress;
                     scheduled = true;
-                    setTimeout(() => cancellation.abort(), 0);
+                    // Cancel this still-pending original receipt. A timer can
+                    // arrive after the remaining quanta and a later dispatch.
+                    cancellation.abort();
                   }
                   return result;
                 };
@@ -843,23 +848,40 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       },
     });
   } catch (cause) {
+    hasPrimaryFailure = true;
+    primaryFailure = cause;
     if (cause?.code !== 'RunHostTaskInvocationRejected') throw cause;
     throw Object.assign(new Error(`${cause.message}: ${inspect(cause.cause, {depth: 6})}`,
       {cause}), {code: cause.code});
   } finally {
     const beforeCleanup = dispatches;
     permitCleanup = true;
-    try {
+    // Retain these same originals in the reported continuation before any
+    // child cleanup can fail. A failed close is not permission to retire the
+    // funded Request or remove its remaining physical input.
+    const run = captureRun;
+    let executionCloseStarted = false, retainedCloseStarted = false;
+    let captureCloseStarted = false;
+    const cleanupSteps = [async () => {
       if (route.publicationFault && publicationFailure?.cleanupHandle) {
         assert.equal((await publicationFailure.cleanupHandle.retry()).pending, false);
       }
-      if (owner) {
-        await owner.close();
-        assert.equal(await owner.cleanup(), true);
-      } else if (execution) {
-        await execution.close();
-        assert.equal(await execution.cleanup(), true);
+    }, async () => {
+      // The published wrapper delegates close/cleanup to this SAME execution.
+      const child = execution;
+      if (!child) return;
+      if (!executionCloseStarted) {
+        executionCloseStarted = true;
+        const recovery = await closeManagedFixtureExecution(child, 60000);
+        if (recovery.firstCloseFailure !== undefined) {
+          retainFirstAndLatestCleanupError(cleanupErrors, recovery.firstCloseFailure);
+        }
+      } else {
+        // A failed close remains cached; the retained outer continuation uses
+        // only this original child's cleanup port on a later explicit retry.
+        assert.equal(await child.cleanup(), true);
       }
+    }, async () => {
       if (execution) {
         assert.equal(dispatches, beforeCleanup, 'cleanup must not redispatch Compute');
         assert.equal(execution.usage().heldBytes, 0n);
@@ -879,35 +901,77 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         assert.equal(nativeSourceIdentityMatches(captured.capture,
           captured.identity), true, 'Compute cleanup must not retire the acquisition');
       }
-    } finally {
-      try {
+    }, async () => {
+      if (!retainedCloseStarted) {
+        retainedCloseStarted = true;
         await retained?.close();
-        await retained?.cleanup();
-        await publication?.close();
-      } finally {
-        try {
-          captured?.capture.close();
-          await captured?.capture.cleanupHandle?.retry();
-        } finally {
-          await rm(directory, {recursive: true, force: true});
-        }
       }
-    }
-    // Return the original Request preparation only after its retained users
-    // and captured input have completed their existing cleanup above.
-    if (captureRun !== undefined) {
-      const run = captureRun;
+      if (retained) assert.equal(await retained.cleanup(), true);
+    }, async () => {
+      if (publication) assert.equal(await publication.close(), true);
+    }, async () => {
+      if (!captureCloseStarted) {
+        captureCloseStarted = true;
+        captured?.capture.close();
+      }
+      await captured?.capture.cleanupHandle?.retry();
+      if (captured?.capture.cleanupHandle) {
+        assert.equal(captured.capture.cleanupHandle.status().pending, false);
+      }
+    }, async () => {
+      if (run === undefined) return;
       try {checked(moon.clientProgramInstalledManagedRunRetire(run.value));}
       catch (cause) {
         if (moon.clientProgramInstalledPreparationPayloadSevered(
           run.value, captureRequestIdentity) !== true) throw cause;
       }
-      preparation.retireOriginal(prepared);
-      preparation.manager.severPreparation(prepared, run.original);
-      checked(moon.clientProgramInstalledManagedRunRetire(run.value));
-      preparation.manager.retireSeveredPreparation(run.original);
+    }, async () => {
+      if (run !== undefined) preparation.retireOriginal(prepared);
+    }, async () => {
+      if (run !== undefined) preparation.manager.severPreparation(prepared, run.original);
+    }, async () => {
+      if (run !== undefined) checked(moon.clientProgramInstalledManagedRunRetire(run.value));
+    }, async () => {
+      if (run !== undefined) preparation.manager.retireSeveredPreparation(run.original);
+    }, async () => {
+      await preparation?.close();
+    }, async () => {
+      await rm(directory, {recursive: true, force: true});
+    }];
+    let nextCleanup = 0, cleanupInFlight, reportedCleanupFailure;
+    const cleanupErrors = [];
+    const cleanupHandle = Object.freeze({
+      status: () => Object.freeze({pending: nextCleanup < cleanupSteps.length}),
+      retry() {
+        if (cleanupInFlight) return cleanupInFlight;
+        // Publish the one flight before any borrowed cleanup callback can
+        // synchronously reenter this same cursor.
+        cleanupInFlight = Promise.resolve().then(async () => {
+          try {
+            while (nextCleanup < cleanupSteps.length) {
+              await cleanupSteps[nextCleanup]();
+              nextCleanup++;
+            }
+            if (reportedCleanupFailure) reportedCleanupFailure.cleanupPending = false;
+            return cleanupHandle.status();
+          } catch (cause) {
+            retainFirstAndLatestCleanupError(cleanupErrors, cause);
+            throw cause;
+          }
+        }).finally(() => {cleanupInFlight = undefined;});
+        return cleanupInFlight;
+      },
+    });
+    try { await cleanupHandle.retry(); }
+    catch (cause) {
+      reportedCleanupFailure = Object.assign(
+        new Error(`RetainedValuesCleanupPending [cleanup step ${nextCleanup}; primary ${managedFixtureCleanupDiagnostic(hasPrimaryFailure ? primaryFailure : cause)}; cleanup ${managedFixtureCleanupDiagnostic(cause)}]`,
+          {cause: hasPrimaryFailure ? primaryFailure : cause}), {
+          primaryFailure: hasPrimaryFailure ? primaryFailure : cause,
+          cleanupErrors, cleanupPending: true, cleanupHandle,
+        });
+      throw reportedCleanupFailure;
     }
-    await preparation?.close();
   }
 }
 

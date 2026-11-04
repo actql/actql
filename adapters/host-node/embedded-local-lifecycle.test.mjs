@@ -654,10 +654,10 @@ function heldRequestOriginalFixture({changed = false, failure, failPreparation =
       assert.equal(registry.originalSourceRequest(host, installation, host, prepared), request);
       calls.push('request-original');return {requested,resultNames:['answer'],acquired:false,acquisitionCount:0,effectful};
     },
-    admitPreparedSubmission(request) {
+    admitPreparedSubmission(request, held) {
       assert.equal(registry.originalSourceRequest(host, installation, host, prepared), request);
       calls.push('admit-plan');
-      return preparePlan?.({request, moon, prepared, requested, preparation, requestOf:ports.requestOf});
+      return preparePlan?.({request, moon, prepared, requested, preparation, requestOf:ports.requestOf}, held);
     },
     prepareAcquisitions() {assert.fail('No extra Source');}, prepareKeyedSources() {assert.fail('No keyed Source');},
     prepareAcquisition() {assert.fail('No Source');},
@@ -799,6 +799,94 @@ test('held resume adopts the same Request Plan before its original publication c
   assert.deepEqual(admitted,[f.prepared]);assert.equal(f.original(f.prepared),restored.submission);
   assert.deepEqual(f.calls,['retain-original','prepare-original','bind-original','request-original','admit-plan','request-original']);
   restored.requestInput.finish('returned');
+});
+
+test('held resume forwards its one admitted ordinary Run through the physical-start handoff', async () => {
+  const run = {}, accepted = {}, admitted = [];
+  let constructions = 0, starts = 0;
+  const clientOperationError = code => Object.assign(new Error(code), {code});
+  const route = heldSourceFunction('captureInstalledManagedRunRoute', {clientOperationError});
+  const f = heldRequestOriginalFixture({preparePlan({request, moon, prepared, requested, preparation, requestOf}, held) {
+    moon.clientProgramSerializationOccurrences = actual => {
+      assert.equal(actual, prepared); return [];
+    };
+    preparation.admitResultPublicationRun = actual => assert.equal(actual, prepared);
+    preparation.prepareManagedComputeRun = (runtime, program, identity) => {
+      assert.equal(runtime, moon); assert.equal(program, prepared); assert.equal(identity, requested);
+      assert.equal(f.original(prepared), request);
+      assert.equal(++constructions, 1, 'Resume must not construct or claim a second Run');
+      return run;
+    };
+    const admit = heldControl('admitPreparedSubmission', {preparation, requestOf, moon,
+      inferSelections:new WeakMap(), admissionFailures:new WeakMap(), holderRefusal:undefined,
+      prepareOrdinaryManagedRun:route({preparation, moon}), clientOperationError});
+    assert.equal(admit(request, held), undefined, 'The SDK admission callback remains void');
+  }});
+  const resume = heldControl('resumeHeld', {heldSubmission:()=>f.held(), retainInstalledHostRuntimeFailure,
+    effectRun:{checkSupported(){assert.fail('No Effect');}},
+    installedSourceFor(){assert.fail('No Source');}, sourceProfile:undefined,
+    async admitDefinition(submission, requested, names, held) {
+      assert.equal(f.original(submission), submission); assert.equal(requested, f.requested);
+      assert.deepEqual(names, ['answer']); assert.equal(held.managedRun, run);
+      admitted.push(held); return accepted;
+    },
+    definitionOf:()=>undefined, runIdOf:()=> 'original-component-run', settleHeldRun(){},
+    cancelHeldRun(){assert.fail('No cancellation');},
+    async startDispatch(submission, requested, actualAccepted, held) {
+      assert.equal(f.original(submission), submission); assert.equal(requested, f.requested);
+      assert.equal(actualAccepted, accepted); assert.equal(held, admitted[0]);
+      assert.equal(held.managedRun, run); assert.equal(++starts, 1); return 'started';
+    }});
+  assert.equal(await resume({captured:f.captured, step:async()=>{}, renew(){},
+    preparationCancelled:()=>false, beforePhysicalStart(){}, started(){}}), 'started');
+  assert.equal(constructions, 1); assert.equal(starts, 1);
+  assert.equal(f.calls.at(-1), 'finish:returned');
+});
+
+test('SDK managed admission remains void without a held Run handoff', () => {
+  const prepared = {}, requested = {}, run = {}, submission = {preparedProgram:prepared};
+  let constructions = 0;
+  const admit = heldControl('admitPreparedSubmission', {
+    preparation:{admitResultPublicationRun(value){assert.equal(value, prepared);}},
+    requestOf(value){assert.equal(value, submission);return {requested, acquisitionCount:0, effectful:false};},
+    moon:{clientProgramSerializationOccurrences(value){assert.equal(value, prepared);return [];}},
+    inferSelections:new WeakMap(), admissionFailures:new WeakMap(), holderRefusal:undefined,
+    prepareOrdinaryManagedRun(facts) {
+      assert.equal(facts.preparedProgram, prepared); assert.equal(facts.requestIdentity, requested);
+      assert.equal(++constructions, 1); return run;
+    },
+  });
+  assert.equal(admit(submission), undefined);
+  assert.equal(constructions, 1);
+  assert.equal(Object.hasOwn(submission, 'managedRun'), false);
+});
+
+test('held Run forwarding preserves current and cancellation fences before physical start', async () => {
+  for (const boundary of ['current', 'request-cancelled', 'run-cancelled']) {
+    const marker = new Error('OriginalCurrentRefused'), finishes = [];
+    const captured = {}, managedRun = {}, accepted = {}, requested = {};
+    const submission = {preparedProgram:{}};
+    let cancellations = 0;
+    const resume = heldControl('resumeHeld', {retainInstalledHostRuntimeFailure,
+      heldSubmission:async()=>({submission, requested, resultNames:['answer'], managedRun,
+        requestInput:{finish(value){finishes.push(value);}}}),
+      effectRun:{checkSupported(){assert.fail('No Effect');}}, sourceProfile:undefined,
+      installedSourceFor(){assert.fail('No Source');},
+      async admitDefinition(actual, request, names, held) {
+        assert.equal(actual, submission); assert.equal(request, requested);
+        assert.deepEqual(names, ['answer']); assert.equal(held.managedRun, managedRun); return accepted;
+      },
+      definitionOf:()=>({cancellationRequested:boundary==='run-cancelled'}),
+      async cancelHeldRun(value){assert.equal(value, captured);cancellations++;},
+      startDispatch(){assert.fail('No physical start beyond the original fence');},
+    });
+    const outcome = await resume({captured, step:async()=>{},
+      renew(){if (boundary==='current') throw marker;},
+      preparationCancelled:()=>boundary==='request-cancelled'});
+    assert.deepEqual(outcome, boundary==='current' ? {refused:marker} : 'not_started');
+    assert.equal(cancellations, boundary==='request-cancelled' ? 1 : 0);
+    assert.deepEqual(finishes, ['returned']);
+  }
 });
 
 test('held Effect keeps its existing definition-owned Plan constructor', async () => {

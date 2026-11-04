@@ -9,7 +9,7 @@ test "binding Header quantity uses original declarations and actual supplied wid
   let n = @parameter_binding.binding_header_construction_extent(original, 0).unwrap()
   assert_eq(
     (n.record_headers, n.reference_slots, n.scalar_words),
-    (57L, 158L, 76L),
+    (57L, 158L, 78L),
   )
   let wide = "{" +
     Array::makei(9, i => "\"k" + i.to_string() + "\":null").join(",") +
@@ -22,7 +22,7 @@ test "binding Header quantity uses original declarations and actual supplied wid
   let n = @parameter_binding.binding_header_construction_extent(original, 0).unwrap()
   assert_eq(
     (n.record_headers, n.reference_slots, n.scalar_words),
-    (202L, 599L, 504L),
+    (202L, 599L, 506L),
   )
   @parameter_binding.advance_binding_read(original)
   assert_true(
@@ -45,7 +45,7 @@ test "absent binding Header retains original empty arrays and complete outcome w
   let n = @parameter_binding.binding_header_construction_extent(original, 0).unwrap()
   assert_eq(
     (n.record_headers, n.reference_slots, n.scalar_words),
-    (26L, 70L, 27L),
+    (26L, 70L, 29L),
   )
   assert_true(
     @parameter_binding.binding_header_construction_extent(original, -1) is None,

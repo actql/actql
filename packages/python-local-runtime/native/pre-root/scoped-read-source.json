@@ -18,8 +18,8 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 28488,
-      "sha256": "fc739b26121c17f63bfb377a51de9940f492b2d8576815eef2b0a16096692d4e"
+      "bytes": 29156,
+      "sha256": "e8f145e8561a5ad9771471aae0fcfaf87121f76d9be6e483afbfee0034b92add"
     },
     {
       "root": "provider",
@@ -158,8 +158,22 @@
       "root": "provider",
       "path": "owned_rust_heap.inc",
       "output": "owned_rust_heap.inc",
-      "bytes": 12126,
-      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
+      "bytes": 8940,
+      "sha256": "41d2340952cc9cf8af4934b1d71c317249a34cf9887869aa11f9a53675cc31d8"
+    },
+    {
+      "root": "provider",
+      "path": "owned_inventory.inc",
+      "output": "owned_inventory.inc",
+      "bytes": 3410,
+      "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
+    },
+    {
+      "root": "provider",
+      "path": "owned_linux_x64_bundle_profile.h",
+      "output": "owned_linux_x64_bundle_profile.h",
+      "bytes": 2219,
+      "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     }
   ],
   "outputs": {
@@ -200,8 +214,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 29409,
-      "sha256": "acd33ce793e6d1dc849f164606b24857abfcfd9fea83bb3fe85e4e6a578c5f5c"
+      "bytes": 30077,
+      "sha256": "ed20fa68e86255b5b9760aa1d93fd8a0baff998d5d6cffcfffd6c6a4a2dde863"
     },
     "owned_capacity.h": {
       "bytes": 6288,
@@ -224,8 +238,8 @@
       "sha256": "fff21307ba1dc05e471c157d51a884f9fb8758faff52972cce05953e163dd5a6"
     },
     "owned_rust_heap.inc": {
-      "bytes": 12126,
-      "sha256": "a7855eb64efc00369690e0177a2ff7e5dc8690ecf34ee5ec7de0ca4e5a12e938"
+      "bytes": 8940,
+      "sha256": "41d2340952cc9cf8af4934b1d71c317249a34cf9887869aa11f9a53675cc31d8"
     },
     "owned_thread.h": {
       "bytes": 1894,
@@ -254,6 +268,14 @@
     "utf.c": {
       "bytes": 11366,
       "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
+    },
+    "owned_inventory.inc": {
+      "bytes": 3410,
+      "sha256": "b039d738201207d2b53090afd20bad1d45f068be3504a55fe2ff9842f742bd85"
+    },
+    "owned_linux_x64_bundle_profile.h": {
+      "bytes": 2219,
+      "sha256": "ca3b1d4c0dad0da85a1b3e1a20956d1ac696f52b0c7565f70547070f7f0d75ba"
     }
   },
   "normal_profile": null,
@@ -275,6 +297,29 @@
         "lib/libbacktrace.a": {
           "bytes": 956034,
           "sha256": "7ce3aedd32e1e08f3e32e1a6ef38398e8d6f943806ad1a617f69d8f25c8c5a17"
+        }
+      },
+      "required_source_parameters": [
+        "ACTQL_NATIVE_LINUX_STOCK_FILE_SLOTS"
+      ]
+    },
+    "x86_64-unknown-linux-gnu": {
+      "deployment_target": null,
+      "required_defines": [
+        "MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC",
+        "ACTQL_SCOPED_READ_ALLOCATOR",
+        "_GNU_SOURCE",
+        "ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN",
+        "ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY"
+      ],
+      "binary_inputs": {
+        "lib/libmoonbitrun.o": {
+          "bytes": 183752,
+          "sha256": "a5e00ff1cb24c75311c56d4b53341d72c0145c0127d3571d889de72e951e4966"
+        },
+        "lib/libbacktrace.a": {
+          "bytes": 691938,
+          "sha256": "1cdb27a3a058513b9a9efac3416e47365c8aa91daa9ec4e7b4a77ccac9c9fb36"
         }
       },
       "required_source_parameters": [

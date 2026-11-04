@@ -44,14 +44,17 @@ def process_recipe(original: bytes, target: str | None) -> tuple[dict, bytes]:
     recipe = json.loads(original)
     if target is None:
         return recipe, original
-    if (target != 'linux-arm64-gnu' or recipe['target'] != 'aarch64-apple-darwin'
+    if (type(target) is not str or target not in ('linux-arm64-gnu', 'linux-x64-gnu')
+            or recipe['target'] != 'aarch64-apple-darwin'
             or recipe['deployment_target'] != '11.0'):
         raise ValueError('Unsupported SQLite process target selection')
     # A genuinely derived preparation identity. Never relabel the Darwin
     # recipe, nor change its source, provider inputs, heap or cleanup rules.
-    selected = dict(recipe, target='aarch64-unknown-linux-gnu', deployment_target=None,
+    architecture, image = (('aarch64', 'AArch64') if target == 'linux-arm64-gnu'
+                           else ('x86_64', 'x86-64'))
+    selected = dict(recipe, target=architecture + '-unknown-linux-gnu', deployment_target=None,
                     original_recipe_sha256=hashlib.sha256(original).hexdigest(),
-                    process_format='ELF64-little-AArch64-shared',
+                    process_format='ELF64-little-' + image + '-shared',
                     provider_binding='same original process namespace',
                     automatic_initializers=False, component_tls=False)
     return selected, (json.dumps(selected, sort_keys=True, separators=(',', ':')) + '\n').encode()

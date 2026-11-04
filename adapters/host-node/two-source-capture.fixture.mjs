@@ -13,6 +13,9 @@ import {canonicalJson} from './local-account-config.mjs';
 import {loadInstalledSource} from './installed-source.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
   './captured-duckdb-source.mjs';
+import {capturedDuckDBNativeConfiguration} from './captured-duckdb-source.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
 import {acquiredTaskRunAdmission, acquiredMultiTaskPublicationPlan} from
   './local-values-plan.mjs';
 
@@ -41,16 +44,35 @@ export function observeDuckDBCalls(t) {
   return () => ({...calls});
 }
 
-export async function twoSourceCaptureFixture(t, {equalContent = false, priority = ['nativeQuery', 'broadQuery']} = {}) {
+export async function twoSourceCaptureFixture(t, {equalContent = false, priority = ['nativeQuery', 'broadQuery'],
+  fundedPublication = false} = {}) {
+  assert.equal(typeof fundedPublication, 'boolean');
   const root = await mkdtemp(join(tmpdir(), 'actql-two-capture-boundary-'));
   const adapters = [];
   const opened = new Set();
+  const adopted = new Map();
+  let preparation, fundedOriginal;
   t.after(async () => {
     for (const capture of opened) await capture.close();
     for (const adapter of adapters) {
       await adapter.close();
       await adapter.sourceAccess.authorization.close?.();
     }
+    for (const [prepared, original] of adopted) {
+      const {run, identity} = original;
+      try {checked(moon.clientProgramInstalledManagedRunRetire(run.value));}
+      catch (cause) {
+        if (moon.clientProgramInstalledPreparationPayloadSevered(run.value, identity) !== true) throw cause;
+      }
+      preparation.retireOriginal(prepared);
+      preparation.manager.severPreparation(prepared, run.original);
+      checked(moon.clientProgramInstalledManagedRunRetire(run.value));
+      preparation.manager.retireSeveredPreparation(run.original);
+    }
+    if (fundedOriginal !== undefined && !adopted.has(fundedOriginal.prepared)) {
+      preparation.retireOriginal(fundedOriginal.prepared);
+    }
+    await preparation?.close();
     await rm(root, {recursive: true, force: true});
   });
   const databaseRows = JSON.parse(await read('database-rows.json'));
@@ -69,8 +91,6 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
     assert.ok(value, String(moon.clientProgramPreparationIssueCode(result)));
     return value;
   };
-  const prepared = prepare();
-  assert.equal(moon.clientProgramAcquisitionCount(prepared), 2);
   const registry = await readFile(new URL(
     '../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
   const aoa = JSON.parse(await readFile(new URL(
@@ -78,6 +98,21 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   const common = {registry, values: JSON.stringify(aoa['REL.values']),
     fragment: JSON.stringify(aoa['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa['REL.derive.ordered'])};
+  common.registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    common.registry, common.values, common.fragment, common.ordered));
+  if (fundedPublication) {
+    preparation = await openFundedClientPreparation({moon, environment, retainedRelationOutput: true,
+      sequenceContracts: {values: common.values, fragment: common.fragment, ordered: common.ordered}});
+    common.registry = preparation.installedContracts;
+    const request = {kind: 'aql', input: {text: document, format: 'json'}, parameters: {}};
+    const prepared = await preparation.prepare(request);
+    const identity = moon.clientProgramRequestIdentity(prepared,
+      authorityScopeCid, 'capture-boundary-request', boundaryCid('b'));
+    assert.ok(identity);
+    fundedOriginal = Object.freeze({prepared, request, identity});
+  }
+  const prepared = fundedOriginal?.prepared ?? prepare();
+  assert.equal(moon.clientProgramAcquisitionCount(prepared), 2);
   for (const [task, side] of ['left', 'right'].entries()) {
     const database = join(root, `${side}.duckdb`);
     const instance = await DuckDBInstance.create(database);
@@ -117,6 +152,25 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   const preparedSources = await prepareSources();
   const ledgerFor = (sources, owner = prepared) => {
     const capacities = sources.map(source => capturedDuckDBPhysicalCapacity(source.prepared));
+    if (fundedOriginal?.prepared === owner) {
+      let original = adopted.get(owner);
+      if (original === undefined) {
+        const selected = adoptCapturedPublicationFixture({moon, preparation, prepared: owner,
+          request: fundedOriginal.request, identity: fundedOriginal.identity,
+          captures: sources.map(source => ({acquisition: capturedDuckDBNativeConfiguration(source.prepared),
+            limits: source.prepared.physicalPolicy.transportLimits})),
+          installedContracts: common.registry,
+          contracts: [registry, common.values, common.fragment, common.ordered]});
+        assert.ok(selected.run);
+        original = Object.freeze({...selected, identity: fundedOriginal.identity});
+        adopted.set(owner, original);
+      }
+      return checked(moon.clientProgramInstalledManagedRunPrepareLedger(original.run.value,
+        owner, original.identity,
+        original.capacities,
+        original.physical.map(value => value.transferBytes), original.physical.map(value => value.executionBytes),
+        common.registry, common.values, common.fragment, common.ordered));
+    }
     const ledger = moon.clientProgramPrepareMultiCapturedLocalAcquisitionLedger(owner,
       sources.map(source => capturedDuckDBConfiguration(source.prepared)),
       capacities.map(value => value.transferBytes),
@@ -169,9 +223,15 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   };
   const publication = pair => {
     const control = runtimeCore(moon).publicationControl;
+    const original = adopted.get(pair.owner);
+    assert.ok(original, 'publication uses the same funded Request and adopted capture Plan');
+    const publicationPreparation = preparation.manager.publicationPreparation(pair.owner);
+    assert.strictEqual(publicationPreparation, original.run.value);
     return acquiredMultiTaskPublicationPlan({moon, control,
       acquired: acquiredTaskRunAdmission({moon, control, preparedProgram: pair.owner,
-        authorityScopeCid, namespaceId: 'capture-boundary', now}),
+        authorityScopeCid, namespaceId: 'capture-boundary', now,
+        requestIdentity: original.identity, publicationPreparation,
+        compilationOriginal: preparation.manager.compilationOriginal(pair.owner)}),
       preparedProgram: pair.owner, sources: pair.captured.map((captured, task) =>
         ({captured, sourceEvidence: control.admitRunEvidence('source_evidence',
           pair.sourceEvidenceWires[task], {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64})})),

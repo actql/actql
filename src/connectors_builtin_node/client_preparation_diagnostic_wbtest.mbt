@@ -206,6 +206,8 @@ test "Request original observation bridge returns optional String through the ac
       0,
       "corr:" + "c".repeat(32),
       None,
+      None,
+      None,
     )
   }
   let loader = request_diagnostic_test_loader(request_diagnostic_test_url())
@@ -259,6 +261,8 @@ test "Request original observation bridge never upgrades undisclosable NeedsInpu
       None,
       0,
       "corr:" + "c".repeat(32),
+      None,
+      None,
       None,
     )
     .unwrap()
@@ -528,4 +532,83 @@ test "native Source document terminal projects original invalid Program instead 
     )
     @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
   }
+}
+
+///|
+test "original Query implementation refusal is distinct from unavailable Host capability" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"WITH records AS (SELECT 1 AS id, 1 AS amount) SELECT l.id FROM records AS l RIGHT JOIN records AS r ON l.id > r.id MAX_OUTPUT_ROWS 10\"}",
+    ),
+    request_diagnostic_test_json("null"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(result is Err(_))
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("source_implementation_limit"),
+  )
+  // These original unavailable-capability facts do not acquire a language
+  // implementation verdict merely because both decline before dispatch.
+  assert_eq(
+    client_source_preparation_issue_code(UnsupportedCarrier),
+    "source_unsupported",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(CommandTargetOriginalsUnavailable),
+    "source_unsupported",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(RecordTargetOriginalsUnavailable),
+    "source_unsupported",
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
+}
+
+///|
+test "original Query refusal projects its same supplied type violation without a semantic outcome" {
+  let environment = original_lookup_diagnostic_environment(false)
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @program_check.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, receipt) = request_diagnostic_test_parent()
+  let result = client_program_prepare_request_source_computation(
+    parent,
+    receipt,
+    request_diagnostic_test_json(
+      "{\"format\":\"sql\",\"text\":\"SELECT missing AS n FROM records WHERE amount >= @minimum\",\"parameterDeclarations\":{\"minimum\":{\"type\":\"number\"}}}",
+    ),
+    request_diagnostic_test_json("{\"minimum\":\"twenty\"}"),
+    environment,
+    publication,
+    None,
+  )
+  assert_true(
+    result
+    is Err(
+      @client_local_host.ClientRequestTerminalIssue::QueryLowering(
+        WithBinding(_, _)
+      )
+    ),
+  )
+  assert_eq(
+    request_diagnostic_checked_issue_code(result),
+    Some("source_invalid_input"),
+  )
+  @client_local_host.abort_request_preparation_after_cleanup(parent).unwrap()
 }

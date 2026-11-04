@@ -1,3 +1,4 @@
+import {installNativeApplicationBundle} from './native-application-bundle-fixture.mjs';
 import {runNativeQueryTests} from './native-query-coverage.mjs';
 import {nativeFilesystemTestRoot, nativePackageStoreRoot, nativePrivateHostFixture, nativeOriginalSigningFixture} from './native-private-host-fixture.mjs';
 import assert from 'node:assert/strict';
@@ -24,6 +25,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {startNativeEffectCheckpointServer} from './fixtures/native-effect-checkpoint-server.mjs';
+import {nativeEffectReviewFixture} from './fixtures/native-effect-review-fixture.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
@@ -41,7 +43,9 @@ import {pinnedEngineContracts} from
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
     !['remote-client-poll', 'http-retirement', 'http-symbol-unload',
-      'http-constructor-retirement'].includes(focus)) {
+      'http-constructor-retirement', 'resident-review-regressions',
+      'resident-review-provider', 'resident-review-checkpoint',
+      'resident-review-write'].includes(focus)) {
   throw new Error('unsupported native HTTP test focus');
 }
 const focusedRequests = [];
@@ -126,7 +130,7 @@ const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
 );
 // The full runner owns DuckDB prerequisites. The focused remote-client case
 // only uses libcurl and SQLite; it does not build or execute a DuckDB consumer.
-if (focus === undefined) {
+if (focus === undefined || focus.startsWith('resident-review-')) {
   assert(existsSync(nativeTestDuckDBLibrary),
     `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
 }
@@ -138,7 +142,7 @@ const remotePublicationRoot = join(root, 'remote-publication');
 await mkdir(storeRoot, {recursive: true});
 await mkdir(retainedTaskRoot, {recursive: true});
 await mkdir(multiBundleStoreRoot, {recursive: true});
-await mkdir(sqliteRoot, {recursive: true});
+await mkdir(sqliteRoot, {recursive: true, mode: 0o700});
 await mkdir(standardRoot, {recursive: true});
 await mkdir(transferStandardRoot, {recursive: true});
 await mkdir(remotePublicationRoot, {recursive: true});
@@ -209,6 +213,7 @@ const remoteInputBindingCid = `sha256:${createHash('sha256')
 let server;
 let bearerServers;
 let effectCheckpointServer;
+let effectReviewServer;
 let applicationControlProxy;
 let standardGateway;
 let remoteSiteControl;
@@ -1016,11 +1021,27 @@ verification: try {
     throw new Error('native HTTP test listener has no TCP address');
   }
   const nativeHttpOrigin = `https://${nativeHttpHost}:${address.port}`;
+  let effectReviewOrigin;
+  if (focus === undefined || focus.startsWith('resident-review-')) {
+    const review = nativeEffectReviewFixture('Bearer native-secret');
+    // Review upload uses its original bearer Client, not the separate mTLS
+    // transport peer. Keep its same secret/CA and existing server cleanup.
+    effectReviewServer = createServer({key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt'))}, (request, response) => {
+      if (!review.handle(request, response)) response.writeHead(404).end();
+    });
+    effectReviewServer.listen(0, nativeHttpHost);
+    await once(effectReviewServer, 'listening');
+    effectReviewOrigin = `https://${nativeHttpHost}:${effectReviewServer.address().port}`;
+  }
   bearerServers = await startNativeBearerServers({
     host: nativeHttpHost,
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
     root,
+    allowLocalEffectRejection: true,
+    allowEffectCreate: focus === undefined || focus === 'resident-review-write' ||
+      focus === 'resident-review-regressions',
   });
   effectCheckpointServer = await startNativeEffectCheckpointServer({
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
@@ -1158,6 +1179,7 @@ verification: try {
   }
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
+    ...(focus?.startsWith('resident-review-') ? ['--jobs', '2'] : []),
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
   const moonModule = await import(pathToFileURL(join(
     new URL('../', import.meta.url).pathname,
@@ -1253,6 +1275,14 @@ verification: try {
   });
   const testEnvironment = {
     ...process.env,
+    ...(focus === undefined || focus === 'resident-review-write' ||
+        focus === 'resident-review-regressions'
+      ? {ACTQL_TEST_NATIVE_EFFECT_CREATE_FIXTURE: '1'} : {}),
+    ...(effectReviewOrigin ? {
+      ACTQL_TEST_EFFECT_REVIEW_REPORT_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review-report',
+      ACTQL_TEST_EFFECT_REVIEW_UPLOAD_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-review',
+      ACTQL_TEST_EFFECT_RESOLUTION_FIXTURE_URL: effectReviewOrigin + '/fixture/effect-resolution',
+    } : {}),
     ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
     ACTQL_TEST_NATIVE_HTTP_NON_CURL_LIBRARY: nonCurlLibrary,
     ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
@@ -1306,6 +1336,39 @@ verification: try {
     productCredentialEnvelope.signature,
   );
   await writeFile(join(root, 'credential-authority.pem'), credentialPublicKey);
+  if (focus?.startsWith('resident-review-')) {
+    // Use the same peers, signed bundle and physical roots as the full CI
+    // harness. Each original case runs once in its own process/Store namespace.
+    const selected = [
+      ['resident-review-local', 'local_client_source_wbtest.mbt',
+        'Native Local original sole-view completion is refused before acquisition or durable start claim'],
+      ['resident-review-provider', 'acquisition_runtime_wbtest.mbt',
+        'Effect original holders retain physical Provider review and Checkpoint without reacquisition'],
+      ['resident-review-checkpoint', 'acquisition_runtime_wbtest.mbt',
+        'original completion-free Source and consumer persist mapped-create review through Store loss and cleanup retry'],
+      ['resident-review-write', 'acquisition_runtime_wbtest.mbt',
+        'original completion-free mapped-create approval retains one physical write through response custody loss'],
+    ];
+    for (const [selectedFocus, file, name] of selected) {
+      if (focus !== 'resident-review-regressions' && focus !== selectedFocus) continue;
+      const child = spawn(process.execPath, ['--input-type=module', '-e',
+        "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+        "process.exitCode=runFocusedTests('moon',['--target','native','--jobs','1'," +
+        "'src/platform_native/remote_resident_source_compute_tests/'+process.argv[1]," +
+        "'--filter',process.argv[2]],{cwd:process.cwd(),timeout:600000});", file, name], {
+        cwd: new URL('../', import.meta.url), stdio: 'inherit',
+        env: {...testEnvironment,
+          ACTQL_TEST_NATIVE_STORE_ROOT: nativePackageStoreRoot(root),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET: join(bearerServers.directory, 'control'),
+          ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin},
+      });
+      const [code, signal] = await once(child, 'exit');
+      assert.equal(code, 0, `focused Resident review failed: ${name}: ${code ?? signal}`);
+    }
+    break verification;
+  }
   for (const packagePath of [
     'src/platform_native/filesystem',
     'src/platform_native/sqlite',
@@ -1326,8 +1389,10 @@ verification: try {
     if (packagePath === 'src/query_integration') {
       // The retained Preview, retained Checkpoint and original-holder review
       // each perform one Provider read. Denied/duplicate paths perform no
-      // additional read, and no case applies an external Effect.
-      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 0});
+      // additional read; mapped-create applies its one scoped Effect.
+      assert.deepEqual(bearerServers.effectTargets(), {reads: 3, writes: 1});
+      assert.deepEqual(bearerServers.effectCreatedValues(),
+        [{Id: '001000000000001AAA', Count__c: 3}]);
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
       await runNativeQueryTests(moon, 'http-client', {
@@ -1353,6 +1418,17 @@ verification: try {
         ...(process.platform === 'linux' ? ['-ldl'] : [])], {stdio: 'inherit'});
       walFixtureEnvironment.ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE = walFixture;
     }
+    // Only this child consumes the existing signed rejection fixture. Other
+    // packages keep their original optional-HTTP environment unchanged.
+    const localReviewFixtureEnvironment = packagePath ===
+        'src/platform_native/remote_resident_source_compute_tests'
+      ? {
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_SECRET:
+          join(bearerServers.directory, 'control'),
+        ACTQL_TEST_NATIVE_SALESFORCE_HTTP_URL: bearerServers.origin,
+      } : {};
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
       env: packagePath === 'src/platform_native/filesystem'
@@ -1360,6 +1436,7 @@ verification: try {
           ACTQL_TEST_NATIVE_STORE_ROOT: filesystemTestRoot}
         : {...testEnvironment,
           ...walFixtureEnvironment,
+          ...localReviewFixtureEnvironment,
           ...(packagePath === 'src/platform_native/signature'
             ? nativeOriginalSigningFixture(root) : {}),
           ACTQL_TEST_NATIVE_STORE_ROOT: packageStoreRoot},
@@ -1926,135 +2003,11 @@ verification: try {
     mkdir(productTransferRoot),
   ]);
 
-  execFileSync(moon, [
-    'build', '--target', 'native', 'src/cmd/native_runtime_bundle',
-  ], {cwd: repositoryRoot, stdio: 'inherit'});
-  const runtimeBundleExecutable = join(
-    repositoryRoot,
-    '_build/native/debug/build/cmd/native_runtime_bundle/' +
-      'native_runtime_bundle.exe',
-  );
-  const applicationComponent = await readFile(applicationExecutable);
-  const applicationComponentCid = physicalCid(applicationComponent);
-  const duckdbLibrary = join(
-    repositoryRoot,
-    `adapters/connectors/duckdb/node/node_modules/@duckdb/` +
-      `node-bindings-${process.platform}-${process.arch}/` +
-      (process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
-  );
-  assert.equal(existsSync(duckdbLibrary), true, duckdbLibrary);
-  const duckdbComponent = await readFile(duckdbLibrary);
-  const applicationRuntimeManifest = runtimeControl.prepare({
-    issuerAuthority: 'bundle-authority-a',
-    bundleName: 'native-application-site',
-    revision: 'native-application/1',
-    targetTriple,
-    components: [
-      {
-        role: 'duckdb_library',
-        cid: physicalCid(duckdbComponent),
-        bytes: BigInt(duckdbComponent.byteLength),
-      },
-      {
-        role: 'runtime_executable',
-        cid: applicationComponentCid,
-        bytes: BigInt(applicationComponent.byteLength),
-      },
-    ],
-    connectorRegistration: 'local',
-    connectorRevision: 'local/1',
-    strategyRevision: 'strategy/1',
+  const {applicationRuntimeEnvelope,applicationComponentCid} = await installNativeApplicationBundle({
+    repositoryRoot,root,applicationExecutable,applicationRuntimeRoot,applicationBundleInputRoot,
+    runtimeControl,runtimeKeys,targetTriple,runCaptured,
+    publicKey:testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
   });
-  const applicationRuntimeEnvelope = signRemoteRuntimeBundle(
-    applicationRuntimeManifest,
-    runtimeControl,
-    {keyId: 'key-a', privateKey: runtimeKeys.privateKey},
-  );
-  await Promise.all([
-    writeFile(
-      join(applicationBundleInputRoot, 'runtime-public.pem'),
-      testEnvironment.ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY,
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'trust.json'),
-      JSON.stringify({
-        authorities: [{
-          admit_new_bundles: true,
-          issuer_authority: 'bundle-authority-a',
-          key_id: 'key-a',
-          public_key_name: 'runtime-public.pem',
-        }],
-        version: 'actql-native-runtime-bundle-trust/0.1',
-      }),
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'manifest.json'),
-      applicationRuntimeEnvelope.body,
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'signature.txt'),
-      applicationRuntimeEnvelope.signature,
-      {mode: 0o600},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'component.bin'),
-      applicationComponent,
-      {mode: 0o700},
-    ),
-    writeFile(
-      join(applicationBundleInputRoot, 'duckdb.bin'),
-      duckdbComponent,
-      {mode: 0o600},
-    ),
-  ]);
-  const applicationBundleCommon = [
-    '--store-root', applicationRuntimeRoot,
-    '--sqlite-library', testEnvironment.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,
-    '--crypto-library', cryptoLibrary,
-    '--target-triple', targetTriple,
-    '--authority-root', applicationBundleInputRoot,
-    '--trust-config-name', 'trust.json',
-    '--capacity-bytes', '268435456',
-    '--max-bundles', '4',
-    '--max-owners', '8',
-    '--max-record-bytes', '1048576',
-  ];
-  const installedApplicationBundle = await runCaptured(
-    runtimeBundleExecutable,
-    [
-      ...applicationBundleCommon,
-      'install',
-      '--install-id', 'native-application-install',
-      '--signature-key-id', 'key-a',
-      '--bundle-cid', applicationRuntimeEnvelope.runtimeBundleCid,
-      '--input-root', applicationBundleInputRoot,
-      '--manifest-name', 'manifest.json',
-      '--signature-name', 'signature.txt',
-      '--component-file', 'duckdb_library=duckdb.bin',
-      '--component-file', 'runtime_executable=component.bin',
-    ],
-  ).completed;
-  assert.equal(
-    installedApplicationBundle.code,
-    0,
-    installedApplicationBundle.stderr,
-  );
-  const activatedApplicationBundle = await runCaptured(
-    runtimeBundleExecutable,
-    [
-      ...applicationBundleCommon,
-      'activate',
-      '--bundle-cid', applicationRuntimeEnvelope.runtimeBundleCid,
-    ],
-  ).completed;
-  assert.equal(
-    activatedApplicationBundle.code,
-    0,
-    activatedApplicationBundle.stderr,
-  );
 
   execFileSync(moon, [
     'build', '--target', 'native',
@@ -2916,6 +2869,10 @@ verification: try {
   await stopProductTransferService(productTransferService);
   productTransferService = undefined;
 } finally {
+  if (effectReviewServer !== undefined) {
+    effectReviewServer.close();
+    await once(effectReviewServer, 'close');
+  }
   await effectCheckpointServer?.close();
   releaseStalePoll?.();
   if (applicationControlProxy !== undefined) {

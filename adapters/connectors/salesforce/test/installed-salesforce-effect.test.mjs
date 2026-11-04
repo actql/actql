@@ -8,10 +8,8 @@ import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
 import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
-  recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
+  moon, recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
-import {loadInstalledSalesforceSource} from
-  '../host/installed-salesforce-source.mjs';
 import {checkInstalledSalesforceEffectProfile} from
   '../host/installed-salesforce-effect.mjs';
 
@@ -21,6 +19,18 @@ const recordReads = org => org.seen.filter(item => item.method === 'GET' &&
   /\/sobjects\/[A-Za-z_]+\/[^/]+$/u.test(item.path) &&
   !item.path.endsWith('/describe'));
 const ids = ['a00000000000001', 'a00000000000002'];
+
+// The real installation parent retains the original refusal and its cleanup
+// owner. A generic Host failure alone cannot satisfy a provider refusal.
+const initializedFailure = code => error => {
+  assert.equal(error.code, 'InstalledHostInitializationFailed');
+  assert.equal(error.primaryFailure?.code, code);
+  assert.strictEqual(error.cause, error.primaryFailure);
+  assert.equal(error.cleanupPending, false);
+  assert.equal(error.cleanupHandle.status().pending, false);
+  assert.deepEqual(error.cleanupErrors, []);
+  return true;
+};
 const update = {resource: 'Test_Record__c', kind: 'update', fields: ['Name']};
 
 // A Program of one update Effect per installed Mapping, over `rows`.
@@ -130,7 +140,7 @@ test('a published generation is restored only as it was published',
     // Another write set is another generation.
     await assert.rejects(installation.load({writes: [{...update,
       fields: ['Name', 'External_Key__c']}]}),
-    {code: 'SalesforceEffectPublicationMismatch'});
+    initializedFailure('SalesforceEffectPublicationMismatch'));
     // A tampered Mapping list is not this generation.
     const path = installation.profile.publicationPath;
     const text = await readFile(path, 'utf8');
@@ -138,13 +148,13 @@ test('a published generation is restored only as it was published',
     record.mappings[0].mapping_cid = `sha256:${'9'.repeat(64)}`;
     await writeFile(path, JSON.stringify(record));
     await assert.rejects(installation.load(),
-      {code: 'SalesforceEffectPublicationMismatch'});
+      initializedFailure('SalesforceEffectPublicationMismatch'));
     await writeFile(path, text);
     // Another Site generation must publish again first.
     await installation.writeSite({...installation.siteDocument,
       siteGeneration: 2});
     await assert.rejects(installation.load(),
-      {code: 'ForeignSalesforceDeclaration'});
+      initializedFailure('ForeignSalesforceDeclaration'));
     // Nothing was read to restore any of them.
     assert.equal(writesOf(installation.org).length, 0);
     // An unknown profile is refused before anything is installed; a checked
@@ -180,12 +190,12 @@ async function capturedSet(t, {writes = [update, other],
   const state = join(installation.root, 'host');
   const first = await effectHost(t, installation, state,
     {stopBeforeApply: true});
-  const {accepted, started} = await first.run(
-    updateProgram(first.installed.mappings), 'restart-set');
+  const program = updateProgram(first.installed.mappings);
+  const {accepted, started} = await first.run(program, 'restart-set');
   assert.equal(started.value.status, 'captured');
   await first.close();
   assert.equal(writesOf(installation.org).length, 0);
-  return {installation, state, accepted,
+  return {installation, state, accepted, program,
     continuation: started.value.continuation};
 }
 
@@ -283,7 +293,7 @@ test('a restarted Set is refused before any write when one target changed',
           'External_Key__c']}];
         await installation.publish({writes});
         return {writes};
-      }, 'InstalledRowEffectMappingNotInstalled'],
+      }, 'ClientProgramRejected'],
       ['Site generation', async installation => {
         await installation.writeSite({...installation.siteDocument,
           siteGeneration: 2});
@@ -301,11 +311,30 @@ test('a restarted Set is refused before any write when one target changed',
       'InstalledRowEffectInstallationChanged'],
     ];
     for (const [label, change, code] of changes) {
-      const {installation, state, accepted, continuation} =
+      const {installation, state, accepted, continuation, program} =
         await capturedSet(t);
       const {options, ...overrides} = await change(installation);
       const second = await effectHost(t, installation, state,
         {effect: await installation.load(overrides, options)});
+      const seen = installation.org.seen.length;
+      if (label === 'Mapping') {
+        // The funded restart checks the SAME authored Program against the
+        // current installation before recovering its Set. The replacement
+        // Mapping has another identity; it cannot resolve the old reference.
+        const oldRef = program.stages[0].effects.save_1.update.mapping;
+        assert.equal(second.installed.mappings.some(mapping =>
+          mapping.mappingRef === oldRef), false);
+        const environmentWire = second.installed.environmentWire;
+        const environment = moon.clientProgramCheckEnvironment(environmentWire,
+          JSON.parse(environmentWire).evidence_bundle_cid,
+          false, false, true, false, false, false, false);
+        assert.ok(environment);
+        const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+          JSON.stringify(program), 'json', environment, undefined, []);
+        assert.equal(moon.clientProgramEffectPreparationReady(outcome), undefined);
+        assert.equal(moon.clientProgramEffectPreparationIssueCode(outcome),
+          'effect_static_rejected');
+      }
       const failure = await second.resume('restart-set',
         accepted.ref.runDefinitionCid, continuation).then(
         () => undefined, error => error);
@@ -314,7 +343,40 @@ test('a restarted Set is refused before any write when one target changed',
         ? failure.code : 'ExecutionAuthorizationDenied', code,
       `${label}: ${failure.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
+      if (label === 'Mapping') assert.equal(installation.org.seen.length, seen);
     }
+  });
+
+test('a republished wider Mapping refuses the original two-member Program at static closure',
+  async t => {
+    const installation = await installedEffect(t, {writes: [update, other],
+      org: {writableObjects: ['Other_Record__c']},
+      entries: twoTargets('00D000000000001EAA')});
+    const original = await installation.load();
+    const document = JSON.stringify(updateProgram(original.mappings));
+    const writes = [update, {...other, fields: ['Name', 'External_Key__c']}];
+    await installation.publish({writes});
+    const current = await installation.load({writes});
+    assert.equal(current.mappings.length, 2);
+    assert.equal(current.mappings[0].mappingRef, original.mappings[0].mappingRef);
+    assert.notEqual(current.mappings[1].mappingRef, original.mappings[1].mappingRef);
+    assert.equal(current.mappings.some(mapping =>
+      mapping.mappingRef === original.mappings[1].mappingRef), false);
+    const environment = moon.clientProgramCheckEnvironment(current.environmentWire,
+      JSON.parse(current.environmentWire).evidence_bundle_cid,
+      false, false, true, false, false, false, false);
+    assert.ok(environment);
+    const seen = installation.org.seen.length;
+    // The original Program still names the old Mapping. The existing typed
+    // static closure refuses it before recovery, rather than resolving it to
+    // the replacement merely because the resource and operation match.
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      document, 'json', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationReady(outcome), undefined);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(outcome),
+      'effect_static_rejected');
+    assert.equal(installation.org.seen.length, seen);
+    assert.equal(writesOf(installation.org).length, 0);
   });
 
 test('a rejected row fails, halts its member and is never retried',
@@ -429,25 +491,27 @@ test('a failed Salesforce loader keeps its cause and hands over the Site release
       fields: ['Name', 'External_Key__c']}]},
     {openCredentialJournal: effectJournal.open}).then(() => undefined,
       error => error);
-    assert.equal(effectFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.equal(effectFailure.code, 'InstalledHostInitializationFailed');
+    assert.equal(effectFailure.primaryFailure.code, 'SalesforceEffectPublicationMismatch');
+    assert.strictEqual(effectFailure.cause, effectFailure.primaryFailure);
     assert.equal(effectFailure.cleanupPending, true);
-    assert.deepEqual(effectFailure.cleanupErrors.map(error => error.code),
-      ['InjectedJournalCloseFailure']);
+    assert.deepEqual(effectFailure.cleanupErrors.map(({owner, error}) => [owner, error.code]),
+      [['source-profile', 'InjectedJournalCloseFailure']]);
     assert.equal((await effectFailure.cleanupHandle.retry()).pending, false);
     assert.equal(effectJournal.calls.close, 2);
     // Source load: its publication is missing.
     const sourceJournal = closeFailingJournal(1);
-    const sourceFailure = await loadInstalledSalesforceSource({
+    const sourceFailure = await installation.loadSource({
       version: 'actql-installed-salesforce-source/0.1',
       siteProfilePath: installation.profile.siteProfilePath,
       publicationPath: join(installation.root, 'missing-source.json'),
       connectorId: 'salesforce', resources: ['Test_Record__c'],
       accountConfigurationWire: installation.profile.accountConfigurationWire,
-    }, {...installation.options,
-      providerMoon: installation.options.salesforceMoon,
-      openCredentialJournal: sourceJournal.open})
+    }, {openCredentialJournal: sourceJournal.open})
       .then(() => undefined, error => error);
-    assert.equal(sourceFailure.code, 'SalesforcePublicationMissing');
+    assert.equal(sourceFailure.code, 'InstalledHostInitializationFailed');
+    assert.equal(sourceFailure.primaryFailure.code, 'SalesforcePublicationMissing');
+    assert.strictEqual(sourceFailure.cause, sourceFailure.primaryFailure);
     assert.equal(sourceFailure.cleanupPending, true);
     assert.equal((await sourceFailure.cleanupHandle.retry()).pending, false);
     assert.equal(sourceJournal.calls.close, 2);
@@ -660,7 +724,7 @@ test('an Effect runtime missing a required entry is refused before provider I/O'
       const before = installation.org.seen.length;
       const {[entry]: _omitted, ...runtime} = salesforceMoon;
       await assert.rejects(installation.load({}, {salesforceMoon: runtime}),
-        {code: 'InvalidSalesforceEffectRuntime'}, entry);
+        initializedFailure('InvalidSalesforceEffectRuntime'), entry);
       assert.equal(installation.org.seen.length, before, entry);
     }
   });

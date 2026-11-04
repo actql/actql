@@ -1,11 +1,30 @@
 import assert from 'node:assert/strict';
-import {readFileSync, mkdtempSync, mkdirSync, writeFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, cpSync, rmSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {generateComputeAssembly, checkComputeAssembly} from './connector-compute-bundles.mjs';
+import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 
 const entry = name => ({name, manifest: JSON.parse(readFileSync(`src/connectors/${name}/compute-bundle.json`, 'utf8'))});
+
+test('the packed external Compute declaration supplies its original binding validator', t => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const fixtures = join(root, 'scripts/fixtures/external-compute');
+  const external = mkdtempSync(join(realpathSync(tmpdir()), 'actql-packed-compute-declaration-'));
+  t.after(() => rmSync(external, {recursive: true, force: true}));
+  for (const name of ['external-numeric', 'compute-host']) cpSync(join(fixtures, name), join(external, name), {recursive: true});
+  const buildInputs = resolveConnectorBuildInputs({target: 'js',
+    modules: [
+      {namespace: 'actql/actql', version: '0.0.1', root},
+      {namespace: 'fixture/external_numeric', version: '0.0.1', root: join(external, 'external-numeric')},
+      {namespace: 'fixture/compute_host', version: '0.0.1', root: join(external, 'compute-host')},
+    ], host: 'fixture/compute_host',
+    connectors: [{name: 'external_numeric', module: 'fixture/external_numeric', directory: 'src'}]});
+  const generated = generateComputeAssembly(buildInputs.computeEntries, {buildInputs});
+  assert.match(generated.source, /\.validate_binding\(installed, driver, registry\)/u);
+});
 
 test('explicit composition never reads an unselected broken connector manifest', () => {
   const root = mkdtempSync(join(tmpdir(), 'actql-explicit-composition-'));

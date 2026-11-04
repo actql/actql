@@ -1,6 +1,7 @@
 ///|
 // A restriction within the existing Model owner, never an operational issuer.
-// The actual Host must supply its separate local-Mock purpose and complete
+// The legacy private name also holds an installed physical provider purpose.
+// The actual Host must supply its same-provider purpose and complete
 // same-Run overlap before this record, its references or the input are created.
 // Resident None on legacy startup also belongs in the physical recipe.
 priv struct OriginalMockPurpose {
@@ -12,9 +13,10 @@ priv struct OriginalMockPurpose {
 }
 
 ///|
-/// Preserve the dedicated legacy startup exactly. Only the original no-I/O
-/// Mock implementation may retain a separate Model ceiling on a shared Run
-/// Ledger. The same checked input handoff still issues the actual reservation.
+/// Composed consumers retain their SAME installed provider and Model ceiling
+/// on the original shared Run Ledger. Dedicated startup keeps its exact-Ledger
+/// path. The same checked handoff still issues the actual reservation; this
+/// connection changes neither physical preflight nor dispatch authorization.
 pub fn prepare_original_model_provider_consumer_startup(
   consumer : @publication_host.ClientModelReadConsumer,
   compiled : @publication_host.ClientCompiledRun,
@@ -30,24 +32,25 @@ pub fn prepare_original_model_provider_consumer_startup(
   OriginalModelStartup,
   @publication_host.ClientModelInputCapacityIssue,
 ] {
-  guard provider.invocation is OriginalMock(original) else {
-    return prepare_original_model_consumer_startup(
-      consumer, compiled, definition, plan, scope, rows, retained_bytes, execution_bytes,
-    )
-  }
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
   let execution = @publication_host.client_infer_plan_graph_execution_contract(
     plan,
   )
-  if !original_mock_provider_matches(original, provider, task) ||
+  let provider_matches = match provider.invocation {
+    OriginalMock(original) =>
+      original_mock_provider_matches(original, provider, task) &&
+      @environment.model_mock_execution_matches(
+        original.profile.unwrap(),
+        original.normalized.unwrap(),
+        execution,
+      )
+    SynchronousFixture(_) | AsynchronousPhysical =>
+      provider.provider_id == @environment.model_task_connector(task)
+  }
+  if !provider_matches ||
     !physical_equal(
       execution,
       @publication_host.client_infer_call_scope_model_execution(scope),
-    ) ||
-    !@environment.model_mock_execution_matches(
-      original.profile.unwrap(),
-      original.normalized.unwrap(),
-      execution,
     ) ||
     !valid_original_mock_purpose_limits(limits) ||
     limits.ledger.attempts.to_int64() >
@@ -114,13 +117,17 @@ fn original_model_startup_limits_match(
   }
   guard provider is Some(provider) &&
     physical_equal(provider, purpose.provider) &&
-    provider.invocation is OriginalMock(original) &&
-    physical_equal(limits, purpose.limits) &&
-    original_mock_provider_matches(
-      original,
-      provider,
-      @infer.model_task(@relation.prepared_infer_rows_owner(value.rows)),
-    ) else {
+    physical_equal(limits, purpose.limits) else {
+    return false
+  }
+  let task = @infer.model_task(@relation.prepared_infer_rows_owner(value.rows))
+  let provider_matches = match provider.invocation {
+    OriginalMock(original) =>
+      original_mock_provider_matches(original, provider, task)
+    SynchronousFixture(_) | AsynchronousPhysical =>
+      provider.provider_id == @environment.model_task_connector(task)
+  }
+  if !provider_matches {
     return false
   }
   let parent = @resources.ledger_limits(value.ledger)

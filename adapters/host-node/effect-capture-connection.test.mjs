@@ -36,6 +36,7 @@ const error = code => Object.assign(new Error(code), {code});
 const cid = value => 'sha256:' + value.repeat(64);
 
 function rootPreparationFixture(managed) {
+  let closing = false, retired = false;
   const runtime = {}, request = {}, definition = {identity:cid('1')}, originals = {};
   const liveRuns = new Set(managed === undefined ? [] : [managed]);
   const record = {computeLiveRuns:liveRuns, computeRuns:new WeakMap()};
@@ -52,7 +53,8 @@ function rootPreparationFixture(managed) {
   }};
   const control = {};
   const ports = {moon:runtime, record, originals, preparation,
-    assertInitialControlHostPreparation: actual => assert.equal(actual, originals),
+    assertInitialControlHostPreparation: actual => {assert.equal(actual, originals); if (closing || retired) throw error('InstalledHostPreparationChanged');},
+    assertRetainedSourceManagedHost: actual => {assert.equal(actual, originals); if (retired) throw error('InstalledHostPreparationChanged');},
     clientOperationError:error, runtimeCore: actual => {assert.equal(actual, runtime); return {publicationControl:control};},
     prepareEffectCaptureResources(options) {
       factoryOptions = options; assert.equal(options.request, request); assert.equal(options.runDefinition, definition);
@@ -63,10 +65,14 @@ function rootPreparationFixture(managed) {
   ports.retireEffectCaptureResourceFrame = construct(
     `${declaration(embedded, 'retireEffectCaptureResourceFrame')}; return retireEffectCaptureResourceFrame;`,
     {clientOperationError:error});
+  ports.prepareEffectCaptureFrame = construct(`${declaration(embedded, 'prepareEffectCaptureFrame')}; return prepareEffectCaptureFrame;`, ports);
   const prepare = construct(`return ({${method(embedded, embeddedAst, 'prepareEffectCaptureRecovery')}}).prepareEffectCaptureRecovery`, ports);
+  const retire = construct(`return ({${method(embedded, embeddedAst, 'prepareEffectCaptureRetirement')}}).prepareEffectCaptureRetirement`, ports);
   return {runtime, request, definition, originals, record, view, liveRuns,
     open(actual = request) {return prepare(runtime, actual, definition, {}, managed,
       () => {originalCurrent++;}, original => {retained = original;});},
+    seal() {closing = true;}, retireHost() {retired = true;},
+    retire() {return retire(runtime, request, definition, {}, () => {originalCurrent++;}, original => {retained = original;});},
     get constructed() {return constructed;}, get options() {return factoryOptions;},
     get currents() {return originalCurrent;}};
 }
@@ -79,6 +85,20 @@ test('actual Host retains capture frame in SAME live inventory before constructo
   assert.equal(f.liveRuns.size, 1);
   f.options.retired(f.view); assert.equal(f.liveRuns.size, 0); assert.equal(entry.resources, undefined);
   assert.throws(() => f.options.retired(f.view), {code:'ForeignEffectCaptureResources'});
+});
+
+test('terminal capture cleanup retains same closing Host while new recovery stays fenced', () => {
+  const f = rootPreparationFixture(); f.seal();
+  assert.throws(() => f.open(), {code:'InstalledHostPreparationChanged'});
+  assert.equal(f.constructed, 0);
+  assert.equal(f.retire(), f.view); assert.equal(f.constructed, 1);
+  f.options.assertCurrent();
+  const entry = [...f.liveRuns][0];
+  entry.closed = true;
+  assert.throws(() => f.options.assertCurrent(), {code:'ForeignEffectCaptureResources'});
+  entry.closed = false; f.retireHost();
+  assert.throws(() => f.options.assertCurrent(), {code:'InstalledHostPreparationChanged'});
+  assert.throws(() => f.retire(), {code:'InstalledHostPreparationChanged'});
 });
 
 test('actual Host live recovery requires SAME installed Run plus original Request relation and Definition', () => {

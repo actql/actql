@@ -56,6 +56,7 @@ import {
   "actql/actql/value_contract",
   "actql/actql/vector_typing",
   "moonbitlang/core/debug",
+  "moonbitlang/core/ref",
 }
 
 // Values
@@ -889,7 +890,7 @@ pub fn prepare_program_source_identity(OperationProfileChecks, SourcePreparation
 
 pub fn prepare_program_sources(SelectedPolicyContext, Array[Array[@capacity_program_step.TargetRows]], Array[Array[(Int, Int)]], @sourceview_resolution.RequestLimits, max_bindings~ : Int, max_slots~ : Int) -> Result[SourceProducerContext, PrepareSourcesIssue]
 
-pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment.SourceRequestContracts, @stage_local_inputs.Limits, max_inputs~ : Int, max_views~ : Int, max_order_keys~ : Int) -> Result[(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs), SourceRegistrationIssue]
+pub fn prepare_source_registrations(@stage_parameters.Source, @check_environment.SourceRequestContracts, @stage_local_inputs.Limits, max_inputs~ : Int, max_views~ : Int, max_order_keys~ : Int, collected_inputs_out? : @ref.Ref[@sourceview_input.Inputs?]?) -> Result[(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs), SourceRegistrationIssue]
 
 pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_relation_snapshot.Limits) -> Result[SourceStateRequirement?, SourceStateIssue]
 

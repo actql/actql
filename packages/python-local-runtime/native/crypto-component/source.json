@@ -7,7 +7,12 @@
   "upstream": {
     "version": "3.6.2",
     "url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.2/openssl-3.6.2.tar.gz",
-    "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f"
+    "sha256": "aaf51a1fe064384f811daeaeb4ec4dce7340ec8bd893027eee676af31e83a04f",
+    "bytes": 54913556,
+    "members": 6150,
+    "files": 5844,
+    "unpacked_bytes": 134879600,
+    "maximum_member_bytes": 20844910
   },
   "candidate_static_input": {
     "qualification": "selected installed Homebrew static archive, not an ActQL source rebuild",
@@ -24,8 +29,8 @@
       "sha256": "ae27e06edbe5ca408d67730a238b231a4e1cdeacf3e5217925bb151e45f6a3e0"
     },
     "component.h": {
-      "bytes": 2404,
-      "sha256": "0784e5a064f60599fbf164d4fd79a5107379c0ec95c7f574f7d0af390af1e45d"
+      "bytes": 2938,
+      "sha256": "e176c9ee8e9a39e2af3e452ea844a51acbcd1181a6112838b6748277f19d4f9c"
     },
     "NOTICE": {
       "bytes": 368,
@@ -52,5 +57,70 @@
   ],
   "capacity": "one already-admitted original provider extent; headers/realloc overlap included; no fallback or growth",
   "minimum_macos": "26.0",
-  "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+  "license_sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+  "source_targets": {
+    "x86_64-unknown-linux-gnu": {
+      "qualification": "official Ubuntu Noble amd64 libssl-dev static archive and headers; same original process provider, no shared crypto loading",
+      "target": "x86_64-unknown-linux-gnu",
+      "required_defines": [
+        "_GNU_SOURCE"
+      ],
+      "package": {
+        "name": "libssl-dev",
+        "version": "3.0.13-0ubuntu3.16",
+        "architecture": "amd64",
+        "url": "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_3.0.13-0ubuntu3.16_amd64.deb",
+        "bytes": 2408684,
+        "sha256": "2b4734df0475e305ac03abb0a2cc5659651ed37ef02d967a1c4033a154cf714b"
+      },
+      "archive": {
+        "path": "lib/x86_64-linux-gnu/libcrypto.a",
+        "bytes": 10023278,
+        "sha256": "9dffa9e77b1cb29b890e473cf9ee379818cb57a576c7ef476356cd4d5a433bcd"
+      },
+      "header_roots": [
+        "include/openssl",
+        "include/x86_64-linux-gnu/openssl"
+      ],
+      "header_count": 135,
+      "header_census_sha256": "0998dbc8221b002ca3c0f85037264aa47913179f7d6d5738fbdf521e5b9a1802",
+      "license": {
+        "path": "share/doc/libssl3t64/copyright",
+        "bytes": 2543,
+        "sha256": "6a7da622fe0637a334d2a8fc470852d2ffb77d9a2b2f930f854e32a41ad6ef35",
+        "package": {
+          "name": "libssl3t64",
+          "version": "3.0.13-0ubuntu3.16",
+          "architecture": "amd64",
+          "url": "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.16_amd64.deb",
+          "bytes": 1945300,
+          "sha256": "219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797"
+        }
+      },
+      "link_startup": "compiler-selected-shared",
+      "weak_c_runtime_imports": [
+        "_ITM_deregisterTMCloneTable",
+        "_ITM_registerTMCloneTable",
+        "__gmon_start__"
+      ]
+    }
+  },
+  "source_builds": {
+    "darwin-arm64-macos11": {
+      "qualification": "selected official OpenSSL source rebuilt privately for Darwin arm64 macOS11.0; same original process provider, no shared crypto loading",
+      "target": "aarch64-apple-darwin",
+      "minimum_macos": "11.0",
+      "configure": [
+        "darwin64-arm64-cc",
+        "no-shared",
+        "no-tests",
+        "no-module"
+      ],
+      "optimization": "-O2",
+      "cpu_threads": 2,
+      "make_target": "build_libs",
+      "installed_supplier": false,
+      "normal_profile": null
+    }
+  }
 }

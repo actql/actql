@@ -11,6 +11,45 @@ pub enum CheckOutcome {
 struct CheckDiagnostic {
   cause : LocalConstructionFailure
   category : DiagnosticCategory
+  independent_supplied : IndependentSuppliedBinding?
+}
+
+///|
+// A completed original input read made before Program Source resolution.
+// This is diagnostic DATA, not a CheckedProgram or permission to reuse limits.
+priv struct IndependentSuppliedBinding {
+  program : @syntax.Program
+  source : @stages.Source
+  supplied : @decode.Cursor
+  result : Result[@parameters.BindingResult, @parameters.Issue]
+}
+
+///|
+/// Borrow only the same original input's independently observed refusal.
+/// A different Program/tree position or an absent read supplies no finding.
+pub fn independent_supplied_binding_issue(
+  outcome : CheckOutcome,
+  program : @syntax.Program,
+  supplied : @decode.Cursor?,
+) -> @parameters.Issue? {
+  let diagnostic = match outcome {
+    Rejected(value) => value
+    NeedsInputs(value) => value.diagnostic
+    Checked(_) => return None
+  }
+  guard diagnostic.independent_supplied is Some(original) &&
+    physical_equal(original.program, program) &&
+    @stages.complete_program(original.source) is Some(source_program) &&
+    physical_equal(source_program, program) &&
+    supplied is Some(supplied) &&
+    @decode.tree_index(original.supplied, supplied) ==
+    @decode.tree_index(original.supplied, original.supplied) else {
+    return None
+  }
+  match original.result {
+    Err(issue) => Some(issue)
+    Ok(_) => None
+  }
 }
 
 ///|
@@ -216,12 +255,19 @@ pub fn input_request_source(value : InputRequest) -> @decode.Cursor? {
 pub fn construction_failure_diagnostic(
   cause : LocalConstructionFailure,
 ) -> CheckDiagnostic {
-  { cause, category: classify_diagnostic_cause(cause), }
+  {
+    cause,
+    category: classify_diagnostic_cause(cause),
+    independent_supplied: None,
+  }
 }
 
 ///|
-fn rejected(cause : LocalConstructionFailure) -> CheckOutcome {
-  Rejected(construction_failure_diagnostic(cause))
+fn rejected(
+  cause : LocalConstructionFailure,
+  independent_supplied? : IndependentSuppliedBinding? = None,
+) -> CheckOutcome {
+  Rejected({ ..construction_failure_diagnostic(cause), independent_supplied, })
 }
 
 ///|
@@ -236,6 +282,7 @@ fn checking_outcome(
   program : @syntax.Program,
   environment : CheckEnvironment,
   run : () -> CheckedProgram raise LocalConstructionFailure,
+  independent_supplied? : IndependentSuppliedBinding? = None,
 ) -> CheckOutcome {
   Checked(run()) catch {
     error => {
@@ -264,7 +311,7 @@ fn checking_outcome(
           guard site.requirement is @pipeline.RelationRequirement(pending) &&
             pending.kind is @relation.NumericAggregateObservation &&
             @pipeline.step_at(site.pipeline, site.step) is Some(step) else {
-            return rejected(error)
+            return rejected(error, independent_supplied~)
           }
           let supported = match step.operation {
             @pipeline.WindowGroup(_) => true
@@ -280,13 +327,13 @@ fn checking_outcome(
               site.index,
             )
             is Some(source) else {
-            return rejected(error)
+            return rejected(error, independent_supplied~)
           }
           NumericProfile(source)
         }
         _ => {
           guard search_request_parts(error) is Some((source, left, right)) else {
-            return rejected(error)
+            return rejected(error, independent_supplied~)
           }
           SearchRows(source, left, right)
         }
@@ -295,7 +342,11 @@ fn checking_outcome(
         program,
         environment,
         inventory,
-        diagnostic: { cause: error, category: MissingInput, },
+        diagnostic: {
+          cause: error,
+          category: MissingInput,
+          independent_supplied,
+        },
       })
     }
   }

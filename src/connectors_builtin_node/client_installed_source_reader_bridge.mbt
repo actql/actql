@@ -19,6 +19,22 @@ pub fn client_program_installed_json_source_reader_capacity(
 }
 
 ///|
+/// Project the existing common native-reader composition. The supplied domain
+/// quote is the original provider constructor, not a numeric allowance or a
+/// permission. Its caller keeps that same quote on the bound Source Reader.
+#export_name("clientProgramInstalledNativeSourceReaderCapacity")
+pub fn client_program_installed_native_source_reader_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  native : @execution.ExecutionCapacity?,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_native_source_reader_capacity(
+    limits, columns, secret_bytes, native,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledJsonSourceReaderProfile")
 pub fn client_program_installed_json_source_reader_profile(
   metadata_responses : Int,

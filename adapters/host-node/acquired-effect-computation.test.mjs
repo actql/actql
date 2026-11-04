@@ -7,32 +7,93 @@ import {acquisitionEndHandoff, acquisitionFailure} from
   '../host-common/acquisition-outcome.mjs';
 import {openAcquiredEffectComputation as openEffectComputation} from './acquired-effect-computation.mjs';
 
-// These single-source failure fixtures stop before the compiled runtime.
-const openAcquiredEffectComputation = options => openEffectComputation({
-  moon: {clientProgramEffectAcquisitionCount: () => 1,
+// These failure fixtures stop before the compiled runtime. Their nominal
+// Plan, Request and Ledger ports do not issue real funding or provider custody.
+const openAcquiredEffectComputation = options => {
+  const {sourceRefs = ['selected'], ...original} = options;
+  const prepared = original.acquired.prepared;
+  const request = original.acquired.requestIdentity ?? {};
+  const managedRun = original.managedRun ?? {}, plan = {}, ledger = {};
+  const sourceBudget = Object.freeze({managedRun, capacity: {}, transferBytes: 17n, executionBytes: 19n});
+  let ledgerPrepared = false;
+  const sameOriginal = (parent, value, identity) => {
+    assert.equal(parent, managedRun); assert.equal(value, prepared); assert.equal(identity, request);
+  };
+  const moon = original.moon ?? {};
+  const defaults = {clientProgramEffectAcquisitionCount: () => 1,
     clientProgramEffectSerializationOccurrences: () => [],
-    clientProgramEffectPrepareLocalQueryRequirement: () => ({$tag: 1, _0: 'selected'}),
-    clientProgramQueryRequirementSourceRef: value => value}, ...options,
-  sourceProfile: options.sourceProfile?.sources === undefined
-    ? {admitsSource: ref => ref === 'selected', ...options.sourceProfile}
-    : options.sourceProfile,
-});
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('The original Plan already owns the checked requirement');},
+    clientProgramQueryRequirementSourceRef: value => value,
+    clientProgramInstalledEffectManagedOperationPlan(parent, value, identity) {
+      assert.equal(this, moon); sameOriginal(parent, value, identity);
+      return {$tag: 1, _0: plan};
+    },
+    clientProgramInstalledEffectManagedPlanSource(actual, task) {
+      assert.equal(this, moon); assert.equal(actual, plan);
+      assert(Number.isSafeInteger(task) && task >= 0 && task < sourceRefs.length);
+      return {$tag: 1, _0: {_0: sourceBudget.capacity, _1: sourceRefs[task]}};
+    },
+    clientProgramInstalledEffectManagedRunPrepareLedger(parent, value, identity, capacities, transfer, execution,
+      registry, values, fragment, ordered) {
+      assert.equal(this, moon); sameOriginal(parent, value, identity);
+      assert.equal(ledgerPrepared, false); ledgerPrepared = true;
+      assert.deepEqual(capacities, [sourceBudget.capacity]);
+      assert.deepEqual(transfer, [sourceBudget.transferBytes]);
+      assert.deepEqual(execution, [sourceBudget.executionBytes]);
+      assert.deepEqual([registry, values, fragment, ordered],
+        [original.registry, original.values, original.fragment, original.ordered]);
+      return {$tag: 1, _0: ledger};
+    },
+    clientProgramMultiCapturedLedgerUsage(actual) {assert.equal(actual, ledger); return undefined;},
+    clientProgramInstalledEffectManagedHostOpen() {assert.fail('These refusal fixtures cannot construct a Compute Host');}};
+  for (const [name, value] of Object.entries(defaults)) {
+    if (!Object.hasOwn(moon, name)) Object.defineProperty(moon, name, {value,
+      enumerable: true, writable: true, configurable: true});
+  }
+  const sourceProfile = original.sourceProfile?.sources === undefined
+    ? {admitsSource: ref => ref === 'selected', ...original.sourceProfile}
+    : original.sourceProfile;
+  for (const adapter of sourceProfile.sources ?? [sourceProfile]) {
+    if (typeof adapter.ledgerCapacity !== 'function') Object.defineProperty(adapter, 'ledgerCapacity', {value(value) {
+      assert.equal(this, adapter); assert.notEqual(value, undefined);
+      assert.equal(sourceRefs.length, 1, 'Multi-Source refusal fixtures must stop before Ledger construction');
+      return sourceBudget;
+    }});
+  }
+  return openEffectComputation({...original, moon, managedRun, sourceProfile,
+    acquired: {...original.acquired, requestIdentity: request}});
+};
 
 test('source-free composed Model admission retains custody without opening an installed Source', async () => {
   const prepared = {};
+  const request = {}, managedRun = {}, operationPlan = {};
   const failure = new Error('ModelOwnerUnavailable');
   let custody;
-  let sourceCalls = 0;
+  let sourceCalls = 0, planReads = 0;
   const resultPolicy = graphResultDataPolicy;
   const policyLimits = Object.freeze({maxWireBytes: 1024, maxNodes: 100, maxDepth: 8});
-  await assert.rejects(openEffectComputation({
-    modelController: {discover: () => []},
-    moon: {clientProgramInferPlanBoundary: () => ({_0: 0}),
-      clientProgramEffectSerializationOccurrences: () => [], clientProgramEffectAcquisitionCount(actual) {
+  // These nominal Plan/Request ports remain explicit. This failure fixture
+  // stops before Common admission or a physical Model/Source constructor.
+  const moon = {clientProgramInferPlanBoundary: () => ({_0: 0}),
+    clientProgramEffectSerializationOccurrences: () => [], clientProgramEffectAcquisitionCount(actual) {
       assert.equal(actual, prepared);
       return 0;
-    }},
-    acquired: {prepared, resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
+    }, clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
+      assert.equal(this, moon);
+      assert.equal(parent, managedRun);
+      assert.equal(actual, prepared);
+      assert.equal(identity, request);
+      assert.ok(custody, 'retain the same computation owner before reading its original Plan');
+      planReads++;
+      return {$tag: 1, _0: operationPlan};
+    }, clientProgramInstalledEffectManagedHostOpen() {
+      assert.fail('Model admission failure must not construct a Compute Host');
+    }};
+  await assert.rejects(openAcquiredEffectComputation({
+    modelController: {discover: () => []},
+    moon, managedRun,
+    acquired: {prepared, requestIdentity: request,
+      resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
       control: {runDefinitionRunId: () => 'fixture-run', adoptCheckedClientEffectInferRun(allowed, definition, policy, limits) {
         assert.equal(policy, resultPolicy);
         assert.equal(limits, policyLimits);
@@ -47,6 +108,7 @@ test('source-free composed Model admission retains custody without opening an in
       open() { sourceCalls++; throw new Error('UnexpectedSourceOpen'); },
     }))},
   }), error => error === failure);
+  assert.equal(planReads, 1);
   assert.equal(sourceCalls, 0);
   assert.equal(await custody.cleanup(), false);
   await custody.close();
@@ -355,9 +417,8 @@ test('two-of-three Effect preparation retains custody before either selected rea
   await assert.rejects(openAcquiredEffectComputation({
     moon: {
       clientProgramEffectAcquisitionCount: () => 2,
-      clientProgramEffectPrepareLocalQueryRequirement: (_, task) => ({$tag: 1, _0: task}),
-      clientProgramQueryRequirementSourceRef: task => `source-${task}`,
     },
+    sourceRefs: ['source-0', 'source-1'],
     owner: {}, acquired: {prepared}, sourceProfile: {sources},
     retainComputationOwner(value) { custody = value; },
   }), error => error === failure);
@@ -432,10 +493,9 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
     const second = adapter('second', fault === 'duplicate-owner' || fault === 'missing-owner'
       ? ['other'] : ['second'], fault === 'unsupported-realization' ? 'installed-row-source' : undefined);
     const unused = adapter('unused', fault === 'ambiguous-owner' ? ['second'] : ['unused']);
-    await assert.rejects(openEffectComputation({
-      moon: {clientProgramEffectAcquisitionCount: () => 2,
-        clientProgramEffectPrepareLocalQueryRequirement: (_, task) => ({$tag: 1, _0: ['first', 'second'][task]}),
-        clientProgramQueryRequirementSourceRef: ref => ref},
+    await assert.rejects(openAcquiredEffectComputation({
+      moon: {clientProgramEffectAcquisitionCount: () => 2},
+      sourceRefs: ['first', 'second'],
       acquired: {prepared: {}}, sourceProfile: {sources: [first, unused, second]},
       retainComputationOwner(value) { custody = value; },
     }), {message: fault === 'duplicate-owner' ? 'DuplicateEffectSourceOwner'

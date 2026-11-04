@@ -7,12 +7,14 @@ import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {authorizationDispatchFacts,assertAuthorizationAccountCurrent}
   from '../../../host-common/authorization-gate.mjs';
 import {createInstalledRowEffect,retainInstalledRowEffectAdapter,
-  installedRowEffectOwnerBinding} from '../../../host-node/installed-row-effect.mjs';
+  installedRowEffectOwnerBinding,installedRowEffectConstructionLimits} from '../../../host-node/installed-row-effect.mjs';
 import {composeInstalledEffects} from '../../../host-node/installed-effect-inventory.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {prepareLocalFileStoreTarget} from './local-file-store-target.mjs';
 import {prepareLocalStoredContentWrite} from '../site/root-stored-content-writer.mjs';
+import {captureLocalFileWriteConstructionProfile} from '../site/root-file-writer-profile.mjs';
+import {prepareLocalFileStorePlanRecipe} from './local-file-store-plan.mjs';
 
 const wire=value=>canonicalJson(value,{dataKeys:true});
 const cid=value=>'sha256:'+createHash('sha256').update(wire(value)).digest('hex');
@@ -48,6 +50,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
     if(preparation.originalsForRuntime(moon)!==bundle)fail('ForeignLocalFilesPreparation');
   };
   current();
+  const writerProfile=captureLocalFileWriteConstructionProfile(nativeFilesystem);
   // These selectors name already admitted Project entries, not new profile
   // reads. Reuse the existing installation inventory and partial-close owner.
   const effects=await composeInstalledEffects(bundle.sources.map(entry=>entry.connection),
@@ -70,9 +73,11 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared,[target.mappingWire]);
       const limits=Object.freeze({...LOCAL_STORE_LIMITS,maxFileBytes:entry.limits.maxFileBytes});
       const {driver,site}=createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
-        authorization,assertCurrent:current,resources,limits,nativeFilesystem});
+        authorization,assertCurrent:current,resources,limits,nativeFilesystem,writerProfile});
+      const inputLimits=installedRowEffectConstructionLimits({maxRows:limits.maxRows,maxMembers:limits.maxEffects});
       let effect;
       try{
+        const managedPlanRecipe=prepareLocalFileStorePlanRecipe({moon,inputLimits,limits,writerProfile});
         effect=await createInstalledRowEffect({moon,
           mappings:[{resource:'files',mappingRef:mapping.mapping_ref,
             mappingCid:mapping.mapping_contract_cid,body:target.mappingWire}],
@@ -82,7 +87,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
           connectorRegistration:'local',connectorRevision:'local/0.1',connection,
           site,authorization,runtimeBundleCid,bindingCid,ledgerRoot,driver,effectResources:resources,
           issueOriginalCollectionReference:target.issueOriginalCollectionReference,
-          limits:{maxRows:limits.maxRows,maxMembers:limits.maxEffects}});
+          limits:inputLimits,managedPlanRecipe});
         retain(effect); // Before a current/metadata callback can reject it.
         current();
         const original=installedRowEffectOwnerBinding(effect);
@@ -108,7 +113,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
 // request DATA cannot construct either. The native child performs no I/O until
 // send, after the existing dispatch claim and any required Preview approval.
 export function createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
-  authorization,assertCurrent,resources,limits,nativeFilesystem}) {
+  authorization,assertCurrent,resources,limits,nativeFilesystem,writerProfile}) {
   const requests=new WeakMap(),descriptions=new WeakMap(),grants=new WeakMap(),children=new Set();
   let closing=false;
   const current=()=>{if(closing)fail('LocalStoreInstallationClosing');synchronous(assertCurrent());};
@@ -233,7 +238,7 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
           const state=request===undefined?undefined:requests.get(request);
           if(state?.writeChild!==undefined)await state.writeChild.close();
           if(preparing||state?.writeChild?.status().pending)return false;
-          if(state!==undefined){state.released=true;state.borrow=state.contentOwner=undefined;}
+          if(state!==undefined){state.released=true;state.borrow=state.contentOwner=state.writeChild=undefined;}
           children.delete(child);return true;
         },
         retry(){return child.release();},
@@ -335,14 +340,14 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
           }
           for(const contentChild of retained)await contentChild.release();
           if(retained.some(contentChild=>contentChild.status().pending))return false;
-          for(const {state} of selected){state.released=true;state.borrow=state.contentOwner=undefined;}
+          for(const {state} of selected){state.released=true;state.borrow=state.contentOwner=state.writeChild=undefined;}
           released=true;children.delete(child);return true;
         },
         status:()=>Object.freeze({pending:!released||flight!==undefined}),
       });
       children.add(child);return child;
     },
-    async send({member,request,current:selected,authorization:supplied,signal,runOriginal}){
+    async send({member,request,current:selected,authorization:supplied,signal,runOriginal,physicalOperation}){
       memberCurrent(member);const observed=description(selected,runOriginal),original=own(request,runOriginal);
       const grant=grants.get(supplied?.proof);
       if(grant===undefined||grant.used||grant.runInvocationCid!==observed.runInvocationCid||
@@ -355,8 +360,10 @@ export function createLocalFileStoreDriver({entry,target,command,bindingCid,prin
         path:original.record.value.path,temporaryName:'.actql-store-'+randomUUID(),
         maxBytes:limits.maxFileBytes,overwrite:original.record.value.overwrite??false,
         contentOwner:original.contentOwner,content:original.borrow,signal,
+        writeQuantumBytes:writerProfile?.writeQuantumBytes,observeWriteBytes:physicalOperation?.chargeBytes,
         assertCurrent(){runCurrent(runOriginal);decisionCurrent(grant.decision);}});
       original.writeChild=write; // Before execute/acquisition or a later callback.
+      physicalOperation?.retainPhysicalChild(write);
       let result,primary,failed=false;
       try{result=await write.execute();}catch(cause){failed=true;primary=cause;}
       let cleanup,cleanupFailed=false;

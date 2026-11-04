@@ -29,6 +29,10 @@ const issueCodes = Object.freeze({
   source_rejected: 'ClientProgramRejected',
   source_unresolved: 'ClientProgramRejected',
   source_unsupported: 'ClientProgramRejected',
+  // Only the original frontend's typed implementation limits select this
+  // category. The submission's current disclosure gate still owns visibility.
+  source_implementation_limit: 'ClientProgramImplementationLimit',
+  source_analysis_limit: 'ClientProgramAnalysisLimit',
   source_missing_input: 'ClientProgramNeedsInputs',
   source_declarations: 'ClientParametersInvalid',
   source_limit: 'ClientProgramRejected',
@@ -196,9 +200,9 @@ export function installNodeClientProgramPreparation({moon, environment,
       return original;
     },
     originalInferRun(prepared) {return owned.get(prepared)?.inferRun;},
-    restoreInferOriginal(original, definition, request, evidence) {
+    restoreInferOriginal(original, definition, request, evidence, restorationRequest) {
       if (restoreInferOriginal === undefined) fail('ClientProgramUnsupported');
-      const restored = restoreInferOriginal(original, definition, request, evidence);
+      const restored = restoreInferOriginal(original, definition, request, evidence, restorationRequest);
       if (typeof restored?.then === 'function') {
         void Promise.resolve(restored).catch(() => {});
         fail('ClientProgramPreparationFailure');

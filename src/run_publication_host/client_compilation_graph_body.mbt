@@ -66,3 +66,8 @@ fn client_compilation_task_node_id(task : Int) -> String {
 fn client_compilation_result_node_id(result : Int) -> String {
   "result_" + result.to_string()
 }
+
+///|
+fn client_compilation_result_input_node_id(edge : Int) -> String {
+  "result_input_" + edge.to_string()
+}

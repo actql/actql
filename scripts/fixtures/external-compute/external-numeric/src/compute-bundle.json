@@ -9,6 +9,7 @@
   "configuration": "Configuration",
   "configure": "configure",
   "registration": "registration",
+  "validate_binding": "validate_binding",
   "contribution": "contribution",
   "dispatch_error": {"package": "actql/actql/physical_strategy_host", "type": "RunIssue"},
   "estimate_error": {"package": "actql/actql/physical_strategy_host", "type": "RunIssue"}

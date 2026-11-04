@@ -282,6 +282,24 @@ pub fn compute_resident_cleanup_sql(
 }
 
 ///|
+#export_name("computeHostPhysicalStart")
+pub fn compute_host_physical_start(
+  run : ComputeNodeRun,
+) -> Unit raise NodeHostFailure {
+  guard run.strategy is Some((graph, _, task_handle)) && !run.closed else {
+    raise Physical(InvalidCharge)
+  }
+  match
+    @strategy.begin_task_execution_use(
+      graph,
+      @duckdb_driver.captured_duckdb_execution(task_handle),
+    ) {
+    Ok(_) => ()
+    Err(issue) => raise Physical(issue)
+  }
+}
+
+///|
 #export_name("computeHostPhysicalCharge")
 pub fn compute_host_physical_charge(
   run : ComputeNodeRun,

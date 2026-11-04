@@ -8,6 +8,7 @@ pub(all) struct ClientPureCompilationConstruction {
   fragments : Array[ClientTaskFragmentConstruction]
   borrowed_inputs : Array[(Int, Int, Int)]
   results : Array[(Int, Int, Int)]
+  // Possible public-root and checked dependency Result projection scratch.
   projections : Array[ClientResultGraphConstruction]
   nodes : (Int, Int, Int)
   edges : (Int, Int, Int)
@@ -369,6 +370,28 @@ fn measure_prepared_client_compilation_construction_owned(
           inputs.get(@strategy.data_edge_consumer(edge)) is Some(destination) &&
           client_task_edge_input(graph, edge) is Some((input_name, _)) else {
           return Err(TaskGraph(InvalidEdge))
+        }
+        let projection = match
+          measure_client_task_result_input_projection(
+            graph, edge, index, source_node, source_port,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(TaskGraph(issue))
+        }
+        let (source_node, source_port) = match projection {
+          None => (source_node, source_port)
+          Some(projection) => {
+            projections.push(projection)
+            graph_nodes.push(projection.node)
+            graph_edges.push(projection.edge)
+            (
+              client_compilation_result_input_node_id(index),
+              match client_task_result_input_port(graph, edge) {
+                Ok(Some(port)) => client_task_result_input_output(port)
+                _ => return Err(TaskGraph(InvalidEdge))
+              },
+            )
+          }
         }
         let writer = @encode.measuring_writer(
           2147483647, 2147483647, 2147483647,

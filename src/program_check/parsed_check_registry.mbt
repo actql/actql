@@ -71,6 +71,7 @@ pub struct ParsedCheckRegistry {
   priv prelude : ParsedCheckPrelude
   priv mut start : EnvironmentAdmissionStart
   priv mut available : Bool
+  priv collected_source_inputs : Ref[@source_inputs.Inputs?]
 }
 
 ///|
@@ -169,8 +170,9 @@ pub fn parsed_catalog_construction_extent(
   // These are fixed constructor roles, not borrowed Catalog/body backing.
   {
     ..domain,
-    record_headers: domain.record_headers + 9L,
-    reference_slots: domain.reference_slots + 9L,
+    // One fixed Ref and its existing-registry field retain original Inputs.
+    record_headers: domain.record_headers + 10L,
+    reference_slots: domain.reference_slots + 11L,
     scalar_words: domain.scalar_words + 15L,
   }
 }
@@ -202,7 +204,7 @@ pub fn observe_parsed_check_registry(
     } else {
       Registry(prepare_environment_registry(wire, b, None), b, None)
     }
-    Ok({ prelude, start, available: true, })
+    Ok({ prelude, start, available: true, collected_source_inputs: Ref(None), })
   } catch {
     issue => Err(Check(Environment(issue)))
   }
@@ -271,15 +273,87 @@ fn finish_parsed_check_registry_owned(
   source_context? : @context.SourceViewContextInput? = None,
 ) -> CheckOutcome {
   let original = prepared.prelude.original
-  checking_outcome(original.program, original.environment, () => {
-    construct_after_parsed_check_registry(prepared, source_context~)
-  })
+  // This SAME full remaining-check frame has already been backed. Observe
+  // caller-owned supplied values before private Program Source resolution.
+  // Keep the result beside the original primary outcome, never in its place.
+  let (prepared_source, independent_supplied) = if parsed_check_independent_supplied_original(
+      prepared,
+    )
+    is Some((source, supplied)) {
+    let limits = source_limits_after_catalog(
+      compile_source_limits(original.limits),
+      environment_start_budget(prepared.start),
+    )
+    let (source, result) = @stages.prepare_bindings(source, Some(supplied), {
+      max_nodes: limits.topology.max_nodes,
+      max_depth: limits.topology.max_depth,
+      max_text_bytes: Int::min(
+        limits.topology.max_text_bytes,
+        limits.context.stages.max_text_bytes,
+      ),
+    })
+    (
+      Some(source),
+      Some(IndependentSuppliedBinding::{
+        program: original.program,
+        source,
+        supplied,
+        result,
+      }),
+    )
+  } else {
+    (None, None)
+  }
+  checking_outcome(
+    original.program,
+    original.environment,
+    () => {
+      construct_after_parsed_check_registry(
+        prepared,
+        source_context~,
+        prepared_source~,
+      )
+    },
+    independent_supplied~,
+  )
+}
+
+///|
+// Borrow original DATA only, before any Program Source selection. The caller
+// separately owns currentness, entry backing and the actual binding read.
+fn parsed_check_independent_supplied_original(
+  prepared : ParsedCheckRegistry,
+) -> (@stages.Source, @decode.Cursor)? {
+  match prepared.start {
+    Requests(_, _) | ReusedRequests(_, _, _) => {
+      let original = prepared.prelude.original
+      let limits = source_limits_after_catalog(
+        compile_source_limits(original.limits),
+        environment_start_budget(prepared.start),
+      )
+      if original.source_preparation is Some(source) &&
+        original.supplied is Some(supplied) &&
+        @stages.reuse_prepared(source, original.program, {
+          max_parameters: limits.max_parameters,
+          max_nodes: limits.topology.max_nodes,
+          max_depth: limits.topology.max_depth,
+          max_text_bytes: limits.topology.max_text_bytes,
+        })
+        is Some(source) {
+        Some((source, supplied))
+      } else {
+        None
+      }
+    }
+    _ => None
+  }
 }
 
 ///|
 fn construct_after_parsed_check_registry(
   prepared : ParsedCheckRegistry,
   source_context? : @context.SourceViewContextInput? = None,
+  prepared_source? : @stages.Source? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   let prelude = prepared.prelude
   let {
@@ -292,6 +366,10 @@ fn construct_after_parsed_check_registry(
     source_catalog,
     source_preparation,
   } = prelude.original
+  let source_preparation = match prepared_source {
+    Some(source) => Some(source)
+    None => source_preparation
+  }
   let source_limits = match prepared.start {
     Registered(_, _, _, selected, _, _) => selected
     _ => compile_source_limits(limits)
@@ -318,7 +396,21 @@ fn construct_after_parsed_check_registry(
     source_preparation~,
     environment_start=Some(prepared.start),
     source_context~,
+    collected_inputs_out=Some(prepared.collected_source_inputs),
   )
+}
+
+///|
+/// Immutable declaration DATA retained by this same consumed checker. No
+/// collection, binding, resolution, authority or completed check is issued.
+pub fn parsed_check_collected_source_inputs(
+  prepared : ParsedCheckRegistry,
+) -> @source_inputs.Inputs? {
+  if prepared.available {
+    None
+  } else {
+    prepared.collected_source_inputs.val
+  }
 }
 
 ///|
@@ -340,8 +432,9 @@ pub fn parsed_catalog_retained_extent(
   // Keep the original continuation/budget/control envelope conservatively.
   {
     ..domain,
-    record_headers: domain.record_headers + 9L,
-    reference_slots: domain.reference_slots + 9L,
+    // One fixed Ref and its existing-registry field retain original Inputs.
+    record_headers: domain.record_headers + 10L,
+    reference_slots: domain.reference_slots + 11L,
     scalar_words: domain.scalar_words + 15L,
   }
 }

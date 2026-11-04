@@ -4,6 +4,7 @@ test "Node managed continuation imports one same original and reports preserved 
   let saved = continuation_test_decode(continuation_test_wire()).unwrap()
   let reports : Ref[LedgerUsage?] = Ref(None)
   let calls = Ref(0)
+  let stops = Ref(0)
   let child = prepare_imported_child_port(
     1L,
     _ => {
@@ -26,7 +27,10 @@ test "Node managed continuation imports one same original and reports preserved 
       reports.val = Some(usage)
       0
     },
-    _ => 0,
+    _ => {
+      stops.val += 1
+      0
+    },
     fixed_capacities=false,
   ).unwrap()
   let prepared = Ref(1)
@@ -51,10 +55,22 @@ test "Node managed continuation imports one same original and reports preserved 
   check_node_managed_run_admission(admission, ledger).unwrap()
   report_imported_child_ledger(child).unwrap()
   assert_eq(reports.val.unwrap(), ledger_usage(ledger))
-  // Unknown transfer is real retained debt; ordinary cleanup must not turn it
-  // into a stopped, zero-usage Root or another admission on repeated calls.
-  assert_true(cleanup_node_managed_run_admission(admission) is Err(Unavailable))
-  assert_true(cleanup_node_managed_run_admission(admission) is Err(Unavailable))
+  // Unknown dispatched transfer stays in the SAME cumulative budget after
+  // physical cleanup. Retire only the original child; never zero its report,
+  // reset history or acquire another admission on an idempotent cleanup call.
+  let cumulative = ledger_usage(ledger)
+  assert_eq(cleanup_node_managed_run_admission(admission), Ok(()))
+  assert_eq(reports.val.unwrap(), cumulative)
+  assert_eq(ledger_usage(ledger), cumulative)
+  assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 3L)
+  assert_eq(stops.val, 1)
+  assert_eq(cleanup_node_managed_run_admission(admission), Ok(()))
+  assert_eq(stops.val, 1)
+  assert_eq(ledger_usage(ledger), cumulative)
+  assert_true(
+    restore_node_managed_run_admission(admission, prepared, saved)
+    is Err(ChangedOriginal),
+  )
   assert_eq(calls.val, 1)
 }
 

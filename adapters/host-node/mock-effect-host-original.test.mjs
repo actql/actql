@@ -58,7 +58,10 @@ function fixture({composed = false} = {}) {
     if (physicalFailure !== undefined) throw physicalFailure;
     return actualLimits;
   }};
-  const moon = {clientProgramBindCompiledEffectRun(p, a, d) {
+  // This original-binding fixture has no Serialize occurrence or Content child.
+  const moon = {clientProgramEffectSerializationOccurrences(p) {
+    assert.strictEqual(p, prepared); return [];
+  }, clientProgramBindCompiledEffectRun(p, a, d) {
     assert.strictEqual(p, prepared);
     assert(a === allowed && d === definition || a === reissuedAllowed && d === reissuedDefinition);
     calls.push('typed-run'); return {$tag: 1, _0: {}};
@@ -104,7 +107,8 @@ function fixture({composed = false} = {}) {
   }};
   const control = {}, preparation = {assertResultPublicationCurrent: currentHost,
     admitEffectResultPublicationRun(p) {assert.strictEqual(p, prepared); calls.push('result-purpose');},
-    prepareManagedEffectPlanRun(core, actualFacts, selection, inputs, originalInfer) {
+    prepareManagedEffectPlanRun(core, actualFacts, selection, inputs, originalInfer, prepareContent) {
+      assert.equal(prepareContent, undefined);
       assert.strictEqual(this, preparation); assert.strictEqual(core, moon);
       assert.strictEqual(actualFacts, facts); assert.strictEqual(selection, selected);
       assert.strictEqual(actualFacts.identity, identity);

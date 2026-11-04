@@ -160,9 +160,18 @@ export const hostAccountConfiguration = (orgId, {effect = 'delegate'} = {}) =>
     version: 'actql-execution-account-config/0.1',
     account_id: 'salesforce-rce-host', entries: [
       accountEntry('effect-commit', effect, orgId, 'effect'),
+      {entry_id: 'host-results', outcome: 'allow', exclusions: [],
+        principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'result/updates']},
+        operation: {any_of: ['read']}},
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']}},
+      // Run observation is its own existing Host permission. This tuple
+      // grants no Salesforce Resource read or mutation authority.
+      {entry_id: 'host-run-read', outcome: 'allow', exclusions: [],
+        principal: {all: true}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['run']}, operation: {any_of: ['read']}},
       accountEntry('target-read', 'allow', orgId, 'read'),
     ]});
 

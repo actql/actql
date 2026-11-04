@@ -95,6 +95,8 @@ pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
+pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
+
 pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_capture_run(RowSourceCapture, RowRun) -> Result[Unit, RowHostIssue]
@@ -309,6 +311,8 @@ pub fn row_declaration_view(RowDeclaration, String) -> RowDeclaredView?
 
 pub fn row_input_acquisition_capacity(RowInputAcquisition, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
 
+pub fn row_input_acquisition_column_contract(RowInputAcquisition, Int) -> @value_contract.Contract?
+
 pub fn row_input_acquisition_columns(RowInputAcquisition) -> Array[String]
 
 pub fn row_input_acquisition_facts(RowInputAcquisition) -> @query_planning.QuerySourceEvidenceFacts
@@ -332,6 +336,8 @@ pub fn row_original_input_capacity() -> (Int64, Int64)
 pub fn row_run_attempt(RowRun) -> RowAttempt
 
 pub fn row_run_listing_complete(RowRun) -> Bool
+
+pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]
 
 pub fn row_source_columns(RowSourcePreparation) -> Array[String]
 
@@ -628,6 +634,11 @@ pub(all) struct RowRelationWriteSpec {
   permission : String
   approval : String
 } derive(Eq, @debug.Debug)
+
+pub enum RowResponseSelection {
+  QueryResponse(RowAcquisition)
+  InputResponse(RowInputAcquisition)
+}
 
 type RowRestoredOriginalInput
 

@@ -520,6 +520,14 @@ do not fund construction: Header, selected-source preflight, supplied Value,
 output/diagnostic coexistence and actual Program/Context/backend consumers
 still require their corresponding original-parent resource connection.
 
+Completed successful binding also retains the actual per-value node/text
+admission maxima from that same admission pass. Reuse compares both these
+maxima and the cumulative selected-source preflight usage with the requested
+node/text ceilings. A fitting smaller ceiling forwards the same Result without
+new admission. Depth must remain equal or relaxed; failure reuse still requires
+identical limits because successful usage does not prove a failed prefix.
+The two retained scalar maxima are included in the original Header reservation.
+
 
 ## Original binding Header reservation
 

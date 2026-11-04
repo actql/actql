@@ -71,7 +71,7 @@ const {installResultAccessAuthority} = resultAccess;
 const {exerciseResultDeliveryAcceptance} =
   await import('./result-delivery-acceptance.mjs');
 assert.equal((await exerciseResultDeliveryAcceptance(resultAccess,
-  openResultDeliveryControl)).length, 6);
+  openResultDeliveryControl)).length, 7);
 assert.equal(typeof installResultAccessAuthority, 'function');
 assert.equal(openResultDeliveryControl()
   .beginResultAccessProgress().kind, 'result-access-progress');

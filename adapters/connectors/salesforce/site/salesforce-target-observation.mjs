@@ -210,9 +210,11 @@ export async function observeSalesforceTargetSet({
   }
   let totalRows = 0;
   const owned = members.map(member => {
+    const readChild = member?.readChild;
     if (!Array.isArray(member?.requests) ||
         member.requests.length === 0 ||
         typeof member.authorizationForRow !== 'function' ||
+        readChild !== undefined && typeof readChild !== 'function' ||
         !member.currentCatalog || !member.credential ||
         !validLimits(member.limits)) {
       fail('InvalidSalesforceTargetSet');
@@ -223,6 +225,10 @@ export async function observeSalesforceTargetSet({
       requests: Object.freeze([...member.requests]),
       currentCatalog: member.currentCatalog,
       authorizationForRow: member.authorizationForRow,
+      // Retain the original callback and receiver before the first await. The
+      // shared owner still admits and retains its original physical child.
+      readChild: readChild === undefined ? undefined
+        : (...args) => Reflect.apply(readChild, member, args),
       credential: Object.freeze({...member.credential}),
       limits: ownInvocationLimits(member.limits),
     });
@@ -241,6 +247,8 @@ export async function observeSalesforceTargetSet({
         moon, request: member.requests[rowIndex],
         currentCatalog: member.currentCatalog,
         authorization, credential: member.credential,
+        ...(member.readChild === undefined ? {} : {callResource: input =>
+          member.readChild(authorization, input, rowIndex)}),
         limits: {...member.limits,
           maxResponseBytes: Math.min(member.limits.maxResponseBytes,
             remaining)}, signal,

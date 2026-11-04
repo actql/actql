@@ -75,6 +75,15 @@ async function declaredSource(runtimeRootUrl, publication) {
   return {environment, source, sourceRef, fields, catalogCid: catalog.catalog_cid};
 }
 
+// This current authored Host has separate observation and Run permissions.
+// Keep both exact purposes in the synthetic historical snapshot's real CID.
+function assertSyntheticSalesforceHostAccount(account) {
+  assert.deepEqual(account.entries.map(entry => entry.entry_id), ['host-results', 'host-run']);
+  assert.equal(account.entries.every(entry => entry.outcome === 'allow'), true);
+  assert.deepEqual(account.entries[0].operation, {any_of: ['read']});
+  assert.deepEqual(account.entries[1].operation, {any_of: ['write']});
+}
+
 export async function writeSyntheticHistoricalHeldSalesforce({directory, document,
   requestId, authorization, sourceProfile, siteProfile, runtimeRootUrl,
   expressionContractUrl, now = Date.now()}) {
@@ -100,8 +109,7 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
   const root = resolve(directory), principalId = userInfo().username;
   const namespaceId = 'local', siteKey = 'actql-remote-host', realizationKey = 'salesforce-acquired';
   const account = JSON.parse(authorization.accountConfiguration);
-  assert.equal(account.entries.length, 1);
-  assert.equal(account.entries[0].outcome, 'allow');
+  assertSyntheticSalesforceHostAccount(account);
   const sourceAccount = JSON.parse(sourceProfile.accountConfigurationWire);
   assert.equal(sourceAccount.entries.length, 1);
   assert.equal(sourceAccount.entries[0].outcome, 'delegate');

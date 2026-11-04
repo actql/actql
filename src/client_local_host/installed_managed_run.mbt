@@ -187,6 +187,7 @@ fn installed_managed_owner_shape_supported(
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
   model_occurrence? : @publication_host.ClientInferOccurrence? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
   let captured = @strategy.graph_captured_prefix(graph)
@@ -235,7 +236,15 @@ fn installed_managed_owner_shape_supported(
   count == (if mock_model { 1 } else { 0 }) &&
   (match model {
     None =>
-      serialized.is_empty() &&
+      (
+        (serialized.is_empty() && content is None) ||
+        (match (owner, content) {
+          (Effect(prepared), Some(original)) =>
+            !mock_model &&
+            installed_effect_content_preparation_matches(original, prepared)
+          _ => false
+        })
+      ) &&
       (match (model_occurrence, owner) {
         (None, _) => true
         (Some(original), Pure(prepared)) =>
@@ -272,6 +281,7 @@ fn source_free_installed_managed_preparation_owned(
   ordered_body : String?,
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -281,7 +291,12 @@ fn source_free_installed_managed_preparation_owned(
   ClientInstalledManagedRunIssue,
 ] {
   let graph = installed_managed_owner_graph(owner)
-  if !installed_managed_owner_shape_supported(owner, mock_model, model~) ||
+  if !installed_managed_owner_shape_supported(
+      owner,
+      mock_model,
+      model~,
+      content~,
+    ) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
     !@strategy.graph_source_free_inputs_complete(graph) {
     return Err(Unsupported)
@@ -330,6 +345,7 @@ fn source_free_installed_managed_preparation_owned(
     // original owner; an unproved nested schema still takes the old fallback.
     scalar_values=true,
     graph=Some(graph),
+    content~,
   )
   // Preserve the failed required quote before entering provider construction.
   // Neither a genuine zero nor a graph-less calculator means quote failure.

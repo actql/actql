@@ -131,6 +131,7 @@ pub fn[I, T] prepare_request_native_query_computation(
       reader,
       environment,
       publication,
+      binding_limits=Some(request_query_binding_limits(program_limits.checking)),
       supplied~,
       declarations~,
     ) {
@@ -151,6 +152,7 @@ fn[I, T] prepare_request_native_query_computation_input(
   reader : @source.JsonDataReader[T],
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
+  binding_limits? : @admitted.Limits? = None,
   supplied? : T? = None,
   declarations? : T? = None,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
@@ -173,6 +175,7 @@ fn[I, T] prepare_request_native_query_computation_input(
       environment,
       None,
       public_primary=true,
+      binding_limits~,
     ) {
     Err(issue) => return Err(QueryLowering(issue))
     Ok(_) => ()
@@ -204,7 +207,7 @@ pub fn[I, T] prepare_request_native_source_computation(
       reader,
       environment,
       publication,
-      program_limits.checking.input,
+      program_limits.checking,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
@@ -238,7 +241,7 @@ pub fn[I, T] prepare_request_native_source_computation_check(
       reader,
       environment,
       publication,
-      program_limits.checking.input,
+      program_limits.checking,
       supplied~,
     ) {
     Err(issue) => return Err(issue)
@@ -257,7 +260,7 @@ fn[I, T] prepare_request_native_source_computation_input(
   reader : @source.JsonDataReader[T],
   environment : @checked.CheckEnvironment,
   publication : @source_publication.PreparedPublishedQueryEnvironment,
-  limits : @syntax.Limits,
+  limits : @checked.CheckLimits,
   supplied? : T? = None,
 ) -> Result[Unit, ClientRequestTerminalIssue] {
   guard owner.phase == Open &&
@@ -315,7 +318,7 @@ fn[I, T] prepare_request_native_source_computation_input(
       } else {
         @syntax.Yaml
       },
-      limits,
+      limits.input,
     )
   }
   owner.phase = Open
@@ -327,7 +330,22 @@ fn[I, T] prepare_request_native_source_computation_input(
     reader,
     environment,
     publication,
+    binding_limits=Some(request_query_binding_limits(limits)),
     supplied~,
     declarations~,
   )
+}
+
+///|
+// Match the existing original binder's initial topology controls. No Catalog
+// admission has happened on the refused lowering path, so none is repeated.
+fn request_query_binding_limits(
+  limits : @checked.CheckLimits,
+) -> @admitted.Limits {
+  let selected = limits.compilation.traversal
+  {
+    max_nodes: selected.nodes,
+    max_depth: selected.depth,
+    max_text_bytes: selected.text_bytes,
+  }
 }

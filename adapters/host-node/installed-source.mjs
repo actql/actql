@@ -75,6 +75,8 @@ const duckdbSourceModule = Object.freeze({
 });
 const duckdbInstallation = Object.freeze({
   name: 'builtin_source',
+  registration: 'builtin_source',
+  revision: 'builtin_source/0.1',
   source: Object.freeze({
     profileVersion: INSTALLED_DUCKDB_SOURCE_VERSION,
     load: async () => duckdbSourceModule,

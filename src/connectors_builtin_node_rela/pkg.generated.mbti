@@ -947,6 +947,8 @@ pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientT
 
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_duckdb_capture_capacity_accepts(@client_local_host.ClientInstalledCaptureCapacity, @actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Bool
+
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_installed_managed_capture_plan_prepare(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool, @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledManagedCapturePlan, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1123,6 +1125,12 @@ pub fn client_program_keyed_acquisition_source_evidence_facts(@run_publication_h
 
 pub fn client_program_kintone_accept_read_page(@actql/actql/connectors/kintone/host.RecordRead, Bytes) -> Result[Int, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_adopt_managed_borrow(@actql/actql/connectors/kintone/host.RecordDeclaration, @client_row_source_host.RowRunResponseBorrow, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int) -> Result[@actql/actql/connectors/kintone/host.ManagedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_adopt_managed_query(@actql/actql/connectors/kintone/host.RecordDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int) -> Result[@actql/actql/connectors/kintone/host.ManagedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_adopt_managed_whole(@actql/actql/connectors/kintone/host.RecordDeclaration, @client_row_source_host.RowInputAcquisition, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int) -> Result[@actql/actql/connectors/kintone/host.ManagedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
 pub fn client_program_kintone_bind_read_cleanup(@actql/actql/connectors/kintone/host.RecordRead, () -> Bool) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_borrow_read(@actql/actql/connectors/kintone/host.PreparedRecordRead, @client_row_source_host.RowRun, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int) -> Result[@actql/actql/connectors/kintone/host.RecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
@@ -1290,6 +1298,30 @@ pub fn client_program_kintone_lookup_request(@actql/actql/connectors/kintone/cat
 pub fn client_program_kintone_lookup_response(@actql/actql/connectors/kintone/catalog.RecordLookupRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupIssue]
 
 pub fn client_program_kintone_lookup_uses_request(@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordLookupRequest) -> Bool
+
+pub fn client_program_kintone_managed_columns(@actql/actql/connectors/kintone/host.ManagedRecordRead) -> Array[String]
+
+pub fn client_program_kintone_managed_complete(@actql/actql/connectors/kintone/host.ManagedRecordRead) -> Bool
+
+pub fn client_program_kintone_managed_form_request(@actql/actql/connectors/kintone/host.ManagedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_page_request(@actql/actql/connectors/kintone/host.ManagedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_project_page(@actql/actql/connectors/kintone/host.ManagedRecordRead, Bytes) -> Result[Array[Array[@value_admission.CheckedValue]], @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_query_matches(@actql/actql/connectors/kintone/host.ManagedRecordRead, @client_row_source_host.RowAcquisition) -> Bool
+
+pub fn client_program_kintone_managed_recheck_form(@actql/actql/connectors/kintone/host.ManagedRecordRead, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_managed_response_capacity(@actql/actql/connectors/kintone/host.ManagedRecordRead, @execution_relation.ExecutionCapacity, Int, Bool, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_managed_retire(@actql/actql/connectors/kintone/host.ManagedRecordRead) -> Unit
+
+pub fn client_program_kintone_managed_source_reader_capacity(Array[Int], Int, @actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, Int, Int, Int, String, String, String) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_managed_whole_matches(@actql/actql/connectors/kintone/host.ManagedRecordRead, @client_row_source_host.RowInputAcquisition) -> Bool
+
+pub fn client_program_kintone_metadata_identity_capacity(@execution_relation.ExecutionCapacity, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_mutation_limits(Int, Int, Int, Int, Int, Int) -> @actql/actql/connectors/kintone/catalog.RecordMutationLimits
 
@@ -1621,6 +1653,8 @@ pub fn client_program_prepare_request_model_provider_binding(@client_local_host.
 
 pub fn client_program_prepare_request_model_read_scope(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_prepare_request_model_read_scope_with_quantities(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @client_local_host.ClientInstalledManagedModelPlan, Int64, Int64, Int64) -> Result[@run_publication_host.ClientModelReadScope, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_prepare_request_model_source_free_module(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientTaskCompilation, @client_local_host.ClientInstalledSequenceContracts, Bool, @run_publication_host.ClientQueryTimePreparation?) -> Result[@client_local_host.ClientInstalledManagedSourceFreePreparation, ClientRequestProgramModuleBridgeIssue]
 
 pub fn client_program_prepare_request_native_computation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, NativeJsonValue, NativeJsonValue, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Int?) -> Result[Unit, @client_local_host.ClientRequestTerminalIssue]
@@ -1728,6 +1762,8 @@ pub fn client_program_read_installed_model_defaults(String, String, String, Stri
 pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.PublicModelTaskDeclaration, @check_environment.ModelTaskIssue]
 
 pub fn client_program_read_request_policy_subject(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @program_check.CheckEnvironment, Int) -> Result[String, @client_local_host.ClientRequestTerminalIssue]
+
+pub fn client_program_recheck_salesforce_input_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowInputAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
 pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
@@ -1847,7 +1883,11 @@ pub fn client_program_reserve_installed_effect_capture_recovery(@client_local_ho
 
 pub fn client_program_reserve_request_effect_capture_recovery(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, Int, Int, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
+pub fn client_program_reserve_request_model_recovery_materials(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, Int, (Int) -> String, Int) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
+
 pub fn client_program_reserve_request_query_time_invocation(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramModuleBridgeIssue]
+
+pub fn client_program_reserve_request_retained_program_material(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, String) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 
 pub fn client_program_reserve_request_snapshot(@client_local_host.ClientRequestPreparation[ClientLocalPreparationInputOriginal], ClientLocalPreparationInputOriginal, Int64, Int64) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue]
 

@@ -1,6 +1,7 @@
 ///|
 /// Wire/tree geometry of a possible publication projection for one original
 /// checked Result. The direct-root geometry uses the same producer coordinates.
+/// Dependency projections have zero root extents: they expose no Named Result.
 /// This is construction DATA, not selection of either graph branch, a contract,
 /// or evidence that a producer/Result correspondence has been admitted.
 pub(all) struct ClientResultGraphConstruction {

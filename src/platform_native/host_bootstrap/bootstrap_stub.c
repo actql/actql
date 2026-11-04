@@ -2,6 +2,14 @@
  * records. The backing and every child extent use the original C adapter.
  * There is no GC cleanup ACK: the MoonBit Host retains all records until explicit
  * child-first cleanup. Unreachable live records cannot release a reservation. */
+/* This package's default POSIX process implementation selects its actual
+ * compiler target. Scoped/imported providers keep their separate source and
+ * recipe. GNU visibility is selected by moon.pkg before any system header. */
+#if defined(__linux__) && defined(__x86_64__) && \
+    !defined(ACTQL_SCOPED_READ_ALLOCATOR) && \
+    !defined(ACTQL_BOOTSTRAP_IMPORT_PROVIDER)
+#define ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN 1
+#endif
 #include "moonbit.h"
 #include <stdint.h>
 #include <string.h>
@@ -31,6 +39,15 @@
 #include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.c"
 typedef struct actql_read_context actql_read_context;
 #endif
+#endif
+
+#if defined(ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY)
+/* Same provider's actual static records, co-counted inside the existing
+ * command control envelope. This observes layout, never issues byte capacity. */
+_Static_assert(sizeof(struct stock_file_record) == 24 && sizeof(stock_file_entry) == 8,
+               "Selected Linux bundle stock-File layout");
+_Static_assert(sizeof(stock_files) + sizeof(stock_file_entry) <= ACTQL_BUNDLE_STOCK_FILE_CONTROL_BYTES,
+               "Selected Linux bundle stock-File control page");
 #endif
 
 typedef struct {

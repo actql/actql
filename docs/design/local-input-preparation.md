@@ -136,6 +136,16 @@ null produced from a nonfinite native value remains supplied and cannot turn
 into a default. The existing compiler/Plan/Run handoff retains the same parent;
 its actual retirement cuts the remaining captured-input aliases.
 
+Original Query refusals use the same optional Parameters representation as
+semantic-check reports. A completed same-declaration binding supplies the
+finding; the raw representation only recovers its existing key correspondence
+and RFC 6901 location. Missing, changed or malformed key material omits the
+location rather than guessing an admitted or normalized spelling. Before the
+scalar-key reader runs, the same Request reserves the existing original-pointer
+construction inventory in addition to its report writer. A refused grow retains
+the original failure, reader, currentness and cleanup obligations. Reporting
+does not bind values, parse the Parameters object or check the Query again.
+
 The native SDK traversal retains separate geometric high-water marks for its
 value visits and combined key/Text units. Observing long Text does not invent
 thousands of source nodes. Either actual envelope expansion grows the original
@@ -2283,6 +2293,36 @@ for its original constructors and held evidence. It executes the existing
 remaining checker once and retains its typed result; it does not replay the
 previous input, Parameter or imported-evidence phases.
 
+That existing remaining-check quotation also includes the original supplied
+Parameter input's cached admitted-node and UTF16 dimensions. These dimensions
+back later typed Value/container construction; they neither bind values nor
+change semantic limits, Source resolution or refusal order. An independently
+admitted supplied root contributes its own admission. A child Cursor retains
+the conservative dimensions of its complete admitted owner, without a new
+subtree walk. Re-observing the quote does not spend semantic work or perform
+Parameter binding, and missing or unavailable originals supply no quote.
+
+At the completed Request-contract boundary, the same remaining-check frame
+can observe supplied values before Program Source resolution. It uses only
+the same complete Program's retained declarations under the existing fitting
+declaration limits. The ordinary Source/topology construction still selects
+its actual later binding limits. A fitting completed read forwards the same
+typed values; a changed or tighter incompatible selection keeps the original
+full binding path, and failed reads require exact limits for reuse.
+
+This independent input result remains diagnostic DATA beside the original
+primary checker outcome. It neither replaces a Source refusal nor certifies
+the remaining Program. Projection borrows that result only for the same
+Program and supplied tree position; it starts no binder or checker. Native
+normalized keys alone cannot identify an original spelling. Their sole input
+read can retain compact-JSON scalar key offsets, while Node spans remain
+unavailable as authored text coordinates. Only the same caller's matching
+Parameters representation permits the existing scalar reader to recover an
+original structured pointer. A missing representation or incompatible key
+correspondence supplies no location and never triggers another input check.
+The quote covers the independent result and a possible simultaneous ordinary
+fallback without increasing either consumer's semantic limits.
+
 The original Delta transfer is itself one retained semantic body, shared by
 operation/final evidence synchronization and the existing produced-projection
 consumer. Empty and value-preserving branches return the original evidence.
@@ -2565,6 +2605,39 @@ successful adoption has retained that original body. Unknown and physical
 cleanup obligations remain separate; neither a returned lowerer nor a DATA
 getter acknowledges them. Complete work metering and normal Host adoption must
 be established by their actual consumers, not inferred from syntax counters.
+
+
+### Refused Query supplied-input binding
+
+A native Query lowering refusal retains its original parsed Query, Catalog and
+failure. When that same Request already admitted declarations and supplied
+Parameters, one existing staged binding reader can establish an independent
+supplied type violation beside that failure. It does not construct a semantic
+CheckOutcome or resume the successful compiler path. The successful lowerer
+continues to use its existing ordinary binder once.
+
+The original preparation reservation backs each reader constructor using its
+actual declaration/input geometry and existing construction recipes. One phase
+work continuation survives capacity callbacks without resetting spent work.
+The same parent, declaration owner, supplied tree position and selected semantic
+limits are checked before and after each grow. Failed growth or currentness
+retains the original lowering failure, partial reader and pending work until the
+same Request cleanup can finish them; it does not authorize another preparation.
+
+Report projection only borrows the completed same-original binding result.
+Known supplied type facts can accompany an unresolved protected Source; Source
+privacy, namespace correspondence and report currentness remain independent.
+No second parse, binding, semantic check or raw supplied value enters reporting.
+
+A retained `UnsupportedFunction` can also supply its existing implementation
+limit when the same parser-owned Query is one scalar projection with no Source,
+producer, CTE, join, set operation, command or column reference. The Query owner
+checks this bounded shape without lowering, evaluating or reading scalar names
+and values again. The existing standalone-reference proof shares the same
+outer-shape predicate and retains its narrower expression rule. Other failures
+and dependent shapes keep the complete publication disclosure gate. This is
+report DATA only; the original Request/current/terminal fences and cleanup duty
+remain required, and no parse counter is presented as all projection work.
 
 
 The actual Node opening reads the six immutable limits from its original
@@ -4725,6 +4798,15 @@ the missing Scope, and a continuation does not add the relative increment a
 second time. Successful binding clears the quotation alias; abort and ordinary
 retirement keep the existing child/borrower and physical-cleanup obligations.
 
+Before the Pure Model Scope binds that same Request to its Run, the retained
+provider's quantity declaration is intersected with the original execution
+contract and configured through Resource's one-shot preparation entrance.
+An identical existing configuration is only observed; a different configuration
+or late attempt cannot reset accumulated usage. The later Model binder uses the
+same intersection. A composed provider retains its exact provider and Model
+limits as a purpose within the larger parent budget; dedicated startup keeps
+its exact-Ledger check. Neither path replaces rows, Scope or the original Ledger.
+
 This construction reservation is distinct from runtime Source/Model bodies
 and operation controls, which make their own reservations on the same Ledger.
 The entire runtime Plan allowance is never added to preparation as a proxy
@@ -4873,6 +4955,12 @@ value, and the existing single-Model shape and complete no-Serialization invento
 remain checked. The ordinary purpose and the legacy shape lookup without this
 original occurrence retain their separate refusal; a capture count alone cannot
 select Model construction.
+
+The same original occurrence also selects the pre-Graph contract-material
+reservation. That reservation precedes execution/dependency readers and keeps
+the same Request capacity, current fence and failed-child abort custody. A
+single captured prefix cannot be rejected by a legacy shape lookup that lacks
+the occurrence while its later Graph constructor accepts the original.
 
 After Graph construction, compilation and module binding consume that exact
 retained Graph. A plain Model has no Content component; a serialized Model must
@@ -5047,7 +5135,20 @@ These report fields are DATA, never Source permission or resource backing.
 Namespace correspondence uses the same admitted environment wire owner. A
 Source dependency whose original collected inputs are unavailable stays
 unresolved; reporting does not collect or resolve it again. Native originals
-without an authored text mapping do not acquire invented text coordinates.
+do not acquire invented authored text coordinates. The trusted caller may
+forward the exact Parameters representation already used for its input
+revision and byte label; this adds neither a serializer nor another input
+admission. Compact-JSON key offsets explain only that matching representation.
+
+When that same retained refusal contains an independent supplied-input result
+completed before Source resolution, projection can use its original type
+explanation beside missing-value requirements for every audience. The later
+ordinary binder's issue remains subject to the existing public-Source filter.
+Projection does not bind again or add an unavailable Parameters pointer.
+Budget and invalid-setting issues keep the original classification path.
+Private registration itself supplies no binder proof; absent an independent
+original, whether binding was reached after registration must not disclose
+that registration's availability. The existing protected-Source filter remains.
 
 Before reading current publication metadata or constructing report output,
 the same Request grows its retained and working extents for the bounded report
@@ -5059,6 +5160,13 @@ Host/Request controls cover the synchronous call frame and borrowed references.
 The existing busy guard excludes reentrant preparation and retirement, and the
 post-current fence verifies the same parent, input, arguments, outcome and
 original Source registration/collection before projection.
+
+Original Parameters location work uses the actual retained String's UTF16
+length and admitted Cursor depth. Editable report byte labels supply no
+physical capacity. The UTF8 buffer, selected scalar and retained path/output
+are backed separately. The scalar parser returns before key correspondence
+normalization, whose original scalar remains held; the quote takes those
+actual sequential peaks rather than summing two complete constructors.
 
 Projection does not parse another Program or Parameters document, repeat a
 semantic check, lower or compile, transfer the original outcome, or cache a
@@ -5441,3 +5549,31 @@ or fabricated acknowledgment in this alias cut. The actual Wasm instance caller
 and its complete input, controller, phase, returned-body and failed-child backing
 must still be connected; these typed Request methods alone do not enable a normal
 Python Source/Model/Effect execution or durable Saved/approval continuation.
+
+### Retained structured Effect input
+
+A submitted intent canonicalizes object keys. Its identity preserves complete
+Program and Parameter values, but does not retain their original object-member
+order. Effect Run materials separately retain complete machine-source Strings.
+Reconstructing a structured Program only from the canonical intent can therefore
+change the material preimage despite retaining every value and the same Run.
+
+The installed cold caller selects the full material wire from its same retained
+Journal Run. For a structured Program, the existing Request grows before native
+decoding and comparison. The input-derived quote uses three existing detached
+value envelopes for the native material/input trees, canonical comparison
+collections and comparison output. Encoded code units bound the number of native
+JSON values, including decoded Program and Parameter Strings. The same snapshot
+base retains this allowance through checking, compilation, Plan construction and
+retirement; no codec ceiling, independent Root or unused policy extent funds it.
+
+The caller compares the complete Program and Parameters against the same
+canonical intent using the existing data-preserving canonical codec. Metadata,
+array order, exact keys, Unicode normalization forms, CR/LF and explicit null
+remain significant. Only after full value equality does it retain the material's
+original member order for the sole existing native checker/compiler. It issues
+no new intent or Run. The later material codec still requires exact original
+material bytes, compilation, Request and Run correspondence. Textual Source
+continues to use its original text/frontend rather than the material's lowered
+Program. Failed comparison, capacity, currentness or construction remains on the
+same Request's existing abort and retirement chain.

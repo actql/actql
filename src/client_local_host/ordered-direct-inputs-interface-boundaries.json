@@ -4,7 +4,7 @@
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8b0e972b7c8cad930a7306ccb17a36d80da6800f86c37ad0d5af6e367f92fd86",
+      "sha256": "dce90520994f229653c04fc9706f6046f811416060fcc9708df6f34cad2fb177",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -404,11 +404,15 @@
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "413e45b38a8f07130bf338d5818714e099ce86925fc041fb488fee1b0a265dd4",
+      "sha256": "31fd553b9bcb531d4e2ef7e8462072babfb7644f0e72ec2ecf4efc26a1374e6e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_effect_capacity_within",
+          "declaration": "installed_effect_capacity_within ( required : @ execution . ExecutionCapacity , maximum : @ execution . ExecutionCapacity , ) - > Bool"
+        },
         {
           "name": "installed_effect_control_phase_quote_capacity",
           "declaration": "installed_effect_control_phase_quote_capacity ( ) - > @ execution . ExecutionCapacity"
@@ -416,6 +420,10 @@
         {
           "name": "installed_effect_limits_fit",
           "declaration": "installed_effect_limits_fit ( required : @ resources . LedgerLimits , admitted : @ resources . LedgerLimits , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_managed_plan_has_host_input",
+          "declaration": "installed_effect_managed_plan_has_host_input ( plan : ClientInstalledEffectManagedPlan , ) - > Bool"
         },
         {
           "name": "installed_effect_operation_extent_capacity",
@@ -450,6 +458,10 @@
           "declaration": "prepare_installed_effect_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "prepare_installed_effect_host_input_capture_recipe_extent",
+          "declaration": "prepare_installed_effect_host_input_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "prepare_installed_effect_managed_plan",
           "declaration": "prepare_installed_effect_managed_plan ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
@@ -464,6 +476,10 @@
         {
           "name": "prepare_installed_effect_operation_extent",
           "declaration": "prepare_installed_effect_operation_extent ( operation : String , capacity : @ execution . ExecutionCapacity , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_staged_extent",
+          "declaration": "prepare_installed_effect_staged_extent ( initial : ClientInstalledEffectOperationExtent , maximum : ClientInstalledEffectOperationExtent , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepared_installed_effect_managed_capture_children",
@@ -580,6 +596,156 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_capacity_within",
+            "prepare_installed_effect_staged_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_row_limit_wbtest.mbt",
+                "anchor": "test \"selected Request one-row-short ceiling retains"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_managed_plan_has_host_input",
+            "prepare_installed_effect_host_input_capture_recipe_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
               }
             ]
           }
@@ -1109,7 +1275,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b6dc1ba0b49c6b72bd4565870c570423d357d6885328cc2f6401590de98b0efa",
+      "sha256": "759198df49b7d30226ea25ec52c1c7825e7ca1385785b63c884beff0011952f8",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1284,7 +1450,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0ff705c430a525335d5801e2ada11ede9da36a25d80229c7c93facb7d00ecb22",
+      "sha256": "a0c99e16d1a97f0f97bdfdd4b4865280b8949a1b1fee863f677fdfce20d163e3",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1414,7 +1580,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "dab98adbe0168e5092c63eaf217b5428d8a557ab0c1437fbe7f4c4e5279f68d9",
+      "sha256": "5742018e5551bee149546901444fd7e68745155c5f171541e25685e56c7a3c9b",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],

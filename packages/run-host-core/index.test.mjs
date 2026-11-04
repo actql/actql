@@ -443,7 +443,9 @@ test('resident Source dispatch preserves checked task and logical input identity
   assert.equal(dispatch.task_key, taskKeys(prepared, compilation)[0]);
   assert.equal(dispatch.input_binding_cid, `sha256:${createHash('sha256').update(binding).digest('hex')}`);
   assert.deepEqual(issueTaskDispatch(prepared, compilation, allowed.admission, definition, request, 0, selected), issued);
-  for (const [execution, cleanup, nextWork] of [[3, 0, 'publication'], [3, 2, 'publication'],
+  // This response carries execution/cleanup observations, without admitted
+  // execution evidence. Native settlement alone cannot select publication.
+  for (const [execution, cleanup, nextWork] of [[3, 0, 'reconcile'], [3, 2, 'reconcile'],
     [4, 2, 'none'], [4, 1, 'cleanup'], [6, 3, 'reconcile']]) {
     const admittedDispatch = admitDispatchJson(issued.wire, issued.cid);
     const intent = prepareIntent(createJournal(scope), admittedDispatch);
@@ -457,6 +459,11 @@ test('resident Source dispatch preserves checked task and logical input identity
     const projection = projectSiteRun(prepared, compilation, allowed.admission, definition,
       scope, saved, '2026-10-03T00:00:01.000Z');
     assert.equal(projection.nextWork, nextWork);
+    if (execution === 3) {
+      assert.equal(projection.execution, 'settled');
+      assert.equal(projection.cleanup, cleanup === 2 ? 'complete' : 'pending');
+      assert.equal(JSON.parse(projection.stateWire).status, 'running');
+    }
     assert(validRunState(observations.publish(projection.stateWire)));
     assert.deepEqual(projectSiteRun(prepared, compilation, allowed.admission, definition,
       scope, saved, '2026-10-03T00:00:01.000Z'), projection);
@@ -1347,10 +1354,12 @@ test('checked Run issues one source-free Site dispatch identity', async t => {
       {kind: 'reconcile_run', reason: 'execution_unknown'});
   }
   const observations = await originalRunStateObservations(t, request, definition);
+  // A settled response without execution evidence stays unpublished even
+  // after the independently observed cleanup has completed.
   for (const [execution, cleanup, outcome, work] of [
     [4, 2, 'failed', 'none'], [4, 1, 'failed', 'cleanup'],
     [5, 2, 'cancelled', 'none'], [6, 3, 'needs_reconciliation', 'reconcile'],
-    [3, 0, 'running', 'publication'], [3, 2, 'running', 'publication'],
+    [3, 0, 'running', 'reconcile'], [3, 2, 'running', 'reconcile'],
   ]) {
     const dispatch = admitDispatchJson(issued.wire, issued.cid);
     const intent = prepareIntent(createJournal(scope), dispatch);
@@ -1367,6 +1376,10 @@ test('checked Run issues one source-free Site dispatch identity', async t => {
       admission, definition, authority, saved, '2026-09-25T00:00:01.000Z');
     const result = observe(scope);
     assert.equal(result.nextWork, work);
+    if (execution === 3) {
+      assert.equal(result.execution, 'settled');
+      assert.equal(result.cleanup, cleanup === 2 ? 'complete' : 'pending');
+    }
     assert.equal(JSON.parse(result.stateWire).status, outcome);
     assert(validRunState(observations.publish(result.stateWire)));
     if (execution === 6) assert.deepEqual(JSON.parse(result.stateWire).next_action,

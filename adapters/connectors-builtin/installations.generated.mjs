@@ -117,6 +117,7 @@ export const installedConnectors = Object.freeze([
     revision: "kintone/0.1",
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/kintone/host/installed-kintone-source.mjs", href: new URL("../connectors/kintone/host/installed-kintone-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/kintone/site/kintone-managed-sequence.mjs", href: new URL("../connectors/kintone/site/kintone-managed-sequence.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/kintone/site/kintone-record-read.mjs", href: new URL("../connectors/kintone/site/kintone-record-read.mjs", import.meta.url).href}),
     ]),
     responseHeaders: Object.freeze([]),
@@ -176,6 +177,7 @@ export const installedConnectors = Object.freeze([
       Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-effect.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-site.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-site.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/installed-salesforce-source.mjs", href: new URL("../connectors/salesforce/host/installed-salesforce-source.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs", href: new URL("../connectors/salesforce/host/salesforce-effect-plan.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs", href: new URL("../connectors/salesforce/host/salesforce-effect-request-recovery.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/salesforce-initialization-construction.mjs", href: new URL("../connectors/salesforce/host/salesforce-initialization-construction.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/salesforce/host/salesforce-publication.mjs", href: new URL("../connectors/salesforce/host/salesforce-publication.mjs", import.meta.url).href}),

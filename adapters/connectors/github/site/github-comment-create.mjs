@@ -1,7 +1,7 @@
 // GitHub's Issue comment creation at the Site, addressed by the Issue's
-// global node ID. Two fixed GraphQL documents are sent through the typed
-// exchange and the credential resource: a read-only subject check, then the
-// `addComment` mutation. The provider MoonBit decides every meaning.
+// global node ID. Fixed GraphQL documents pass through the typed exchange
+// and credential resource: subject check, `addComment`, then confirmation
+// of its original Created node. The provider MoonBit decides every meaning.
 //
 // Comment creation has no idempotency key and notifies watchers, so the
 // common Effect owner's durable claim (one `execute` per claimed row, never
@@ -25,7 +25,7 @@ export const GITHUB_COMMENT_CREATE_OPERATION = 'github:issues:comment:create';
 const REQUEST_VERSION = 'actql-github-comment-create-request/0.1';
 
 // Preview binds this recipe and the logical body. The Host supplies the SAME
-// Core-issued DispatchKey CID text only after that exact Preview is approved.
+// Core-issued DispatchKey CID text only after that exact Preview is fixed.
 export const GITHUB_COMMENT_STAMP_RECIPE = Object.freeze({
   separator: '\n\n', prefix: '<!-- actql:effect:', suffix: ' -->',
 });
@@ -115,6 +115,108 @@ export function finalizeGitHubCommentRequest({moon, request, requestTag}) {
   const physical = prepareGitHubCommentRequest({moon, origin: original.origin,
     subjectId: original.subjectId, body});
   return Object.freeze({...physical, logicalBody: original.logicalBody, requestTag});
+}
+
+function ownCommentLogicalRequest(request, code) {
+  const names = ['version', 'origin', 'method', 'path', 'subjectId', 'logicalBody'];
+  if (request === null || typeof request !== 'object' || types.isProxy(request)) {
+    fail(code);
+  }
+  const fields = Object.getOwnPropertyDescriptors(request);
+  if (Reflect.ownKeys(fields).length !== names.length || names.some(name =>
+    !Object.hasOwn(fields[name] ?? {}, 'value') || !fields[name].enumerable ||
+    typeof fields[name].value !== 'string' || !fields[name].value.isWellFormed())) {
+    fail(code);
+  }
+  const original = Object.fromEntries(names.map(name => [name, fields[name].value]));
+  if (original.version !== REQUEST_VERSION || original.method !== 'POST' ||
+      original.path !== GITHUB_GRAPHQL_PATH || !original.origin.startsWith('https://') ||
+      original.subjectId.length === 0) fail(code);
+  return original;
+}
+
+// Restore the original physical wire only after independent original logical
+// fields and DispatchKey tag have been selected. No mutation encoder, request
+// preparation, replacement tag, credential or send is available here.
+export function restoreGitHubCommentRequest({moon, request, logical, requestTag, limits}) {
+  const names = ['version', 'origin', 'method', 'path', 'subjectId', 'body',
+    'requestCid', 'logicalBody', 'requestTag'];
+  if (request === null || typeof request !== 'object' || types.isProxy(request)) {
+    fail('InvalidGitHubOriginalCommentRequest');
+  }
+  const fields = Object.getOwnPropertyDescriptors(request);
+  if (Reflect.ownKeys(fields).length !== names.length || names.some(name =>
+    !Object.hasOwn(fields[name] ?? {}, 'value') || !fields[name].enumerable ||
+    typeof fields[name].value !== 'string' || !fields[name].value.isWellFormed())) {
+    fail('InvalidGitHubOriginalCommentRequest');
+  }
+  const original = Object.fromEntries(names.map(name => [name, fields[name].value]));
+  const expected = ownCommentLogicalRequest(logical, 'InvalidGitHubOriginalCommentRequest');
+  if (original.version !== expected.version || original.origin !== expected.origin ||
+      original.method !== expected.method || original.path !== expected.path ||
+      original.subjectId !== expected.subjectId || original.logicalBody !== expected.logicalBody ||
+      typeof requestTag !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(requestTag) ||
+      original.requestTag !== requestTag || typeof moon?.githubOriginalMarkedCommentRequestJson !== 'function') {
+    fail('InvalidGitHubOriginalCommentRequest');
+  }
+  const owned = checkLimits(limits);
+  if (Buffer.byteLength(original.body) > owned.maxRequestBytes ||
+      original.requestCid !== exactRequestCid([REQUEST_VERSION, original.origin,
+        original.method, original.path, original.body])) {
+    fail('InvalidGitHubOriginalCommentRequest');
+  }
+  const admitted = JSON.parse(moon.githubOriginalMarkedCommentRequestJson(
+    Buffer.from(original.body, 'utf8'), owned.maxRequestBytes,
+    owned.maxNodes, owned.maxDepth, expected.subjectId, expected.logicalBody, requestTag));
+  if (admitted.refused !== undefined || admitted.original?.subject_id !== expected.subjectId) {
+    fail('InvalidGitHubOriginalCommentRequest');
+  }
+  return Object.freeze(request);
+}
+
+// Confirmation is an independently authorized read of the exact Created node,
+// never another addComment or a repository-history search. The enclosing
+// Effect owner retains the original claim, response and physical read child.
+export function prepareGitHubCommentConfirmationRequest({moon, providerEvidence}) {
+  if (providerEvidence?.kind !== 'CreatedComment' ||
+      !Number.isSafeInteger(providerEvidence.comment_id) ||
+      typeof providerEvidence.node_id !== 'string' ||
+      typeof moon?.githubCommentConfirmationRequestJson !== 'function') {
+    fail('InvalidGitHubCommentConfirmation');
+  }
+  const request = JSON.parse(moon.githubCommentConfirmationRequestJson(providerEvidence.node_id));
+  if (request.refused !== undefined || typeof request.body !== 'string') {
+    fail('InvalidGitHubCommentConfirmation');
+  }
+  return request.body;
+}
+
+// No successful mutation outcome follows from absence, a failed confirmation
+// read or a copied marker. The provider codec must compare the complete
+// original object/Issue/repository/logical body/tag before returning DATA.
+export function projectGitHubCommentConfirmation({moon, request, providerEvidence,
+  repository, limits, accepted, observation}) {
+  const owned = checkLimits(limits);
+  if (!accepted || observation?.statusCode !== 200) return undefined;
+  if (!(observation.body instanceof Uint8Array) ||
+      providerEvidence?.kind !== 'CreatedComment' ||
+      typeof moon?.githubCommentConfirmationJson !== 'function') {
+    fail('InvalidGitHubCommentConfirmation');
+  }
+  const projected = JSON.parse(moon.githubCommentConfirmationJson(observation.body,
+    owned.maxResponseBytes, owned.maxNodes, owned.maxDepth,
+    providerEvidence.comment_id, providerEvidence.node_id, request.subjectId,
+    repository.nodeId, repository.databaseId, repository.nameWithOwner,
+    request.logicalBody, request.requestTag));
+  if (projected.refused !== undefined) return undefined;
+  const comment = projected.comment;
+  if (comment?.id !== providerEvidence.comment_id ||
+      comment.node_id !== providerEvidence.node_id || comment.subject_id !== request.subjectId) {
+    fail('ForeignGitHubCommentConfirmation');
+  }
+  return Object.freeze({kind: 'typed-success-response',
+    outcome: Object.freeze({state: 'applied', action: 'created',
+      result: Object.freeze({id: String(comment.id), node_id: comment.node_id})})});
 }
 
 // The identity of the exact request: each part's exact UTF-8 bytes, length

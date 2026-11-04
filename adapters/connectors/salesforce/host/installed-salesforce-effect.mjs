@@ -12,6 +12,7 @@
 // connector's registered identity profile; this module keeps only the
 // installation: its profile, publication, restore and target-read inventory.
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
+import {types as nodeTypes} from 'node:util';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {refusedEffectPreparation} from
@@ -19,7 +20,7 @@ import {refusedEffectPreparation} from
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
-  retainSalesforceSiteCleanup} from
+  retainSalesforceSiteCleanup, DEFAULT_SALESFORCE_CATALOG_LIMITS} from
   './installed-salesforce-site.mjs';
 import {describeSalesforceGeneration, readPublicationFile,
   replacePublicationFile, restoreSalesforceGeneration,
@@ -33,6 +34,8 @@ import {salesforceInitializationConstructionCapacity, salesforceExecutionMapping
   from './salesforce-initialization-construction.mjs';
 import {salesforceRowEffectSite, salesforceWriteDriver} from
   './salesforce-write-driver.mjs';
+import {captureSalesforceEffectPlanRecipeBuilder} from './salesforce-effect-plan.mjs';
+import {installedRowCredentialOperationSite} from '../../../host-node/installed-row-source.mjs';
 
 export const INSTALLED_SALESFORCE_EFFECT_VERSION =
   'actql-installed-salesforce-effect/0.1';
@@ -256,7 +259,7 @@ async function restoreGeneration({site, salesforceMoon, moon, profile, construct
       record.environment_cid !== environment.evidenceCid) {
     fail('SalesforceEffectPublicationMismatch');
   }
-  return {generationCid, declared: provider.declared, mappings, environment};
+  return Object.freeze({generationCid, declared: provider.declared, mappings, environment});
 }
 
 // One member of the installed Effect Unit: its Program descriptor and the
@@ -356,12 +359,23 @@ export async function loadInstalledSalesforceEffect(profile, {moon, salesforceMo
   if (requiredEffectRuntime.some(name => typeof salesforceMoon?.[name] !== 'function')) {
     fail('InvalidSalesforceEffectRuntime');
   }
+  // The SAME Core implementation policy used by the installed Salesforce
+  // Source selects immutable Credential rejection bounds. Actual operation
+  // extents and original Account/claim still fund and authorize each use.
+  const policyMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSourceReaderPolicy');
+  if (!policyMethod || !Object.hasOwn(policyMethod, 'value') || typeof policyMethod.value !== 'function') {
+    fail('InstalledEffectCredentialPolicyUnavailable');
+  }
+  const policy = Reflect.apply(policyMethod.value, moon, []);
+  if (!Array.isArray(policy) || policy.length !== 3 || policy.some(value =>
+    !Number.isSafeInteger(value) || value < 1 || value > 2147483647)) fail('InstalledEffectCredentialPolicyUnavailable');
+  const runAcquisitionLimits = Object.freeze({maxBindings: policy[1], maxSecretBytes: policy[0]});
   const {site} = await construction.openSpecializedSite({
     authorizationConstructor: installSalesforceAuthorization,
     siteConstructor: loadInstalledSalesforceSite,
     siteArgument: checkedProfile.siteProfilePath,
     accountConfiguration: checkedProfile.accountConfigurationWire,
-    siteOptions: {salesforceMoon, resolveSecret, openCredentialJournal},
+    siteOptions: {salesforceMoon, resolveSecret, openCredentialJournal, runAcquisitionLimits},
   });
   const installed = await restoreGeneration({site, salesforceMoon, moon,
     profile: checkedProfile, construction});
@@ -369,6 +383,40 @@ export async function loadInstalledSalesforceEffect(profile, {moon, salesforceMo
     connectorId: checkedProfile.connectorId,
     accountConfiguration: checkedProfile.accountConfigurationWire,
     runtimeBundleCid, construction});
+}
+
+// Use the actual initializer before creating the provider's original method
+// closures. The same parent keeps their native quantity, projection and driver
+// through failed initialization and its existing retirement; no Run or grant
+// is issued here. Both methods/receivers are captured before reserve can reenter.
+function prepareInstalledSalesforceEffectDriver({construction, moon, salesforceMoon,
+  site, installed, nextOccurrence, siteBindingCid}) {
+  const method = (receiver, name) => {
+    if (receiver === null || !['object', 'function'].includes(typeof receiver) ||
+        nodeTypes.isProxy(receiver)) fail('InstalledSalesforceDriverConstructionUnavailable');
+    const field = Object.getOwnPropertyDescriptor(receiver, name);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
+        nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+      fail('InstalledSalesforceDriverConstructionUnavailable');
+    }
+    return field.value;
+  };
+  const construct = method(construction, 'prepareEffectDriverConstruction');
+  const capacity = method(salesforceMoon, 'salesforceEffectDriverConstructionCapacity');
+  const prepareRecipes = captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon});
+  return Reflect.apply(construct, construction, [Object.freeze({
+    capacity() {return Reflect.apply(capacity, salesforceMoon, []);},
+    project() {
+      const originalSite = installedRowCredentialOperationSite(site.credential);
+      const managedPlanRecipes = prepareRecipes({installed, site, credentialConstruction: originalSite.construction,
+        catalogLimits: DEFAULT_SALESFORCE_CATALOG_LIMITS, limits});
+      const driver = salesforceWriteDriver({salesforceMoon, site,
+        mappingOf: mappingCid => installed.mappings.find(mapping =>
+          mapping.mappingCid === mappingCid),
+        nextOccurrence, siteBindingCid, generationCid: installed.generationCid, limits});
+      return Object.freeze({driver, managedPlanRecipes});
+    },
+  })]);
 }
 
 async function installedSalesforceEffect({moon, salesforceMoon, site,
@@ -379,6 +427,8 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
     occurrence++}`;
   const siteBindingCid = installedSalesforceSiteBinding(site, connectorId)
     .bindingCid;
+  const {driver, managedPlanRecipes} = prepareInstalledSalesforceEffectDriver({construction, moon,
+    salesforceMoon, site, installed, nextOccurrence, siteBindingCid});
   // Every Set runs on the Host's provider-neutral installed row Effect,
   // under this connector's registered identity profile, so a Run captured
   // before the move to it keeps its identities.
@@ -386,12 +436,7 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
     connection: site.connection, projectSite: salesforceRowEffectSite,
     runtimeBundleCid, bindingCid: siteBindingCid,
     continuationBinding: installed.generationCid,
-    ledgerRoot,
-    driver: salesforceWriteDriver({salesforceMoon, site,
-      mappingOf: mappingCid => installed.mappings.find(mapping =>
-        mapping.mappingCid === mappingCid),
-      nextOccurrence, siteBindingCid,
-      generationCid: installed.generationCid, limits})});
+    ledgerRoot, driver, managedPlanRecipes});
   const targetReadInventory = ({moon: runMoon, prepared, unit: providedUnit, compilation,
     updateTargetSelections, assertUpdateSelectionCurrent}) => {
     if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');

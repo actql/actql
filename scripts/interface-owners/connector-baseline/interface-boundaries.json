@@ -5832,7 +5832,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ff822212d6dc687ee813c2ab7ad46a4fc1fcaaf48336bb75ab44d0c65673c081",
+      "sha256": "34f787cc437808d7ad814f92a06da8dff0016265cd232458f7c10c637f46cdb3",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5970,12 +5970,46 @@
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect",
           "parameters": [
-            "request"
+            "request",
+            "requestTag"
           ],
           "async": false
         },
         {
           "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#2",
+          "parameters": [
+            "request",
+            "logical",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+          "parameters": [
+            "providerEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
+          "parameters": [
+            "request",
+            "providerEvidence",
+            "observation",
+            "accepted"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6",
           "parameters": [
             "request",
             "observation",
@@ -6207,6 +6241,117 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#3",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#4",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#5",
+            "loadInstalledGitHubEffect/loadInstalledGitHubEffect#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "test("
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -6229,7 +6374,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6ddd9b7e260c53220d4a992ae6e4c22459a86415f95b8a7c814b7d22f8301a0a",
+      "sha256": "5746edd620699606efe7044345915ca01e9fe176e2c309103d6abf4958850b07",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6308,23 +6453,20 @@
         {
           "name": "loadInstalledGitHubSource/loadInstalledGitHubSource",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/loadInstalledGitHubSource#2",
+          "parameters": [
             "resource",
-            "authorizationFor",
-            "chargePage",
-            "consumeObservation",
-            "consumePage",
+            "nonce",
+            "runInvocationCid",
+            "dispatchRequestCid",
             "signal"
           ],
           "async": true
-        },
-        {
-          "name": "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
-          "parameters": [
-            "rows",
-            "_page",
-            "admission"
-          ],
-          "async": false
         },
         {
           "name": "loadInstalledGitHubSource/opened/opened",
@@ -6335,10 +6477,40 @@
           "async": false
         },
         {
+          "name": "loadInstalledGitHubSource/originalBounds/originalBounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledGitHubSource/physicalTarget/physicalTarget",
           "parameters": [
             "resource",
             "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+          "parameters": [
+            "input",
+            "retireProjection"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/readerBounds/readerBounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledGitHubSource/responseCapacity/responseCapacity",
+          "parameters": [
+            "bytes",
+            "responses"
           ],
           "async": false
         },
@@ -6467,9 +6639,13 @@
             "installedGitHubSourceIdentityParts",
             "loadInstalledGitHubSource",
             "loadInstalledGitHubSource/loadInstalledGitHubSource",
-            "loadInstalledGitHubSource/loadInstalledGitHubSource/loadInstalledGitHubSource",
+            "loadInstalledGitHubSource/loadInstalledGitHubSource#2",
             "loadInstalledGitHubSource/opened/opened",
+            "loadInstalledGitHubSource/originalBounds/originalBounds",
             "loadInstalledGitHubSource/physicalTarget/physicalTarget",
+            "loadInstalledGitHubSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
+            "loadInstalledGitHubSource/readerBounds/readerBounds",
+            "loadInstalledGitHubSource/responseCapacity/responseCapacity",
             "openSite",
             "openSite/configuration/configuration",
             "publishGitHubRepository",
@@ -6509,48 +6685,80 @@
               {
                 "path": "src/connectors/github/source-views.json",
                 "anchor": "issue_comments"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "loadInstalledGitHubSource"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "identity": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "readGitHubPublication"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "publishGitHubRepository"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "refused"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "signal"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "resources": [
               {
                 "path": "adapters/connectors/github/host/installed-github-source.mjs",
                 "anchor": "maxPageBytes"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "extension": [
@@ -6561,6 +6769,10 @@
               {
                 "path": "scripts/connector-host-bundles.mjs",
                 "anchor": "generateInstallations"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "verification": [
@@ -6587,6 +6799,14 @@
               {
                 "path": "adapters/host-node/installed-row-write.test.mjs",
                 "anchor": "Effect Site uses the same Host factory and provider binding"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement'"
               }
             ]
           }
@@ -6595,10 +6815,12 @@
       "imports": [
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
+        "../../../site-node/https-credential-resource.mjs",
         "../site/github-issue-graphql-read.mjs",
         "../site/github-issue-read.mjs",
         "node:crypto",
@@ -6611,7 +6833,7 @@
     {
       "module": "adapters/connectors/github/site/github-comment-create.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44c26084ec1d8d38108033984d5e98129b057bacfdf23e67539da89f1f33fb05",
+      "sha256": "534f72608d1435ca107e906e9b8729dd7bcecb4d4dc6e722abd171eb96ebc055",
       "role": "physical-io",
       "owner": "Exact GitHub comment requests and Site exchange; MoonBit classifies subjects/responses, Common Ledger owns send-once",
       "exports": [
@@ -6619,11 +6841,14 @@
         "GITHUB_COMMENT_STAMP_RECIPE",
         "checkGitHubCommentSubject",
         "finalizeGitHubCommentRequest",
+        "prepareGitHubCommentConfirmationRequest",
         "prepareGitHubCommentLogicalRequest",
         "prepareGitHubCommentRequest",
         "prepareGitHubCommentSubjectRequest",
+        "projectGitHubCommentConfirmation",
         "projectGitHubCommentObservation",
         "projectGitHubCommentSubjectResponse",
+        "restoreGitHubCommentRequest",
         "sendGitHubIssueComment"
       ],
       "operations": [
@@ -6708,6 +6933,28 @@
           "async": false
         },
         {
+          "name": "ownCommentLogicalRequest",
+          "parameters": [
+            "request",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCommentLogicalRequest/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownCommentLogicalRequest/ownCommentLogicalRequest",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "pairs/pairs",
           "parameters": [
             "headers"
@@ -6725,6 +6972,14 @@
           "name": "pairs/pairs/pairs#2",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubCommentConfirmationRequest",
+          "parameters": [
+            "moon",
+            "providerEvidence"
           ],
           "async": false
         },
@@ -6758,6 +7013,19 @@
           "async": false
         },
         {
+          "name": "projectGitHubCommentConfirmation",
+          "parameters": [
+            "moon",
+            "request",
+            "providerEvidence",
+            "repository",
+            "limits",
+            "accepted",
+            "observation"
+          ],
+          "async": false
+        },
+        {
           "name": "projectGitHubCommentObservation",
           "parameters": [
             "moon",
@@ -6784,6 +7052,31 @@
           "parameters": [
             "code",
             "details"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreGitHubCommentRequest",
+          "parameters": [
+            "moon",
+            "request",
+            "logical",
+            "requestTag",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreGitHubCommentRequest/original/original",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreGitHubCommentRequest/restoreGitHubCommentRequest",
+          "parameters": [
+            "name"
           ],
           "async": false
         },
@@ -7078,6 +7371,125 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "ownCommentLogicalRequest",
+            "ownCommentLogicalRequest/original/original",
+            "ownCommentLogicalRequest/ownCommentLogicalRequest",
+            "prepareGitHubCommentConfirmationRequest",
+            "projectGitHubCommentConfirmation",
+            "restoreGitHubCommentRequest",
+            "restoreGitHubCommentRequest/original/original",
+            "restoreGitHubCommentRequest/restoreGitHubCommentRequest"
+          ],
+          "exports": [
+            "prepareGitHubCommentConfirmationRequest",
+            "projectGitHubCommentConfirmation",
+            "restoreGitHubCommentRequest"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/connectors/github/site/github-comment-create.mjs",
+                "anchor": "function "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "test("
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -7094,12 +7506,13 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cb18080c7112153854ea230bd4d9088fc39b995cb26431df00cba9b25d6a3179",
+      "sha256": "559018e68eb52bc27caf2f6e9123fd07e41785d38dc45e78c166104ecf3a10a9",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
         "GITHUB_GRAPHQL_PATH",
         "GITHUB_GRAPHQL_READ_OPERATION",
+        "prepareGitHubSourceReadSequence",
         "readGitHubIssueCommentsByNode",
         "readGitHubIssuesByNode",
         "readGitHubPullRequestsByNode"
@@ -7128,6 +7541,22 @@
           "async": false
         },
         {
+          "name": "githubReadField",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "githubReadMethod",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "pairs/pairs",
           "parameters": [
             "headers"
@@ -7146,6 +7575,59 @@
           "parameters": [
             "entry"
           ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read",
+          "parameters": [
+            "context",
+            "initialAuthorization"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#2",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#4",
+          "parameters": [
+            "rows"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareGitHubSourceReadSequence/sequence/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -7184,7 +7666,8 @@
             "consumePage",
             "signal",
             "pullRequests",
-            "comments"
+            "comments",
+            "managed"
           ],
           "async": true
         },
@@ -7231,7 +7714,22 @@
           "async": false
         },
         {
+          "name": "readGitHubRowsByNode/invoke/invoke",
+          "parameters": [
+            "method",
+            "args"
+          ],
+          "async": false
+        },
+        {
           "name": "readGitHubRowsByNode/readGitHubRowsByNode",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubRowsByNode/remember/remember",
           "parameters": [
             "value"
           ],
@@ -7244,6 +7742,34 @@
             "details"
           ],
           "async": false
+        },
+        {
+          "name": "readGitHubSourceChild",
+          "parameters": [
+            "context",
+            "originalAuthorization",
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubSourceChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readGitHubSourceChild/init:prepare/init:prepare/init:prepare",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "readGitHubSourceChild/readGitHubSourceChild",
+          "parameters": [
+            "name"
+          ],
+          "async": false
         }
       ],
       "contracts": [
@@ -7253,9 +7779,19 @@
             "checkLimits",
             "count/count",
             "fail/fail",
+            "githubReadField",
+            "githubReadMethod",
             "pairs/pairs",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
+            "prepareGitHubSourceReadSequence",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#2",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#3",
+            "prepareGitHubSourceReadSequence/sequence/init:read/init:read/init:read#4",
+            "prepareGitHubSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity",
+            "prepareGitHubSourceReadSequence/sequence/init:retire/init:retire",
             "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode",
@@ -7266,12 +7802,19 @@
             "readGitHubRowsByNode/exchange/exchange",
             "readGitHubRowsByNode/exchange/exchange/facts/facts",
             "readGitHubRowsByNode/exchange/exchange/facts/facts/facts",
+            "readGitHubRowsByNode/invoke/invoke",
             "readGitHubRowsByNode/readGitHubRowsByNode",
-            "readGitHubRowsByNode/stopped/stopped"
+            "readGitHubRowsByNode/remember/remember",
+            "readGitHubRowsByNode/stopped/stopped",
+            "readGitHubSourceChild",
+            "readGitHubSourceChild/init:prepare/init:prepare",
+            "readGitHubSourceChild/init:prepare/init:prepare/init:prepare",
+            "readGitHubSourceChild/readGitHubSourceChild"
           ],
           "exports": [
             "GITHUB_GRAPHQL_PATH",
             "GITHUB_GRAPHQL_READ_OPERATION",
+            "prepareGitHubSourceReadSequence",
             "readGitHubIssueCommentsByNode",
             "readGitHubIssuesByNode",
             "readGitHubPullRequestsByNode"
@@ -7289,12 +7832,20 @@
               {
                 "path": "src/connectors/github/catalog/issue_comments_read.mbt",
                 "anchor": "begin_issue_comments_read"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "consumeObservation"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "identity": [
@@ -7317,30 +7868,50 @@
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "defineOwnData(labels, index"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "accepted pages"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "authorizationFor"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "failure": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "refusalCodes"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "signal?.throwIfAborted"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "resources": [
@@ -7359,12 +7930,20 @@
               {
                 "path": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
                 "anchor": "prefix.responses.push"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/github/catalog/graphql.mbt",
                 "anchor": "issues_query"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
               }
             ],
             "verification": [
@@ -7399,6 +7978,14 @@
               {
                 "path": "adapters/connectors/github/test/github-comment-read.test.mjs",
                 "anchor": "original Issue and PullRequest comments enter one accounted Source without replacing numeric identity"
+              },
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Installed native Source Reader"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement'"
               }
             ]
           }
@@ -7407,7 +7994,8 @@
       "imports": [
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../site-node/https-credential-resource.mjs"
+        "../../../site-node/https-credential-resource.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -8722,7 +9310,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-hooks.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a094a76574985ef1c50e779873ee175eebbfb39a0c199f0ecae244a0dc2e79c",
+      "sha256": "57bef982974e4356c291e18c5ddacb6e92844e80b60099db599c5db8f166e4f0",
       "role": "connector-semantics",
       "owner": "Exact installed Host facts projected to the existing Salesforce captured/recovered Effect factory",
       "exports": [
@@ -8741,6 +9329,16 @@
           "parameters": [
             "facts"
           ],
+          "async": false
+        },
+        {
+          "name": "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks#2",
+          "parameters": [],
           "async": false
         },
         {
@@ -8765,7 +9363,9 @@
             "salesforceEffectSiteHooks",
             "salesforceEffectSiteHooks/salesforceEffectSiteHooks",
             "salesforceEffectSiteHooks/salesforceEffectSiteHooks#2",
-            "salesforceEffectSiteHooks/salesforceEffectSiteHooks#3"
+            "salesforceEffectSiteHooks/salesforceEffectSiteHooks#3",
+            "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks",
+            "salesforceEffectSiteHooks/salesforceEffectSiteHooks/salesforceEffectSiteHooks#2"
           ],
           "exports": [
             "salesforceEffectSiteHooks"
@@ -8861,7 +9461,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/local-values-plan.mjs",
+        "./installed-salesforce-effect.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
@@ -9045,7 +9652,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1dbfc880b8197bba85fa88f4bd06ff1003c5e06514215621ba6669f2659bf256",
+      "sha256": "e2f76004aec731d7543cf18b68e4ef432e03ed52ea06c2869207185664328bef",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9156,6 +9763,14 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/bindManagedAcquisition",
+          "parameters": [
+            "authorization",
+            "current"
+          ],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/bindRecordAcquisition",
@@ -9315,7 +9930,9 @@
             "dispatchRequestCid",
             "occurrence",
             "approval",
-            "signal"
+            "signal",
+            "readChild",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -9328,7 +9945,8 @@
             "occurrence",
             "approval",
             "signal",
-            "readChild"
+            "readChild",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -9345,7 +9963,8 @@
             "approval",
             "signal",
             "retainPublicationOriginals",
-            "readChild"
+            "readChild",
+            "controlConstruction"
           ],
           "async": true
         },
@@ -9367,6 +9986,16 @@
             "name"
           ],
           "async": true
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue/issued/issued",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "loadInstalledSalesforceSite/generate/generate",
@@ -9634,8 +10263,8 @@
             "<module>",
             "cid/cid",
             "fail/fail",
-            "installedSalesforceSiteBinding",
             "installSalesforceAuthorization",
+            "installedSalesforceSiteBinding",
             "loadInstalledSalesforceSite",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead",
             "loadInstalledSalesforceSite/admitCheckpointEffectTargetRead/admitCheckpointEffectTargetRead",
@@ -9643,6 +10272,7 @@
             "loadInstalledSalesforceSite/attestEffectCapability",
             "loadInstalledSalesforceSite/attestEffectCapability/init:current/init:current",
             "loadInstalledSalesforceSite/authorizeDescribe",
+            "loadInstalledSalesforceSite/bindManagedAcquisition",
             "loadInstalledSalesforceSite/bindRecordAcquisition",
             "loadInstalledSalesforceSite/bindRecordAcquisition/assertOpen/assertOpen",
             "loadInstalledSalesforceSite/bindRecordAcquisition/captureCurrent/captureCurrent",
@@ -9662,12 +10292,12 @@
             "loadInstalledSalesforceSite/custody/custody",
             "loadInstalledSalesforceSite/declarationLimits/declarationLimits",
             "loadInstalledSalesforceSite/declareCatalog",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets",
-            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
             "loadInstalledSalesforceSite/describeEffectCatalog",
             "loadInstalledSalesforceSite/describeForAcquisition",
             "loadInstalledSalesforceSite/describeNamed",
             "loadInstalledSalesforceSite/describeNamed/describeNamed",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets",
+            "loadInstalledSalesforceSite/describedTargets/describedTargets/described/described",
             "loadInstalledSalesforceSite/generate/generate",
             "loadInstalledSalesforceSite/issueGrant",
             "loadInstalledSalesforceSite/issueGrant/issueGrant",
@@ -9982,15 +10612,17 @@
         },
         {
           "operations": [
+            "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource",
             "loadInstalledSalesforceSite/describeNamed/result/result",
+            "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue",
+            "loadInstalledSalesforceSite/describeNamed/result/result/issue/issue/issued/issued",
             "loadInstalledSalesforceSite/init:observe/init:observe",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals",
             "loadInstalledSalesforceSite/init:withOriginals/init:withOriginals/value/value",
             "loadInstalledSalesforceSite/originalDeclaration/originalDeclaration",
             "loadInstalledSalesforceSite/site/site",
             "observeInstalledSalesforcePublicationCurrent",
-            "withInstalledSalesforceDeclarationOriginals",
-            "loadInstalledSalesforceSite/describeNamed/result/init:callResource/init:callResource"
+            "withInstalledSalesforceDeclarationOriginals"
           ],
           "exports": [
             "observeInstalledSalesforcePublicationCurrent",
@@ -12105,13 +12737,14 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3d4ba135481f693667f68af63edd6a9876ad8a04b9e9795aa1f0681d99725ae3",
+      "sha256": "27ebeec739f2cafe940ff046d07142b53a62e18256c372868076214c2fb41bf8",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
         "NAMED_EVIDENCE_VERSION",
         "describeSalesforceResources",
         "recoverNamedSalesforceObservation",
+        "salesforceDescribeOperation",
         "withSalesforceNamedDescribeOriginals"
       ],
       "operations": [
@@ -12139,9 +12772,17 @@
             "retainPublicationOriginals",
             "maxRetainedBytes",
             "callResource",
-            "signal"
+            "signal",
+            "controlConstruction"
           ],
           "async": true
+        },
+        {
+          "name": "describeSalesforceResources/construct/construct",
+          "parameters": [
+            "callback"
+          ],
+          "async": false
         },
         {
           "name": "describeSalesforceResources/describeSalesforceResources",
@@ -12151,24 +12792,39 @@
           "async": false
         },
         {
-          "name": "describeSalesforceResources/outcomes/outcomes",
+          "name": "describeSalesforceResources/describeSalesforceResources/outcomes/outcomes",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "describeSalesforceResources/result/result",
+          "name": "describeSalesforceResources/describeSalesforceResources/result/result",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "describeSalesforceResources/result/result#2",
+          "name": "describeSalesforceResources/describeSalesforceResources/result/result#2",
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/describeSalesforceResources#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/describeSalesforceResources#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "describeSalesforceResources/sync/sync",
+          "parameters": [],
           "async": false
         },
         {
@@ -12256,8 +12912,14 @@
             "<module>",
             "count/count",
             "describeSalesforceResources",
+            "describeSalesforceResources/construct/construct",
             "describeSalesforceResources/describeSalesforceResources",
-            "describeSalesforceResources/outcomes/outcomes",
+            "describeSalesforceResources/describeSalesforceResources#2",
+            "describeSalesforceResources/describeSalesforceResources#3",
+            "describeSalesforceResources/describeSalesforceResources/outcomes/outcomes",
+            "describeSalesforceResources/describeSalesforceResources/result/result",
+            "describeSalesforceResources/describeSalesforceResources/result/result#2",
+            "describeSalesforceResources/sync/sync",
             "fail/fail",
             "recoverNamedSalesforceObservation",
             "recoverNamedSalesforceObservation/observation/observation",
@@ -12267,7 +12929,8 @@
           "exports": [
             "NAMED_EVIDENCE_VERSION",
             "describeSalesforceResources",
-            "recoverNamedSalesforceObservation"
+            "recoverNamedSalesforceObservation",
+            "salesforceDescribeOperation"
           ],
           "attributes": {
             "responsibility": [
@@ -12374,14 +13037,12 @@
         },
         {
           "operations": [
-            "describeSalesforceResources/result/result",
-            "describeSalesforceResources/result/result#2",
             "withSalesforceNamedDescribeOriginals",
             "withSalesforceNamedDescribeOriginals/operations/operations",
             "withSalesforceNamedDescribeOriginals/operations/operations/operations",
-            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals",
             "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals",
-            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals"
+            "withSalesforceNamedDescribeOriginals/recheckOriginals/recheckOriginals/recheckOriginals",
+            "withSalesforceNamedDescribeOriginals/withSalesforceNamedDescribeOriginals"
           ],
           "exports": [
             "withSalesforceNamedDescribeOriginals"
@@ -12673,7 +13334,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a39c896f7322edbdea8c57a684f24969010140e6d8514ff940716098bdef71ce",
+      "sha256": "e72802cef9ff21a5b155dfec5e43345c23f8f7753e4cd7ff106bc1efaa52d7c9",
       "role": "physical-io",
       "owner": "Separately authorized prospective target reads, not Preview/apply or absence proof; original owner admits guards",
       "exports": [
@@ -12718,9 +13379,23 @@
           "async": true
         },
         {
+          "name": "observeSalesforceTargetSet/observed/observed",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
           "name": "observeSalesforceTargetSet/owned/owned",
           "parameters": [
             "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeSalesforceTargetSet/owned/owned/owned",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -12809,7 +13484,9 @@
             "observeSalesforceAccountConditionalTarget",
             "observeSalesforceSingleTarget",
             "observeSalesforceTargetSet",
+            "observeSalesforceTargetSet/observed/observed",
             "observeSalesforceTargetSet/owned/owned",
+            "observeSalesforceTargetSet/owned/owned/owned",
             "observeSingleTarget",
             "retireSalesforceAccountTargetOriginal",
             "validLimits/validLimits",
@@ -12960,7 +13637,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-request-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "577c474e65590438976541050e7108ad71e20f91d72c23a9a024dd5767a075f5",
+      "sha256": "b12d568e0ee3dc2eb0db3a735c4bd27b1512e06c084993518bff39d8b823ff00",
       "role": "connector-semantics",
       "owner": "Salesforce bounded retained Catalog and exact prepared request recovery; no restored current, credential, dispatch or response authority",
       "exports": [

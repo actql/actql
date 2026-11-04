@@ -4,9 +4,12 @@ pub struct ClientInstalledEffectOperationBorrow {
   priv mut owner : ClientInstalledManagedRun?
   priv mut ledger : @resources.Ledger?
   priv slot : Int
+  priv member_index : Int
+  priv mut extent : ClientInstalledEffectOperationExtent?
+  priv mut input_selected : Bool
   priv mut backing : @resources.NodeManagedRunOperationBacking?
   // The SAME immutable extent's execution upper; never Host-supplied DATA.
-  priv execution_limit : Int64
+  priv mut execution_limit : Int64
   priv mut started : Bool
   priv mut retired : Bool
 }
@@ -47,9 +50,10 @@ fn installed_effect_operation_control_capacity(
   // corresponding child/payload wrapper's synchronous flight-opening latch
   // occupies one more scalar; it starts before any original release callback.
   guard @shape.collection_construction_extent({
-      records: 25L * calls,
-      record_references: (64L + 3L) * calls,
-      record_words: (12L + 2L) * calls,
+      // The selected extent Some adds1H2R1W; member/input-selected are2W.
+      records: 26L * calls,
+      record_references: (64L + 3L + 2L) * calls,
+      record_words: (12L + 2L + 3L) * calls,
       // Deferred member construction retains one original preparation-method
       // vector. Its length is bounded by these same checked child slots.
       reference_arrays: 3L * calls + 1L,
@@ -71,9 +75,16 @@ fn installed_effect_operation_control_capacity(
   // These are fixed existing implementation holders, not another owner or
   // per-method fee. Source tests pin this inventory to the real declaration.
   let retained : @execution.PreparationRepresentationUnits = {
-    record_headers: 9L + shared.record_headers + 11L * count + 69L,
-    reference_slots: 11L + slots + shared.reference_slots + 17L * count + 267L,
-    scalar_words: 24L + shared.scalar_words + 29L * count,
+    // Optional Host input tuple/Some and its retained opaque capacity. Wire
+    // text remains with the already-funded original Preview producer.
+    record_headers: 9L + shared.record_headers + 11L * count + 69L + 4L,
+    reference_slots: 11L +
+    slots +
+    shared.reference_slots +
+    17L * count +
+    267L +
+    4L,
+    scalar_words: 24L + shared.scalar_words + 29L * count + 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -92,10 +103,15 @@ fn installed_effect_operation_control_capacity(
     maps: 0L,
     map_entries: 0L,
   }).unwrap()
+  // One synchronous input-quantity frame can run before the original byte
+  // resize. It has at most sixteen returned constructor roles, each with its
+  // capacity/Option/tuple/collection/call carriers (8H,64R,64W), plus its
+  // argument/selection frame (8H,32R,16W). No payload is parsed here. Keep this
+  // fixed frame prepaid in idle controls; it is not per occurrence or byte.
   let workspace : @execution.PreparationRepresentationUnits = {
-    record_headers: 1L + keys.record_headers,
-    reference_slots: slots + keys.reference_slots,
-    scalar_words: keys.scalar_words,
+    record_headers: 1L + keys.record_headers + 16L * 8L + 8L,
+    reference_slots: slots + keys.reference_slots + 16L * 64L + 32L,
+    scalar_words: keys.scalar_words + 16L * 64L + 16L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -291,7 +307,10 @@ fn borrow_installed_effect_operation_original(
     )
   }
   let previous_control = owner.effect_operation_controls
-  let control_capacity = plan.operation_control_capacity
+  guard installed_effect_control_capacity(previous_control, plan)
+    is Some((control_capacity, control_idle)) else {
+    return Err(Unsupported)
+  }
   let reserved = @resources.reserve_prepared_run_operation(
     admission,
     plan,
@@ -303,7 +322,9 @@ fn borrow_installed_effect_operation_original(
     },
     previous_control.map(value => value.reservation),
     @execution.execution_capacity_retained_bytes(control_capacity),
-    installed_effect_control_execution(previous_control, plan),
+    installed_effect_control_execution(
+      previous_control, control_capacity, control_idle,
+    ),
     extent.physical_attempt,
     extent.transfer_bytes,
     retained,
@@ -331,6 +352,9 @@ fn borrow_installed_effect_operation_original(
     owner: Some(owner),
     ledger: Some(ledger),
     slot: owner.effect_operations.length(),
+    member_index,
+    extent: Some(extent),
+    input_selected: false,
     backing: Some(backing),
     execution_limit: execution,
     started: !extent.physical_attempt && !defer_construction,
@@ -515,6 +539,7 @@ pub fn retire_installed_effect_operation(
         owner.effect_operations[value.slot] = None
       }
       value.backing = None
+      value.extent = None
       value.owner = None
       value.ledger = None
       value.retired = true
@@ -574,6 +599,9 @@ fn retain_installed_effect_operation_controls(
         coordinates: Map([]),
         construction_deferred,
         construction_active: false,
+        ledger_codec_active: false,
+        ledger_codec_workspace: 0L,
+        host_input: None,
       }
       owner.effect_operation_controls = Some(control)
       control
@@ -670,7 +698,10 @@ fn begin_installed_effect_operation_controls_original(
       Ok(_) => Err(ForeignOriginal)
     }
   }
-  let capacity = plan.operation_control_capacity
+  guard installed_effect_control_capacity(previous, plan)
+    is Some((capacity, idle)) else {
+    return Err(Unsupported)
+  }
   let reservation = match
     @resources.reserve_prepared_run_operation_controls(
       admission,
@@ -684,9 +715,9 @@ fn begin_installed_effect_operation_controls_original(
       previous.map(value => value.reservation),
       @execution.execution_capacity_retained_bytes(capacity),
       if previous is Some(_) {
-        installed_effect_control_execution(previous, plan)
+        installed_effect_control_execution(previous, capacity, idle)
       } else if construction_deferred {
-        plan.operation_control_idle_execution
+        idle
       } else {
         @execution.execution_capacity_execution_bytes(capacity)
       },
@@ -705,6 +736,81 @@ fn begin_installed_effect_operation_controls_original(
   )
   // Return this same immutable original, never a current proof or new Plan.
   Ok(plan)
+}
+
+///|
+/// The actual original response/recovery input is now owned. Resolve its
+/// constructor quantity using this SAME checked Plan's member/row inventory,
+/// then grow only this token before entering that callback. The original
+/// immutable maximum remains a rejection bound, not an up-front reservation
+/// or permission. A physical child must already have spent its one attempt.
+pub fn begin_installed_effect_operation_input(
+  value : ClientInstalledEffectOperationBorrow,
+  input : ClientInstalledEffectOperationExtent,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(original, value) else {
+    return Err(ForeignOriginal)
+  }
+  guard !value.retired &&
+    value.owner is Some(owner) &&
+    value.ledger is Some(ledger) &&
+    value.backing is Some(backing) &&
+    value.extent is Some(extent) else {
+    return Err(Retired)
+  }
+  guard extent.maximum is Some(maximum) && input.maximum is None else {
+    return Err(Unsupported)
+  }
+  if value.input_selected ||
+    owner.effect_operation_opening ||
+    owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  if input.operation != extent.operation ||
+    input.physical_attempt != extent.physical_attempt ||
+    input.transfer_bytes != extent.transfer_bytes ||
+    (extent.physical_attempt && !value.started) ||
+    (!extent.physical_attempt && value.started) {
+    return Err(ForeignOriginal)
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    plan.operations.get(value.member_index) is Some(demand) else {
+    return Err(Retired)
+  }
+  guard resolve_installed_effect_id_extent(input, demand.effect_id)
+    is Some(input) &&
+    resolve_installed_effect_capture_extent(input, plan.rows) is Some(input) &&
+    installed_effect_capacity_within(extent.capacity, input.capacity) &&
+    installed_effect_capacity_within(input.capacity, maximum.capacity) else {
+    return Err(InsufficientCapacity)
+  }
+  owner.effect_operation_opening = true
+  let result = @resources.grow_prepared_run_operation_capacity(
+    admission,
+    plan,
+    ledger,
+    () => {
+      check_installed_effect_operation_backing_original(
+        value, owner, ledger, preparation, backing,
+      )
+    },
+    backing,
+    @execution.execution_capacity_retained_bytes(input.capacity),
+    @execution.execution_capacity_execution_bytes(input.capacity),
+  ).map_err(installed_effect_operation_reservation_issue)
+  owner.effect_operation_opening = false
+  match result {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      value.execution_limit = @execution.execution_capacity_execution_bytes(
+        input.capacity,
+      )
+      value.input_selected = true
+      value.started = true
+      Ok(())
+    }
+  }
 }
 
 ///|
@@ -815,6 +921,22 @@ fn check_installed_effect_construction_original(
   preparation : ClientInstalledManagedRunOriginal,
   backing : @resources.NodeManagedRunOperationBacking,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard backing is @resources.NodeManagedRunOperationBacking::Construction(_) else {
+    return Err(Unsupported)
+  }
+  check_installed_effect_operation_backing_original(
+    value, owner, ledger, preparation, backing,
+  )
+}
+
+///|
+fn check_installed_effect_operation_backing_original(
+  value : ClientInstalledEffectOperationBorrow,
+  owner : ClientInstalledManagedRun,
+  ledger : @resources.Ledger,
+  preparation : ClientInstalledManagedRunOriginal,
+  backing : @resources.NodeManagedRunOperationBacking,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   match check_installed_managed_run_original(owner, ledger, preparation) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -826,13 +948,18 @@ fn check_installed_effect_construction_original(
     physical_equal(current_ledger, ledger) &&
     owner.effect_operations.get(value.slot) is Some(Some(current)) &&
     physical_equal(current, value) &&
-    value.backing
-    is Some(
-      @resources.NodeManagedRunOperationBacking::Construction(current_backing)
-    ) &&
-    backing
-    is @resources.NodeManagedRunOperationBacking::Construction(original_backing) &&
-    physical_equal(current_backing, original_backing) else {
+    value.backing is Some(current_backing) &&
+    (match (current_backing, backing) {
+      (
+        @resources.NodeManagedRunOperationBacking::Construction(current),
+        @resources.NodeManagedRunOperationBacking::Construction(original),
+      ) => physical_equal(current, original)
+      (
+        @resources.NodeManagedRunOperationBacking::Physical(current),
+        @resources.NodeManagedRunOperationBacking::Physical(original),
+      ) => physical_equal(current, original)
+      _ => false
+    }) else {
     return Err(Retired)
   }
   Ok(())
@@ -843,16 +970,15 @@ fn check_installed_effect_construction_original(
 // complete allowance; only the new synchronous caller has an inactive phase.
 fn installed_effect_control_execution(
   control : ClientEffectOperationControls?,
-  plan : ClientInstalledEffectManagedPlan,
+  capacity : @execution.ExecutionCapacity,
+  idle : Int64,
 ) -> Int64 {
   if control is Some(original) &&
     original.construction_deferred &&
     !original.construction_active {
-    plan.operation_control_idle_execution
+    idle
   } else {
-    @execution.execution_capacity_execution_bytes(
-      plan.operation_control_capacity,
-    )
+    @execution.execution_capacity_execution_bytes(capacity)
   }
 }
 
@@ -881,12 +1007,74 @@ pub fn complete_installed_effect_operation_control_construction(
 }
 
 ///|
+/// Refine this SAME control reservation from its producer-owned Preview wire
+/// before Host JSON.parse. The immutable installing limits stay unchanged.
+pub fn begin_installed_effect_operation_control_input(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  wire : String,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    input_wire=Some(wire),
+  )
+}
+
+///|
+/// Nested normalizing Ledger codec on this SAME synchronous control frame.
+/// None is the existing fixed Ledger issuance schema bound, not an unknown
+/// wire encoded as zero. Some is the actual original stored wire before parse.
+pub fn begin_installed_effect_operation_ledger_codec(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+  wire : String?,
+  nodes : Int,
+  depth : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_codec=Some((true, wire, nodes, depth)),
+  )
+}
+
+///|
+pub fn complete_installed_effect_operation_ledger_codec(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : ClientInstalledEffectManagedPlan,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  resize_installed_effect_operation_control_construction(
+    owner,
+    prepared,
+    request,
+    plan,
+    true,
+    ledger_codec=Some((false, None, 0, 0)),
+  )
+}
+
+///|
 fn resize_installed_effect_operation_control_construction(
   owner : ClientInstalledManagedRun,
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   expected_plan : ClientInstalledEffectManagedPlan,
   active : Bool,
+  input_wire? : String? = None,
+  ledger_codec? : (Bool, String?, Int, Int)? = None,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard owner.original is Some(original) && physical_equal(original, owner) else {
     return Err(ForeignOriginal)
@@ -917,11 +1105,87 @@ fn resize_installed_effect_operation_control_construction(
   if !control.construction_deferred {
     return Err(Unsupported)
   }
-  if control.construction_active == active {
-    return Err(AlreadyBound)
+  match ledger_codec {
+    None =>
+      if control.construction_active == active || control.ledger_codec_active {
+        return Err(AlreadyBound)
+      }
+    Some((entering, _, _, _)) =>
+      if !active ||
+        !control.construction_active ||
+        control.ledger_codec_active == entering ||
+        input_wire is Some(_) {
+        return Err(AlreadyBound)
+      }
+  }
+  let codec_workspace = match ledger_codec {
+    Some((true, wire, nodes, depth)) => {
+      if nodes < 1 || nodes > 4096 || depth < 1 || depth > 32 {
+        return Err(Unsupported)
+      }
+      let bytes = match wire {
+        Some(wire) =>
+          match @scalar.admit_utf8_length(wire, 1000000) {
+            Ok(bytes) if bytes > 0 => bytes
+            _ => return Err(Unsupported)
+          }
+        None =>
+          match installed_effect_control_wire_bound(1, 1000000) {
+            Ok(bytes) => bytes
+            Err(issue) => return Err(issue)
+          }
+      }
+      guard installed_effect_contract_response_construction_capacity(
+          bytes, nodes, depth,
+        )
+        is Some(codec) &&
+        @execution.execution_capacity_retained_bytes(codec) <=
+        @execution.execution_capacity_retained_bytes(
+          plan.operation_control_capacity,
+        ) else {
+        return Err(Unsupported)
+      }
+      @execution.execution_capacity_execution_bytes(codec) -
+      @execution.execution_capacity_retained_bytes(codec)
+    }
+    _ => 0L
+  }
+  let input = match input_wire {
+    None => None
+    Some(wire) => {
+      if !active {
+        return Err(Unsupported)
+      }
+      match control.host_input {
+        Some((original, _)) => {
+          if original != wire {
+            return Err(ForeignOriginal)
+          }
+          // The same successful selection cannot fund another parsed forest.
+          // A failed byte resize below leaves host_input absent and retryable.
+          return Err(AlreadyBound)
+        }
+        None => {
+          let capacity = match
+            installed_effect_host_preview_input_capacity(plan, wire) {
+            Err(issue) => return Err(issue)
+            Ok(value) => value
+          }
+          Some((wire, capacity))
+        }
+      }
+    }
+  }
+  guard installed_effect_control_capacity(
+      Some(control),
+      plan,
+      input~,
+      codec_workspace=Some(codec_workspace),
+    )
+    is Some((capacity, idle)) else {
+    return Err(Unsupported)
   }
   owner.effect_operation_opening = true
-  let capacity = plan.operation_control_capacity
   let retained = @execution.execution_capacity_retained_bytes(capacity)
   let result = @resources.resize_prepared_run_operation_control_construction(
     admission,
@@ -940,15 +1204,175 @@ fn resize_installed_effect_operation_control_construction(
     if active {
       @execution.execution_capacity_execution_bytes(capacity)
     } else {
-      plan.operation_control_idle_execution
+      idle
     },
   ).map_err(installed_effect_operation_reservation_issue)
   owner.effect_operation_opening = false
   match result {
     Err(issue) => Err(issue)
     Ok(_) => {
-      control.construction_active = active
+      if input is Some(original) {
+        control.host_input = Some(original)
+      }
+      match ledger_codec {
+        Some((entering, _, _, _)) => {
+          control.ledger_codec_active = entering
+          control.ledger_codec_workspace = codec_workspace
+        }
+        None => control.construction_active = active
+      }
       Ok(())
     }
   }
+}
+
+///|
+// The actual same-Run Preview wire already belongs to its producer. Scan only
+// UTF8 length here; do not parse, normalize, encode, check or compile it again.
+fn installed_effect_host_preview_input_capacity(
+  plan : ClientInstalledEffectManagedPlan,
+  wire : String,
+) -> Result[@execution.ExecutionCapacity, ClientInstalledManagedRunIssue] {
+  let mut maximum : Int? = None
+  for demand in plan.operations {
+    for extent in demand.member_extents {
+      if extent.host_input_limits is Some(limits) {
+        maximum = Some(
+          match maximum {
+            None => limits.max_input_bytes
+            Some(old) => Int::min(old, limits.max_input_bytes)
+          },
+        )
+      }
+    }
+  }
+  guard maximum is Some(maximum) else { return Err(Unsupported) }
+  let bytes = match @scalar.admit_utf8_length(wire, maximum) {
+    Err(_) => return Err(Unsupported)
+    Ok(value) => value
+  }
+  if bytes < 1 {
+    return Err(Unsupported)
+  }
+  let mut retained = 0L
+  let mut workspace = 0L
+  for demand in plan.operations {
+    for extent in demand.member_extents {
+      if extent.host_input_limits is Some(limits) {
+        guard installed_standard_host_preview_input_parts(
+            limits.max_input_bytes,
+            limits.max_nodes,
+            limits.max_depth,
+            Some(bytes),
+          )
+          is Some((held, scratch)) &&
+          standard_create_representation_capacity(
+            { ..held, owned_utf16_units: 0L, },
+            { ..scratch, owned_utf16_units: 0L, },
+          )
+          is Some(capacity) &&
+          @execution.checked_preparation_add_product(
+            retained,
+            @execution.execution_capacity_retained_bytes(capacity),
+            1L,
+          )
+          is Some(next) else {
+          return Err(Unsupported)
+        }
+        retained = next
+        workspace = Int64::max(
+          workspace,
+          @execution.execution_capacity_execution_bytes(capacity) -
+          @execution.execution_capacity_retained_bytes(capacity),
+        )
+      }
+    }
+  }
+  guard @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(capacity) else {
+    return Err(Unsupported)
+  }
+  Ok(capacity)
+}
+
+///|
+// Preserve every retained Host forest until this same control Owner retires.
+// Synchronous Host parsing and the old control callbacks do not overlap their
+// private scratch. Native member/cold/physical backing remains independent.
+fn installed_effect_control_capacity(
+  control : ClientEffectOperationControls?,
+  plan : ClientInstalledEffectManagedPlan,
+  input? : (String, @execution.ExecutionCapacity)? = None,
+  codec_workspace? : Int64? = None,
+) -> (@execution.ExecutionCapacity, Int64)? {
+  let selected = match input {
+    Some(value) => Some(value)
+    None =>
+      match control {
+        None => None
+        Some(value) => value.host_input
+      }
+  }
+  // Other same-owner reservation/current paths must retain a live or failed
+  // nested codec's prefix. Only its explicit synchronous completion supplies
+  // Some(0); observing another operation is never a workspace return.
+  let codec_workspace = codec_workspace.unwrap_or(
+    match control {
+      Some(value) => value.ledger_codec_workspace
+      None => 0L
+    },
+  )
+  let base = plan.operation_control_capacity
+  let base_retained = @execution.execution_capacity_retained_bytes(base)
+  guard @execution.checked_preparation_add_product(
+      base_retained, codec_workspace, 1L,
+    )
+    is Some(codec_execution) &&
+    @execution.execution_capacity(
+      base_retained,
+      Int64::max(
+        @execution.execution_capacity_execution_bytes(base),
+        codec_execution,
+      ),
+    )
+    is Some(original) else {
+    return None
+  }
+  guard selected is Some((_, host)) else {
+    return Some((original, plan.operation_control_idle_execution))
+  }
+  let host_retained = @execution.execution_capacity_retained_bytes(host)
+  guard @execution.checked_preparation_add_product(
+      @execution.execution_capacity_retained_bytes(original),
+      host_retained,
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      plan.operation_control_idle_execution,
+      host_retained,
+      1L,
+    )
+    is Some(idle) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(original),
+      host_retained,
+      1L,
+    )
+    is Some(control_execution) &&
+    @execution.checked_preparation_add_product(
+      plan.operation_control_idle_execution,
+      @execution.execution_capacity_execution_bytes(host),
+      1L,
+    )
+    is Some(input_execution) &&
+    @execution.execution_capacity(
+      retained,
+      Int64::max(control_execution, input_execution),
+    )
+    is Some(capacity) else {
+    return None
+  }
+  Some((capacity, idle))
 }

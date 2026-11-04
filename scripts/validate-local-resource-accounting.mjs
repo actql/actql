@@ -2225,17 +2225,21 @@ export function validateResourceAccounting({
         const host = fs.readFileSync(path.join(
           root, 'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
         ), 'utf8');
-        const cases = host.slice(
-          host.indexOf("name: 'external-cross-join-in-flight'"),
-          host.indexOf("const copyCancellationCase ="),
-        );
+        const begin = host.indexOf("name: 'external-cross-join-in-flight'");
+        const end = host.indexOf('// Retained Store Local:', begin);
+        const cases = begin >= 0 && end > begin ? host.slice(begin, end) : '';
         if (!environmentRoles.has(
           'external_product_node_timer_cancel_cleanup') ||
           !environmentRoles.has(
             'direct_product_node_timer_cancel_cleanup') ||
           !cases.includes("name: 'direct-cross-join-in-flight'") ||
+          !cases.includes('start === 3 && observation?.complete === false') ||
+          !cases.includes('observation.work > 0n') ||
+          !cases.includes('(emptyRightAdmission || observation.progress > 0n)') ||
           !cases.includes('crossJoinPairProgress > 0n') ||
-          !cases.includes('setTimeout(() => crossJoinCancellation.abort(), 0)') ||
+          // Queue a real Host event before the driver's setImmediate yield;
+          // synchronous reentry does not establish event-loop cancellation.
+          !cases.includes('setImmediate(() => crossJoinCancellation.abort())') ||
           !cases.includes('crossJoinStopObservedAt >= crossJoinCancellationDeliveredAt') ||
           !cases.includes('crossJoinCancellationExecution.cleanupPending(), false')) {
           fail(`${label}: in-flight Host cancellation evidence is missing`);

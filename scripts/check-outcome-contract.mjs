@@ -159,7 +159,9 @@ export function checkReasonSchemaFor(registry) {
   const reason = structuredClone(checkReasonSchema);
   const pin = machineCid(registry.schemas.canonical_value_contract);
   for (const facts of reason.properties.facts.oneOf) {
-    if (facts.properties.admission) facts.properties.admission.properties.contract_schema_cid.const = pin;
+    if (facts.properties.admission) assert.equal(
+      facts.properties.admission.properties.contract_schema_cid.const,
+      pin, 'StaleCheckReasonParameterContractSchema');
   }
   const capacity = JSON.parse(readFileSync('spec/contracts/actql-capacity-host-policy.json', 'utf8'));
   const facts = reason.properties.facts.oneOf.find(value => value.properties.schema_pointer);

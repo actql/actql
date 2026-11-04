@@ -244,6 +244,255 @@
           }
         }
       ]
+    },
+    {
+      "module": "src/connectors/salesforce/catalog/write_capability.mbt",
+      "sha256": "482b8ad54d911f00d6af0a09dc1dba1a3a92f1ddfdbe8702f5d7898d3e738650",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "capability_field",
+          "declaration": "capability_field ( writer : @ encode . Writer , field : FieldMetadata , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "capability_flag",
+          "declaration": "capability_flag ( writer : @ encode . Writer , key : String , value : Bool , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
+          "name": "check_write_capability_request",
+          "declaration": "check_write_capability_request ( evidence : WriteCapabilityEvidence , request : SingleWriteRequest , runtime_bundle_cid : String , ) - > Result [ Unit , WriteCapabilityIssue ]"
+        },
+        {
+          "name": "prepare_write_capability_evidence",
+          "declaration": "prepare_write_capability_evidence ( request : SingleWriteRequest , runtime_bundle_cid : String , route : WriteCapabilityRoute , max_bytes : Int , ) - > Result [ WriteCapabilityEvidence , WriteCapabilityIssue ]"
+        },
+        {
+          "name": "recheck_write_capability",
+          "declaration": "recheck_write_capability ( evidence : WriteCapabilityEvidence , current : CatalogObservation , ) - > Result [ Unit , WriteCapabilityIssue ]"
+        },
+        {
+          "name": "write_capability_body",
+          "declaration": "write_capability_body ( value : WriteCapabilityEvidence ) - > String"
+        },
+        {
+          "name": "write_capability_construction_limits",
+          "declaration": "write_capability_construction_limits ( max_bytes : Int , ) - > @ source . ParseLimits ?"
+        },
+        {
+          "name": "write_capability_generated_construction_limits",
+          "declaration": "write_capability_generated_construction_limits ( original : @ source . ParseLimits , fields : Int , references_per_field : Int , ) - > @ source . ParseLimits ?"
+        },
+        {
+          "name": "write_capability_identity",
+          "declaration": "write_capability_identity ( value : WriteCapabilityEvidence ) - > String"
+        },
+        {
+          "name": "write_capability_route",
+          "declaration": "write_capability_route ( value : WriteCapabilityEvidence , ) - > WriteCapabilityRoute"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "capability_field",
+            "capability_flag",
+            "check_write_capability_request",
+            "prepare_write_capability_evidence",
+            "recheck_write_capability",
+            "write_capability_body",
+            "write_capability_construction_limits",
+            "write_capability_generated_construction_limits",
+            "write_capability_identity",
+            "write_capability_route"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/catalog/write_capability.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/salesforce/catalog/write_target_identity.mbt",
+      "sha256": "aef628b0a973cc935de0bfea5236d60556fdbd28e950435d4699130294a5355a",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_write_target_identity",
+          "declaration": "prepare_write_target_identity ( projection : WriteProjection , target : WriteTargetValue , max_target_bytes : Int , max_identity_bytes : Int , ) - > Result [ WriteTargetIdentity , WriteCollectionRequestIssue ]"
+        },
+        {
+          "name": "single_write_member_footprint",
+          "declaration": "single_write_member_footprint ( requests : Array [ SingleWriteRequest ] , max_rows : Int , max_identity_bytes : Int , ) - > Result [ ( String , String , String , String , String , Array [ String ] ) , WriteCollectionRequestIssue , ]"
+        },
+        {
+          "name": "write_projection_boundary_cid",
+          "declaration": "write_projection_boundary_cid ( projection : WriteProjection , max_identity_bytes : Int , ) - > Result [ String , WriteCollectionRequestIssue ]"
+        },
+        {
+          "name": "write_target_boundary_cid",
+          "declaration": "write_target_boundary_cid ( value : WriteTargetIdentity ) - > String"
+        },
+        {
+          "name": "write_target_digest",
+          "declaration": "write_target_digest ( fields : Array [ ( String , String ) ] , max_bytes : Int , ) - > Result [ String , WriteCollectionRequestIssue ]"
+        },
+        {
+          "name": "write_target_digest_construction_inventory",
+          "declaration": "write_target_digest_construction_inventory ( ) - > @ encode . HashWriterConstructionInventory ?"
+        },
+        {
+          "name": "write_target_matches_preview_correlation",
+          "declaration": "write_target_matches_preview_correlation ( projection : WriteProjection , target : WriteTargetValue , correlation_wire : String , max_target_bytes : Int , max_identity_bytes : Int , ) - > Result [ Bool , WriteCollectionRequestIssue ]"
+        },
+        {
+          "name": "write_target_object_cid",
+          "declaration": "write_target_object_cid ( value : WriteTargetIdentity ) - > String"
+        },
+        {
+          "name": "write_target_scheme_cid",
+          "declaration": "write_target_scheme_cid ( value : WriteTargetIdentity ) - > String"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_write_target_identity",
+            "single_write_member_footprint",
+            "write_projection_boundary_cid",
+            "write_target_boundary_cid",
+            "write_target_digest",
+            "write_target_digest_construction_inventory",
+            "write_target_matches_preview_correlation",
+            "write_target_object_cid",
+            "write_target_scheme_cid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors/salesforce/catalog/write_target_identity.mbt",
+                "anchor": "pub fn "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/host/effect_capture_construction_wbtest.mbt",
+                "anchor": "test \"Salesforce capture"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

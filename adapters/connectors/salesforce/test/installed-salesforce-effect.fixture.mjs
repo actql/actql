@@ -14,13 +14,21 @@ import * as salesforceMoon from
   '../../../../_build/js/release/build/connectors/salesforce/host_node/host_node.js';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {effectHost as createRowEffectHost} from '../../../host-node/fixtures/installed-row-effect.fixture.mjs';
-import {INSTALLED_SALESFORCE_EFFECT_VERSION, loadInstalledSalesforceEffect,
+import {INSTALLED_SALESFORCE_EFFECT_VERSION, checkInstalledSalesforceEffectProfile, loadInstalledSalesforceEffect,
   publishInstalledSalesforceEffect, salesforceEffectUnit} from
   '../host/installed-salesforce-effect.mjs';
 import {INSTALLED_SALESFORCE_SITE_VERSION} from
   '../host/installed-salesforce-site.mjs';
+import {checkInstalledSalesforceSourceProfile, loadInstalledSalesforceSource} from
+  '../host/installed-salesforce-source.mjs';
 import {openSalesforceEffectSiteFixture} from
   './salesforce-effect-site.fixture.mjs';
+import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
+import {retainInstalledHostServiceInstallation, beginInstalledSourceInitialization,
+  bindInstalledSourceConstruction, finishInstalledSourceInitialization,
+  retainBoundInstalledSourceFailure, withInstalledSourceLoading} from '../../../host-node/installed-host-services.mjs';
+
 
 export {moon, salesforceMoon};
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -52,12 +60,12 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     writeOperation, connectorId, ...orgOptions});
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-effect-'));
-  const loaded = [];
+  const loaderParents = [];
   // Hosts over this installation end before its directories are removed.
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    for (const effect of loaded) effect.close();
+    for (const parent of loaderParents.reverse()) await parent.close();
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
       t.diagnostic(`Retained installed Salesforce Effect fixture: ${root}`);
     } else {
@@ -104,15 +112,43 @@ export async function installedEffect(t, {writes, writeOperation = 'update',
   const publish = (overrides = {}, publishOptions = {}) =>
     publishInstalledSalesforceEffect({...profile, ...overrides},
       {...options, ...publishOptions});
-  const load = async (overrides = {}, loadOptions = {}) => {
-    const effect = await loadInstalledSalesforceEffect(
-      {...profile, ...overrides}, {...options, ledgerRoot, ...loadOptions});
-    loaded.push(effect);
-    return effect;
+  const loadProvider = async (profile, selected, role, check, loader) => {
+    // Keep the actual provider loader and its explicit fault/runtime ports.
+    // Its original Source constructor now belongs to this real installation
+    // parent, as it does in the common installed loader. No scope is mocked.
+    const parent = createInstalledLoaderParent(selected);
+    loaderParents.push(parent);
+    parent.open();
+    return parent.load((profile, originalOptions) => withInstalledSourceLoading(parent.services, async () => {
+      const originalProfile = check(profile);
+      const entry = installedConnectors.find(entry => entry[role]?.profileVersion === originalProfile.version);
+      assert(entry);
+      const services = parent.services;
+      retainInstalledHostServiceInstallation(services,entry,originalOptions.runtimeBundleCid);
+      const initialization = beginInstalledSourceInitialization(services,entry,
+        originalProfile.connectorId,originalOptions.baseEnvironmentWire,role);
+      let adapter;
+      try {
+        adapter = await loader(originalProfile,{...originalOptions,
+          construction:bindInstalledSourceConstruction(services,initialization,originalProfile)});
+        finishInstalledSourceInitialization(initialization,adapter);
+        return adapter;
+      } catch (cause) {
+        const failure = await retainBoundInstalledSourceFailure(initialization,cause,adapter);
+        finishInstalledSourceInitialization(initialization,adapter,failure,true);
+        throw failure;
+      }
+    }),profile,selected);
   };
+  const load = (overrides = {}, loadOptions = {}) => loadProvider(
+    {...profile, ...overrides}, {...options, ledgerRoot, ...loadOptions},
+    'effect', checkInstalledSalesforceEffectProfile, loadInstalledSalesforceEffect);
+  const loadSource = (sourceProfile, loadOptions = {}) => loadProvider(
+    sourceProfile, {...options, providerMoon: salesforceMoon, ...loadOptions},
+    'source', checkInstalledSalesforceSourceProfile, loadInstalledSalesforceSource);
   const published = await publish();
   return {org, root, profile, siteDocument, writeSite, published, publish,
-    load, baseEnvironmentWire, options, ledgerRoot,
+    load, loadSource, baseEnvironmentWire, options, ledgerRoot,
     onClose: close => closers.push(close)};
 }
 
@@ -130,5 +166,6 @@ export function effectProgram(effects, rows, schema = {id: {type: 'string',
 // Compatibility name retains the original Salesforce unit projection; the
 // neutral test helper contains the same capture/recovery/cleanup assembly.
 export async function effectHost(t, installation, state, options = {}) {
-  return createRowEffectHost(t, installation, state, {...options, unitOf: salesforceEffectUnit});
+  return createRowEffectHost(t, installation, state, {...options, managed: true,
+    unitOf: salesforceEffectUnit});
 }

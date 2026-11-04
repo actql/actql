@@ -1,4 +1,4 @@
-import {ledgerUsageSnapshot} from '../host-common/runtime-core.mjs';
+import {ledgerUsageSnapshot, runtimeCore} from '../host-common/runtime-core.mjs';
 import {ledgerUsageFieldsFor} from './fixtures/ledger-usage.mjs';
 // Live installed-capture boundary tests. These are ownership/refusal checks;
 // native positive resource, cancellation and cleanup proofs live in the
@@ -54,7 +54,7 @@ test('plural source configuration is bounded, copied and exclusive', () => {
 
 for (const equalContent of [false, true]) {
   test(`two live captures bind every tuple member (${equalContent ? 'equal' : 'distinct'} content)`, async t => {
-    const f = await twoSourceCaptureFixture(t, {equalContent});
+    const f = await twoSourceCaptureFixture(t, {equalContent, fundedPublication: true});
     const {moon} = f;
     const counters = observeDuckDBCalls(t);
     const pair = await f.capturePair();
@@ -212,7 +212,11 @@ for (const failingTask of [0, 1]) {
     const stopped = [];
     const opens = [0, 0];
     let closes = 0;
-    let computes = 0;
+    let computes = 0, dispatchFailure;
+    const publicationControl = runtimeCore(f.moon).publicationControl;
+    // This failed-acquisition component never publishes. Its explicit metadata
+    // handoff retains only full-admitted evidence from the same real capture.
+    const sourceOriginals = new WeakMap();
     const preparedSources = f.preparedSources.map((source, task) => ({...source,
       adapter: {...source.adapter, async open(options) {
         opens[task]++;
@@ -225,15 +229,29 @@ for (const failingTask of [0, 1]) {
         }
         const captured = await f.openOne(source, options.ledger,
           options.preparedProgram, options);
-        return {...captured, async close() { closes++; await captured.close(); }};
+        return {...captured,
+          async prepareSourceEvidenceOriginal(options) {
+            assert.equal(sourceOriginals.has(captured.capture), false);
+            const wire = await captured.issueSourceEvidence(options);
+            const evidence = publicationControl.admitRunEvidence('source_evidence', wire,
+              {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64});
+            sourceOriginals.set(captured.capture, evidence);
+          },
+          async close() { closes++; await captured.close(); }};
       }},
     }));
-    const owner = installNodeClientDispatchOwner({moon: f.moon, control: {},
+    const owner = installNodeClientDispatchOwner({moon: f.moon,
+      control: {...publicationControl, takeSourceEvidenceOriginal(capture) {
+        const evidence = sourceOriginals.get(capture);
+        assert.ok(evidence, 'Only the selected completed capture supplies evidence');
+        sourceOriginals.delete(capture); return evidence;
+      }},
       journal: {reservePhysicalStart: () => true,
         markPhysicalClose: (...args) => stopped.push(args)},
       store: {confirmCommittedIndex: async () => undefined},
       startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
-      observed: () => {}, planFor: () => ({runDefinition: {wire: 'definition'}}),
+      observed(phase, detail) {if (phase === 'dispatch_failed') dispatchFailure = detail.code;},
+      planFor: () => ({runDefinition: {wire: 'definition'}}),
       sourceProfile: {sources: f.adapters}, ...f.common,
       authorityScopeCid: f.authorityScopeCid, namespaceId: 'capture-boundary', now: f.now,
       runPublished: async () => { computes++; assert.fail('unknown acquisition cannot start Compute'); },
@@ -245,6 +263,7 @@ for (const failingTask of [0, 1]) {
     {}, accepted, {preparedSources}), 'started');
     const operation = owner.operation(ref);
     await operation;
+    assert.equal(dispatchFailure, 'WrappedUnknownAcquisition', 'The actual selected fault must be reached');
     assert.deepEqual(opens, failingTask === 0 ? [1, 0] : [1, 1]);
     assert.equal(closes, failingTask, 'any earlier real capture was closed exactly once');
     assert.equal(counters().creates, failingTask);

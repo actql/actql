@@ -10,7 +10,7 @@ const fail = code => {throw Object.assign(new Error(code), {code});};
 
 export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,
   prepared, request, requestInput, selection, facts, inputs, sourceProfile, model, modelSelection,
-  publicationControl, assertCurrent, checked}) {
+  publicationControl, prepareContent, assertCurrent, checked}) {
   assertCurrent();
   const same = run => {
     if (Object.hasOwn(run, 'failure')) throw run.failure;
@@ -77,6 +77,13 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
         run.modelComponents = Object.freeze([run.modelComponent.provider]);
       }
     }
+    if (prepareContent !== undefined) {
+      if (model !== undefined || typeof prepareContent !== 'function') fail('UnsupportedInstalledContentEffectClosure');
+      run.contentOriginal = prepareContent(value => {run.contentCleanup = value;});
+      if (run.contentOriginal?.preparation === undefined || run.contentCleanup === undefined) {
+        fail('InstalledContentRunPreparationUnavailable');
+      }
+    }
     const select = Object.getOwnPropertyDescriptor(selection ?? {}, 'prepareManagedPlan')?.value;
     if (typeof select !== 'function') fail('InstalledEffectOperationDemandUnavailable');
     // The installed implementation must supply its complete original demand;
@@ -87,8 +94,9 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
         requestIdentity: request, sourceProfile, queryContract: inputs.queryContract,
         evidenceContract: inputs.evidenceContract});
     }
-    const planInputs = model === undefined && run.sourceInputs === undefined ? inputs
-      : Object.freeze({...inputs, ...(run.sourceInputs === undefined ? {} : {sourceInputs: run.sourceInputs}),
+    const planInputs = model === undefined && run.sourceInputs === undefined && run.contentOriginal === undefined ? inputs
+      : Object.freeze({...inputs,
+        ...(run.contentOriginal === undefined ? {} : {contentPreparation: run.contentOriginal.preparation}), ...(run.sourceInputs === undefined ? {} : {sourceInputs: run.sourceInputs}),
         ...(model === undefined ? {} : {modelDemand: run.modelDemand,
           ...(run.modelComponents === undefined ? {} : {modelComponents: run.modelComponents})})});
     run.operationPlan = Reflect.apply(select, selection, [facts, planInputs]);

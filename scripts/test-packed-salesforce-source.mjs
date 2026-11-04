@@ -238,7 +238,11 @@ try {
     resources: ['Test_Record__c', 'Other_Record__c'],
     accountConfigurationWire: canonicalJson({
       version: 'actql-execution-account-config/0.1',
-      account_id: 'packed-account', entries: [{entry_id: 'records-read',
+      account_id: 'packed-account', entries: [{entry_id: 'host-read',
+        outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]}, connection: {all: true},
+        resource: {any_of: ['result/records', 'run']},
+        operation: {any_of: ['read']}}, {entry_id: 'records-read',
         outcome: 'allow', exclusions: [], principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},
         resource: {any_of: ['Other_Record__c', 'Test_Record__c']},
@@ -346,6 +350,10 @@ try {
         connection: {any_of: [`salesforce:${orgId}`]},
         resource: {any_of: ['Other_Record__c', 'Test_Record__c']},
         operation: {any_of: ['effect']}},
+      {entry_id: 'host-read', outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]}, connection: {all: true},
+        resource: {any_of: ['result/answer', 'result/classified', 'result/records', 'result/updates', 'run']},
+        operation: {any_of: ['read']}},
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']}},
@@ -460,15 +468,17 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     await writeFile(join(root, name), await readFile(join(repository,
       'scripts/fixtures', name)));
   }
-  await writeFile(join(root, 'base-environment.json'), await readFile(
-    join(repository, 'spec/local-check-environment.json')));
+  const hostBaseEnvironmentWire = await readFile(
+    join(repository, 'spec/local-check-environment.json'), 'utf8');
+  const hostBaseEnvironment = JSON.parse(hostBaseEnvironmentWire);
+  await writeFile(join(root, 'base-environment.json'), hostBaseEnvironmentWire);
   if (composed) {
     const fixture = await loadTwoSourceFixtures(join(repository,
       'adapters/host-node/fixtures/two-source'));
     fixture.rows = {...databaseRows, equal_content: databaseRows.left};
     for (const name of ['left', 'right']) {
       fixture.environments[name] = await publicFixtureEnvironment(
-        fixture.environments[name]);
+        fixture.environments[name], hostBaseEnvironment.host_policy_profile);
     }
     const duckdb = createRequire(join(root,
       'node_modules/@actql/local-node/package.json'))('@duckdb/node-api');
@@ -511,7 +521,8 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
       const paired = await loadTwoSourceFixtures(join(repository,
         'adapters/host-node/fixtures/two-source'));
       for (const name of ['left', 'right']) {
-        paired.environments[name] = await publicFixtureEnvironment(paired.environments[name]);
+        paired.environments[name] = await publicFixtureEnvironment(
+          paired.environments[name], hostBaseEnvironment.host_policy_profile);
       }
       const sources = await installTwoSourceFixtures({root: join(root,
         'optional-effect-sources'), fixture: paired, duckdb});

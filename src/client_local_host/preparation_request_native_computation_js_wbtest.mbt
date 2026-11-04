@@ -248,7 +248,7 @@ test "normal Query driver retains native SQL AQL originals through one compiler 
       Pure,
     )
     let syntax = parent.query_syntax.unwrap()
-    let original = syntax.lowering.unwrap().output.unwrap()
+    let original = syntax.lowering.unwrap().output.unwrap().unwrap()
     assert_true(
       physical_equal(parent.held_program.unwrap(), original.0.program.unwrap()),
     )

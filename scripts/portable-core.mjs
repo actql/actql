@@ -291,7 +291,12 @@ export function inspectCore(root, roots = coreRoots) {
   for (const [owner, path] of publicImports) {
     // Generated Show/Debug declarations reference this implicit runtime trait;
     // its implementation is separately covered by the pinned stdlib inventory.
-    const permitted = path === 'moonbitlang/core/debug' ||
+    // This existing out-parameter retains the same reader-collected Inputs on
+    // failure. The pinned Ref representation is in-memory DATA, not an owned
+    // proof or Host port. Its review does not permit another Owner or import.
+    const collectedInputsRef = owner === 'pipeline_check_context' &&
+      path === 'moonbitlang/core/ref';
+    const permitted = path === 'moonbitlang/core/debug' || collectedInputsRef ||
       reviewedExternal(owner, path) !== undefined ||
       path.startsWith('actql/actql/') && packages.has(path.slice(12));
     if (!permitted) throw new Error(`UnreviewedPublicType: ${owner}: ${path}`);

@@ -75,7 +75,10 @@ test "Request original Query lowers once and hands the same Program and Catalog 
     assert_eq(calls.val - before, 1)
     assert_eq(flags.val, 3)
     assert_true(
-      physical_equal(parent.query_syntax.unwrap().query.unwrap(), query),
+      physical_equal(
+        parent.query_syntax.unwrap().query.unwrap().unwrap(),
+        query,
+      ),
     )
     let program = original.0.program.unwrap()
     assert_true(physical_equal(parent.held_program.unwrap(), program))
@@ -336,15 +339,16 @@ test "source-free SQL capacity is refused before module completion on its origin
     ),
   )
   // Component fixture with an explicit empty provider port, not public runtime
-  // acceptance. Compare its same complete Plan quote, not a language branch limit;
-  // the untouched-main installed ledger rejects these same over-budget cases.
+  // acceptance. Keep the original policy and exact original Plan comparison.
+  // Bounded leaf constructors reduce the quote: use longer same-form inputs
+  // for the independent over-budget controls, not a language branch limit.
   for
     (aggregate, count, fits) in [
       (false, 4, true),
-      (false, 5, false),
+      (false, 9, false),
       (true, 2, true),
-      (true, 3, false),
-      (true, 4, false),
+      (true, 6, false),
+      (true, 8, false),
     ] {
     let branches = []
     for i in 0..<count {
@@ -413,6 +417,9 @@ test "source-free SQL capacity is refused before module completion on its origin
     )
     let plan = parent.program_source_free.unwrap()
     let available = preparation_initial_limits(parent.initial, input).unwrap()
+    println(
+      "SQL_PLAN_CAPACITY aggregate=\{aggregate} branches=\{count} retained=\{plan.limits.retained_bytes} execution=\{plan.limits.execution_bytes} available=\{available.execution_bytes}",
+    )
     assert_true(plan.limits.retained_bytes <= available.retained_bytes)
     if fits {
       result.unwrap()
@@ -569,6 +576,225 @@ test "Request literal copies grow the original quote before repeated alias lower
     )
     assert_true(
       physical_equal(parent.query_syntax.unwrap().lowering.unwrap(), original),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "original standalone expression failure ignores unrelated publication filtering without rechecking" {
+  let (environment, publication) = request_query_publication_fixture()
+  let visible = " {\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  // Distinct retained publication bytes isolate the disclosure gate. The
+  // ordinary HTTP regression separately exercises an actually hidden Source.
+  assert_true(
+    !@source_publication.prepared_published_query_environment_publication_matches(
+      publication, environment, visible,
+    ),
+  )
+  for
+    (document, independent) in [
+      ("SELECT missing AS n", true),
+      ("SELECT missing AS n FROM records", false),
+      ("SELECT missing + 1 AS n", false),
+      ("WITH x AS (SELECT missing AS n) SELECT n FROM x", false),
+      ("SELECT n FROM (SELECT missing AS n) AS x", false),
+    ] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let original = parse_request_query_syntax(
+      parent,
+      input,
+      document,
+      @frontend.Sql,
+    ).unwrap()
+    let terminal = match
+      lower_request_published_query(
+        parent,
+        input,
+        publication,
+        environment,
+        None,
+        public_primary=true,
+      ) {
+      Err(issue) => QueryLowering(issue)
+      Ok(_) => fail("the authored unresolved expression must reject")
+    }
+    let selected = parent.query_syntax.unwrap()
+    let parse_work = selected.known_work
+    let before = @resources.ledger_usage(parent.ledger)
+    let report = project_request_check_outcome(
+        parent,
+        input,
+        terminal,
+        visible,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      .unwrap()
+      .unwrap()
+    if independent {
+      assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+      assert_true(report.contains("query_expression_invalid"), msg=report)
+      assert_true(report.contains("unknown_reference"), msg=report)
+      assert_true(!report.contains("source_resolution"), msg=report)
+    } else {
+      assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+      assert_true(report.contains("source_resolution"), msg=report)
+      assert_true(!report.contains("query_expression_invalid"), msg=report)
+    }
+    assert_true(parent.phase == QueryLoweringFailed)
+    assert_true(physical_equal(parent.query_syntax.unwrap(), selected))
+    assert_true(physical_equal(selected.query.unwrap().unwrap(), original))
+    assert_eq(selected.known_work, parse_work)
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).planning_work,
+      before.planning_work,
+    )
+    assert_true(
+      project_request_check_outcome(
+        parent,
+        [1],
+        terminal,
+        visible,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      is Err(ForeignOriginal),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  }
+}
+
+///|
+test "original scalar implementation refusal uses only its same Source-independent parsed projection" {
+  let (environment, publication) = request_query_publication_fixture()
+  let visible = " {\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}"
+  // Distinct retained publication bytes isolate the disclosure gate. The
+  // ordinary HTTP regression separately exercises an actually hidden Source.
+  assert_true(
+    !@source_publication.prepared_published_query_environment_publication_matches(
+      publication, environment, visible,
+    ),
+  )
+  for
+    (document, independent) in [
+      ("SELECT UNKNOWN_FUNCTION(1) AS n", true),
+      ("SELECT UNKNOWN_FUNCTION(1 + 2) AS n", true),
+      ("SELECT UNKNOWN_FUNCTION(missing) AS n", false),
+      ("SELECT UNKNOWN_FUNCTION(1) AS n FROM records", false),
+      (
+        "WITH x AS (SELECT 1 AS n) SELECT UNKNOWN_FUNCTION(1) AS n FROM x", false,
+      ),
+      ("SELECT UNKNOWN_FUNCTION(1) AS n WHERE TRUE", false),
+      ("SELECT UNKNOWN_FUNCTION(1) AS n UNION ALL SELECT 1 AS n", false),
+    ] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let original = parse_request_query_syntax(
+      parent,
+      input,
+      document,
+      @frontend.Sql,
+    ).unwrap()
+    let terminal = match
+      lower_request_published_query(
+        parent,
+        input,
+        publication,
+        environment,
+        None,
+        public_primary=true,
+      ) {
+      Err(issue) => QueryLowering(issue)
+      Ok(_) => fail("the original unsupported scalar must reject")
+    }
+    let selected = parent.query_syntax.unwrap()
+    let parse_work = selected.known_work
+    let before = @resources.ledger_usage(parent.ledger)
+    let report = project_request_check_outcome(
+        parent,
+        input,
+        terminal,
+        visible,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      .unwrap()
+      .unwrap()
+    if independent {
+      assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+      assert_true(report.contains("implementation_limit"), msg=report)
+      assert_true(!report.contains("source_resolution"), msg=report)
+    } else {
+      assert_true(report.contains("\"verdict\":\"undetermined\""), msg=report)
+      assert_true(report.contains("source_resolution"), msg=report)
+      assert_true(!report.contains("implementation_limit"), msg=report)
+    }
+    assert_true(parent.phase == QueryLoweringFailed)
+    assert_true(physical_equal(parent.query_syntax.unwrap(), selected))
+    assert_true(physical_equal(selected.query.unwrap().unwrap(), original))
+    assert_eq(selected.known_work, parse_work)
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).planning_work,
+      before.planning_work,
+    )
+    assert_true(
+      project_request_check_outcome(
+        parent,
+        [1],
+        terminal,
+        visible,
+        "ctx:" + "a".repeat(64),
+        "text",
+        "rev:" + "b".repeat(64),
+        document.length(),
+        None,
+        0,
+        None,
+        0,
+        "corr:" + "c".repeat(32),
+        None,
+      )
+      is Err(ForeignOriginal),
     )
     abort_request_preparation_after_cleanup(parent).unwrap()
     assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)

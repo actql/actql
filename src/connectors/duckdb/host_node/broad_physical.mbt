@@ -84,6 +84,20 @@ pub fn broad_strategy_host_open(
 }
 
 ///|
+#export_name("broadHostPhysicalStart")
+pub fn broad_host_physical_start(
+  run : BroadNodeRun,
+) -> Unit raise NodeHostFailure {
+  guard run.physical is Some(p) && !p.closed else {
+    raise Physical(InvalidCharge)
+  }
+  match @resources.consume_reserved_attempt(p.ledger, p.reservation) {
+    Ok(_) => ()
+    Err(issue) => raise Physical(issue)
+  }
+}
+
+///|
 #export_name("broadHostPhysicalCharge")
 pub fn broad_host_physical_charge(
   run : BroadNodeRun,

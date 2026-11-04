@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './effect-control-refusal.test.mjs';
+import {types as nodeTypes} from 'node:util';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, prepareInstalledEffectManagedPlan,
-  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild,
+  captureInstalledStandardCreateLimits, prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectRequestChild, prepareInstalledEffectOwnedRequestChild,
   prepareInstalledEffectControlConstruction}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
@@ -31,9 +33,11 @@ test('automatic standard recipe forwards original constructor capacities and kee
           effectLedgerImplementationBounds.maxOutcomeNodes,effectLedgerImplementationBounds.maxOutcomeDepth,41n,16384]);
         return {$tag:1,_0:capacities};
       },
-      clientProgramInstalledEffectCaptureExtentPrepare(operation,fixed,row){
-        assert.equal(this,moon);assert.deepEqual([operation,fixed,row],['write',capacities[0],capacities[1]]);
-        const extent={capture:true};extents.push(extent);return {$tag:1,_0:extent};
+      clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation,original,maxBytes,maxNodes,maxDepth){
+        assert.equal(this,moon);assert.deepEqual([operation,original,maxBytes,maxNodes,maxDepth],
+          ['write',[capacities[0],capacities[1]],512,32,8]);
+        assert.strictEqual(original[0],capacities[0]);assert.strictEqual(original[1],capacities[1]);
+        const extent={capture:true,hostInputLimits:[maxBytes,maxNodes,maxDepth]};extents.push(extent);return {$tag:1,_0:extent};
       },
       clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation,capacity,transfer,physical){
         assert.equal(this,moon);const extent={operation,capacity,transfer,physical};extents.push(extent);return {$tag:1,_0:extent};
@@ -59,6 +63,59 @@ test('automatic standard recipe forwards original constructor capacities and kee
     }
     assert.equal(new Set(extents).size,extents.length);
   }
+});
+
+test('confirmed CREATE forwards the original seven-role Native profile and owns separate finalization and read occurrences', () => {
+  const profile = {}, capacities = Array.from({length: 8}, () => Object.freeze({}));
+  const construction = Object.freeze({
+    write: Object.freeze({operation: 'comment-write', maxRequestBytes: 128, maxResponseBytes: 64}),
+    check: Object.freeze({operation: 'subject-read', maxRequestBytes: 32, maxResponseBytes: 16}),
+    confirmation: Object.freeze({operation: 'comment-read', maxRequestBytes: 32, maxResponseBytes: 16}),
+    finalization: Object.freeze({}), metadataTextUnits: 17,
+  });
+  const credentialSite = Object.freeze({construction: Object.freeze({
+    scope: Object.freeze({principal: 'original', siteGeneration: 1}),
+    issuer: Object.freeze({authority: 'issuer', keyId: 'key'}),
+    limits: Object.freeze({maxBindings: 91, maxSecretBytes: 23}),
+  })});
+  const providerMoon = {
+    installedStandardCreateConfirmedConstructionProfile() {assert.equal(this, providerMoon); return profile;},
+    installedStandardCreateConstructionProfile() {assert.fail('no legacy profile substitution');},
+  };
+  const moon = {
+    clientProgramInstalledStandardCreateRequestRecipeCapacities(original) {
+      assert.equal(this, moon); assert.strictEqual(original, profile); return {$tag: 1, _0: capacities};
+    },
+    clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation, original, maxBytes, maxNodes, maxDepth) {
+      assert.equal(this, moon);
+      assert.deepEqual([operation, original, maxBytes, maxNodes, maxDepth],
+        ['comment-write', [capacities[0], capacities[1]], 512, 32, 8]);
+      assert.strictEqual(original[0], capacities[0]); assert.strictEqual(original[1], capacities[1]);
+      return {$tag: 1, _0: {capture: true, hostInputLimits: [maxBytes, maxNodes, maxDepth]}};
+    },
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, capacity, transfer, physical) {
+      return {$tag: 1, _0: {operation, capacity, transfer, physical}};
+    },
+  };
+  const recipe = prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, construction, credentialSite,
+    limits: {maxWireBytes: 512, maxNodes: 32, maxDepth: 8},
+    requestInput: {maxWireBytes: 128, maxNodes: 16, maxDepth: 4}, resourceTextUnits: 7});
+  assert.equal(recipe.requestConstruction.operationIndex, 0);
+  assert.equal(recipe.requestFinalization.operationIndex, 1);
+  assert.equal(recipe.rowOperations.length, 8);
+  assert.strictEqual(recipe.rowOperations[1].extent.capacity, capacities[6]);
+  assert.equal(recipe.rowOperations[1].extent.physical, false);
+  assert.equal(recipe.rowOperations[1].extent.transfer, 0n);
+  assert.deepEqual(recipe.credentialOperations.map(value => value.phase),
+    ['capture-check', 'apply-check', 'resume-check', 'write', 'apply-confirm', 'resume-confirm']);
+  assert.deepEqual(recipe.credentialOperations.map(value => value.operationIndex), [2, 3, 4, 5, 6, 7]);
+  for (const phase of ['apply-confirm', 'resume-confirm']) {
+    const slot = recipe.credentialOperations.find(value => value.phase === phase);
+    assert.strictEqual(recipe.rowOperations[slot.operationIndex].extent.capacity, capacities[7]);
+    assert.equal(recipe.rowOperations[slot.operationIndex].extent.physical, true);
+    assert.equal(recipe.rowOperations[slot.operationIndex].extent.transfer, 49n);
+  }
+  assert.strictEqual(recipe.controlsPerRow, capacities[4]);
 });
 
 // These are the actual installed Plan selector's ports. No native capacity,
@@ -710,13 +767,14 @@ test('constructor entry refusal and reentry retain the same original backing wit
 });
 
 
-function controlWorkFixture() {
+function controlWorkFixture(overrides = {}) {
   const parent={},prepared={},request={},plan={},events=[];
   const runtime={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
     clientProgramInstalledEffectOperationControlConstructionBegin(owner,p,r,selected){
       assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('begin');return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationControlConstructionComplete(owner,p,r,selected){
-      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('complete');return {$tag:1,_0:undefined};}};
+      assert.deepEqual([owner,p,r,selected],[parent,prepared,request,plan]);events.push('complete');return {$tag:1,_0:undefined};},
+    ...overrides};
   const run={runtime,value:parent,prepared,request,operationPlan:plan,readPlan:runtime.clientProgramInstalledEffectManagedOperationPlan,
     closed:false,selecting:false};
   const work=prepareInstalledEffectControlConstruction(run);run.controlConstruction=work;run.retireControlConstruction=work.retire;
@@ -730,6 +788,69 @@ test('control construction enters once before the same original callback and kee
   assert.deepEqual(f.events,['begin','work','complete']);assert.equal(f.run.selecting,false);
   f.work(receiver,()=>{f.events.push('second');},[]);
   assert.deepEqual(f.events,['begin','work','complete','begin','second','complete']);
+});
+
+test('Host Preview input refines the same control before parsing and retains the original parser', () => {
+  const wire = '{"same":"original"}', events = [];
+  const spent = new Error('original input already selected');
+  let selected = false;
+  const parse = JSON.parse;
+  let f;
+  try {
+    JSON.parse = function (input) {
+      assert.equal(this, JSON);assert.equal(input, wire);events.push('parse');
+      return Reflect.apply(parse, JSON, [input]);
+    };
+    f = controlWorkFixture({
+      clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+      clientProgramInstalledEffectOperationControlInputBegin(owner, prepared, request, plan, input) {
+        assert.deepEqual([owner, prepared, request, plan],
+          [f.run.value, f.run.prepared, f.run.request, f.run.operationPlan]);
+        if (selected) throw spent;
+        selected = true;
+        assert.equal(input, wire);events.push('input');return {$tag: 1, _0: undefined};
+      },
+    });
+  } finally { JSON.parse = parse; }
+  assert.deepEqual(f.work.parsePreview(wire), {same: 'original'});
+  assert.deepEqual(events, ['input', 'parse']);
+  assert.deepEqual(f.events, ['complete']);
+  assert.equal(f.run.selecting, false);
+  assert.throws(() => f.work.parsePreview(wire), error => error === spent);
+  assert.deepEqual(events, ['input', 'parse']);
+  assert.deepEqual(f.events, ['complete']);
+});
+
+test('Host Preview capacity refusal preserves its original failure before parsing or another attempt', () => {
+  const original = new Error('original input capacity refusal');let entries = 0;
+  const f = controlWorkFixture({
+    clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {entries++;throw original;},
+  });
+  assert.throws(() => f.work.parsePreview('{'), error => error === original);
+  assert.throws(() => f.work.parsePreview('{}'), error => error === original);
+  assert.equal(entries, 1);assert.deepEqual(f.events, []);
+  assert.equal(f.run.selecting, false);assert.equal(f.work.retire(), true);
+});
+
+test('Host Preview parse failure keeps the same active prefix and rejects a foreign Run before refinement', () => {
+  let entries = 0;
+  const f = controlWorkFixture({
+    clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {entries++;return {$tag: 1, _0: undefined};},
+  });
+  let primary;
+  assert.throws(() => f.work.parsePreview('{'), error => {
+    primary = error;return error instanceof SyntaxError;
+  });
+  assert.throws(() => f.work.parsePreview('{}'), error => error === primary);
+  assert.equal(entries, 1);assert.deepEqual(f.events, []);
+  const foreign = controlWorkFixture({
+    clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {assert.fail('foreign input');},
+  });
+  foreign.run.value = {};
+  assert.throws(() => foreign.work.parsePreview('{}'), {code: 'ForeignInstalledEffectManagedRun'});
 });
 
 test('control construction retains same thrown undefined and performs no completion or later callback', () => {
@@ -882,4 +1003,241 @@ test('standard native JSON projection returns before Host parsing and keeps its 
   assert.equal(ownedSheetsRequestCid(projected,binding),'original-request-cid');
   assert.deepEqual(events,['native.enter','native.return','host.parse','native.body','native.cid']);
   assert.throws(()=>ownedSheetsRequestCid({...projected},binding),{code:'ForeignSheetsRangeRequest'});
+});
+
+
+test('owned Content request child keeps one constructor token until its exact physical cleanup ACK', async () => {
+  const f = constructorControlFixture(undefined), output = {}, calls = [];
+  let cleanup = false;
+  const original = {prepare() {assert.strictEqual(this, original); calls.push('prepare'); return output;},
+    release() {assert.strictEqual(this, original); calls.push('release'); return cleanup;},
+    retry() {assert.strictEqual(this, original); calls.push('retry'); return cleanup;},
+    status() {assert.strictEqual(this, original); return {pending: !cleanup};}};
+  const child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+    assert.equal(f.entries(), 1, 'actual child factory follows same constructor entry');
+    calls.push('factory'); return original;
+  }});
+  assert.equal(f.debits(), 1); assert.deepEqual(calls, []);
+  assert.strictEqual(child.prepare(), output);
+  assert.deepEqual(calls, ['factory', 'prepare']);
+  f.retireAliases();
+  assert.equal(await child.release(), false); assert.equal(f.settlements(), 0);
+  assert.equal(child.status().pending, true);
+  // Method replacement cannot replace the original pending child's cleanup.
+  original.retry = () => assert.fail('replacement cleanup');
+  cleanup = true; assert.equal(await child.retry(), true);
+  assert.equal(f.settlements(), 1); assert.equal(child.status().pending, false);
+  assert.deepEqual(calls, ['factory', 'prepare', 'release', 'retry']);
+  assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildRetired'});
+});
+
+test('owned request failure and reentrant close preserve the same child without repeating its factory', async () => {
+  for (const mode of ['undefined failure', 'reentrant close']) {
+    const f = constructorControlFixture(undefined); let child, factories = 0, closes = 0;
+    const original = {prepare() {if (mode === 'undefined failure') throw undefined; return {};},
+      release() {closes++; return true;}, retry() {closes++; return true;}, status: () => ({pending: closes === 0})};
+    child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+      factories++; if (mode === 'reentrant close') assert.equal(child.release(), false);
+      return original;
+    }});
+    let caught = false;
+    try {child.prepare();} catch (error) {caught = true;
+      if (mode === 'undefined failure') assert.equal(error, undefined);
+      else assert.equal(error.code, 'InstalledEffectRequestChildRetired');}
+    assert(caught); assert.equal(f.settlements(), 0);
+    f.retireAliases(); await child.release();
+    assert.equal(factories, 1); assert.equal(closes, 1); assert.equal(f.settlements(), 1);
+  }
+});
+
+test('owned request cleanup retains native backing on rejected or pending original release', async () => {
+  const f = constructorControlFixture(undefined), failure = new Error('original physical close');
+  let ack = false, resolve;
+  const pending = new Promise(yes => {resolve = yes;});
+  const original = {prepare: () => ({}), release: () => pending,
+    retry() {if (!ack) throw failure; return true;}, status: () => ({pending: !ack})};
+  const child = prepareInstalledEffectOwnedRequestChild({...f, constructChild: () => original});
+  child.prepare(); f.retireAliases();
+  const release = child.release(); assert.equal(child.retry(), release);
+  assert.equal(f.settlements(), 0); resolve(false); assert.equal(await release, false);
+  await assert.rejects(child.retry(), error => error === failure); assert.equal(f.settlements(), 0);
+  ack = true; await child.retry(); assert.equal(f.settlements(), 1);
+});
+
+
+test('owned request retries only unread cleanup methods on the same failed child', async () => {
+  const f = constructorControlFixture(undefined), failure = new Error('original status observation');
+  let observes = 0, closed = false, releases = 0;
+  const original = {prepare: () => assert.fail('failed observation precedes preparation'),
+    release() {releases++; closed = true; return true;}, retry() {closed = true; return true;},
+    get status() {if (++observes === 1) throw failure; return () => ({pending: !closed});}};
+  const child = prepareInstalledEffectOwnedRequestChild({...f, constructChild: () => original});
+  assert.throws(() => child.prepare(), error => error === failure);
+  original.release = () => assert.fail('captured successful method must not be reread');
+  f.retireAliases(); await child.release();
+  assert.equal(observes, 2); assert.equal(releases, 1); assert.equal(f.settlements(), 1);
+});
+
+test('nested owned prepare cannot clear the outer physical cleanup fence', async () => {
+  for (const point of ['factory', 'getter', 'status', 'prepare']) {
+    const f = constructorControlFixture(undefined); let child, closed = false, closes = 0, nested = false;
+    const reenter = () => {
+      if (nested) return;
+      nested = true;
+      assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildReentrantPrepare'});
+      assert.equal(child.release(), false, 'outer construction still owns the physical child');
+      assert.equal(closes, 0);
+    };
+    const original = {
+      get prepare() {if (point === 'getter') reenter(); return () => {
+        if (point === 'prepare') reenter(); return {};
+      };},
+      release() {closes++; closed = true; return true;},
+      retry() {closes++; closed = true; return true;},
+      status() {if (point === 'status') reenter(); return {pending: !closed};},
+    };
+    child = prepareInstalledEffectOwnedRequestChild({...f, constructChild() {
+      if (point === 'factory') reenter(); return original;
+    }});
+    assert.throws(() => child.prepare(), {code: 'InstalledEffectRequestChildRetired'});
+    assert.equal(closes, 0); assert.equal(f.settlements(), 0);
+    f.retireAliases(); assert.equal(await child.release(), true);
+    assert.equal(closes, 1); assert.equal(f.settlements(), 1);
+  }
+});
+
+test('installed recipe keeps member Describe and row target occurrences distinct even at equal indexes', () => {
+  const operation = name => Object.freeze({operation: name, extent: {}});
+  const memberOperations = Object.freeze([operation('capture'), operation('describe')]);
+  const rowOperations = Object.freeze([operation('request'), operation('observe'), operation('write')]);
+  const occurrence = (phase, perRow, operationIndex) => Object.freeze({phase, perRow, operationIndex,
+    maxRequestBytes: 128, maxResponseBytes: 64});
+  const recipe = Object.freeze({memberOperations, rowOperations,
+    captureConstruction: Object.freeze({operationIndex: 0}),
+    requestConstruction: Object.freeze({operationIndex: 0}),
+    credentialOperations: Object.freeze([occurrence('capture-describe', false, 1),
+      occurrence('capture-target', true, 1), occurrence('write', true, 2)])});
+  const selected = captureInstalledEffectPlanRecipe(recipe, 5);
+  assert.deepEqual(selected.credentialOperations.map(value => [value.phase, value.perRow, value.operationIndex]),
+    [['capture-describe', false, 1], ['capture-target', true, 1], ['write', true, 2]]);
+  for (const entries of [
+    [occurrence('capture-describe', false, 0), occurrence('write', true, 2)],
+    [occurrence('capture-target', false, 1), occurrence('write', true, 2)],
+    [occurrence('capture-describe', true, 1), occurrence('write', true, 2)],
+    [occurrence('capture-describe', false, 1), occurrence('apply-describe', false, 1), occurrence('write', true, 2)],
+    [occurrence('write', false, 1)],
+  ]) assert.throws(() => captureInstalledEffectPlanRecipe(Object.freeze({...recipe,
+    credentialOperations: Object.freeze(entries)}), 5), {code: 'InvalidInstalledEffectPlanRecipe'});
+});
+
+test('same installed driver keeps create update and upsert recipes tied to their original checked kind', () => {
+  const source = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureManagedPlanRecipes');
+  assert(declaration);
+  const capture = Function('nodeTypes', 'captureInstalledEffectPlanRecipe', 'fail',
+    `return (${source.slice(declaration.start, declaration.end)});`)(nodeTypes, captureInstalledEffectPlanRecipe,
+      code => {throw Object.assign(new Error(code), {code});});
+  const kinds = Object.freeze(['create', 'update', 'upsert']);
+  const extents = kinds.map(() => ({}));
+  const recipes = Object.freeze(Object.fromEntries(kinds.map((kind, index) => [kind, Object.freeze({
+    memberOperations: Object.freeze([]), rowOperations: Object.freeze([
+      Object.freeze({operation: `salesforce:record:${kind}`, extent: extents[index]})])})])));
+  const selected = capture(recipes, {kinds}, 1);
+  assert(Object.isFrozen(selected));
+  for (const [index, kind] of kinds.entries()) {
+    assert.equal(selected[kind].rowOperations[0].operation, `salesforce:record:${kind}`);
+    assert.strictEqual(selected[kind].rowOperations[0].extent, extents[index]);
+  }
+  let getters = 0;
+  for (const invalid of [recipes.create, Object.freeze({...recipes, delete: recipes.create}),
+    Object.freeze({create: recipes.create, update: recipes.update}),
+    Object.freeze({...recipes, get upsert() {getters++; return recipes.upsert;}})]) {
+    assert.throws(() => capture(invalid, {kinds}, 1), {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+  assert.equal(getters, 0);
+});
+
+test('original recovery input grows the retained constructor before its only work and preserves failure cleanup', () => {
+  for (const refused of [false,true]) {
+    const events=[], extent={}, output={}, failure=new Error('same input capacity refused');
+    const f=constructorControlFixture(()=>{events.push('construct');return output;});
+    f.run.runtime.clientProgramInstalledEffectOperationInputBegin=function(token,input){
+      assert.equal(this,f.run.runtime);assert.equal(token,f.originalToken);assert.equal(input,extent);
+      events.push('grow');if(refused)throw failure;return {$tag:1,_0:undefined};
+    };
+    const child=prepareInstalledEffectRequestChild({...f,inputExtent(){events.push('input');return extent;}});
+    if(refused)assert.throws(()=>child.prepare(),error=>error===failure);
+    else assert.equal(child.prepare(),output);
+    assert.deepEqual(events,refused?['input','grow']:['input','grow','construct']);
+    assert.equal(f.entries(),0,'input entry replaces the old begin instead of repeating its current');
+    assert.equal(child.release(),false);f.retireAliases();assert.equal(child.release(),true);
+    assert.equal(f.settlements(),1);assert.equal(f.debits(),1);
+  }
+});
+
+
+test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace', () => {
+  let f;const receiver={},first={},second={};
+  f=controlWorkFixture({
+    clientProgramInstalledEffectOperationLedgerCodecBegin(owner,p,r,plan,wire) {
+      assert.deepEqual([owner,p,r,plan],[f.run.value,f.run.prepared,f.run.request,f.run.operationPlan]);
+      assert.equal(f.run.selecting,true);f.events.push(['codec-begin',wire]);return {$tag:1};
+    },
+    clientProgramInstalledEffectOperationLedgerCodecComplete() {f.events.push('codec-complete');return {$tag:1};},
+  });
+  f.work(receiver,function () {
+    assert.equal(f.work.ledgerCodec(receiver,function(value){assert.equal(this,receiver);return value;},[first],'first'),first);
+    assert.equal(f.work.ledgerCodec(receiver,value=>value,[second],'second'),second);
+  },[]);
+  assert.deepEqual(f.events,['begin',['codec-begin','first'],'codec-complete',['codec-begin','second'],'codec-complete','complete']);
+  assert.equal(f.run.selecting,false);
+  assert.throws(()=>f.work.ledgerCodec(receiver,()=>{},[],'outside'),{code:'InstalledEffectControlConstructionPending'});
+});
+
+test('saved Ledger codec preserves failed undefined, current and asynchronous prefixes without successful completion', async () => {
+  for (const mode of ['undefined','foreign','async','reentry']) {
+    let f,settle;const promise=new Promise(resolve=>{settle=resolve;});
+    f=controlWorkFixture({
+      clientProgramInstalledEffectOperationLedgerCodecBegin(){f.events.push('codec-begin');return {$tag:1};},
+      clientProgramInstalledEffectOperationLedgerCodecComplete(){f.events.push('codec-complete');return {$tag:1};},
+    });
+    let primary;
+    assert.throws(()=>f.work({},()=>f.work.ledgerCodec({},()=>{
+      if(mode==='undefined')throw undefined;
+      if(mode==='foreign'){f.run.request={};return 1;}
+      if(mode==='async')return promise;
+      return f.work.ledgerCodec({},()=>assert.fail('nested codec'),[],'second');
+    },[],'first'),[]),cause=>{primary=cause;return mode==='undefined'?cause===undefined:!!cause.code;});
+    assert.deepEqual(f.events,['begin','codec-begin']);
+    assert.throws(()=>f.work({},()=>assert.fail('retry after failure'),[]),cause=>cause===primary);
+    if(mode==='async'){assert.equal(f.run.selecting,true);settle();await new Promise(setImmediate);assert.equal(f.run.selecting,false);}
+    else {settle();assert.equal(f.run.selecting,false);}
+  }
+});
+
+
+test('saved Ledger codec binds all original normalizing entries while retaining Receipt controls and same arguments', () => {
+  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
+  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerCodecs');
+  assert(declaration);
+  const bind=Function('fail',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerCodecs;')(
+    code=>{throw Object.assign(new Error(code),{code});});
+  const calls=[],wire='original Ledger wire',arg={},result={};
+  const names=['admitLedgerEntry','issuePreparedLedgerEntry','issueNextLedgerEntry',
+    'issueRowReceiptTerminalEntry','issueRowReceiptTerminalEntryFromResponse'];
+  const original=Object.freeze(Object.fromEntries([...names,'issueRowOutcomeReceipt','issueMemberReceiptFromRowPartition'].map(name=>[
+    name,function(...args){assert.equal(this,original);calls.push([name,args]);return result;},
+  ])));
+  const construction=Object.assign(()=>{}, {ledgerCodec(receiver,method,args,input,nodes,depth) {
+    assert.equal(receiver,original);assert.equal(method,original[names[calls.length]]);
+    assert.equal(input,calls.length===0?wire:undefined);assert.equal(nodes,512);assert.equal(depth,16);return Reflect.apply(method,receiver,args);
+  }});
+  const selected=bind(original,construction);
+  for(const name of names)assert.equal(selected[name](wire,arg,512,16),result);
+  assert.equal(selected.issueRowOutcomeReceipt,original.issueRowOutcomeReceipt);
+  assert.equal(selected.issueMemberReceiptFromRowPartition,original.issueMemberReceiptFromRowPartition);
+  assert(calls.every(([,args])=>args[0]===wire&&args[1]===arg));
+  assert.equal(bind(original,undefined),original);
 });

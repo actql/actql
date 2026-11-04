@@ -92,57 +92,8 @@ fn prepare_native_publication_retained_local_run(
   @native_host.NativeStandardStrategyRun,
   @mock.MockQueryIssuer,
 ) raise {
-  let (run, issuer) = captured_graph_fixture()
-  let registry = search_registry()
-  let registration = @connector.capability_registration_at(registry, 0).unwrap()
-  let limits = dispatch_test_limits()
-  let host = @dbhost.configure_strategy_dispatch(
-    run,
-    registry,
-    registration,
-    @connector.capability_registration_at(registry, 1).unwrap(),
-    dispatch_test_generated(run),
-    limits,
-  ).unwrap()
-  let wire : @execution.RowWireLimits = {
-    max_columns: 10,
-    max_order_work: 10000,
-    max_bytes: 100000,
-    max_nodes: 10000,
-    max_depth: 32,
-  }
-  @dbhost.configure_dispatch_local_retained_output(
-    host,
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire,
-      row: {
-        max_bytes: 10000,
-        max_nodes: 1000,
-        max_depth: 32,
-        max_text_bytes: 10000,
-      },
-      max_batch_bytes: 4096,
-    },
-    {
-      max_rows: 100,
-      values: limits.local_execution.rows.input_values,
-      wire,
-      max_batch_bytes: 4096,
-    },
-    Some(1L),
-  ).unwrap()
-  @strategy.configure_strategy_search(run, {
-    max_offers: 3,
-    max_strategies: 8,
-    max_work: 1000,
-    max_revisions: 4,
-  }).unwrap()
-  let offers = Array::makei(3, index => {
-    @dbhost.prepare_dispatch_local_offer(host, index + 1, Some(1L)).unwrap()
-  })
-  ignore(@strategy.revise_strategy(run, offers, registry, None).unwrap())
+  let (run, host, issuer, decision, wire) = native_publication_retained_local_plan()
+  assert_true(decision is Selected(_))
   let runtime_owner = @native_host.open_native_standard_strategy_run(
     host,
     native_compute_import_limits(),

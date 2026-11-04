@@ -108,11 +108,28 @@ pub fn single_write_member_footprint(
 }
 
 ///|
+let write_target_digest_nodes : Int = 64
+
+///|
+let write_target_digest_depth : Int = 2
+
+///|
+/// The original target digest's private hashing writer. Borrowed field text
+/// and returned target/CID carriers are counted by its actual caller.
+pub fn write_target_digest_construction_inventory() -> @encode.HashWriterConstructionInventory? {
+  @encode.hash_writer_construction_inventory(
+    write_target_digest_nodes, write_target_digest_depth,
+  )
+}
+
+///|
 fn write_target_digest(
   fields : Array[(String, String)],
   max_bytes : Int,
 ) -> Result[String, WriteCollectionRequestIssue] {
-  let writer = @encode.hashing_writer(max_bytes, 64, 2) catch {
+  let writer = @encode.hashing_writer(
+    max_bytes, write_target_digest_nodes, write_target_digest_depth,
+  ) catch {
     _ => return Err(CapacityExceeded)
   }
   let digest = try {

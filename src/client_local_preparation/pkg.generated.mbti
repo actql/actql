@@ -7,6 +7,7 @@ import {
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/program_check",
+  "actql/actql/query_syntax",
   "actql/actql/relation_schema",
   "actql/actql/run_publication_host",
   "actql/actql/source_frontend",
@@ -14,6 +15,7 @@ import {
   "actql/actql/sourceview_input",
   "actql/actql/stage_parameters",
   "actql/actql/stage_syntax",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
@@ -46,7 +48,9 @@ pub fn client_program_check_source_selector_range(@program_check.CheckEnvironmen
 
 pub fn client_program_check_unavailable(String) -> String
 
-pub fn client_program_project_original_check_outcome(@stage_syntax.Program, @stage_parameters.Source, @decode_core.Cursor?, @sourceview_input.Inputs?, @program_check.CheckOutcome, @program_check.CheckEnvironment, String, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceSelectorNamespace?) -> String
+pub fn client_program_project_original_check_outcome(@stage_syntax.Program, @stage_parameters.Source, @decode_core.Cursor?, @sourceview_input.Inputs?, @program_check.CheckOutcome, @program_check.CheckEnvironment, String, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceSelectorNamespace?, original_parameters? : String?) -> String
+
+pub fn client_program_project_original_query_issue(@source_frontend.Issue, @program_check.CheckEnvironment?, @client_source_publication.PreparedPublishedQueryEnvironment?, String, String, String, Int, String?, Int, String?, Int, String, ClientCheckSourceNamespace?, query_original? : @query_syntax.Query?, binding_original? : @parameter_binding.BindingReadInput?, binding_declarations? : @parameter_binding.Declarations?, binding_supplied? : @decode_core.Cursor?, binding_limits? : @value_admission.Limits?, original_parameters? : String?) -> String
 
 pub fn local_parameter_input_limits() -> (@source_value.ParseLimits, @decode_core.Limits)
 

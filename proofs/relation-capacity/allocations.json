@@ -10,9 +10,11 @@
       "source": "src/execution_relation/execution_capacity.mbt",
       "symbols": [
         "generated_sequence_capacity(",
+        "generated_sequence_capacity_with_roots(",
         "execution_capacity_inventory_bytes([",
-        "count: rows.retained_entries.to_int64()",
-        "count: rows.metadata_entries.to_int64()",
+        "limits.rows.retained_entries.to_int64() +",
+        "limits.rows.metadata_entries.to_int64()",
+        "count: retained_roots",
         "count: rows.output_values.max_nodes.to_int64()",
         "count: rows.output_values.max_text_bytes.to_int64()",
         "is Some(retained)",

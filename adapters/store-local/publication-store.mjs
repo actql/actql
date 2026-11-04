@@ -1,6 +1,9 @@
 // Durable local publication storage. Prepared objects are content-addressed
 // but remain invisible to ordinary Result lookup until an authority-scoped
 // public index entry is installed with an exclusive atomic link.
+// Existing bounded physical Content reader implementation DATA, not a caller
+// allowance or proof of the separate Store metadata/read preparation.
+export const physicalContentReadWindowBytes = 65536;
 import {openPublicationOwnerLease} from './publication-owner-lease.mjs';
 import {
   constants,
@@ -2396,7 +2399,7 @@ async function openOriginalLocalPublicationStore(
       // Nothing escapes this verifier's synchronous hash update. Reuse this
       // dedicated backing for short reads instead of a stream's shrink copy
       // or queued next backing; only the same original read is in flight.
-      const buffer = Buffer.allocUnsafeSlow(before.size < 65536 ? before.size + 1 : 65536);
+      const buffer = Buffer.allocUnsafeSlow(before.size < physicalContentReadWindowBytes ? before.size + 1 : physicalContentReadWindowBytes);
       for (;;) {
         const remaining = before.size - bytes;
         const requested = remaining < buffer.byteLength ? remaining + 1 : buffer.byteLength;
@@ -4021,7 +4024,7 @@ async function openOriginalLocalPublicationStore(
       let size = 0;
       if (before.size > 0) {
         const stream = handle.createReadStream({autoClose: false,
-          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
+          end: before.size - 1, highWaterMark: Math.min(physicalContentReadWindowBytes, before.size)});
         for await (const chunk of stream) {
           if (chunk.byteLength > before.size - size ||
               chunk.byteLength > configuration.maxObjectBytes - size) {
@@ -6697,7 +6700,7 @@ async function openOriginalLocalPublicationStore(
       // piece, and no following piece is acquired until its callback returns.
       // Do not reuse a delivered backing: the consumer can retain its alias.
       while (bytes < before.size) {
-        const buffer = Buffer.allocUnsafeSlow(Math.min(65536, before.size - bytes));
+        const buffer = Buffer.allocUnsafeSlow(Math.min(physicalContentReadWindowBytes, before.size - bytes));
         let filled = 0;
         while (filled < buffer.byteLength) {
           const requested = buffer.byteLength - filled;

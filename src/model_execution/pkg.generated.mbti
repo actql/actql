@@ -294,7 +294,7 @@ pub fn request_model_cancel(ModelExecution) -> Bool
 
 pub fn reserve_original_model_publication_capacity(ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[OriginalModelPublicationCapacity, ModelExecutionIssue]
 
-pub fn restore_prepared_model_call(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?) -> Result[Unit, ModelExecutionIssue]
+pub fn restore_prepared_model_call(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?, @run_publication.RunEvidenceValue?) -> Result[Unit, ModelExecutionIssue]
 
 pub fn restore_prepared_model_unknown(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, ModelExecutionIssue]
 

@@ -135,7 +135,9 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
   let provider;
   const factory = createInstalledCredentialSourceReader({capacity, originalSite,
     assertCurrent() {if (!current) throw new Error('original Host retired');}, maxResponses: 1,
-    maxResponseBytes: 128, prepareReadSequence() {
+    maxResponseBytes: 128, prepareReadSequence(input) {
+      assert.equal(input.responseBorrow,responseBorrow);
+      assert.equal(input.originalAuthorization,raw);
       events.push('provider-create');
       provider = Object.freeze({...(responseGrowth ? {responseCapacity(bytes) {
         assert.equal(this, provider);assert.equal(bytes,response.body.byteLength);
@@ -147,6 +149,7 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
             assert.equal(actual,response);if(responseGrowth)events.push('project-response');
           }};
         }});
+        assert.equal(context.signal,requestSignal,'domain current and physical send share the SAME combined stop signal');
         if (pendingRead) {providerReadPending.resolve();await pendingRead;}
         requestSignal.throwIfAborted();
         await context.consumePage([{id:1}]);
@@ -209,9 +212,9 @@ function fixture({pendingRead, pendingBinding = false, responseGrowth = false, g
   return {factory, options, events, session, response, readBegan: began.promise, providerReadPending: providerReadPending.promise,
     // Observe the exact returned original; read/stop/observe are never wrapped
     // or replaced. This is fixture custody, not an installed supplier overlay.
-    read() {return session.readProvider({prepare(actual,retainPreparation,reserveResponseCapacity) {
-      assert.equal(this,factory);assert.equal(actual,options);
-      preparedReader=Reflect.apply(factory.prepare,factory,[actual,retainPreparation,reserveResponseCapacity]);return preparedReader;
+    read() {return session.readProvider({prepare(actual,retainPreparation,reserveResponseCapacity,borrow) {
+      assert.equal(this,factory);assert.equal(actual,options);assert.equal(borrow,responseBorrow);
+      preparedReader=Reflect.apply(factory.prepare,factory,[actual,retainPreparation,reserveResponseCapacity,borrow]);return preparedReader;
     },receiver:factory,options});},
     reader:()=>preparedReader,
     complete() {return session.complete({owner:{checkedOwner,effectful:true,requirement,
@@ -640,4 +643,77 @@ test('shared reader original undefined rejection survives concurrent stop and or
   assert.equal(f.inspect().providerRetired,true);
   f.session.close();assert.equal(f.inspect().coreRetired,true);
   assert.equal(f.factory.retire(),true);
+});
+
+// Real generic factory with explicit provider/Site ports. The sentinel is only
+// a forwarding identity, not proof of a native borrow or resource admission.
+function borrowHandoffFixture({managed=true,privateBorrow,optionBorrow,optionGetter=false,adoptionFailure}={}) {
+  let projected,retirements=0,sends=0;
+  const originalAuthorization=Object.freeze({grant:{},scope:{operation:'read'}});
+  const originalSite={site:{},referenceCurrent:()=>true,
+    bindRunAcquisition(){assert.fail('handoff preparation must not bind transport');},
+    authorizationPurpose(){assert.fail('handoff preparation must not request authority');},
+    readChildCredential(){assert.fail('handoff preparation must not obtain credentials');},
+    callResource(){sends++;assert.fail('handoff preparation must not send');},
+  };
+  const project=input=>{
+    projected=input;
+    if(adoptionFailure)throw adoptionFailure;
+    return managed?Object.freeze({read(){assert.fail('protocol must not run');},retire(){retirements++;return true;}})
+      :Object.freeze({fetchPage(){assert.fail('page must not fetch');},decodePage(){assert.fail('page must not decode');}});
+  };
+  const factory=createInstalledCredentialSourceReader({capacity:{},originalSite,
+    assertCurrent(){},maxResponses:1,maxResponseBytes:128,
+    ...(managed?{prepareReadSequence:project}:{preparePageReader:project,operation:'read',maxSecretBytes:128}),
+  });
+  const options={resource:'records',columns:Object.freeze(['id']),requestWire:'{}',originalAuthorization,
+    verifyRead(){},authorizationFor(){assert.fail('no grant during preparation');},
+    authorizeReadChild(){assert.fail('no child grant during preparation');},
+    chargePage(){assert.fail('no response during preparation');},
+    consumePage(){assert.fail('no page during preparation');},
+    consumeObservation(){assert.fail('no observation during preparation');},
+  };
+  if(optionGetter)Object.defineProperty(options,'responseBorrow',{get(){assert.fail('do not inspect options borrow getter');}});
+  else if(optionBorrow!==undefined)options.responseBorrow=optionBorrow;
+  Object.freeze(options);
+  const reader=factory.prepare(options,undefined,undefined,privateBorrow);
+  return {reader,factory,options,originalAuthorization,projected,counts:()=>({retirements,sends})};
+}
+
+test('native factory receives the same private fourth borrow without replacing original options',()=>{
+  const borrow=Object.freeze({}),foreign=Object.freeze({});
+  const f=borrowHandoffFixture({privateBorrow:borrow,optionBorrow:foreign});
+  assert.equal(f.projected.responseBorrow,borrow);
+  assert.equal(f.projected.originalAuthorization,f.originalAuthorization);
+  assert.equal(f.options.responseBorrow,foreign);
+  assert.equal(Object.hasOwn(f.projected,'preparedRead'),false);
+  assert.equal(Object.isFrozen(f.projected),true);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
+  assert.equal(f.factory.retire(),true);
+  assert.deepEqual(f.counts(),{retirements:1,sends:0});
+});
+
+test('legacy JSON factory does not receive the private native borrow or added authorization',()=>{
+  const f=borrowHandoffFixture({managed:false,privateBorrow:Object.freeze({}),optionGetter:true});
+  assert.deepEqual(Object.keys(f.projected).sort(),['columns','requestWire','resource']);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
+  assert.equal(f.factory.retire(),true);assert.equal(f.counts().sends,0);
+});
+
+test('options responseBorrow cannot substitute for the absent private handoff',()=>{
+  for(const optionGetter of [false,true]){
+    const f=borrowHandoffFixture({optionBorrow:Object.freeze({}),optionGetter});
+    assert.equal(Object.hasOwn(f.projected,'responseBorrow'),false);
+    assert.equal(Object.hasOwn(f.projected,'originalAuthorization'),false);
+    f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
+    assert.equal(f.factory.retire(),true);
+  }
+});
+
+test('native adoption refusal stays with the original factory and does not enter Site IO',async()=>{
+  const failure=new Error('original native adoption refusal');
+  const f=borrowHandoffFixture({privateBorrow:Object.freeze({}),adoptionFailure:failure});
+  await assert.rejects(f.reader.read(),error=>error===failure);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
+  assert.equal(f.factory.retire(),true);assert.equal(f.counts().sends,0);
 });

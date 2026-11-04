@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {runCodeInspection as run,readNativeSymbols} from './native-code-inspection.mjs';
 import {hash} from '../../inventory.mjs';
 import {inspectParentReferenceCode,referenceHelpers} from './parent-reference-sites.mjs';
 import {inspectParentCaptureCode} from './parent-capture-sites.mjs';
 import {inspectParentCaptureArm64} from './parent-capture-arm64.mjs';
 import {inspectParentReferenceArm64,arm64ReferenceHelpers} from './parent-reference-arm64.mjs';
 import {nativeFunctionEntries,disassembleNativeRanges} from './native-code-disassembly.mjs';
+import {nativeArtifactPath} from './provider-callback-code.mjs';
 
 const nm='/usr/bin/nm';
 const supported=['linux-x64','darwin-arm64'];
@@ -18,13 +19,12 @@ const toolsFor=platform=>platform==='darwin-arm64'
   : {objdump:'/usr/bin/objdump',helpers:referenceHelpers,calls:['moonbit_malloc','moonbit_incref','actql_proof_current_chain_start']};
 const parentName=name=>/connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(name);
 const dir='.artifacts/relation-pipeline/current-chain-native/code';
-function run(tool,args) {
-  const r=spawnSync(tool,args,{encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024});
-  assert(!r.error && r.status===0,r.stderr||String(r.error));return r.stdout;
-}
 function generated(object,exe,platform) {
   const {objdump,helpers,calls}=toolsFor(platform);
-  const exeEntries=nativeFunctionEntries(run(nm,['-n',exe])),objectEntries=nativeFunctionEntries(run(nm,['-n',object]));
+  const selection={names:[...helpers,...calls,platform==='darwin-arm64'?'_moonbit_decref':'moonbit_decref'],
+    suffixes:['managed__provider__execution__with__child__work__issue',...(platform==='darwin-arm64'?['relation__chain__reclaimed__prefix']:[])]};
+  const exeEntries=nativeFunctionEntries(readNativeSymbols(nm,['-n',exe],selection)),
+    objectEntries=nativeFunctionEntries(readNativeSymbols(nm,['-n',object],selection));
   const parent=exeEntries.filter(m=>parentName(m[2]));assert.equal(parent.length,1,'Missing unique actual parent');
   const selected=[parent[0][2],...helpers,...calls,
     ...(platform==='darwin-arm64'?exeEntries.filter(m=>/(?:relation__chain__reclaimed__prefix|managed__provider__execution__with__child__work__issue)$/.test(m[2])).map(m=>m[2]):[])];
@@ -75,7 +75,8 @@ export function auditParentReferenceCode(report,start,root,read) {
   assert.equal(hash(read(proof.archive)),proof.objectDigest,'Primitive Ref object changed');
   assert.deepEqual(proof.tools,{nm:hash(readFileSync(nm)),objdump:hash(readFileSync(objdump))},'Ref inspection tool changed');
   const exe=report.archives['_build/native/debug/test/connectors/local/local.whitebox_test.exe'];assert(exe,'Missing executed Ref binary');
-  const regenerated=generated(join(root,proof.archive),join(root,exe),proof.platform);
+  const regenerated=generated(nativeArtifactPath(root,read,proof.archive),
+    nativeArtifactPath(root,read,exe),proof.platform);
   for(const key of ['symbols','object','linked']) {
     const text=regenerated[key];
     const entry=proof.logs[key];assert.match(entry.digest,/^[a-f0-9]{64}$/);

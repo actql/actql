@@ -42,9 +42,9 @@ test('ordinary resource published cleanup requires zero live usage and no pendin
   const ports = resources.prepareOriginalManagedRunPorts(f.original, f.prepared);
   assert.equal(ports.status(0), 0);
   assert.equal(ports.status(2), -42);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 1n, 0n, 0n, 1n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 1n, 0n, 0n, 1n, 0, 0, 0), 0);
   assert.equal(ports.status(2), -42);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 1n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 1n, 0, 0, 0), 0);
   f.setPending(true);
   assert.equal(ports.status(2), -42);
   assert.equal(ports.status(1), 0);
@@ -99,9 +99,9 @@ test('preparation original has a separate once-only supplier and preserves live 
   assert.equal(resources.prepareOriginalLocalPreparationPorts(original, input), null);
   assert.equal(ports.status(0), 0);
   assert.equal(ports.status(0), -42);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 30n, 0n, 30n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 30n, 0n, 30n, 0, 1, 0), 0);
   assert.equal(ports.status(2), -42);
-  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 30n), 0);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 30n, 0, 0, 0), 0);
   assert.equal(ports.status(2), 0);
   assert.equal(resources.prepareOriginalLocalPreparationPorts(original, input), null);
 });

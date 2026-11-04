@@ -486,13 +486,40 @@ export function installNodeClientEffectRun({moon,
       if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) {
         throw expired(retained.ref);
       }
-      const facts = {ref: retained.ref, identity, owner, prepared, compilation,
+      const modelCompiled = prepareDefinition === undefined || inferPlanFor?.(prepared) === undefined ? undefined :
+        control.adoptCheckedClientEffectInferRun(allowed, retained.runDefinition, evidence.resultPolicyOriginal, limits);
+      const facts = Object.freeze({ref: retained.ref, identity, owner, prepared, compilation,
         ...queryTime,
         ...original,
         allowed, definition, runDefinition: retained.runDefinition,
+        queryTimePreparation: queryTime.queryTimePreparation, modelCompiled,
         originalSubmittedIntent,
-        resultPolicyOriginal: evidence.resultPolicyOriginal};
-      const preparedExecution = prepareExecution?.(Object.freeze(facts));
+        resultPolicyOriginal: evidence.resultPolicyOriginal});
+      // A cold lookup did not enter the new-Run issuer above. Restore its
+      // SAME normal definition/resource constructor before opening execution;
+      // the original Request parent owns partial failure, not a new admission.
+      const originalPreparation = prepareDefinition?.(facts);
+      const preparationThen = originalPreparation?.then;
+      if (typeof preparationThen === 'function') {
+        try {
+          await new Promise((resolve, reject) => Reflect.apply(
+            preparationThen, originalPreparation, [() => resolve(), reject]));
+        } catch { /* Join the same invalid borrow before refusing it. */ }
+        throw new TypeError('AsyncClientEffectDefinitionPreparation');
+      }
+      if (prepareDefinition !== undefined) {
+        // The synchronous constructor may reenter cancellation/retirement.
+        // Re-read this original Journal boundary before any execution opens.
+        const current = journal.resolveDefinition(identity, {namespaceId}, moon, control);
+        if (current?.ref.runDefinitionCid !== handle.ref.runDefinitionCid ||
+            current.runDefinition?.identity !== retained.runDefinition.identity ||
+            current.physicalStartReserved !== true || current.preDispatchFailureConfirmed ||
+            current.cancellationRequested || current.observedTerminalOutcome !== null) throw denied();
+        originalSubmittedIntent?.assertCurrent();
+        original.assertUpdateSelectionCurrent?.();
+        if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) throw expired(retained.ref);
+      }
+      const preparedExecution = prepareExecution?.(facts);
       if (typeof preparedExecution?.then === 'function') {
         void Promise.resolve(preparedExecution).catch(() => {});
         throw new TypeError('AsyncClientEffectPreparation');

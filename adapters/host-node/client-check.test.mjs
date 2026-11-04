@@ -26,6 +26,8 @@ import {installNodeClientCheck} from './client-check.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from
   './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvironment} from
+  './installed-host-policy.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -34,6 +36,9 @@ import {createHostObservationConnection} from '../host-common/observation.mjs';
 import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
+const moon = await import(pathToFileURL(join(repository,
+  '_build/js/release/build/connectors_builtin_node/' +
+  'connectors_builtin_node.js')).href);
 const {exerciseGraphArgumentChecks, graphArgumentCheckInventory} = await import(
   '../../scripts/fixtures/graph-argument-check.mjs');
 const graphArgumentOriginCases = JSON.parse(await readFile(
@@ -72,7 +77,7 @@ const account = outcome => canonicalJson({
 const query = 'SELECT id FROM records WHERE amount >= @minimum';
 const declarations = Object.freeze({minimum: {type: 'number'}});
 const expectedNumberAdmission = Object.freeze({kind: 'parameter_declaration',
-  contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947',
+  contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1',
   contract: {nullable: false, type: 'number'},
   constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'});
 const requests = Object.freeze({
@@ -97,11 +102,11 @@ const configurations = Object.freeze({
 });
 
 async function installedSource(root, {readOutcome, aliases,
-  environment = sourceEnvironment, seedAuthoringRows = false}) {
+  environment = sourceEnvironment, seedAuthoringRows = false}, hostEnvironmentWire) {
   // This is an adapter publication for the installed Host, not a standalone
   // checker profile. Preserve the Host's own policy when adding Source facts.
-  const base = JSON.parse(await readFile(join(repository,
-    'spec/local-check-environment.json'), 'utf8'));
+  const base = JSON.parse(hostEnvironmentWire ?? selectInstalledLocalMaterializationEnvironment(moon,
+    (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd()));
   environment = {...environment, host_policy_profile: base.host_policy_profile};
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = contentCid(environment);
@@ -128,16 +133,16 @@ async function installedSource(root, {readOutcome, aliases,
   return path;
 }
 
-async function installedConfigurations(root, configuration) {
+async function installedConfigurations(root, configuration, hostEnvironmentWire) {
   if (!Array.isArray(configuration)) {
-    return {sourceProfilePath: await installedSource(root, configuration)};
+    return {sourceProfilePath: await installedSource(root, configuration, hostEnvironmentWire)};
   }
   if (configuration.length === 0) return {};
   const paths = [];
   for (const [index, source] of configuration.entries()) {
     const directory = join(root, `source-${index}`);
     await mkdir(directory);
-    paths.push(await installedSource(directory, source));
+    paths.push(await installedSource(directory, source, hostEnvironmentWire));
   }
   return paths.length === 1 ? {sourceProfilePath: paths[0]}
     : {sourceProfilePaths: paths};
@@ -197,7 +202,13 @@ async function localClient(t, configuration, installed = {}) {
 
 async function httpClient(t, configuration, mutateCheckReply, installed = {}) {
   const root = await mkdtemp(join(scratch, 'http-'));
-  const sourceInstallation = await installedConfigurations(root, configuration);
+  // Match the existing Host branch for an independently supplied Remote
+  // Effect. Other Remote Source callers retain its ordinary Local selector.
+  const hostEnvironmentWire = installed.effectInstallation === undefined ? undefined
+    : selectInstalledHostEnvironment(moon,
+      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd(),
+      installed.hostCapacityPolicy, installed.hostLookupExecutionPolicy);
+  const sourceInstallation = await installedConfigurations(root, configuration, hostEnvironmentWire);
   const observation = observeCheckOnly(t, root);
   const host = await openInstalledRemoteHttpHost({
     directory: join(root, 'state'), beforeDispatch: observation.beforeDispatch,
@@ -249,6 +260,18 @@ const rightAlias = Object.freeze({name: 'other_records',
 const rightConfiguration = name => ({...configurations[name],
   environment: rightEnvironment,
   aliases: name === 'absent' ? [] : [rightAlias]});
+
+// Only callers inspecting their original submission need the Host's separate
+// run/read tuple. Keep other HTTP fixtures' missing/explicit Account controls.
+async function submissionObservationClient(t, entrance, configuration) {
+  if (entrance === 'local') return localClient(t, configuration);
+  return httpClient(t, configuration, undefined, {authorization: {accountConfiguration: canonicalJson({
+    version: 'actql-execution-account-config/0.1', account_id: 'client-check-host-observation',
+    entries: [{entry_id: 'host-run-read', outcome: 'allow',
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []}],
+  })}});
+}
 
 const entrances = Object.freeze({local: localClient, http: httpClient});
 
@@ -315,7 +338,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: submitted preparation categories use the disclosure-approved Source view`, async t => {
     for (const visibility of ['absent', 'denied', 'undecidable', 'allowed']) {
-      const client = await open(t, configurations[visibility]);
+      const client = await submissionObservationClient(t, entrance, configurations[visibility]);
       for (const [text, expectedProblem] of [
         ['SELECT missing AS n', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}],
         ['SELECT missing AS n FROM records', visibility === 'allowed'
@@ -364,8 +387,11 @@ for (const [entrance, open] of Object.entries(entrances)) {
           problems.push(outcome.problem);
           return true;
         });
-        const found = await client.lookupSubmission(original.submissionRef);
-        assert.deepEqual(found, outcome);
+        if (entrance === 'http') {
+          // The fixture has no Account granting the separate Run read.
+          await assert.rejects(client.lookupSubmission(original.submissionRef),
+            {code: 'ClientConnectionDenied'});
+        } else assert.deepEqual(await client.lookupSubmission(original.submissionRef), outcome);
         client.assertNoExecution();
       }
       assert.deepEqual(problems[0], problems[1], '[check-mutation:submission-private-input]');
@@ -420,7 +446,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
       [{parameter: 'b', expected_type: 'string', admission: {
         kind: 'parameter_declaration', supplier: 'caller',
         contract: {type: 'string', nullable: false}, constraints: [],
-        contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947'}}]);
+        contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1'}}]);
     assert.notEqual(changed.report.context_ref, first.report.context_ref);
     assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, changed), false, '[check-mutation:frontier-context]');
     const anotherBinding = await client.check(text, {...options, parameters: {a: 2}});
@@ -954,7 +980,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
         facts: {parameter: 'missing', expected_type: 'string', admission: {
           kind: 'parameter_declaration', supplier: 'caller',
           contract: {type: 'string', nullable: false}, constraints: [],
-          contract_schema_cid: 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947'}},
+          contract_schema_cid: 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1'}},
         location: {document_id: 'parameter_declarations', revision: declared.revision,
           kind: 'structured', pointer: '/missing'}}], '[check-mutation:nested-missing-requirement]');
       assert.deepEqual(original.value, parameters);
@@ -1089,7 +1115,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: rejected source submission carries original syntax checking without stored input observation`, async t => {
-    const client = await open(t, configurations.denied);
+    const client = await submissionObservationClient(t, entrance, configurations.denied);
     for (const [text, byte, position] of [
       ['SELECT', 6, {line: 0, character: 6}],
       ['/*😀*/\r\nSELECT', 16, {line: 1, character: 6}],
@@ -1123,7 +1149,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: rejected original submission exposes review-required fixes without granting retry`, async t => {
-    const client = await open(t, configurations.denied);
+    const client = await submissionObservationClient(t, entrance, configurations.denied);
     // Byte intervals and editor positions are independently counted.
     for (const [text, bytes, comment, position] of [
       ['SELECT 1 AS n /*', 16, 14, {line: 0, character: 14}],
@@ -1193,7 +1219,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: missing submitted values retain requirements instead of invalid input`, async t => {
-    const client = await open(t, configurations.allowed);
+    const client = await submissionObservationClient(t, entrance, configurations.allowed);
     let error;
     try {await client.startSource(query, {format: 'sql', parameterDeclarations: declarations});}
     catch (cause) {error = cause;}
@@ -1498,7 +1524,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
     const problems = [];
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
-      const client = await open(t, configuration);
+      const client = await submissionObservationClient(t, entrance, configuration);
       const original = await client.newSubmission();
       let error;
       try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
@@ -1547,7 +1573,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: original submission projects implementation limits only from public checking`, async t => {
     for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
-      const client = await open(t, configuration);
+      const client = await submissionObservationClient(t, entrance, configuration);
       for (const [text, sourceDependent] of [
         ['SELECT UNKNOWN_FUNCTION(1) AS n', false],
         ['SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records', true],
@@ -1818,9 +1844,6 @@ test('http: a malformed check request is refused before checking',
 // The Host check owner with a fixed context key, so that whole outcomes,
 // context references included, are compared across installations. The same
 // acceptance runs against mutated owners below; each mutation must fail it.
-const moon = await import(pathToFileURL(join(repository,
-  '_build/js/release/build/connectors_builtin_node/' +
-  'connectors_builtin_node.js')).href);
 const environment = moon.clientProgramCheckEnvironment(
   canonicalText(sourceEnvironment), sourceEnvironment.evidence_bundle_cid,
   false, false, true, true, false, false, false);
@@ -2155,7 +2178,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-07.ja.10'});
+        {locale: 'ja', translationRevision: '2026-10-25.ja.11'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2676,8 +2699,6 @@ for (const entrance of ['local', 'http']) {
         'Use a finite number in the admitted precision and signed-zero domain.'],
       ['/*😀*/\r\nSELECT 1e999 AS n', 'invalid_number', 17, 22, '1e999',
         'Use a finite number in the admitted precision and signed-zero domain.'],
-      ['/*😀*/\r\nSELECT -0 AS n', 'invalid_number', 17, 19, '-0',
-        'Use a finite number in the admitted precision and signed-zero domain.'],
     ];
     for (const format of ['sql', 'aql-text']) for (const [text, issue, start, end, token, hint] of cases) {
       let originalOutcome;
@@ -2686,7 +2707,7 @@ for (const entrance of ['local', 'http']) {
         const edited = 'SELECT 1 AS n';
         const outcome = await pending;
         assert.equal(outcome.outcome, 'completed', '[check-mutation:expression-outcome]');
-        assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:expression-verdict]');
+        assert.equal(outcome.report.verdict, 'invalid', `[check-mutation:expression-verdict] ${format}: ${text}`);
         assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
         assert.deepEqual(outcome.report.requirements, []);
         const input = getCheckInput(outcome, 'source');
@@ -2707,9 +2728,9 @@ for (const entrance of ['local', 'http']) {
       }
     }
     for (const text of ["SELECT CONCAT('x') AS n", 'SELECT SQRT(1) AS n',
-      'SELECT 9007199254740991 AS n', 'SELECT 1e308 AS n']) {
+      'SELECT 9007199254740991 AS n', 'SELECT -0 AS n', 'SELECT 1e308 AS n']) {
       const outcome = await clients[0].check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
-      assert.equal(outcome.report.verdict, 'verified');
+      assert.equal(outcome.report.verdict, 'verified', text);
       assert.deepEqual(outcome.report.reasons, []);
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
     }
@@ -3525,8 +3546,8 @@ const mutations = Object.freeze({
     'if (signal?.aborted) throw cause;\n      return aliases;'],
   // A hidden name is checked as if it were visible.
   'hidden source is checked as visible': [
-    'input.format, environment,\n      JSON.stringify({environmentCid, aliases: visible,',
-    'input.format, environment,\n      JSON.stringify({environmentCid, aliases,'],
+    'const wire = projectOriginal === undefined\n      ? moon.clientProgramCheckSource(input.text, input.format, environment,\n        visiblePublication, declarations, supplied,',
+    'const wire = projectOriginal === undefined\n      ? moon.clientProgramCheckSource(input.text, input.format, environment,\n        JSON.stringify({environmentCid, aliases}), declarations, supplied,'],
   // The context reference names the private source set.
   'context binds the private source set': [
     'visible_aliases: visible,', 'visible_aliases: aliases,'],
@@ -3806,7 +3827,7 @@ for (const entrance of ['local', 'http']) {
       [{code: 'query_syntax_invalid'}]);
     assert.equal(outcome.report.reasons[0].location.document_id, 'source');
     assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
-      {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
+      {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 39, end_byte: 39, precision: 'exact'});
     assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
   });
 
@@ -5133,7 +5154,7 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: missing parameter Requirements expose admitted recursive declaration conditions`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const contractSchemaCid = 'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947';
+    const contractSchemaCid = 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1';
     const cases = [
       [{type: 'number', nullable: true, integer: true, minimum: -2.5, maximum: 4.5,
         meta: {note: 'private-admission-note', instruction: 'private-admission-instruction'}},
@@ -5331,8 +5352,8 @@ for (const entrance of ['local', 'http']) {
 }
 
 const expectedCapacityRequirement = Object.freeze({code: 'host_capacity_policy_required', facts: {
-  contract_cid: 'sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164',
-  schema_cid: 'sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3',
+  contract_cid: 'sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9',
+  schema_cid: 'sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265',
   schema_pointer: '/schema', supplier: 'checking_context_owner', stage: 'checking'}});
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: known context requirements retain Owner conditions without input blame`, async t => {
@@ -5934,11 +5955,21 @@ for (const entrance of ['local', 'http']) {
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: installed structured Program rejection invokes no Source Model or Effect`, async t => {
     let modelCalls = 0, effectCalls = 0, resumes = 0;
+    const effectEnvironment = JSON.parse(await readFile(join(repository,
+      'packages/sdk/fixtures/values.environment.json'), 'utf8'));
+    // The inert Effect publication extends this same installed Host policy.
+    // Remote Effect Hosts keep the generic selector; Local uses its own
+    // materialization policy, exactly as the Source fixture above does.
+    const hostEnvironment = (entrance === 'http' ? selectInstalledHostEnvironment
+      : selectInstalledLocalMaterializationEnvironment)(moon,
+      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
+    effectEnvironment.host_policy_profile = JSON.parse(hostEnvironment).host_policy_profile;
+    delete effectEnvironment.evidence_bundle_cid;
+    effectEnvironment.evidence_bundle_cid = contentCid(effectEnvironment);
     const installed = {registerModelProviders: () => [{providerId: 'models/diagnostic-fixture',
       validatePrompt: () => false,
       invoke() {modelCalls++; throw new Error('UnexpectedDiagnosticModelExecution');}}],
-    effectInstallation: {environmentWire: (await readFile(join(repository,
-      'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+    effectInstallation: {environmentWire: canonicalText(effectEnvironment),
       execute() {effectCalls++; throw new Error('UnexpectedDiagnosticEffectExecution');},
       resume() {resumes++; throw new Error('UnexpectedDiagnosticEffectResume');}}};
     const client = entrance === 'local'
@@ -6197,10 +6228,14 @@ for (const entrance of ['local', 'http']) {
 
 for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: semantic query violations remain distinct from implementation limits`, async t => {
-    const client = await open(t, configurations.allowed);
-    const invalid = [
+    const client = await submissionObservationClient(t, entrance, configurations.allowed);
+    // SQL does not admit a nested Pipe body; these fail during parsing,
+    // before semantic checking of otherwise well-formed query bodies.
+    const syntaxInvalid = [
       'WITH chosen AS (FROM records |> RESULT saved) SELECT id FROM chosen',
       'SELECT id FROM (FROM records |> RESULT saved) AS chosen',
+    ];
+    const invalid = [
       'SELECT * FROM records GROUP BY id',
       'SELECT r.* FROM records AS r GROUP BY id',
       'SELECT * EXCEPT (id) FROM records GROUP BY id',
@@ -6216,15 +6251,24 @@ for (const [entrance, open] of Object.entries(entrances)) {
       'SELECT COUNTIF(amount > 0) OVER (ORDER BY id) AS n FROM records',
       'SELECT FIRST_VALUE(amount) OVER (ORDER BY id) AS value FROM records',
     ];
-    for (const [texts, verdict, expectedProblem] of [
-      [invalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}],
+    for (const [texts, verdict, expectedProblem, reasonCode] of [
+      [syntaxInvalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, 'query_syntax_invalid'],
+      [invalid, 'invalid', {code: 'ClientProgramInvalidInput', classification: 'invalid_input'}, 'query_invalid'],
       [unsupported, 'undetermined', {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}],
     ]) {
       for (const text of texts) {
         const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
         assert.equal(checked.outcome, 'completed', text);
         assert.equal(checked.report.verdict, verdict, text);
-        assert.deepEqual(checked.report.reasons, verdict === 'invalid' ? [{code: 'query_invalid'}] : [], text);
+        if (reasonCode === 'query_syntax_invalid') {
+          assert.equal(checked.report.reasons.length, 1, text);
+          const [reason] = checked.report.reasons;
+          assert.equal(reason.code, reasonCode, text);
+          assert.equal(reason.location.precision, 'exact');
+          assert.equal(resolveCheckLocation(checked, reason.location).input,
+            getCheckInput(checked, 'source'));
+        } else assert.deepEqual(checked.report.reasons,
+          verdict === 'invalid' ? [{code: reasonCode}] : [], text);
         assert.deepEqual(checked.report.coverage, {
           limits: verdict === 'invalid' ? [] : [{code: 'implementation_limit'}], unresolved: [],
         }, text);
@@ -6264,7 +6308,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal('admission' in original, false);
       return true;
     }, text);
-    assert.deepEqual(await client.lookupSubmission(submissionRef), original);
+    if (entrance === 'http') await assert.rejects(client.lookupSubmission(submissionRef),
+      {code: 'ClientConnectionDenied'});
+    else assert.deepEqual(await client.lookupSubmission(submissionRef), original);
     client.assertNoExecution();
   });
 
@@ -6310,7 +6356,9 @@ for (const [entrance, open] of Object.entries(entrances)) {
             assert.equal(error.code, expected.errorCode, label);
             return true;
           }, label);
-          assert.deepEqual(await client.lookupSubmission(submissionRef), original, label);
+          if (entrance === 'http') await assert.rejects(client.lookupSubmission(submissionRef),
+            {code: 'ClientConnectionDenied'}, label);
+          else assert.deepEqual(await client.lookupSubmission(submissionRef), original, label);
         }
         client.assertNoExecution();
       }
@@ -6318,8 +6366,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
   });
 
   test(`${entrance}: CTE unresolved witnesses require authorized complete namespace absence`, async t => {
+    const account = JSON.parse(namespaceAccount());
+    // Namespace inspection does not grant the separate original-Submission read.
+    account.entries.unshift({entry_id: 'host-run-read', outcome: 'allow',
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []});
     const client = await namespaceClient(t, entrance, configurations.allowed, {sourceNamespace: 'queries',
-      authorization: namespaceAuthorization({accountConfiguration: namespaceAccount()})});
+      authorization: namespaceAuthorization({accountConfiguration: canonicalJson(account)})});
     for (const [text, missing] of [
       ['WITH missing AS (SELECT id FROM missing) SELECT id FROM missing', 'missing'],
       ['WITH chosen AS (SELECT id FROM records UNION ALL SELECT id FROM later), later AS (SELECT id FROM records) SELECT id FROM chosen', 'later'],
@@ -6336,6 +6389,13 @@ for (const [entrance, open] of Object.entries(entrances)) {
         assert.equal(original.kind, 'not_accepted');
         assert.deepEqual(original.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
         assert.deepEqual(original.submissionRef, submissionRef);
+        const observed = frontierSDK.getSubmissionCheckObservation(error);
+        assert.equal(observed?.outcome, 'completed');
+        assert.equal(observed.report.verdict, 'invalid');
+        assert.deepEqual(observed.report.reasons, [namespaceReason(missing)]);
+        assert.deepEqual(observed.report.coverage, {limits: [], unresolved: []});
+        assert.equal(frontierSDK.getCheckInput(observed, 'source').text, text);
+        assert.equal(frontierSDK.getSubmissionCheckObservation({...error}), undefined);
         assert.equal('admission' in original, false);
         return error.code === 'SubmissionNotAccepted';
       });

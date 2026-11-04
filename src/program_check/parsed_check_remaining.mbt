@@ -24,6 +24,40 @@ pub fn parsed_check_registry_data_estimate(
   let source = @decode.admission_preparation_data(
     @syntax.program_body(original.program),
   )
+  // The raw supplied input is already retained separately. Its future Value
+  // construction still needs its own variable-data backing in THIS quote.
+  // Cached admission-owner dimensions require no binding or new tree walk.
+  // A child Cursor conservatively retains its whole admitted owner's bounds.
+  let (supplied_nodes, supplied_text) = match original.supplied {
+    None => (0L, 0L)
+    Some(cursor) =>
+      (
+        @decode.admission_usage(cursor).nodes.to_int64(),
+        @decode.admission_preparation_data(cursor).total_utf16,
+      )
+  }
+  // The independent input result remains live beside a possible tighter
+  // ordinary fallback. Defaults borrow the Program body. Back both maximum
+  // representations here, without raising either consumer's semantic caps.
+  let (binding_nodes, binding_text) = if parsed_check_independent_supplied_original(
+      prepared,
+    )
+    is Some(_) {
+    (
+      @counts.checked_nonnegative_add_product(
+        usage.tree.nodes.to_int64(),
+        supplied_nodes,
+        1L,
+      ),
+      @counts.checked_nonnegative_add_product(
+        source.total_utf16,
+        supplied_text,
+        1L,
+      ),
+    )
+  } else {
+    (Some(0L), Some(0L))
+  }
   let program = @syntax.program_preparation_data(original.program)
   let environment = @environment.preparation_data_geometry(
     original.environment.wire,
@@ -40,11 +74,17 @@ pub fn parsed_check_registry_data_estimate(
     source.total_utf16,
     original.limits.artifacts.nodes.to_int64(),
   )
-  guard @counts.checked_nonnegative_add_product(
+  guard binding_nodes is Some(binding_nodes) &&
+    binding_text is Some(binding_text) &&
+    @counts.checked_nonnegative_add_product(
       usage.tree.nodes.to_int64(),
-      environment.members,
+      supplied_nodes,
       1L,
     )
+    is Some(nodes) &&
+    @counts.checked_nonnegative_add_product(nodes, binding_nodes, 1L)
+    is Some(nodes) &&
+    @counts.checked_nonnegative_add_product(nodes, environment.members, 1L)
     is Some(nodes) &&
     @counts.checked_nonnegative_add_product(nodes, expression_nodes, 1L)
     is Some(nodes) &&
@@ -52,6 +92,14 @@ pub fn parsed_check_registry_data_estimate(
     is Some(fields) &&
     @counts.checked_nonnegative_add_product(
       source.total_utf16,
+      supplied_text,
+      1L,
+    )
+    is Some(input_text) &&
+    @counts.checked_nonnegative_add_product(input_text, binding_text, 1L)
+    is Some(input_text) &&
+    @counts.checked_nonnegative_add_product(
+      input_text,
       fields,
       3L *
       (

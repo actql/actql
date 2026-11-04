@@ -5,7 +5,8 @@ priv struct ClientRequestQuerySyntax {
   format : @frontend.Format
   source_path : String
   quote : (Int64, Int64)
-  mut query : @query_syntax.Query?
+  // Reuse the existing outcome slot for the original success or failure.
+  mut query : Result[@query_syntax.Query, ClientRequestQuerySyntaxIssue]?
   mut known_work : Int64
   mut counters_complete : Bool
   mut lowering : ClientRequestQueryLowering?
@@ -48,7 +49,7 @@ pub fn[I] prepared_request_query_syntax(
   }
   guard owner.phase == QuerySyntaxParsed &&
     owner.query_syntax is Some(selected) &&
-    selected.query is Some(query) else {
+    selected.query is Some(Ok(query)) else {
     return Err(Request(WrongPhase))
   }
   Ok(query)
@@ -184,7 +185,15 @@ pub fn[I] parse_request_query_syntax(
           owner.phase = QuerySyntaxFailed
           match closed {
             Err(failure) => return Err(Work(failure))
-            Ok(_) => return Err(Request(SourceInput(Source(issue))))
+            Ok(_) => {
+              let result = Err(
+                ClientRequestQuerySyntaxIssue::Request(
+                  SourceInput(Source(issue)),
+                ),
+              )
+              selected.query = Some(result)
+              return result
+            }
           }
         }
       }
@@ -202,12 +211,12 @@ pub fn[I] parse_request_query_syntax(
     Err(issue) => return Err(Work(issue))
     Ok(_) => ()
   }
-  match outcome {
-    Err(issue) => Err(Frontend(issue))
-    Ok(query) => {
-      selected.query = Some(query)
-      owner.phase = QuerySyntaxParsed
-      Ok(query)
-    }
+  let result = outcome.map_err(issue => {
+    ClientRequestQuerySyntaxIssue::Frontend(issue)
+  })
+  selected.query = Some(result)
+  if result is Ok(_) {
+    owner.phase = QuerySyntaxParsed
   }
+  result
 }

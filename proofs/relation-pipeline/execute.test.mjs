@@ -7,6 +7,21 @@ import { minimalRepository, runDriver, successful } from './fixtures/execution-d
 const targets = ['js', 'wasm', 'native'];
 const fixture = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
 
+test('executor writes compact canonical receipts without changing observation or digest identity', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const executor = createExecutor(undefined, {targets: ['js'], jobs: 1});
+executor.execute([makeCase()], registry, 'js');
+const recorded = executions[0];
+const bytes = readFileSync(join(root, recorded.path));
+assert.deepEqual(bytes, Buffer.from(JSON.stringify(recorded.receipt) + '\n'));
+assert.deepEqual(JSON.parse(bytes), recorded.receipt);
+assert.equal(digest(JSON.stringify(JSON.parse(bytes))), recorded.digest);
+assert.equal(recorded.receipt.cases.length, 1);
+assert.equal(calls().length, 1);
+executor.close();
+`));
+});
+
 test('an internal toolchain directory alias retains actual file and resolved-path identity', t => {
   successful(runDriver(minimalRepository(t), String.raw`
 const release = join(root, '.fake-moon/lib/core/_build/js/release');

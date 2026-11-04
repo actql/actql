@@ -956,8 +956,8 @@ const entries = freeze({
     },
     "examples": [
       {
-        "file": "adapters/host-node/client-submission-input.test.mjs",
-        "scenario": "structured Program rejection binds the original parent pointer"
+        "file": "adapters/host-node/source-selector-check.test.mjs",
+        "scenario": "original Unicode pointer omission and NULL keep their distinct meanings"
       }
     ]
   },

@@ -67,13 +67,19 @@ export async function inspectExternalLocalNodeAdapterGraph(inputs) {
     outdir: join(resolved.host.root, '_build/local-node-adapter-graph'),
     plugins: [{name: 'resolved-local-node-inputs', setup(builder) {
       builder.onResolve({filter: /.*/}, args => {
+        const importerOwner = args.importer
+          ? resolved.modules.find(module => inside(module.root, args.importer)) : undefined;
+        // This SDK seam is exported for the Core Host's original snapshot,
+        // never as an external Connector interface merely because it exists.
+        if (/^@actql\/sdk\/_internal(?:\/|$)/u.test(args.path) && importerOwner?.root !== inputs.coreRoot) {
+          throw new Error(`UndeclaredLocalNodeDependency:${args.path}`);
+        }
         if (isBuiltin(args.path) || publicPackage(args.path)) return {path: args.path, external: true};
         if (args.kind === 'entry-point') return {path: resolveInput(resolve(args.path))};
         if (!/^\.\.?\//u.test(args.path)) throw new Error(`UndeclaredLocalNodeDependency:${args.path}`);
         const url = new URL(args.path, pathToFileURL(args.importer));
         if (url.search || url.hash) throw new Error('NonconcreteLocalNodeAdapterImport');
         const path = fileURLToPath(url);
-        const importerOwner = resolved.modules.find(module => inside(module.root, args.importer));
         const targetOwner = resolved.modules.find(module => inside(module.root, path));
         const tableEdge = args.importer === inputs.installationTable.source &&
           inputs.installations.some(entry => [entry.source, entry.effect]

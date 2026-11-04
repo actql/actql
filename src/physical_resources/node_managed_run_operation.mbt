@@ -137,6 +137,37 @@ fn reserve_node_managed_run_operation_control_owned(
 }
 
 ///|
+/// Grow this SAME original operation when its actual input becomes available,
+/// before the next constructor. Physical attempts and transfer/cleanup duties
+/// are unchanged. The closed consumer fence follows one current observation;
+/// no new token, Root or transferable current proof is issued.
+pub fn[P, E] grow_prepared_run_operation_capacity(
+  value : PreparedRunAdmission[P],
+  prepared : P,
+  ledger : Ledger,
+  original : () -> Result[Unit, E],
+  backing : NodeManagedRunOperationBacking,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Result[Unit, NodeManagedRunOperationIssue[E]] {
+  if retained_bytes < 0L || execution_bytes < retained_bytes {
+    return Err(Control(InvalidCharge))
+  }
+  match
+    check_prepared_run_operation_original(value, prepared, ledger, original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let reservation = match backing {
+    Construction(capacity) => capacity.reservation
+    Physical(reservation) => reservation
+  }
+  grow_execution_reservation_capacity_current(
+    ledger, reservation, retained_bytes, execution_bytes,
+  ).map_err(issue => Control(issue))
+}
+
+///|
 /// The original synchronous constructor has returned its admitted output.
 /// Keep its SAME retained backing and spent slot; dispose only workspace.
 /// This creates no reservation, attempt, physical stop or cleanup ACK. The

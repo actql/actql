@@ -113,3 +113,28 @@ export function sourceEnvironmentRetainedGeometry(environment) {
       typeof wire.value !== 'string' || typeof cid.value !== 'string') invalid();
   return {nodes: 3n, text: 2n * BigInt(wire.value.length + cid.value.length), wire: 0n};
 }
+
+// The final Host composer parses the selected complete role documents, checks
+// their original CIDs, and merges only their inert declaration metadata. Text
+// bytes are not Value nodes. Keep the existing sixteen overlapping tree roles,
+// with the recursive canonical text and hash workspace priced separately.
+export function sourceEnvironmentCompositionGeometry(wires) {
+  if (!Array.isArray(wires)) invalid();
+  let nodes = 0n, units = 0n, weighted = 0n, depth = 0n;
+  for (const wire of wires) {
+    if (wire === undefined) continue;
+    const measured = sourceJsonWireGeometry(wire);
+    nodes += measured.nodes; units += measured.units; weighted += measured.weighted;
+    if (measured.depth > depth) depth = measured.depth;
+  }
+  // Input parse/body records, admitted originals, merged section arrays/maps,
+  // selector records and canonical entry/pair/sort/child/frame families borrow
+  // the same value trees. The original source/declaration prefix stays separate.
+  const output = 6n * units + 25n * nodes;
+  const recursiveText = 6n * (weighted + 3n * units) + 25n * nodes * (depth + 4n);
+  const retained = {nodes: 16n * nodes,
+    text: 2n * (units + output + 4n * 71n), wire: 3n * output};
+  return {nodes: 16n * nodes,
+    text: 2n * units + 2n * (3n * recursiveText + 2n * output),
+    wire: 3n * output, retained};
+}

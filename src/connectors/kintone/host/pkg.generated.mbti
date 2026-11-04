@@ -9,17 +9,52 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
+  "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn accept_record_read_page(RecordRead, Bytes) -> Result[Int, RecordReadIssue]
 
+pub fn adopt_managed_record_borrow(RecordDeclaration, @client_row_source_host.RowRunResponseBorrow, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int) -> Result[ManagedRecordRead, RecordReadIssue]
+
+pub fn adopt_managed_record_query(RecordDeclaration, @client_row_source_host.RowAcquisition, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int) -> Result[ManagedRecordRead, RecordReadIssue]
+
+pub fn adopt_managed_record_whole(RecordDeclaration, @client_row_source_host.RowInputAcquisition, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int) -> Result[ManagedRecordRead, RecordReadIssue]
+
 pub fn bind_record_read_cleanup(RecordRead, () -> Bool) -> Result[Unit, RecordReadIssue]
 
 pub fn borrow_record_read(PreparedRecordRead, @client_row_source_host.RowRun, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int) -> Result[RecordRead, RecordReadIssue]
 
 pub fn declare_records(@catalog.FormFieldCatalog, @catalog.AppNumberSettings?, Array[String], String, String, String, @catalog.RecordValueLimits, @client_row_source_host.RowDeclarationLimits) -> Result[RecordDeclaration, RecordReadIssue]
+
+pub fn managed_record_column_count(RecordDeclaration) -> Int
+
+pub fn managed_record_columns(ManagedRecordRead) -> Array[String]
+
+pub fn managed_record_complete(ManagedRecordRead) -> Bool
+
+pub fn managed_record_construction_capacity(RecordDeclaration, @catalog.RecordPageLimits, @catalog.RecordValueLimits, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn managed_record_form_construction_inventory(ManagedRecordRead, Int, @catalog.FormFieldLimits) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn managed_record_form_request(ManagedRecordRead, Int) -> Result[String, RecordReadIssue]
+
+pub fn managed_record_identity_units(RecordDeclaration, String, String, String) -> Int64?
+
+pub fn managed_record_page_construction_inventory(ManagedRecordRead, Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn managed_record_page_request(ManagedRecordRead, Int) -> Result[String, RecordReadIssue]
+
+pub fn managed_record_project_page(ManagedRecordRead, Bytes) -> Result[Array[Array[@value_admission.CheckedValue]], RecordReadIssue]
+
+pub fn managed_record_query_matches(ManagedRecordRead, @client_row_source_host.RowAcquisition) -> Bool
+
+pub fn managed_record_recheck_form(ManagedRecordRead, Bytes, @catalog.FormFieldLimits) -> Result[Unit, RecordReadIssue]
+
+pub fn managed_record_response_construction_capacity(ManagedRecordRead, @execution_relation.ExecutionCapacity, Int, Bool, @catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn managed_record_whole_matches(ManagedRecordRead, @client_row_source_host.RowInputAcquisition) -> Bool
 
 pub fn prepare_record_create_execution_proposal(RecordCreateMapping, Bytes, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
@@ -147,11 +182,17 @@ pub fn restore_record_create_execution_proposal(RecordCreateMapping, Bytes, Stri
 
 pub fn restore_record_create_execution_request(RecordCreateMapping, Bytes, String, Int, @catalog.RecordWriteLimits, @catalog.RecordMutationLimits) -> Result[@catalog.RecordCreateRequest, RecordCreateExecutionIssue]
 
+pub fn retire_managed_record(ManagedRecordRead) -> Unit
+
 pub fn retire_record_read(RecordRead) -> Result[Unit, RecordReadIssue]
 
 // Errors
 
 // Types and methods
+pub struct ManagedRecordRead {
+  // private fields
+}
+
 pub struct PreparedRecordRead {
   // private fields
 }

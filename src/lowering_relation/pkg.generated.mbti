@@ -739,6 +739,8 @@ pub fn node_at(Prepared, Int) -> PreparedNode?
 
 pub fn node_can_split_carrier_transform(PreparedNode) -> Bool
 
+pub fn node_closed_item_count_bound(PreparedNode, Array[Int]) -> Int?
+
 pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
@@ -901,7 +903,7 @@ pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKer
 
 pub fn prepare_values_node(BoundPrepared, Int, max_rows~ : Int, max_cells~ : Int) -> Result[PreparedValues, ValuesIssue]
 
-pub fn prepared_closed_row_bound(Prepared, Int) -> (Int, Int)?
+pub fn prepared_closed_row_bound(Prepared, Int, target_step? : Int?) -> (Int, Int)?
 
 pub fn prepared_frame_end(PreparedRowsFrame) -> PreparedFrameBoundary
 

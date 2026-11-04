@@ -34,6 +34,7 @@ fn construct_local_after_declarations(
   source_preparation? : @stages.Source? = None,
   environment_start? : EnvironmentAdmissionStart? = None,
   source_context? : @context.SourceViewContextInput? = None,
+  collected_inputs_out? : Ref[@source_inputs.Inputs?]? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -114,6 +115,7 @@ fn construct_local_after_declarations(
         capacity_inputs~,
         model_tasks~,
         derived_capacity_limits~,
+        collected_inputs_out~,
       ) catch {
         e => raise Source(e)
       }

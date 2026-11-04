@@ -280,3 +280,74 @@ test "prepared execution still rejects foreign completed output and keeps holdin
   assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(@strategy.captured_task_output(other, 1, Step(1)) is Some(_))
 }
+
+///|
+// Actual Strategy/Resource/connector lifecycle with explicit prepared ports.
+// This wrapper starts no Model call; Model's per-attempt accounting is covered
+// separately by the original Model quantity/composed-start controls.
+test "non-Model task wrapper keeps same configured parent and consumes no Model quantities" {
+  let ledger = @resources.create_ledger({
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 32000000L,
+    execution_bytes: 134217728L,
+  }).unwrap()
+  @resources.configure_quantities(ledger, {
+    tokens: 33L,
+    cost_units: 0L,
+    duration_ms: 500L,
+  }).unwrap()
+  let (run, _) = captured_graph_fixture(original_ledger=Some(ledger))
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), ledger))
+  let (_, choice, candidate) = synchronous_test_choice(run)
+  let calls = Ref(0)
+  let prepared = @connector.bind_prepared_materializing_execution(
+    choice,
+    candidate,
+    {
+      transfer_bytes: 100L,
+      retained_bytes: 100L,
+      scratch_bytes: 10L,
+      execution_bytes: 100L,
+    },
+    [],
+    fn(payload) {
+      calls.val += 1
+      let operations : @connector.ExecutionLifecycleOperations[
+        @strategy.RunIssue,
+      ] = {
+        cancel: fn() {  },
+        dispose: fn() {  },
+        settled: fn() {  },
+        scratch_released: fn() { true },
+        retention_released: fn() { true },
+        released: fn() {  },
+        ready: fn() { Ok(()) },
+      }
+      Ok((payload, operations))
+    },
+  ).unwrap()
+  let before = @resources.quantity_usage(ledger)
+  let resources_before = @resources.ledger_usage(ledger)
+  assert_true(
+    @resources.reserve_attempt(ledger, 0L, 0L, 0L)
+    is Err(@resources.InvalidCharge),
+  )
+  assert_eq(@resources.ledger_usage(ledger), resources_before)
+  let (payload, execution) = @strategy.start_captured_materializing_execution(
+    run, 1, prepared,
+  ).unwrap()
+  assert_eq(payload, 17)
+  assert_eq(calls.val, 1)
+  assert_eq(@resources.quantity_usage(ledger), before)
+  @strategy.close_task_execution(run, execution)
+  assert_false(
+    @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
+  )
+  @strategy.settle_task_execution(run, execution, true).unwrap()
+  assert_true(@strategy.refresh_task_execution_cleanup(run, execution).unwrap())
+  assert_eq(@resources.quantity_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger).reserved_attempts, 0)
+}

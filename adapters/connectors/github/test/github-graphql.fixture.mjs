@@ -132,6 +132,20 @@ export function graphqlRoute(world) {
           nameWithOwner: repository.nameWithOwner}}
         : {__typename: subject.type}}}};
     }
+    if (query.startsWith('query ActqlConfirmComment(')) {
+      if (state.commentConfirmationAnswer !== undefined) return state.commentConfirmationAnswer(query, variables);
+      const comment = state.comments?.find(item => `IC_${item.databaseId}` === variables.id);
+      const subject = comment === undefined ? undefined : state.subjects?.get(comment.subjectId);
+      const repository = subject === undefined ? undefined : state.repositories.get(subject.repository);
+      if (comment === undefined || subject === undefined || repository === undefined) {
+        return {body: {data: {node: null}}};
+      }
+      return {body: {data: {node: {__typename: 'IssueComment', id: variables.id,
+        databaseId: comment.databaseId, body: comment.body,
+        issue: {__typename: subject.type, id: comment.subjectId},
+        repository: {__typename: 'Repository', id: subject.repository,
+          databaseId: repository.databaseId, nameWithOwner: repository.nameWithOwner}}}}};
+    }
     if (query.startsWith('mutation ActqlAddComment(')) {
       if (state.commentReply !== undefined) {
         return state.commentReply(variables);

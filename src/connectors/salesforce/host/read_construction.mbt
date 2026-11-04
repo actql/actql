@@ -70,6 +70,27 @@ fn sf_read_describe_parse_inventory(
 // incomplete Catalog observation. No listing/static declaration is generated.
 // The live caller drops the first full observation after extracting its plan,
 // before the independent recheck; selected metadata remains in that plan.
+// The SAME three original metadata families are used by named Describe and
+// by historical whole-Catalog restoration. Aggregate callers supply total
+// fields/references, not one full byte budget for every selected Resource.
+fn sf_read_metadata_construction_inventory(
+  fields : Int64,
+  references : Int64,
+) -> @shape.CollectionConstructionExtent? {
+  @shape.collection_construction_extent({
+    records: 3L * (2L + 5L * fields),
+    record_references: 3L * (4L + 8L * fields),
+    record_words: 3L * (5L + 17L * fields),
+    reference_arrays: 3L * (1L + fields),
+    reference_items: 3L * (fields + references),
+    scalar_arrays: 0L,
+    scalar_items: 0L,
+    maps: 1L,
+    map_entries: fields,
+  })
+}
+
+///|
 fn sf_read_observation_construction_inventory(
   limits : @catalog.DescribeLimits,
   max_observation_bytes : Int,
@@ -107,17 +128,7 @@ fn sf_read_observation_construction_inventory(
   // ResourceMetadata is 1H/4R/3W plus optional deletable 1H/0R/2W.
   // Three simultaneous families bound original sync, observation copy and
   // resource/projection copy, including a failed prefix and recheck overlap.
-  guard @shape.collection_construction_extent({
-      records: 3L * (2L + 5L * fields),
-      record_references: 3L * (4L + 8L * fields),
-      record_words: 3L * (5L + 17L * fields),
-      reference_arrays: 3L * (1L + fields),
-      reference_items: 3L * (fields + references),
-      scalar_arrays: 0L,
-      scalar_items: 0L,
-      maps: 1L,
-      map_entries: fields,
-    })
+  guard sf_read_metadata_construction_inventory(fields, references)
     is Some(metadata) else {
     return None
   }
@@ -623,4 +634,24 @@ pub fn native_read_construction_capacity(
   // Both returned prefixes coexist, but native provider metadata, Common
   // recovery and the query parser are awaited sequentially by one Reader.
   @execution.execution_capacity(r, e)
+}
+
+///|
+/// The existing named Describe constructor, including its retained evidence,
+/// normalizing parser, native metadata, binding projection and recovery peak.
+/// An Effect metadata occurrence consumes these SAME Owner quantities; this
+/// supplies neither HTTP/secret backing nor a Run, read decision or grant.
+pub fn named_describe_construction_capacity(
+  describe : @catalog.DescribeLimits,
+  max_observation_bytes : Int,
+  binding_units : Int,
+  resource_units : Int,
+) -> @execution.ExecutionCapacity? {
+  guard sf_read_observation_construction_inventory(
+      describe, max_observation_bytes, binding_units, resource_units,
+    )
+    is Some(inventory) else {
+    return None
+  }
+  @execution.preparation_execution_capacity(inventory)
 }

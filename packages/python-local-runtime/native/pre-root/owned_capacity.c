@@ -1,4 +1,13 @@
-#if defined(__APPLE__) && defined(__aarch64__)
+#if defined(ACTQL_NATIVE_OWNED_LINUX_X64_PROCESS_DOMAIN)
+/* Explicit process-only profile; the same POSIX implementation below owns
+ * mappings, original loans, current scopes and child-first retirement. */
+#include "owned_linux_x64_process_profile.h"
+#elif defined(__linux__) && defined(__x86_64__) && \
+      defined(ACTQL_NATIVE_LINUX_X64_BUNDLE_ENTRY)
+/* Separate selected command entry; the default process-only exclusion above
+ * remains unchanged. The same owned region and Read implementation follow. */
+#include "owned_linux_x64_bundle_profile.h"
+#elif defined(__APPLE__) && defined(__aarch64__)
 /* Existing selected Darwin provider. */
 #elif defined(__linux__) && defined(__aarch64__) && \
       defined(ACTQL_NATIVE_OWNED_LINUX_PROCESS_DOMAIN)
@@ -608,6 +617,9 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     unlock_capacity(lease);
     return status;
 }
+
+/* Generic, pending and heap census stays with the same physical provider. */
+#include "owned_inventory.inc"
 
 #if defined(__APPLE__)
 #include "owned_rust_heap.inc"

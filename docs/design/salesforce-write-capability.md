@@ -63,6 +63,36 @@ does not acquire mutation authority merely to inspect saved outcomes. It still
 requires current evidence-read admission. Success and unknown are never made
 retryable by issuing a new capability.
 
+The Salesforce-specific Site hooks forward the same managed Effect owner to
+both capture and recovery. Projecting the Host facts must not discard its
+Request/Plan association: the installed row owner checks that original before
+constructing requests or starting credential children. An equal Plan, a copied
+record or the continued existence of saved capture DATA cannot replace it.
+
+## Managed constructor placement
+
+The described-record recipe composes the existing Native constructor
+quantities with the same Host input, HTTP, credential and saved-response
+owners. Body DATA uses the preserving parser; only the existing external-ID
+URI constructor normalizes its target. A path refusal occurs after the
+original API/resource prefix was constructed and does not erase that work.
+
+Returned Describe metadata belongs once to the member capture. Its private
+parser/writer workspace belongs to the Run's existing synchronous control
+frame. The three member Describe HTTP occurrences retain their own bounded
+response and secret material; they do not each retain another metadata parser
+workspace. Targeted writes likewise preserve distinct capture, apply and
+resume target reads. A create does not select a target-read capacity.
+
+Provider capability, footprint and request recheck constructors use that same
+control frame. Request JSON projection occurs after the request child's Native
+constructor returns, so it also needs the control frame before parsing the
+returned value/target. It cannot borrow workspace already dropped by the
+completed child. The recipe retains the Native and Host results while reusing
+only completed synchronous scratch. Failed/async construction keeps its
+original prefix until the existing owner retires it; consumed attempts and
+work are never refunded by this placement.
+
 
 ## Multi-select value projection
 
@@ -155,6 +185,47 @@ comparison work from the observed component count is not a new capacity grant,
 normal numerical profile or claim that the entire whole-phase envelope is funded.
 
 
+## Salesforce managed operation recipe
+
+The installed Effect restores its original Mapping and Environment, then uses
+the existing Source initializer to construct the original driver and its three
+kind recipes. Native/Core recipe methods and their receivers are captured before
+the initializer's reserve/current boundary; only their builder runs inside the
+funded projection. The recipe's operation labels come from the same Describe and
+write implementations. Labels and implementation limits do not issue a grant,
+select a member, supply a row count or replace the current Account/Site check.
+
+The native provider returns one opaque request/target/response/metadata
+constructor quartet and its fixed/row capture quantities. The existing Core
+composer consumes those original values without a Host tuple or Option
+reconstruction. Core's checked Program supplies member and row multiplicity.
+Capture, apply and resume Describe reads are distinct member occurrences;
+target reads are distinct row occurrences for update/upsert. Each write retains
+its own physical occurrence. A create does not acquire target-read authority.
+
+Metadata output and decode workspace stay on the same input-staged Describe
+child. Synchronous constructor scratch for other operations uses the original
+control frame; an awaited HTTP child retains its own response, credential and
+physical cleanup. Returned material remains charged when scratch
+finishes. Failed or invalid asynchronous construction keeps the complete
+original prefix until its existing retirement confirms release.
+
+Cold reconstruction uses the same capture occurrence and the same complete
+request constructor, including Host output parsing. It preserves both named
+Describe and historical whole-Catalog recovery. Whole-Catalog metadata is
+bounded cumulatively by the original raw-byte inventory, rather than multiplying
+one full response by every Resource. The standard Node Store's object bound
+also bounds an authenticated inner recovery wire; that byte bound is not a
+memory allowance or a substitute for parser, Catalog and Preview construction.
+Provider-specific identity admission remains separate from current authority.
+
+The original initializer retains the driver and recipe projection before any
+later Run uses them. Original native refusals propagate before child creation.
+No replacement Ledger, submission, grant, mutation retry or physical ACK follows
+from reading the quantities. Store custody, Unknown, pending cleanup and Saved
+restoration remain with their original owners and must be exercised through the
+matching ordinary installation in addition to focused constructor/caller tests.
+
 ## Original DELETE metadata projection
 
 Salesforce's [Describe result](https://developer.salesforce.com/docs/platform/api/guide/sforce-api-calls-describesobjects-describesobjectresult.html)
@@ -202,3 +273,41 @@ projection retains its existing behavior.
   native identity, scope and current metadata changes, both Site and Local
   bindings, and unchanged existing Catalog identities. These boundaries do not
   establish a provider send, approved Preview, recovery or installed service.
+
+
+### Input-staged constructor backing
+
+The Salesforce recipe retains an initial extent and an immutable maximum for
+its existing member capture and Describe occurrences. The maximum preserves
+all installed codec limits; it is neither an up-front reservation nor a grant.
+The checked Plan resolves both templates with the same original Effect ID and
+row inventory. Its control quote includes the original maximum holders and one
+fixed synchronous quantity frame before any input-dependent growth.
+
+Warm capture excludes cold JSON/Catalog reconstruction. Its generated
+capability inventory follows the original writer's fixed root and selected
+field schema, including the possible external target and bounded reference
+names. This changes constructor quantities without changing writer acceptance.
+The original HTTP child already holds the complete receive window. After its
+exact response arrives, the original native metadata quantity uses that owned
+byte extent and the unchanged logical field/name/depth limits. The same child
+grows before the response reaches provider decode, and keeps that backing
+through its original release.
+
+Cold reconstruction sizes its nested JSON/Preview/Catalog work from the exact
+authenticated retained wire and Preview before the existing native callback.
+The original capture child grows on the same parent, with no new occurrence,
+attempt, transfer, Ledger or cleanup owner. Capacity refusal keeps that child
+and all consumed work. Completing a synchronous constructor returns only its
+workspace; currentness, failed-prefix duties and physical cleanup remain with
+the original owners.
+
+
+Target reads use the same input-staged physical child before their original
+native observation/Host projection. Salesforce's selected outcome writer also
+bounds the embedded typed outcome. The existing common Ledger/Receipt envelope
+adds its original fixed fields to that byte bound; the existing codec refuses
+larger foreign prefixes before parse. Other composed implementations select the
+existing full-control fallback. This preserves the selected writer's complete
+accepted output and the original maximum-codec path, without granting extra
+bytes or treating arbitrary provider messages as a closed outcome.

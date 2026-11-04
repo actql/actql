@@ -10,11 +10,15 @@ import test from 'node:test';
 import {parse} from 'yaml';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
+import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
+import {runFocusedTests} from './test-execution.mjs';
 // This file is selected by the canonical CI lint job. Keep the Native fixture
 // and compiler/linker regressions on that existing execution path.
 import './native-private-host-fixture.test.mjs';
+import './native-runtime-bundle-fixture.test.mjs';
 import './native-sqlite-link-driver.test.mjs';
 import './native-signature-linux-declarations.test.mjs';
+import './native-core-progress.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -59,7 +63,7 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
   import.meta.url), 'utf8'));
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
 
-test('Reader custody injection loads across the selected host helper CPU subtypes', () => {
+test('Reader custody injection loads on the supported Native host profile', () => {
   const checkout = fileURLToPath(new URL('../', import.meta.url));
   const parent = join(checkout, '_build', 'native-reader-helper-tests');
   mkdirSync(parent, {recursive: true});
@@ -69,10 +73,10 @@ test('Reader custody injection loads across the selected host helper CPU subtype
   const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
   const source = join(scratch, 'helper.c');
   writeFileSync(source, 'int main(void) { return 0; }\n');
-  // Apple's compiler/launcher helpers can use arm64e while the Native test
-  // binaries use arm64. Exercise the real loader for both, without changing
-  // the product's admitted Darwin arm64 profile or its injection semantics.
-  const subtypes = process.platform === 'darwin' ? ['arm64', 'arm64e'] : [undefined];
+  // The existing Core profile requires Darwin arm64. Extra injected-library
+  // slices are checked against the actual pinned tools below; a standalone
+  // experimental arm64e executable is not a substitute for those binaries.
+  const subtypes = process.platform === 'darwin' ? ['arm64'] : [undefined];
   for (const subtype of subtypes) {
     const helper = join(scratch, 'helper-' + (subtype ?? process.arch));
     const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
@@ -87,7 +91,493 @@ test('Reader custody injection loads across the selected host helper CPU subtype
     assert.equal(loaded.error, undefined);
     assert.equal(loaded.signal, null, loaded.stderr);
     assert.equal(loaded.status, 0, loaded.stderr);
+    for (const root of [undefined, 'relative-root', '/' + 'x'.repeat(8192)]) {
+      const env = {...process.env, ...injected};
+      if (root === undefined) delete env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT;
+      else env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT = root;
+      const invalid = spawnSync(helper, [], {encoding: 'utf8', timeout: 10000, env});
+      assert.equal(invalid.error, undefined);
+      assert.notEqual(invalid.status, 0, 'invalid constructor scope was treated as an ordinary loaded fixture');
+    }
   }
+});
+
+test('Reader custody hooks retain the startup paths across a fork and later environment changes', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'captured-root-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const original = join(scratch, 'runtime-constructor-pending/local-runtime.json');
+  writeFileSync(original, 'same original read-only fixture');
+  const source = join(scratch, 'captured-root.c');
+  writeFileSync(source, `
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+  assert(argc == 2);
+  int descriptor = open(argv[1], O_RDONLY); assert(descriptor >= 0);
+  assert(setenv("ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT", "/foreign-root", 1) == 0);
+  pid_t child = fork(); assert(child >= 0);
+  if (child == 0) {
+    struct stat status;
+    errno = 0; assert(fstat(descriptor, &status) == -1 && errno == EIO);
+    assert(fcntl(descriptor, F_GETFD) >= 0);
+    errno = 0; assert(close(descriptor) == -1 && errno == EIO);
+    errno = 0; assert(fcntl(descriptor, F_GETFD) == -1 && errno == EBADF);
+    _exit(0);
+  }
+  int status; assert(waitpid(child, &status, 0) == child);
+  assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+  errno = 0; assert(close(descriptor) == -1 && errno == EIO);
+  errno = 0; assert(fcntl(descriptor, F_GETFD) == -1 && errno == EBADF);
+  return 0;
+}
+`);
+  const helper = join(scratch, 'captured-root');
+  const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
+    source, '-o', helper], {encoding: 'utf8', timeout: 30000});
+  assert.equal(built.status, 0, built.stderr);
+  const observed = spawnSync(helper, [original], {encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected}});
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+});
+
+test('Reader custody callbacks preserve the pinned Moon nested Native compiler and executed test', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'nested-moon-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const project = join(scratch, 'project');
+  mkdirSync(join(project, 'src'), {recursive: true});
+  writeFileSync(join(project, 'moon.mod'), 'name = "fixture/reader-custody"\nsource = "src"\npreferred_target = "native"\n');
+  writeFileSync(join(project, 'src/moon.pkg'), '\n');
+  writeFileSync(join(project, 'src/main_test.mbt'),
+    'test "original nested Native compiler" { assert_eq(1, 1) }\n');
+  assert.equal(runFocusedTests('moon', ['--target', 'native', '--deny-warn', '-j', '3', '--verbose'],
+    {cwd: project, env: {...process.env, ...injected}, timeout: 30000,
+      evidenceScratch: join(scratch, 'command-evidence')}), 0);
+});
+
+test('Reader custody callbacks preserve ordinary FDs and exact pending/acked behavior', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'callbacks-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  if (process.platform === 'darwin') {
+    const library = spawnSync('xcrun', ['lipo', '-archs', injected.DYLD_INSERT_LIBRARIES],
+      {encoding: 'utf8', timeout: 10000});
+    assert.equal(library.status, 0, library.stderr);
+    const available = library.stdout.trim().split(/\s+/u);
+    assert(available.includes('arm64') && available.includes('arm64e'));
+    for (const name of ['moon', 'moonc']) {
+      const tool = join(process.env.MOON_HOME, 'bin', name);
+      const image = spawnSync('xcrun', ['lipo', '-archs', tool],
+        {encoding: 'utf8', timeout: 10000});
+      assert.equal(image.status, 0, image.stderr);
+      const required = image.stdout.trim().split(/\s+/u);
+      assert(required.includes('arm64'), `${name}: ${image.stdout}`);
+      assert(required.every(subtype => available.includes(subtype)), `${name}: ${image.stdout}`);
+      process.stdout.write(`# Reader custody pinned ${name} image slices: ${required.join(',')}\n`);
+    }
+  }
+  for (const name of ['ordinary.json', 'runtime-constructor-pending/local-runtime.json',
+    'runtime-constructor-acked/local-runtime.json']) {
+    writeFileSync(join(scratch, name), 'original bounded callback fixture');
+  }
+  const source = join(scratch, 'callback-helper.c');
+  writeFileSync(source, `
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+int main(int argc, char **argv) {
+  assert(argc == 3);
+  int injected = strcmp(argv[2], "injected") == 0;
+  assert(injected || strcmp(argv[2], "ordinary") == 0);
+  const char *names[] = {"ordinary.json", "runtime-constructor-pending/local-runtime.json",
+    "runtime-constructor-acked/local-runtime.json"};
+  for (int i = 0; i < 3; i++) {
+    char path[PATH_MAX];
+    int n = snprintf(path, sizeof(path), "%s/%s", argv[1], names[i]);
+    assert(n > 0 && (size_t)n < sizeof(path));
+    int fd = open(path, O_RDONLY); assert(fd >= 0);
+    struct stat status; errno = 0;
+    int observed = fstat(fd, &status);
+    if (i == 0 || !injected) assert(observed == 0 && S_ISREG(status.st_mode));
+    else assert(observed == -1 && errno == EIO);
+    assert(fcntl(fd, F_GETFD) >= 0);
+    errno = 0;
+    int closed = close(fd);
+    if (i == 1 && injected) assert(closed == -1 && errno == EIO);
+    else assert(closed == 0);
+    errno = 0;
+    assert(fcntl(fd, F_GETFD) == -1 && errno == EBADF);
+  }
+  puts("reader-callbacks:3");
+  return 0;
+}
+`);
+  // The existing Core job requires Darwin arm64. A standalone arm64e user
+  // executable is a different diagnostic, not that product profile. Keep both
+  // injected-library slices for the actual pinned tools, checked above and by
+  // their original entrypoints below; retain every required physical FD check.
+  const subtypes = process.platform === 'darwin' ? ['arm64'] : [undefined];
+  for (const subtype of subtypes) {
+    const helper = join(scratch, 'callback-helper-' + (subtype ?? process.arch));
+    const built = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
+      ...(subtype ? ['-arch', subtype] : []), source, '-o', helper], {
+      encoding: 'utf8', timeout: 30000,
+    });
+    assert.equal(built.error, undefined);
+    assert.equal(built.status, 0, built.stderr);
+    // Distinguish the selected executable ABI from the injected callbacks.
+    // Both runs use these same original files and actual descriptor assertions.
+    const control = spawnSync(helper, [scratch, 'ordinary'], {
+      encoding: 'utf8', timeout: 10000, env: process.env,
+    });
+    writeFileSync(join(scratch, 'callback-control-' + (subtype ?? process.arch) + '.json'),
+      JSON.stringify({subtype: subtype ?? process.arch, status: control.status,
+        signal: control.signal, stdout: control.stdout, stderr: control.stderr}, null, 2) + '\n');
+    assert.equal(control.error, undefined);
+    assert.equal(control.signal, null, `${subtype ?? process.arch} control: ${control.stderr}`);
+    assert.equal(control.status, 0, `${subtype ?? process.arch} control: ${control.stderr}`);
+    assert.equal(control.stdout.trim(), 'reader-callbacks:3');
+    process.stdout.write(`# Reader custody injected callback: ${subtype ?? process.arch}\n`);
+    const observed = spawnSync(helper, [scratch, 'injected'], {encoding: 'utf8', timeout: 10000,
+      env: {...process.env, ...injected}});
+    writeFileSync(join(scratch, 'callback-' + (subtype ?? process.arch) + '.json'),
+      JSON.stringify({status: observed.status, signal: observed.signal,
+        stdout: observed.stdout, stderr: observed.stderr}, null, 2) + '\n');
+    assert.equal(observed.error, undefined);
+    assert.equal(observed.signal, null, `${subtype ?? process.arch}: ${observed.stderr}`);
+    assert.equal(observed.status, 0, `${subtype ?? process.arch}: ${observed.stderr}`);
+    assert.equal(observed.stdout.trim(), 'reader-callbacks:3');
+  }
+});
+
+test('Reader custody callbacks preserve the original empty Moon driver command', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'driver-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const driver = join(scratch, '__generated_driver_for_internal_test.mbt');
+  const metadata = join(scratch, '__internal_test_info.json');
+  const command = ['generate-test-driver', '--output-driver', driver,
+    '--output-metadata', metadata, '--target', 'native', '--pkg-name',
+    'actql/actql', '--driver-kind', 'internal'];
+  const observed = spawnSync('moon', command, {cwd: checkout, encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected}});
+  writeFileSync(join(scratch, 'original-driver-command.json'), JSON.stringify({
+    command: ['moon', ...command], status: observed.status, signal: observed.signal,
+    stdout: observed.stdout, stderr: observed.stderr}, null, 2) + '\n');
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+  assert.ok(readFileSync(driver).length > 0);
+  assert.doesNotThrow(() => JSON.parse(readFileSync(metadata, 'utf8')));
+});
+
+test('Reader custody callbacks preserve the original pinned Moonc loader', () => {
+  const checkout = fileURLToPath(new URL('../', import.meta.url));
+  const parent = join(checkout, '_build', 'native-reader-helper-tests');
+  mkdirSync(parent, {recursive: true});
+  const scratch = realpathSync(mkdtempSync(join(parent, 'compiler-loader-')));
+  const injected = nativeRuntimeReaderCustodyFixture(checkout, scratch);
+  const tool = join(process.env.MOON_HOME, 'bin', 'moonc');
+  const observed = spawnSync(tool, ['-v'], {cwd: checkout, encoding: 'utf8', timeout: 10000,
+    env: {...process.env, ...injected}});
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.signal, null, observed.stderr);
+  assert.equal(observed.status, 0, observed.stderr);
+  assert.match(observed.stdout.trim(), /^v[0-9]+\.[0-9]+\.[0-9]+/u);
+});
+
+test('Native Core full campaign remains selected after callback diagnosis failure', () => {
+  const core = workflow.jobs.core;
+  const start = core.steps.findIndex(step => step.id === 'native-compiler-diagnostic-start');
+  const campaign = core.steps.indexOf(coreStep);
+  assert.deepEqual(core.steps.slice(start + 1, campaign).map(step => step.name),
+    ['Test actual Native Reader callbacks and original empty compiler driver']);
+  assert.equal(core['continue-on-error'], undefined);
+  assert.equal(core.steps[start + 1]['continue-on-error'], undefined);
+  assert.equal(coreStep['continue-on-error'], undefined);
+  assert.equal(typeof coreStep.if, 'string');
+  const expression = coreStep.if.trim().slice(3, -2);
+  for (const [target, previousSuccess, startOutcome, cancelled, expected] of [
+    ['native', true, 'success', false, true],
+    ['native', false, 'success', false, true],
+    ['native', false, 'skipped', false, false],
+    ['native', false, 'failure', false, false],
+    ['native', false, 'success', true, false],
+    ['js', true, 'skipped', false, true],
+    ['js', false, 'skipped', false, false],
+    ['wasm', true, 'skipped', false, true],
+    ['wasm', false, 'skipped', false, false],
+  ]) {
+    const selected = runInNewContext(expression, {matrix: {target},
+      steps: {'native-compiler-diagnostic-start': {outcome: startOutcome}},
+      success: () => previousSuccess && !cancelled, cancelled: () => cancelled},
+    {timeout: 100});
+    assert.equal(selected, expected, `${target}/${previousSuccess}/${startOutcome}/${cancelled}`);
+  }
+});
+
+test('Compiler stop diagnostic requires the actual failed blackbox input', () => {
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  const line = 'failed: /pinned/bin/moon generate-test-driver --output-driver ' +
+    '/checkout/_build/native/debug/test/__generated_driver_for_blackbox_test.mbt ' +
+    '--output-metadata /checkout/_build/native/debug/test/__blackbox_test_info.json ' +
+    '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox';
+  driver.write(line.replace('blackbox', 'internal') + '\n');
+  assert.equal(driver.observed, false);
+  driver.write(line.slice(0, 30));
+  driver.write('unrelated partial stdout', 'stdout');
+  driver.write(line.slice(30) + '\n');
+  assert.equal(driver.observed, true);
+});
+
+test('Compiler stop diagnostic refuses unobserved failure without a child', () => {
+  let calls = 0;
+  const result = diagnoseFailedCoreDriver({driver: failedCoreDriver('/checkout', '/pinned')},
+    () => { calls++; });
+  assert.equal(calls, 0);
+  assert.deepEqual(result, {attempted: false, cause: 'original-failure-not-observed'});
+});
+
+test('Compiler stop diagnostic preserves inputs and private environment with fresh outputs', t => {
+  const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-stop-control-'));
+  t.after(() => rmSync(namespace, {recursive: true, force: true}));
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  driver.write('failed: /pinned/bin/moon generate-test-driver --output-driver ' +
+    '/checkout/_build/native/debug/test/__generated_driver_for_blackbox_test.mbt ' +
+    '--output-metadata /checkout/_build/native/debug/test/__blackbox_test_info.json ' +
+    '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox\n');
+  const env = {PATH: '/pinned/bin', DYLD_INSERT_LIBRARIES: '/original/injection.dylib',
+    ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: '/original/root', TOKEN: 'PRIVATE_TOKEN'};
+  let calls = 0;
+  const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace, env},
+    (command, args, options) => {
+      calls++;
+      if (command === driver.tool) {
+        assert.deepEqual(options.env, env);
+        assert.equal(options.cwd, '/checkout');
+        assert.equal(options.stdio, 'ignore');
+        assert.equal(options.timeout, 15000);
+        assert.deepEqual(args.filter((_, i) => i !== 2 && i !== 4),
+          driver.args.filter((_, i) => i !== 2 && i !== 4));
+        assert.equal(args[2], args[4].replace('serial-metadata.json', 'serial-driver.mbt'));
+        return {status: 0, signal: null};
+      }
+      assert.equal(command, 'xcrun');
+      assert.equal(options.timeout, 60000);
+      assert.equal(options.env.DYLD_INSERT_LIBRARIES, undefined);
+      const program = JSON.parse(options.input.slice('script exec('.length,
+        options.input.indexOf(')\nquit')));
+      const encoded = /SetEnvironmentEntries\(json.loads\(base64.b64decode\("([^"]+)"/u.exec(program)[1];
+      assert.deepEqual(JSON.parse(Buffer.from(encoded, 'base64')), Object.entries(env)
+        .map(([key, value]) => `${key}=${value}`));
+      const actual = args.slice(args.indexOf('--') + 2);
+      assert.deepEqual(actual.filter((_, i) => i !== 2 && i !== 4),
+        ['generate-test-driver', '--output-driver', '--output-metadata',
+          '/checkout/src/environment_test.mbt', '--target', 'native', '--pkg-name',
+          'actql/actql', '--driver-kind', 'blackbox']);
+      assert(actual[2].startsWith(namespace + '/compiler-stop-'));
+      assert(actual[4].startsWith(namespace + '/compiler-stop-'));
+      assert(!args.join(' ').includes('PRIVATE_TOKEN'));
+      return {status: 0, signal: null, stdout: 'PRIVATE_HEADER\nACTQL_COMPILER_STOP ' +
+        JSON.stringify({attempted: true, cause: 'SIGTRAP', cleanup: 'exited',
+          frames: [{module: 'dyld', symbol: 'observed_symbol', registers: 'PRIVATE_REGISTERS'}],
+          environment: 'PRIVATE_TOKEN'}) + '\n', stderr: 'PRIVATE_STDERR'};
+    });
+  assert.equal(calls, 2);
+  assert.equal(result.cause, 'SIGTRAP');
+  assert.deepEqual(result.serial, {attempted: true, exitStatus: 0, signal: null,
+    timedOut: false, errorCode: null});
+  assert.deepEqual(result.frames, [{module: 'dyld', symbol: 'observed_symbol'}]);
+  assert(!JSON.stringify(result).includes('PRIVATE_'));
+});
+
+test('Compiler stop diagnostic validates launch input and distinguishes inferior exit from cleanup', t => {
+  const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-launch-control-'));
+  t.after(() => rmSync(namespace, {recursive: true, force: true}));
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  driver.write('failed: ' + [driver.tool, ...driver.args].join(' ') + '\n');
+  for (const scenario of ['exit', 'arguments-mismatch', 'image-mismatch', 'stopped',
+    'stopped-environment-mismatch', 'stopped-environment-unobserved', 'stopped-reader-unobserved']) {
+    const env = {TOKEN: 'PRIVATE_TOKEN', DYLD_INSERT_LIBRARIES: '/original/runtime-reader-custody.dylib',
+      ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: '/original/root'};
+    const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace,
+      env}, (command, args, options) => {
+      if (command === driver.tool) return scenario === 'exit'
+        ? {status: null, signal: 'SIGTRAP'} : {status: 0, signal: null};
+      const program = JSON.parse(options.input.slice('script exec('.length,
+        options.input.indexOf(')\nquit')));
+      const expected = args.slice(args.indexOf('--') + 1);
+      // Execute the actual embedded program with an explicit LLDB API port.
+      // This launches no debugger or compiler and reads no process memory.
+      const port = `import sys, json, types, os
+payload = json.load(sys.stdin)
+scenario = payload["scenario"]
+expected = payload["expected"]
+class FileSpec:
+    def __init__(self, path): self.path = path
+    def GetDirectory(self): return os.path.dirname(self.path)
+    def GetFilename(self): return os.path.basename(self.path)
+class LaunchInfo:
+    def __init__(self): self.args = ["stale-default"]
+    def SetArguments(self, args, append):
+        assert append is False
+        self.args = list(args)
+    def SetExecutableFile(self, spec, first):
+        assert first is False
+        self.exe = spec
+    def GetNumArguments(self): return len(self.args)
+    def GetArgumentAtIndex(self, i):
+        return "wrong" if scenario == "arguments-mismatch" and i == 1 else self.args[i]
+    def GetExecutableFile(self): return self.exe
+    def SetEnvironmentEntries(self, entries, append):
+        assert entries == payload["environment"] and append is False
+        self.env = entries
+    def GetNumEnvironmentEntries(self): return len(self.env)
+    def GetEnvironmentEntryAtIndex(self, index): return self.env[index]
+    def SetWorkingDirectory(self, path): assert path == "/checkout"
+    def GetLaunchFlags(self): return 7
+    def SetLaunchFlags(self, flags): assert flags == 4
+    def SetDetachOnError(self, value): assert value is False
+    def AddSuppressFileAction(self, fd, read, write): assert fd in (1, 2) and not read and write
+class Error:
+    def Success(self): return True
+class ExpressionError:
+    def Success(self): return scenario != "stopped-environment-unobserved"
+class ExpressionOptions:
+    def SetTimeoutInMicroSeconds(self, value): assert value == 1000000
+    def SetIgnoreBreakpoints(self, value): assert value is True
+    def SetUnwindOnError(self, value): assert value is True
+    def SetLanguage(self, value): assert value == 17
+class Value:
+    def __init__(self, expression): self.expression = expression
+    def IsValid(self): return True
+    def GetError(self): return ExpressionError()
+    def GetValueAsUnsigned(self):
+        return 0 if scenario == "stopped-environment-mismatch" and 'getenv("DYLD_INSERT_LIBRARIES")' in self.expression else 1
+class Module:
+    def GetFileSpec(self): return FileSpec("/original/runtime-reader-custody.dylib")
+class Frame:
+    def IsValid(self): return False
+class Thread:
+    def GetStopDescription(self, size): return "signal SIGTRAP PRIVATE_DETAIL"
+    def GetFrameAtIndex(self, index): return Frame()
+class Process:
+    def __init__(self, valid=False):
+        self.valid = valid
+        self.state = 1 if scenario.startswith("stopped") else 3
+    def IsValid(self): return self.valid
+    def GetState(self): return self.state
+    def GetExitStatus(self):
+        assert self.state == 3
+        return 43 if scenario == "exit" else 9
+    def GetSelectedThread(self): return Thread()
+    def Kill(self):
+        self.state = 3
+        return Error()
+class Target:
+    launches = 0
+    def GetLaunchInfo(self): return LaunchInfo()
+    def GetExecutable(self):
+        return FileSpec("/foreign/moon" if scenario == "image-mismatch" else expected[0])
+    def Launch(self, info, error):
+        assert info.args == expected and info.exe.path == expected[0]
+        self.launches += 1
+        return Process(True)
+    def GetNumModules(self): return 1
+    def GetModuleAtIndex(self, index): return Module()
+    def IsLoaded(self, module): return scenario != "stopped-reader-unobserved"
+    def EvaluateExpression(self, expression, options):
+        assert 'getenv(' in expression and 'PRIVATE_TOKEN' not in expression
+        return Value(expression)
+target = Target()
+sys.modules["lldb"] = types.SimpleNamespace(
+    debugger=types.SimpleNamespace(GetSelectedTarget=lambda: target, SetAsync=lambda value: None),
+    SBFileSpec=FileSpec, SBError=Error, SBProcess=Process, SBExpressionOptions=ExpressionOptions,
+    eLanguageTypeC=17,
+    eLaunchFlagDisableASLR=1, eLaunchFlagStopAtEntry=2,
+    eStateStopped=1, eStateCrashed=2, eStateExited=3, eStateDetached=4, eStateInvalid=5)
+exec(payload["program"])
+assert target.launches == (0 if scenario in ("arguments-mismatch", "image-mismatch") else 1)
+`;
+      const control = spawnSync('python3', ['-c', port], {encoding: 'utf8', timeout: 10000,
+        input: JSON.stringify({program, expected, scenario,
+          environment: Object.entries(env).map(([key, value]) => key + '=' + value)})});
+      assert.equal(control.status, 0, control.stderr);
+      return control;
+    });
+    assert.equal(result.launchArgumentsMatch, scenario !== 'arguments-mismatch');
+    assert.equal(result.launchImageMatch, scenario !== 'image-mismatch');
+    assert.equal(result.launchSucceeded, !['arguments-mismatch', 'image-mismatch'].includes(scenario));
+    assert.equal(result.inferiorExitStatus, scenario === 'exit' ? 43 : null);
+    assert.equal(result.serial.signal, scenario === 'exit' ? 'SIGTRAP' : null);
+    assert.equal(result.serial.exitStatus, scenario === 'exit' ? null : 0);
+    assert.equal(result.terminatedByDiagnostic, scenario.startsWith('stopped'));
+    assert.equal(result.cause, scenario.startsWith('stopped') ? 'SIGTRAP' : 'unobserved');
+    assert.deepEqual(result.launchEnvironmentMatches, {DYLD_INSERT_LIBRARIES: true,
+      LD_PRELOAD: true, ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: true});
+    const observed = scenario.startsWith('stopped') && scenario !== 'stopped-environment-unobserved';
+    assert.deepEqual(result.targetEnvironmentMatches, {
+      DYLD_INSERT_LIBRARIES: observed ? scenario !== 'stopped-environment-mismatch' : null,
+      LD_PRELOAD: observed ? true : null,
+      ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT: observed ? true : null});
+    assert.equal(result.readerLibraryLoaded,
+      scenario.startsWith('stopped') && scenario !== 'stopped-reader-unobserved' ? true : null);
+    assert(!JSON.stringify(result).includes('PRIVATE_'));
+  }
+});
+
+test('Compiler stop diagnostic timeout stays unobserved without raw debugger payload', t => {
+  const namespace = mkdtempSync(join(tmpdir(), 'actql-compiler-timeout-control-'));
+  t.after(() => rmSync(namespace, {recursive: true, force: true}));
+  const driver = failedCoreDriver('/checkout', '/pinned');
+  driver.write('failed: /pinned/bin/moon generate-test-driver --output-driver ' +
+    '/checkout/_build/native/debug/test/__generated_driver_for_blackbox_test.mbt ' +
+    '--output-metadata /checkout/_build/native/debug/test/__blackbox_test_info.json ' +
+    '/checkout/src/environment_test.mbt --target native --pkg-name actql/actql --driver-kind blackbox\n');
+  const result = diagnoseFailedCoreDriver({driver, root: '/checkout', namespace,
+    env: {TOKEN: 'PRIVATE_TOKEN'}}, (command, args, options) => {
+    if (command === driver.tool) return {status: null, signal: 'SIGKILL', error: {code: 'ETIMEDOUT', message: 'PRIVATE_SERIAL'}};
+    const program = JSON.parse(options.input.slice('script exec('.length,
+      options.input.indexOf(')\nquit')));
+    const syntax = spawnSync('python3', ['-c', 'import ast,sys; ast.parse(sys.stdin.read())'],
+      {input: program, encoding: 'utf8', timeout: 10000});
+    assert.equal(syntax.status, 0, syntax.stderr);
+    assert.equal(options.timeout, 60000);
+    assert(options.input.includes('time.monotonic() + 52'));
+    assert(options.input.includes('process.Kill()'));
+    assert(args.includes('--no-lldbinit'));
+    return {status: null, signal: 'SIGKILL', error: {code: 'ETIMEDOUT'},
+      stdout: 'PRIVATE_MEMORY', stderr: 'PRIVATE_ENV'};
+  });
+  assert.equal(result.cause, 'unobserved');
+  assert.equal(result.cleanup, 'unobserved');
+  assert.equal(result.timedOut, true);
+  assert.deepEqual(result.serial, {attempted: true, exitStatus: null, signal: 'SIGKILL',
+    timedOut: true, errorCode: 'ETIMEDOUT'});
+  assert(!JSON.stringify(result).includes('PRIVATE_'));
 });
 
 test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
@@ -127,7 +617,7 @@ test('Native Core selects the admitted Darwin arm64 runner without dropping targ
   // The runner keeps both the focused prerequisite and the complete Native
   // campaign. The existing harness selects the original platform libraries.
   assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -p platform_native\/trusted_clock/u);
-  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -j/u);
+  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn --release --strip -j/u);
   assert.doesNotMatch(coreStep.run, /ACTQL_TEST_NATIVE_SQLITE_LIBRARY/u);
 });
 
@@ -201,6 +691,10 @@ const {writeFileSync, existsSync, statSync, readlinkSync} = require('node:fs');
 const {createHash, verify} = require('node:crypto');
 const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
+if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
+  require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
+    JSON.stringify(process.argv.slice(2)) + '\\n');
+}
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
      'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
     process.argv.includes('--index')) {
@@ -492,4 +986,138 @@ test('native journal inspection declares required interfaces', () => {
   assert.ifError(result.error);
   assert.equal(result.signal, null, result.stderr);
   assert.equal(result.status, 0, result.stderr);
+});
+
+
+test('full Native Core selects release code generation while retaining the complete strict serial selection and failures', t => {
+  const root=mkdtempSync(join(tmpdir(),'actql-core-strip-routing-'));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const bin=join(root,'bin');mkdirSync(bin);
+  for(const name of ['node','moon']){
+    const command=join(bin,name);
+    writeFileSync(command,`#!${process.execPath}
+console.log(JSON.stringify({args:process.argv.slice(2),native:process.env.MOONBIT_NEW_NATIVE}));
+if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))process.exit(7);
+`);
+    chmodSync(command,0o755);
+  }
+  writeFileSync(join(bin,'getconf'),'#!/bin/sh\nprintf "3\\n"\n');
+  chmodSync(join(bin,'getconf'),0o755);
+  for(const target of ['native','js','wasm']){
+    const command=coreStep.run.replaceAll('${{ matrix.target }}',target);
+    const result=spawnSync('bash',['-eo','pipefail','-c',command],{
+      cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH,MOONBIT_NEW_NATIVE:'1'},
+    });
+    assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.status,0,result.stderr);
+    const records=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
+    const calls=records.map(record=>record.args);
+    if(target==='native'){
+      assert.deepEqual(calls,[
+        ['scripts/test-native-core.mjs','--deny-warn','-p','platform_native/trusted_clock'],
+        ['scripts/test-native-core.mjs','--deny-warn','--release','--strip','-j','1','--verbose'],
+      ]);
+      assert.deepEqual(records.map(record=>record.native),['1','0']);
+      const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
+        cwd:root,encoding:'utf8',timeout:5000,
+        env:{...process.env,PATH:bin+':'+process.env.PATH,ACTQL_FIXTURE_FAIL_FULL:'1'},
+      });
+      assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
+    }else{
+      assert.equal(calls.length,target==='js'?1:4);
+      assert(records.every(record=>record.native==='1'));
+      assert(calls.every(args=>!args.includes('--strip')));
+      assert.deepEqual(calls[0],['test','--target',target,'--deny-warn','-j','3']);
+    }
+  }
+});
+
+test('Native target child keeps a finite cold Core budget without widening ordinary fixture timeouts', () => {
+  const source = readFileSync(new URL('test-native-salesforce-effect-preview.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("child = spawn(process.execPath, ['--input-type=module', '-e',");
+  const end = source.indexOf('\n  if (compilerDriver)', start);
+  assert(start >= 0 && end > start);
+  const moonArgs = ['--target', 'native', '--deny-warn', '--release', '--strip', '-j', '1', '--verbose'];
+  for (const [coreArgs, originalLocalReview, timeout] of [
+    [undefined, false, 180000],
+    [undefined, true, 600000],
+    [moonArgs.slice(2), false, 3600000],
+  ]) {
+    let invocation;
+    runInNewContext('let child;\n' + source.slice(start, end), {
+      process: {execPath: process.execPath}, coreArgs, originalLocalReview,
+      moonArgs, root: '/original/owned/fixture', testEnv: {}, compilerDriver: false,
+      spawn(command, args) { invocation = {command, args: Array.from(args)}; return {}; },
+    });
+    assert.equal(invocation.command, process.execPath);
+    assert.deepEqual(invocation.args.slice(0, 2), ['--input-type=module', '-e']);
+    const prefix = "import {runFocusedTests} from './scripts/test-execution.mjs'; ";
+    assert(invocation.args[2].startsWith(prefix));
+    const execution = {};
+    runInNewContext(invocation.args[2].slice(prefix.length), {
+      process: execution,
+      runFocusedTests(kind, args, options) {
+        assert.equal(kind, 'moon');
+        assert.deepEqual(Array.from(args), moonArgs);
+        assert.equal(options.timeout, timeout);
+        assert.equal(options.evidenceScratch, '/original/owned/fixture');
+        return 7;
+      },
+    });
+    assert.equal(execution.exitCode, 7, 'the original child failure must propagate');
+  }
+});
+
+
+test('Native checkpoint producers retain the selected optimization and debug mode before the same full Core command', () => {
+  const source=readFileSync(new URL('native-client-checkpoint-fixture.mjs',import.meta.url),'utf8');
+  const before=source.indexOf('function originalReference(');
+  const after=source.indexOf('export function nativeClientCheckpointFixture(',before);
+  assert(before>=0&&after>before);
+  for(const strip of [false,true]) for(const denyWarn of [false,true]) for(const release of [false,true]){
+    const calls=[];
+    const original=runInNewContext('('+source.slice(before,after).trim()+')',{
+      spawnSync(node,args,options){
+        assert.equal(node,process.execPath);assert.equal(options.cwd,'/original/root');
+        const prefix='import {runFocusedTests} from "./scripts/test-execution.mjs"; ';
+        assert(args[2].startsWith(prefix));
+        const execution={argv:['node',...args.slice(3)],cwd:()=>'/original/root'};
+        runInNewContext(args[2].slice(prefix.length),{process:execution,
+          runFocusedTests(kind,argv,settings){assert.equal(kind,'moon');
+            calls.push(Array.from(argv));assert.equal(settings.cwd,'/original/root');return 0;}});
+        assert.equal(execution.exitCode,0);
+        return {status:0,signal:null,stdout:'ACTQL_CLIENT_CHECKPOINT original-reference\n',stderr:''};
+      },process:{execPath:process.execPath,stdout:{write(){}},stderr:{write(){}}},
+    });
+    assert.equal(original('/original/root',{},'original_wbtest.mbt',strip,denyWarn,release),'original-reference');
+    assert.deepEqual(calls,[['--target','native',...(strip?['--strip']:[]),
+      ...(denyWarn?['--deny-warn']:[]),...(release?['--release']:[]),'original_wbtest.mbt','--index','0']]);
+  }
+});
+
+test('strict Native checkpoint producers share the full release child compilation mode without changing its selection', t => {
+  const f = fixture(t);
+  const commands = join(f.root, 'native-commands.jsonl');
+  const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
+    '--deny-warn', '--release', '--strip', '-j', '3', '--verbose'], {
+    cwd: f.checkout, encoding: 'utf8', timeout: 10000,
+    env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands},
+  });
+  assert.ifError(result.error);
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
+  const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(calls.length, 3);
+  const compilation = args => args.filter(arg =>
+    ['--target', 'native', '--strip', '--deny-warn', '--release'].includes(arg)).sort();
+  assert.deepEqual(calls[2], ['test', '--target', 'native',
+    '--deny-warn', '--release', '--strip', '-j', '3', '--verbose']);
+  for (const [index, file] of [
+    'src/platform_native/client_host/run_checkpoint_wbtest.mbt',
+    'src/platform_native/client_host/run_effect_receipt_wbtest.mbt',
+  ].entries()) {
+    assert.deepEqual(compilation(calls[index]), compilation(calls[2]),
+      'original producer must not invalidate the full child compilation cache');
+    assert.deepEqual(calls[index].slice(-3), [file, '--index', '0']);
+  }
+  f.verifyExternal();
 });

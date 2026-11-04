@@ -4,7 +4,7 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {projectInferEvidence} from './infer-evaluation-evidence.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {publishCompletedEffectFreeRun} from '../host-common/completed-run-publication.mjs';
-import {openNodeInferOperation} from './infer-operation.mjs';
+import {openNodeInferOperation, retireNodeInferOriginalRead} from './infer-operation.mjs';
 import {inferTaskPublicationPlan} from './local-values-plan.mjs';
 import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
@@ -12,6 +12,84 @@ import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalCurrentStateCodec,
   selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
+
+// Borrow the existing Request's source-free Model Plan and Scope. This is the
+// same installed Run; configured providers keep their current/claim/stop owner.
+function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model) {
+  const managed = model?.managed, scope = model?.scope, component = model?.component;
+  const original = managed?.value, request = managed?.request, graph = selected.graph,
+    compiled = plan.compiled, definition = plan.runDefinition, budget = model?.budget,
+    publication = model?.publicationCapacity;
+  const current = () => {
+    if (model === null || typeof model !== 'object' || model.closed || model.scopeFinished ||
+        model.prepared !== prepared || model.selection !== selected || model.graph !== graph || selected.graph !== graph ||
+        model.control !== control || model.compiled !== compiled || plan.compiled !== compiled ||
+        model.runDefinition !== definition || plan.runDefinition !== definition ||
+        scope === undefined || model.scope !== scope || model.budget !== budget ||
+        component === undefined || model.component !== component ||
+        typeof component.bindOriginal !== 'function' ||
+        typeof publication !== 'function' || model.publicationCapacity !== publication ||
+        model.originalReadInstallation !== undefined || model.managed !== managed ||
+        managed?.closed || managed?.model !== model || original === undefined ||
+        managed.value !== original || managed.request !== request ||
+        managed.runtime !== moon || managed.prepared !== prepared) {
+      throw new TypeError('InvalidInstalledRequestModelPreparation');
+    }
+  };
+  current();
+  if (model.taken || model.readAttempted || model.read !== undefined) {
+    throw new TypeError('InvalidInstalledRequestModelPreparation');
+  }
+  const publicationCapacity = () => {
+    current();
+    return Reflect.apply(publication, model, []);
+  };
+  return Object.freeze({selection: selected, control, compiled: plan.compiled, component,
+    runDefinition: plan.runDefinition, scope, publicationCapacity,
+    readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
+    modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
+    retain() {
+      current();
+      if (model.taken || model.readAttempted) throw new TypeError('InvalidInstalledRequestModelPreparation');
+      model.taken = true;
+    },
+    openSourceFreeHost(registry, values, fragment, ordered, providers) {
+      current();
+      if (!model.taken || model.hostAttempted || moon.clientProgramAcquisitionCount(prepared) !== 0) {
+        throw new TypeError('InvalidInstalledRequestModelPreparation');
+      }
+      model.hostAttempted = true;
+      return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
+        original, prepared, request, registry, values, fragment, ordered, providers));
+    },
+    prepareRead() {
+      current();
+      if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;
+      if (!model.taken || model.readAttempted) throw new TypeError('InvalidInstalledRequestModelPreparation');
+      model.readAttempted = true;
+      try {
+        model.read = control.prepareCheckedClientInferOriginalRead(plan.compiled,
+          plan.runDefinition, selected.graph, scope, model.budget);
+        return Object.freeze({control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+          scope, read: model.read, publicationCapacity,
+          readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
+          modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
+      } catch (cause) {model.readFailure = cause; throw cause;}
+    },
+    async retire() {
+      if (model.closed && model.scopeFinished) return true;
+      current();
+      retireNodeInferOriginalRead(model);
+      model.read = undefined;
+      if (control.finishCheckedClientInferOriginalReadScope(plan.compiled,
+        plan.runDefinition, selected.graph, scope, true) !== true) return false;
+      model.scopeFinished = true;
+      // The existing Host registry still owns Run/parent retirement and alias
+      // severing. Finishing this Scope does not report whole-Host cleanup.
+      model.closed = true;
+      return true;
+    }});
+}
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
@@ -26,9 +104,19 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
-    if (selected.localMock) {
+    const sourceFreeModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
+      selected.occurrence !== undefined && selected.components === undefined &&
+      selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) === 0;
+    if (selected.localMock || sourceFreeModel) {
       const sourceFree = moon.clientProgramAcquisitionCount(preparedProgram) === 0;
-      if (sourceFree && originalPreparation === undefined &&
+      if (sourceFreeModel) {
+        if (originalPreparation !== undefined || acquiredInfer !== undefined ||
+            typeof prepareOriginalModelRun !== 'function') {
+          throw new TypeError('InvalidInstalledRequestModelPreparation');
+        }
+        originalPreparation = sourceFreeModelPreparation(moon, control, preparedProgram, plan, selected,
+          prepareOriginalModelRun(preparedProgram, plan, selected));
+      } else if (sourceFree && originalPreparation === undefined &&
           typeof prepareOriginalMockRun === 'function') {
         originalPreparation = prepareOriginalMockRun(preparedProgram, plan);
       }
@@ -44,6 +132,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations, originalPreparation});
+    }
+    if (selected.restoredRun !== undefined) {
+      // The restored typed owner is the same Journal-selected compilation,
+      // not a fresh ordinary Request module or an unbacked legacy admission.
+      control.checkRestoredClientInferRunOwner(selected.restoredRun, preparedProgram);
+      if (selected.restoredRun.compiled !== plan.compiled || selected.restoredRun.graph !== selected.graph ||
+          selected.restoredRun.runDefinition !== plan.runDefinition || existingModel === undefined) {
+        throw new TypeError('ForeignRestoredInferOriginal');
+      }
     }
     const originalInstallation = selected.originalReadInstallation;
     const requestComposed = originalInstallation !== undefined && acquiredInfer !== undefined &&

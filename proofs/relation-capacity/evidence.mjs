@@ -10,7 +10,7 @@ export const modelObservationUnits = (output, exit) => chain.modelObservationUni
 export const fixture = 'src/query_integration/relation_chain_capacity_wbtest.mbt';
 export const identityFixture = 'src/execution_relation/relation_capacity_identity_wbtest.mbt';
 const inventoryPath = 'proofs/relation-capacity/allocations.json';
-export const inventoryDigest = '7803891e6bf94d186f30d4ccd2d3547cb9d507978ee63b3638494a20421de9fc';
+export const inventoryDigest = '4cae7f2fbe916af6602c90f9b5bd13530e8f8a5e4a06511fc1b4fa623c7c5be6';
 const clone = x => JSON.parse(JSON.stringify(x));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const reviewed = Object.freeze(chain.bindings().map(b => Object.freeze({
@@ -53,16 +53,25 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
   }
   // Bind the current retained quote inside its actual selected constructor.
   // These are logical input dimensions, not a measured physical byte census.
-  const capacity = chain.checkedInputFunction(chain.executableMoonSource(
-    read('src/execution_relation/execution_capacity.mbt').toString('utf8')),
-  'generated_sequence_capacity');
+  const capacitySource = chain.executableMoonSource(
+    read('src/execution_relation/execution_capacity.mbt').toString('utf8'));
+  const generic = chain.checkedInputFunction(capacitySource, 'generated_sequence_capacity');
+  // The generic route still supplies BOTH original retained dimensions and
+  // its separate metadata workspace. It cannot borrow bounded-child roots or
+  // the bounded-only leaf recipe used by other constructors.
+  const delegation = '{generated_sequence_capacity_with_roots(' +
+    'generated,limits,measurement,' +
+    'limits.rows.retained_entries.to_int64()+limits.rows.metadata_entries.to_int64(),' +
+    'limits.rows.metadata_entries.to_int64(),false,)}';
+  const capacity = chain.checkedInputFunction(capacitySource, 'generated_sequence_capacity_with_roots');
   const retainedQuote = 'guardexecution_capacity_inventory_bytes([' +
-    '{unit:CursorRootSlots,count:rows.retained_entries.to_int64(),copies:1,},' +
-    '{unit:CursorRootSlots,count:rows.metadata_entries.to_int64(),copies:1,},' +
+    '{unit:CursorRootSlots,count:retained_roots,copies:1,},' +
     '{unit:ValueNodeSlots,count:rows.output_values.max_nodes.to_int64(),copies:1,},' +
     '{unit:DecodedTextBytes,count:rows.output_values.max_text_bytes.to_int64(),copies:1,},' +
     '])isSome(retained)&&';
-  if (!capacity.includes(retainedQuote) ||
+  if (generic !== delegation || !capacity.includes(retainedQuote) ||
+      !capacity.includes('{unit:CursorRootSlots,count:metadata_scratch,copies:1,},') ||
+      !capacity.includes('letleaf=ifbounded_single{bounded_leaf_fragment_capacity(generated,context,limits)}else{None}') ||
       !capacity.includes('Some({retained_bytes:retained,execution_bytes:execution,})')) {
     throw new Error('Missing current retained capacity quote connection');
   }

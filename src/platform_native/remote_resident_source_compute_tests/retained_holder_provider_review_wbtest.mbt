@@ -371,8 +371,9 @@ fn retained_holder_provider_review(
   |> ignore
   assert_eq(capture_progress.length(), progress_count)
   println("native-original-review: captured completion confirmed")
-  // The row-export budget (100 entries) cannot cover whole evidence buffers.
-  // Keep that rejection and use the independently installed capture budget.
+  // The streaming issuer no longer retains whole evidence buffers. Refuse
+  // zero workspace before its fixed owner slots, without assuming the row
+  // export's separate 100-entry bound must fail at an old internal phase.
   assert_eq(policy.export_limits.max_result_workspace_entries, 100)
   assert_true(
     consumer.capture_effect_run(
@@ -391,9 +392,9 @@ fn retained_holder_provider_review(
       policy.preview_limits.max_wire_bytes,
       policy.preview_limits.max_nodes,
       policy.preview_limits.max_depth,
-      policy.export_limits.max_result_workspace_entries,
+      0,
     )
-    is Err(Capture(CaptureIssuanceChain(EvidenceRoot(ChainEncoding)))),
+    is Err(Capture(CaptureIssuanceEncoding)),
   )
   mark("small-budget-refused")
   assert_eq(complete.preview.keys.length(), 1)

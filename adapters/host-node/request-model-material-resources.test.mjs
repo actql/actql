@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {configuration} from '../../scripts/fixtures/installed-infer-fixture.mjs';
 import {readInstalledModelExecution, readInstalledModelDependencies,
   admitInstalledModelProviderBinding} from './installed-model.mjs';
 
@@ -8,6 +10,37 @@ import {readInstalledModelExecution, readInstalledModelDependencies,
 const frozen = (executions, bodies) => Object.freeze({environmentWire: '{}',
   executionContracts: Object.freeze(executions.map(Object.freeze)),
   dependencyBodies: Object.freeze(bodies.map(Object.freeze))});
+
+test('packed Model fixture supplies its original immutable material envelope to the funded reader', () => {
+  const base = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url)));
+  const {installation, taskCid} = configuration(base);
+  const entry = installation.executionContracts[0], prepared = {}, calls = [];
+  const original = new Error('original Core execution reader');
+  const moon = {
+    clientProgramSelectedInferStep(value) {assert.equal(value, prepared); return 3;},
+    clientProgramInferModelTaskCid(value, step) {
+      assert.equal(value, prepared); assert.equal(step, 3); return taskCid;
+    },
+    clientProgramReadInferModelExecution(value, step, wire, cid) {
+      assert.equal(value, prepared); assert.equal(step, 3);
+      assert.equal(wire, entry.bodyWire); assert.equal(cid, entry.cid);
+      calls.push('original reader'); throw original;
+    },
+  };
+  assert.throws(() => readInstalledModelExecution(moon, prepared, installation, undefined,
+    (count, wireAt, containers) => {
+      assert.equal(count, 1);
+      assert.equal(containers, installation.executionContracts.length + installation.dependencyBodies.length);
+      assert.equal(wireAt(0), entry.bodyWire);
+      calls.push('same Request reservation');
+    }), cause => cause === original);
+  assert.deepEqual(calls, ['same Request reservation', 'original reader']);
+  assert(Object.isFrozen(installation));
+  for (const entries of [installation.executionContracts, installation.dependencyBodies]) {
+    assert(Object.isFrozen(entries));
+    assert(entries.every(Object.isFrozen));
+  }
+});
 
 test('Model execution reservation precedes original reader and preserves captured method receiver and wire', () => {
   const prepared = {}, occurrence = {}, primary = new Error('original native execution');

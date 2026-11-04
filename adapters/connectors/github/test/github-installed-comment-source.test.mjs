@@ -23,6 +23,33 @@ const read = path => readFile(new URL(path, repo), 'utf8');
 const comment = (id, body) => ({id, nodeId: `IC_${id}`, author: null, body,
   createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z'});
 
+function diagnoseOriginalFailure(t, cause) {
+  // Report only bounded codes and compiler tags. Inputs, credential material
+  // and retained cleanup owners stay with the original failure.
+  const pending = [cause], seen = new Set(), codes = [];
+  try {
+    while (pending.length && seen.size < 12) {
+      const value = pending.shift();
+      if (value === null || typeof value !== 'object' || seen.has(value)) continue;
+      seen.add(value);
+      const fields = Object.getOwnPropertyDescriptors(value);
+      const constructor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(value) ?? {}, 'constructor')?.value;
+      const code = fields.code?.value, tag = fields.$tag?.value;
+      codes.push({constructor: typeof constructor === 'function' ? constructor.name : undefined,
+        code: typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_:-]{0,127}$/u.test(code) ? code : undefined,
+        tag: Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535 ? tag : undefined});
+      if (typeof constructor === 'function' && /RowHostIssue8Physical$/u.test(constructor.name) &&
+          Number.isSafeInteger(fields._0?.value) && fields._0.value >= 0 && fields._0.value <= 16) {
+        codes.push({ledgerIssue: fields._0.value});
+      }
+      for (const name of ['primaryFailure', 'cause', '_0', '_1']) {
+        if (fields[name] && Object.hasOwn(fields[name], 'value')) pending.push(fields[name].value);
+      }
+    }
+    t.diagnostic(`Original installed GitHub failure codes: ${JSON.stringify(codes)}`);
+  } catch { /* Diagnostics never replace the original failure. */ }
+}
+
 async function fixture(t, {commentsRead = 'allow'} = {}) {
   const state = {repositories: new Map([['R_original', {databaseId: 1296269,
     nameWithOwner: 'octo/hello', issues: [{number: 7, id: 'I_original',
@@ -71,9 +98,14 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
     const parent = createInstalledLoaderParent({root: options.root,
       principalId: options.principalId, moon: options.moon});
     loaderParents.push(parent);parent.open();
-    const source = await parent.load(loadInstalledSource, profilePath, {...options,
-      baseEnvironmentWire: await read('spec/local-check-environment.json')});
-    sources.push(source);return source;
+    try {
+      const source = await parent.load(loadInstalledSource, profilePath, {...options,
+        baseEnvironmentWire: await read('spec/local-check-environment.json')});
+      sources.push(source);return source;
+    } catch (cause) {
+      diagnoseOriginalFailure(t, cause);
+      throw cause;
+    }
   };
   // Match the installed Host boundary: interpret these fixed contracts once,
   // then reuse the same Common-issued original for each Program preparation.
@@ -101,9 +133,11 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
     assert.ok(preparedProgram, inspect(common.clientProgramPreparationIssue(preparation), {depth: 8}));
     return {preparedProgram, registry, values, fragment, ordered};
   };
-  // Explicit test allocations only, with the same original debt owner.
+  // Explicit test allocations only, with the same original debt owner. Use
+  // the existing Local retained/execution policy (resource_policy.mbt), not
+  // the retired 100 MB fixture envelope that omitted the managed Reader.
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1,
-    100000000n, 100000000n, 100000000n, 0));
+    100000000n, 536870912n, 536870912n, 0));
   const prepareSource = async (source, inputs) => {
     try { return await source.prepare(inputs); }
     catch (cause) {
@@ -131,7 +165,9 @@ test('installed GitHub comments retain their declared contracts through the orig
   const preparedSource = await f.prepareSource(source, inputs);
   assert.equal(f.api.seen().length, before, 'preparation performs no provider lookup');
   const ledger = f.ledger();
-  const opened = await source.openCapture({...inputs, preparedSource, ledger});f.captures.push(opened);
+  const opened = await source.openCapture({...inputs, preparedSource, ledger}).catch(cause => {
+    diagnoseOriginalFailure(t, cause); throw cause;
+  });f.captures.push(opened);
   const exported = checked(common.clientProgramExportSourceCapture(opened.capture.source(),
     opened.requirement, 'installed-github-comments'));
   assert.deepEqual(common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse), [

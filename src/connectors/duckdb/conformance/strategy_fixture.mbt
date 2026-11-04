@@ -723,13 +723,12 @@ pub fn strategy_fixture_acquisition(
 pub fn strategy_fixture_accounted(f : StrategyFixture) -> StrategyFixture {
   // This fixture includes conservative retained capacities for all three
   // evidence records, the observation, scan and native output, not just Compute.
+  // Keep this same fixture's other original admission limits. Accounting for
+  // retained evidence must not lower an extended graph's attempts or holdings.
+  let original = @resources.ledger_admission_limits(f.ledger)
   let ledger = @resources.create_ledger({
-    planning_work: 10000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 300000L,
-    retained_bytes: 200000000L,
-    execution_bytes: 268435456L,
+    ..original,
+    retained_bytes: Int64::max(original.retained_bytes, 200000000L),
   }).unwrap()
   { ..f, ledger, run: None, }
 }

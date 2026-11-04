@@ -306,7 +306,7 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     limits: Object.freeze({maxPages: readerLimits.maxPages,
       maxPageBytes: readLimits.maxBytes, maxPageRows: readLimits.maxRows,
       maxCaptureRows: readLimits.maxTotalRows}),
-    prepareRead: async ({prepared, acquisition, decision, granted, resource,
+    prepareRead: async ({prepared, acquisition, wholeInput = false, decision, granted, resource,
       nonce, runInvocationCid, dispatchRequestCid, signal}) => {
       const approval = decision.basis === 'resumed_approval' ? granted : undefined;
       if (approval !== undefined && (approval.resource !== resource ||
@@ -317,7 +317,7 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
       }
       // Pure original facts only. The SAME admitted RowRun precedes this
       // callback; both metadata reads execute inside its original Reader.
-      return Object.freeze({acquisition, approval, resource, nonce,
+      return Object.freeze({acquisition, wholeInput, approval, resource, nonce,
         runInvocationCid, dispatchRequestCid, signal});
     }});
 }

@@ -45,6 +45,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
   const {inspect}=await import('node:util');
   const {runtimeCore}=await import('../host-common/runtime-core.mjs');
   const {openFundedClientPreparation}=await import('./funded-client-preparation.fixture.mjs');
+  const {installLocalPreparationRegistry}=await import('./local-preparation-registry.mjs');
   const {sourceFreeValuesPlan,sourceFreeValuesAdmissionEvidence}=await import('./local-values-plan.mjs');
   const {createNodeHostEntry,CapturedRunExecutionError}=await import('./entry.mjs');
   const {installStrategyContributions}=await import('../connectors-builtin/strategy.generated.mjs');
@@ -61,19 +62,24 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
   const environment=moon.clientProgramCheckEnvironment(environmentWire,JSON.parse(environmentWire).evidence_bundle_cid,
     false,false,true,false,false,false,false);
   assert(environment);
-  let funded,preparedProgram,journal,store,failure,execution,dispatch,managedRun,managedAdmission;
+  let funded,preparedProgram,journal,store,failure,execution,dispatch,managedRun;
   t.after(async()=>{
     // The Request parent closes only after the actual consumers retire. A
     // pending physical/managed close stops this chain and retains that parent.
-    if(dispatch)await dispatch.drain();
-    if(managedRun!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(managedRun));
-    else if(managedAdmission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(managedAdmission));
+    if(dispatch)try{await dispatch.drain();}
+    catch(cause){
+      t.diagnostic(JSON.stringify({originalCleanupFailures:cause.failures?.map(value=>({
+        primary:value.primary,close:value.close,cleanup:value.cleanup,
+        finish:value.finish,release:value.release,preparation:value.preparation}))}));
+      throw cause;
+    }
     await store?.close();journal?.close();
     await funded?.close();
   });
   funded=await openFundedClientPreparation({moon,environment});
-  preparedProgram=await funded.prepare({kind:'aql',
-    input:{text:'SELECT TRY_TIMESTAMP(CAST(1 / 0 AS STRING)) AS value',format:'sql'},parameters:null});
+  const preparationRequest={kind:'aql',
+    input:{text:'SELECT TRY_TIMESTAMP(CAST(1 / 0 AS STRING)) AS value',format:'sql'},parameters:null};
+  preparedProgram=await funded.prepare(preparationRequest);
   const control=runtimeCore(moon).publicationControl;
   const authorityScopeCid='sha256:'+'a'.repeat(64),storeAuthorityCid='sha256:'+'7'.repeat(64),namespaceId='failed-compute-component';
   const now=()=> '2026-10-23T00:00:00.000Z';
@@ -92,11 +98,10 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     await mkdir(snapshot,{recursive:true});
     return createLocalRetainedStore({parentDirectory:snapshot,capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
   });
-  const registryWire=await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
   const aoa=JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
   const values=JSON.stringify(aoa.execution_contracts['REL.values']),fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
-  const registry=checked(moon.clientPrepareInstalledSequenceContracts(registryWire,values,fragment,ordered));
+  const registry=funded.installedContracts;
   const entry=createNodeHostEntry(()=>Promise.resolve(moon),installStrategyContributions);
   let observations=0;
   const selectedStore=interleaveObservation?Object.freeze({...store,async confirmCommittedIndex(ref){
@@ -117,33 +122,45 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
     return result;
   }}):store;
   {
+    let preparationCustody;
+    const submission={principalId:'component',connection:{},requestId:'original-failed-compute'};
     if(managed){
-      // Import the SAME installed CJS resource namespace captured by this
-      // Common module, never the source checkout's independent WeakMap.
-      const {default:resources}=await import(new URL('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs',
-        pathToFileURL(commonRuntimePath)));
-      const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFreeWithContracts(
-        preparedProgram,registry,values,fragment,ordered));
-      const limits=moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(sequences);
-      assert.equal(limits.length,6);
-      const requirements={planningWork:Number(limits[0]),attempts:Number(limits[1]),holdings:Number(limits[2]),
-        transferBytes:limits[3],retainedBytes:limits[4],executionBytes:limits[5]};
-      const original=resources.retainOrdinaryManagedRun(preparedProgram,requirements,()=>{},()=>false);
-      managedAdmission=checked(moon.clientProgramNodeManagedRunPrepare(original,preparedProgram));
-      managedRun=checked(moon.clientProgramInstalledManagedSourceFreeBegin(managedAdmission,
-        preparedProgram,request,sequences));
+      // Retain the same funded Request through the ordinary dispatch registry.
+      // The real Core sibling is returned only after original stop/cleanup.
+      let adopted;
+      preparationCustody=installLocalPreparationRegistry(value=>value===preparedProgram,
+        value=>{
+          try{checked(moon.clientProgramInstalledManagedRunRetire(managedRun));}
+          catch(cause){
+            if(moon.clientProgramInstalledPreparationPayloadSevered(managedRun,request)!==true)throw cause;
+          }
+          funded.manager.severPreparation(value,adopted.original);
+          funded.retireOriginal(value);
+          return ()=>{
+            checked(moon.clientProgramInstalledManagedRunRetire(managedRun));
+            funded.manager.retireSeveredPreparation(adopted.original);
+          };
+        }, {runtime:moon,
+          borrow:value=>funded.manager.borrowPreparation(value,preparationRequest)});
+      preparationCustody.attach(submission,preparationCustody.adopt(preparedProgram,preparationRequest));
+      adopted=funded.manager.adoptPreparation(preparedProgram,preparationRequest,request);
+      managedRun=adopted.value;
+    }else{
+      submission.preparedProgram=preparedProgram;
     }
     dispatch=installActualDispatch({moon,control,journal,store:selectedStore,namespaceId,authorityScopeCid,storeAuthorityCid,now,
       registry,values,fragment,ordered,hostConnection:()=>true,
+      observed(name,detail){if(name==='dispatch_failed')t.diagnostic(JSON.stringify({
+        originalDispatchFailure:detail.code,primaryCode:detail.primaryCode,
+        issueTag:detail.issueTag,nestedIssueTag:detail.nestedIssueTag}));},
       startRun:()=>journal.reserveDispatch(request,{namespaceId,currentAuthorization:true},moon,control),
-      planFor:()=>plan,computeConfigurations:{local},
+      planFor:()=>plan,computeConfigurations:{local},preparationCustody,
       async runPublished(...args){
         const retain=args[5];args[5]=value=>{execution=value;retain(value);};
         try{return await entry.runPublishedCapturedStrategy(...args);}
         catch(error){failure=error;t.diagnostic(`Original dispatch failure: ${error.code}; typed cause ${inspect(error.primaryFailure?.cause,{depth:4})}`);throw error;}
       }});
-    await dispatch.start({preparedProgram,principalId:'component',connection:{},requestId:'original-failed-compute'},
-      request,accepted,{plan,...(managedRun===undefined?{}:{managedRun})});
+    await dispatch.start(submission,request,accepted,{plan,...(managedRun===undefined?{}:{managedRun})});
     await dispatch.operation(accepted.ref);
     assert(failure instanceof CapturedRunExecutionError,'The actual failed execution must retain its original wrapper');
     assert.strictEqual(failure.execution,execution);
@@ -648,4 +665,42 @@ test('required installed preparation forwards only its same funded callback with
   const prepare = installNodeClientProgramPreparation(selected);
   assert.strictEqual(await prepare(request), prepared); assert.equal(calls, 1);
   prepare.retireOriginal(prepared); prepare.retireReferences();
+});
+
+test('dispatch final usage observes the same ledger only after original preparation retirement', () => {
+  const install = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'installNodeClientDispatchOwner').declaration;
+  const declaration = install.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retire');
+  const entries = new Map(), events = [], ledger = {retained: 7}, ref = {runDefinitionCid: 'original-retirement'};
+  const retire = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+    ['entries','keyOf','diagnostic','resourceUsage'])(entries, value => value.runDefinitionCid,
+    (name, detail) => events.push({name, detail}), value => {
+      assert.equal(value, ledger); return {reservedRetentionBytes: String(value.retained)};
+    });
+  let attempts = 0, allow = false;
+  const entry = {ref, acquisitionLedger: ledger, settled: true, finishPending: true,
+    retirePreparation() {attempts++; if (!allow) throw new Error('OriginalPreparationPending'); ledger.retained = 0;}};
+  entries.set(ref.runDefinitionCid, entry);
+  retire(entry); assert.equal(attempts, 0); assert.equal(events.length, 0);
+  entry.finishPending = false; retire(entry);
+  assert.equal(attempts, 1); assert.equal(entries.get(ref.runDefinitionCid), entry);
+  assert.equal(events.length, 0, 'failed original retirement cannot publish final-zero usage');
+  allow = true; retire(entry);
+  assert.equal(attempts, 2); assert.equal(entries.has(ref.runDefinitionCid), false);
+  assert.deepEqual(events, [{name: 'dispatch_cleanup_completed', detail: {ref,
+    resourceUsage: {reservedRetentionBytes: '0'}}}]);
+  retire(entry); assert.equal(events.length, 1, 'same original retirement reports once');
+  for (const failureAt of ['usage', 'observer']) {
+    const retained = new Map(), selected = {ref, acquisitionLedger: ledger, settled: true};
+    retained.set(ref.runDefinitionCid, selected);
+    const observeRetirement = compileFunction(source.slice(declaration.start, declaration.end) + '\nreturn retire;',
+      ['entries','keyOf','diagnostic','resourceUsage'])(retained, value => value.runDefinitionCid,
+      () => {throw new Error('ObserverUnavailable');}, () => {
+        if (failureAt === 'usage') throw new Error('ObservationUnavailable');
+        return {reservedRetentionBytes: '0'};
+      });
+    assert.doesNotThrow(() => observeRetirement(selected));
+    assert.equal(retained.size, 0, 'optional diagnostic failure cannot resurrect original custody');
+    assert.doesNotThrow(() => observeRetirement(selected));
+  }
 });

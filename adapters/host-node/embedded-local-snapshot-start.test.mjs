@@ -96,3 +96,37 @@ test('Host snapshot directory failure retains its original error without a repla
   await assert.rejects(localSnapshotStore(configuration)('original carrier', 4096, 1024),
     error => error === marker);
 });
+
+test('Salesforce Source fixture retries the same Host after failed close without closing its server twice', async () => {
+  const fixture = readFileSync(new URL(
+    '../connectors/salesforce/test/standard-host.integration.test.mjs', import.meta.url), 'utf8');
+  const tree = parse(fixture, {ecmaVersion: 'latest', sourceType: 'module'});
+  const selected = [];
+  const visit = (node, parents = []) => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'close' &&
+        node.init?.type === 'ArrowFunctionExpression' && node.init.async &&
+        parents.some(parent => parent.type === 'VariableDeclarator' && parent.id.name === 'open')) {
+      selected.push(node.init);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(value => visit(value, [...parents, node]));
+      else if (value !== null && typeof value === 'object') visit(value, [...parents, node]);
+    }
+  };
+  visit(tree);assert.equal(selected.length, 1);
+  const node = selected[0], marker = new Error('original Host cleanup pending');
+  let hostCloses = 0, serverCloses = 0, connectionsClosed = 0, observations = 0;
+  const host = {async close() {if (++hostCloses === 1) throw marker;}};
+  const server = {closeAllConnections() {connectionsClosed++;}, close(done) {serverCloses++;done();}};
+  const close = compileFunction(`let closed = false, serverClosed = false;
+    return (${fixture.slice(node.start, node.end)});`, ['host', 'server', 't'])(host, server,
+    {diagnostic() {observations++;}});
+  await assert.rejects(close(), error => error === marker);
+  assert.deepEqual([hostCloses, serverCloses, connectionsClosed, observations], [1, 1, 1, 1]);
+  await close();
+  await close();
+  assert.deepEqual([hostCloses, serverCloses, connectionsClosed], [2, 1, 1]);
+  // Explicit original-method ports only: this tests the fixture's retained
+  // retry duty, not a real Host's resource release or physical close ACK.
+});

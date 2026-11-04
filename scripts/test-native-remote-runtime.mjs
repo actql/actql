@@ -560,6 +560,7 @@ try {
       ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY: cryptoLibrary,
       ACTQL_TEST_NATIVE_REMOTE_AGENT_ROOT: agentRoot,
+      ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: agentRoot,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: targetTriple,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
         keys.publicKey.export({type: 'spki', format: 'pem'}),

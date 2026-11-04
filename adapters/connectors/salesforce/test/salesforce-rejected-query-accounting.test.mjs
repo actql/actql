@@ -113,6 +113,11 @@ test('actual Salesforce caller selects the same complete native Reader before pu
   const facts = await row.prepareRead({prepared, acquisition, decision: {basis: 'policy'}, resource: 'Account',
     nonce: 'original-nonce', runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch'});
   assert.equal(facts.acquisition, acquisition);assert.equal(facts.resource, 'Account');
+  assert.equal(facts.wholeInput, false);
+  const inputFacts = await row.prepareRead({prepared, acquisition, wholeInput: true,
+    decision: {basis: 'policy'}, resource: 'Account', nonce: 'original-input-nonce',
+    runInvocationCid: 'original-input-run', dispatchRequestCid: 'original-input-dispatch'});
+  assert.equal(inputFacts.acquisition, acquisition);assert.equal(inputFacts.wholeInput, true);
   assert.equal(facts.runInvocationCid, 'original-run');assert.equal(facts.dispatchRequestCid, 'original-dispatch');
   assert.equal(facts.nonce, 'original-nonce');assert.equal(facts.approval, undefined);
   assert.deepEqual(events, ['quote', 'implementation', 'reader', 'source']);
@@ -256,7 +261,7 @@ for (const mode of ['raw', 'managed']) {
 // Actual shared Reader plus the existing Salesforce query sequencer. The Site
 // issuer, typed codecs, same-parent capacity and physical Resource are explicit
 // ports; this is not normal Common/HTTPS or numerical backing acceptance.
-function managedSourceFixture({rejected = false, consumeFailure = false, responseBacking = false} = {}) {
+function managedSourceFixture({rejected = false, consumeFailure = false, responseBacking = false, wholeInput = false} = {}) {
   const events = [], cells = Object.freeze([Object.freeze([Object.freeze({typed: true})])]);
   const columns = Object.freeze(['Id']), acquisition = Object.freeze({}), declaration = Object.freeze({});
   const plan = Object.freeze({}), query = Object.freeze({}), observation = Object.freeze({});
@@ -266,7 +271,7 @@ function managedSourceFixture({rejected = false, consumeFailure = false, respons
   const originalCredential = Object.freeze({}), boundCredential = Object.freeze({});
   const originals = new Set([root]), chargeByBody = new Map();
   let pages = 0, closes = 0, charges = 0, consumed = 0;
-  const preparedRead = Object.freeze({acquisition, resource: 'Account', nonce: 'original',
+  const preparedRead = Object.freeze({acquisition, wholeInput, resource: 'Account', nonce: 'original',
     runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch'});
   const site = Object.freeze({credential: originalCredential, apiVersion: 'v62.0',
     async describeForAcquisition(request) {
@@ -283,9 +288,13 @@ function managedSourceFixture({rejected = false, consumeFailure = false, respons
       return {evidence: {observationJson: '{}'}, observationCid: 'original-observation'};
     }});
   const moon = Object.freeze({
-    clientProgramRecheckSalesforceRowProjection(d, a, o, max) {
-      assert.equal(d, declaration);assert.equal(a, acquisition);assert.equal(o, observation);
-      assert.equal(max, 4096);events.push('plan');return ok(plan);
+    [wholeInput ? 'clientProgramRecheckSalesforceInputProjection'
+      : 'clientProgramRecheckSalesforceRowProjection'](d, a, o, max) {
+      assert.equal(this, moon);assert.equal(d, declaration);assert.equal(a, acquisition);assert.equal(o, observation);
+      assert.equal(max, 4096);events.push(wholeInput ? 'input-plan' : 'plan');return ok(plan);
+    }, [wholeInput ? 'clientProgramRecheckSalesforceRowProjection'
+      : 'clientProgramRecheckSalesforceInputProjection']() {
+      assert.fail('The original acquisition kind cannot select the other typed recheck');
     }, clientProgramSalesforceQueryPageValues(page) {
       assert.equal(page, query);events.push('values');return {_0: columns, _1: cells};
     }});
@@ -424,3 +433,16 @@ for (const mode of ['raw', 'managed']) {
     assert.deepEqual(f.events, ['current', 'begin', 'next', 'response', 'charge', 'charged', 'interrupt']);
   });
 }
+
+
+test('Salesforce complete-input sequence selects its original typed projection and retains Reader cleanup', async () => {
+  const f = managedSourceFixture({wholeInput: true});
+  assert.deepEqual(await f.reader.read(), {pages: 3, rowCount: 1});
+  assert.equal(f.events.filter(value => value === 'input-plan').length, 1);
+  assert.equal(f.events.includes('plan'), false);
+  assert.deepEqual(f.events, ['bind', 'describe-response', 'charge', 'recover', 'observation', 'input-plan',
+    'describe-response', 'charge', 'recover', 'observation', 'begin', 'query-response', 'charge', 'decode', 'values', 'consume']);
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
+  assert.equal(f.factory.retire(), true);
+  assert.deepEqual(f.counts(), {charges: 3, consumed: 1, closes: 1, pages: 1});
+});

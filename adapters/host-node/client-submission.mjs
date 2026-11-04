@@ -114,6 +114,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       acknowledgement: retained.unresolvedHistory.acknowledgement}});
   const storedOutcome = retained => withRestart(retained.outcome ?? immutable({kind: 'preparing',
     submissionRef: retained.submissionRef, intentCid: retained.intentCid}), retained);
+  // Match the existing SDK observation input contract. Other Source formats
+  // retain their actual preparation outcome without an unsupported report.
+  const supportsCheckObservation = intent => intent.kind === 'program' ||
+    intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format);
   const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind)) return outcome;
     const projectsProblem = ['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit',
@@ -123,7 +127,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
-    if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format))) {
+    if (!supportsCheckObservation(intent)) {
       if (originalObservation !== undefined) {
         const current = await authorize(value);
         if (current.authorityScopeCid !== fields.authorityScopeCid ||
@@ -324,17 +328,17 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (!isClientSubmitRejection(issuedCode ?? error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
-      // The same Request already owns the typed refusal and its audience-bound
-      // check observation. Preserve that original code; never run a second
-      // public checker or upgrade it through a legacy Source-failure marker.
+      // Preserve the actual typed exception. The same failed Request may also
+      // supply a completed audience-bound Source violation before this first
+      // durable outcome; neither a later check nor a Source marker supplies it.
       const code = issuedCode ?? error.code;
-      const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
-        problem: {code, classification: classification(code)}};
       const originalObservation = async () => {
         if (observeOriginalPreparationFailure !== undefined) {
           try {
             const report = await observeOriginalPreparationFailure(error, value);
-            if (validCheckOutcome(report)) return report;
+            // Keep the same original callback and its current/lifetime fences
+            // even when this input format has no public observation binding.
+            if (validCheckOutcome(report) && supportsCheckObservation(value)) return report;
           } catch {
             // Reporting cannot replace the primary failure or acknowledge its
             // original Request/physical cleanup. Missing is not a recheck port.
@@ -343,6 +347,13 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         return null;
       };
       let checkObservation = await originalObservation();
+      const problemCode = issuedCode === undefined && code === 'ClientProgramRejected' &&
+          value.kind === 'aql' && checkObservation?.outcome === 'completed' &&
+          checkObservation.report.scope.kind === 'bound_input' &&
+          checkObservation.report.verdict === 'invalid'
+        ? 'ClientProgramInvalidInput' : code;
+      const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
+        problem: {code: problemCode, classification: classification(problemCode)}};
       const projected = await discloseOutcome(value, candidate, current,
         {intentWire: moon.clientSubmittedIntentWire(input)}, checkObservation);
       const {checkObservation: transientObservation, ...outcome} = projected;

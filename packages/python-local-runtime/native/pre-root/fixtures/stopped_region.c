@@ -31,7 +31,7 @@ static void check(int condition, const char *name) {
 int main(void) {
     long selected_page = sysconf(_SC_PAGESIZE); assert(selected_page > 0);
     size_t page = (size_t)selected_page, bytes = 64 * page;
-    char path[] = "/private/tmp/actql-stopped-region-XXXXXX";
+    char path[] = "/tmp/actql-stopped-region-XXXXXX";
     int fd = mkstemp(path);
     assert(fd >= 0 && unlink(path) == 0 && fchmod(fd, 0600) == 0 &&
            ftruncate(fd, (off_t)bytes) == 0);

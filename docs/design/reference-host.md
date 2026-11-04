@@ -2957,6 +2957,25 @@ buffers, native projection results and distinct Grants remain additive.
 
 ### Request-owned execution preparation
 
+Host Preview input construction stays on the same managed Effect control reservation.
+An opted-in installed capture extent retains its original parser limits. The
+initial capture keeps the existing wire and text envelope; its Host forest and
+parser workspace are selected only after that same producer owns the Preview
+wire. The control measures exact raw UTF-8 length without encoding, parsing,
+checking or compiling it again, and atomically grows its original reservation
+before Host JSON parsing. Warm capture and cold recovery use this same entry.
+The original policy, schema checks and Native member construction remain in
+force, including overlapping cold Preview, Catalog and request material.
+
+The returned Host forest remains on that control through later child borrows
+and retirement. A failed resize changes neither usage nor selected input; a
+failed parse retains its original failure and active prefix. Another wire
+cannot replace the selected input, and the same successful input selection
+cannot issue another parse. Only the existing child and parent cleanup
+protocols return capacity; a parse, settled Promise or retired control callback
+does not acknowledge physical cleanup. The focused input controls verify these
+identity, growth, refusal and pending-cleanup boundaries on the same Ledger.
+
 The shared Source binding reads the same retained Plan getter for an Effect
 record and the original current check for a Pure record. These alternatives
 construct no second Plan or execution permit. After that callback, original
@@ -3185,3 +3204,40 @@ retaining the same input cleanup duty.
 Promise settlement, cancellation and a finished input are not physical-stop or
 resource-return acknowledgements. No registry currentness or foreign/retired
 original check is weakened.
+
+
+Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation.
+The standard and input-staged described recipes retain the old maximum outputs
+and full Receipt, Grant and native-projector construction envelopes. Only the
+not-yet-constructed normalizing Ledger workspace is deferred. Each original
+stored wire supplies its actual UTF8 length; original Ledger issuance uses its
+existing fixed schema bound. The same reservation grows before that codec and
+returns only completed synchronous scratch. It takes the maximum with other
+control workspace and preserves retained output and accumulated physical work.
+A throw, invalid asynchronous result, changed original or pending nested codec
+retains the failed prefix; neither outer completion nor Promise settlement
+acknowledges physical cleanup. Repeated Ledger wires do not consume or replace
+the separate one-use Host Preview input binding.
+
+Saved Effect contract codecs return bounded canonical values, canonical wire,
+identity and scalar usage fields. Their private Source parser, decoder index,
+ancestry and key-admission structures do not escape those synchronous calls.
+The contract-only quote moves those private roles from retained storage to
+workspace while preserving the complete original construction and failure
+peak. It keeps the existing four-Receipt family floor when the nested codec
+derives its scratch, so already retained sibling outputs are not charged a
+second time. The same original control reservation completes that scratch;
+no physical release or cancellation acknowledgment follows from its return.
+The general response constructor remains unchanged for callers that retain a
+Source Cursor. Native provider output, Grant, received/saved buffers and every
+other live child remain separately additive; no policy ceiling changes.
+
+An original native constructor profile with both input and output JSON shapes
+returns a JSON String before the Host parses its stated output. That closed
+wire boundary cannot export its private input Source/index/ancestry records.
+The existing constructor fold retains a conservative span-free input tree and
+all old retained input text, in addition to the unchanged native and Host
+outputs. Only the remaining structural input roles become workspace; the
+original full execution and failed-prefix peak stays unchanged. An absent
+output shape supplies no such lifetime proof and keeps the general response
+constructor, including a retained Cursor's original backing.

@@ -28,7 +28,9 @@ import {rowSourceCheckEnvironment, rowSourceMapping} from
   '../../../host-node/installed-row-source.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {GITHUB_COMMENT_CREATE_OPERATION, prepareGitHubCommentSubjectRequest,
-  projectGitHubCommentSubjectResponse, prepareGitHubCommentRequest,
+  projectGitHubCommentSubjectResponse, prepareGitHubCommentLogicalRequest,
+  GITHUB_COMMENT_STAMP_RECIPE, finalizeGitHubCommentRequest, restoreGitHubCommentRequest,
+  prepareGitHubCommentConfirmationRequest, projectGitHubCommentConfirmation,
   projectGitHubCommentObservation} from '../site/github-comment-create.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../site/github-issue-graphql-read.mjs';
@@ -222,10 +224,22 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
         request({resource, value}) {
           if (typeof providerMoon.githubCommentOutcomeJson !== 'function') fail('InvalidGitHubCommentSend');
           const comment = commentValue(resource, value);
-          return prepareGitHubCommentRequest({moon: providerMoon,
+          return prepareGitHubCommentLogicalRequest({
             origin: site.apiOrigin, subjectId: comment.subject_id,
             body: comment.body});
         },
+        finalization: {recipe: GITHUB_COMMENT_STAMP_RECIPE,
+          finalize: ({request, requestTag}) => finalizeGitHubCommentRequest({moon: providerMoon, request, requestTag}),
+          restore: ({request, logical, requestTag}) => restoreGitHubCommentRequest({moon: providerMoon,
+            request, logical, requestTag, limits: commentLimits})},
+        confirmation: {resource: 'issue_comments', operation: GITHUB_GRAPHQL_READ_OPERATION,
+          http: {origin: site.apiOrigin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
+            headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
+            responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
+            maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
+          body: ({providerEvidence}) => prepareGitHubCommentConfirmationRequest({moon: providerMoon, providerEvidence}),
+          project: ({request, providerEvidence, observation, accepted}) => projectGitHubCommentConfirmation({
+            moon: providerMoon, request, providerEvidence, repository, limits: commentLimits, observation, accepted})},
         check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION,
           http: {origin: site.apiOrigin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
             headers: JSON.parse(providerMoon.githubRequestHeadersJson()),

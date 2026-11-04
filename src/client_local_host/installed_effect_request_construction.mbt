@@ -112,6 +112,57 @@ pub fn installed_json_effect_response_construction_capacity(
 }
 
 ///|
+// The closed Ledger/PublicationContract codecs return canonical values and
+// their bounded wire/identity fields, never Source Nodes or decoder Cursors.
+// Their successful canonical wire bounds the complete returned text, including
+// normalized keys. Keep a whole span-free tree, another complete wire and the
+// Ledger/contract carriers. The public response constructor above also serves
+// Cursor consumers and must keep its original larger retained inventory.
+// Only this closed contract caller can move the remaining parser/index/key
+// families to workspace. The complete old execution/refusal peak is unchanged.
+fn installed_effect_contract_response_construction_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed_json_effect_response_construction_capacity(
+      @execution.execution_capacity(0L, 0L).unwrap(),
+      bytes,
+      nodes,
+      depth,
+    )
+    is Some(peak) &&
+    @source.json_tree_retained_construction_extent(
+      nodes,
+      nodes - 1,
+      nodes,
+      0,
+      bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(tree) &&
+    @execution.preparation_representation_cost({
+      record_headers: tree.record_headers + 3L,
+      reference_slots: tree.reference_slots + 24L,
+      scalar_words: tree.scalar_words + 8L,
+      owned_utf16_units: tree.owned_utf16_units + bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    standard_create_saved_receipt_capacity(bytes, nodes, depth) is Some(family) else {
+    return None
+  }
+  // The original control frame also retains the Receipt/Ledger siblings.
+  // Keep its unchanged family floor when deriving nested E-R scratch; treating
+  // only this codec's canonical tree as the whole returned family would charge
+  // that already retained overlap a second time on every nested entry.
+  @execution.execution_capacity(
+    Int64::max(retained, @execution.execution_capacity_retained_bytes(family)),
+    @execution.execution_capacity_execution_bytes(peak),
+  )
+}
+
+///|
 // Project only a proven span-free Host JSON/semantic capture result. The
 // complete old parser/index/key peak stays on failure and construction. Some
 // capture callers also retain semantic wire/String projections; preserve the
@@ -275,44 +326,111 @@ pub fn installed_standard_create_constructor_capacities(
   ]?,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   guard original is Some(entries) &&
-    (entries.length() == 2 || entries.length() == 4) else {
+    (entries.length() == 2 || entries.length() == 4 || entries.length() == 7) else {
     return Err(Unsupported)
   }
   let capacities = []
   for (native, input, output) in entries {
-    let combined = match output {
-      None => native
-      Some(output) => {
-        guard installed_standard_host_json_output_capacity(output) is Some(host) &&
-          // Native returns its original String before Host JSON.parse begins.
-          // Every returned native/Host holder stays summed; their private
-          // synchronous constructor scratch does not coexist. A failed phase
-          // still keeps this SAME complete combined peak until cleanup.
-          standard_create_sum_capacities(
-            [native, host],
-            sequential_workspace=true,
-          )
-          is Some(combined) else {
-          return Err(Unsupported)
-        }
-        combined
-      }
-    }
-    let capacity = match input {
-      None => combined
-      Some(limits) =>
-        match
-          installed_json_effect_response_construction_capacity(
-            combined,
-            limits.max_input_bytes,
-            limits.max_nodes,
-            limits.max_depth,
-          ) {
-          Some(value) => value
-          None => return Err(Unsupported)
-        }
+    let capacity = match
+      installed_standard_create_constructor_capacity(native, input, output) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     capacities.push(capacity)
   }
   Ok(capacities)
+}
+
+///|
+// The same per-entry constructor fold used by the profile reader. A caller
+// selecting one original entry must not rebuild every sibling's quote.
+fn installed_standard_create_constructor_capacity(
+  native : @execution.ExecutionCapacity,
+  input : @source.ParseLimits?,
+  output : @source.ParseLimits?,
+) -> Result[@execution.ExecutionCapacity, ClientInstalledManagedRunIssue] {
+  let combined = match output {
+    None => native
+    Some(output) => {
+      guard installed_standard_host_json_output_capacity(output) is Some(host) &&
+        // Native returns its original String before Host JSON.parse begins.
+        // Every returned native/Host holder stays summed; their private
+        // synchronous constructor scratch does not coexist. A failed phase
+        // still keeps this SAME complete combined peak until cleanup.
+        standard_create_sum_capacities(
+          [native, host],
+          sequential_workspace=true,
+        )
+        is Some(combined) else {
+        return Err(Unsupported)
+      }
+      combined
+    }
+  }
+  let capacity = match input {
+    None => combined
+    Some(limits) =>
+      match
+        installed_json_effect_response_construction_capacity(
+          combined,
+          limits.max_input_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Some(value) => value
+        None => return Err(Unsupported)
+      }
+  }
+  let capacity = match (input, output) {
+    (Some(limits), Some(_)) => {
+      // This original profile promises a native JSON String, then Host JSON.
+      // Neither output can retain the native input's Source/index/ancestry.
+      // Keep a whole span-free input tree and ALL old retained input text as
+      // a conservative alias envelope, alongside every native/Host output.
+      // Only private structural roles change lifetime; the exact old full
+      // construction/failure peak remains on the same reservation.
+      guard installed_source_response_workspace(
+          limits.max_input_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        )
+        is Some(peak) &&
+        @canonical.nfc_lf_construction_scratch_extent(limits.max_input_bytes)
+        is Some(scratch) &&
+        peak.record_headers >= scratch.record_headers &&
+        peak.reference_slots >= scratch.reference_slots &&
+        peak.scalar_words >= scratch.scalar_words &&
+        peak.owned_utf16_units >= scratch.owned_utf16_units &&
+        installed_host_json_retained_roles(
+          {
+            record_headers: peak.record_headers - scratch.record_headers,
+            reference_slots: peak.reference_slots - scratch.reference_slots,
+            scalar_words: peak.scalar_words - scratch.scalar_words,
+            owned_utf16_units: peak.owned_utf16_units -
+            scratch.owned_utf16_units,
+            owned_wire_bytes: 0L,
+          },
+          limits.max_input_bytes,
+          limits.max_nodes,
+          keep_full_text=true,
+        )
+        is Some((_, completed)) &&
+        @execution.preparation_representation_cost(completed)
+        is Some(private_structures) &&
+        @execution.execution_capacity_retained_bytes(capacity) >=
+        private_structures &&
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(capacity) -
+          private_structures,
+          @execution.execution_capacity_execution_bytes(capacity),
+        )
+        is Some(projected) else {
+        return Err(Unsupported)
+      }
+      projected
+    }
+    // An opaque/Cursor result has no returned-wire lifetime proof.
+    _ => capacity
+  }
+  Ok(capacity)
 }

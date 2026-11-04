@@ -63,7 +63,7 @@ test('Linux create refuses dangling symlink and namespace contains only shared F
   assert.deepEqual(Object.keys(native).sort(),['openFileRoot','openFileDirectory','openRootFile',
     'fileRootCurrent','fileRootStat','fileRootNext','fileRootRead','fileRootClose','fileRootEntryKind',
     'openRootFileWriter','fileRootWrite','fileRootPublish',
-    'openStoreOwnerLease','storeOwnerLeaseReceipt'].sort());
+    'openStoreOwnerLease','storeOwnerLeaseReceipt','localFileWriteConstructionProfile'].sort());
   symlinkSync(directory+'/absent',directory+'/result');
   const writer=make();writer.start();writer.write(Buffer.from('exact'));
   assert.throws(()=>writer.publish(),{code:'LocalFileDestinationExists'});
@@ -85,4 +85,19 @@ test('Linux same-root lock excludes another process and releases after original 
   };
   const writer=make();writer.start();other(true);assert.equal(writer.close().pending,false);other(false);
   assert.equal(readFileSync(directory+'/other','utf8'),'other');
+`));
+
+
+test('Linux writer charges each original bounded piece before its native write and preserves refusal', () => isolated('charged-write', `
+  const charges = [];
+  const writer = prepareLocalFileWrite({native,rootPath:directory,path:'result',temporaryName:'.stage',
+    maxBytes:8,writeQuantumBytes:2,assertCurrent(){},observeWriteBytes(bytes){charges.push(bytes);}});
+  writer.start();writer.write(Buffer.from('exact'));writer.publish();
+  assert.deepEqual(charges,[2n,2n,1n]);assert.equal(readFileSync(directory+'/result','utf8'),'exact');
+  assert.equal(writer.close().pending,false);
+  const refused = prepareLocalFileWrite({native,rootPath:directory,path:'refused',temporaryName:'.refused',
+    maxBytes:8,writeQuantumBytes:2,assertCurrent(){},observeWriteBytes(){throw new Error('same charge refusal');}});
+  refused.start();assert.throws(()=>refused.write(Buffer.from('never')),/same charge refusal/);
+  assert.equal(readFileSync(directory+'/.refused').length,0);
+  assert.equal(refused.close().pending,false);assert.equal(existsSync(directory+'/refused'),false);
 `));

@@ -256,6 +256,8 @@ pub fn[P] grow_preparation_body_inventory(PreparationBodyBorrow[P], P, OriginalL
 
 pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn[P, E] grow_prepared_run_operation_capacity(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
 pub fn[I, P] grow_running_preparation_capacity_inventory(PreparationCapacity[I, P], I, P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]

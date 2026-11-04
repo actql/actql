@@ -242,7 +242,9 @@ fn local_client_source_publication_case(
         },
       )
       is Err(
-        @client.Normalization(@host.Inventory(@checked.CompletionObserved))
+        @client.Normalization(
+          @host.CommonInventory(@checked.CompletionObserved)
+        )
       ),
     )
     // No dispatch/start claim may be persisted by a rejected original audit.

@@ -7,7 +7,7 @@ import {issueStoredGeneratedContent, retainGeneratedContentEvidence,
 export function installEffectContentFamily({moon, control, publications, bodies,
   prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
   namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
-  referenceLimits, completionLimits, outputLimits, faultInjection, restored, retainCleanup}) {
+  referenceLimits, completionLimits, outputLimits, faultInjection, restored, retainCleanup, managedOriginal}) {
   if (retainCleanup !== undefined && typeof retainCleanup !== 'function') {
     throw new TypeError('InvalidInstalledContentCleanupRetention');
   }
@@ -20,7 +20,12 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     plan.compiled, plan.serializationGraph);
   // These are the existing installed Local execution ceilings, not sampled
   // Source sizes. Authored generation bounds further constrain the encoder.
-  const output = Object.freeze({...outputLimits, maxRows: Math.min(100, compiledLimits.maxRows),
+  const inputRows = managedOriginal?.inputRows;
+  if (inputRows !== undefined && (!Number.isSafeInteger(inputRows) || inputRows < 0)) {
+    throw new TypeError('Invalid Content input row bound');
+  }
+  const output = Object.freeze({...outputLimits,
+    maxRows: Math.min(100, compiledLimits.maxRows, inputRows ?? compiledLimits.maxRows),
     maxValueNodes: 10000, maxValueTextBytes: 10000,
     maxWireBytes: 1000000, maxWireNodes: 10000,
     maxLogicalWireBytes: 1000000, maxLogicalWireNodes: 10003});
@@ -30,6 +35,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
   const contractLimits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
   let active, capturedProof, writer, physical, byteHolding, retained, generation, recovery, storedOriginal;
   let cancelled = false, cleaned = false, durable = false, flight;
+  let bound = managedOriginal === undefined;
   if (restored !== undefined) {
     if (restored.completion === undefined) throw new TypeError('ContentRecoveryCompletionMissing');
     generation = restored.generation;
@@ -118,15 +124,26 @@ export function installEffectContentFamily({moon, control, publications, bodies,
   const cleanupOwner = Object.freeze({close: cleanup, cleanup,
     cleanupPending: () => !cleaned});
   retainCleanup?.(cleanupOwner);
-  const provider = control.effectFamily(prepared, plan.serializationGraph, bodies,
+  const selectedProvider = control.effectFamily(prepared, plan.serializationGraph, bodies,
     {generation: generationLimits, reference: referenceLimits, contract: contractLimits,
       output, identitySlots: 4 * output.maxWireNodes + 8 * output.maxColumns}, port,
     step => {
-      if (active !== undefined) return false;
+      if (!bound || active !== undefined) return false;
       active = step;
       return true;
-    }, restored?.completion);
+    }, restored?.completion, managedOriginal);
+  const provider = managedOriginal === undefined ? selectedProvider : selectedProvider.provider;
   return Object.freeze({provider,
+    ...(managedOriginal === undefined ? {} : {
+      preparation: selectedProvider.preparation,
+      bindExecution(original) {
+        if (bound || cancelled || original.prepared !== prepared || original.plan !== plan ||
+            original.store !== store || original.principalId !== principalId) {
+          throw new TypeError('ForeignInstalledContentFamily');
+        }
+        signal = original.signal; bound = true;
+      },
+    }),
     prepareLedger(sourceCapacity, additionalProviders = []) {
       if (!Array.isArray(additionalProviders)) throw new TypeError('Invalid Content family providers');
       const ledger = moon.clientProgramPrepareFamilyEffectCaptureLedger(prepared,

@@ -226,6 +226,9 @@ jobs:
       - name: Test normal Python wheel acceptance harness guards
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: python3 -B scripts/test_ci_python_wheels.py
+      - name: Test bounded compiler crash metadata privacy controls
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -B scripts/test_native_compiler_diagnostics.py
       - name: Test read-only CI evidence reporting
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ci-evidence.test.mjs
@@ -285,7 +288,9 @@ jobs:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
     # Physical Native fixtures use the existing Darwin arm64 profile.
     runs-on: ${{ matrix.target == 'native' && 'macos-14' || 'ubuntu-24.04' }}
-    timeout-minutes: 30
+    # Native keeps its full 60-minute child after the separate cold checkpoint
+    # producers, with time for original failure diagnostics and cleanup.
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -302,8 +307,29 @@ jobs:
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
         run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
-      # Use one test job per actual runner CPU. Building is unaffected.
+      - name: Mark original Native compiler diagnostic window
+        id: native-compiler-diagnostic-start
+        if: ${{ matrix.target == 'native' }}
+        run: >-
+          python3 -B scripts/native-compiler-diagnostics.py --start
+          --context .artifacts/native-compiler-diagnostics/context.json
+      - name: Test actual Native Reader callbacks and original empty compiler driver
+        if: ${{ matrix.target == 'native' }}
+        run: >-
+          node scripts/local-checks.mjs test node --timeout-seconds 300 --
+          --test-name-pattern '^Reader custody callbacks preserve'
+          scripts/test-native-core.test.mjs
+      # Portable tests use the runner CPU count. Native serializes the large
+      # generated C compilations to limit concurrent compiler memory pressure.
       - name: Test common core
+        # A diagnostic failure still fails this job, but must not suppress the
+        # original Native campaign after its actual prerequisites succeeded.
+        if: >-
+          ${{ (matrix.target == 'native' && !cancelled() &&
+               steps['native-compiler-diagnostic-start'].outcome == 'success') ||
+              (matrix.target != 'native' && success()) }}
+        env:
+          ACTQL_TEST_NATIVE_COMPILER_DIAGNOSTIC: ${{ matrix.target == 'native' && '1' || '' }}
         run: |
           if [ "${{ matrix.target }}" = native ]; then
             # Pinned Linux Native debug codegen exceeds the default 8 MiB
@@ -313,7 +339,10 @@ jobs:
             fi
             # Reopen remains within a run; the full run below starts fresh.
             node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
-            node scripts/test-native-core.mjs --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+            # Optimize the test IR before emitting the large full-Core C input.
+            # Keep every test, strict warnings and the original generated-C
+            # backend; production and the focused debug prerequisite are unchanged.
+            MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 1 --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then
@@ -324,6 +353,23 @@ jobs:
               node scripts/test-python-local-metadata-wasm.mjs _build/wasm/release/test/client_host_wasm/client_host_wasm.whitebox_test.wasm _build/wasm/release/test/client_host_wasm/__whitebox_test_info.json non_sdk_source_restore_wbtest.mbt
             fi
           fi
+      - name: Collect only current original Native compiler crash cause metadata
+        if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
+        timeout-minutes: 1
+        run: >-
+          python3 -B scripts/native-compiler-diagnostics.py
+          --context .artifacts/native-compiler-diagnostics/context.json
+          --collect .artifacts/native-compiler-diagnostics/sanitized.json
+      - name: Retain only sanitized current Native compiler diagnostics
+        if: ${{ failure() && matrix.target == 'native' && steps.native-compiler-diagnostic-start.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-compiler-cause-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .artifacts/native-compiler-diagnostics/
+            _build/native-reader-helper-tests/callbacks-*/callback-*.json
+          if-no-files-found: warn
+          retention-days: 14
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
     needs: [select-targets, preflight]
@@ -647,7 +693,7 @@ jobs:
         id: bind
         run: node proofs/relation-pipeline/ci-parts.mjs validation
   pipeline-evidence:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
       !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-mutations-rest.result == 'skipped' &&
         needs.pipeline-capacity.result == 'skipped' && needs.pipeline-capacity-mutants.result == 'skipped') }}
     needs: [pipeline-mutations, pipeline-mutations-rest, pipeline-capacity, pipeline-capacity-mutants, pipeline-validation]
@@ -932,6 +978,8 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          # The unchanged compatibility consumer reads public pre-extension SDKs.
+          fetch-depth: 0
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
@@ -1076,7 +1124,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1084,12 +1132,57 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
+      - name: Test scoped bundle producer source and image metadata refusals
+        run: python3 -B -m unittest scripts/test_native_crypto_component.py scripts/test_native_remote_scoped_runtime.py scripts/test_native_resident_http_preparation.py scripts/test_python_scoped_read_source.py scripts/test_python_sqlite_component_source.py scripts/test_linux_process_sqlite_component.py
       - name: Test immutable Native package-version C mechanism
         run: node --test scripts/native-cli-version-native.test.mjs
+      - name: Test selected Linux x64 process-provider ABI and original physical custody
+        timeout-minutes: 5
+        run: python3 -B scripts/test_native_linux_x64_owned_process.py
+      - name: Retain Linux x64 process-provider original controls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-x64-owned-process-${{ github.run_id }}-${{ github.run_attempt }}
+          path: _build/linux-x64-owned-process/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Test original Native bootstrap inventory FFI and domain lifetime
+        timeout-minutes: 5
+        run: >-
+          node scripts/local-checks.mjs test moon --timeout-seconds 240 --
+          --target native src/platform_native/host_bootstrap/in_process_domain_wbtest.mbt
+      - name: Select the original pinned Noble static Crypto inputs
+        timeout-minutes: 5
+        run: |
+          openssl_development="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].package; p.name+"="+p.version')"
+          openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
+          sudo apt-get update
+          sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
+      - name: Prepare exact-source scoped Native commands and components once
+        timeout-minutes: 15
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
+      - name: Retain scoped Native preparation source and compiler receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-scoped-preparation/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test Node-free native storage publication and control
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
-        run: npm run check:native-http-client
+        run: |
+          # Match the existing Linux Native compiler stack prerequisite.
+          # All original cases and product resource budgets remain unchanged.
+          ulimit -S -s 65536
+          npm run check:native-http-client
       - name: Test public packed Run materials against native resident Site
         id: packed-materials
         env:
@@ -1237,7 +1330,8 @@ jobs:
       ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
-    timeout-minutes: 20
+    # Preserve the complete campaign plus selected source/component preparation.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1258,8 +1352,35 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Test macOS local execution ownership and cancellation
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
+      - name: Ensure the original curl signature verifier tools are available
+        timeout-minutes: 5
+        run: |
+          if ! command -v gpg >/dev/null || ! command -v gpgv >/dev/null; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install gnupg
+          fi
+          command -v gpg
+          command -v gpgv
+      - name: Prepare exact-source scoped Native commands and components once
+        timeout-minutes: 15
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
+      - name: Retain scoped Native preparation source and compiler receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-scoped-preparation/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+          if-no-files-found: warn
+          retention-days: 14
       - name: Verify native macOS arm64 profile
         run: |
           test "$(uname -m)" = arm64
@@ -1305,7 +1426,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1329,14 +1450,41 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Install existing scoped component producer dependencies
+        run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Install isolated network tools
         run: |
           sudo apt-get update
           sudo apt-get install --yes iproute2 iptables curl
+      - name: Select the original pinned Noble static Crypto inputs
+        timeout-minutes: 5
+        run: |
+          openssl_development="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].package; p.name+"="+p.version')"
+          openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
+          sudo apt-get update
+          sudo apt-get install --yes "$openssl_development" "$openssl_runtime"
+      - name: Prepare exact-source scoped Native commands and components once
+        timeout-minutes: 15
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries bundle --seconds 900
+      - name: Retain scoped Native preparation source and compiler receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-scoped-preparation-${{ github.job }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/native-scoped-preparation/**/*.json
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stdout
+            ${{ runner.temp }}/native-scoped-preparation/**/*.stderr
+          if-no-files-found: warn
+          retention-days: 14
       - name: Verify native direct and outbound-only Store profiles
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
-        run: npm run check:native-separated-network
+        run: |
+          # The same full Native query compilation runs before either route.
+          # Match Core's compiler stack prerequisite; keep both routes.
+          ulimit -S -s 65536
+          npm run check:native-separated-network
   workers:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}

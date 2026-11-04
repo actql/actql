@@ -272,3 +272,68 @@ test "original Model startup zero rows retain a positive base and closed tokens 
   assert_false(closed.used)
   assert_true(@relation.cleanup_prepared_infer_rows(live_rows))
 }
+
+///|
+test "shared physical provider startup retains the same provider limits and larger parent without a new Ledger" {
+  let rows = prepared_capacity_test_rows()
+  let limits = prepared_capacity_test_limits(100L)
+  let parent_limits = {
+    ..limits,
+    ledger: {
+      ..limits.ledger,
+      retained_bytes: limits.ledger.retained_bytes + 1000L,
+      execution_bytes: limits.ledger.execution_bytes + 1000L,
+    },
+  }
+  let original = original_startup_test_grant(rows, parent_limits, None)
+  let sibling = @resources.reserve_capacity(original.ledger, 50L, 5L).unwrap()
+  let provider = install_model_provider("models/fixture", _ => {
+    abort("masked provider must not send")
+  }).unwrap()
+  let startup = {
+    ..original,
+    shared_mock: Some({
+      provider,
+      limits,
+      publication_retained: 0L,
+      publication_execution: 0L,
+      publication_planning: 0,
+    }),
+  }
+  let before = @resources.ledger_usage(startup.ledger)
+  let foreign = install_model_provider("models/fixture", _ => {
+    abort("foreign provider must not send")
+  }).unwrap()
+  assert_false(
+    original_model_startup_limits_match(startup, limits, Some(foreign)),
+  )
+  assert_false(
+    original_model_startup_limits_match(
+      startup,
+      { ..limits, max_work: limits.max_work, },
+      Some(provider),
+    ),
+  )
+  assert_eq(@resources.ledger_usage(startup.ledger), before)
+  assert_false(startup.used)
+  let active = start_model_owned(
+    rows,
+    Provider(provider),
+    "sha256:" + "a".repeat(64),
+    limits,
+    None,
+    durable_calls=true,
+    send_mask=Some(
+      Array::make(@relation.prepared_infer_rows_count(rows), false),
+    ),
+    original_startup=Some(startup),
+  ).unwrap()
+  assert_true(physical_equal(active.state.ledger, startup.ledger))
+  assert_eq(@resources.ledger_usage(startup.ledger), before)
+  assert_true(startup.used)
+  assert_true(request_model_cancel(active))
+  assert_true(advance_model_execution(active, 1).unwrap() is Stopped(_, _, _))
+  assert_true(cleanup_model_execution(active).unwrap())
+  assert_true(@resources.capacity_reservation_open(sibling))
+  @resources.settle_capacity(startup.ledger, sibling).unwrap()
+}

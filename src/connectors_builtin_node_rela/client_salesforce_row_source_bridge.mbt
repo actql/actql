@@ -13,3 +13,21 @@ pub fn client_program_salesforce_row_declaration(
 ] {
   @salesforce_host.installed_salesforce_row_declaration(declaration)
 }
+
+///|
+/// Private Node bridge for the same whole-input acquisition. The Query bridge
+/// retains its separate typed requirement and exact prefilter semantics.
+#export_name("clientProgramRecheckSalesforceInputProjection")
+pub fn client_program_recheck_salesforce_input_projection(
+  declaration : @salesforce_host.InstalledSalesforceDeclaration,
+  acquisition : @client_row_source_host.RowInputAcquisition,
+  current : @salesforce_catalog.CatalogObservation,
+  max_soql_bytes : Int,
+) -> Result[
+  @salesforce_catalog.ReadProjection,
+  @salesforce_host.InstalledSalesforceIssue,
+] {
+  @salesforce_host.recheck_installed_salesforce_input_projection(
+    declaration, acquisition, current, max_soql_bytes,
+  )
+}

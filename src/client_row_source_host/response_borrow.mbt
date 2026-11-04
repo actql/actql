@@ -37,7 +37,7 @@ priv enum RowResponseCleanupState {
 }
 
 ///|
-priv enum RowResponseSelection {
+pub enum RowResponseSelection {
   QueryResponse(RowAcquisition)
   InputResponse(RowInputAcquisition)
 }
@@ -107,6 +107,20 @@ pub fn check_row_run_response_borrow_current(
 }
 
 ///|
+/// Borrow the SAME stored original selection after its one physical cleanup
+/// observer is bound. This consumes nothing and creates no acquisition.
+pub fn row_run_response_selection(
+  value : RowRunResponseBorrow,
+) -> Result[RowResponseSelection, RowHostIssue] {
+  match check_row_run_response_borrow_current(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard value.cleanup_state is Bound else { return Err(InvalidState) }
+  Ok(value.selection)
+}
+
+///|
 /// Install this reader's original physical-stop observation before its I/O.
 /// Logical abort/close keeps the same observer for cleanup; it does not require
 /// a Reading state after the owner has already closed admission.
@@ -146,8 +160,7 @@ pub fn grow_row_run_response_capacity(
     value.run.page_charge is Some(charge) &&
     !charge.consumed &&
     value.run.physical is Some(physical) &&
-    physical.provider_capacity is Some(previous) &&
-    value.selection is QueryResponse(acquisition) else {
+    physical.provider_capacity is Some(previous) else {
     return Err(InvalidState)
   }
   if @execution.execution_capacity_retained_bytes(capacity) <
@@ -162,15 +175,30 @@ pub fn grow_row_run_response_capacity(
   if physical_equal(capacity, previous) {
     return Ok(())
   }
-  let (retained, execution) = match
-    row_provider_capacity_sum(
-      row_acquisition_retained_capacity(acquisition),
-      row_acquisition_execution_capacity(acquisition),
-      physical.execution_scratch,
-      Some(capacity),
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
+  let (retained, execution) = match value.selection {
+    QueryResponse(acquisition) =>
+      match
+        row_provider_capacity_sum(
+          row_acquisition_retained_capacity(acquisition),
+          row_acquisition_execution_capacity(acquisition),
+          physical.execution_scratch,
+          Some(capacity),
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+    InputResponse(acquisition) => {
+      guard row_input_acquisition_capacity(acquisition, Some(capacity))
+        is Some(combined) else {
+        return Err(Physical(InvalidLimits))
+      }
+      let retained = @execution.execution_capacity_retained_bytes(combined)
+      let execution = @execution.execution_capacity_execution_bytes(combined)
+      if physical.execution_scratch > 9223372036854775807L - execution {
+        return Err(Physical(InvalidLimits))
+      }
+      (retained, execution + physical.execution_scratch)
+    }
   }
   // Resource current may synchronously close/reenter this RowRun. Fence the
   // original borrow before that callback and retain any successful new debit

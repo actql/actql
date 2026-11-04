@@ -82,6 +82,21 @@ function providerState(provider) {
   comments: []};
 }
 
+// The Common DispatchKey adds exactly one marker to the physical request.
+// Keep the logical body oracle independent, and require the provider to retain
+// the exact marked body that was sent. Shared route tests bind the marker CID
+// to its original DispatchKey; this fixture checks content and occurrence use.
+function assertCommentTransmission(installation, offset, variables, comment, markers) {
+  const sent = commentSends(installation.api).slice(offset).map(request => request.variables);
+  assert.equal(sent.length, 1, 'one physical comment per original occurrence');
+  const marker = /\n\n<!-- actql:effect:(sha256:[0-9a-f]{64}) -->$/u.exec(sent[0].body);
+  assert.ok(marker, 'the physical body retains its Common request marker');
+  assert.equal(markers.has(marker[1]), false, 'different occurrences keep different markers');
+  markers.add(marker[1]);
+  assert.deepEqual({...sent[0], body: sent[0].body.slice(0, marker.index)}, variables);
+  assert.deepEqual(installation.state.comments.slice(offset), [{...comment, body: sent[0].body}]);
+}
+
 function accountConfiguration(connections) {
   connections = [...connections].sort();
   const entry = (entry_id, outcome, operation, resource) => ({entry_id, outcome,
@@ -93,6 +108,12 @@ function accountConfiguration(connections) {
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}},
+      // Observing the original Run and its named Result is separate from
+      // submission and provider access. Grant only this fixture's owner.
+      {entry_id: 'host-run-result-read', outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}},
       entry('target-read', 'allow', 'read', ['issue_comments', 'issues']),
     ]});
 }
@@ -149,6 +170,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     const signer = {keyId: 'inventory-reviewer-key', reviewerId: 'inventory-reviewer',
       sign: bytes => sign(null, bytes, reviewerKeys.privateKey)};
     const installations = [];
+    const commentMarkers = new Set();
     const counts = {dispatch: 0, secrets: [0, 0]};
     for (const provider of providers) {
       const state = providerState(provider);
@@ -358,9 +380,8 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       assert.equal(commentSends(selected.api).length, sentBefore, 'approval alone sends nothing');
       const resumed = await finishAfterRestart(path, expected.order, 'succeeded');
       assert.deepEqual(await resumed.execution.result('answer').all(), expected.result);
-      assert.deepEqual(commentSends(selected.api).slice(sentBefore).map(request => request.variables),
-        [expected.variables]);
-      assert.deepEqual(selected.state.comments.slice(sentBefore), [expected.comment]);
+      assertCommentTransmission(selected, sentBefore, expected.variables, expected.comment,
+        commentMarkers);
       await resumed.host.close();
       const settled = observation(expected.selected);
       const repeated = await finishAfterRestart(path, reversed, 'succeeded');
@@ -444,11 +465,10 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     assert.equal(commentSends(installations[1].api).length, betaSends);
     const lost = await finishAfterRestart(lostPath, [1, 0], 'needs_reconciliation');
     assert.deepEqual(lost.state.next_action, {effects: ['comment'], kind: 'reconcile'});
-    assert.deepEqual(commentSends(installations[1].api).slice(betaSends).map(request => request.variables),
-      [{subjectId: 'I_BETA', body: 'beta lost reply'}]);
-    assert.deepEqual(installations[1].state.comments.slice(betaSends),
-      [{subjectId: 'I_BETA', body: 'beta lost reply',
-        databaseId: profile === 'observability' ? 1000 : 1002}]);
+    assertCommentTransmission(installations[1], betaSends,
+      {subjectId: 'I_BETA', body: 'beta lost reply'},
+      {subjectId: 'I_BETA', body: 'beta lost reply',
+        databaseId: profile === 'observability' ? 1000 : 1002}, commentMarkers);
     assert.equal(installations[1].api.remainingFaults(), 0);
     await lost.host.close();
     const betaAfterLost = observation(1);
@@ -473,10 +493,9 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       const singular = await finishAfterRestart(singularPath, [0], 'succeeded', singularOptions);
       assert.deepEqual(await singular.execution.result('answer').all(),
         [{node_id: 'I_ALPHA', comment: 'alpha singular'}]);
-      assert.deepEqual(commentSends(installations[0].api).slice(singularSends).map(request => request.variables),
-        [{subjectId: 'I_ALPHA', body: 'alpha singular'}]);
-      assert.deepEqual(installations[0].state.comments.slice(singularSends),
-        [{subjectId: 'I_ALPHA', body: 'alpha singular', databaseId: 1002}]);
+      assertCommentTransmission(installations[0], singularSends,
+        {subjectId: 'I_ALPHA', body: 'alpha singular'},
+        {subjectId: 'I_ALPHA', body: 'alpha singular', databaseId: 1002}, commentMarkers);
       await singular.host.close();
       assert.deepEqual(observation(1), betaBeforeSingular);
     }

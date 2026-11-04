@@ -31,9 +31,9 @@ const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta
 const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
 assert.ok(derivedNode);
-const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'ownHttpRequest', 'ownRequestHeaders',
+const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'canonicalJson', 'ownHttpRequest', 'ownRequestHeaders',
   'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
+  createHash, nodeTypes, canonicalJson, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
 const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...args).driver;
 
 // Actual private member constructor and existing exact-JSON decoder. The
@@ -189,7 +189,7 @@ test('standard metadata projection uses its original managed control frame after
   check.project=()=>assert.fail('the captured original projector is required');
   await driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},controlConstruction:control,
     callResource(){assert(!active);events.push('http');return response;}});
-  assert.deepEqual(events,['http','begin','project','complete']);assert.equal(control.retire(),true);
+  assert.deepEqual(events,['begin','complete','http','begin','project','complete']);assert.equal(control.retire(),true);
 });
 
 test('standard metadata invalid async projection keeps the original control borrower until settlement', async () => {
@@ -205,7 +205,7 @@ test('standard metadata invalid async projection keeps the original control borr
   const {request}=driver.prepareRequest({member,value:{name:'original'}});
   await assert.rejects(driver.checkRequest({request,authorization:authorization('fixture:form'),credential:{},
     controlConstruction:control,callResource:()=>response}),{code:'InvalidInstalledEffectControlConstruction'});
-  assert.equal(completed,0);assert.equal(run.selecting,true);assert.equal(control.retire(),false);
+  assert.equal(completed,1,'only the earlier request body completed');assert.equal(run.selecting,true);assert.equal(control.retire(),false);
   resolve();await pending;await Promise.resolve();
   assert.equal(run.selecting,false);assert.equal(control.retire(),true);
 });
@@ -448,6 +448,7 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
     githubCommentSubjectJson() {checks++;return '{"subject":{"node_id":"I_original","number":7}}';}};
   const site = {apiOrigin: origin}, repository = Object.freeze({nodeId: 'repository',databaseId:7,nameWithOwner:'owner/original'});
   const write = selectedWrite('../connectors/github/host/installed-github-effect.mjs', {
+    ...githubComment,
     GITHUB_COMMENT_CREATE_OPERATION, GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
     site, repository, boundaryCid, providerMoon, commentLimits: {maxRequestBytes: 300_000, maxResponseBytes: 100_000,maxNodes:10_000,maxDepth:32},
     prepareGitHubCommentRequest, commentValue: (_resource, value) => value,
@@ -459,12 +460,21 @@ test('GitHub normal declaration keeps original GraphQL request, sender envelope 
   });
   const driver = deriveInstalledRowWrite(write, 'github');
   const value = {body: 'original comment', subject_id: 'I_original'};
-  const prepared = driver.prepareRequest({member, value});
-  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id, body: value.body});
-  assert.deepEqual(prepared.request, old); assert.equal(prepared.requestCid, old.requestCid);
-  assert.equal(driver.requestFacts(prepared.request).value, value);
-  assert.equal(await driver.checkRequest({request: prepared.request,authorization:authorization(GITHUB_GRAPHQL_READ_OPERATION),
+  const logical = driver.prepareRequest({member, value});
+  assert.deepEqual(logical.request, githubComment.prepareGitHubCommentLogicalRequest({origin,
+    subjectId: value.subject_id, body: value.body}));
+  assert.equal(driver.capabilityRequestCid(logical.request), logical.requestCid);
+  assert.equal(driver.requestFacts(logical.request).value, value);
+  assert.equal(await driver.checkRequest({request: logical.request,authorization:authorization(GITHUB_GRAPHQL_READ_OPERATION),
     credential:{},callResource:()=>({...response,statusCode:200})}), undefined); assert.equal(checks, 1);
+  const requestTag = `sha256:${'e'.repeat(64)}`;
+  const prepared = driver.finalizeRequest({request: logical.request, requestTag});
+  assert.strictEqual(driver.finalizeRequest({request: logical.request, requestTag}), prepared);
+  const old = prepareGitHubCommentRequest({moon: providerMoon, origin, subjectId: value.subject_id,
+    body: `${value.body}\n\n<!-- actql:effect:${requestTag} -->`});
+  assert.deepEqual(prepared.request, {...old, logicalBody: value.body, requestTag});
+  assert.equal(prepared.requestCid, old.requestCid);
+  assert.equal(driver.requestFacts(prepared.request).value, value);
   const calls = [], context = {request: prepared.request, authorization: authorization(GITHUB_COMMENT_CREATE_OPERATION),
     credential: {}, callResource: args => {calls.push(args); return response;}};
   const actual = await driver.send(context);
@@ -1367,7 +1377,7 @@ test('actual member capture caller defers SAME original recovery until Preview a
     'entries=originalEntries; const connectorRecovery=[];' + slice(recovery[0]) + ';return connectorRecovery;}};';
   const open = Function('members','ownerOf','managedEffect','moon','prepared','identity',
     'retainInstalledRowCaptureChild','prepareInstalledEffectRequestChild','retireRequestAliases',
-    'assertCurrent','signal','fail',source);
+    'assertCurrent','signal','fail','recipeOf',source);
   for (const failing of [false,true]) {
     const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
     const tokens=members.map(()=>({})); let retired=false;
@@ -1393,7 +1403,7 @@ test('actual member capture caller defers SAME original recovery until Preview a
       }}}));
     const capture=open(members,member=>owners[member.memberIndex],managedEffect,moon,prepared,identity,
       retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,()=>retired,undefined,undefined,
-      code=>{throw Object.assign(new Error(code),{code});});
+      code=>{throw Object.assign(new Error(code),{code});},member=>owners[member.memberIndex].managedPlanRecipe);
     assert.deepEqual(events,['borrow0','borrow1']);assert.equal(capture.requestChildren.length,2);
     assert.deepEqual(capture.proposals,[[],[]]);capture.currents.push(...descriptions);events.push('Preview');
     if(failing){let caught=false;try{await capture.finish(entries);}catch(error){caught=true;assert.strictEqual(error,undefined);}

@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {snapshotClientRequest} from '@actql/client-wire';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
   from './installed-effect-managed-run.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
@@ -666,11 +667,12 @@ function retainedRequestSourceMember(path, name, kind = 'Property') {
 
 // Actual manager functions, with explicit Core/resource/current ports. No
 // synthetic port here certifies native backing or an ordinary installation.
-function retainedRequestManagerFixture({throwOnRetain = false, failure, missing = false, reentry = false} = {}) {
+function retainedRequestManagerFixture({throwOnRetain = false, failure, missing = false, reentry = false,
+  document, materialWire, missingMaterial = false, materialFailure = false, materialReentry = false} = {}) {
   const parent = {}, intent = {}, request = {}, originals = {}, receipts = new WeakMap(), producers = new Set();
   const requestProducers = new WeakMap(), calls = [], liveRuns = new Set(), counts = {current: 0};
-  let reserved = false;
-  const wire = JSON.stringify({kind: 'aql', input: {format: 'sql', text: "SELECT 'e\u0301😀'"}, parameters: null});
+  let reserved = false, materialReserved = false;
+  const wire = document ?? JSON.stringify({kind: 'aql', input: {format: 'sql', text: "SELECT 'e\u0301😀'"}, parameters: null});
   const moon = {clientProgramRetainRequestSubmittedIntent(p, receipt, original) {
     assert.strictEqual(this, moon); assert.strictEqual(p, parent); assert.strictEqual(original, intent);
     assert.strictEqual(receipts.get(receipt).preparation.parent, parent);
@@ -680,13 +682,22 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     if (reentry) receipts.get(receipt).finished = true;
     return ok(undefined);
   }, clientSubmittedIntentWire(original) {assert.strictEqual(this, moon); assert.strictEqual(original, intent); return wire;},
-  clientProgramReserveRequestSnapshot(actualParent, receipt, units, values) {
+  clientProgramReserveRequestRetainedProgramMaterial(p, receipt, originalWire) {
+    assert.strictEqual(this, moon); assert.strictEqual(p, parent);
+    assert.strictEqual(receipts.get(receipt).preparation.parent, parent);
+    assert.strictEqual(originalWire, materialWire); calls.push('reserve-material');
+    if (materialFailure) throw failure;
+    materialReserved = true;
+    if (materialReentry) receipts.get(receipt).finished = true;
+    return ok(undefined);
+  }, clientProgramReserveRequestSnapshot(actualParent, receipt, units, values) {
     assert.strictEqual(this, moon);assert.strictEqual(actualParent,parent);
     assert.strictEqual(receipts.get(receipt).preparation.parent,parent);
     assert.equal(typeof units,'bigint');assert.equal(typeof values,'bigint');
     calls.push('reserve-snapshot');reserved=true;return ok();
   }};
   if (missing) delete moon.clientProgramRetainRequestSubmittedIntent;
+  if (missingMaterial) delete moon.clientProgramReserveRequestRetainedProgramMaterial;
   const context = {runtime: moon}, ports = {closing: false, closed: false, originals, receipts, producers, liveRuns, snapshotClientRequest,
     requestProducers, callbacks: {preparationContext: () => context, validator() {}, retainedValidator() {}},
     current() {counts.current++;}, requestPreparationAvailable: () => true, assertRequestPreparationControl() {},
@@ -695,12 +706,15 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
       calls.push('open-parent'); state.parent = parent; state.original = {};
       // The actual selected method was captured before this original callback.
       moon.clientProgramRetainRequestSubmittedIntent = () => assert.fail('No late method lookup');
+      moon.clientProgramReserveRequestRetainedProgramMaterial = () => assert.fail('No late material method lookup');
     },
     cleanupRequestInput(state) {assert.strictEqual(state.parent, parent); assert.equal(state.preparing, false);
       state.parent = state.original = undefined; calls.push('original-cleanup');},
     releaseFinishedProducer(producer) {assert.equal(producer.preparation, undefined); producers.delete(producer); calls.push('producer-return');},
-    fail: code => {throw Object.assign(new Error(code), {code});}, checked,
-    JSON: {parse(value) {assert(reserved, 'same Request reservation BEFORE native decoding'); calls.push('decode'); return JSON.parse(value);}},
+    fail: code => {throw Object.assign(new Error(code), {code});}, checked, canonicalValueJson,
+    JSON: {parse(value) {assert(reserved, 'same Request reservation BEFORE native decoding');
+      if (value !== wire) assert(materialReserved, 'same Request material reservation BEFORE decoded originals');
+      calls.push('decode'); return JSON.parse(value);}},
     freezeInput(value) {return Object.freeze(value);}};
   const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
     retainedRequestSourceMember('./ordinary-source-managed.mjs', 'beginProducer', 'FunctionDeclaration') +
@@ -722,6 +736,80 @@ test('retained manager decodes only after its same parent and keeps exact intent
   assert.equal(producer.preparation.snapshotDocument, f.wire); assert.equal(producer.preparation.preparing, false);
   assert.strictEqual(f.requestProducers.get(f.request).deref(), producer);
   assert.throws(() => f.view.retainRequestInput(f.request, f.intent), {code: 'ForeignInstalledSourceProducer'});
+});
+
+test('retained Program material keeps complete original field order after one same-parent quote', () => {
+  const program = {version: 'actql/0.1', id: 'original', meta: {z: 'e\u0301\r\n😀', a: 'kept'}, stages: []};
+  const parameters = {z: 'e\u0301\r\n😀', a: 1};
+  const document = canonicalValueJson({kind: 'program', input: program, parameters}, {dataKeys: true});
+  const materialWire = JSON.stringify({program_format: 'json', program: JSON.stringify(program),
+    parameters: JSON.stringify(parameters)});
+  const f = retainedRequestManagerFixture({document, materialWire});
+  const retained = f.view.retainRequestInput(f.request, f.intent, undefined, materialWire);
+  assert.deepEqual(Object.keys(retained.body.input), Object.keys(program));
+  assert.deepEqual(Object.keys(retained.body.input.meta), ['z', 'a']);
+  assert.deepEqual(Object.keys(retained.body.parameters), ['z', 'a']);
+  assert.deepEqual(retained.body.input, program);
+  assert.deepEqual(retained.body.parameters, parameters);
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode', 'reserve-material', 'decode', 'decode', 'decode']);
+  assert.equal(f.receipts.get(retained.receipt).preparation.snapshotDocument, document);
+});
+
+test('retained Program material cannot replace metadata Strings arrays or Parameters of the original intent', () => {
+  const program = {version: 'actql/0.1', id: 'original', meta: {note: 'e\u0301\r\n'}, stages: [1, 2]};
+  const parameters = {note: 'e\u0301\r\n'};
+  const document = canonicalValueJson({kind: 'program', input: program, parameters}, {dataKeys: true});
+  for (const [changedProgram, changedParameters] of [
+    [{...program, meta: {note: 'é\n'}}, parameters],
+    [{...program, meta: {}}, parameters],
+    [{...program, stages: [2, 1]}, parameters],
+    [program, {note: 'é\n'}],
+  ]) {
+    const materialWire = JSON.stringify({program_format: 'json', program: JSON.stringify(changedProgram),
+      parameters: JSON.stringify(changedParameters)});
+    const f = retainedRequestManagerFixture({document, materialWire});
+    assert.throws(() => f.view.retainRequestInput(f.request, f.intent, undefined, materialWire),
+      {code: 'ForeignInstalledSourceProducer'});
+    assert.equal(f.requestProducers.has(f.request), false);
+    assert.equal(f.producers.size, 0);
+    assert.deepEqual(f.calls.slice(-2), ['original-cleanup', 'producer-return']);
+  }
+});
+
+test('retained Program material preserves missing backing and thrown undefined before its original decoder', () => {
+  const document = canonicalValueJson({kind: 'program', input: {id: 'p'}, parameters: null}, {dataKeys: true});
+  const materialWire = JSON.stringify({program_format: 'json', program: '{"id":"p"}', parameters: null});
+  const missing = retainedRequestManagerFixture({document, materialWire, missingMaterial: true});
+  assert.throws(() => missing.view.retainRequestInput(missing.request, missing.intent, undefined, materialWire),
+    {code: 'NodeManagedRunRuntimeUnavailable'});
+  assert.equal(missing.calls.filter(value => value === 'decode').length, 1);
+  const f = retainedRequestManagerFixture({document, materialWire, materialFailure: true, failure: undefined});
+  let threw = false;
+  try {f.view.retainRequestInput(f.request, f.intent, undefined, materialWire);}
+  catch (cause) {threw = true; assert.strictEqual(cause, undefined);}
+  assert.equal(threw, true);
+  assert.equal(f.calls.filter(value => value === 'decode').length, 1);
+  assert.deepEqual(f.calls.slice(-2), ['original-cleanup', 'producer-return']);
+});
+
+test('retained Program material fences original retirement during its capacity callback before decoding', () => {
+  const document = canonicalValueJson({kind: 'program', input: {id: 'p'}, parameters: null}, {dataKeys: true});
+  const materialWire = JSON.stringify({program_format: 'json', program: '{"id":"p"}', parameters: null});
+  const f = retainedRequestManagerFixture({document, materialWire, materialReentry: true});
+  assert.throws(() => f.view.retainRequestInput(f.request, f.intent, undefined, materialWire),
+    {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(f.calls.filter(value => value === 'decode').length, 1);
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode', 'reserve-material',
+    'original-cleanup', 'producer-return']);
+  assert.equal(f.requestProducers.has(f.request), false);
+  assert.equal(f.producers.size, 0);
+});
+
+test('retained textual Source keeps its original frontend and never decodes the lowered Program material', () => {
+  const f = retainedRequestManagerFixture({materialWire: 'not decoded', missingMaterial: true});
+  const retained = f.view.retainRequestInput(f.request, f.intent, undefined, 'not decoded');
+  assert.equal(retained.body.kind, 'aql');
+  assert.deepEqual(f.calls, ['open-parent', 'retain-original', 'decode']);
 });
 
 test('retained manager preserves thrown undefined and returns the original failed constructor', () => {
@@ -792,9 +880,10 @@ test('retained Effect constructor failure stays original without a fresh Run or 
   assert(threw); assert.deepEqual(f.calls, ['original-journal', 'intent-current', 'compile-once', 'same-original', 'original-constructor']);
 });
 
-function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true} = {}) {
+function retainedHostPreparationFixture({reuse = false, failPrepare = false, cleanupFailure = false, material = true, target = true} = {}) {
   const ref = {runDefinitionCid: 'original-ref'}, identity = {}, prepared = {}, managed = {}, intent = {}, originalBinding = {};
   const runDefinition = {identity: ref.runDefinitionCid}, calls = [];
+  const materialWire = 'same Journal-retained complete material';
   const originalSubmittedIntent = {intent, assertCurrent() {calls.push('intent-current');}};
   let request;
   const prepareSubmit = async value => {assert.strictEqual(value, request); calls.push('same-request-check'); if (failPrepare) throw undefined; return prepared;};
@@ -804,11 +893,13 @@ function retainedHostPreparationFixture({reuse = false, failPrepare = false, cle
     authorityScopeCid: 'authority', journal: {
       lookupRunDefinition: value => {assert.strictEqual(value, ref); return {requestId: 'original-request'};},
       lookupOwnedDefinition: key => {assert.equal(key.requestId, 'original-request'); return {requestIdentity: identity,
-        runDefinition, runAdmissionEvidence: material ? {updateTargetRunOriginal: {}} : {}};},
+        runDefinition, runAdmissionEvidence: material ? target
+          ? {updateTargetRunOriginal: {materialsWire: materialWire}} : {effectOriginalRunWire: materialWire} : {}};},
       originalSubmittedIntent: value => {assert.strictEqual(value, identity); calls.push('original-intent'); return originalSubmittedIntent;}},
     preparation: {retainedEffectManagedPlan: () => reuse ? managed : undefined,
-      retainEffectRequestInput(runtime, value, original) {
+      retainEffectRequestInput(runtime, value, original, captured, wire) {
         assert.strictEqual(runtime, ports.moon); assert.strictEqual(original, intent); request = value;
+        assert.strictEqual(captured, undefined); assert.strictEqual(wire, materialWire);
         assert.equal(request.requestId, 'original-request'); calls.push('same-parent-input');
         return {finish(terminal) {calls.push(`finish-${terminal}`); if (cleanupFailure) throw new Error('OriginalCleanupPending');}};
       }, bindSourceRequest(parent, child) {assert.strictEqual(parent, request); assert.strictEqual(child, prepared); calls.push('bind-original-alias');},
@@ -827,10 +918,12 @@ function retainedHostPreparationFixture({reuse = false, failPrepare = false, cle
 }
 
 test('retained Host binds the Journal Request directly through one checked preparation and original Plan', async () => {
-  const f = retainedHostPreparationFixture(), result = await f.restore();
-  assert.strictEqual(result.managedEffect, f.managed); assert.strictEqual(result.original, f.originalBinding);
-  assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check',
-    'bind-original-alias', 'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
+  for (const target of [true, false]) {
+    const f = retainedHostPreparationFixture({target}), result = await f.restore();
+    assert.strictEqual(result.managedEffect, f.managed); assert.strictEqual(result.original, f.originalBinding);
+    assert.deepEqual(f.calls, ['original-intent', 'intent-current', 'same-parent-input', 'same-request-check',
+      'bind-original-alias', 'same-original-constructor', 'same-adopted-plan', 'finish-returned']);
+  }
   const reused = retainedHostPreparationFixture({reuse: true});
   assert.strictEqual((await reused.restore()).managedEffect, reused.managed); assert.deepEqual(reused.calls, []);
 });

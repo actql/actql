@@ -113,7 +113,7 @@ test "original binding supplied Value uses same constraints and default Value is
           v.constraints.reference_slots,
           v.constraints.scalar_words,
         ),
-        (36L, 87L, 42L),
+        (37L, 88L, 44L),
       )
     } else {
       assert_true(v.value is None)

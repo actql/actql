@@ -73,3 +73,27 @@ test('acquired Content family still requires its actual captured-input binding',
   assert.equal(f.counts().binds,1);
   assert.equal(await f.owner.cleanup(),true);
 });
+
+test('early managed Content keeps its same provider and binds physical execution only once', async () => {
+  const prepared={},compiled={},graph={},selection={},provider={},store={storeAuthorityCid:'store',status:()=>({closed:false})};
+  const plan={compiled,serializationGraph:graph,runDefinition:{wire:'{"valid_until":"2099-01-01T00:00:00Z"}'}};
+  let retain,constructs=0,cleanup;
+  const original={inputRows:0,prepare(){return selection;}};
+  const family=installEffectContentFamily({moon:{clientProgramEffectAcquisitionCount:()=>0},
+    control:{effectFamily(p,g,b,l,physical,keep,recovery,managed){
+      assert.strictEqual(p,prepared);assert.strictEqual(g,graph);assert.strictEqual(managed,original);
+      assert.equal(recovery,undefined);assert(cleanup,'parent owns cleanup before native constructor');
+      assert.equal(l.output.maxRows,0);assert.equal(l.generation.maxRows,0);
+      constructs++;retain=keep;return{provider,preparation:selection};}},
+    publications:{checkedClientSerializationGenerationLimits:()=>({maxRows:1,maxBytes:100})},
+    bodies:{},prepared,plan,store,principalId:'owner',ownerPrincipal:'owner',now:()=> '2026-11-03T00:00:00Z',
+    authorize:()=>true,storeAuthorityCid:'store',outputLimits:{},managedOriginal:original,
+    retainCleanup(value){cleanup=value;}});
+  assert.strictEqual(family.provider,provider);assert.strictEqual(family.preparation,selection);
+  assert.equal(retain({}),false,'unbound provider cannot start a physical generation');
+  assert.throws(()=>family.bindExecution({prepared:{},plan,store,principalId:'owner'}),{message:'ForeignInstalledContentFamily'});
+  family.bindExecution({prepared,plan,store,principalId:'owner'});
+  assert.equal(retain({}),true);assert.equal(constructs,1);
+  assert.throws(()=>family.bindExecution({prepared,plan,store,principalId:'owner'}),{message:'ForeignInstalledContentFamily'});
+  assert.equal(await cleanup.close(),true);assert.equal(cleanup.cleanupPending(),false);
+});

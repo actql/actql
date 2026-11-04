@@ -61,6 +61,39 @@ custody, complete pre-spawn funding, Wasmtime, runtime recipe adoption, wheels a
 public installed E2E remain unverified. `fixtures/region.c` tests physical guards
 and shared bytes using the original 64-page fixture, with no worker/VM startup.
 
+## Linux x64 process profile
+
+The default `platform_native/host_bootstrap` C entry selects the process-only
+provider for its actual Linux x64 compiler target. Its existing Moon native
+compiler flags select GNU feature visibility before system headers, and its
+link flags retain pthread support. Imported and scoped-read providers keep
+their separate source selection. Compiling `owned_capacity.c` alone without an
+explicit profile still refuses Linux x64.
+
+`owned_linux_x64_process_profile.h` requires Linux x64/glibc, little-endian LP64,
+64-bit pointers, ranges and FD offsets, 32-bit PID records, and always-lock-free
+shared PID atomics. It reuses the same allocator, FD mapping, address-bound
+loan/view, current scope, thread and child-first retirement implementations.
+Control sizes and page geometry come from that compiled provider; an ARM or
+Darwin layout is not a substitute. This selection does not issue Core funding,
+authorize a read, acknowledge a child stop, or select an image, Rust or Engine
+profile. The existing original child/borrow/current and retirement duties remain.
+
+`linux-x64-process-source.json` binds the selected source and pinned toolchain.
+`python3 scripts/test_native_linux_x64_owned_process.py` requires an actual
+Linux x64 host and retains the original physical-case binaries and controls.
+Its C results do not qualify Moon FFI or a normal installation. The existing
+Native HTTP and separated-network wrappers must still execute all their
+selected packages and later controls; this profile provides no case exclusion
+or fallback. Source selection alone is not execution or distribution evidence.
+
+The shared `owned_inventory.inc` observes the same provider's actual control,
+generic, pending-retirement and heap records on every selected process profile.
+It is also used by the original Darwin heap backend. Moving this census does
+not add a Rust allocator to Linux or substitute zero availability values for
+physical observations. The Native bootstrap inventory FFI remains bound to the
+same entered original domain and its existing scalar bounds and cleanup owner.
+
 ## Original child allocation domain
 
 The trusted child supplier can bind the original Core payload to an

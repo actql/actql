@@ -218,3 +218,92 @@ test('Salesforce Site does not infer acquisition capacity from its issued grants
     {code: 'SalesforceRecordAcquisitionUnavailable'});
   assert.equal(f.setup.seen.length, f.initialRequests);
 });
+
+test('managed Salesforce registry preserves original target and write purpose and refuses Account closure before send', async t => {
+  const f = await fixture(t), originalSite = installedRowCredentialOperationSite(f.setup.site.credential);
+  assert.equal(originalSite.authorizationPurpose(f.setup.observe).kind, 'target-read');
+  assert.equal(originalSite.authorizationPurpose(f.setup.write).kind, 'effect');
+  assert.throws(() => originalSite.authorizationPurpose({...f.setup.observe}),
+    {code: 'RowSourceAuthorizationPurposeUnavailable'});
+  const acquired = originalSite.bindRunAcquisition(f.setup.observe, {
+    assertCurrent() {}, async observeCurrent() {f.setup.authorization.close();},
+  });
+  try {
+    await assert.rejects(f.invoke(acquired, 'managed-original-account-closure'),
+      {code: 'AuthorizationDecisionScopeClosed'});
+    assert.equal(f.setup.seen.length, f.initialRequests);
+  } finally {assert.equal(acquired.close(), 'closed');}
+});
+
+test('managed Salesforce registry keeps the original profile fence before target IO', async t => {
+  const f = await fixture(t), originalSite = installedRowCredentialOperationSite(f.setup.site.credential);
+  const original = await readFile(f.setup.profilePath);
+  const acquired = originalSite.bindRunAcquisition(f.setup.observe, {
+    assertCurrent() {}, async observeCurrent() {
+      const changed = JSON.parse(original); changed.siteGeneration++;
+      await writeFile(f.setup.profilePath, JSON.stringify(changed));
+    },
+  });
+  try {
+    await assert.rejects(f.invoke(acquired, 'managed-original-profile-fence'),
+      {code: 'SalesforceRecordAcquisitionProfileChanged'});
+    assert.equal(f.setup.seen.length, f.initialRequests);
+  } finally {
+    await writeFile(f.setup.profilePath, original);
+    assert.equal(acquired.close(), 'closed');
+  }
+});
+
+test('managed Salesforce metadata child binds the original Describe issuer without minting another grant', async t => {
+  const f = await fixture(t), site = f.setup.site, originalSite = installedRowCredentialOperationSite(site.credential);
+  let reads = 0;
+  const catalog = await site.describeEffectCatalog({resources: ['Test_Record__c'],
+    runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), occurrence: 'managed-original-description',
+    async readChild(original, input) {
+      const purpose = originalSite.authorizationPurpose(original);
+      assert.equal(purpose.kind, 'read'); assert.equal(purpose.resource, 'Test_Record__c');
+      assert.strictEqual(input.grant, original.grant);
+      const acquired = originalSite.bindRunAcquisition(original, current());
+      try {
+        reads++;
+        return await callHttpsCredentialResource({...input, ...acquired.credential});
+      } finally {assert.equal(acquired.close(), 'closed');}
+    }});
+  assert.equal(reads, 1);
+  assert.equal(f.setup.seen.length - f.initialRequests, 1);
+  assert.deepEqual(catalog.evidence.names, ['Test_Record__c']);
+});
+
+test('managed Salesforce Describe enters the same synchronous construction frame around native phases while leaving HTTP outside', async t => {
+  let active = false, checking = false, entries = 0;
+  const observed = [];
+  const names = ['salesforceCatalogBeginNamed', 'salesforceCatalogDescribe',
+    'salesforceCatalogResponseSha256', 'salesforcePrepareCatalogObservation', 'salesforceCatalogObservationJson'];
+  const provider = Object.freeze({...salesforceMoon, ...Object.fromEntries(names.map(name =>
+    [name, (...args) => {
+      if (checking) {assert(active, `${name} must have original before-call backing`);observed.push(name);}
+      return Reflect.apply(salesforceMoon[name], salesforceMoon, args);
+    }]))});
+  const f = await fixture(t, {salesforceMoon: provider}), site = f.setup.site;
+  const originalSite = installedRowCredentialOperationSite(site.credential);
+  checking = true;
+  try {
+    const catalog = await site.describeEffectCatalog({resources: ['Test_Record__c'],
+      runInvocationCid: cid('1'), dispatchRequestCid: cid('2'), occurrence: 'managed-construction-description',
+      controlConstruction(receiver, method, args) {
+        assert.equal(active, false);assert.equal(receiver, undefined);entries++;active = true;
+        try {return Reflect.apply(method, receiver, args);} finally {active = false;}
+      },
+      async readChild(original, input) {
+        assert.equal(active, false, 'a synchronous construction borrow never spans the HTTP await');
+        const acquired = originalSite.bindRunAcquisition(original, current());
+        try {return await callHttpsCredentialResource({...input, ...acquired.credential});}
+        finally {assert.equal(acquired.close(), 'closed');}
+      }});
+    assert.equal(catalog.evidence.names[0], 'Test_Record__c');
+    assert.equal(f.setup.seen.length - f.initialRequests, 1);
+    assert.equal(entries, 4, 'begin, original Grant, response projection and final observation');
+    assert.deepEqual(new Set(observed), new Set(names));
+    assert.equal(active, false);
+  } finally {checking = false;}
+});

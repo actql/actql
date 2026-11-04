@@ -6,8 +6,9 @@
 ///
 /// The trusted Host supplies fresh audience metadata AFTER its actual Source
 /// and Account decisions. The visible publication is a disclosure filter, not
-/// a new Source grant. Native originals have no authored text coordinates;
-/// this projection never manufactures a location from another parse.
+/// a new Source grant. Native originals have no authored text coordinates.
+/// A matching retained Parameters representation may explain its existing
+/// scalar key spans; no Program or Parameters document is parsed again.
 pub fn client_program_project_original_check_outcome(
   program : @syntax.Program,
   source : @stage_parameters.Source,
@@ -26,6 +27,7 @@ pub fn client_program_project_original_check_outcome(
   parameters_bytes : Int,
   correlation_ref : String,
   selector_namespace : ClientCheckSourceSelectorNamespace?,
+  original_parameters? : String? = None,
 ) -> String {
   if outcome is @checked.Checked(_) || !["program", "text"].contains(input_kind) {
     return check_failed_json("check_request_invalid", correlation_ref)
@@ -108,6 +110,39 @@ pub fn client_program_project_original_check_outcome(
       hidden = true
     }
   }
+  // A completed input read before Source resolution is independent of every
+  // private Source's availability. The old later binder keeps its original
+  // disclosure filter; absence of this original never starts another read.
+  let independent = @checked.independent_supplied_binding_issue(
+    outcome, program, supplied,
+  )
+  let supplied_issue = match independent {
+    Some(issue) => Some(issue)
+    None =>
+      if !hidden &&
+        outcome is @checked.Rejected(diagnostic) &&
+        @checked.diagnostic_cause(diagnostic)
+        is Source(SourceView(Binding(Binding(issue)))) {
+        Some(issue)
+      } else {
+        None
+      }
+  }
+  let supplied_refusal = if supplied_issue is Some(issue) &&
+    issue is BindingInput(Supplied, _) &&
+    check_binding_fault(issue) is Invalid {
+    findings.push(
+      check_supplied_type_finding(
+        issue,
+        @stage_parameters.declarations(source),
+        supplied,
+        original_parameters,
+      ),
+    )
+    true
+  } else {
+    false
+  }
   let stop = if hidden {
     // Preserve the existing independent unsupported-declaration limitation,
     // while every unresolved private dependency stays protected.
@@ -126,7 +161,7 @@ pub fn client_program_project_original_check_outcome(
     }
     findings.push(Unresolved("source_resolution"))
     Report
-  } else if unregistered is Some(_) {
+  } else if unregistered is Some(_) || supplied_refusal {
     Report
   } else {
     match outcome {

@@ -22,6 +22,40 @@ test('preflight checks Native counter assignments before the build toolchain', (
   assert.ok(jobs.native.needs.includes('preflight'));
 });
 
+test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-profile-stack-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const npm = join(root, 'npm');
+  writeFileSync(npm, '#!/bin/sh\nprintf "%s:%s\\n" "$ACTQL_FIXTURE_STACK_KIB" "$*"\nexit "$ACTQL_FIXTURE_NPM_EXIT"\n');
+  chmodSync(npm, 0o755);
+  for (const [job, name, command] of [
+    ['native', 'Test Node-free native storage publication and control', 'check:native-http-client'],
+    ['native-separated-network', 'Verify native direct and outbound-only Store profiles', 'check:native-separated-network'],
+  ]) {
+    assert.equal(jobs[job]['runs-on'], 'ubuntu-24.04');
+    const step = jobs[job].steps.find(row => row.name === name);
+    assert.ok(step);
+    assert.equal(step.if, undefined);
+    assert.equal(step['continue-on-error'], undefined);
+    assert.match(step.run, /ulimit -S -s 65536\s+?npm run /u);
+    // Observe exact shell ordering and child inheritance without starting a
+    // Native compiler or changing the host shell's hard resource limit.
+    const observe = 'ulimit() { test "$*" = "-S -s 65536" || return 93; ' +
+      'export ACTQL_FIXTURE_STACK_KIB="$3"; }\n';
+    for (const status of [0, 7]) {
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', observe + step.run], {
+        cwd: root, encoding: 'utf8', timeout: 5000,
+        env: {...process.env, PATH: root + ':' + process.env.PATH,
+          ACTQL_FIXTURE_NPM_EXIT: String(status)},
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.signal, null);
+      assert.equal(result.status, status, result.stderr);
+      assert.equal(result.stdout.trim(), `65536:run ${command}`);
+    }
+  }
+});
+
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
@@ -176,8 +210,14 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
+  for (const target of ['js', 'wasm', 'native']) {
+    assert.equal(runInNewContext(jobs.core['timeout-minutes'].slice(3, -2),
+      {matrix: {target}}, {timeout: 100}), target === 'native' ? 90 : 30);
+  }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
+  assert.equal(jobs['native-macos']['timeout-minutes'], 60);
+  assert.equal(jobs['native-macos']['timeout-minutes'], jobs.native['timeout-minutes']);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
   for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
@@ -394,11 +434,27 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 });
 
 // Exercise the real GitHub job expressions, including always() behavior.
-const scheduled = (name, needs, inputs = {}) => {
+const scheduled = (name, needs, inputs = {}, isCancelled = false) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
-  return Function('needs', 'inputs', 'always', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true,
+  return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
     {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify);
 };
+test('pipeline evidence aggregates dependency failures but stops on workflow cancellation', () => {
+  const names = jobs['pipeline-evidence'].needs;
+  const healthy = Object.fromEntries(names.map(name => [name, {result: 'success'}]));
+  for (const result of ['success', 'failure', 'cancelled', 'skipped', undefined]) {
+    const needs = {...healthy, 'pipeline-capacity': {result}};
+    assert.equal(scheduled('pipeline-evidence', needs), true, `dependency ${result} must be aggregated`);
+    assert.equal(scheduled('pipeline-evidence', needs, {}, true), false,
+      `workflow cancellation must stop evidence work after dependency ${result}`);
+  }
+  const selection = selectTargets(['src/unregistered/engine.mbt']);
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    const candidate = results(selection);
+    candidate['pipeline-evidence'] = {result};
+    assert.throws(() => verifyGate(plan(selection), candidate, context), /pipeline-evidence/u);
+  }
+});
 test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
   for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
     ['pipeline-evidence', ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']]]) {

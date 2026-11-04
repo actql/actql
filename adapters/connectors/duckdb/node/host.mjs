@@ -540,7 +540,10 @@ async function runHostCompute(
   let sessionStarted = false;
   let inputReadUnconfirmed = false;
   const accounting = strategy ? Object.freeze({
-    started() { sessionStarted = true; },
+    started() {
+      checked(moon.computeHostPhysicalStart(run));
+      sessionStarted = true;
+    },
     chargeTransfer(bytes) { checked(moon.computeHostPhysicalCharge(run, BigInt(bytes))); },
     settled(confirmed) { checked(moon.computeHostPhysicalSettle(run, confirmed && !inputReadUnconfirmed)); },
   }) : undefined;
@@ -1148,7 +1151,10 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
   });
   let sessionStarted = false;
   const accounting = capacity === undefined ? undefined : Object.freeze({
-    started() { sessionStarted = true; },
+    started() {
+      checked(moon.nativeHostPhysicalStart(capturedRun));
+      sessionStarted = true;
+    },
     chargeTransfer(bytes) { checked(moon.nativeHostPhysicalCharge(capturedRun, BigInt(bytes))); },
     settled(confirmed) { checked(moon.nativeHostPhysicalSettle(capturedRun, confirmed)); },
   });
@@ -1432,7 +1438,10 @@ export async function runBroadHostQuery(grant, setup, limits, signal,
   let capturedRun;
   let sessionStarted = false, sessionReleased = false, residualReleased = true;
   const accounting = capacity === undefined ? undefined : Object.freeze({
-    started() { sessionStarted = true; },
+    started() {
+      checked(moon.broadHostPhysicalStart(capturedRun));
+      sessionStarted = true;
+    },
     chargeTransfer(bytes) { checked(moon.broadHostPhysicalCharge(capturedRun, BigInt(bytes))); },
     settled(confirmed) {
       sessionReleased = confirmed;

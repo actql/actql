@@ -5,6 +5,10 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
+import {contentCid} from './local-account-config.mjs';
+import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
+import {validInstallationBinding} from './ordinary-source-binding.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 test('managed Source Plan selection captures the original declaration method and receiver', () => {
   const selection = Object.freeze({declaration: {}, provider: {}, transferBytes: 1n, executionBytes: 2n});
@@ -26,6 +30,55 @@ function visit(node, select) {
     if (Array.isArray(child)) for (const value of child) visit(value, select);
     else if (child && typeof child === 'object') visit(child, select);
   }
+}
+// These are the actual loader/binder/publication call sites with explicit
+// service ports, not a second Host or a namespace authorization decision.
+async function publishLoadedSources(profile) {
+  let loading, publication;
+  visit(ast, node => {
+    if (node.type === 'BlockStatement' && node.body.some(statement =>
+      statement.type === 'ExpressionStatement' &&
+      statement.expression.type === 'AssignmentExpression' &&
+      statement.expression.left.name === 'sourceProfile' &&
+      statement.expression.right.type === 'AwaitExpression' &&
+      statement.expression.right.argument.callee?.name === 'loadInstalledSources')) loading = node;
+    if (node.type === 'AssignmentExpression' && node.left.name === 'sourcePublication' &&
+        node.right.callee?.name === 'sourceAliasPublication') publication = node;
+  });
+  assert(loading && publication);
+  return new Function('loadInstalledSources', 'preparation', 'moon', 'sourceAliasPublication', `
+    return (async () => {
+      let sourceProfile, sourcePublication, sourcePublicationSources;
+      const selectedSourcePaths=['/original/source.json'];
+      const root='/host', principalId='reader', environment={};
+      const runtimeUrl=undefined, baseEnvironmentWire=undefined, resolveSourceSecret=undefined;
+      const connectorTable=undefined, installationServices=undefined;
+      const installedEffect=undefined, effectInstallation=undefined, environmentWire=undefined;
+      const sourceNamespace='queries', sourceSelectorNamespace=undefined;
+      ${source.slice(loading.start, loading.end)}
+      ${source.slice(publication.start, publication.end)};
+      return {execution: sourceProfile, publication: sourcePublication};
+    })();
+  `)(async () => profile, {bindManagedSources: (_moon, selected) =>
+    bindInstalledManagedSources(selected, () => assert.fail('Metadata does not admit a Run'))}, {},
+  (_moon, _environment, _aliases, _writes, options) => options.installedSources);
+}
+for (const plural of [false, true]) {
+  test(`Host namespace publication retains loader originals through ${plural ? 'plural' : 'single'} managed binding`, async () => {
+    const originals = Array.from({length: plural ? 2 : 1}, () => ({
+      managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
+    }));
+    const profile = plural ? {sources: originals} : originals[0];
+    const issuedMetadata = new WeakMap(originals.map(original => [original, {}]));
+    const result = await publishLoadedSources(profile);
+    const execution = result.execution.sources ?? [result.execution];
+    assert.equal(result.publication.length, originals.length);
+    for (const [index, original] of originals.entries()) {
+      assert.notStrictEqual(execution[index], original);
+      assert.strictEqual(result.publication[index], original);
+      assert.strictEqual(issuedMetadata.get(result.publication[index]), issuedMetadata.get(original));
+    }
+  });
 }
 function admission(preparation, sourceProfile, prepared, request, count, prepareTimedRunInvocation) {
   let declaration, route;
@@ -131,29 +184,33 @@ test('managed Source view preserves original physical and plural method receiver
     close() {assert.strictEqual(this, source); return close;},
     retainedCapture(value) {assert.strictEqual(this, source); assert.strictEqual(value, child); return capture;},
     admitsSource(value) {assert.strictEqual(this, source); return value === 'original';},
+    retirePreparedSource(value) {assert.strictEqual(this, source); assert.strictEqual(value, child); return child;},
   };
   const profile = {sources: [source], close() {assert.strictEqual(this, profile); return close;},
     admitsSource(value) {assert.strictEqual(this, profile); return value === 'plural';}};
   const view = bindInstalledManagedSources(profile, () => assert.fail('Method forwarding does not issue a parent'));
-  for (const name of ['open', 'close', 'retainedCapture', 'admitsSource']) source[name] = () => assert.fail('Replaced child method');
+  for (const name of ['open', 'close', 'retainedCapture', 'admitsSource', 'retirePreparedSource']) source[name] = () => assert.fail('Replaced child method');
   profile.close = profile.admitsSource = () => assert.fail('Replaced plural method');
   assert.strictEqual(view.sources[0].open(child), child);
   assert.strictEqual(view.sources[0].close(), close);
   assert.strictEqual(view.sources[0].retainedCapture(child), capture);
   assert.equal(view.sources[0].admitsSource('original'), true);
+  assert.strictEqual(view.sources[0].retirePreparedSource(child), child);
   assert.strictEqual(view.close(), close);
   assert.equal(view.admitsSource('plural'), true);
 });
 
 test('DuckDB quotes its actual pending capture and physical transport without selecting or reading it', async () => {
-  const text = readFileSync(new URL('./installed-source.mjs', import.meta.url), 'utf8');
+  const text = readFileSync(new URL('./installed-duckdb-source.mjs', import.meta.url), 'utf8');
   const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const node = syntax.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'duckdbAdapter');
+  const node = syntax.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === 'createInstalledDuckDBSource')?.declaration;
   assert(node);
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const requirement = {}, pending = {}, capacity = {}, calls = [];
+  const authorization = Object.freeze({close() {assert.equal(this,authorization);calls.push('authorization-close');return true;}});
   const profile = {database: '/never-opened.duckdb', schema: 'main', table: 'four_rows', sourceRef: 'source:rows',
-    environmentWire: '{"connector_catalogs":[]}', transportLimits: {maxRows: 4, maxCells: 4,
+    environmentWire: '{"connector_catalogs":[]}',sourceAccess:{authorization}, transportLimits: {maxRows: 4, maxCells: 4,
       maxTransportBytes: 1024, maxSqlBytes: 4096, maxParameters: 0, maxColumns: 1, memoryBytes: 1048576, threads: 1}};
   const moon = {
     clientProgramQueryRequirementSourceRef(value) {return value === requirement ? profile.sourceRef : 'source:foreign';},
@@ -166,15 +223,73 @@ test('DuckDB quotes its actual pending capture and physical transport without se
     clientProgramInstalledPendingDuckDBCaptureCapacity(value) {assert.strictEqual(value, pending); calls.push('typed-capacity'); return capacity;},
   };
   const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
-    'computePhysicalCapacity', 'importMetaUrl',
-    text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return duckdbAdapter;')(
-    async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-source.mjs', import.meta.url).href);
+    'computePhysicalCapacity', 'importMetaUrl', 'contentCid', 'duckDBPhysicalTarget',
+    text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return createInstalledDuckDBSource;')(
+    async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-duckdb-source.mjs', import.meta.url).href,
+    contentCid, duckDBPhysicalTarget);
   const adapter = await create(profile, moon, {root: '/unused', principalId: 'original'});
   const result = adapter.managedCaptureCapacity(requirement), physical = computePhysicalCapacity(profile.transportLimits);
   assert.deepEqual(result, {capacity, transferBytes: physical.transferBytes, executionBytes: physical.executionBytes});
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
   assert.throws(() => adapter.managedCaptureCapacity({}), /InstalledSourceProgramMismatch/);
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
+  adapter.close();
+  assert.deepEqual(calls, ['pending','typed-capacity','authorization-close']);
+  assert.throws(() => adapter.managedCaptureCapacity(requirement), /InstalledSourceReaderNotCurrent/);
+});
+
+
+test('DuckDB bound recovery keeps the original preparation and selected installation', async () => {
+  const text = readFileSync(new URL('./installed-duckdb-source.mjs', import.meta.url), 'utf8');
+  const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const node = syntax.body.find(node => node.declaration?.id?.name === 'createInstalledDuckDBSource').declaration;
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const view = `sha256:${'a'.repeat(64)}`, authorization = {close() {return true;}};
+  const profile = {database: '/never-opened.duckdb', schema: 'main', table: 'records',
+    sourceRef: 'connector://fixture/records#v', sourceAccess: {authorization},
+    environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture',
+      source_views: [{contract_cid: view}]}]})};
+  const installation = Object.freeze({registration: 'builtin_source', revision: 'builtin_source/0.1'});
+  const parent = {}, preparedProgram = {}, request = {}, requirement = {}, capacity = {};
+  let next, getters = 0, forwardedCapture, forwardedContracts;
+  const moon = {clientProgramInstalledManagedDuckDBCapture(run, program, identity, task) {
+    assert.equal(this, moon); assert.equal(run, parent); assert.equal(program, preparedProgram);
+    assert.equal(identity, request); assert.equal(task, 1); getters++; return {_0: requirement, _1: capacity};
+  }};
+  const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
+    'contentCid', 'duckDBPhysicalTarget', 'validInstallationBinding', 'prepareCapturedDuckDBSource',
+    'runtimeField', 'importMetaUrl', text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') +
+      ';return createInstalledDuckDBSource;')(async () => {}, readFile, value => value,
+    contentCid, duckDBPhysicalTarget, validInstallationBinding, async options => {
+      forwardedCapture = options.originalCapture; forwardedContracts = options.originalContracts; return next;
+    }, runtimeField,
+    new URL('./installed-duckdb-source.mjs', import.meta.url).href);
+  const adapter = await create(profile, moon, {root: '/same-root', principalId: 'same-principal', installation});
+  next = Object.freeze({physicalBinding: duckDBPhysicalTarget(profile),
+    checkedSource: Object.freeze({sourceRef: profile.sourceRef, sourceViewContractCid: view})});
+  const prepared = await adapter.prepare({}), binding = adapter.ordinaryRecoveryBinding(prepared);
+  assert.equal(validInstallationBinding(binding), true);
+  assert.equal(binding.connectorId, 'fixture');
+  assert.equal(binding.connectorRegistration, installation.registration);
+  assert.equal(binding.connectorRevision, installation.revision);
+  assert.equal(binding.bindingCid, adapter.connectorBindings[0].bindingCid);
+  assert.equal(adapter.ordinaryRecoveryBinding(prepared), binding);
+  assert.equal(forwardedCapture, undefined);
+  const originalContracts = forwardedContracts;
+  assert.equal(Object.isFrozen(originalContracts), true);
+  assert.deepEqual(originalContracts.map(body => JSON.parse(body).version),
+    ['actql-query-acquisition-contract/0.1', 'actql-query-process-evidence-contract/0.1', 'actql-query-two-receipt-contract/0.1']);
+  assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}), /InstalledSourcePreparationMismatch/);
+  await adapter.prepare({preparedProgram, requestIdentity: request, managedRun: parent, occurrence: {task: 1}});
+  assert.equal(getters, 1);
+  assert.equal(forwardedCapture.requirement, requirement);
+  assert.equal(forwardedCapture.capacity, capacity);
+  assert.equal(forwardedContracts, originalContracts);
+  const other = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
+  assert.throws(() => other.ordinaryRecoveryBinding(prepared), /InstalledSourcePreparationMismatch/);
+  adapter.close();
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared), /InstalledSourceReaderNotCurrent/);
+  other.close();
 });
 
 function hostManagedSources(onCheck = () => {}, inputField = 'preparedProgram') {
@@ -354,4 +469,46 @@ test('Host Effect Source actual preparedEffect field retains the same Plan paren
   assert.strictEqual(f.selected.ledgerCapacity(original).managedRun, f.parent);
   assert.equal(reads, 3);
   assert.deepEqual(f.counts(), {preparations: 1, capacities: 1});
+});
+
+
+test('explicit Effect Host selects the same installed Site for its existing managed Plan callback', () => {
+  let declaration;
+  visit(ast, node => {if (node.type === 'FunctionDeclaration' && node.id?.name === 'selectedInstalledEffect') declaration = node;});
+  assert(declaration);
+  const prepared = {}, compilation = {}, plan = {}, calls = [];
+  const original = Object.freeze({prepareManagedPlan() {return plan;}});
+  const select = new Function('installedEffect', 'effectInstallation', 'updateTargetOriginals',
+    'validateInstalledUpdateOwnerSelections', source.slice(declaration.start, declaration.end) + '\nreturn selectedInstalledEffect;')(
+    undefined, original, undefined, (installation, selections, actual) => {
+      assert.strictEqual(installation, original); assert.equal(selections, undefined);
+      assert.strictEqual(actual, prepared); calls.push('same-owner-selection');
+    });
+  assert.strictEqual(select({prepared, compilation}), original);
+  assert.deepEqual(calls, ['same-owner-selection']);
+  assert.strictEqual(original.prepareManagedPlan(), plan);
+});
+
+test('dispatch retains an unreturned original Source preparation after physical cleanup', () => {
+  const text = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const functions = [];
+  visit(syntax, node => {
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'retire') functions.push(node);
+  });
+  assert.equal(functions.length, 1);
+  let returns = 0;
+  const entry = {settled: true, physicalStarted: false,
+    sourcePreparations: [{original: 'same unreturned preparation'}],
+    retirePreparation() {returns++;}};
+  const entries = new Map([['original', entry]]);
+  const retire = new Function('entries', 'keyOf',
+    text.slice(functions[0].start, functions[0].end) + ';return retire;')(entries, () => 'original');
+  retire(entry);
+  assert.equal(returns, 0);
+  assert.equal(entries.get('original'), entry);
+  entry.sourcePreparations = undefined;
+  retire(entry);
+  assert.equal(returns, 1);
+  assert.equal(entries.size, 0);
 });

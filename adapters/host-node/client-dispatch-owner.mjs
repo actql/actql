@@ -369,7 +369,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   function retire(entry) {
     if (entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
-        entry.sourceCapture === undefined && entry.pendingSetup === undefined &&
+        entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
+        entry.pendingSetup === undefined &&
         !entry.stopObservationPending &&
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
@@ -385,7 +386,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       entry.retirePreparation = undefined;
       entry.preparationRetirementFailure = undefined;
-      entries.delete(keyOf(entry.ref));
+      const removed = entries.delete(keyOf(entry.ref));
+      // This diagnostic describes the complete original owner, not just its
+      // physical children. Preparation/finished and acquisition release have
+      // now completed under the unchanged retirement predicate above.
+      if (removed && entry.acquisitionLedger !== undefined) {
+        try {diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
+          resourceUsage: resourceUsage(entry.acquisitionLedger)});}
+        catch { /* Optional observation cannot restore or prevent retirement. */ }
+      }
     }
   }
 
@@ -485,6 +494,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (entry.unresolvedCleanup) {
       throw new Error('ClientDispatchCleanupOwnerMissing');
     }
+    if (entry.sourcePreparations !== undefined) {
+      for (const {source, prepared, retire} of entry.sourcePreparations) {
+        Reflect.apply(retire, source, [prepared]);
+      }
+      entry.sourcePreparations = undefined;
+    }
     if (entry.stopObservationPending) await observeStop(entry);
     if (entry.failureObservationPending) {
       journal.markPreDispatchFailure(entry.ref);
@@ -496,10 +511,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     }
     observation?.emit('cleanup', 'cleanup_completed', {ref: entry.ref,
       physicalStop: entry.stopObserved ? 'confirmed' : undefined});
-    if (entry.acquisitionLedger !== undefined) {
-      diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
-        resourceUsage: resourceUsage(entry.acquisitionLedger)});
-    }
   }
 
   async function finishRun(entry) {
@@ -695,6 +706,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           acquisition: keyedAcquisition, capacity, ledger, capturedContent};
       }
       if (multiple) {
+        // Preparation creates the whole original prefix before the first
+        // physical read. Retain each existing preparation's retirement port
+        // before a sibling can fail; started captures still close above first.
+        entry.sourcePreparations = held.preparedSources.flatMap(source => {
+          const retire = source.adapter.retirePreparedSource;
+          if (retire === undefined) return [];
+          if (typeof retire !== 'function') throw new TypeError('InstalledSourceCleanupUnavailable');
+          return [{source: source.adapter, prepared: source.prepared, retire}];
+        });
         // Read approvals retain their occurrence and physical target. Resolve
         // resumed access before selecting configurations and sizing the one
         // ledger; the exact preparations below also own the subsequent reads.

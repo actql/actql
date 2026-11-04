@@ -9,8 +9,48 @@ import {pathToFileURL} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {heldValuesProgram, writeSyntheticHistoricalHeldValues} from '../../scripts/fixtures/synthetic-historical-held-values.mjs';
 import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
-import {sourceReadAccountConfiguration} from './local-account-config.mjs';
+import {canonicalJson, sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+
+test('packed Salesforce fixtures grant only the owner original Run and named Result reads', async () => {
+  const text = readFileSync(new URL('../../scripts/test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const accounts = new Map();
+  function collect(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'canonicalJson' &&
+        node.arguments[0]?.type === 'ObjectExpression') {
+      const value = node.arguments[0];
+      const id = value.properties.find(item => item.key?.name === 'account_id')?.value?.value;
+      if (id === 'packed-account' || id === 'packed-effect-account') {
+        accounts.set(id, new Function('orgId', 'composedModel', 'userInfo',
+          `return (${text.slice(value.start, value.end)});`)('fixture-org', undefined,
+          () => ({username: 'fixture-owner'})));
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(collect);
+      else if (value !== null && typeof value === 'object') collect(value);
+    }
+  }
+  collect(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(accounts.size, 2);
+  const moon = await loadExecutionAuthorizationRuntime();
+  for (const [id, account] of accounts) {
+    const wire = canonicalJson(account);
+    assert.equal(JSON.parse(moon.executionAuthorizationAccountJson(
+      moon.executionAuthorizationAdmit(wire))).state, 'admitted');
+    const scope = {namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope'};
+    const authority = createLocalReadAuthorizations({moon,
+      authorization: {accountConfiguration: wire}, principalId: 'fixture-owner', ...scope});
+    const request = {principalId: 'fixture-owner', indexKey: scope};
+    assert.equal(await authority.run(request), true, id);
+    const names = id === 'packed-account' ? ['records'] : ['answer', 'classified', 'records', 'updates'];
+    for (const resultName of names) assert.equal(await authority.result({...request, resultName}), true, resultName);
+    assert.equal(await authority.result({...request, resultName: 'foreign'}), false);
+    assert.equal(await authority.run({...request, principalId: 'foreign'}), false);
+    assert.equal(await authority.run({...request, indexKey: {...scope, namespaceId: 'foreign'}}), false);
+  }
+});
 
 // Execute the actual installed Host's public-entry function, not a duplicate
 // route implementation or a full embedded/Common Host qualification.

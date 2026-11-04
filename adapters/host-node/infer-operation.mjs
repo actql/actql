@@ -977,8 +977,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         } catch { /* Optional observation has no execution authority. */ }
       });
     },
-    restoreCall: (preparedCallSet, slot, record, proof, bundle) => checked(
-      moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
+    restoreCall: (preparedCallSet, slot, record, proof, bundle, attachmentAdmission) => checked(
+      moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle, attachmentAdmission)),
     restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(
       moon.clientProgramRestoreInferPreparedUnknown(preparedCallSet, slot, attempt, authority)),
     prepareResponseReconciliation: (preparedCallSet, slot, attempt, authority) => checked(

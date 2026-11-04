@@ -429,15 +429,39 @@ fn issue_client_task_plan_graph(
             is Some(@canonical.String(input_contract_cid)) else {
             return Err(InvalidEdge)
           }
-          if input_contract_cid != source.output_contract_cid {
+          let projection = if input_contract_cid != source.output_contract_cid {
+            match
+              issue_client_task_result_input_projection(
+                graph, edge, index, source, max_wire_bytes, max_nodes, max_depth,
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+          } else {
+            None
+          }
+          let (source_node, source_port, source_contract) = match projection {
+            None =>
+              (source.node_id, source.output_port, source.output_contract_cid)
+            Some(projection) => {
+              nodes.push(projection.node)
+              result_edges.push(projection.edge)
+              (
+                projection.node_id,
+                projection.output_port,
+                projection.output_contract_cid,
+              )
+            }
+          }
+          if input_contract_cid != source_contract {
             return Err(ContractMismatch)
           }
           emit_client_compilation_data_edge(
             writer,
             source.output_carrier,
-            source.output_contract_cid,
-            source.node_id,
-            source.output_port,
+            source_contract,
+            source_node,
+            source_port,
             destination.node_id,
             input_name,
             (value, writer) => @encode.string_value(writer, value),
@@ -448,15 +472,20 @@ fn issue_client_task_plan_graph(
               if name != input_name {
                 continue
               }
-              if cid != source.output_contract_cid {
+              if cid != source_contract {
                 return Err(ContractMismatch)
               }
-              guard client_serialization_plan_edge(
-                  source, node_id, port, max_wire_bytes, max_nodes, max_depth,
-                )
-                is Some(extra) else {
-                return Err(Encoding)
+              let extra = match projection {
+                None =>
+                  client_serialization_plan_edge(
+                    source, node_id, port, max_wire_bytes, max_nodes, max_depth,
+                  )
+                Some(projected) =>
+                  client_task_result_input_projection_edge(
+                    projected, node_id, port, max_wire_bytes, max_nodes, max_depth,
+                  )
               }
+              guard extra is Some(extra) else { return Err(Encoding) }
               @canonical.emit_value(extra, writer)
             }
           }

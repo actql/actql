@@ -7,6 +7,11 @@ import {
   "actql/actql/connectors/salesforce/host" @salesforce_host,
   "actql/actql/execution_relation" @execution,
   "actql/actql/encode_core" @encode,
+  "actql/actql/source_value" @source,
   "actql/actql/run_publication" @publication,
   "actql/actql/value_admission" @admitted,
 }
+
+import {
+  "actql/actql/client_local_host" @local,
+} for "wbtest"

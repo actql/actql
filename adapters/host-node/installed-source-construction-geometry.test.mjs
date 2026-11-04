@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sourceJsonWireGeometry, sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry,
-  sourceAuthoredViewConstructionGeometry} from './installed-source-construction-geometry.mjs';
+  sourceAuthoredViewConstructionGeometry, sourceEnvironmentCompositionGeometry} from './installed-source-construction-geometry.mjs';
 import {rowSourceCheckEnvironment} from './installed-row-source.mjs';
 
 const count = value => value !== null && typeof value === 'object'
@@ -72,4 +72,23 @@ test('authored-view snapshot prices fixed records and borrowed String fields sep
   const accessor = Object.freeze({get resource() {calls++; return 'rows';}});
   assert.throws(() => sourceAuthoredViewConstructionGeometry(Object.freeze([accessor])));
   assert.equal(calls, 0);
+});
+
+test('final Environment composition separates scalar text from actual tree occurrences', () => {
+  const wire = text => JSON.stringify({version: 'v', source_views: [{name: text}]});
+  const short = sourceEnvironmentCompositionGeometry([wire('x'), undefined]);
+  const long = sourceEnvironmentCompositionGeometry([wire('x'.repeat(100000)), undefined]);
+  assert.equal(long.nodes, short.nodes, 'A larger String is not another tree of Value nodes');
+  assert.ok(long.text > short.text);
+  assert.ok(long.wire >= BigInt(Buffer.byteLength(wire('x'.repeat(100000)))));
+  const many = sourceEnvironmentCompositionGeometry([JSON.stringify(Array(1000).fill(null))]);
+  assert.ok(many.nodes > short.nodes, 'Actual additional values still require tree capacity');
+  let nested = 'x'.repeat(1000);
+  for (let depth = 0; depth < 12; depth++) nested = {value: nested};
+  const deep = sourceEnvironmentCompositionGeometry([JSON.stringify(nested)]);
+  assert.ok(deep.text > sourceEnvironmentCompositionGeometry([JSON.stringify('x'.repeat(1000))]).text,
+    'Canonical recursion retains intermediate text, not just the final wire');
+  for (const invalid of [null, 1, {}, [null]]) {
+    assert.throws(() => sourceEnvironmentCompositionGeometry(invalid));
+  }
 });

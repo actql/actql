@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
-      "sha256": "b595d46303db472b68243751d4a18129e968968a80a65c7f8bfffec8ed1bd938",
+      "sha256": "0274909c80b3d54f0776e246053b22224ade8f50a02df58b41e12e24dbba77f5",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
@@ -2179,7 +2179,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-      "sha256": "d0dda181c698b48096a07790eba91cb557f8007a8a3fbef5a6e0b39a1c6cb175",
+      "sha256": "f34866322a76f0192c54c0c75da987c4d78a6586f77819cb304ad69973123bf4",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Effect installation/publication/Mapping and target-read inventory; Common row Effect governs the Set",
@@ -2305,20 +2305,6 @@
           "async": false
         },
         {
-          "name": "installedSalesforceEffect/rowEffect/rowEffect",
-          "parameters": [
-            "mappingCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
-          "parameters": [
-            "mapping"
-          ],
-          "async": false
-        },
-        {
           "name": "installedSalesforceEffect/targetReadInventory/targetReadInventory",
           "parameters": [
             "runMoon",
@@ -2367,6 +2353,13 @@
           "name": "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -2430,6 +2423,51 @@
             "openCredentialJournal"
           ],
           "async": true
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver",
+          "parameters": [
+            "construction",
+            "moon",
+            "salesforceMoon",
+            "site",
+            "installed",
+            "nextOccurrence",
+            "siteBindingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:capacity/init:capacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:project/init:project",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver",
+          "parameters": [
+            "mappingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver/driver",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledSalesforceEffectDriver/method/method",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
         },
         {
           "name": "publicationRecord/publicationRecord",
@@ -2600,11 +2638,10 @@
             "installedSalesforceEffect",
             "installedSalesforceEffect/installedSalesforceEffect",
             "installedSalesforceEffect/nextOccurrence/nextOccurrence",
-            "installedSalesforceEffect/rowEffect/rowEffect",
-            "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
             "installedSalesforceEffect/targetReadInventory/targetReadInventory",
             "loadInstalledSalesforceEffect",
             "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
+            "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect#2",
             "mappingInput/mappingInput",
             "mappingInput/mappingInput/mappingInput",
             "membersOf",
@@ -2612,6 +2649,12 @@
             "membersOf/membersOf",
             "membersOf/membersOf#2",
             "openSite",
+            "prepareInstalledSalesforceEffectDriver",
+            "prepareInstalledSalesforceEffectDriver/init:capacity/init:capacity",
+            "prepareInstalledSalesforceEffectDriver/init:project/init:project",
+            "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver",
+            "prepareInstalledSalesforceEffectDriver/init:project/init:project/driver/driver/driver",
+            "prepareInstalledSalesforceEffectDriver/method/method",
             "publicationRecord/publicationRecord",
             "publicationRecord/publicationRecord/publicationRecord",
             "publishInstalledSalesforceEffect",
@@ -2821,20 +2864,23 @@
         "../../../host-common/effect-preparation-result.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/update-target-original-shape.mjs",
         "./installed-salesforce-site.mjs",
+        "./salesforce-effect-plan.mjs",
         "./salesforce-initialization-construction.mjs",
         "./salesforce-publication.mjs",
         "./salesforce-write-driver.mjs",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "86160b56c38261fb2fe4324b87b42302ed411a16b1df55bec28ba4f3cd0bcbb0",
+      "sha256": "768dfc6fac90d3efdffeb39e295858c01693903b83f3eee4a2bda0d8f8abbace",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -2971,6 +3017,7 @@
           "parameters": [
             "prepared",
             "acquisition",
+            "wholeInput",
             "decision",
             "granted",
             "resource",
@@ -3358,13 +3405,15 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
-      "sha256": "841d05c84832db0975e2761865c54d5ce3c4ed75e595aefc0cfd04b7462ec513",
+      "sha256": "818fe1c779963a8c45efb8b93866fc59191e9ebb6fb7d877cb8ce10a9d9f1fed",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce request/projection/target-read/capability/response and recovery functions under Common installed Effect",
       "exports": [
         "salesforceRowEffectSite",
-        "salesforceWriteDriver"
+        "salesforceTargetReadOperation",
+        "salesforceWriteDriver",
+        "salesforceWriteOperations"
       ],
       "operations": [
         {
@@ -3499,7 +3548,8 @@
             "entries",
             "current",
             "authorizationForRow",
-            "signal"
+            "signal",
+            "readChild"
           ],
           "async": true
         },
@@ -3543,8 +3593,14 @@
           "name": "salesforceWriteDriver/init:recheckRequests/init:recheckRequests",
           "parameters": [
             "entries",
-            "current"
+            "current",
+            "controlConstruction"
           ],
+          "async": false
+        },
+        {
+          "name": "salesforceWriteDriver/init:recheckRequests/init:recheckRequests/recheck/recheck",
+          "parameters": [],
           "async": false
         },
         {
@@ -3609,7 +3665,9 @@
             "dispatchRequestCid",
             "label",
             "approval",
-            "signal"
+            "signal",
+            "readChild",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -3635,7 +3693,8 @@
             "current",
             "authorization",
             "credential",
-            "signal"
+            "signal",
+            "callResource"
           ],
           "async": false
         },
@@ -3674,6 +3733,7 @@
             "salesforceWriteDriver/init:prepareRequest/init:prepareRequest",
             "salesforceWriteDriver/init:project/init:project",
             "salesforceWriteDriver/init:recheckRequests/init:recheckRequests",
+            "salesforceWriteDriver/init:recheckRequests/init:recheckRequests/recheck/recheck",
             "salesforceWriteDriver/installedOf/installedOf",
             "salesforceWriteDriver/keyOf/keyOf",
             "salesforceWriteDriver/projectionOf/projectionOf",
@@ -3689,7 +3749,9 @@
           ],
           "exports": [
             "salesforceRowEffectSite",
-            "salesforceWriteDriver"
+            "salesforceTargetReadOperation",
+            "salesforceWriteDriver",
+            "salesforceWriteOperations"
           ],
           "attributes": {
             "responsibility": [
@@ -3918,7 +3980,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "76ca158213b1a1cd275be1707f431e90e41c6fbb01109fd2418a7c6f6bf7586a",
+      "sha256": "a3f179c7bb8cade15f2b479eefdcafde406945879517a9f6bda6b6d9c433282d",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
@@ -4445,13 +4507,14 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "872e15b1950755ca8534bc4cf45a16ce911aa3d515870bd5994017c3b127ab8e",
+      "sha256": "b693fde85e7c4922f2056173be0629356dc6b389122b0cea6d5debfe8d79effb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
       "exports": [
         "composeInstalledRowEffectOwners",
         "createInstalledRowEffect",
+        "installedRowEffectConstructionLimits",
         "installedRowEffectDescriptors",
         "installedRowEffectOwnerBinding",
         "installedRowEffectUnit",
@@ -4572,6 +4635,86 @@
           "name": "captureManagedPlanDefinition/fields/fields/fields",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes",
+          "parameters": [
+            "recipes",
+            "driver",
+            "maxOperations"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedPlanRecipes/captureManagedPlanRecipes#2",
+          "parameters": [
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation",
+          "parameters": [
+            "driver",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/captureResponseConfirmation",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/captureResponseConfirmation#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/captureResponseConfirmation#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/matches/matches",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/selected/selected",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/used/used",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureResponseConfirmation/used/used#2",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -4778,6 +4921,7 @@
             "issueOriginalCollectionReference",
             "managedPlanDefinition",
             "managedPlanRecipe",
+            "managedPlanRecipes",
             "managedPlanConstruction"
           ],
           "async": true
@@ -4916,7 +5060,8 @@
             "entries",
             "current",
             "runInvocationCid",
-            "dispatchRequestCid"
+            "dispatchRequestCid",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -5110,18 +5255,25 @@
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#10",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/captureStage/captureStage#11",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/captureStage#11",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createRowEffectStage/captureStage/captureStage#12",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#13",
           "parameters": [],
           "async": true
         },
@@ -5295,6 +5447,21 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/captureStage/releaseInputPins/releaseInputPins",
           "parameters": [],
           "async": true
@@ -5452,6 +5619,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/controlRecipes/controlRecipes",
+          "parameters": [
+            "recipe"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/decideTargetRead/decideTargetRead",
           "parameters": [
             "member",
@@ -5473,6 +5647,37 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
+          "parameters": [
+            "authorization",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/describeMember/describeMember",
+          "parameters": [
+            "member",
+            "physicalOperations",
+            "operationPhase",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "label",
+            "approval",
+            "signal",
+            "assertCurrent",
+            "controlConstruction"
+          ],
+          "async": true
+        },
+        {
           "name": "createRowEffectStage/entryOf/entryOf",
           "parameters": [
             "member",
@@ -5485,7 +5690,46 @@
           "name": "createRowEffectStage/footprintOf/footprintOf",
           "parameters": [
             "member",
-            "entries"
+            "entries",
+            "controlConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild",
+          "parameters": [
+            "member",
+            "phase",
+            "physicalOperations",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "originalAuthorization",
+            "input",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+          "parameters": [
+            "authorization",
+            "credential",
+            "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -5536,9 +5780,22 @@
             "current",
             "read",
             "signal",
-            "assertCurrent"
+            "assertCurrent",
+            "physicalOperations",
+            "operationPhase",
+            "runInvocationCid",
+            "dispatchRequestCid"
           ],
           "async": true
+        },
+        {
+          "name": "createRowEffectStage/observeRows/observeRows/observed/observed",
+          "parameters": [
+            "authorization",
+            "input",
+            "rowIndex"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/observeRows/observeRows/observeRows",
@@ -5658,8 +5915,10 @@
         },
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured",
-          "parameters": [],
-          "async": true
+          "parameters": [
+            "physicalOperation"
+          ],
+          "async": false
         },
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured/captured",
@@ -5667,6 +5926,11 @@
             "context"
           ],
           "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/send/send",
@@ -5679,6 +5943,24 @@
             "authorization",
             "credential",
             "callResource"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
+          "parameters": [
+            "memberIndex",
+            "rowIndex",
+            "projected",
+            "description",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
+          "parameters": [
+            "context"
           ],
           "async": false
         },
@@ -5794,7 +6076,8 @@
             "runInvocationCid",
             "dispatchRequestCid",
             "assertCurrent",
-            "signal"
+            "signal",
+            "maxResponseBytes"
           ],
           "async": true
         },
@@ -5809,6 +6092,11 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
           "parameters": [
             "entry"
@@ -5820,13 +6108,6 @@
           "parameters": [
             "facts",
             "inputs"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
-          "parameters": [
-            "member"
           ],
           "async": false
         },
@@ -5919,7 +6200,8 @@
           "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
           "parameters": [
             "claims",
-            "ledgerPreview"
+            "ledgerPreview",
+            "recoverySignal"
           ],
           "async": true
         },
@@ -5974,7 +6256,22 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/prepareRecovered#2",
+          "parameters": [
+            "rows",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#3",
           "parameters": [],
           "async": true
         },
@@ -6013,6 +6310,38 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [
+            "managedEffect",
+            "requestChildren",
+            "retireRequestAliases",
+            "assertCurrent",
+            "signal",
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/readDecision/readDecision",
           "parameters": [
             "member",
@@ -6024,6 +6353,20 @@
           "async": true
         },
         {
+          "name": "createRowEffectStage/recipeOf/recipeOf",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recipes/recipes",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/recoveredEntries/recoveredEntries",
           "parameters": [
             "members",
@@ -6032,7 +6375,9 @@
             "recorded",
             "previewWire",
             "runInvocationCid",
-            "dispatches"
+            "dispatches",
+            "requestTags",
+            "controlConstruction"
           ],
           "async": false
         },
@@ -6103,6 +6448,15 @@
           "parameters": [
             "_",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
+          "parameters": [
+            "owned",
+            "method",
+            "facts"
           ],
           "async": false
         },
@@ -6335,12 +6689,22 @@
           "async": false
         },
         {
+          "name": "deriveInstalledRowWrite/bindLogical",
+          "parameters": [
+            "request",
+            "resource",
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "deriveInstalledRowWrite/bindRequest",
           "parameters": [
             "request",
             "resource",
             "value",
-            "expectedCid"
+            "expectedCid",
+            "logical"
           ],
           "async": false
         },
@@ -6370,12 +6734,33 @@
         {
           "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#2",
           "parameters": [
-            "context"
+            "method"
           ],
           "async": false
         },
         {
           "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+          "parameters": [
+            "fn"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
           "parameters": [
             "value"
           ],
@@ -6395,6 +6780,29 @@
           "name": "deriveInstalledRowWrite/driver/driver#3",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:assertRequestFinalized/init:assertRequestFinalized",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:capabilityRequestCid/init:capabilityRequestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/driver/init:finalizeRequest/init:finalizeRequest",
+          "parameters": [
+            "request",
+            "requestTag"
           ],
           "async": false
         },
@@ -6516,9 +6924,30 @@
           "async": true
         },
         {
+          "name": "deriveInstalledRowWrite/init:confirmResponse/init:confirmResponse",
+          "parameters": [
+            "request",
+            "providerEvidence",
+            "authorization",
+            "credential",
+            "callResource",
+            "signal",
+            "controlConstruction"
+          ],
+          "async": true
+        },
+        {
           "name": "deriveInstalledRowWrite/original/original",
           "parameters": [
             "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "deriveInstalledRowWrite/physicalOriginal",
+          "parameters": [
+            "request",
+            "requestTag"
           ],
           "async": false
         },
@@ -6534,6 +6963,8 @@
           "parameters": [
             "durable",
             "members",
+            "body",
+            "requestTags",
             "indexes"
           ],
           "async": false
@@ -6548,7 +6979,8 @@
         {
           "name": "deriveInstalledRowWrite/restoreMembers/restoreMembers/restoreMembers",
           "parameters": [
-            "row"
+            "row",
+            "rowIndex"
           ],
           "async": false
         },
@@ -6599,6 +7031,13 @@
           "name": "installationFacts/installationFacts",
           "parameters": [
             "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedRowEffectConstructionLimits/installedRowEffectConstructionLimits",
+          "parameters": [
+            "supplied"
           ],
           "async": false
         },
@@ -6856,18 +7295,18 @@
             "createInstalledRowEffect/installed/installed",
             "createInstalledRowEffect/installedCommands/installedCommands",
             "createInstalledRowEffect/storeMappings/storeMappings",
+            "createInstalledRowEffect/storeMappings/storeMappings#2",
             "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
             "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
-            "createInstalledRowEffect/storeMappings/storeMappings#2",
             "createRowEffectStage",
             "createRowEffectStage/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter/adapter",
-            "createRowEffectStage/adapter/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#2",
             "createRowEffectStage/adapter/adapter#3",
             "createRowEffectStage/adapter/adapter#4",
+            "createRowEffectStage/adapter/adapter/adapter",
+            "createRowEffectStage/adapter/adapter/adapter#2",
+            "createRowEffectStage/adapter/adapter/adapter/adapter",
             "createRowEffectStage/adapter/init:close/init:close",
             "createRowEffectStage/adapter/init:close/init:close/init:close",
             "createRowEffectStage/admitCapability/admitCapability",
@@ -6884,9 +7323,6 @@
             "createRowEffectStage/basePreflight/basePreflight/basePreflight#4",
             "createRowEffectStage/captureStage",
             "createRowEffectStage/captureStage/capabilities/capabilities",
-            "createRowEffectStage/captureStage/captureStage/captureStage",
-            "createRowEffectStage/captureStage/captureStage/captureStage#2",
-            "createRowEffectStage/captureStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/captureStage#10",
             "createRowEffectStage/captureStage/captureStage#11",
             "createRowEffectStage/captureStage/captureStage#12",
@@ -6897,6 +7333,9 @@
             "createRowEffectStage/captureStage/captureStage#7",
             "createRowEffectStage/captureStage/captureStage#8",
             "createRowEffectStage/captureStage/captureStage#9",
+            "createRowEffectStage/captureStage/captureStage/captureStage",
+            "createRowEffectStage/captureStage/captureStage/captureStage#2",
+            "createRowEffectStage/captureStage/captureStage/captureStage#3",
             "createRowEffectStage/captureStage/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/childrenPending/childrenPending/childrenPending",
             "createRowEffectStage/captureStage/claims/claims",
@@ -6927,8 +7366,15 @@
             "createRowEffectStage/continuationOf/continuationOf/continuationOf",
             "createRowEffectStage/decideTargetRead/decideTargetRead",
             "createRowEffectStage/decideTargetRead/decideTargetRead/decideTargetRead",
+            "createRowEffectStage/decideTargetRead/decideTargetRead/init:consumeOriginal/init:consumeOriginal",
+            "createRowEffectStage/decideTargetRead/decideTargetRead/originals/originals",
+            "createRowEffectStage/describeMember/describeMember",
             "createRowEffectStage/entryOf/entryOf",
             "createRowEffectStage/footprintOf/footprintOf",
+            "createRowEffectStage/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/managedReadChild/managedReadChild",
+            "createRowEffectStage/managedReadChild/managedReadChild/selected/selected",
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/membersOf/membersOf",
             "createRowEffectStage/membersOf/membersOf/members/members",
@@ -6936,6 +7382,7 @@
             "createRowEffectStage/membersOf/membersOf/membersOf#2",
             "createRowEffectStage/observeRows/observeRows",
             "createRowEffectStage/observeRows/observeRows/observeRows",
+            "createRowEffectStage/observeRows/observeRows/observed/observed",
             "createRowEffectStage/openLedger/openLedger",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes",
             "createRowEffectStage/orderedSourceIndexes/orderedSourceIndexes/orderedSourceIndexes",
@@ -6963,11 +7410,11 @@
             "createRowEffectStage/prepareRecovered/assertRequestedStopCurrent/assertRequestedStopCurrent",
             "createRowEffectStage/prepareRecovered/dispatches/dispatches",
             "createRowEffectStage/prepareRecovered/finish/finish/finish",
-            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
             "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
             "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
@@ -6976,7 +7423,14 @@
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
             "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/init:create/init:create/init:create#2",
+            "createRowEffectStage/prepareRecoveredEntries/prepareRecoveredEntries/prepareRecoveredEntries",
             "createRowEffectStage/readDecision/readDecision",
+            "createRowEffectStage/recipeOf/recipeOf",
+            "createRowEffectStage/recipes/recipes",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
@@ -7539,7 +7993,6 @@
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation",
             "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/selected/selected",
             "createRowEffectStage/prepareManagedPlan/prepareManagedPlan",
-            "createRowEffectStage/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
             "deriveInstalledRowWrite/init:checkRequest/init:checkRequest"
           ],
           "exports": [],
@@ -7741,7 +8194,10 @@
             "captureManagedPlanDefinition",
             "captureManagedPlanDefinition/array/array",
             "captureManagedPlanDefinition/fields/fields",
-            "captureManagedPlanDefinition/fields/fields/fields"
+            "captureManagedPlanDefinition/fields/fields/fields",
+            "captureManagedPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes",
+            "captureManagedPlanRecipes/captureManagedPlanRecipes#2"
           ],
           "exports": [],
           "attributes": {
@@ -7845,12 +8301,12 @@
             "commandContentBorrower",
             "commandContentBorrower/init:borrow/init:borrow",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
-            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#2",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/borrow/borrow#4",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#2",
+            "commandContentBorrower/init:borrow/init:borrow/borrow/borrow/borrow#3",
             "commandContentBorrower/init:borrow/init:borrow/prior/prior",
             "commandContentBorrower/init:release/init:release",
             "commandContentBorrower/observe/observe",
@@ -11148,6 +11604,252 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#2",
+            "createRowEffectStage/controlRecipes/controlRecipes",
+            "createRowEffectStage/physicalRoute/physicalRoute/bindDispatch/bindDispatch/bindDispatch/captured/captured/captured#2",
+            "createRowEffectStage/prepareCredentialOperation/prepareCredentialOperation/prepareCredentialOperation#2",
+            "installedRowEffectConstructionLimits/installedRowEffectConstructionLimits"
+          ],
+          "exports": [
+            "installedRowEffectConstructionLimits"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareCredentialOperation"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/recovered-effect-parent-custody.test.mjs",
+                "anchor": "test('recovered physical operation waits for its original Content writer close without blocking that close'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('owned Content request child keeps one constructor token until its exact physical cleanup ACK'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "captureResponseConfirmation",
+            "captureResponseConfirmation/captureResponseConfirmation",
+            "captureResponseConfirmation/captureResponseConfirmation#2",
+            "captureResponseConfirmation/captureResponseConfirmation#3",
+            "captureResponseConfirmation/matches/matches",
+            "captureResponseConfirmation/selected/selected",
+            "captureResponseConfirmation/used/used",
+            "captureResponseConfirmation/used/used#2",
+            "createRowEffectStage/captureStage/captureStage#13",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest/preparedRequest#3",
+            "createRowEffectStage/captureStage/preparedRequest/preparedRequest#2",
+            "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse",
+            "createRowEffectStage/physicalRoute/physicalRoute/confirmResponse/confirmResponse/confirmed/confirmed",
+            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
+            "createRowEffectStage/prepareRecovered/prepareRecovered#3",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/restore/restore",
+            "deriveInstalledRowWrite/bindLogical",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#4",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#5",
+            "deriveInstalledRowWrite/deriveInstalledRowWrite#6",
+            "deriveInstalledRowWrite/driver/init:assertRequestFinalized/init:assertRequestFinalized",
+            "deriveInstalledRowWrite/driver/init:capabilityRequestCid/init:capabilityRequestCid",
+            "deriveInstalledRowWrite/driver/init:finalizeRequest/init:finalizeRequest",
+            "deriveInstalledRowWrite/init:confirmResponse/init:confirmResponse",
+            "deriveInstalledRowWrite/physicalOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "function "
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/github-issue-observations.md",
+                "anchor": "## Original comment confirmation"
+              },
+              {
+                "path": "adapters/host-node/installed-row-effect-confirmation.test.mjs",
+                "anchor": "test("
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11168,6 +11870,7 @@
         "./effect-plan-verify.mjs",
         "./effect-response-recovery.mjs",
         "./installed-connectors.mjs",
+        "./installed-effect-owned-operation.mjs",
         "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-capture-cleanup.mjs",
@@ -11185,7 +11888,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "299d2ad6a7358e362b7d456fe4be65cbe59a28ef15fcd6351d3be565a4b92a31",
+      "sha256": "520fc796039c114cae2b722e204c51d17ef442e724f92bc3e83927ce04dfc8bc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -11536,6 +12239,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "inputsOutputs": [
@@ -11550,6 +12257,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "identity": [
@@ -11568,6 +12279,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "ownership": [
@@ -11590,6 +12305,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "synchronization": [
@@ -11612,6 +12331,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "failure": [
@@ -11630,6 +12353,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "cancellation": [
@@ -11648,6 +12375,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "resources": [
@@ -11670,6 +12401,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "extension": [
@@ -11684,6 +12419,10 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerPrepared = borrow;"
               }
             ],
             "verification": [
@@ -11706,6 +12445,18 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
+                "anchor": "native response constructor grows the SAME original RowRun after charge and before projection"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
               }
             ]
           }
@@ -12261,14 +13012,15 @@
         "node:timers/promises"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [],
+      "rationale": "The existing one-shot preparation slot retains the same Query or WholeInput response borrow. The private fourth constructor argument exposes that original after cleanup binding; capacity growth precedes decoding without a second RowRun or acquisition."
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "f83ba8efb8735a1b41b11d35a381c1fdea7f5e350d3ddc7d9f2f6564ce80fdde",
+      "sha256": "7f3ffb74742d8cbd1a1abf902ee316e75a78a8807d39521491ae23e55b07e5d5",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -13024,6 +13776,13 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/sourceBody/sourceBody",
           "parameters": [
             "sourceRef"
@@ -13211,6 +13970,30 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild",
+          "parameters": [
+            "parent",
+            "authorization",
+            "callbacks"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild/assertParent/assertParent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "openRowSourceCredentialCustody/bindRunAcquisition",
           "parameters": [
             "authorization",
@@ -13292,7 +14075,8 @@
         {
           "name": "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
           "parameters": [
-            "site"
+            "site",
+            "originalBind"
           ],
           "async": false
         },
@@ -13382,11 +14166,27 @@
           "async": false
         },
         {
+          "name": "openRowSourceCredentialCustody/readResourceChildCredential",
+          "parameters": [
+            "parent",
+            "acquisition",
+            "authorization"
+          ],
+          "async": false
+        },
+        {
+          "name": "openRowSourceCredentialCustody/readResourceParent",
+          "parameters": [
+            "acquisition"
+          ],
+          "async": false
+        },
+        {
           "name": "openRowSourceCredentialCustody/retainRunBinding",
           "parameters": [
             "authorization",
-            "assertCurrent",
-            "observeCurrent"
+            "current",
+            "resourceParent"
           ],
           "async": false
         },
@@ -13892,7 +14692,8 @@
             "site",
             "custody",
             "identity",
-            "enabled"
+            "enabled",
+            "originalBind"
           ],
           "async": false
         },
@@ -14013,12 +14814,13 @@
             "createInstalledRowSource/acquire/issueGrant/issueGrant",
             "createInstalledRowSource/acquire/readerOptions/consumeObservation",
             "createInstalledRowSource/acquire/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
             "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions/selected/selected",
             "createInstalledRowSource/captureCapacity/captureCapacity",
             "createInstalledRowSource/createInstalledRowSource",
             "createInstalledRowSource/createInstalledRowSource#10",
@@ -14035,7 +14837,6 @@
             "createInstalledRowSource/openKeyed",
             "createInstalledRowSource/openKeyed/observedMs/observedMs",
             "createInstalledRowSource/openKeyed/openKeyed",
-            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/openKeyed#2",
             "createInstalledRowSource/openKeyed/openKeyed#3",
             "createInstalledRowSource/openKeyed/openKeyed#4",
@@ -14044,6 +14845,7 @@
             "createInstalledRowSource/openKeyed/openKeyed#7",
             "createInstalledRowSource/openKeyed/openKeyed#8",
             "createInstalledRowSource/openKeyed/openKeyed#9",
+            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
             "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
             "createInstalledRowSource/openKeyedLookup",
             "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
@@ -14093,6 +14895,10 @@
             "openRowSourceCredentialCustody/close",
             "openRowSourceCredentialCustody/close/close",
             "openRowSourceCredentialCustody/closeRunBindings",
+            "openRowSourceCredentialCustody/custody/custody",
+            "openRowSourceCredentialCustody/custody/custody#2",
+            "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite",
             "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
             "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
@@ -14127,12 +14933,7 @@
             "prepareImmutablePhysicalTargets/prepareImmutablePhysicalTargets",
             "rowSourceCheckEnvironment",
             "text/text",
-            "valueCid/valueCid",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#9",
-            "openRowSourceCredentialCustody/custody/custody",
-            "openRowSourceCredentialCustody/custody/custody#2",
-            "openRowSourceCredentialCustody/custody/init:closeOnce/init:closeOnce",
-            "openRowSourceCredentialCustody/custody/init:retainOperationSite/init:retainOperationSite"
+            "valueCid/valueCid"
           ],
           "exports": [
             "createInstalledRowSource",
@@ -14174,6 +14975,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "inputsOutputs": [
@@ -14216,6 +15025,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "identity": [
@@ -14274,6 +15091,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "ownership": [
@@ -14332,6 +15157,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "synchronization": [
@@ -14402,6 +15235,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// Spend this original ordinal before an external current callback."
               }
             ],
             "failure": [
@@ -14452,6 +15293,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "cancellation": [
@@ -14494,6 +15343,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "await currentRead(prepared, access, signal);"
               }
             ],
             "resources": [
@@ -14560,6 +15417,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {"
               }
             ],
             "extension": [
@@ -14602,6 +15467,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native Salesforce original Reader protocol"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child."
               }
             ],
             "verification": [
@@ -14736,6 +15609,38 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared native sequence prepares from the same original facts without doing provider IO'"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization spends each ordinal once within its existing page budget"
+              },
+              {
+                "path": "adapters/host-node/installed-source-child-use.test.mjs",
+                "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks"
               }
             ]
           }
@@ -14956,6 +15861,7 @@
             "createInstalledRowSource/sourceBody/init:ledgerCapacity/init:ledgerCapacity",
             "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
             "createInstalledRowSource/sourceBody/sourceBody",
             "openRowSourceCredentialCustody/readChildCredential",
             "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
@@ -14983,6 +15889,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "inputsOutputs": [
@@ -15003,6 +15913,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "ownership": [
@@ -15013,6 +15927,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "synchronization": [
@@ -15053,6 +15971,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "extension": [
@@ -15113,6 +16035,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared reader typed page stop retains the pending original consumption until it settles'"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
+                "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
               }
             ]
           }
@@ -16920,6 +17846,207 @@
         },
         {
           "operations": [
+            "openRowSourceCredentialCustody/bindReadResourceChild",
+            "openRowSourceCredentialCustody/bindReadResourceChild/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/bindReadResourceChild/assertParent/assertParent",
+            "openRowSourceCredentialCustody/bindReadResourceChild/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/readResourceChildCredential",
+            "openRowSourceCredentialCustody/readResourceParent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function readResourceChildCredential(parent, acquisition, authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (supplied !== undefined) return supplied;"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "bindReadResourceChild: bindResourceChild,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty"
+              },
+              {
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs",
+                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs",
+                "anchor": "original Form current failure and callback replacement cannot send another request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "rowSourceMapping"
           ],
           "exports": [
@@ -16928,67 +18055,172 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Responsibility"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "// Spend this original ordinal before an external current callback.",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Responsibility",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Inputs and outputs"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Inputs and outputs",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Identity"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Identity",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Ownership"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "// Spend this original ordinal before an external current callback.",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Ownership",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Synchronization"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "// Spend this original ordinal before an external current callback.",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Synchronization",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Failure"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child.",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Failure",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Cancellation"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "await currentRead(prepared, access, signal);",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Cancellation",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Resources"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "if (!text(childOperation) || !Number.isSafeInteger(index) || index !== readChildIndex || index >= limits.maxPages) {",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Resources",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Extension"
+                "anchor": "function bindReadResourceChild(parent, authorization, callbacks)",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "// A failed or reentrant call cannot reuse it to issue another child.",
+                "path": "adapters/host-node/installed-row-source.mjs"
+              },
+              {
+                "anchor": "## Extension",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-declaration-continuations.md",
-                "anchor": "## Verification"
+                "anchor": "separate Resource child keeps its own exact grant binding and both original currents",
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs"
+              },
+              {
+                "anchor": "failed separate Resource opening consumes its original and preserves reentrant cleanup duty",
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs"
+              },
+              {
+                "anchor": "separate Resource child consumes actual second binding capacity rather than inheriting a grant allowance",
+                "path": "adapters/host-node/row-source-resource-child-custody.test.mjs"
+              },
+              {
+                "anchor": "resource child is bound once under the same reader and joins its own close and retirement",
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs"
+              },
+              {
+                "anchor": "original Form current failure and callback replacement cannot send another request",
+                "path": "adapters/host-node/installed-source-resource-child.test.mjs"
+              },
+              {
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}",
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs"
+              },
+              {
+                "anchor": "undeclared child authorization spends each ordinal once within its existing page budget",
+                "path": "adapters/host-node/installed-source-child-use.test.mjs"
+              },
+              {
+                "anchor": "undeclared child authorization consumes its ordinal before reentrant or failed current checks",
+                "path": "adapters/host-node/installed-source-child-use.test.mjs"
+              },
+              {
+                "anchor": "## Verification",
+                "path": "adapters/host-node/source-declaration-continuations.md"
               }
             ]
           }
         }
-      ]
+      ],
+      "rationale": "Separate-resource custody binds the independently issued original grant under the exact live parent and both retained current callbacks. Failed opening consumes its original authorization and cleanup duty. Existing same-resource sharing remains unchanged, and supplied child authorization identity is preserved."
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
@@ -18861,9 +20093,12 @@
       "exports": [
         "captureInstalledEffectPlanRecipe",
         "captureInstalledStandardCreateLimits",
+        "installedEffectRecipeForControlEntryLimit",
+        "installedEffectSavedControlEntryLimit",
         "prepareInstalledEffectControlConstruction",
         "prepareInstalledEffectCredentialChild",
         "prepareInstalledEffectManagedPlan",
+        "prepareInstalledEffectOwnedRequestChild",
         "prepareInstalledEffectRequestChild",
         "prepareInstalledStandardCreatePlanRecipe"
       ],
@@ -18952,6 +20187,28 @@
           "async": false
         },
         {
+          "name": "installedEffectRecipeForControlEntryLimit",
+          "parameters": [
+            "recipe",
+            "maxEntryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSavedControlEntryLimit",
+          "parameters": [
+            "recipes"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
+          "parameters": [
+            "recipe"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction",
           "parameters": [
             "run"
@@ -18959,8 +20216,37 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/invoke/invoke",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "inputWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "wire",
+            "nodes",
+            "depth"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectControlConstruction/parsePreview/parsePreview",
+          "parameters": [
+            "wire"
+          ],
           "async": false
         },
         {
@@ -19017,6 +20303,7 @@
             "rowIndex",
             "operationIndex",
             "operation",
+            "perRow",
             "originalSite",
             "originalAuthorization",
             "useId",
@@ -19029,7 +20316,8 @@
             "assertCurrent",
             "observeCurrent",
             "requestsRetired",
-            "originalInvoke"
+            "originalInvoke",
+            "originalResponseExtent"
           ],
           "async": false
         },
@@ -19065,6 +20353,13 @@
           "name": "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
           "parameters": [
             "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -19238,6 +20533,63 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectOwnedRequestChild",
+          "parameters": [
+            "constructChild",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/captureMethods/captureMethods",
+          "parameters": [
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain",
+          "parameters": [
+            "retry"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain/drain",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/managed/managed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectRequestChild",
           "parameters": [
             "run",
@@ -19247,6 +20599,7 @@
             "operation",
             "perRow",
             "originalConstruct",
+            "originalInputExtent",
             "requestsRetired"
           ],
           "async": false
@@ -19345,6 +20698,7 @@
       ],
       "imports": [
         "../host-common/credential-scope-fields.generated.mjs",
+        "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
         "./effect-ledger-implementation-bounds.mjs",
@@ -19352,7 +20706,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6695d05b042cbd2346223c4c458beda60b9417878ec7eac0a5b64b3069ee0e72",
+      "sha256": "a5e739723deeadfdd3b7ef81174c51c398e72d006b364b21c57042a82929a850",
       "contracts": [
         {
           "operations": [
@@ -19374,6 +20728,7 @@
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#2",
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#3",
             "prepareInstalledEffectCredentialChild/callResource/callResource/callResource#4",
+            "prepareInstalledEffectCredentialChild/callResource/callResource/response/response",
             "prepareInstalledEffectCredentialChild/callResource/callResource/result/result",
             "prepareInstalledEffectCredentialChild/chargeBytes/chargeBytes",
             "prepareInstalledEffectCredentialChild/check/check",
@@ -19580,6 +20935,344 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedEffectRecipeForControlEntryLimit",
+            "installedEffectSavedControlEntryLimit",
+            "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit"
+          ],
+          "exports": [
+            "installedEffectRecipeForControlEntryLimit",
+            "installedEffectSavedControlEntryLimit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "recipe.savedControlCodec.fallbackCapacity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure selection of the same captured recipe DATA; no control operation or cleanup is started."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "controlsPerRow: recipe.savedControlCodec.fallbackCapacity"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "installedEffectSavedControlEntryLimit"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
+                "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectOwnedRequestChild",
+            "prepareInstalledEffectOwnedRequestChild/captureMethods/captureMethods",
+            "prepareInstalledEffectOwnedRequestChild/drain/drain",
+            "prepareInstalledEffectOwnedRequestChild/drain/drain/drain",
+            "prepareInstalledEffectOwnedRequestChild/drain/drain/drain#2",
+            "prepareInstalledEffectOwnedRequestChild/init:prepare/init:prepare",
+            "prepareInstalledEffectOwnedRequestChild/managed/init:construct/init:construct",
+            "prepareInstalledEffectOwnedRequestChild/managed/managed",
+            "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild",
+            "prepareInstalledEffectOwnedRequestChild/prepareInstalledEffectOwnedRequestChild#2"
+          ],
+          "exports": [
+            "prepareInstalledEffectOwnedRequestChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "prepareInstalledEffectOwnedRequestChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "prepareInstalledEffectOwnedRequestChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "checkOriginal: managed.checkOriginal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "child = constructChild(); // Retain before even a fallible method getter."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "if (invoking) fail('InstalledEffectRequestChildReentrantPrepare')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "captureMethods([retry ? 'retry' : 'release', 'status']);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "if (opening || invoking) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "if (result === false || Reflect.apply(methods.status, child, [])?.pending !== false) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "requestsRetired: () => retired && requestsRetired() === true"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "return managed.release();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "prepareInstalledEffectOwnedRequestChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('owned request failure and reentrant close preserve the same child without repeating its factory'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('owned request cleanup retains native backing on rejected or pending original release'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectControlConstruction/invoke/invoke",
+            "prepareInstalledEffectControlConstruction/parsePreview/parsePreview"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledEffectControlConstruction/ledgerCodec/ledgerCodec"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Ledger normalization uses a nested synchronous codec on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"saved Ledger codec keeps maximum retained and Receipt workspace but stages only normalizing scratch\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('saved Ledger codec grows the same active frame before each original wire and returns only its local workspace'"
               }
             ]
           }
@@ -20063,6 +21756,423 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-effect-owned-operation.mjs",
+      "sha256": "754ae858a011f86faf52d5f4acfcc6a59818689b023aa18ffe725ba777b9415f",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing installed Effect operation occurrence; original Content child retains physical cleanup and authority",
+      "exports": [
+        "prepareInstalledEffectOwnedPhysicalChild"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild",
+          "parameters": [
+            "run",
+            "memberIndex",
+            "rowIndex",
+            "operationIndex",
+            "operation",
+            "transferBytes",
+            "invoke",
+            "requestsRetired"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/chargeBytes/chargeBytes",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/init:prepare/init:prepare",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/release/release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "prepareInstalledEffectOwnedPhysicalChild",
+            "prepareInstalledEffectOwnedPhysicalChild/chargeBytes/chargeBytes",
+            "prepareInstalledEffectOwnedPhysicalChild/current/current",
+            "prepareInstalledEffectOwnedPhysicalChild/init:prepare/init:prepare",
+            "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild",
+            "prepareInstalledEffectOwnedPhysicalChild/prepareInstalledEffectOwnedPhysicalChild#2",
+            "prepareInstalledEffectOwnedPhysicalChild/release/release",
+            "prepareInstalledEffectOwnedPhysicalChild/retainPhysicalChild/retainPhysicalChild"
+          ],
+          "exports": [
+            "prepareInstalledEffectOwnedPhysicalChild"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "prepareInstalledEffectOwnedPhysicalChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "prepareInstalledEffectOwnedPhysicalChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "run.request !== request || run.operationPlan !== plan || run.readPlan !== readPlan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "child = original; // Before any fallible observation or the first acquisition."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "if (attempted || stopping) fail('InstalledEffectOperationAlreadyPrepared')"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "accountingFailed = true; throw error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "if (preparing || accountingFailed) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "if (requestsRetired() !== true) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "checked(Reflect.apply(charge, runtime, [token, bytes]))"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "checked(Reflect.apply(retire, runtime, [token, true]))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.mjs",
+                "anchor": "prepareInstalledEffectOwnedPhysicalChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "anchor": "test('same physical child starts once and charges chunks without a second writer or cleanup owner'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "anchor": "test('original undefined failure keeps its physical child until actual cleanup and request retirement'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-owned-operation.test.mjs",
+                "anchor": "test('physical extent refusal precedes any borrow and foreign Run cannot dispatch'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
+      "sha256": "287729885831b7f03d0c8d75ca86810abf4b629007717a26e3411b6705bc114b",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
+      "exports": [
+        "captureSalesforceEffectPlanRecipeBuilder"
+      ],
+      "operations": [
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder",
+          "parameters": [
+            "moon",
+            "salesforceMoon"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes",
+          "parameters": [
+            "installed",
+            "site",
+            "credentialConstruction",
+            "catalogLimits",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
+          "parameters": [
+            "previewWire",
+            "recovery"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/names/names",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical",
+          "parameters": [
+            "phase",
+            "perRow",
+            "selectedOperation",
+            "capacity",
+            "requestBytes",
+            "responseBytes",
+            "maximumCapacity",
+            "originalResponseExtent"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical/extent/extent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes#2",
+          "parameters": [
+            "sum",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/quantities/quantities",
+          "parameters": [
+            "inputProfile",
+            "capture",
+            "controlBytes",
+            "hostInputBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/responseExtent/responseExtent",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/targetResponseExtent/targetResponseExtent",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "integer/integer",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalMethod",
+          "parameters": [
+            "receiver",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalMethod/originalMethod",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "captureSalesforceEffectPlanRecipeBuilder",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/inputExtent/inputExtent",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/names/names",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/physical/physical/extent/extent",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/prepareSalesforceEffectPlanRecipes#2",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/quantities/quantities",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/responseExtent/responseExtent",
+            "captureSalesforceEffectPlanRecipeBuilder/prepareSalesforceEffectPlanRecipes/targetResponseExtent/targetResponseExtent",
+            "fail/fail",
+            "integer/integer",
+            "originalMethod",
+            "originalMethod/originalMethod"
+          ],
+          "exports": [
+            "captureSalesforceEffectPlanRecipeBuilder"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "## Salesforce managed operation recipe"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
+                "anchor": "captureSalesforceEffectPlanRecipeBuilder"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "the same complete"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Core's checked Program"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Synchronous constructor scratch"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Original native refusals propagate before child creation."
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous constructor/quantity projection performs no I/O and owns no cancellation transport. Original Request/Site current, signal and failed-prefix cleanup remain at the consuming owner."
+            },
+            "resources": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "bounded cumulatively"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/salesforce-write-capability.md",
+                "anchor": "Labels and implementation limits do not issue a grant"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/salesforce/test/effect-target-read-inventory.test.mjs",
+                "anchor": "Salesforce managed recipes retain original native profiles"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/effect-ledger-implementation-bounds.mjs",
+        "../../../host-node/installed-effect-plan.mjs",
+        "../../../host-node/local-values-plan.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/salesforce-named-describe.mjs",
+        "./salesforce-write-driver.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

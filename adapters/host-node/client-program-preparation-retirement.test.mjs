@@ -185,3 +185,29 @@ test('selected funded row limit refuses an unmatched original bound without lega
     assert.throws(() => prepare.assertOwned(original), /Foreign Client preparation/);
   }
 });
+
+
+test('original frontend limits keep their causes and leave opaque capabilities generic', () => {
+  // Explicit issue-code port: this is a JS projection control, not a Core
+  // Request, a new check, or evidence that a Source/Run was accepted.
+  for (const [category, code] of [
+    ['source_implementation_limit', 'ClientProgramImplementationLimit'],
+    ['source_analysis_limit', 'ClientProgramAnalysisLimit'],
+    ['source_limit', 'ClientProgramRejected'],
+    ['source_unsupported', 'ClientProgramRejected'],
+  ]) {
+    const issue = {}, original = {$tag: 0, _0: issue};
+    let projections = 0;
+    const moon = {clientProgramRequestPreparationIssueCode(value) {
+      projections++;
+      assert.equal(value, original);
+      return category;
+    }};
+    assert.throws(() => checkedRequestProgramPreparation(moon, original), error => {
+      assert.equal(error.code, code);
+      assert.equal(error.cause, issue);
+      return true;
+    });
+    assert.equal(projections, 1);
+  }
+});

@@ -20,6 +20,7 @@ priv enum ClientRequestPreparationPhase {
   EffectBodyReady
   EffectBodyFailed
   EffectCaptureRecovery
+  ModelRecovery
   ProgramPlanQuoted
   ProgramPlanReserved
   ModelPlanReserved
@@ -40,6 +41,13 @@ priv enum ClientRequestDomainCompilationInputs {
   // Read-only recovery retains the existing journal-selected originals. It
   // never continues into a compiler, Source/Model/Effect Plan or send owner.
   RequestEffectCaptureRecovery(
+    @publication_host.ClientRequestIdentity,
+    @publication.PublicationContract
+  )
+  // A saved Model continuation keeps its Journal-selected pair while the
+  // existing Request reservation funds reconstruction. It cannot compile a
+  // new Program, admit another Run or replace the saved physical call scope.
+  RequestModelRecovery(
     @publication_host.ClientRequestIdentity,
     @publication.PublicationContract
   )
@@ -239,12 +247,16 @@ pub fn client_request_preparation_control_capacity(
   // overlaps. The fixed carriers are backed NOW, not by a later resize.
   let growth = @resources.preparation_inventory_growth_entry_construction()
   guard @execution.preparation_representation_cost({
-    record_headers: growth.record_headers,
-    reference_slots: growth.reference_slots,
-    scalar_words: growth.scalar_words,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }) is Some(entry) && entry <= 4096L else { return None }
+      record_headers: growth.record_headers,
+      reference_slots: growth.reference_slots,
+      scalar_words: growth.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(entry) &&
+    entry <= 4096L else {
+    return None
+  }
   if retained > limits.retained_bytes {
     return None
   }
@@ -501,7 +513,7 @@ fn[I] prepare_request_check_preparation_owned(
       owner.query_syntax is Some(query) &&
       query.lowering is Some(lowering) &&
       physical_equal(lowering.environment, environment) &&
-      lowering.output is Some((_, catalog, _)) else {
+      lowering.output is Some(Ok((_, catalog, _))) else {
       return Err(ForeignOriginal)
     }
     let catalog = match source_catalog {
@@ -622,6 +634,10 @@ pub fn[I] abort_request_preparation_after_cleanup(
     owner.phase = previous
   }
   clear_request_parameter_source(owner)
+  match finish_request_query_refusal_binding_work(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // Registered controllers have relinquished only their own aliases.
   // This caller is explicitly after its borrowed arguments/returned frames.
   if owner.intent_work is Some(work) {

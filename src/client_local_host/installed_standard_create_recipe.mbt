@@ -87,6 +87,41 @@ fn standard_create_sequence_pair_capacity(
 }
 
 ///|
+// Original saved-control Receipt family. Both the quote and its nested codec
+// keep this SAME retained floor; a canonical-only codec must not subtract a
+// smaller tree from a reservation that still contains these four families.
+fn standard_create_saved_receipt_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @execution.execution_capacity_inventory(
+    [
+      // Four complete returned/overlapping value families above. This
+      // intentionally also retains their private construction alternatives.
+      { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 4, },
+      // Three existing decoded-text envelopes cover12 UTF16 text domains:
+      // Ledger wire/fields, candidate wire/text, typed wire/text, expected
+      // body/text/wire, and three old/new returned-text alternatives. Input
+      // aliases are conservatively included, never used as extra grants.
+      { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
+      { unit: QuotedBytes, count: 4096L, copies: 1, },
+    ],
+    [
+      // Current Source/index/schema/canonical/writer and failed prefixes.
+      // Completed sibling codecs return before the next begins. Preserve
+      // the full conservative phase on refusal, not a successful-body cut.
+      { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 6, },
+      { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
+      // Encode/parse, canonical text emission and digest input alternatives
+      // remain separate from retained result text and received body copies.
+      { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 6, },
+    ],
+    RetainedAlongsideExecution,
+  )
+}
+
+///|
 // Existing saved-control family, including the retained Receipt's actual
 // data-key outcome path, not only the smaller logical Ledger entry. Both use
 // the same synchronous original controlConstruction frame. The normalizing
@@ -98,38 +133,13 @@ fn standard_create_saved_control_capacity(
   bytes : Int,
   nodes : Int,
   depth : Int,
+  defer_ledger_codec? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
-  guard installed_json_effect_response_construction_capacity(
-      @execution.execution_capacity(0L, 0L).unwrap(),
-      bytes,
-      nodes,
-      depth,
+  guard installed_effect_contract_response_construction_capacity(
+      bytes, nodes, depth,
     )
     is Some(ledger) &&
-    @execution.execution_capacity_inventory(
-      [
-        // Four complete returned/overlapping value families above. This
-        // intentionally also retains their private construction alternatives.
-        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 4, },
-        // Three existing decoded-text envelopes cover12 UTF16 text domains:
-        // Ledger wire/fields, candidate wire/text, typed wire/text, expected
-        // body/text/wire, and three old/new returned-text alternatives. Input
-        // aliases are conservatively included, never used as extra grants.
-        { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
-        { unit: QuotedBytes, count: 4096L, copies: 1, },
-      ],
-      [
-        // Current Source/index/schema/canonical/writer and failed prefixes.
-        // Completed sibling codecs return before the next begins. Preserve
-        // the full conservative phase on refusal, not a successful-body cut.
-        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 6, },
-        { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
-        // Encode/parse, canonical text emission and digest input alternatives
-        // remain separate from retained result text and received body copies.
-        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 6, },
-      ],
-      RetainedAlongsideExecution,
-    )
+    standard_create_saved_receipt_capacity(bytes, nodes, depth)
     is Some(receipts) else {
     return None
   }
@@ -143,7 +153,16 @@ fn standard_create_saved_control_capacity(
       @execution.execution_capacity_retained_bytes(receipts),
     ),
     Int64::max(
-      @execution.execution_capacity_execution_bytes(ledger),
+      if defer_ledger_codec {
+        // No normalizing Ledger parser exists at installation. Its complete
+        // output allowance stays retained; the same control reservation grows
+        // at each original Ledger wire before entering that synchronous codec.
+        @execution.execution_capacity_retained_bytes(ledger)
+      } else {
+        @execution.execution_capacity_execution_bytes(ledger)
+      },
+      // Receipt encoding/data-key admission, including arbitrary typed outcome
+      // text and escaping, keeps its unchanged full construction envelope.
       @execution.execution_capacity_execution_bytes(receipts),
     ),
   )
@@ -326,6 +345,7 @@ pub fn installed_standard_create_request_recipe_capacities(
   stored_depth : Int,
   metadata_units : Int64,
   response_read_quantum? : Int = 1,
+  defer_ledger_codec? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   installed_standard_recipe_capacities(
     original,
@@ -349,6 +369,11 @@ pub fn installed_standard_create_request_recipe_capacities(
     stored_depth,
     metadata_units,
     response_read_quantum~,
+    // The standard installed Request does not yet own a Preview forest.
+    // Its exact codec limits are retained on the same capture extent; the
+    // existing control-input boundary grows before parsing that original wire.
+    host_input_bytes=Some(0),
+    defer_ledger_codec~,
   )
 }
 
@@ -435,8 +460,14 @@ fn installed_standard_recipe_capacities(
   stored_depth : Int,
   metadata_units : Int64,
   response_read_quantum? : Int = 1,
+  control_wire_bytes? : Int? = None,
+  host_input_bytes? : Int? = None,
+  defer_ledger_codec? : Bool = false,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
-  guard original is Some(entries) &&
+  let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
+  guard control_bytes > 0 &&
+    control_bytes <= stored_bytes &&
+    original is Some(entries) &&
     input_bytes > 0 &&
     input_nodes > 0 &&
     input_depth > 0 &&
@@ -457,7 +488,8 @@ fn installed_standard_recipe_capacities(
       !checks &&
       (check_request_bytes != 0 || check_response_bytes != 0 || before_send)
     ) ||
-    (checks && entries.length() != 4) {
+    (checks && entries.length() != 4 && entries.length() != 7) ||
+    (entries.length() == 7 && !checks) {
     return Err(Unsupported)
   }
   let constructors = match
@@ -466,26 +498,14 @@ fn installed_standard_recipe_capacities(
     Ok(value) => value
   }
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
-  let write_output = if entries.length() == 4 { 2 } else { 1 }
+  let confirmed = entries.length() == 7
+  let write_output = if entries.length() >= 4 { 2 } else { 1 }
   guard installed_standard_host_capture_row_capacity(
       row_input_bytes, row_input_nodes, row_input_depth,
     )
     is Some(capture_rows) &&
-    @source.json_literal_construction_extent(
-      input_bytes, input_nodes, input_depth,
-    )
-    is Some(tree) &&
-    installed_host_json_retained_roles(
-      {
-        record_headers: tree.record_headers,
-        reference_slots: tree.reference_slots,
-        scalar_words: tree.scalar_words,
-        owned_utf16_units: tree.owned_utf16_units,
-        owned_wire_bytes: 0L,
-      },
-      input_bytes,
-      input_nodes,
-      keep_full_text=true,
+    installed_standard_host_preview_input_parts(
+      input_bytes, input_nodes, input_depth, host_input_bytes,
     )
     is Some((host_retained, host_workspace)) &&
     @execution.compose_preparation_representation([
@@ -524,7 +544,10 @@ fn installed_standard_recipe_capacities(
     is Some(secret) &&
     standard_create_grant_capacity() is Some(grant) &&
     standard_create_saved_control_capacity(
-      stored_bytes, stored_nodes, stored_depth,
+      control_bytes,
+      stored_nodes,
+      stored_depth,
+      defer_ledger_codec~,
     )
     is Some(stored) &&
     standard_create_representation_capacity(
@@ -574,25 +597,61 @@ fn installed_standard_recipe_capacities(
     // The metadata HTTP child retains its own response and secret. Its pure
     // projector runs afterwards through the SAME controlConstruction frame,
     // just like the claimed-write and stored-response projectors above.
-    // Sum every returned holder and reuse only completed synchronous scratch.
-    guard standard_create_sequence_pair_capacity(controls, constructors[3])
+    // The request body runs through that same synchronous frame before the
+    // physical call. Each physical occurrence retains its complete Native/Host
+    // output separately; only its completed private workspace belongs here.
+    let request_retained = @execution.execution_capacity_retained_bytes(
+      constructors[1],
+    )
+    let request_workspace = @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(constructors[1]) -
+      request_retained,
+    ).unwrap()
+    guard standard_create_sequence_pair_capacity(controls, request_workspace)
+      is Some(controls_with_request) &&
+      standard_create_sequence_pair_capacity(
+        controls_with_request,
+        constructors[3],
+      )
       is Some(next) else {
       return Err(Unsupported)
     }
     controls = next
   }
+  if confirmed {
+    // Original confirmation reply and saved marked-request validation use
+    // this SAME synchronous control frame. Keep their returned holders and
+    // only share completed private scratch; failure retains the full peak.
+    let request_retained = @execution.execution_capacity_retained_bytes(
+      constructors[4],
+    )
+    let request_workspace = @execution.execution_capacity(
+      0L,
+      @execution.execution_capacity_execution_bytes(constructors[4]) -
+      request_retained,
+    ).unwrap()
+    for selected in [request_workspace, constructors[5], constructors[6]] {
+      guard standard_create_sequence_pair_capacity(controls, selected)
+        is Some(next) else {
+        return Err(Unsupported)
+      }
+      controls = next
+    }
+  }
   // Capture/read, apply/read, optional resume/read and the write have distinct
   // slots. Preserve the existing declared resume occurrence even when this
   // process has not restored anything; do not alias it to an earlier call.
-  let grant_occurrences = if checks {
-    if before_send {
-      5
+  let grant_occurrences = (if checks {
+      if before_send {
+        5
+      } else {
+        4
+      }
     } else {
-      4
-    }
-  } else {
-    1
-  }
+      1
+    }) +
+    (if confirmed { 2 } else { 0 })
   for _ in 0..<grant_occurrences {
     // The SAME controlConstruction frame completes each synchronous Grant,
     // Ledger read and projector before the next begins. Keep every returned
@@ -637,14 +696,188 @@ fn installed_standard_recipe_capacities(
         response_read_quantum~,
       )
       is Some(read_receive) &&
-      standard_create_sum_capacities([read_receive, secret, constructors[1]])
+      // The same physical child retains every request output until its real
+      // alias/credential cleanup. Its pure constructor workspace is acquired
+      // and completed by the existing synchronous control frame above.
+      standard_create_sum_capacities([
+        read_receive,
+        secret,
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(constructors[1]),
+          @execution.execution_capacity_retained_bytes(constructors[1]),
+        ).unwrap(),
+      ])
       is Some(read_body) else {
       return Err(Unsupported)
     }
     capacities.push(read_body)
   }
+  if confirmed {
+    // The old physical request constructor still runs exactly once, after
+    // the Preview supplies its original DispatchKey. The logical carrier
+    // borrows the approved input. Its marker/body concatenation can fail
+    // before Native validates that body, so keep this original input bound.
+    let empty : @execution.PreparationRepresentationUnits = {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }
+    guard standard_create_representation_capacity(
+        {
+          ..empty,
+          // Original logical body, marked body and exact-request hash input
+          // may coexist with the existing native/Host returned request.
+          owned_utf16_units: 3L * row_input_bytes.to_int64() +
+          3L * request_bytes.to_int64(),
+        },
+        empty,
+      )
+      is Some(marker) &&
+      standard_create_sum_capacities([constructors[0], marker])
+      is Some(finalization) &&
+      installed_effect_http_response_construction_capacity(
+        check_response_bytes,
+        header_bytes,
+        response_read_quantum~,
+      )
+      is Some(confirm_receive) &&
+      standard_create_sum_capacities([
+        confirm_receive,
+        secret,
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(constructors[4]),
+          @execution.execution_capacity_retained_bytes(constructors[4]),
+        ).unwrap(),
+      ])
+      is Some(confirm_body) else {
+      return Err(Unsupported)
+    }
+    capacities.push(finalization)
+    capacities.push(confirm_body)
+  }
   if capture_original is Some(capture) {
     capacities.push(if capture.length() == 3 { capture[2] } else { empty })
   }
   Ok(capacities)
+}
+
+///|
+// The original wire/text envelope remains prepaid. Only the Host forest and
+// its private parser workspace wait for the same already-owned Preview wire.
+// Some(0) denotes an absent parser phase, never an invented JSON document.
+fn installed_standard_host_preview_input_parts(
+  policy_bytes : Int,
+  policy_nodes : Int,
+  policy_depth : Int,
+  input_bytes : Int?,
+) -> (
+  @execution.PreparationRepresentationUnits,
+  @execution.PreparationRepresentationUnits,
+)? {
+  guard @source.json_literal_construction_extent(
+      policy_bytes, policy_nodes, policy_depth,
+    )
+    is Some(policy) else {
+    return None
+  }
+  let bytes = input_bytes.unwrap_or(policy_bytes)
+  if bytes < 0 || bytes > policy_bytes {
+    return None
+  }
+  let empty : @execution.PreparationRepresentationUnits = {
+    record_headers: 0L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }
+  if bytes == 0 {
+    return Some(
+      ({ ..empty, owned_utf16_units: policy.owned_utf16_units, }, empty),
+    )
+  }
+  let nodes = if input_bytes is Some(_) {
+    Int::min(policy_nodes, bytes)
+  } else {
+    policy_nodes
+  }
+  guard @source.json_literal_construction_extent(bytes, nodes, policy_depth)
+    is Some(tree) &&
+    installed_host_json_retained_roles(
+      {
+        record_headers: tree.record_headers,
+        reference_slots: tree.reference_slots,
+        scalar_words: tree.scalar_words,
+        owned_utf16_units: tree.owned_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      bytes,
+      nodes,
+      keep_full_text=true,
+    )
+    is Some((retained, workspace)) else {
+    return None
+  }
+  Some(
+    ({ ..retained, owned_utf16_units: policy.owned_utf16_units, }, workspace),
+  )
+}
+
+///|
+/// Existing original Ledger/Receipt envelope with the selected native outcome
+/// writer's byte ceiling. Larger foreign prefixes are refused by the SAME
+/// selected codec before parsing; no valid selected outcome is removed. Other
+/// composed implementations retain their existing full-codec fallback.
+pub fn installed_effect_control_wire_bound(
+  outcome_bytes : Int,
+  maximum_bytes : Int,
+) -> Result[Int, ClientInstalledManagedRunIssue] {
+  if outcome_bytes < 1 || maximum_bytes < 1 {
+    return Err(Unsupported)
+  }
+  let ledger_keys = [
+    "attempt_sequence", "canonical_request_cid", "capability", "dispatch_key", "effect_preview_cid",
+    "fence", "intent_fingerprint_cid", "logical_item_locator_cid", "logical_request_scope_cid",
+    "original_membership_cid", "outcome_receipt_cid", "prior_entry_cid", "recovery_contract_cid",
+    "reservation_evidence_cid", "retention_contract_cid", "self_cid", "state", "unit_definition_cid",
+    "version",
+  ]
+  // Braces, commas, quoted keys/colons, fourteen quoted CIDs (nullable ones
+  // are smaller), two safe integers, longest capability/state and version.
+  let mut ledger = 2 +
+    18 +
+    3 * 19 +
+    14 * 73 +
+    2 * 16 +
+    13 +
+    13 +
+    "actql-logical-item-ledger-entry/0.1".length() +
+    2
+  for key in ledger_keys {
+    ledger += key.length()
+  }
+  let receipt_keys = [
+    "credential_use_cid", "dispatch_entry_cid", "effect_member_preview_cid", "effect_preview_cid",
+    "http_status_code", "response_byte_count", "response_physical_sha256", "row_preview_cid",
+    "typed_outcome", "typed_outcome_cid", "version", "self_cid",
+  ]
+  let mut receipt = 2 +
+    11 +
+    3 * 12 +
+    7 * 73 +
+    66 +
+    3 +
+    16 +
+    0 +
+    "actql-effect-row-outcome-receipt/0.1".length() +
+    2
+  for key in receipt_keys {
+    receipt += key.length()
+  }
+  let receipt = receipt.to_int64() + outcome_bytes.to_int64()
+  Ok(
+    Int64::min(maximum_bytes.to_int64(), Int64::max(ledger.to_int64(), receipt)).to_int(),
+  )
 }

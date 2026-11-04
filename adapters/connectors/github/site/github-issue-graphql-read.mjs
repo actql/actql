@@ -12,6 +12,7 @@
 // read with its accepted pages and the unfetched cursor kept. Raw header
 // values are not retained. Nothing is retried.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {types} from 'node:util';
 import {withHttpsCredentialRunResponseOriginal} from
   '../../../site-node/https-credential-resource.mjs';
 import {invokeScopedCredentialOperation, invocationBindingsMatch} from
@@ -77,7 +78,7 @@ export function readGitHubIssueCommentsByNode(options) {
 
 async function readGitHubRowsByNode({moon, repository,
   filters = {state: 'all', labels: []}, credential, callResource,
-  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}, pullRequests, comments = false) {
+  authorizationFor, limits, chargePage, consumeObservation, consumePage, signal}, pullRequests, comments = false, managed) {
   const family = comments ? 'IssueComments' : pullRequests ? 'PullRequest' : 'Issue';
   const operations = moon && Object.freeze({
     request: moon[comments ? 'githubIssueCommentsReadNextRequestJson'
@@ -107,6 +108,15 @@ async function readGitHubRowsByNode({moon, repository,
   const prefix = {responses: [], pages: [], credential: originalCredential,
     repository: Object.freeze({...repository}), limits: owned,
     chargePage, consumeObservation, consumePage, operations, moon};
+  if (managed !== undefined) managed.prefix = prefix;
+  const remember = value => {
+    if (value !== null && ['object','function'].includes(typeof value)) {
+      retainedReads.set(value,prefix);
+      managed?.escaped.add(value);
+    }
+  };
+  const invoke = (method,args) => managed === undefined ? Reflect.apply(method,moon,args)
+    : Reflect.apply(managed.project,managed.context,[method,moon,args]);
   let prefixFailure;
   const checkPrefix = admitted => {
     if (prefixFailure !== undefined) throw prefixFailure;
@@ -119,7 +129,7 @@ async function readGitHubRowsByNode({moon, repository,
         });
       }
     } catch (cause) {
-      prefixFailure = cause; retainedReads.set(cause, prefix); throw cause;
+      prefixFailure = cause; remember(cause); throw cause;
     }
   };
   repository = prefix.repository;
@@ -160,8 +170,8 @@ async function readGitHubRowsByNode({moon, repository,
     freeze(labels);
     filters = Object.freeze({state: filterState, since: filterSince, labels});
   }
-  const headers = JSON.parse(moon.githubRequestHeadersJson());
-  const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
+  const headers = JSON.parse(invoke(moon.githubRequestHeadersJson,[]));
+  const responseHeaders = JSON.parse(invoke(moon.githubResponseHeadersJson,[]));
   const accepted = [];
   const rows = [];
   const cursors = new Set();
@@ -174,13 +184,13 @@ async function readGitHubRowsByNode({moon, repository,
     const error = Object.assign(new Error(code), {code, stopped: true,
       acceptedPages: Object.freeze([...accepted]),
       unfetched: pending ? Object.freeze({after, page}) : undefined, ...details});
-    retainedReads.set(error, prefix);
+    remember(error);
     throw error;
   };
   const decoded = value => {
     try { return checked(value); }
     catch (cause) {
-      const refusal = JSON.parse(moon.githubGraphqlReadIssueJson(cause.cause));
+      const refusal = JSON.parse(invoke(moon.githubGraphqlReadIssueJson,[cause.cause]));
       stopped(refusalCodes[refusal.kind] ?? 'GitHubGraphQLRefused',
         {refusal, ...(refusal.kind === 'RateLimited' ? {basis: lastBasis} : {})});
     }
@@ -235,10 +245,9 @@ async function readGitHubRowsByNode({moon, repository,
       stopped(cause?.code ?? 'GitHubReadInterrupted', {cause});
     }
     const [names, values] = pairs(response.headers);
-    lastBasis = JSON.parse(moon.githubRateLimitBasisJson(names, values));
+    lastBasis = JSON.parse(invoke(moon.githubRateLimitBasisJson,[names,values]));
     if (!response.accepted || response.statusCode !== 200) {
-      const failure = JSON.parse(moon.githubClassifyFailureJson(
-        response.statusCode, names, values));
+      const failure = JSON.parse(invoke(moon.githubClassifyFailureJson,[response.statusCode,names,values]));
       if (failure.kind === 'RateLimited') {
         stopped('GitHubRateLimited', {basis: failure.basis});
       }
@@ -248,21 +257,21 @@ async function readGitHubRowsByNode({moon, repository,
   };
   try {
     if (comments) {
-      const original = decoded(Reflect.apply(operations.begin, moon, [repository.nodeId,
+      const original = decoded(invoke(operations.begin,[repository.nodeId,
         repository.databaseId, repository.nameWithOwner, owned.maxBytes,
         owned.maxNodes, owned.maxDepth, owned.maxRows, owned.maxPages, owned.maxSubjects]));
       prefix.pages.push(original);
       try {
         for (;;) {
-          const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
+          const next = JSON.parse(decoded(invoke(operations.next,[original, owned.perPage])));
           if (next.body === null) { pending = false; break; }
           const {response, charge} = await exchange(next.body);
           // Fulfillment can run external microtasks before this continuation.
           // Check here, before any codec or consumer can observe changed bytes.
           try { checkPrefix(); }
           catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
-          decoded(Reflect.apply(operations.accept, moon, [original, response.body]));
-          const current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original]))).page;
+          decoded(invoke(operations.accept,[original, response.body]));
+          const current = JSON.parse(decoded(invoke(operations.finish,[original]))).page;
           if (current === null) {
             if (consumeObservation !== undefined) {
               try {
@@ -290,21 +299,22 @@ async function readGitHubRowsByNode({moon, repository,
           }
         }
       } finally {
-        // Retiring decoder aliases does not ACK the original transport/RowRun.
-        Reflect.apply(operations.close, moon, [original]);
+        // Managed decoder originals stay with this SAME Reader's retirement
+        // duty. A stopped read-current fence must not replace the primary.
+        if (managed === undefined) invoke(operations.close,[original]);
       }
     } else while (pending) {
       signal?.throwIfAborted();
       const arguments_ = [repository.nodeId, owned.perPage, after !== undefined,
         after ?? '', filters.state, labels];
       if (!pullRequests) arguments_.push(filters.since !== undefined, filters.since ?? '');
-      const request = JSON.parse(Reflect.apply(operations.request, moon, arguments_));
+      const request = JSON.parse(invoke(operations.request,arguments_));
       if (request.refused) stopped('InvalidGitHubReadRequest',
         {refusal: request.refused});
       const {response, charge} = await exchange(request.body);
       try { checkPrefix(); }
       catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
-      const original = decoded(Reflect.apply(operations.begin, moon, [response.body,
+      const original = decoded(invoke(operations.begin,[response.body,
         owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
         owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner]));
       prefix.pages.push(original);
@@ -312,7 +322,7 @@ async function readGitHubRowsByNode({moon, repository,
       let rowCharge = charge;
       try {
         for (;;) {
-          const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
+          const next = JSON.parse(decoded(invoke(operations.next,[original, owned.perPage])));
           if (next.body === null) break;
           // An accounted child body has its own admission ticket. Never hide it
           // as another row page or accept it without the original observation port.
@@ -337,13 +347,13 @@ async function readGitHubRowsByNode({moon, repository,
           try { checkPrefix(); }
           catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
           rowCharge = child.charge;
-          decoded(Reflect.apply(operations.accept, moon, [original, child.response.body]));
+          decoded(invoke(operations.accept,[original, child.response.body]));
         }
-        current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original])));
+        current = JSON.parse(decoded(invoke(operations.finish,[original])));
       } finally {
-        // Codec alias retirement does not acknowledge a transport, RowRun or
-        // physical resource. Their original owners retain those duties.
-        Reflect.apply(operations.close, moon, [original]);
+        // The managed cleanup owner closes this same original after stop;
+        // ordinary read projection is deliberately unavailable then.
+        if (managed === undefined) invoke(operations.close,[original]);
       }
       if (rows.length + current.rows.length > owned.maxRows) {
         stopped('GitHubReadRowLimit');
@@ -383,10 +393,123 @@ async function readGitHubRowsByNode({moon, repository,
     // arrays does not require another hash of the same response bytes.
     const result = Object.freeze({rows: Object.freeze(rows),
       pages: Object.freeze(accepted), complete: true});
-    retainedReads.set(result, prefix);
+    remember(result);
     return result;
   } catch (cause) {
-    retainedReads.set(cause, prefix);
+    remember(cause);
     throw cause;
   }
+}
+
+// The normal Source keeps its existing native protocol inside the SAME bound
+// Reader. This constructor prepares original facts only; no credential call,
+// parser, request issuer or replacement resource owner runs here.
+export function prepareGitHubSourceReadSequence(options) {
+  let {moon,site,repository,preparedRead,originalAuthorization,limits,responseCapacity,retireProjection}=options;
+  options=undefined;
+  let resource=preparedRead?.resource,nonce=preparedRead?.nonce;
+  const comments=resource==='issue_comments',pullRequests=resource==='pull_requests';
+  if (!['issues','pull_requests','issue_comments'].includes(resource) ||
+      typeof nonce!=='string'||!nonce||typeof responseCapacity!=='function'||
+      typeof retireProjection!=='function'||types.isProxy(retireProjection)) fail('InvalidGitHubSourceRead');
+  let grant=originalAuthorization?.grant,scope=originalAuthorization?.scope;
+  if (grant===undefined||scope?.operation!==GITHUB_GRAPHQL_READ_OPERATION ||
+      scope.runInvocationCid!==preparedRead.runInvocationCid ||
+      scope.dispatchRequestCid!==preparedRead.dispatchRequestCid) fail('ForeignGitHubSourceRead');
+  let credential=site.credential,managed={prefix:undefined,escaped:new Set(),context:undefined,project:undefined};
+  let pending=false,started=false,retired=false,largest=0,responses=0,capacity;
+  const sequence=Object.freeze({
+    responseCapacity(bytes) {
+      if(this!==sequence||!pending||retired||!Number.isSafeInteger(bytes)||bytes<0||bytes>limits.maxBytes||responses>=limits.maxPages)
+        fail('InvalidGitHubSourceResponseExtent');
+      // Every original response remains in this reader's prefix, including
+      // equal-sized pages. Quote it before decoding, together with the next
+      // request; a peak byte size alone cannot describe the held prefix.
+      largest=Math.max(largest,bytes);responses++;
+      capacity=responseCapacity(largest,responses);
+      return capacity;
+    },
+    async read(context,initialAuthorization) {
+      if(this!==sequence||started||retired)fail('GitHubSourceReadAlreadyStarted');
+      started=true;pending=true;
+      try {
+        if(initialAuthorization?.grant!==grant||initialAuthorization.scope!==scope ||
+            initialAuthorization.useId!==`${nonce}-read-0`)fail('ForeignGitHubSourceRead');
+        managed.context=context;managed.project=githubReadMethod(context,'project');
+        const consumePage=githubReadMethod(context,'consumePage');
+        const consumeObservation=githubReadMethod(context,'consumeObservation');
+        await readGitHubRowsByNode({moon,repository,filters:{state:'all',labels:[]},credential,
+          limits,signal:preparedRead.signal,
+          authorizationFor:index=>Object.freeze({...initialAuthorization,useId:`${nonce}-read-${index}`}),
+          callResource:input=>readGitHubSourceChild(context,originalAuthorization,input),
+          // The bound Reader already charges the actual response exactly once.
+          // The existing codec still decides whether it is an observation or
+          // a complete row page; no original ticket is synthesized here.
+          consumeObservation:()=>Reflect.apply(consumeObservation,context,[]),
+          consumePage:rows=>Reflect.apply(consumePage,context,[rows]),
+        },pullRequests,comments,managed);
+      } finally {pending=false;}
+    },
+    retire() {
+      if(this!==sequence)fail('ForeignGitHubSourceRead');
+      if(pending)return false;
+      if(retired)return true;
+      const prefix=managed.prefix;
+      if(prefix!==undefined){
+        // This is the original constructor-supplied synchronous projector,
+        // not context.project's read-current fence. Its existing borrower
+        // retains invalid async results; a failure leaves this SAME page for
+        // cleanup retry. No new registry, issuer or physical ACK is created.
+        while(prefix.pages.length!==0){
+          const original=prefix.pages[prefix.pages.length-1];
+          const result=Reflect.apply(retireProjection,undefined,[prefix.operations.close,prefix.moon,[original]]);
+          if(result!==undefined)fail('InvalidGitHubDecoderRetirement');
+          prefix.pages.pop();
+        }
+        prefix.responses.length=0;
+        for(const name of Object.keys(prefix))prefix[name]=undefined;
+      }
+      for(const value of managed.escaped)if(retainedReads.get(value)===prefix)retainedReads.delete(value);
+      managed.escaped.clear();managed.context=managed.project=managed.prefix=undefined;
+      moon=site=repository=preparedRead=originalAuthorization=limits=responseCapacity=retireProjection=credential=capacity=undefined;
+      grant=scope=resource=nonce=undefined;
+      managed=undefined;retired=true;
+      return true;
+    },
+  });
+  return sequence;
+}
+
+// Same Site grant, scope and immutable native operation request. The original
+// invocation packet itself is the occurrence key; labels/counters are not a
+// substitute for the bound Reader's checked child authorization.
+function readGitHubSourceChild(context,originalAuthorization,input) {
+  const grant=githubReadField(originalAuthorization,'grant'),scope=githubReadField(originalAuthorization,'scope');
+  const supplied=githubReadField(input,'scope');
+  if(githubReadField(input,'grant')!==grant||supplied===null||typeof supplied!=='object'||types.isProxy(supplied) ||
+      Reflect.ownKeys(supplied).length!==Reflect.ownKeys(scope).length ||
+      Reflect.ownKeys(scope).some(name=>githubReadField(supplied,name)!==githubReadField(scope,name)))fail('ForeignGitHubSourceReadChild');
+  const operations=githubReadField(input,'operations');
+  if(!(operations instanceof Map)||types.isProxy(operations)||operations.size!==1||!operations.has(GITHUB_GRAPHQL_READ_OPERATION))
+    fail('InvalidGitHubSourceReadChild');
+  const request=operations.get(GITHUB_GRAPHQL_READ_OPERATION);
+  if(githubReadField(request,'method')!=='POST'||githubReadField(request,'path')!==GITHUB_GRAPHQL_PATH||
+      typeof githubReadField(request,'body')!=='string' ||
+      Object.hasOwn(request,'bodyBytes'))fail('InvalidGitHubSourceReadChild');
+  const authorization=Object.freeze({grant,scope,useId:githubReadField(input,'useId')});
+  return Reflect.apply(githubReadMethod(context,'readChild'),context,[{operation:GITHUB_GRAPHQL_READ_OPERATION,prepare(){
+    return Object.freeze({original:input,originalAuthorization,authorization,request,project:response=>response});
+  }}]);
+}
+
+function githubReadField(value,name) {
+  if(value===null||typeof value!=='object'||types.isProxy(value))fail('InvalidGitHubSourceRead');
+  const field=Object.getOwnPropertyDescriptor(value,name);
+  if(!field||!Object.hasOwn(field,'value'))fail('InvalidGitHubSourceRead');
+  return field.value;
+}
+function githubReadMethod(value,name) {
+  const method=githubReadField(value,name);
+  if(typeof method!=='function'||types.isProxy(method))fail('InvalidGitHubSourceRead');
+  return method;
 }

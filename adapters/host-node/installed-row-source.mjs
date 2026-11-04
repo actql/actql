@@ -305,19 +305,24 @@ export function installedRowCredentialOperationSite(credential) {
   return original;
 }
 
-function retainCredentialOperationSite(site, custody, identity, enabled) {
+function retainCredentialOperationSite(site, custody, identity, enabled, originalBind) {
   if (enabled) {
-    const bind = custody.bindRunAcquisition;
+    const bind = originalBind ?? custody.bindRunAcquisition;
+    const bindReceiver = originalBind === undefined ? custody : site;
     const purpose = custody.authorizationPurpose;
     const child = custody.readChildCredential;
+    const bindResourceChild = custody.bindReadResourceChild;
+    const resourceChild = custody.readResourceChildCredential;
     operationSites.set(site.credential, Object.freeze({
       ...identity, site, credential: site.credential, callResource: site.callResource,
       construction: custody.construction,
       referenceCurrent: custody.referenceCurrent,
       bindRunAcquisition: (authorization, current) =>
-        Reflect.apply(bind, custody, [authorization, current]),
+        Reflect.apply(bind, bindReceiver, [authorization, current]),
       authorizationPurpose: authorization => Reflect.apply(purpose, custody, [authorization]),
       readChildCredential: (acquisition, authorization) => Reflect.apply(child, custody, [acquisition, authorization]),
+      bindReadResourceChild: bindResourceChild,
+      readResourceChildCredential: resourceChild,
     }));
   }
   return site;
@@ -517,7 +522,8 @@ export function openRowSourceCredentialCustody({profile, principalId,
     };
     return {assertCurrent, observeCurrent};
   }
-  function retainRunBinding(authorization, {assertCurrent, observeCurrent}) {
+  function retainRunBinding(authorization, current, resourceParent) {
+    const {assertCurrent, observeCurrent} = current;
     ensureOpen();
     if (acquisitionLimits === undefined) fail('RowSourceCredentialAcquisitionUnavailable');
     if (runJournalFailure !== undefined) throw runJournalFailure;
@@ -527,7 +533,8 @@ export function openRowSourceCredentialCustody({profile, principalId,
     if (runBindingAttempts >= acquisitionLimits.maxBindings) fail('RowSourceCredentialAcquisitionLimit');
     // Retain the opening child before invoking a current callback. Reentrant
     // close cannot ACK the Journal while this original binding is opening.
-    const original = {binding: undefined, closed: false, closing: false, borrow: undefined};
+    const original = {binding: undefined, closed: false, closing: false, borrow: undefined, current};
+    if (resourceParent !== undefined) original.resourceParent = resourceParent;
     issued.state = 'opening';
     runBindingAttempts++;
     runBindings.add(original);
@@ -586,7 +593,7 @@ export function openRowSourceCredentialCustody({profile, principalId,
               retired = true;if (original.borrow === physical) original.borrow = undefined;
               return true;
             }});
-          runAcquisitions.set(childAcquisition, {parent: original, borrow: physical});
+          runAcquisitions.set(childAcquisition, {parent: original, borrow: physical, current: childCurrent});
           return childAcquisition;
         },
         callResource(input) {
@@ -626,6 +633,71 @@ export function openRowSourceCredentialCustody({profile, principalId,
     // Associate it with
     // the parent's existing binding; do not sign, open, or own another one.
     issued.state = 'bound';issued.acquisition = parent;
+    return acquisition.credential;
+  }
+  // A separately authorized Resource gets its own real binding, never an
+  // exemption from readChildCredential's strict same-Resource sharing rule.
+  function readResourceParent(acquisition) {
+    ensureOpen();
+    const retained = runAcquisitions.get(acquisition);
+    if (retained === undefined) fail('ForeignRowSourceCredentialResourceChild');
+    const original = retained.parent ?? retained;
+    const issued = issuedRunAuthorizations?.get(acquisition.authorization);
+    if (original === undefined || original.resourceParent !== undefined || original.closing || original.closed || original.binding === undefined ||
+        retained.borrow !== undefined && !retained.borrow.available() ||
+        issued?.state !== 'bound' || issued.acquisition !== original ||
+        issued.issuerPurpose?.kind !== 'read' || issued.issuerPurpose.decision === undefined ||
+        !text(issued.issuerPurpose.resource)) fail('ForeignRowSourceCredentialResourceChild');
+    return {retained, original, purpose: issued.issuerPurpose};
+  }
+  function bindReadResourceChild(parent, authorization, callbacks) {
+    const owner = readResourceParent(parent);
+    const issued = issuedRunAuthorizations?.get(authorization);
+    if (issued === undefined || issued.state !== 'unused' || issued.issuerPurpose?.kind !== 'read' ||
+        issued.issuerPurpose.decision === undefined || !text(issued.issuerPurpose.resource) ||
+        issued.issuerPurpose.resource === owner.purpose.resource ||
+        !invocationBindingsMatch(authorization.scope, parent.authorization.scope)) {
+      fail('ForeignRowSourceCredentialResourceChild');
+    }
+    const childCurrent = captureRunCurrent(callbacks);
+    const parentCurrent = owner.original.current;
+    const borrowedCurrent = owner.retained === owner.original ? undefined : owner.retained.current;
+    const assertParent = () => {
+      const selected = readResourceParent(parent);
+      if (selected.retained !== owner.retained || selected.original !== owner.original) {
+        fail('ForeignRowSourceCredentialResourceChild');
+      }
+    };
+    const assertCurrent = () => {
+      assertParent();parentCurrent.assertCurrent();assertParent();
+      if (borrowedCurrent !== undefined) {borrowedCurrent.assertCurrent();assertParent();}
+      childCurrent.assertCurrent();assertParent();
+    };
+    const observeCurrent = async () => {
+      assertCurrent();await parentCurrent.observeCurrent();assertCurrent();
+      if (borrowedCurrent !== undefined) {await borrowedCurrent.observeCurrent();assertCurrent();}
+      await childCurrent.observeCurrent();assertCurrent();
+    };
+    // retainRunBinding spends this original authorization and retains the
+    // opening duty before invoking either parent's or child's current fence.
+    // Its failure path remains consumed; no replacement child is returned.
+    return retainRunBinding(authorization, {assertCurrent, observeCurrent}, parent);
+  }
+  function readResourceChildCredential(parent, acquisition, authorization) {
+    const owner = readResourceParent(parent);
+    const child = runAcquisitions.get(acquisition);
+    const issued = issuedRunAuthorizations?.get(authorization);
+    if (child === undefined || child.resourceParent !== parent || child.closing || child.closed ||
+        child.binding === undefined || acquisition.authorization !== authorization ||
+        issued?.state !== 'bound' || issued.acquisition !== child ||
+        issued.issuerPurpose?.kind !== 'read' || issued.issuerPurpose.decision === undefined ||
+        issued.issuerPurpose.resource === owner.purpose.resource ||
+        !invocationBindingsMatch(authorization.scope, parent.authorization.scope)) {
+      fail('ForeignRowSourceCredentialResourceChild');
+    }
+    child.current.assertCurrent();
+    readResourceParent(parent);
+    if (child.closing || child.closed || child.binding === undefined) fail('ForeignRowSourceCredentialResourceChild');
     return acquisition.credential;
   }
   function bindRunAcquisition(authorization, callbacks) {
@@ -678,10 +750,13 @@ export function openRowSourceCredentialCustody({profile, principalId,
   }
   const custody = Object.freeze({credential, sign, signInstallationMetadata,
     ...(construction === undefined ? {} : {construction}),
-    ...(construction === undefined ? {} : {retainOperationSite(site) {
+    ...(construction === undefined ? {} : {retainOperationSite(site, originalBind) {
       ensureOpen();
       if (this !== custody || site === null || typeof site !== 'object' ||
-          nodeTypes.isProxy(site) || !Object.isFrozen(site)) fail('ForeignInstalledCredentialOperationSite');
+          nodeTypes.isProxy(site) || !Object.isFrozen(site) || originalBind !== undefined &&
+          (typeof originalBind !== 'function' || nodeTypes.isProxy(originalBind) || nodeTypes.isAsyncFunction(originalBind))) {
+        fail('ForeignInstalledCredentialOperationSite');
+      }
       const fields = Object.getOwnPropertyDescriptors(site);
       if (!Object.hasOwn(fields.credential ?? {}, 'value') || fields.credential.value !== credential ||
           !Object.hasOwn(fields.callResource ?? {}, 'value') || typeof fields.callResource.value !== 'function' ||
@@ -697,9 +772,10 @@ export function openRowSourceCredentialCustody({profile, principalId,
       // replace the custody, credential, principal or immutable runtime facts.
       return retainCredentialOperationSite(site, custody,
         {connection: fields.connection.value, principalId, connectorRegistration,
-          connectorRevision, runtimeBundleCid}, true);
+          connectorRevision, runtimeBundleCid}, true, originalBind);
     }}),
     installationMetadataJournal, openRunAcquisition, bindRunAcquisition, authorizationPurpose, readChildCredential,
+    bindReadResourceChild, readResourceChildCredential,
     checkGrantRequest, ensureOpen,
     referenceCurrent: () => !closing,
     // The existing generic entry calls its original journal close on every
@@ -2598,6 +2674,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
         // accounted Run starts. Its native protocol owns every physical child;
         // the original session catches and retires a failed preparation too.
         preparedRead = await prepareRead(Object.freeze({prepared, acquisition,
+          wholeInput: owner.wholeInput,
           decision, granted, resource: owner.resource, nonce, runInvocationCid,
           dispatchRequestCid, signal}));
       }
@@ -2859,6 +2936,17 @@ export async function createInstalledRowSource({moon, declaration, commands,
       },
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
     ordinaryRecoveryBinding,
+    retirePreparedSource(prepared) {
+      const owner = preparations.get(prepared);
+      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      // Started reads have already transferred to their original RowRun's
+      // close. This cut only returns the SAME still-unentered preparation;
+      // a later sibling's refusal must not strand it until installation close.
+      if (preparingSourceReads.has(owner.originalRead)) {
+        checked(moon.clientProgramInstalledSourceReadRetire(owner.originalRead));
+        preparingSourceReads.delete(owner.originalRead);
+      }
+    },
     retainedCapture(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');

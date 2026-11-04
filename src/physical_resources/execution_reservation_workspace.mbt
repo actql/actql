@@ -15,6 +15,24 @@ pub fn grow_execution_reservation_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  grow_execution_reservation_capacity_current(
+    ledger, reservation, retained, execution,
+  )
+}
+
+///|
+// Shared only inside an already closed original/current Resource call. No
+// callback or reusable current proof may escape between its fence and resize.
+fn grow_execution_reservation_capacity_current(
+  ledger : Ledger,
+  reservation : Reservation,
+  retained : Int64,
+  execution : Int64,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check_current(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if imported_child_fixed_capacity(ledger, reservation) {
     return Err(ChildFundingUnavailable)
   }

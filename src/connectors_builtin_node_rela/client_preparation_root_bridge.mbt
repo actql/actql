@@ -66,6 +66,24 @@ pub fn client_program_reserve_request_effect_capture_recovery(
 }
 
 ///|
+#export_name("clientProgramReserveRequestModelRecoveryMaterials")
+pub fn client_program_reserve_request_model_recovery_materials(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  count : Int,
+  wire_at : (Int) -> String,
+  containers : Int,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_model_recovery_materials(
+    parent, input, request, definition, count, wire_at, containers,
+  )
+}
+
+///|
 #export_name("clientProgramBorrowRequestModelPlanInput")
 pub fn client_program_borrow_request_model_plan_input(
   parent : @client_local_host.ClientRequestPreparation[
@@ -299,6 +317,32 @@ pub fn client_program_prepare_request_model_read_scope(
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
   @client_local_host.prepare_request_model_read_scope(parent, input, plan)
+}
+
+///|
+// The same retained provider supplies its actual quantity declaration before
+// Request/Run binding. Core intersects the original execution contract and
+// Resource enforces its existing one-shot preparation-only configuration.
+#export_name("clientProgramPrepareRequestModelReadScopeWithQuantities")
+pub fn client_program_prepare_request_model_read_scope_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
 }
 
 ///|
@@ -1165,6 +1209,20 @@ pub fn client_program_finish_request_submitted_intent(
   input : ClientLocalPreparationInputOriginal,
 ) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
   @client_local_host.finish_request_submitted_intent(parent, input)
+}
+
+///|
+#export_name("clientProgramReserveRequestRetainedProgramMaterial")
+pub fn client_program_reserve_request_retained_program_material(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  wire : String,
+) -> Result[Unit, @client_local_host.ClientRequestPreparationIssue] {
+  @client_local_host.reserve_request_retained_program_material(
+    parent, input, wire,
+  )
 }
 
 ///|
