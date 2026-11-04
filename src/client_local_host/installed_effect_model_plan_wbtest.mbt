@@ -272,10 +272,13 @@ test "Model Effect plan retains exact checked binding and one provider selection
     plan.limits.planning_work - plan._observed_compute_limits.planning_work,
     17,
   )
-  // This opaque Model boundary retains the existing installed 100-row
-  // execution fallback, independent of the one authored Values input row.
+  // The policy retains its 100-row ceiling. Before actual rows arrive, only
+  // the one member operation and the original Model attempt budget are funded.
   assert_eq(plan.rows, 100)
-  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 105)
+  assert_eq(
+    plan.limits.attempts - plan._observed_compute_limits.attempts,
+    effect_model_plan_limits.attempts + 1,
+  )
   assert_true(
     plan.limits.retained_bytes >=
     plan._observed_compute_limits.retained_bytes + 2000L,
@@ -339,4 +342,41 @@ test "Model Effect Plan projection refuses a copied or foreign selected demand" 
   assert_false(installed_effect_plan_matches_model_demand(plan, foreign))
   let without_model = { ..plan, model: None, }
   assert_false(installed_effect_plan_matches_model_demand(without_model, model))
+}
+
+///|
+test "Effect Model keeps physical read and bootstrap overlap on the same checked demand" {
+  let (prepared, _, _, original) = effect_model_plan_inputs()
+  let prepare = bootstrap => {
+    prepare_installed_effect_model_demand(
+      prepared,
+      original.compiled,
+      original._compilation,
+      original.definition,
+      original._occurrence,
+      original.graph,
+      effect_model_plan_limits,
+      17L,
+      19L,
+      12,
+      8,
+      4,
+      bootstrap=Some(bootstrap),
+    )
+  }
+  let demand = prepare((23L, 29L)).unwrap()
+  assert_eq(installed_effect_model_read_window(demand), [17L, 19L])
+  assert_eq(
+    (demand.bootstrap_retained_bytes, demand.bootstrap_execution_bytes),
+    (23L, 29L),
+  )
+  assert_eq(
+    (demand.limits.retained_bytes, demand.limits.execution_bytes),
+    (1040L, 2048L),
+  )
+  assert_true(physical_equal(demand.compiled, original.compiled))
+  assert_true(physical_equal(demand.graph, original.graph))
+  guard prepare((0L, 29L)) is Err(InsufficientCapacity) else {
+    fail("Missing physical bootstrap must not borrow the read window")
+  }
 }

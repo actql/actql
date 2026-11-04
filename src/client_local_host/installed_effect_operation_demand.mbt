@@ -964,7 +964,7 @@ pub fn prepare_installed_effect_managed_plan(
   // capacity; a selected Some adds1H1R1W, never another copy of that capacity.
   // The optional query-time holder adds one Some header/payload/tag. Its
   // original caller-owned sample/Run backing is borrowed, not copied here.
-  // The Model demand adds its record(1H,7R,5W), limits(1H,0R,6W),
+  // The Model demand adds its record(1H,7R,7W), limits(1H,0R,6W),
   // Some(1H,1R,1W), and one Plan reference, only when selected. All six
   // compilation/definition/occurrence originals remain borrowed references.
   // Each provider capture additionally retains its Some/tuple(2H,3R,1W)
@@ -1006,7 +1006,7 @@ pub fn prepare_installed_effect_managed_plan(
     5L * sources +
     4L * members +
     time_holder +
-    12L * model_holder +
+    14L * model_holder +
     provider_sources.to_int64() +
     8L * staged_extents,
     owned_utf16_units: 0L,

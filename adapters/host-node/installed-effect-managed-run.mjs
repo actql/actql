@@ -52,28 +52,35 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       if (Reflect.ownKeys(modelFields).length !== 5 ||
           ['kind', 'compiled', 'definition', 'occurrence', 'graph'].some(name =>
             !Object.hasOwn(modelFields[name] ?? {}, 'value')) ||
-          modelFields.kind.value !== 'local-mock' || modelFields.compiled.value !== facts.modelCompiled ||
+          modelFields.kind.value !== (modelSelection !== undefined && modelSelection.localMock !== true
+            ? 'installed-model' : 'local-mock') || modelFields.compiled.value !== facts.modelCompiled ||
           modelFields.compiled.value === undefined || modelFields.definition.value !== facts.definition ||
           modelFields.occurrence.value === undefined || modelFields.graph.value === undefined) {
         fail('ForeignInstalledEffectModelSelection');
       }
       run.publicationControl = publicationControl;
       run.modelRunDefinition = fields.runDefinition?.value;
+      const physical = modelSelection !== undefined && modelSelection.localMock !== true;
+      if (physical && (modelSelection.originalReadInstallation === undefined ||
+          modelSelection.selectedBounds === undefined)) fail('InstalledEffectModelRuntimeUnavailable');
       run.prepareModelDemand = modelSelection === undefined ? runtime.clientProgramInstalledEffectModelDemandPrepare
-        : publicationControl?.prepareCheckedClientEffectModelDemand;
+        : physical ? publicationControl?.prepareCheckedClientNodeEffectModelDemand
+          : publicationControl?.prepareCheckedClientEffectModelDemand;
       if (typeof run.prepareModelDemand !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
       run.modelDemand = modelSelection === undefined ? checked(Reflect.apply(run.prepareModelDemand, runtime,
         [prepared, model.compiled, facts.compilation, model.definition, model.occurrence, model.graph]))
         : Reflect.apply(run.prepareModelDemand, publicationControl,
-          [prepared, model.compiled, facts.compilation, facts.runDefinition, model.occurrence, model.graph]);
+          [prepared, model.compiled, facts.compilation, facts.runDefinition, model.occurrence, model.graph,
+            ...(physical ? [modelSelection.selectedBounds, modelSelection.originalReadInstallation] : [])]);
       if (run.modelDemand === null || typeof run.modelDemand !== 'object') fail('InstalledEffectModelDemandUnavailable');
       if (modelSelection !== undefined) {
-        if (modelSelection.localMock !== true || modelSelection.occurrence !== model.occurrence ||
+        if (modelSelection.occurrence !== model.occurrence ||
             modelSelection.graph !== model.graph) fail('ForeignInstalledEffectModelSelection');
         // The SAME native component is captured by the Plan configuration now.
         // Its physical context is bound once, after the original Sources have
         // been captured; execution must never construct a replacement provider.
-        run.modelComponent = openNodeComposedInferProvider({moon: runtime, selected: modelSelection, deferred: true});
+        run.modelComponent = openNodeComposedInferProvider({moon: runtime, selected: modelSelection,
+          deferred: true, deferredGeneratedInput: prepareContent !== undefined});
         run.modelComponents = Object.freeze([run.modelComponent.provider]);
       }
     }
@@ -151,6 +158,16 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       }
       run.value = adopted.value;
       run.preparationFunded = true;
+      if (modelSelection !== undefined && modelSelection.localMock !== true) {
+        if (typeof modelSelection.bindTrustedRuntimeScope !== 'function' ||
+            typeof modelSelection.assertTrustedRuntimeScope !== 'function' ||
+            typeof modelSelection.finishTrustedRuntimeScope !== 'function') {
+          fail('InstalledEffectModelRuntimeUnavailable');
+        }
+        // The Run already retains its Scope before this fallible association.
+        run.modelRuntimeView = modelSelection.bindTrustedRuntimeScope(
+          run.modelScope, model.compiled, run.modelRunDefinition, model.graph);
+      }
       assertCurrent();
     }
     // The original Request/Model adoption above supplies the SAME Ledger.
@@ -201,7 +218,10 @@ export function finishInstalledEffectModelScope(run, originalRunCleanupComplete,
   const sameControl = run.publicationControl, sameDefinition = run.modelRunDefinition, sameFinish = run.finishModelScope;
   run.modelScopeFinishing = true;
   try {
-    const finished = run.publicationControl === undefined ? checked(Reflect.apply(run.finishModelScope, run.runtime,
+    const finished = run.modelRuntimeView !== undefined
+      ? originalRunCleanupComplete === true && run.modelSelection.finishTrustedRuntimeScope(
+        sameScope, run.modelRuntimeView, sameModel.compiled, sameDefinition, sameModel.graph)
+      : run.publicationControl === undefined ? checked(Reflect.apply(run.finishModelScope, run.runtime,
       [sameScope, sameModel.compiled, sameModel.definition, sameModel.graph, originalRunCleanupComplete]))
       : Reflect.apply(run.finishModelScope, run.publicationControl,
         [sameModel.compiled, run.modelRunDefinition, sameModel.graph, sameScope, originalRunCleanupComplete]);
@@ -238,9 +258,19 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
   if (!Array.isArray(window) || window.length !== 2 ||
       window.some(value => typeof value !== 'bigint' || value <= 0n)) fail('InvalidHostRuntimeResult');
   const retained = window[0], execution = window[1];
+  const physical = run.modelSelection?.originalReadInstallation;
   const fields = {control, compiled: model.compiled, runDefinition: definition, scope, publicationCapacity,
     readRetainedBytes: retained, readExecutionBytes: execution,
-    modelRetainedBytes: retained, modelExecutionBytes: execution};
+    modelRetainedBytes: physical?.modelRetainedBytes ?? retained,
+    modelExecutionBytes: physical?.modelExecutionBytes ?? execution,
+    ...(physical === undefined ? {} : {nodeInstallation: physical.nodeInstallation,
+      metadataInstallation: physical,
+      assertRuntimeCurrent() {
+        current();
+        run.modelSelection.assertTrustedRuntimeScope(scope, run.modelRuntimeView,
+          model.compiled, definition, model.graph);
+      }}),
+  };
   const view = Object.freeze({...fields,
     retain() {
       current();
@@ -253,8 +283,10 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
       if (run.modelPreparationRetired || !run.modelPreparationTaken || run.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
       run.modelReadAttempted = true;
       try {
-        run.modelRead = control.prepareCheckedClientInferOriginalRead(
-          model.compiled, definition, model.graph, scope, fields);
+        run.modelRead = physical === undefined
+          ? control.prepareCheckedClientInferOriginalRead(model.compiled, definition, model.graph, scope, fields)
+          : control.prepareCheckedClientInferNodeReadLayout(
+            model.compiled, definition, model.graph, scope, physical.nodeInstallation);
         return Object.freeze({...fields, read: run.modelRead});
       } catch (cause) {run.modelReadFailure = cause; throw cause;}
     },

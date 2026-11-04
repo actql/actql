@@ -3514,6 +3514,20 @@ function publicationControl(moon) {
       return checked(moon.clientProgramInstalledEffectModelDemandPrepare(
         prepared, value, compilation, token(definition), occurrence, graph));
     },
+    prepareCheckedClientNodeEffectModelDemand(prepared, compiled, compilation, definition,
+      occurrence, graph, selected, installation) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const node = installation.nodeInstallation, census = installation.bootstrap;
+      return checked(moon.clientProgramInstalledNodeEffectModelDemandPrepare(
+        prepared, value, compilation, token(definition), occurrence, graph, selected,
+        node.layout, node.installation, node.runtimeArtifactCid, node.layoutArtifactCid, node.probability,
+        installation.modelRetainedBytes, installation.modelExecutionBytes,
+        census.maxReservations, census.maxHoldings, census.maxDelegations,
+        census.bootstrapRetainedBytes, census.bootstrapExecutionBytes));
+    },
     prepareCheckedClientRequestModelSourceFreeModule(parent, input, request, compiled, definition, compilation, contracts, retainedOutput, queryTime) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {

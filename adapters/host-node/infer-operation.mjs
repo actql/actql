@@ -1129,9 +1129,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
   durableCalls = false, restoredInput, generatedInput, originalPreparation, deferred = false,
+  deferredGeneratedInput = false,
   inputPrefix = selected?.computePrefix, bindComputeSuffix, assertRuntimeCurrent}) {
   if (selected?.occurrence === undefined ||
-      typeof deferred !== 'boolean' || !deferred && typeof retainOperation !== 'function' ||
+      typeof deferred !== 'boolean' || typeof deferredGeneratedInput !== 'boolean' ||
+      deferredGeneratedInput && !deferred || !deferred && typeof retainOperation !== 'function' ||
       deferred && (generatedInput !== undefined || originalPreparation !== undefined || retainOperation !== undefined)) {
     throw new TypeError('InvalidComposedInferProvider');
   }
@@ -1141,7 +1143,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   let prepareRead = originalPreparation?.prepareRead;
   let deferredRead = prepareRead !== undefined;
   if (deferredRead && (typeof prepareRead !== 'function' ||
-      generatedInput !== undefined || restoredInput !== undefined)) {
+      restoredInput !== undefined)) {
     throw new TypeError('InvalidComposedInferOriginalPreparation');
   }
   let readAttempted = false;
@@ -1155,8 +1157,9 @@ export function openNodeComposedInferProvider({moon, selected, sources,
   // A Request module can supply its already-backed original before this
   // native component selects input-dependent capacity. Never reprepare it.
   const computePrefix = inputPrefix;
-  const selectProvider = generatedInput === undefined
-    ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
+  const generated = generatedInput !== undefined || deferredGeneratedInput;
+  const selectProvider = generated
+    ? moon.clientProgramGeneratedInferLocalProvider : moon.clientProgramComposedInferLocalProvider;
   const provider = selectProvider(
     selected.occurrence, inputs => {
       try {
@@ -1189,13 +1192,13 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           }
         }
         operation = openNodeInferOperation({moon, graph: selected.graph,
-          composedInput: generatedInput !== undefined ? undefined : {occurrence: selected.occurrence,
+          composedInput: generated ? undefined : {occurrence: selected.occurrence,
             prefix: computePrefix, inputs, sources},
-          serializedInput: generatedInput === undefined ? undefined : {
+          serializedInput: !generated ? undefined : {
             control, compiled: plan.compiled, definition: plan.runDefinition,
             generation: generatedInput.generation(), inputs,
             recovery: generatedInput.recovery?.()},
-          computeSuffix: generatedInput === undefined ? selected.computeSuffix : undefined, provider: selected.provider,
+          computeSuffix: !generated ? selected.computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
@@ -1226,7 +1229,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
     }, active => operation !== undefined &&
       activeOperations.get(operation) === active &&
       operation.cleanupPending() === false,
-    ...(generatedInput === undefined ? [computePrefix] : []));
+    ...(!generated ? [computePrefix] : []));
   const component = Object.freeze({provider, operation: () => operation,
     failure: () => failure, hasFailure: () => failureRecorded,
     ...(deferred ? {bindOriginal(context) {
@@ -1235,6 +1238,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       if (read('selected') !== selected || typeof read('retainOperation') !== 'function') {
         throw new TypeError('InvalidComposedInferOriginalContext');
       }
+      const generatedOriginal = read('generatedInput');
+      if (generated ? generatedOriginal === null || typeof generatedOriginal !== 'object' ||
+          typeof Object.getOwnPropertyDescriptor(generatedOriginal, 'generation')?.value !== 'function'
+        : generatedOriginal !== undefined) throw new TypeError('InvalidComposedInferOriginalContext');
       const preparation = read('originalPreparation'), prepare = preparation?.prepareRead;
       if (prepare !== undefined && (typeof prepare !== 'function' || read('restoredInput') !== undefined)) {
         throw new TypeError('InvalidComposedInferOriginalPreparation');
@@ -1243,6 +1250,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       principalId = read('principalId'); now = read('now'); signal = read('signal');
       retainOperation = read('retainOperation'); retainCompleted = read('retainCompleted');
       durableCalls = read('durableCalls') === true; restoredInput = read('restoredInput');
+      generatedInput = generatedOriginal;
       assertRuntimeCurrent = read('assertRuntimeCurrent');
       if (assertRuntimeCurrent !== undefined && typeof assertRuntimeCurrent !== 'function') {
         throw new TypeError('InferTrustedRuntimeScopeUnavailable');

@@ -319,6 +319,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       });
       const context = {moon, selected: originalModelSelection ?? infer, sources: admittedSources,
         originalPreparation,
+        assertRuntimeCurrent: originalPreparation?.assertRuntimeCurrent,
         ...(contentFamily === undefined ? {} : {generatedInput: {
           generation: () => contentFamily.generation(),
           recovery: () => contentFamily.recovery(),

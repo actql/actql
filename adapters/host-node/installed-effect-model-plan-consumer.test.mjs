@@ -371,3 +371,62 @@ test('Effect control retirement keeps its original receiver and fences reentry b
   assert.equal(changed.counts.retire, 0); assert.equal(changed.counts.returns, 0);
   assert.equal(changed.run.operationPlan, changed.plan);
 });
+
+test('physical Model Content Effect keeps its original Node layout and trusted Scope through retry', () => {
+  const f = fixture(), definition = {}, provider = {}, read = {}, view = {}, layout = {}, selectedBounds = {};
+  const physical = {nodeInstallation: layout, modelRetainedBytes: 37n, modelExecutionBytes: 41n};
+  f.options.model = Object.freeze({...f.model, kind: 'installed-model'});
+  f.options.facts = Object.freeze({...f.options.facts, runDefinition: definition});
+  let issued = 0, bound = 0, finished = 0, reads = 0, complete = false;
+  const sameScope = args => same(args, [f.scope, f.model.compiled, definition, f.model.graph]);
+  f.options.modelSelection = Object.freeze({occurrence: f.model.occurrence, graph: f.model.graph,
+    selectedBounds, originalReadInstallation: physical,
+    bindTrustedRuntimeScope(...args) {sameScope(args); bound++; return view;},
+    assertTrustedRuntimeScope(scope, actual, ...args) {
+      assert.strictEqual(actual, view); sameScope([scope, ...args]);
+    },
+    finishTrustedRuntimeScope(scope, actual, ...args) {
+      assert.strictEqual(actual, view); sameScope([scope, ...args]); finished++; return complete;
+    },
+  });
+  f.runtime.clientProgramGeneratedInferLocalProvider = occurrence => {
+    assert.strictEqual(occurrence, f.model.occurrence); issued++; return provider;
+  };
+  f.runtime.clientProgramComposedInferLocalProvider = () => assert.fail('generated Content keeps its own provider purpose');
+  f.runtime.clientProgramInstalledEffectModelReadWindow = () => [23n, 29n];
+  const preparation = {}, cleanup = {};
+  f.options.prepareContent = retain => {retain(cleanup); return {preparation};};
+  f.options.selection = Object.freeze({prepareManagedPlan(facts, inputs) {
+    assert.strictEqual(facts, f.options.facts); assert.strictEqual(inputs.modelDemand, f.demand);
+    assert.strictEqual(inputs.contentPreparation, preparation);
+    assert.strictEqual(inputs.modelComponents[0], provider); return f.plan;
+  }});
+  f.options.publicationControl = {
+    prepareCheckedClientNodeEffectModelDemand(...args) {
+      same(args, [f.prepared, f.model.compiled, f.options.facts.compilation, definition,
+        f.model.occurrence, f.model.graph, selectedBounds, physical]); return f.demand;
+    },
+    finishCheckedClientInferOriginalReadScope() {assert.fail('trusted Scope retires through its actual installation');},
+    prepareCheckedClientInferNodeReadLayout(...args) {
+      same(args, [f.model.compiled, definition, f.model.graph, f.scope, layout]); reads++; return read;
+    },
+    stopCheckedClientInferOriginalReadPreparation() {},
+    settleCheckedClientInferOriginalReadPreparation() {},
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  const original = installedEffectModelPreparation(run, () => ({}), () => {});
+  original.assertRuntimeCurrent(); original.retain();
+  const prepared = original.prepareRead();
+  assert.strictEqual(prepared.read, read); assert.strictEqual(prepared.nodeInstallation, layout);
+  assert.strictEqual(prepared.metadataInstallation, physical);
+  assert.deepEqual([prepared.modelRetainedBytes, prepared.modelExecutionBytes], [37n, 41n]);
+  assert.throws(() => original.prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
+  assert.throws(() => finishInstalledEffectModelScope(run, false, checked), {code: 'InstalledEffectModelScopeCleanupPending'});
+  assert.equal(finished, 0);
+  original.retire();
+  assert.throws(() => finishInstalledEffectModelScope(run, true, checked), {code: 'InstalledEffectModelScopeCleanupPending'});
+  complete = true; finishInstalledEffectModelScope(run, true, checked);
+  finishInstalledEffectModelScope(run, true, checked);
+  assert.deepEqual([issued, bound, reads, finished], [1, 1, 1, 2]);
+});

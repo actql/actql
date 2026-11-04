@@ -6627,7 +6627,8 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
       const model = modelSelection === undefined ? undefined : runs.get(facts.prepared)?.model ??
-        Object.freeze({kind: 'local-mock', compiled: facts.modelCompiled, definition: facts.definition,
+        Object.freeze({kind: modelSelection.localMock === true ? 'local-mock' : 'installed-model',
+          compiled: facts.modelCompiled, definition: facts.definition,
           occurrence: modelSelection.occurrence, graph: modelSelection.graph});
       const hasSources = runtime.clientProgramEffectAcquisitionCount(facts.prepared) !== 0;
       return prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, manager,

@@ -641,3 +641,71 @@ pub fn client_program_prepare_request_model_source_free_component_module(
     }),
   ).map_err(issue => Preparation(issue))
 }
+
+///|
+/// Validate the installed physical read against the SAME graph before its
+/// Effect Plan reserves the Model, bootstrap and read overlap on one parent.
+#export_name("clientProgramInstalledNodeEffectModelDemandPrepare")
+pub fn client_program_installed_node_effect_model_demand_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compiled : @publication_host.ClientCompiledRun,
+  compilation : @publication_host.ClientEffectCompilation,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  bootstrap_retained_bytes : Int64,
+  bootstrap_execution_bytes : Int64,
+) -> Result[
+  @client_local_host.ClientInstalledEffectModelDemand,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  match
+    @publication_host.check_client_node_model_preparation_layout(
+      layout, graph, installation, runtime_artifact_cid, layout_artifact_cid, probability,
+    ) {
+    Err(issue) => return Err(ModelLayout(issue))
+    Ok(_) => ()
+  }
+  guard layout is Some(layout) else {
+    return Err(ModelLayout(@publication_host.Unavailable))
+  }
+  guard model_retained_bytes >= selected.model.ledger.retained_bytes &&
+    model_execution_bytes >= selected.model.ledger.execution_bytes &&
+    bootstrap_retained_bytes >= selected.mapping.logical.max_live_value_bytes &&
+    bootstrap_execution_bytes >= selected.identity.wire.max_bytes.to_int64() &&
+    max_reservations >= 0 &&
+    max_holdings >= 0 &&
+    max_delegations >= 0 else {
+    return Err(InsufficientCapacity)
+  }
+  @client_local_host.prepare_installed_effect_model_demand(
+    prepared,
+    compiled,
+    compilation,
+    definition,
+    occurrence,
+    graph,
+    {
+      ..selected.model.ledger,
+      retained_bytes: model_retained_bytes,
+      execution_bytes: model_execution_bytes,
+    },
+    layout.retained_bytes,
+    layout.execution_bytes,
+    Int::max(selected.input.rows.operation_entries, max_reservations),
+    Int::max(selected.input.rows.retained_entries, max_holdings),
+    Int::max(selected.input.rows.metadata_entries, max_delegations),
+    bootstrap=Some((bootstrap_retained_bytes, bootstrap_execution_bytes)),
+  )
+}

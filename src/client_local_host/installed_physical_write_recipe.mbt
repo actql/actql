@@ -19,22 +19,34 @@ pub fn installed_physical_write_recipe_capacities(
   control_wire_bytes? : Int? = None,
 ) -> Result[Array[@execution.ExecutionCapacity], ClientInstalledManagedRunIssue] {
   let control_bytes = control_wire_bytes.unwrap_or(stored_bytes)
-  if control_bytes < 1 || control_bytes > stored_bytes ||
-    stored_bytes < response_bytes || response_bytes < 1 {
+  if control_bytes < 1 ||
+    control_bytes > stored_bytes ||
+    stored_bytes < response_bytes ||
+    response_bytes < 1 {
     return Err(Unsupported)
   }
-  guard installed_standard_host_capture_row_capacity(body_bytes, body_nodes, body_depth)
+  guard installed_standard_host_capture_row_capacity(
+      body_bytes, body_nodes, body_depth,
+    )
     is Some(capture_row) &&
     local_file_store_json_capacity(preview_bytes, preview_nodes, preview_depth)
     is Some(preview) &&
     local_file_store_json_capacity(recovery_bytes, preview_nodes, preview_depth)
     is Some(recovery) &&
-    standard_create_sequence_pair_capacity(preview, recovery) is Some(capture_fixed) &&
-    local_file_store_json_capacity(body_bytes, body_nodes, body_depth) is Some(input) &&
-    local_file_store_json_capacity(request_bytes, body_nodes, body_depth) is Some(immutable_request) &&
-    standard_create_sum_capacities([input, preview, immutable_request], sequential_workspace=true)
+    standard_create_sequence_pair_capacity(preview, recovery)
+    is Some(capture_fixed) &&
+    local_file_store_json_capacity(body_bytes, body_nodes, body_depth)
+    is Some(input) &&
+    local_file_store_json_capacity(request_bytes, body_nodes, body_depth)
+    is Some(immutable_request) &&
+    standard_create_sum_capacities(
+      [input, preview, immutable_request],
+      sequential_workspace=true,
+    )
     is Some(request) &&
-    standard_create_saved_control_capacity(control_bytes, stored_nodes, stored_depth)
+    standard_create_saved_control_capacity(
+      control_bytes, stored_nodes, stored_depth,
+    )
     is Some(saved) &&
     local_file_store_json_capacity(response_bytes, stored_nodes, stored_depth)
     is Some(projected) &&
@@ -42,11 +54,17 @@ pub fn installed_physical_write_recipe_capacities(
       [{ unit: QuotedBytes, count: stored_bytes.to_int64(), copies: 2, }],
       [],
       RetainedAlongsideExecution,
-    ) is Some(stored_buffers) &&
-    standard_create_sum_capacities([saved, stored_buffers, projected], sequential_workspace=true)
+    )
+    is Some(stored_buffers) &&
+    standard_create_sum_capacities(
+      [saved, stored_buffers, projected],
+      sequential_workspace=true,
+    )
     is Some(controls) else {
     return Err(Unsupported)
   }
   let no_additional_effect_id = @execution.execution_capacity(0L, 0L).unwrap()
-  Ok([capture_fixed, capture_row, request, physical, controls, no_additional_effect_id])
+  Ok([
+    capture_fixed, capture_row, request, physical, controls, no_additional_effect_id,
+  ])
 }

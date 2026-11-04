@@ -10,6 +10,8 @@ struct ClientInstalledEffectModelDemand {
   _occurrence : @publication_host.ClientInferOccurrence
   graph : @publication_host.ClientInferPlanGraph
   limits : @resources.LedgerLimits
+  read_retained_bytes : Int64
+  read_execution_bytes : Int64
   bootstrap_retained_bytes : Int64
   bootstrap_execution_bytes : Int64
   max_reservations : Int
@@ -34,6 +36,7 @@ pub fn prepare_installed_effect_model_demand(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue] {
   if !@publication_host.client_compiled_run_matches_effect(
       compiled, prepared, compilation,
@@ -53,11 +56,17 @@ pub fn prepare_installed_effect_model_demand(
     return Err(InsufficientCapacity)
   }
   guard installed_model_demand_limits(
-      model_limits, read_retained_bytes, read_execution_bytes,
+      model_limits,
+      read_retained_bytes,
+      read_execution_bytes,
+      bootstrap~,
     )
     is Some(limits) else {
     return Err(InsufficientCapacity)
   }
+  let (bootstrap_retained_bytes, bootstrap_execution_bytes) = bootstrap.unwrap_or(
+    (read_retained_bytes, read_execution_bytes),
+  )
   Ok({
     prepared,
     compiled,
@@ -66,8 +75,10 @@ pub fn prepare_installed_effect_model_demand(
     _occurrence: occurrence,
     graph,
     limits,
-    bootstrap_retained_bytes: read_retained_bytes,
-    bootstrap_execution_bytes: read_execution_bytes,
+    read_retained_bytes,
+    read_execution_bytes,
+    bootstrap_retained_bytes,
+    bootstrap_execution_bytes,
     max_reservations,
     max_holdings,
     max_delegations,
@@ -80,7 +91,7 @@ pub fn prepare_installed_effect_model_demand(
 pub fn installed_effect_model_read_window(
   model : ClientInstalledEffectModelDemand,
 ) -> Array[Int64] {
-  [model.bootstrap_retained_bytes, model.bootstrap_execution_bytes]
+  [model.read_retained_bytes, model.read_execution_bytes]
 }
 
 ///|
