@@ -1568,10 +1568,11 @@ const records = (count, textBytes) => Array.from({length: count},
 
 test('long text in several columns and many rows reaches the Named Result',
   async t => {
-    // 60 rows of about 3 x 1,500 characters: each row fits one Local import
-    // batch; the whole input spans several.
+    // Preserve all 60 long rows while the real query locator splits their
+    // transport into six pages. Each native parser construction must fit the
+    // same finite Run; the provider's byte limit is not constructor funding.
     const stored = records(60, 1500);
-    const setup = await installation(t, {storedRecords: stored});
+    const setup = await installation(t, {storedRecords: stored, queryPageSize: 10});
     await setup.publish();
     const {client, close} = await setup.open();
     const execution = await client.startSource(program, {format: 'json',
@@ -1581,6 +1582,7 @@ test('long text in several columns and many rows reaches the Named Result',
     const rows = await execution.result('records').all();
     assert.deepEqual(rows.map(row => [row.External_Key__c, row.Name]).sort(),
       stored.map(row => [row.External_Key__c, row.Name]).sort());
+    assert.equal(setup.queries().length, 6);
     await close();
   });
 
