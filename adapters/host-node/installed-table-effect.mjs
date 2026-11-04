@@ -14,6 +14,8 @@ import {issueCompletedEffectfulComputationEvidence,
   from '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
+import {prepareInstalledPhysicalWritePlanRecipe, prepareInstalledEffectManagedPlan}
+  from './installed-effect-plan.mjs';
 import {preparePinnedEffectSourceSet, preparePinnedEffectSourceHoldings,
   retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {authorTableOperationPreview} from './table-operation-preview.mjs';
@@ -155,6 +157,52 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
   };
   const scopesOf = targets => Object.freeze(targets.map(target =>
     Object.freeze({connection, resource: target.resource})));
+  let managedRecipe;
+  const prepareManagedPlan = (facts, inputs) => {
+    const unit = installedRowEffectUnit(moon, facts?.compilation);
+    if (unit.effectIds.length === 0 || unit.effectIds.length > limits.maxMembers) {
+      fail('InstalledTableUnitUnsupported');
+    }
+    const members = unit.effectIds.map(effectId => {
+      const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
+        facts.prepared, unit.stageIndex, effectId, limits.planWork));
+      const binding = checkedTableWriteBinding(moon, facts.prepared, unit.stageIndex,
+        effectId, limits.planWork);
+      verifyTableWriteBinding(resolve(descriptor, runtimeOptionalField(binding, 4)), binding);
+      return {effectId, memberIndex: runtimeField(descriptor, 0)};
+    }).sort((a, b) => a.memberIndex - b.memberIndex);
+    if (members.some((member, index) => member.memberIndex !== index)) fail('InstalledTableUnitUnsupported');
+    if (managedRecipe === undefined) {
+      const frame = bridge.frameLimits;
+      if (!frame || ![frame.maxBytes, frame.maxNodes, frame.maxDepth, limits.maxInputBytes,
+        limits.maxEntryBytes, ...Object.values(limits.preview)]
+        .every(value => positive(value) && value <= 2147483647) ||
+        2 * (frame.maxBytes + 4) > 2147483647) {
+        fail('InstalledTableConstructionUnavailable');
+      }
+      const recipe = prepareInstalledPhysicalWritePlanRecipe({moon, operation: 'table.commit',
+        inputLimits: {body: {maxBytes: limits.maxInputBytes,
+          maxNodes: limits.maxInputBytes, maxDepth: limits.preview.maxDepth}, preview: limits.preview},
+        limits: {maxRequestBytes: frame.maxBytes, maxRecoveryBytes: limits.maxEntryBytes,
+          maxResponseBytes: limits.material.maxWireBytes, maxOutcomeBytes: limits.maxEntryBytes,
+          maxTransferBytes: 2 * (frame.maxBytes + 4)}, construction: bridge.effectPlanConstruction});
+      // A Table member dispatches ONE whole Relation, even for zero input
+      // rows. Only capture storage follows Core's checked row inventory. Its
+      // request, physical operation and saved controls occur once per member;
+      // copying the ordinary row-operation slots would invent extra sends.
+      const controls = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
+        'table.commit.controls', recipe.controlsPerRow, 0n, false));
+      managedRecipe = Object.freeze({memberOperations: Object.freeze([
+        ...recipe.memberOperations, ...recipe.rowOperations,
+        Object.freeze({operation: 'table.commit.controls', extent: controls}),
+      ]), rowOperations: Object.freeze([])});
+    }
+    // The existing Request adopts this complete Plan and grows its SAME
+    // Ledger before capture construction. Keep all selected upper extents
+    // until normal managed-Run retirement, including failed construction.
+    return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, members,
+      recipeFor: () => managedRecipe});
+  };
   const capabilityRoute = target => checked(moon.clientProgramEffectApplyCapabilityFromCodes(
     target.capabilityCid, 0, 0, 0, true, true, 2, 1));
   const preflightOf = (body, targets, requestScope, keys) => ({
@@ -539,7 +587,7 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
     effectSelectors: Object.freeze(installed.map(target => Object.freeze({
       kind: 'store', target: target.targetRef, mappingRef: target.mappingRef,
       mappingCid: target.mappingCid, effectId: target.effectId, capabilityCid: target.capabilityCid}))),
-    prepareCaptured, prepareRecovered, close() {
+    prepareManagedPlan, prepareCaptured, prepareRecovered, close() {
       if (sourceInitialization === undefined || constructionClosed) return;
       if (authorization.close() !== true) fail('InstalledTableAuthorizationCleanupPending');
       closeInstalledSourceConstruction(sourceInitialization, adapter);

@@ -139,6 +139,16 @@ export function createIcebergPhysicalBridge({python, run, catalog,
   };
   const bridge = Object.freeze({
     frameLimits: frames,
+    // Original implementation geometry for the installed managed Plan. This
+    // is constructor DATA, never a process, reservation or permission. The
+    // retained payload, preflight/request snapshots and response projection
+    // can overlap; each uses this same finite framing implementation.
+    effectPlanConstruction: Object.freeze({
+      retained: Object.freeze({nodes: 4n * BigInt(frames.maxNodes),
+        text: 8n * BigInt(frames.maxBytes), wire: 2n * BigInt(frames.maxBytes)}),
+      workspace: Object.freeze({nodes: 2n * BigInt(frames.maxNodes) + 2n * BigInt(frames.maxDepth),
+        text: 4n * BigInt(frames.maxBytes), wire: 2n * BigInt(frames.maxBytes) + 8n}),
+    }),
     supportsOperation(values) { assertImplementation(); return supportsIcebergTableOperation(values); },
     issueStorageMapping(values) { assertImplementation(); return issueIcebergStorageMapping(values); },
     admitStorageMapping(values) { assertImplementation(); return admitIcebergStorageMapping(values); },
