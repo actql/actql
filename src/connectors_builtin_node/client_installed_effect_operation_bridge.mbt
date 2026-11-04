@@ -17,6 +17,23 @@ pub fn client_program_installed_effect_captured_input_inventory_retain(
 }
 
 ///|
+#export_name("clientProgramInstalledEffectRecoveredInputInventoryRetain")
+pub fn client_program_installed_effect_recovered_input_inventory_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retain_installed_effect_recovered_input_inventory(
+    owner, prepared, request, plan, allowed, definition, invocation, preview,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationBorrow")
 pub fn client_program_installed_effect_operation_borrow(
   owner : @client_local_host.ClientInstalledManagedRun,

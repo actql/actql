@@ -428,6 +428,12 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
   run.controlConstruction.parsePreview = (wire, retain) => {
     assert.equal(wire, previewWire); assert.equal(retain, true); return body;
   };
+  run.controlConstruction.retainRecoveredInputs = (control, allowed, originalDefinition, invocation, originalPreview) => {
+    assert.strictEqual(originalDefinition, definition);
+    assert.strictEqual(allowed, run.definitionOriginal.allowed);
+    assert.strictEqual(originalPreview, preview);
+    assert.equal(protocol.retains, 0, 'inventory precedes recovered request retention');
+  };
   let supplied, retained, stage, routeOptions, closed = false, allowClose = !pending;
   const ledger = {close() {events.push('ledger-close'); closed = true;},
     readClaimedResponse() {events.push('stored-read'); return {};},

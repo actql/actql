@@ -18096,7 +18096,8 @@
             "publicationControl/token/token",
             "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
             "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals"
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
+            "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory"
           ],
           "exports": [],
           "attributes": {
@@ -28208,6 +28209,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
+          "parameters": [
+            "run",
+            "prepared",
+            "request",
+            "plan",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
           "parameters": [
             "capturedRun"
@@ -30890,7 +30905,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4e2c6d3d8ba4eb1fc4fb2a305eeeddee9daebbd77469913c9f0066be9f2245e9"
+      "sha256": "8b2a77995b12066f4786465ea6b5decce3f139c85220f6b4035c86fb09071bbe"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -75408,7 +75423,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "28e60480e8b75de479bfadc6a101ec8c003b12bf479c840b40842823d637feed",
+      "sha256": "be18cf30033ee7accd0dd3e5ab076ed53da1fc395b12e037a2844178b26f5b4a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

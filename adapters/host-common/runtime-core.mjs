@@ -5004,6 +5004,13 @@ function publicationControl(moon) {
       }
       return admitted;
     },
+    retainInstalledEffectRecoveredInputInventory(run, prepared, request, plan,
+      allowed, definition, invocation, preview) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
+      return checked(moon.clientProgramInstalledEffectRecoveredInputInventoryRetain(
+        run, prepared, request, plan, allowed, definition, token(invocation), admitted));
+    },
     effectComputationPreviewSemanticCid(preview) {
       const admitted = computationPreviewTokens.get(preview);
       if (admitted === undefined) {

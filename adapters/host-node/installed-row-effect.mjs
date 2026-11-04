@@ -3206,6 +3206,12 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         fail('ForeignInstalledEffectManagedRun');
       }
       if (Object.hasOwn(managedEffect, 'failure')) throw managedEffect.failure;
+      // The original admitted Preview, compiled Run and Request supply the
+      // cold row inventory before recovered member request construction.
+      // The existing synchronous control frame owns current/reentry/failure.
+      controlConstruction.retainRecoveredInputs(control,
+        managedEffect.definitionOriginal.allowed, managedEffect.definitionOriginal.definition,
+        durable.invocation, preview);
     }
     const ledger = openLedger(requestIdentity, controlConstruction);
     // The handle is released exactly once: it is marked released only after

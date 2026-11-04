@@ -1497,6 +1497,139 @@ pub fn retain_installed_effect_captured_input_inventory(
     is Some(rows) else {
     return Err(InsufficientCapacity)
   }
+  retain_installed_effect_control_row_inventory(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    rows,
+    () => {
+      guard owner.source_free_captured is Some(original) &&
+        physical_equal(original, captured) &&
+        @strategy.captured_effect_inputs_match_captured_run(inputs, captured) &&
+        @strategy.captured_effect_inputs_retained(inputs) else {
+        return Err(ForeignOriginal)
+      }
+      Ok(())
+    },
+  )
+}
+
+///|
+/// Cold recovery already owns an admitted immutable Preview and its original
+/// compiled Run. Read that inventory, never reparse the wire or accept a Host
+/// row count, before the same Run constructs recovered member requests.
+pub fn retain_installed_effect_recovered_input_inventory(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  allowed : @publication_host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  preview : @publication.EffectPreviewIdentity,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  match check_installed_effect_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    physical_equal(plan, expected_plan) &&
+    owner.ledger is Some(ledger) &&
+    owner.effect_operation_controls is Some(control) else {
+    return Err(ForeignOriginal)
+  }
+  let bound = match
+    @publication_host.bind_client_effect_compiled_run(
+      prepared, allowed, definition,
+    ) {
+    Err(_) => return Err(ForeignOriginal)
+    Ok(value) => value
+  }
+  if plan.query_time is Some(time) &&
+    !@publication_host.client_effect_run_query_time_matches(
+      bound, time, request,
+    ) {
+    return Err(ForeignOriginal)
+  }
+  if @publication.check_effect_preview_run_binding(
+      @publication_host.client_effect_allowed_run_admission(allowed),
+      definition,
+      invocation,
+      preview,
+    )
+    is Err(_) ||
+    @publication.effect_preview_member_count(preview) !=
+    plan.operations.length() {
+    return Err(ForeignOriginal)
+  }
+  let mut rows = 0
+  for member_index in 0..<plan.operations.length() {
+    if @publication.effect_preview_member_effect_id(preview, member_index) !=
+      Some(plan.operations[member_index].effect_id) {
+      return Err(ForeignOriginal)
+    }
+    guard @publication.effect_preview_row_count(preview, member_index)
+      is Some(count) &&
+      count <= plan.rows else {
+      return Err(InsufficientCapacity)
+    }
+    rows = Int::max(rows, count)
+  }
+  // A live capture may already back a larger input than its selected changes.
+  // Keep that original inventory and reservation; recovery never shrinks it.
+  if plan.closed_rows is Some(_) || control.captured_rows is Some(_) {
+    if control.captured_rows is Some(original) && rows > original {
+      return Err(ForeignOriginal)
+    }
+    return check_installed_effect_operation_original(
+      owner,
+      ledger,
+      preparation,
+      Some(control),
+    )
+  }
+  retain_installed_effect_control_row_inventory(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    rows,
+    () => Ok(()),
+  )
+}
+
+///|
+// Warm capture and cold Preview use this SAME existing reservation/fold. Only
+// the original inventory witness differs; consumed work is never refunded.
+fn retain_installed_effect_control_row_inventory(
+  owner : ClientInstalledManagedRun,
+  preparation : ClientInstalledManagedRunOriginal,
+  admission : @resources.PreparedRunAdmission[ClientInstalledEffectManagedPlan],
+  plan : ClientInstalledEffectManagedPlan,
+  ledger : @resources.Ledger,
+  control : ClientEffectOperationControls,
+  rows : Int,
+  check_inventory : () -> Result[Unit, ClientInstalledManagedRunIssue],
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  if rows < 0 || rows > plan.rows {
+    return Err(InsufficientCapacity)
+  }
   if control.construction_active ||
     control.ledger_codec_active ||
     (control.captured_rows is Some(original) && original != rows) {
@@ -1525,13 +1658,7 @@ pub fn retain_installed_effect_captured_input_inventory(
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      guard owner.source_free_captured is Some(original) &&
-        physical_equal(original, captured) &&
-        @strategy.captured_effect_inputs_match_captured_run(inputs, captured) &&
-        @strategy.captured_effect_inputs_retained(inputs) else {
-        return Err(ForeignOriginal)
-      }
-      Ok(())
+      check_inventory()
     },
     control.reservation,
     @execution.execution_capacity_retained_bytes(capacity),

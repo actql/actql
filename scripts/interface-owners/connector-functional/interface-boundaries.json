@@ -4834,7 +4834,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "28e60480e8b75de479bfadc6a101ec8c003b12bf479c840b40842823d637feed",
+      "sha256": "be18cf30033ee7accd0dd3e5ab076ed53da1fc395b12e037a2844178b26f5b4a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -21142,6 +21142,17 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/retainRecoveredInputs/retainRecoveredInputs",
+          "parameters": [
+            "control",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/retire/retire",
           "parameters": [],
           "async": false
@@ -21611,7 +21622,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a1cf5a85f0db950c6997e9c14dd3c601bb6617140838c08e591b0e0a1badf104",
+      "sha256": "ea7f5cfdfa6e5166a77c3962fe4d3c14160ba33af0406004504f03975b7f5e32",
       "contracts": [
         {
           "operations": [
@@ -21782,7 +21793,8 @@
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
             "prepareInstalledEffectControlConstruction/retire/retire",
-            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
+            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
+            "prepareInstalledEffectControlConstruction/retainRecoveredInputs/retainRecoveredInputs"
           ],
           "exports": [
             "prepareInstalledEffectControlConstruction"
