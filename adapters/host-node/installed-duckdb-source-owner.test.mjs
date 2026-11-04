@@ -21,12 +21,8 @@ import {checkInstalledDuckDBSourceProfile} from './installed-duckdb-source.mjs';
 test('builtin Source enters its original checked Environment before native construction', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-builtin-source-owner-'));
   t.after(() => rm(root, {recursive: true, force: true}));
-  const base = JSON.parse(await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
-  const source = JSON.parse(await readFile(new URL('./fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
-  source.host_policy_profile = base.host_policy_profile;
-  delete source.evidence_bundle_cid;
-  source.evidence_bundle_cid = contentCid(source);
-  const baseWire = canonicalJson(base), sourceWire = canonicalJson(source);
+  const f = await publishedFixture(() => {}, () => {}, root);
+  const {moon, services, events, baseWire, sourceWire} = f;
   const profile = {version: 'actql-installed-duckdb-source/0.1',
     database: '/UNOPENED/builtin-source.duckdb', schema: 'main', table: 'records',
     sourceRef: 'connector://crm/main/r#v', checkEnvironmentWire: sourceWire,
@@ -35,42 +31,15 @@ test('builtin Source enters its original checked Environment before native const
   const path = join(root, 'profile.json'), runtimePath = join(root, 'runtime.mjs');
   await writeFile(path, JSON.stringify(profile));
   await writeFile(runtimePath, 'export const originalSoftwareIdentity = true;\n');
-  const initial = {}, input = {}, unit = {}, capacity = {}, events = [], live = new Set();
   const stop = new Error('same original Source Environment construction stop');
-  const ok = value => ({$tag: 1, _0: value});
-  const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
-    'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
-    'AbortUncontinuedSourceMaterial', 'ChargeInstalledSourceIo', 'MarkInstalledSourceIoTransferUncertain']
-    .map(name => ['clientProgram' + name, () => ok()]));
-  Object.assign(moon, {
-    strategyRemoteManagedOutputEvidenceKind: () => 'explicit-unused-kind',
-    clientProgramRowSourceRestoreRelationDeclaration() {assert.fail('No fake Row declaration');},
-    clientProgramRowSourceDeclarationJson() {assert.fail('No Row projection');},
-    clientProgramTakeHostInitializationSourceCapacity(value) {
-      assert.equal(value, initial); events.push('take'); return ok({_0: input, _1: unit});
-    },
-    clientProgramContinueInstalledSourceMaterial(value, original) {
-      assert.equal(value, unit); assert.equal(original, input); return ok(capacity);
-    },
-    clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
-    clientProgramReserveInstalledSourceConstruction(value, original) {
-      assert.equal(value, capacity); assert.equal(original, input); events.push('reserve'); return ok();
-    },
-    clientProgramBeginInstalledSourceIo() {const operation = {}; live.add(operation); return ok(operation);},
-    clientProgramFinishInstalledSourceIoAfterCleanup(operation) {assert(live.delete(operation)); return ok();},
-    clientProgramRetireInstalledSourceMaterial(value, original) {
-      assert.equal(value, capacity); assert.equal(original, input); assert.equal(live.size, 0);
-      events.push('retire'); return ok(true);
-    },
-    clientProgramCheckEnvironment(wire) {
-      assert(events.includes('reserve'));
-      events.push(wire === baseWire ? 'base' : 'source');
-      if (wire === sourceWire) throw stop;
-      assert.equal(wire, baseWire); return {};
-    },
-  });
-  const services = createInstalledHostServices({root, principalId: 'fixture', moon,
-    initialPreparation: initial, assertCurrent() {}});
+  const original = moon.clientProgramCheckEnvironmentFromWire;
+  moon.clientProgramCheckEnvironmentFromWire = (raw, ...flags) => {
+    const admitted = original(raw, ...flags);
+    events.push(raw.wire === baseWire ? 'base' : 'source');
+    if (raw.wire === sourceWire) throw stop;
+    assert.equal(raw.wire, baseWire);
+    return admitted;
+  };
   await assert.rejects(loadInstalledSource(path, {root, principalId: 'fixture', moon,
     runtimeUrl: pathToFileURL(runtimePath), baseEnvironmentWire: baseWire, installationServices: services}),
   error => error === stop || error.primaryFailure === stop);
@@ -79,7 +48,7 @@ test('builtin Source enters its original checked Environment before native const
   assert.equal(events.at(-1), 'retire');
 });
 
-async function publishedFixture(change = () => {}, reserve = () => {}) {
+async function publishedFixture(change = () => {}, reserve = () => {}, root = '/UNOPENED/builtin-owner') {
   const base = JSON.parse(await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
   const source = JSON.parse(await readFile(new URL('./fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
   source.host_policy_profile = base.host_policy_profile;
@@ -101,6 +70,11 @@ async function publishedFixture(change = () => {}, reserve = () => {}) {
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial); return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit); assert.equal(original, input); return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
+    clientProgramInstalledSourceRetainedConstructionCapacity(original) {
+      assert.strictEqual(this, moon);
+      assert.equal(typeof original, 'object');
+      return ok(Object.freeze({retainedOriginal: original}));
+    },
     clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
       assert.strictEqual(this, moon); assert(providers.length > 0);
       events.push('compose'); return ok({base, providers: providers.slice()});
@@ -132,7 +106,7 @@ async function publishedFixture(change = () => {}, reserve = () => {}) {
     },
     clientProgramCheckEnvironment() {assert.fail('the original native Environment is not rechecked through a legacy path');},
   });
-  const services = createInstalledHostServices({root: '/UNOPENED/builtin-owner', principalId: 'fixture',
+  const services = createInstalledHostServices({root, principalId: 'fixture',
     moon, initialPreparation: initial, assertCurrent() {}});
   retainInstalledHostServiceInstallation(services, installation, 'sha256:' + 'a'.repeat(64));
   installedSourceConfigurationReader(services);
