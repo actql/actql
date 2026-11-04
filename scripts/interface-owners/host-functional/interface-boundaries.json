@@ -75547,7 +75547,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "01a5508911bdf310f75b8e7afb79d7b3795d3bba2cc327163daa1eeae93efee4",
+      "sha256": "8398cba5072fe371ab519c597940da60f19734b90a8408b6641b0d2f2715526a",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -75607,7 +75607,8 @@
             "principalId",
             "moon",
             "construction",
-            "sourceInitialization"
+            "sourceInitialization",
+            "installation"
           ],
           "async": true
         },
@@ -76165,6 +76166,10 @@
               {
                 "path": "adapters/host-node/source-alias-construction.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/embedded-installation.test.mjs",
+                "anchor": "test(`installed connector identity preserves physical ${field} UTF-8 bytes`"
               }
             ]
           }

@@ -67,10 +67,11 @@ const duckdbSourceModule = Object.freeze({
   check: checkInstalledDuckDBSourceProfile,
   // Logical profile canonicalization must not alias distinct provider names.
   identityParts: profile => [profile, duckDBPhysicalTarget(profile)],
-  load: async (profile, {root, principalId, moon, construction, sourceInitialization}) => {
+  load: async (profile, {root, principalId, moon, construction, sourceInitialization, installation}) => {
     if (construction !== undefined) return construction.createDuckDBSource();
     if (sourceInitialization !== undefined) throw new TypeError('InstalledSourceConstructorUnavailable');
-    return createInstalledDuckDBSource(await installDuckDBSourceProfile(profile, {root, principalId}), moon, {root, principalId});
+    return createInstalledDuckDBSource(await installDuckDBSourceProfile(profile, {root, principalId}), moon,
+      {root, principalId, installation});
   },
 });
 const duckdbInstallation = Object.freeze({
