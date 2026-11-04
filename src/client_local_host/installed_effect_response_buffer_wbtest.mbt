@@ -331,7 +331,14 @@ test "paired native wire output retires private input index while preserving eve
   let original = installed_json_effect_response_construction_capacity(
     native, input.max_input_bytes, input.max_nodes, input.max_depth,
   ).unwrap()
-  assert_eq(unpaired, original)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(unpaired),
+    @execution.execution_capacity_retained_bytes(original),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(unpaired),
+    @execution.execution_capacity_execution_bytes(original),
+  )
 }
 
 ///|
