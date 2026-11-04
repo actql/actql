@@ -915,6 +915,11 @@ async function preflightDispatchFixture(t, {
   const unownedFailure = Object.assign(new Error('unowned capacity-shaped error'),
     {code: 'RunPublicationCapacityUnsupported'});
   owner = installNodeClientDispatchOwner({moon: runtime, control, journal, store,
+    observed(name, detail) {
+      if (name === 'dispatch_failed') t.diagnostic(JSON.stringify({
+        preflightDispatchFailure: detail.code, primaryCode: detail.primaryCode,
+        issueTag: detail.issueTag, nestedIssueTag: detail.nestedIssueTag}));
+    },
     namespaceId, registry, values: JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']),
     startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
     planFor: () => plan,
@@ -1148,7 +1153,7 @@ async function withPublicHost(name, body) {
     const status = observation.status();
     for (const key of ['queued', 'active', 'activeSegments', 'dropped',
       'budgetUnavailable', 'deliveryFailed', 'queueOverflow', 'limited']) {
-      assert.equal(status[key], 0, \`complete public observation: \${key}\`);
+      assert.equal(status[key], 0, \`complete public observation: \${key} \${JSON.stringify(status)}\`);
     }
     assert.deepEqual(status.loss, {});
   };
