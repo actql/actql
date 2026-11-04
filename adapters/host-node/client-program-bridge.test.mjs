@@ -2261,7 +2261,10 @@ test('public Values submit computes and reads its real Local Result',
           maxRetainedValueBytes: 4096, maxRows: 100,
           maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
       });
-      const prepareSubmit = await fundedClientPreparation(t, {moon, environment});
+      const preparation = await openFundedClientPreparation({moon, environment, http: true});
+      t.after(preparation.close);
+      const prepareSubmit = preparation.prepareSubmit;
+      const prepareRequest = preparation.prepareRequest;
       const submit = async ({preparedProgram, requestId, principalId,
         connection}) => {
         const requested = moon.clientProgramRequestIdentity(
@@ -2290,10 +2293,18 @@ test('public Values submit computes and reads its real Local Result',
         return {ref: start.ref, durability: start.durability,
           revision: start.revision};
       };
-      submission = installNodeClientSubmission({journal, moon, prepareSubmit, submit, lookupRequest,
+      const submissionOptions = {journal, moon, submit, lookupRequest,
         authorizedScope: ({principalId}) => principalId === 'principal-before-restart'
-          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined});
-      const submitServer = createServer(createClientHttpHandler({
+          ? {namespaceId: 'namespace-a', authorityScopeCid: cid('a')} : undefined};
+      submission = installNodeClientSubmission({...submissionOptions, prepareSubmit,
+        bindOwnedRequest: preparation.submission.bindOwnedRequest,
+        submittedIntentOriginal: preparation.submission.submittedIntentOriginal});
+      // Both ingresses share this Journal and actual preparation manager.
+      // HTTP resolves its registered original; the direct component ingress
+      // captures its own original Request before the same native compiler.
+      const localSubmission = installNodeClientSubmission({...submissionOptions,
+        prepareSubmit: preparation.prepare});
+      const submitServer = createServer(createClientHttpHandler({prepareRequest,
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-before-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
@@ -2310,8 +2321,8 @@ test('public Values submit computes and reads its real Local Result',
           authenticate: () => 'principal-before-restart',
           authorizeConnection: facts => facts.connection.mode === 'local' &&
             facts.connection.owner === 'local',
-          negotiate, prepareSubmit, lookupRequest, submit,
-          submitIntent: submission.submitAttempt, lookupSubmission: submission.lookupSubmission,
+          negotiate, prepareSubmit: preparation.prepare, lookupRequest, submit,
+          submitIntent: localSubmission.submitAttempt, lookupSubmission: localSubmission.lookupSubmission,
           maxRowBytes: 1024,
         }));
         try {
@@ -2458,7 +2469,7 @@ test('public Values submit computes and reads its real Local Result',
       const runStateObservation = installNodeClientRunStateObservation({
         journal: lookupJournal, requestControl: moon, publicationControl: control,
       });
-      const server = createServer(createClientHttpHandler({
+      const server = createServer(createClientHttpHandler({prepareRequest,
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-after-restart' : undefined,
         authorizeConnection: facts => facts.connection.mode === 'local' &&
