@@ -73,12 +73,21 @@ test "indexed originals retain a closed reservation until its last actual zero-b
       original,
     ),
   )
-  assert_eq(inventory.holding_counts.get(original.serial), Some(2))
+  assert_eq(
+    inventory.holding_counts.get(OriginalTokenSerial(original.serial)),
+    Some(2),
+  )
   let copied : Holding = { ..first, }
   retire_original_holding(ledger, copied)
-  assert_eq(inventory.holding_counts.get(original.serial), Some(2))
+  assert_eq(
+    inventory.holding_counts.get(OriginalTokenSerial(original.serial)),
+    Some(2),
+  )
   release_allocation(ledger, first).unwrap()
-  assert_eq(inventory.holding_counts.get(original.serial), Some(1))
+  assert_eq(
+    inventory.holding_counts.get(OriginalTokenSerial(original.serial)),
+    Some(1),
+  )
   assert_true(inventory.reservations.by_serial(original.serial) is Some(_))
   release_allocation(ledger, last).unwrap()
   assert_true(inventory.reservations.is_empty())
@@ -123,4 +132,21 @@ test "indexed originals unlink only their original delegation and preserve consu
   assert_true(inventory.reservations.is_empty())
   assert_eq(ledger_usage(ledger).attempts, 1)
   assert_eq(ledger.next_attempt_serial, Some(2))
+}
+
+///|
+test "original serial keys have fixed full-range hashes and preserve distinct signed keys" {
+  let serials = [-2147483648, -2, -1, 0, 1, 2147483647]
+  let values : Map[OriginalTokenSerial, Int] = Map([])
+  for index, serial in serials {
+    let key = OriginalTokenSerial(serial)
+    // Independent fixed vectors: the inventory hash is this exact scalar,
+    // without consulting the process/module's builtin Int hashing seed.
+    assert_eq(Hash::hash(key), serial)
+    values[key] = index
+  }
+  for index, serial in serials {
+    assert_eq(values.get(OriginalTokenSerial(serial)), Some(index))
+  }
+  assert_eq(values.length(), serials.length())
 }
