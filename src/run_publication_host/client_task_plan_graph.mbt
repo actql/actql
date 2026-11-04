@@ -441,12 +441,15 @@ fn issue_client_task_plan_graph(
             None
           }
           let (source_node, source_port, source_contract) = match projection {
-            None => (source.node_id, source.output_port, source.output_contract_cid)
+            None =>
+              (source.node_id, source.output_port, source.output_contract_cid)
             Some(projection) => {
               nodes.push(projection.node)
               result_edges.push(projection.edge)
               (
-                projection.node_id, projection.output_port, projection.output_contract_cid,
+                projection.node_id,
+                projection.output_port,
+                projection.output_contract_cid,
               )
             }
           }
@@ -482,10 +485,7 @@ fn issue_client_task_plan_graph(
                     projected, node_id, port, max_wire_bytes, max_nodes, max_depth,
                   )
               }
-              guard extra
-                is Some(extra) else {
-                return Err(Encoding)
-              }
+              guard extra is Some(extra) else { return Err(Encoding) }
               @canonical.emit_value(extra, writer)
             }
           }

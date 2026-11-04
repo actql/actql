@@ -30,7 +30,9 @@ fn client_task_result_input_port(
     None => @strategy.data_edge_input(edge)
   }
   guard @checked.unit_input_completeness(
-      @strategy.graph_program(graph), unit, index,
+      @strategy.graph_program(graph),
+      unit,
+      index,
     )
     is Some(completeness) else {
     return Err(InvalidEdge)
@@ -39,10 +41,8 @@ fn client_task_result_input_port(
     @checked.Imported(interface, producer) => (interface, producer)
     _ => return Ok(None)
   }
-  guard @pipeline.input_at(@lower.pipeline(prepared), index)
-    is Some((name, _)) &&
-    @pipeline.input_producer(@lower.pipeline(prepared), index)
-    is Some(actual) &&
+  guard @pipeline.input_at(@lower.pipeline(prepared), index) is Some((name, _)) &&
+    @pipeline.input_producer(@lower.pipeline(prepared), index) is Some(actual) &&
     physical_equal(actual, producer) &&
     interface.input_name == name else {
     return Err(InvalidEdge)
@@ -106,9 +106,15 @@ fn[P, C] emit_client_task_result_input_parts(
   @encode.begin_object(writer)
   @encode.key(writer, "node")
   emit_client_result_projection_node(
-    writer, source_contract, logical_cid, node_id,
-    client_task_result_input_output(port), output_contract, pipeline,
-    emit_pipeline, emit_cid,
+    writer,
+    source_contract,
+    logical_cid,
+    node_id,
+    client_task_result_input_output(port),
+    output_contract,
+    pipeline,
+    emit_pipeline,
+    emit_cid,
   )
   @encode.key(writer, "edge")
   emit_client_result_projection_edge(
@@ -138,8 +144,12 @@ fn issue_client_task_result_input_projection(
   let input = @carrier.relation(
     @carrier.typed_rows(@relation.input_schema(projection)),
   )
-  let output = @carrier.relation(@carrier.typed_rows(@results.port_schema(port)))
-  guard client_task_carrier_contract(input, max_wire_bytes, max_nodes, max_depth)
+  let output = @carrier.relation(
+    @carrier.typed_rows(@results.port_schema(port)),
+  )
+  guard client_task_carrier_contract(
+      input, max_wire_bytes, max_nodes, max_depth,
+    )
     is Some((kind, input_cid)) &&
     kind == source.output_carrier &&
     input_cid == source.output_contract_cid &&
@@ -152,7 +162,10 @@ fn issue_client_task_result_input_projection(
     let pipeline_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     emit_client_result_projection_pipeline(pipeline_writer, port)
     guard parse_plan_identity_value(
-        @encode.finish(pipeline_writer), max_wire_bytes, max_nodes, max_depth,
+        @encode.finish(pipeline_writer),
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
       )
       is Some(pipeline) else {
       return Err(Encoding)
@@ -162,25 +175,38 @@ fn issue_client_task_result_input_projection(
     )
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     emit_client_task_result_input_parts(
-      writer, port, node_id, source.node_id, source.output_port,
-      source.output_contract_cid, output_cid, logical_cid, pipeline,
-      @canonical.emit_value, (cid, writer) => @encode.string_value(writer, cid),
+      writer,
+      port,
+      node_id,
+      source.node_id,
+      source.output_port,
+      source.output_contract_cid,
+      output_cid,
+      logical_cid,
+      pipeline,
+      @canonical.emit_value,
+      (cid, writer) => @encode.string_value(writer, cid),
     )
     guard parse_plan_identity_value(
-        @encode.finish(writer), max_wire_bytes, max_nodes, max_depth,
+        @encode.finish(writer),
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
       )
       is Some(parts) &&
       @canonical.object_field(parts, "node") is Some(node) &&
       @canonical.object_field(parts, "edge") is Some(edge) else {
       return Err(Encoding)
     }
-    Ok(Some({
-      node,
-      edge,
-      node_id,
-      output_port: client_task_result_input_output(port),
-      output_contract_cid: output_cid,
-    }))
+    Ok(
+      Some({
+        node,
+        edge,
+        node_id,
+        output_port: client_task_result_input_output(port),
+        output_contract_cid: output_cid,
+      }),
+    )
   } catch {
     _ => Err(Encoding)
   }
@@ -209,28 +235,51 @@ fn measure_client_task_result_input_projection(
     let pipeline = @encode.finish_measurement_usage(writer)
     let writer = @encode.measuring_writer(2147483647, 2147483647, 2147483647)
     emit_client_result_projection_node(
-      writer, (), (), node_id, output, (), pipeline,
-      emit_client_task_pipeline_measurement, measure_client_fragment_cid,
+      writer,
+      (),
+      (),
+      node_id,
+      output,
+      (),
+      pipeline,
+      emit_client_task_pipeline_measurement,
+      measure_client_fragment_cid,
     )
     let node = @encode.finish_measurement_usage(writer)
     let writer = @encode.measuring_writer(2147483647, 2147483647, 2147483647)
     emit_client_result_projection_edge(
-      writer, (), source_node, source_port, node_id, measure_client_fragment_cid,
+      writer,
+      (),
+      source_node,
+      source_port,
+      node_id,
+      measure_client_fragment_cid,
     )
     let edge = @encode.finish_measurement_usage(writer)
     let writer = @encode.measuring_writer(2147483647, 2147483647, 2147483647)
     emit_client_task_result_input_parts(
-      writer, port, node_id, source_node, source_port, (), (), (), pipeline,
-      emit_client_task_pipeline_measurement, measure_client_fragment_cid,
-    )
-    Ok(Some({
+      writer,
+      port,
+      node_id,
+      source_node,
+      source_port,
+      (),
+      (),
+      (),
       pipeline,
-      node,
-      edge,
-      parts: @encode.finish_measurement_usage(writer),
-      root: (0, 0, 0),
-      direct_root: (0, 0, 0),
-    }))
+      emit_client_task_pipeline_measurement,
+      measure_client_fragment_cid,
+    )
+    Ok(
+      Some({
+        pipeline,
+        node,
+        edge,
+        parts: @encode.finish_measurement_usage(writer),
+        root: (0, 0, 0),
+        direct_root: (0, 0, 0),
+      }),
+    )
   } catch {
     _ => Err(Encoding)
   }
@@ -248,12 +297,20 @@ fn client_task_result_input_projection_edge(
   try {
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     emit_client_compilation_data_edge(
-      writer, "relation", source.output_contract_cid, source.node_id,
-      source.output_port, node, port,
+      writer,
+      "relation",
+      source.output_contract_cid,
+      source.node_id,
+      source.output_port,
+      node,
+      port,
       (cid, writer) => @encode.string_value(writer, cid),
     )
     parse_plan_identity_value(
-      @encode.finish(writer), max_wire_bytes, max_nodes, max_depth,
+      @encode.finish(writer),
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
     )
   } catch {
     _ => None
