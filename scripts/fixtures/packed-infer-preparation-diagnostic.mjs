@@ -24,4 +24,3 @@ export function inferPreparationFailureData(detail) {
   if (Number.isSafeInteger(tag) && tag >= 0 && tag <= 65535) data.issueTag = tag;
   return Object.freeze(data);
 }
-
