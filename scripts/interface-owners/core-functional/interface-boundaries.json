@@ -50471,7 +50471,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "2d4ecae1cfd8c6ddfecc34b367391bf0ea9c4aa783464f0f86d9335f5523136f",
+      "sha256": "f0aa9553ce1ca6ff8deda86f575d47c9a6da390181544810fa9d109758bb331f",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -50564,12 +50564,20 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "Local managed dispatch distinguishes native supplied reads from imported"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Ready captured input copy accounting"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "struct LocalManagedDispatchConfiguration[T]"
+              },
+              {
+                "path": "src/connectors/local/driver/dispatch.mbt",
+                "anchor": "fn local_dispatch_ready_input_capacity("
               }
             ],
             "identity": [
@@ -50580,12 +50588,20 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "physical_equal("
+              },
+              {
+                "path": "src/connectors/local/driver/dispatch.mbt",
+                "anchor": "@strategy.next_captured_task(installed.run) != Some(task)"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "owned by its Source; it constructs no wire importer"
+              },
+              {
+                "path": "src/connectors/local/driver/dispatch.mbt",
+                "anchor": "@strategy.captured_task_input("
               }
             ],
             "synchronization": [
@@ -50596,12 +50612,20 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "fn[T] install_local_managed_input_read("
+              },
+              {
+                "path": "src/physical_strategy_host/captured_dag.mbt",
+                "anchor": "if !@execution.producer_read_available(read)"
               }
             ],
             "failure": [
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "return Err(Configuration(InputUnavailable))"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "captured unavailable originals receive no missing-copy credit or provider start"
               }
             ],
             "cancellation": [
@@ -50612,6 +50636,10 @@
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "stop_owned_inputs()"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "the original captured holding keep their independent charges and lifetimes."
               }
             ],
             "resources": [
@@ -50622,12 +50650,24 @@
               {
                 "path": "src/connectors/local/driver/preparation.mbt",
                 "anchor": "input_counts[slot] += 1"
+              },
+              {
+                "path": "src/connectors/local/driver/preparation.mbt",
+                "anchor": "fn local_dispatch_copy_capacity("
+              },
+              {
+                "path": "src/connectors/local/driver/managed_dispatch.mbt",
+                "anchor": "if !@execution.producer_read_has_cell_access(read)"
               }
             ],
             "extension": [
               {
                 "path": "src/connectors/local/driver/managed_dispatch.mbt",
                 "anchor": "pub enum LocalManagedAvailableOutput[T]"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "Future tasks and inputs that still require copying retain their full"
               }
             ],
             "verification": [
@@ -50642,6 +50682,14 @@
               {
                 "path": "src/query_integration/local_managed_join_wbtest.mbt",
                 "anchor": "Local managed full join imports both producer identities"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "captured reusable inputs retain one owner and fund only missing import copies"
+              },
+              {
+                "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
+                "anchor": "missing input copy quote preserves original scratch metadata export and exact copy boundaries"
               }
             ]
           }

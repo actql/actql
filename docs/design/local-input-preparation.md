@@ -5118,6 +5118,25 @@ original Model preparation through input failure and cleanup. Saved rows and
 scope do not issue a new Ledger, read permission, dispatch admission or resend;
 the existing durable call entry and original send mask remain independent.
 
+### Ready captured input copy accounting
+
+The Local dispatch owner keeps the immutable future-input quote and its original
+import, metadata and export policies. For the next ready task only, an original
+captured-prefix read can establish that its cells are already accessible. The
+DAG retains that same checked read; it is not a new capture, row proof or read
+grant. The offer then quotes only missing importer copies using the same policy
+formula. Future tasks and inputs that still require copying retain their full
+conservative import demand. An unavailable original refuses instead of granting
+copy credit.
+
+Actual managed setup uses the same distinction: an accessible ordinary read
+borrows its original storage, while a managed producer bridge or inaccessible
+ordinary input still funds its importer. Metadata, export, Model execution and
+the original captured holding keep their independent charges and lifetimes.
+Strategy feasibility, actual reservation, currentness and dispatch admission
+remain separate; this refinement does not select a rejected strategy or enlarge
+the Ledger.
+
 ### Adopted Node Model Source and failed setup custody
 
 The ordinary installed one-Source Model retains its component in the existing
