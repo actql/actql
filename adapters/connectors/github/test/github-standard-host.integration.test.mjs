@@ -336,9 +336,9 @@ test('installed row source retains public output across Host reopen',
       submissionRef});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
-    const expected = [{number: 1, title: 'Issue 1', author: 'octocat'},
-      {number: 4, title: 'Issue 4', author: 'octocat'},
-      {number: 5, title: 'Issue 5', author: 'octocat'}];
+    const expected = [{number: '1', title: 'Issue 1', author: 'octocat'},
+      {number: '4', title: 'Issue 4', author: 'octocat'},
+      {number: '5', title: 'Issue 5', author: 'octocat'}];
     assert.deepEqual(await run.result('issues').all(), expected);
     const audit = expected.map(({number, title}) => ({number, title}));
     assert.deepEqual(await run.result('audit').all(), audit);
@@ -362,6 +362,11 @@ test('installed row source retains public output across Host reopen',
     assert.equal(listings(setup.api).length, reads);
   });
 
+// GitHub's numeric identities are int64, not Number measurements or clocks.
+// These authored fixture titles independently contain decimal Number data.
+const issueTitleNumber = field => ({cast: {value: {substring: {
+  value: {field}, start: {literal: 7}}}, target: 'number'}});
+
 test('retained acquired rows feed numeric group slots and two consumers',
   async t => {
     const observations = [];
@@ -374,9 +379,10 @@ test('retained acquired rows feed numeric group slots and two consumers',
     const document = JSON.parse(program);
     document.id = 'github-retained-group';
     document.stages[1].steps = [
-      {from: 'x', group: {by: ['author'], aggregates: {
-        n: {fn: 'count'}, total: {fn: 'sum', field: 'number'},
-        mean: {fn: 'avg', field: 'number'}}}, as: 'grouped'},
+      {from: 'x', derive: {metric: issueTitleNumber('title')}, as: 'numeric'},
+      {from: 'numeric', group: {by: ['author'], aggregates: {
+        n: {fn: 'count'}, total: {fn: 'sum', field: 'metric'},
+        mean: {fn: 'avg', field: 'metric'}}}, as: 'grouped'},
       {from: 'grouped', filter: 'n > 0', as: 'nonempty'},
       {from: 'nonempty', sort: [{author: 'asc'}], as: 'out'},
     ];
@@ -418,9 +424,10 @@ test('retained acquired rows feed numeric group slots and two consumers',
     empty.id = 'github-retained-empty-numeric-group';
     empty.stages[1].steps = [
       {from: 'x', filter: 'number < 0', as: 'empty'},
-      {from: 'empty', group: {by: [], aggregates: {
-        n: {fn: 'count'}, total: {fn: 'sum', field: 'number'},
-        mean: {fn: 'avg', field: 'number'}}}, as: 'out'},
+      {from: 'empty', derive: {metric: issueTitleNumber('title')}, as: 'numeric'},
+      {from: 'numeric', group: {by: [], aggregates: {
+        n: {fn: 'count'}, total: {fn: 'sum', field: 'metric'},
+        mean: {fn: 'avg', field: 'metric'}}}, as: 'out'},
     ];
     empty.stages[1].results.r.fields = ['n', 'total', 'mean'];
     empty.stages[2].steps = [{select: ['n'], as: 'out'}];
@@ -460,7 +467,8 @@ test('retained GitHub rows keep Event times through a fixed window', async t => 
   document.stages[1] = {id: 'events',
     inputs: {rows: {result: {stage: 'acquire', result: 'r'}}},
     steps: [
-      {from: 'rows', to_events: {id: 'number', time: 'number'}, as: 'source'},
+      {from: 'rows', derive: {clock_ms: issueTitleNumber('title')}, as: 'clocked'},
+      {from: 'clocked', to_events: {id: 'number', time: 'clock_ms'}, as: 'source'},
       {from: 'source', window_events: {kind: 'fixed', size: 2},
         as: 'windowed'},
       {from: 'windowed', events: true, as: 'out'},
@@ -478,18 +486,18 @@ test('retained GitHub rows keep Event times through a fixed window', async t => 
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [
-    {number: 1, title: 'Issue 1', author: 'octocat',
+    {number: '1', title: 'Issue 1', author: 'octocat',
       window_start_ms: 0, window_end_ms: 2},
-    {number: 4, title: 'Issue 4', author: 'octocat',
+    {number: '4', title: 'Issue 4', author: 'octocat',
       window_start_ms: 4, window_end_ms: 6},
-    {number: 5, title: 'Issue 5', author: 'octocat',
+    {number: '5', title: 'Issue 5', author: 'octocat',
       window_start_ms: 4, window_end_ms: 6},
   ];
   assert.deepEqual(await run.result('windowed').all(), expected);
   assert.deepEqual(await run.result('consumed').all(), [
-    {number: 1, window_start_ms: 0},
-    {number: 4, window_start_ms: 4},
-    {number: 5, window_start_ms: 4},
+    {number: '1', window_start_ms: 0},
+    {number: '4', window_start_ms: 4},
+    {number: '5', window_start_ms: 4},
   ]);
   const reads = listings(setup.api).length;
   assert.equal(reads, 2);
@@ -516,7 +524,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
     const exactState = await exact.wait();
     assert.equal(exactState.status, 'succeeded', JSON.stringify(exactState));
     assert.deepEqual(await exact.result('issues').all(),
-      Array.from({length: 100}, (_, index) => ({number: index + 1,
+      Array.from({length: 100}, (_, index) => ({number: String(index + 1),
         title: `Issue ${index + 1}`, author: 'octocat'})));
     const beforeExtra = listings(setup.api).length;
     repository.issues.push({number: 101});
@@ -579,7 +587,8 @@ const twoSourceEventsWindowProgram = () => {
   document.stages.push({id: 'events',
     inputs: {rows: {result: {stage: 'join', result: 'r'}}},
     steps: [
-      {from: 'rows', to_events: {id: 'number', time: 'number'}, as: 'source'},
+      {from: 'rows', derive: {clock_ms: issueTitleNumber('left_title')}, as: 'clocked'},
+      {from: 'clocked', to_events: {id: 'number', time: 'clock_ms'}, as: 'source'},
       {from: 'source', window_events: {kind: 'fixed', size: 2},
         as: 'windowed'},
       {from: 'windowed', events: true, as: 'bridged'},
@@ -595,13 +604,19 @@ const twoSourceEventsWindowProgram = () => {
 };
 
 const useDuckDBAsSecondSource = document => {
+  // The declared DuckDB fixture key is DOUBLE. Preserve the original GitHub
+  // int64 identity and author a separate Number key from its fixture title.
+  document.stages[0].steps.splice(1, 0,
+    {derive: {join_number: issueTitleNumber('title')}, as: 'numeric'});
+  document.stages[0].steps.at(-1).select.push('join_number');
+  document.stages[0].results.r.fields.push('join_number');
   document.stages[1].inputs.remote = {connector: 'crm/main', resource: 'r'};
   document.stages[1].steps = [
     {filter: 'id >= 0', as: 'open'},
     {select: ['id', 'amount'], as: 'rows'},
   ];
   document.stages[1].results.r.fields = ['id', 'amount'];
-  document.stages[2].steps[0].join.on = [{left: 'number', right: 'id'}];
+  document.stages[2].steps[0].join.on = [{left: 'join_number', right: 'id'}];
   document.stages[2].steps[0].join.select = {
     number: 'left.number', left_title: 'left.title',
     amount: 'right.amount',
@@ -631,8 +646,8 @@ test('two installed row sources retain a joined public Named Result',
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     const joined = [
-      {number: 1, left_title: 'Issue 1', right_title: 'Copy 1'},
-      {number: 5, left_title: 'Issue 5', right_title: 'Copy 5'},
+      {number: '1', left_title: 'Issue 1', right_title: 'Copy 1'},
+      {number: '5', left_title: 'Issue 5', right_title: 'Copy 5'},
     ];
     const consumedA = joined.map(({number, left_title}) =>
       ({number, left_title}));
@@ -683,15 +698,15 @@ test('retained two-source Join feeds an Events window and consumer', async t => 
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [
-    {number: 1, left_title: 'Issue 1', right_title: 'Copy 1',
+    {number: '1', left_title: 'Issue 1', right_title: 'Copy 1',
       window_start_ms: 0, window_end_ms: 2},
-    {number: 5, left_title: 'Issue 5', right_title: 'Copy 5',
+    {number: '5', left_title: 'Issue 5', right_title: 'Copy 5',
       window_start_ms: 4, window_end_ms: 6},
   ];
   assert.deepEqual(await run.result('windowed').all(), expected);
   assert.deepEqual(await run.result('consumed').all(), [
-    {number: 1, window_start_ms: 0},
-    {number: 5, window_start_ms: 4},
+    {number: '1', window_start_ms: 0},
+    {number: '5', window_start_ms: 4},
   ]);
   assert.equal(observations.filter(([name]) =>
     name === 'acquisition_completed').length, 2);
@@ -731,15 +746,15 @@ test('mixed GitHub and DuckDB captures feed a retained Events window', async t =
   const state = await run.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const expected = [
-    {number: 1, left_title: 'Issue 1', amount: 100,
+    {number: '1', left_title: 'Issue 1', amount: 100,
       window_start_ms: 0, window_end_ms: 2},
-    {number: 5, left_title: 'Issue 5', amount: 500,
+    {number: '5', left_title: 'Issue 5', amount: 500,
       window_start_ms: 4, window_end_ms: 6},
   ];
   assert.deepEqual(await run.result('windowed').all(), expected);
   assert.deepEqual(await run.result('consumed').all(), [
-    {number: 1, window_start_ms: 0},
-    {number: 5, window_start_ms: 4},
+    {number: '1', window_start_ms: 0},
+    {number: '5', window_start_ms: 4},
   ]);
   assert.equal(observations.filter(([name]) =>
     name === 'acquisition_completed').length, 2);
@@ -780,8 +795,8 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
   await setup.publish();
   const document = twoSourceEventsWindowProgram();
   document.id = 'github-two-source-events-failure';
-  document.stages[3].steps[3].filter =
-    'number / (number - number) > 0';
+  document.stages[3].steps.find(step => Object.hasOwn(step, 'filter')).filter =
+    'clock_ms / (clock_ms - clock_ms) > 0';
   const {client, host} = await setup.open();
   const run = await client.startSource(JSON.stringify(document), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'github-two-source-events-failure'})});
@@ -842,14 +857,14 @@ test('GitHub and DuckDB captures share one retained two-source owner',
       submissionRef});
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
-    const joined = [{number: 1, left_title: 'Issue 1', amount: 100},
-      {number: 5, left_title: 'Issue 5', amount: 500}];
+    const joined = [{number: '1', left_title: 'Issue 1', amount: 100},
+      {number: '5', left_title: 'Issue 5', amount: 500}];
     assert.deepEqual(await run.result('joined').all(), joined);
     assert.deepEqual(await run.result('consumed_a').all(),
-      [{number: 1, left_title: 'Issue 1'},
-        {number: 5, left_title: 'Issue 5'}]);
+      [{number: '1', left_title: 'Issue 1'},
+        {number: '5', left_title: 'Issue 5'}]);
     assert.deepEqual(await run.result('consumed_b').all(),
-      [{number: 1, amount: 100}, {number: 5, amount: 500}]);
+      [{number: '1', amount: 100}, {number: '5', amount: 500}]);
     assert.equal(observations.filter(([name]) =>
       name === 'acquisition_completed').length, 2);
     assertAcquisitionReleased(observations);
@@ -1320,7 +1335,7 @@ test('an empty body is published as an empty string, not NULL', async t => {
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const rows = await execution.result('issues').all();
   assert.deepEqual(rows.map(row => [row.number, row.body])
-    .sort((a, b) => a[0] - b[0]), [[1, ''], [2, 'text']]);
+    .sort((a, b) => a[0] - b[0]), [['1', ''], ['2', 'text']]);
 });
 
 test('a missing, null or invalid body fails the Run without a Result', async t => {
@@ -1369,8 +1384,8 @@ test('accounted GitHub pages charge complete raw responses exactly once', async 
     const state = await run.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(await run.result('joined').all(), [
-      {number: 1, left_title: 'Issue 1', right_title: 'Copy 1'},
-      {number: 5, left_title: 'Issue 5', right_title: 'Copy 5'},
+      {number: '1', left_title: 'Issue 1', right_title: 'Copy 1'},
+      {number: '5', left_title: 'Issue 5', right_title: 'Copy 5'},
     ]);
     assert.equal(bodies.length, 3);
     const usage = observations.slice(from).filter(([name]) =>
