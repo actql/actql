@@ -5,7 +5,7 @@ import {createServer} from 'node:http';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {connect, explainReadFailure} from '../../packages/sdk/index.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {mkdtemp, rmdir} from 'node:fs/promises';
+import {mkdtemp, readFile, rmdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
@@ -18,6 +18,8 @@ import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
 import {createResultDeliveryFixture} from
   '../../scripts/fixtures/result-delivery-acceptance.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
@@ -371,22 +373,34 @@ async function checkpointClient(t, transport, handlers) {
     authenticate: () => 'local-principal', authorizeConnection: () => true,
     negotiate: () => profile, maxRowBytes: 1024, ...handlers,
   };
-  let client;
+  let client, server, preparation;
+  t.after(async () => {
+    await client?.close();
+    if (server !== undefined) {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+    }
+    await preparation?.close();
+  });
   if (transport === 'in-process') {
     client = await connectInProcess({mode: 'local', owner: 'local'},
       createNodeInProcessClientHost(configuration));
   } else {
-    const server = createServer(createClientHttpHandler(configuration));
+    // The actual HTTP Request owner must precede handler installation, even
+    // when only the service reply is a controlled protocol fixture.
+    const wire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
+    const body = JSON.parse(wire);
+    const environment = moon.clientProgramCheckEnvironment(wire.trimEnd(),
+      body.evidence_bundle_cid, false, false, true, true, false, false, false);
+    assert.ok(environment);
+    preparation = await openFundedClientPreparation({moon, environment, http: true});
+    server = createServer(createClientHttpHandler({...configuration,
+      prepareRequest: preparation.prepareRequest}));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    t.after(async () => {
-      server.closeAllConnections();
-      await new Promise(resolve => server.close(resolve));
-    });
     client = await connect({mode: 'local', owner: 'local',
       endpoint: `http://127.0.0.1:${server.address().port}/`,
       token: 'test-token'});
   }
-  t.after(() => client.close());
   return client;
 }
 
