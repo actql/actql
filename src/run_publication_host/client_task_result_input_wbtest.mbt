@@ -56,14 +56,17 @@ test "checked Result dependency projects an internal-only Result without a new r
     is Some(@canonical.Array(columns)) else {
     fail("missing physical checked Result projection")
   }
-  assert_eq(
-    @canonical.object_field(step, "op"),
-    Some(@canonical.String("REL.select")),
+  assert_true(
+    @canonical.object_field(step, "op") is Some(@canonical.String("REL.select")),
   )
-  assert_eq(
-    @canonical.array_values(columns),
-    ["number", "window_start_ms", "window_end_ms"].map(@canonical.String),
-  )
+  let names : Array[String] = []
+  for column in @canonical.array_values(columns) {
+    guard column is @canonical.String(name) else {
+      fail("non-string checked projection column")
+    }
+    names.push(name)
+  }
+  assert_eq(names, ["number", "window_start_ms", "window_end_ms"])
   let compilation = issue_prepared_client_task_compilation(
     prepared,
     run_materials_manifests(),
