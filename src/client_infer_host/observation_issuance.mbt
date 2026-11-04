@@ -79,7 +79,15 @@ fn observation_issuance_funding_current(
         active.call_scope is Some(scope) else {
         return false
       }
-      @model.original_model_publication_capacity_current(capacity, model, scope)
+      @model.original_model_publication_capacity_current(capacity, model, scope) &&
+      state.owners.all(owner => {
+        original_infer_publication_owner_current(owner) &&
+        @model.original_model_publication_capacity_matches_parent(
+          capacity,
+          owner.model.unwrap(),
+          owner.call_scope.unwrap(),
+        )
+      })
     }
     None => false
   }
@@ -174,6 +182,46 @@ pub fn start_original_observation_issuance(
   // Even this receiver list is created only under the existing original grant.
   start_observation_issuance_owned(
     [active],
+    None,
+    Some(capacity),
+    limits,
+    generations,
+  )
+}
+
+///|
+/// All compiler-retained original Model occurrences share ONE existing
+/// publication borrow on their SAME parent Ledger. Original execution/Scope,
+/// ordered Plan membership and complete Run inventory remain mandatory.
+/// This neither creates a Ledger nor treats completed output as a grant.
+pub fn start_complete_original_observation_issuance(
+  owners : Array[Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+  limits : ObservationIssuanceLimits,
+  generations? : Array[@publication_host.ClientSerializationGeneration] = [],
+) -> Result[ObservationIssuance, Issue] {
+  guard owners.length() > 0 &&
+    owners.length() <= 128 &&
+    original_infer_publication_owner_current(owners[0]) &&
+    @model.original_model_publication_capacity_current(
+      capacity,
+      owners[0].model.unwrap(),
+      owners[0].call_scope.unwrap(),
+    ) else {
+    return Err(Model(@model.OutputIdentity))
+  }
+  for active in owners {
+    guard original_infer_publication_owner_current(active) &&
+      @model.original_model_publication_capacity_matches_parent(
+        capacity,
+        active.model.unwrap(),
+        active.call_scope.unwrap(),
+      ) else {
+      return Err(Model(@model.OutputIdentity))
+    }
+  }
+  start_observation_issuance_owned(
+    owners,
     None,
     Some(capacity),
     limits,

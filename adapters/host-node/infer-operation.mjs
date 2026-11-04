@@ -95,12 +95,14 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
     return value;
   });
   if (operations.some(operation => originalOperations.has(operation))) {
-    if (operations.length !== 1 || ledger !== undefined || content !== undefined) {
+    if (ledger !== undefined || content !== undefined ||
+        operations.some(operation => !originalOperations.has(operation))) {
       throw new TypeError('InferOriginalPublicationCapacityUnavailable');
     }
     // The actual operation retains its original opaque publication borrow.
     // A Source Ledger or a matching caller object cannot select that issuer.
-    return operations[0].startObservation({maxSlots, maxWireBytes, maxWork});
+    return operations[0].startObservation({maxSlots, maxWireBytes, maxWork,
+      ...(operations.length === 1 ? {} : {operations})});
   }
   if (content !== undefined) {
     return content.control.startCheckedClientContentInferObservation(content.compiled,
@@ -1044,10 +1046,25 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (released) originalPublicationCapacity = undefined;
       return released;
     },
-    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => {
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}) => {
       if (originalConsumer !== undefined) {
         if (ledger !== undefined || originalPublicationCapacity === undefined) {
           throw new Error('InferOriginalPublicationCapacityUnavailable');
+        }
+        if (operations !== undefined) {
+          if (!Array.isArray(operations) || operations.length < 2 || operations[0] !== operation ||
+              operations.some(owner => !originalOperations.has(owner) || !activeOperations.has(owner)) ||
+              new Set(operations).size !== operations.length ||
+              typeof moon.clientProgramStartCompleteOriginalInferObservationIssuance !== 'function') {
+            throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+          }
+          // Core checks every original Run/Plan/current and the SAME parent
+          // Ledger against this existing borrow before constructing metadata.
+          // No operation's opaque Ledger or capacity is exposed to the caller.
+          return checked(moon.clientProgramStartCompleteOriginalInferObservationIssuance(
+            operations.map(owner => activeOperations.get(owner)), originalPublicationCapacity,
+            maxSlots, maxWireBytes, maxWork,
+            serializedInput === undefined ? [] : [serializedInput.generation]));
         }
         return checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
           originalPublicationCapacity, maxSlots, maxWireBytes, maxWork,

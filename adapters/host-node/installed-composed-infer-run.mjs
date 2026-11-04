@@ -55,17 +55,26 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   function retainCompleted(child) {
     if (!child.capture.retainCompleted()) return false;
     if (originalPreparation === undefined || issuanceComplete) return true;
-    if (children.length !== 1 || children[0] !== child) {
+    if (!children.includes(child)) {
       throw new Error('InstalledComposedInferOriginalObservationUnavailable');
     }
-    const calls = child.capture.completedCallCount();
-    if (!Number.isSafeInteger(calls) || calls < 0 || calls > 128) {
-      throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+    child.completed = true;
+    // Each earlier original capture/output and publication borrow stays live.
+    // Seal the complete compiler inventory at the LAST original completion,
+    // before Local can transfer that component's completed output ownership.
+    if (children.some(original => original.completed !== true)) return true;
+    let calls = 0;
+    for (const original of children) {
+      const count = original.capture.completedCallCount();
+      if (!Number.isSafeInteger(count) || count < 0 || count > 128 - calls) {
+        throw new Error('InstalledComposedInferOriginalObservationUnavailable');
+      }
+      calls += count;
     }
     // Seal this Model's actual observation while its original input tokens
     // still precede Local's legitimate completed-output ownership transfer.
     // Store persistence and public Result publication still follow the DAG.
-    issuance ??= startCompleteInferObservation({moon, operations: [child.operation],
+    issuance ??= startCompleteInferObservation({moon, operations: children.map(original => original.operation),
       maxSlots: calls, maxWireBytes: 16384, maxWork: calls + 2});
     for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {
       issuanceComplete = runtimeField(checked(moon.clientProgramAdvanceInferObservationIssuance(issuance, 1)), 0);

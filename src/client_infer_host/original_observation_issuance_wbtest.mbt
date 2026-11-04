@@ -274,3 +274,29 @@ test "original observation handed off read stop refuses new issuance without blo
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
   assert_true(cleanup(active).unwrap())
 }
+
+///|
+test "complete original observation refuses duplicate and foreign parent before metadata mutation" {
+  let (active, ledger, _) = original_observation_test_start()
+  let (foreign, foreign_ledger, _) = original_observation_test_start()
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_true(fixture_finish(foreign) is Complete(_, ..))
+  let capacity = reserve_original_infer_publication_capacity(active, 65664L, 7L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let foreign_before = @resources.ledger_usage(foreign_ledger)
+  for owners in [[], [active, active], [active, foreign]] {
+    assert_true(
+      start_complete_original_observation_issuance(
+        owners,
+        capacity,
+        issuance_limits(),
+      )
+      is Err(Model(@model.OutputIdentity)),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_eq(@resources.ledger_usage(foreign_ledger), foreign_before)
+  }
+  assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(foreign).unwrap())
+}
