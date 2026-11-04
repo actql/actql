@@ -71766,7 +71766,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "6e743a06f03b5af763a412d3ec2663e4b01b5ba989c9662e616ec62dd4136b38",
+      "sha256": "76f503befbb9ec33dc1106cfeacc4f393352d73f3f4b77b7cd7c3c32c57734c4",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
