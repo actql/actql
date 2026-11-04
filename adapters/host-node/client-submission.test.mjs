@@ -991,9 +991,12 @@ for (const partial of [false, true]) {
 function pairedAdmissionFixture() {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), declarations = new Map();
-  let holder;
+  let holder, route;
   function visit(node) {
     if (node === null || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration' && node.id?.name === 'captureInstalledManagedRunRoute') {
+      assert.equal(route, undefined); route = node;
+    }
     if (node.type === 'Property' && node.method &&
         node.key.name === 'isOriginalManagedComputePreparationRefusal') {assert.equal(holder, undefined); holder = node;}
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
@@ -1005,7 +1008,7 @@ function pairedAdmissionFixture() {
       else if (child && typeof child === 'object') visit(child);
     }
   }
-  visit(ast); assert(holder); assert.equal(declarations.size, 3);
+  visit(ast); assert(holder); assert(route); assert.equal(declarations.size, 3);
   const text = node => source.slice(node.start, node.end), record = {computeRuns: new Map()};
   const runtime = {clientProgramSerializationOccurrences: () => []}, prepared = {}, requested = {};
   const originalInstallation = {initialControl: {}}, originals = {installation: originalInstallation};
@@ -1029,12 +1032,15 @@ function pairedAdmissionFixture() {
       assert.equal(this, preparation); projections++; return Reflect.apply(project, preparation, args);
     },
   };
-  const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections',
+  const prepareOrdinaryManagedRun = new Function('clientOperationError', `return ${text(route)};`)(
+    code => Object.assign(new Error(code), {code}))({preparation, moon: runtime,
+    prepareInvocation() {assert.fail('The original refusal precedes invocation preparation');}});
+  const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections', 'prepareOrdinaryManagedRun',
     ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].map(name => text(declarations.get(name))).join('\n') +
       '\nreturn admitPreparedSubmission;')(preparation, runtime, candidate => {
     requestReads++; assert.equal(candidate.preparedProgram, prepared);
     return {requested, acquisitionCount: 0, effectful: false};
-  }, new WeakMap());
+  }, new WeakMap(), prepareOrdinaryManagedRun);
   return {callback, error, prepared, requested, record, originalInstallation,
     get requestReads() {return requestReads;}, get projections() {return projections;}, stop() {current = false;}};
 }
