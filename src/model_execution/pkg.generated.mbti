@@ -234,6 +234,8 @@ pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapaci
 
 pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
 
+pub fn original_model_publication_capacity_matches_parent(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
+
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
 pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
