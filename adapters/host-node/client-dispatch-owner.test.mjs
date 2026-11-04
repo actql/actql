@@ -1111,10 +1111,10 @@ test('a rejected preflight custody handoff cannot stop or release its setup', as
   assert.deepEqual({handoffs, stops, closes}, {handoffs: 1, stops: 0, closes: 0});
 });
 
-// Persist the independently exercised public byte-capacity counterexample in
-// this existing Host gate. Children use the normal source Host entry, never
-// test Run admission or patched package payloads. No new job/build is needed.
-test('public byte-capacity refusal retains terminal identity after Host process restart',
+// The former whole-Plan reservation counterexample must now fit its actual
+// small outputs. Keep the exact Programs and normal Host, and verify Saved
+// identity rather than requiring the obsolete six-Result preparation refusal.
+test('public multi-Result capacity retains terminal identity after Host process restart',
   {timeout: 40000}, async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-byte-capacity-'));
     let passed = false;
@@ -1149,6 +1149,10 @@ const programHashes = {five: hash(fiveText), six: hash(sixText)};
 const packageEntrances = {kind: 'registered source Host control; packed proof is separate'};
 const count = (records, operation, event) => records.filter(record =>
   record.operation === operation && record.event === event).length;
+const storedObjects = async root => {
+  try { return await readdir(join(root, 'publication', 'objects')); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; return []; }
+};
 const lifecycle = records => Object.fromEntries(['definition_admitted',
   'dispatch_reserved', 'physical_start_reserved', 'dispatch_failed']
   .map(event => [event, count(records, 'run', event)]));
@@ -1158,6 +1162,9 @@ async function withPublicHost(name, body) {
   const records = [], facts = [];
   const observation = createHostObservationConnection({
     include: ['check', 'run', 'compute', 'publication', 'cleanup'],
+    // This control asserts complete lifecycle delivery, including after Run
+    // retirement. It does not request a live Ledger snapshot for Saved reads.
+    measurements: {include: ['duration']},
     deliver: record => { records.push(record); },
   });
   const client = await connect({mode: 'local', owner: 'local', durability: 'durable',
@@ -1196,49 +1203,60 @@ async function withPublicHost(name, body) {
   return result;
 }
 
-function assertFailed(state, runId) {
-  assert.equal(state.status, 'failed');
+function assertSucceeded(state, runId) {
+  assert.equal(state.status, 'succeeded');
   if (runId !== undefined) assert.equal(state.run_id, runId);
-  assert.deepEqual(state.terminal_error,
-    {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'Run ended before publication'});
-  assert.deepEqual(state.next_action, {kind: 'none'});
-  assert.equal(state.control.physical_stop, 'confirmed');
+  assert.equal(state.terminal_error ?? null, null);
+  assert.equal(state.next_action.kind, 'read_result');
+  assert.deepEqual([...state.next_action.results].sort(), [...sixNames].sort());
+  // Public Result success and physical retirement are distinct observations.
+  assert.ok(['unknown', 'confirmed'].includes(state.control.physical_stop));
   assert.equal(state.control.cancellation_requested, false);
-  assert.equal(state.result_available, false);
+  assert.equal(state.result_available, true);
   assert.deepEqual(Object.keys(state.result_availability).sort(), [...sixNames].sort());
   for (const result of Object.values(state.result_availability)) {
-    assert.equal(result.state, 'unavailable');
-    assert.equal(result.reason, 'not_published');
+    assert.equal(result.state, 'available');
+    assert.equal(result.reason, 'confirmed_present');
   }
 }
 
-async function assertOriginalFailure({client, root, records, facts, flush}, original) {
+async function assertOriginalSuccess({client, root, records, facts, flush}, original) {
   const before = lifecycle(records);
+  const beforeCompute = ['task_started', 'task_completed'].map(event => count(records, 'compute', event));
+  const beforePublication = count(records, 'publication', 'result_committed');
+  const objects = await storedObjects(root);
+  assert.ok(objects.length > 0, 'the successful original has real committed Store objects');
   const attached = await client.attach(original.ref);
   const state = await attached.status();
   facts.push({kind: 'attached', ref: attached.ref, state});
-  assertFailed(state, original.runId);
+  assertSucceeded(state, original.runId);
+  if (original.physicalStop === 'confirmed') assert.equal(state.control.physical_stop, 'confirmed');
   assert.equal(state.control.revision, original.controlRevision);
   const replayed = await client.start(six, {parameters: null, submissionRef: original.submissionRef});
   assert.deepEqual(replayed.ref, original.ref);
   const replayedState = await replayed.status();
   facts.push({kind: 'replayed', ref: replayed.ref, state: replayedState});
-  assertFailed(replayedState, original.runId);
+  assertSucceeded(replayedState, original.runId);
+  if (state.control.physical_stop === 'confirmed') assert.equal(replayedState.control.physical_stop, 'confirmed');
   assert.equal(replayedState.control.revision, original.controlRevision);
   const lookup = await client.lookupSubmission(original.submissionRef);
   facts.push({kind: 'original-submission-lookup', lookup});
   assert.equal(lookup.kind, 'ready');
   assert.deepEqual(lookup.submissionRef, original.submissionRef);
   assert.deepEqual(lookup.admission.ref, original.ref);
-  await assert.rejects(attached.result('sixth').all(), {code: 'ResultAccessDenied'});
+  for (const name of sixNames) {
+    assert.deepEqual(await attached.result(name).all(), [{n: 7}, {n: 11}]);
+    assert.deepEqual((await attached.result(name).describe()).columns,
+      [{name: 'n', contract: {type: 'number', nullable: false}}]);
+  }
   await flush();
   assert.deepEqual(lifecycle(records), before,
     'attach/original replay/lookup add no Run, physical-start or failure attempt');
-  assert.equal(count(records, 'compute', 'task_started'), 0);
-  assert.equal(count(records, 'compute', 'task_completed'), 0);
-  assert.equal(count(records, 'publication', 'result_committed'), 0);
-  assert.deepEqual(await readdir(join(root, 'publication', 'objects')), [],
-    'byte-capacity refusal publishes no Store object');
+  assert.deepEqual(['task_started', 'task_completed'].map(event => count(records, 'compute', event)), beforeCompute);
+  assert.equal(count(records, 'publication', 'result_committed'), beforePublication);
+  const retainedObjects = new Set(await storedObjects(root));
+  assert.ok(objects.every(name => retainedObjects.has(name)),
+    'Saved reads preserve the original committed objects; new Request metadata is separate');
 }
 
 if (phase === 'initial') {
@@ -1268,7 +1286,7 @@ if (phase === 'initial') {
   });
   const original = await withPublicHost('six-results', async context => {
     const {client, root, records, facts, flush} = context;
-    assert.deepEqual(await readdir(join(root, 'publication', 'objects')), []);
+    assert.deepEqual(await storedObjects(root), []);
     const check = await client.check(six, {kind: 'program', scope: 'bound_input', parameters: null});
     facts.push({kind: 'authored-program-check', check});
     assert.equal(check.report.verdict, 'verified', 'the authored six-Result Program is valid');
@@ -1279,17 +1297,24 @@ if (phase === 'initial') {
     const execution = await client.start(six, {parameters: null, submissionRef});
     const state = await execution.wait({signal: AbortSignal.timeout(60000)});
     facts.push({kind: 'initial', ref: execution.ref, submissionRef, state});
-    assertFailed(state);
+    assertSucceeded(state);
+    for (const name of sixNames) {
+      assert.deepEqual(await execution.result(name).all(), [{n: 7}, {n: 11}]);
+      assert.deepEqual((await execution.result(name).describe()).columns,
+        [{name: 'n', contract: {type: 'number', nullable: false}}]);
+    }
     await flush();
     assert.deepEqual(lifecycle(records), {definition_admitted: 1, dispatch_reserved: 1,
-      physical_start_reserved: 1, dispatch_failed: 1});
+      physical_start_reserved: 1, dispatch_failed: 0});
+    assert.ok(count(records, 'compute', 'task_started') > 0);
     const original = {ref: execution.ref, submissionRef, runId: state.run_id,
+      physicalStop: state.control.physical_stop,
       controlRevision: state.control.revision};
-    await assertOriginalFailure(context, original);
+    await assertOriginalSuccess(context, original);
     return original;
   });
   await writeFile(join(directory, 'original.json'), JSON.stringify({
-    label: 'genuine-policy byte-capacity refusal; not object-limit reproduction',
+    label: 'ordinary six-Result execution and Saved identity',
     programHashes, positive, original}, null, 2) + '\\n', {flag: 'wx'});
 } else {
   const saved = JSON.parse(await readFile(join(directory, 'original.json'), 'utf8'));
@@ -1298,7 +1323,7 @@ if (phase === 'initial') {
     await context.flush();
     assert.deepEqual(lifecycle(context.records), {definition_admitted: 0, dispatch_reserved: 0,
       physical_start_reserved: 0, dispatch_failed: 0});
-    await assertOriginalFailure(context, saved.original);
+    await assertOriginalSuccess(context, saved.original);
   });
 }
 console.log(JSON.stringify({label: 'public Local byte-capacity diagnostic', phase,
