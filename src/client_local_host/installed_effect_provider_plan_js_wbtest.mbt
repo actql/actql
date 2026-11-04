@@ -114,28 +114,85 @@ test "provider Source reader borrows only its same original planned Ledger and c
 }
 
 ///|
-test "provider Source Plan refuses the original one-short envelope before any physical Start" {
+test "provider Source reader refuses a one-byte-short reservation before any physical Start" {
   let provider = @execution.execution_capacity(1111L, 2222L).unwrap()
   let plan = effect_operation_source_plan_fixture(provider=Some(provider))
-  for field in [4, 5] {
-    let quote = prepared_installed_effect_managed_requirements(plan)
-    quote[field] -= 1L
-    let (input, initial, _, capacity) = effect_preparation_test_capacity(
-      plan, quote,
+  for retention in [true, false] {
+    let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+      plan,
+      prepared_installed_effect_managed_requirements(plan),
     )
-    assert_true(
-      begin_preparation_owned_installed_effect_managed_run(
-        initial,
-        input,
-        capacity,
-        plan.prepared,
-        plan.request,
-        plan,
-      )
-      is Err(InsufficientCapacity),
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial,
+      input,
+      capacity,
+      plan.prepared,
+      plan.request,
+      plan,
+    ).unwrap()
+    let (read, _, acquisition, selected) = begin_installed_effect_managed_source_read(
+      owner,
+      plan.declarations[0],
+      0,
+    ).unwrap()
+    assert_true(physical_equal(selected, plan.captures[0]))
+    // The original acquisition owns its base reader. Its selected provider
+    // adds the independently authored1111R/2222E before constructing a RowRun.
+    let retained = @row_source_host.row_acquisition_retained_capacity(
+        acquisition,
+      ) +
+      1111L
+    let executing = @row_source_host.row_acquisition_execution_capacity(
+        acquisition,
+      ) +
+      2222L
+    let limits = @resources.ledger_limits(ledger)
+    let usage = @resources.ledger_usage(ledger)
+    let blocker = @resources.reserve_capacity(
+      ledger,
+      if retention {
+        limits.retained_bytes -
+        usage.held_bytes -
+        usage.reserved_retention_bytes -
+        retained +
+        1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - usage.reserved_execution_bytes - executing + 1L
+      },
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let starts = Ref(0)
+    let result = start_installed_source_read_provider_rows(
+      read,
+      acquisition,
+      Some(provider),
+      "provider-source-one-short",
+      _ => {
+        starts.val += 1
+        true
+      },
+      plan.transport_bytes[0],
+      0L,
     )
-    assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
-    @resources.cleanup_node_preparation_admission(initial).unwrap()
+    if retention {
+      assert_true(result is Err(Acquisition(Physical(RetentionLimit))))
+    } else {
+      assert_true(result is Err(Acquisition(Physical(ExecutionLimit))))
+    }
+    assert_eq(starts.val, 0)
+    assert_true(read.run is None)
+    assert_eq(@resources.ledger_usage(ledger), before)
+    retire_installed_source_read(read).unwrap()
+    assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+    @resources.settle_capacity(ledger, blocker).unwrap()
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).attempts, usage.attempts)
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   }
 }
 
