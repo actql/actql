@@ -29,6 +29,8 @@ export async function loadTwoSourceFixtures(directory) {
 }
 
 export async function installTwoSourceFixtures({root, fixture, duckdb}) {
+  const hostCapacityPolicy = fixture.environments.left.host_policy_profile.capacity;
+  assert.deepEqual(fixture.environments.right.host_policy_profile.capacity, hostCapacityPolicy);
   await mkdir(root, {recursive: true});
   const databases = {}, profiles = {};
   const initialJoin = fixture.initialFromJoin === true;
@@ -80,7 +82,7 @@ export async function installTwoSourceFixtures({root, fixture, duckdb}) {
           operation: {any_of: ['read']}, exclusions: []}]}),
     }));
   }
-  return {databases, profiles};
+  return {databases, profiles, hostCapacityPolicy};
 }
 
 // Observe the real Native driver. Equal bytes cannot conceal use of the wrong
@@ -165,13 +167,13 @@ export function expectedTwoSourceResults(fixture, variant) {
 
 export async function openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
   mode, directory, sourceProfilePaths, tls, authorization,
-  retainedRelationOutput = false}) {
+  hostCapacityPolicy, retainedRelationOutput = false}) {
   let host, server;
   let options = {mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory, sourceProfilePaths, retainedRelationOutput,
+    installation: {directory, sourceProfilePaths, retainedRelationOutput, hostCapacityPolicy,
       ...(authorization === undefined ? {} : {authorization})}};
   if (mode === 'https') {
-    host = await openInstalledRemoteHttpHost({directory, sourceProfilePaths, authorization,
+    host = await openInstalledRemoteHttpHost({directory, sourceProfilePaths, authorization, hostCapacityPolicy,
       retainedRelationOutput,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
     server = createServer(tls, host.handler);
@@ -215,7 +217,8 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
       if (name === 'acquisition_completed') selections.push(detail.acquisition?.selection);
     }};
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
-      mode, directory, sourceProfilePaths, tls, authorization: observedAuthorization});
+      mode, directory, sourceProfilePaths, tls, authorization: observedAuthorization,
+      hostCapacityPolicy: installation.hostCapacityPolicy});
     try {
       const checker = await running.connect();
       const check = await checker.check('SELECT 1 AS value', {kind: 'text', scope: 'bound_input', format: 'sql'});
@@ -240,6 +243,7 @@ export async function exerciseTwoSourcePublicQuery({connect, openInstalledRemote
         persistSubmission: ({submissionRef}) => writeFile(resolve(directory, 'submission-ref.json'),
           JSON.stringify(submissionRef) + '\n', {flag: 'wx', mode: 0o600}),
         completedCase: item => retained.push({mode, variant, directory, sourceProfilePaths,
+          hostCapacityPolicy: installation.hostCapacityPolicy,
           ref: item.ref, submissionRef: item.submissionRef,
           submission: {document: text, format}}),
       });

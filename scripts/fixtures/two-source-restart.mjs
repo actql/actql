@@ -92,7 +92,7 @@ if (action === 'public-success') {
     }};
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
       mode, directory, sourceProfilePaths: [installation.profiles.left, installation.profiles.right],
-      tls, authorization, retainedRelationOutput: true});
+      tls, authorization, hostCapacityPolicy: installation.hostCapacityPolicy, retainedRelationOutput: true});
     let client;
     try {
       client = await running.connect();
@@ -188,7 +188,7 @@ if (action === 'public-success') {
     let prepared = false;
     const preflight = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
       mode: 'https', directory: resolve(root, `${caseName}-generation-preflight`),
-      sourceProfilePaths, tls, authorization: {...baseAuthorization,
+      sourceProfilePaths, tls, hostCapacityPolicy: installation.hostCapacityPolicy, authorization: {...baseAuthorization,
         faultInjection(name) {
           if (name === 'dispatch_reserved') { prepared = true; throw new Error('GenerationPreparedBeforePhysicalStart'); }
         }}});
@@ -235,7 +235,8 @@ if (action === 'public-success') {
       }
     }};
   const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
-    mode, directory, sourceProfilePaths, tls, authorization});
+    mode, directory, sourceProfilePaths, tls, authorization,
+    hostCapacityPolicy: installation.hostCapacityPolicy});
   const client = await running.connect();
   try {
     const custodyPath = resolve(directory, 'submission-ref.json');

@@ -51,7 +51,7 @@ try {
     const before = provider.snapshot();
     const running = await openTwoSourcePublicHost({connect, openInstalledRemoteHttpHost,
       mode, directory, sourceProfilePaths: [installation.profiles.left, installation.profiles.right],
-      tls, authorization});
+      tls, authorization, hostCapacityPolicy: installation.hostCapacityPolicy});
     try {
       await exercisePublicQueryInput(connect, running.options, {
         requestPrefix: `${mode}-${selected.name}`, successes: [selected], refusals: [],
