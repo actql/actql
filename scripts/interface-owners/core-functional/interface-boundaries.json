@@ -34896,7 +34896,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "27d2a14b549d0d56ded03df3324fe1ec5bf7dfa8df62aa0a0e68fc485fd386c6",
+      "sha256": "58addf72af6fe90e14a476b0a0ff4ac24eded2851ae2af3248350bf5549d2fc1",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -34933,6 +34933,10 @@
         {
           "name": "installed_source_reader_control_inventory",
           "declaration": "installed_source_reader_control_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "installed_source_reader_fixed_retention_inventory",
+          "declaration": "installed_source_reader_fixed_retention_inventory ( ) - > @ execution . PreparationRepresentationUnits"
         },
         {
           "name": "installed_source_reader_policy",
@@ -35093,9 +35097,9 @@
         },
         {
           "operations": [
-            "installed_source_response_preserving_workspace",
             "installed_json_source_reader_capacity_with_decoder",
-            "installed_preserving_json_source_reader_capacity_with_request"
+            "installed_preserving_json_source_reader_capacity_with_request",
+            "installed_source_response_preserving_workspace"
           ],
           "exports": [],
           "attributes": {
@@ -35167,6 +35171,7 @@
           "operations": [
             "installed_native_source_reader_capacity",
             "installed_source_reader_control_inventory",
+            "installed_source_reader_fixed_retention_inventory",
             "installed_source_reader_retained_inventory"
           ],
           "exports": [],
@@ -46248,7 +46253,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "a6d54377c786fe177b52f278a6e44c35c432451e2796d04cfd835cffbb68a983",
+      "sha256": "be9d3490399a661752c6195e97f2d4e84c2af1614b3dd3d521322d8b06139337",
       "exports": [],
       "operations": [
         {
@@ -46274,6 +46279,14 @@
         {
           "name": "grow_row_run_response_capacity",
           "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_capacity_at_phase",
+          "declaration": "grow_row_run_response_capacity_at_phase ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , phase : RowResponseCapacityPhase , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_construction_capacity",
+          "declaration": "grow_row_run_response_construction_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "retire_row_run_response_workspace",
@@ -46544,7 +46557,9 @@
         },
         {
           "operations": [
-            "grow_row_run_response_capacity"
+            "grow_row_run_response_capacity",
+            "grow_row_run_response_capacity_at_phase",
+            "grow_row_run_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -46563,7 +46578,7 @@
             "identity": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(current_charge, charge)"
+                "anchor": "physical_equal(original, current)"
               }
             ],
             "ownership": [
@@ -76536,6 +76551,155 @@
         }
       ],
       "referenceQualification": "Existing same-Request read-only restoration reservation and constructor-current/nominal/cleanup controls. The existing saved compiled owner, input token and saved Scope remain separate; this source/API registration is not normal Model replay or physical acceptance."
+    },
+    {
+      "module": "src/client_local_host/installed_table_reader_capacity.mbt",
+      "sha256": "99407fe18957674ee7d31ff7d2bdc780908e04c9b5bc4d9e49ef294cd96eb740",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Local Table native body-construction domain and shared representation/capacity Owners; no Run, permission or physical-stop issuer",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_table_body_construction_inventory",
+          "declaration": "installed_table_body_construction_inventory ( body_bytes : Int , max_depth : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "installed_table_source_body_capacity",
+          "declaration": "installed_table_source_body_capacity ( previous : @ execution . ExecutionCapacity , body_bytes : Int , max_depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_table_source_reader_capacity",
+          "declaration": "installed_table_source_reader_capacity ( columns : Int , profile : @ execution . ExecutionCapacity , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "installed_table_source_serialization_capacity",
+          "declaration": "installed_table_source_serialization_capacity ( previous : @ execution . ExecutionCapacity , original_body_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_table_body_construction_inventory",
+            "installed_table_source_body_capacity",
+            "installed_table_source_reader_capacity",
+            "installed_table_source_serialization_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity.mbt",
+                "anchor": "pub fn installed_table_source_body_capacity("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure constructor DATA has no callback or physical/cancellation observation. Same original provider and RowRun still own current/cancellation/retirement at allocation."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity.mbt",
+                "anchor": "fn installed_table_body_construction_inventory("
+              },
+              {
+                "path": "src/execution_relation/preparation_representation.mbt",
+                "anchor": "pub fn preparation_representation_cost("
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Table announced-body construction inventory"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_table_reader_capacity_wbtest.mbt",
+                "anchor": "test \"Table announced body owns native parse snapshot"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "test \"Table body quote enters the same original RowRun"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

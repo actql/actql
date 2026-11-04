@@ -161,11 +161,15 @@
     {
       "module": "src/client_row_source_host/response_charge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4b43835d064d7bf76370dcab23787fdc37429f0c8cc0a0ccfee478003f0ab2eb",
+      "sha256": "56fa59d678da412297f521028db2114b651d3bc1a19f6f41d31e26164cf1bf80",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [],
       "operations": [
+        {
+          "name": "charge_row_run_response_body",
+          "declaration": "charge_row_run_response_body ( run : RowRun , body : Bytes , ) - > Result [ RowPageCharge , RowHostIssue ]"
+        },
         {
           "name": "consume_row_run_response_charge",
           "declaration": "consume_row_run_response_charge ( run : RowRun , charge : RowPageCharge , ) - > Result [ Unit , RowHostIssue ]"
@@ -240,13 +244,121 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "charge_row_run_response_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "1264b718d3ae8ce6709cdc7927b553791e540788b2c4086a4ce64f0b1e0bab12",
+      "sha256": "70bf6e2efdfef87b9de16777ae181f498310a9c787ad89e4711f8a7a5e2ac0d5",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -285,6 +397,7 @@
         "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
         "pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]",
         "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
+        "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]",
         "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]",
         "pub fn check_row_input_acquisition_original(RowInputAcquisition, RowDeclaration, @sourceview_resolution.SourceAcquisition) -> Result[Unit, RowHostIssue]",
@@ -304,6 +417,7 @@
         "pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits, classifications? : Array[@check_environment.DataClassification]?) -> Result[RowDeclaration, RowHostIssue]",
         "pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]",
         "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
+        "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
         "pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_listing_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
         "pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]",
@@ -585,6 +699,10 @@
           "declaration": "pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
         },
         {
+          "name": "charge_row_run_response_body",
+          "declaration": "pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]"
+        },
+        {
           "name": "check_row_acquisition_original",
           "declaration": "pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]"
         },
@@ -659,6 +777,10 @@
         {
           "name": "grow_row_run_response_capacity",
           "declaration": "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "grow_row_run_response_construction_capacity",
+          "declaration": "pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
         },
         {
           "name": "issue_row_input_source_evidence",
@@ -2894,7 +3016,8 @@
         },
         {
           "operations": [
-            "grow_row_run_response_capacity"
+            "grow_row_run_response_capacity",
+            "grow_row_run_response_construction_capacity"
           ],
           "exports": [
             "pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]"
@@ -3585,6 +3708,274 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "charge_row_run_response_body"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Responsibility:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "### Supplementary provider overlap"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Responsibility: existing RowDeclaration/Mapping and vendor Catalog Owners"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "pub fn start_accounted_provider_row_acquisition"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Inputs and outputs: original declaration, selected resource/primary field,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Identity:"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical_equal(configuration, acquisition.configuration)"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Identity: original View output reference, carrier-schema CID and manifest"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Ownership:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "provider_capacity : @execution.ExecutionCapacity?"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Ownership: `RecordDeleteMapping` retains its original declaration/Form and"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Synchronization:"
+              },
+              {
+                "path": "src/client_row_source_host/response_borrow.mbt",
+                "anchor": "physical.cleanup_confirmed = Some(cleanup)"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Before any provider page or completion"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Synchronization: this synchronous projection and nominal matching confer no"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "return Err(Physical(InvalidLimits))"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope missing and one short refuse"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Failure: foreign/mutated original members, absent/nullable primary fields,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Cancellation:"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "pub fn close_accounted_row_run"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "False retirement keeps the same debt for retry"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Cancellation: metadata completion is not transport stop or cleanup ACK;"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Resources:"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "9223372036854775807L - retained"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "execution and remaining retention survive evidence generation"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Resources: original declaration strings, selected View, retained Form/page,"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Extension:"
+              },
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "Ordinary and listing-report entries keep their existing selection semantics"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Extension: the existing typed Node/RelA bridge forwards the same opaque"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/README.md",
+                "anchor": "- Verification:"
+              },
+              {
+                "path": "src/query_integration/salesforce_row_declaration_projection_wbtest.mbt",
+                "anchor": "Salesforce row projection preserves every original declaration and evidence byte"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope survives capture callback completion"
+              },
+              {
+                "path": "src/query_integration/provider_capacity_wbtest.mbt",
+                "anchor": "provider envelope requires the exact reader cleanup binding"
+              },
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Verification: strict Common and vendor whitebox counters cover original"
+              },
+              {
+                "path": "src/client_row_source_host/delete_mapping_wbtest.mbt",
+                "anchor": "DELETE Mapping retains original manifest full schema and no proposed-value fields"
+              },
+              {
+                "path": "src/connectors/kintone/host/record_delete_mapping_wbtest.mbt",
+                "anchor": "kintone delete Mapping and request retain the same original App Form and API ID"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-delete-mapping.test.mjs",
+                "anchor": "actual original matching rejects equal foreign declaration, Catalog and incomplete page"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ]
+          }
         }
       ]
     },
@@ -3593,7 +3984,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "a6d54377c786fe177b52f278a6e44c35c432451e2796d04cfd835cffbb68a983",
+      "sha256": "be9d3490399a661752c6195e97f2d4e84c2af1614b3dd3d521322d8b06139337",
       "exports": [],
       "operations": [
         {
@@ -3619,6 +4010,14 @@
         {
           "name": "grow_row_run_response_capacity",
           "declaration": "grow_row_run_response_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_capacity_at_phase",
+          "declaration": "grow_row_run_response_capacity_at_phase ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , phase : RowResponseCapacityPhase , ) - > Result [ Unit , RowHostIssue ]"
+        },
+        {
+          "name": "grow_row_run_response_construction_capacity",
+          "declaration": "grow_row_run_response_construction_capacity ( value : RowRunResponseBorrow , capacity : @ execution . ExecutionCapacity , ) - > Result [ Unit , RowHostIssue ]"
         },
         {
           "name": "retire_row_run_response_workspace",
@@ -3926,7 +4325,9 @@
         },
         {
           "operations": [
-            "grow_row_run_response_capacity"
+            "grow_row_run_response_capacity",
+            "grow_row_run_response_capacity_at_phase",
+            "grow_row_run_response_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -3945,7 +4346,7 @@
             "identity": [
               {
                 "path": "src/client_row_source_host/response_borrow.mbt",
-                "anchor": "physical_equal(current_charge, charge)"
+                "anchor": "physical_equal(original, current)"
               }
             ],
             "ownership": [

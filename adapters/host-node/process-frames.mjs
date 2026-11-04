@@ -88,9 +88,10 @@ export function encodeProcessFrame(value, inputLimits) {
   return frame;
 }
 
-export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation) {
+export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocation, bodyReceived) {
   const limits = validateFrameLimits(inputLimits);
-  if (beforeBodyAllocation !== undefined && typeof beforeBodyAllocation !== 'function') {
+  if (beforeBodyAllocation !== undefined && typeof beforeBodyAllocation !== 'function' ||
+      bodyReceived !== undefined && typeof bodyReceived !== 'function') {
     fail('InvalidFrameCapacityHandoff');
   }
   const header = Buffer.alloc(4);
@@ -129,6 +130,12 @@ export function createProcessFrameReader(inputLimits, accept, beforeBodyAllocati
         chunk.copy(body, bodyBytes, offset, offset + size);
         bodyBytes += size; offset += size;
         if (bodyBytes !== body.length) continue;
+        // Observe ONLY the fully received original Buffer, before even a
+        // refused UTF8/JSON decode. Announced length never supplies this fact.
+        if (bodyReceived !== undefined) {
+          bodyReceived(body);
+          if (closed) fail('FrameReaderClosed');
+        }
         const text = new TextDecoder('utf-8', { fatal: true }).decode(body);
         const value = snapshot(JSON.parse(text), limits);
         body = undefined; bodyBytes = 0; headerBytes = 0;

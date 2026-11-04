@@ -76719,7 +76719,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2940bf1a030ce5053d724cc69aa7d0e40d3a9123455a7e58ad16642ca3588712",
+      "sha256": "af8e192566e66a06e32bc98219288ce20c571c0a3685157c7fecd62dc3869be4",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -76749,6 +76749,8 @@
             "targets",
             "limits",
             "sourceInitialization",
+            "readerCapacity",
+            "bindReader",
             "originalDeclaration",
             "originalDeclared",
             "originalEnvironment",
@@ -76831,12 +76833,8 @@
         {
           "name": "createInstalledTableSource/readPages/readPages",
           "parameters": [
-            "resource",
-            "columns",
-            "signal",
-            "authorizationFor",
-            "chargePage",
-            "consumePage"
+            "options",
+            "physical"
           ],
           "async": true
         },
@@ -76859,6 +76857,115 @@
           "parameters": [
             "target"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader",
+          "parameters": [
+            "moon",
+            "initialCapacity",
+            "readPages",
+            "frameLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/createInstalledTableSourceReader",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options",
+            "retainPreparation",
+            "reserveResponseCapacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/beforeBodyAllocation/beforeBodyAllocation",
+          "parameters": [
+            "length"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/bodyReceived/bodyReceived",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/consumePrevious/consumePrevious",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/grow/grow",
+          "parameters": [
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read/physical/init:finalCharge/init:finalCharge",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/prepareOutput/prepareOutput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/preparePayload/preparePayload",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:prepare/init:prepare/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableSourceReader/factory/init:retire/init:retire",
+          "parameters": [],
           "async": false
         },
         {
@@ -76951,6 +77058,11 @@
           "parameters": [
             "target"
           ],
+          "async": false
+        },
+        {
+          "name": "installedTableReadSite/init:referenceCurrent/init:referenceCurrent",
+          "parameters": [],
           "async": false
         },
         {
@@ -77084,7 +77196,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-table-source.mjs",
-                "anchor": "await authorizationFor(0);"
+                "anchor": "await Reflect.apply(authorizationFor, options, [0]);"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -77193,6 +77305,248 @@
         },
         {
           "operations": [
+            "createInstalledTableSourceReader",
+            "createInstalledTableSourceReader/createInstalledTableSourceReader",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/beforeBodyAllocation/beforeBodyAllocation",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/bodyReceived/bodyReceived",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/check/check",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/consumePrevious/consumePrevious",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/grow/grow",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:observe/init:observe",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:read/init:read/physical/init:finalCharge/init:finalCharge",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:requestStop/init:requestStop",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:retire/init:retire",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/init:retry/init:retry",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/prepareOutput/prepareOutput",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/preparePayload/preparePayload",
+            "createInstalledTableSourceReader/factory/init:prepare/init:prepare/retire/retire",
+            "createInstalledTableSourceReader/factory/init:retire/init:retire",
+            "installedTableReadSite/init:referenceCurrent/init:referenceCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "export async function createInstalledTableSource({moon, baseEnvironmentWire,"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "export async function createInstalledTableSource({moon, baseEnvironmentWire,"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "const dataCid = value => `sha256:${createHash('sha256')"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "const closedReply = (value, resultKeys) => {"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "await Reflect.apply(authorizationFor, options, [0]);"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "const fail = code => { throw Object.assign(new Error(code), {code}); };"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "const closedReply = (value, resultKeys) => {"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "const text = value => typeof value === 'string' && value.length > 0;"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-table-source.mjs",
+                "anchor": "// Table-specific physical projection of the existing installed row Source."
+              },
+              {
+                "path": "docs/design/resident-source-acquisition.md",
+                "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Query-shaped acquisition"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-table-source.test.mjs",
+                "anchor": "test('installed Table Source rechecks genuine read authority after each physical await', async t => {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "The Table factory supplies the SAME reader record"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "<module>"
           ],
           "exports": [],
@@ -77256,7 +77610,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-table-source.mjs",
-                "anchor": "await authorizationFor(0);"
+                "anchor": "await Reflect.apply(authorizationFor, options, [0]);"
               },
               {
                 "path": "docs/design/resident-source-acquisition.md",
@@ -89329,7 +89683,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0a6c69c35363fe7928e028eb81d2a6419ff6c200420ddf5fd7c9dc6d6db8754c",
+      "sha256": "a2b3d5562843e922aef01a4716b41622341c657f934f6cc96478d4baa24426ee",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -89350,7 +89704,8 @@
             "hostService",
             "maxHostCalls",
             "accounting",
-            "beforeBodyAllocation"
+            "beforeBodyAllocation",
+            "bodyReceived"
           ],
           "async": false
         },
@@ -89374,6 +89729,32 @@
         },
         {
           "name": "startManagedExecution/abort/abort",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/bodyEntry/bodyEntry",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/bodyEntry/bodyEntry/bodyEntry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/bodyEntry/bodyEntry/bodyEntry/bodyEntry",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "startManagedExecution/bodyEntry/bodyEntry/bodyEntry/bodyEntry/settled/settled",
           "parameters": [],
           "async": false
         },
@@ -89471,25 +89852,6 @@
           "name": "startManagedExecution/reader/reader/reader",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "startManagedExecution/reader/reader/reader/settled/settled",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "startManagedExecution/reader/reader/reader#2",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "startManagedExecution/reader/reader#2",
-          "parameters": [
-            "length"
-          ],
-          "async": false
         },
         {
           "name": "startManagedExecution/readyPromise/readyPromise",
@@ -89637,9 +89999,6 @@
             "startManagedExecution/init:request/init:request/result/result/result",
             "startManagedExecution/reader/reader",
             "startManagedExecution/reader/reader/reader",
-            "startManagedExecution/reader/reader/reader/settled/settled",
-            "startManagedExecution/reader/reader/reader#2",
-            "startManagedExecution/reader/reader#2",
             "startManagedExecution/readyPromise/readyPromise",
             "startManagedExecution/rejectPending/rejectPending",
             "startManagedExecution/send/send",
@@ -89818,6 +90177,197 @@
         },
         {
           "operations": [
+            "startManagedExecution/bodyEntry/bodyEntry",
+            "startManagedExecution/bodyEntry/bodyEntry/bodyEntry",
+            "startManagedExecution/bodyEntry/bodyEntry/bodyEntry/bodyEntry",
+            "startManagedExecution/bodyEntry/bodyEntry/bodyEntry/bodyEntry/settled/settled"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
+              },
+              {
+                "path": "docs/design/local-provider-work-accounting.md",
+                "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "// Count attempted writes and every received byte, including rejected frames."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "status: hostService?.cleanupHandle?.status,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/local-provider-work-accounting.md",
+                "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "export function prepareManagedExecution({ entry, runtime, run, frames, maxRequests, graceMs, startupMs,"
+              },
+              {
+                "path": "docs/design/local-provider-work-accounting.md",
+                "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "status: hostService?.cleanupHandle?.status,"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "import { encodeProcessFrame, createProcessFrameReader, validateFrameLimits, ProcessProtocolError, executionProtocol } from './process-frames.mjs';"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "docs/design/local-provider-work-accounting.md",
+                "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/process-channel.mjs",
+                "anchor": "// The optional interpreter is trusted installation configuration, never a"
+              },
+              {
+                "path": "docs/design/local-provider-work-accounting.md",
+                "anchor": "# Local provider work accounting"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Acquisition and realization resource scopes"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/process-channel.test.mjs",
+                "anchor": "test('pure preparation snapshots configuration and is consumed by exactly one launch', async t => {"
+              },
+              {
+                "path": "src/physical_resources/pkg.generated.mbti",
+                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
+              },
+              {
+                "path": "adapters/host-node/process-channel.test.mjs",
+                "anchor": "test('rejected handoff consumes its prepared token without launching or replaying', async t => {"
+              },
+              {
+                "path": "docs/design/table-materialization.md",
+                "anchor": "The separate original `bodyReceived` entry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "<module>"
           ],
           "exports": [],
@@ -89980,7 +90530,7 @@
     {
       "module": "adapters/host-node/process-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d7a7b67f14cc5c45509284782d5b8c8c3580e5b0f5b5f1c3e9c35a599736b9b",
+      "sha256": "9a06570c6c12e9a509e9bc8068b7adbc89b4c3a747c3522bbcce58facfcc3ca6",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -89997,7 +90547,8 @@
           "parameters": [
             "inputLimits",
             "accept",
-            "beforeBodyAllocation"
+            "beforeBodyAllocation",
+            "bodyReceived"
           ],
           "async": false
         },
@@ -90085,12 +90636,13 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
+            "ProcessProtocolError/constructor:constructor/constructor:constructor",
             "createProcessFrameReader",
             "createProcessFrameReader/feed/feed",
             "createProcessFrameReader/init:end/init:end",
             "encodeProcessFrame",
             "fail/fail",
-            "ProcessProtocolError/constructor:constructor/constructor:constructor",
             "snapshot",
             "snapshot/charge/charge",
             "snapshot/read/read",
@@ -90106,150 +90658,6 @@
             "snapshotProcessValue",
             "validateFrameLimits"
           ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "export const executionProtocol = 'actql-local-execution/0.1';"
-              },
-              {
-                "path": "docs/design/local-provider-work-accounting.md",
-                "anchor": "# Local provider work accounting"
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "export const executionProtocol = 'actql-local-execution/0.1';"
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Acquisition and realization resource scopes"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "// Private bounded local IPC framing, not ActQL wire/identity or execution proof."
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Acquisition and realization resource scopes"
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "let closed = false;"
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/design/local-provider-work-accounting.md",
-                "anchor": "# Local provider work accounting"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "export function validateFrameLimits(limits) {"
-              },
-              {
-                "path": "docs/design/local-provider-work-accounting.md",
-                "anchor": "# Local provider work accounting"
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "export class ProcessProtocolError extends Error {"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Acquisition and realization resource scopes"
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "let closed = false;"
-              },
-              {
-                "path": "docs/design/portable-execution-boundary.md",
-                "anchor": "## Composition and Host lifetime"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Acquisition and realization resource scopes"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "// Private bounded local IPC framing, not ActQL wire/identity or execution proof."
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              },
-              {
-                "path": "docs/design/local-provider-work-accounting.md",
-                "anchor": "# Local provider work accounting"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/process-frames.mjs",
-                "anchor": "export const executionProtocol = 'actql-local-execution/0.1';"
-              },
-              {
-                "path": "docs/design/local-provider-work-accounting.md",
-                "anchor": "# Local provider work accounting"
-              },
-              {
-                "path": "docs/spec/execution.md",
-                "anchor": "### Acquisition and realization resource scopes"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/process-frames.test.mjs",
-                "anchor": "test('private IPC frames survive every byte split and preserve control payloads', () => {"
-              },
-              {
-                "path": "src/physical_resources/pkg.generated.mbti",
-                "anchor": "pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>"
-          ],
-          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -126000,7 +126408,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "13908820ca39fd84518ae5093e7fc41450cc94777c2bd7dddd94e3be42fb92ae",
+      "sha256": "29b638378ae86b12390f76183190d0c06572789968887a8c8d224f13005c5ef3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -126138,6 +126546,20 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/bindReader/bindReader",
+          "parameters": [
+            "reader"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/columns/columns",
+          "parameters": [
+            "view"
+          ],
+          "async": false
         },
         {
           "name": "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/prepared/prepared",
@@ -128293,12 +128715,12 @@
         },
         {
           "operations": [
+            "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/field/field",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-            "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
             "createInstalledSourceContext/retainNativeInput/retainNativeInput",
             "createInstalledSourceContext/validateNativeInputContext/validateNativeInputContext",
@@ -128440,6 +128862,159 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/bindReader/bindReader",
+            "bindInstalledSourceConstruction/bound/init:createTableSource/init:createTableSource/columns/columns"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "fail('ForeignInstalledSourceReaderSelection')"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "export function createInstalledHostServices"
+              },
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-service-entry.test.mjs",
+                "anchor": "public Source service keeps original installation policy and typed capacity before any Site"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Installed JSON Source service originals"
+              },
+              {
+                "path": "adapters/host-node/installed-source-reader-page-demand.test.mjs",
+                "anchor": "same managed service reader demand supplies original whole page bounds without a legacy preparer"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Normal Table same-Request reader"
               }
             ]
           }

@@ -152,16 +152,50 @@ pub fn grow_row_run_response_capacity(
   value : RowRunResponseBorrow,
   capacity : @execution.ExecutionCapacity,
 ) -> Result[Unit, RowHostIssue] {
+  grow_row_run_response_capacity_at_phase(value, capacity, ChargedPage)
+}
+
+///|
+/// Reserve the SAME original reader's constructor backing before an announced
+/// IPC body exists. An announcement is not a received page, transfer charge,
+/// row, evidence or physical cleanup. Only the already-started, cleanup-bound
+/// original provider borrow may enter; a live page ticket keeps its separate
+/// charged-response entrance above.
+pub fn grow_row_run_response_construction_capacity(
+  value : RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+) -> Result[Unit, RowHostIssue] {
+  grow_row_run_response_capacity_at_phase(value, capacity, BeforePage)
+}
+
+///|
+priv enum RowResponseCapacityPhase {
+  BeforePage
+  ChargedPage
+}
+
+///|
+fn grow_row_run_response_capacity_at_phase(
+  value : RowRunResponseBorrow,
+  capacity : @execution.ExecutionCapacity,
+  phase : RowResponseCapacityPhase,
+) -> Result[Unit, RowHostIssue] {
   match check_row_run_response_borrow_current(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   guard value.cleanup_state is Bound &&
-    value.run.page_charge is Some(charge) &&
-    !charge.consumed &&
     value.run.physical is Some(physical) &&
     physical.provider_capacity is Some(previous) else {
     return Err(InvalidState)
+  }
+  // Borrow the original Option; do not allocate another ticket/holder or
+  // promote an untrusted announced length to received-byte evidence.
+  let expected_charge = value.run.page_charge
+  match (phase, expected_charge) {
+    (BeforePage, None) => ()
+    (ChargedPage, Some(charge)) if !charge.consumed => ()
+    _ => return Err(InvalidState)
   }
   if @execution.execution_capacity_retained_bytes(capacity) <
     @execution.execution_capacity_retained_bytes(previous) ||
@@ -170,9 +204,10 @@ pub fn grow_row_run_response_capacity(
     return Err(Physical(InvalidCharge))
   }
   // The reader reuses its SAME immutable peak quote for a smaller response.
-  // No mutation or new backing is needed; keep the cheap original-state and
-  // charge checks above without calling external Resource current again.
-  if physical_equal(capacity, previous) {
+  // With a live charge, keep the existing cheap original-state/ticket path.
+  // An announcement has no received ticket: re-enter the original Resource
+  // current fence even when the immutable capacity itself is unchanged.
+  if phase is ChargedPage && physical_equal(capacity, previous) {
     return Ok(())
   }
   let (retained, execution) = match value.selection {
@@ -215,10 +250,11 @@ pub fn grow_row_run_response_capacity(
     Err(issue) => return Err(Physical(issue))
     Ok(_) => physical.provider_capacity = Some(capacity)
   }
-  guard value.run.page_charge is Some(current_charge) &&
-    physical_equal(current_charge, charge) &&
-    !charge.consumed else {
-    return Err(InvalidState)
+  match (expected_charge, value.run.page_charge) {
+    (None, None) => ()
+    (Some(original), Some(current)) if physical_equal(original, current) &&
+      !original.consumed => ()
+    _ => return Err(InvalidState)
   }
   check_row_run_response_borrow_current(value)
 }

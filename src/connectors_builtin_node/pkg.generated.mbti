@@ -1834,6 +1834,12 @@ pub fn client_program_installed_standard_create_request_recipe_capacities(Array[
 
 pub fn client_program_installed_standard_driver_recipe_capacities(Array[(@execution_relation.ExecutionCapacity, @source_value.ParseLimits?, @source_value.ParseLimits?)]?, Array[@execution_relation.ExecutionCapacity]?, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Bool, Int, Int, Int, Int, Int, Int, Int64, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_table_source_body_capacity(@execution_relation.ExecutionCapacity, Int, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
+
+pub fn client_program_installed_table_source_reader_capacity(Int, @execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_installed_table_source_serialization_capacity(@execution_relation.ExecutionCapacity, Int) -> Result[@execution_relation.ExecutionCapacity, @physical_resources.PreparationCapacityIssue]
+
 pub fn client_program_installed_whole_source_read_start_rows(@client_local_host.ClientInstalledSourceRead, @client_row_source_host.RowInputAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_local_host.ClientInstalledSourceReadIssue]
 
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -3310,6 +3316,8 @@ pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourc
 
 pub fn client_program_row_source_charge_page(@client_row_source_host.RowRun, Bytes) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_charge_response_body(@client_row_source_host.RowRun, Bytes) -> Result[@client_row_source_host.RowPageCharge, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_check_original_acquisition(@client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
@@ -3325,6 +3333,8 @@ pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDec
 pub fn client_program_row_source_finish(@client_row_source_host.RowRun) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_grow_response_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_grow_response_construction_capacity(@client_row_source_host.RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_is_listing(@client_row_source_host.RowAcquisition) -> Bool
 

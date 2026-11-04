@@ -171,6 +171,23 @@ fn installed_source_reader_retained_inventory(
     is Some(text) else {
     return None
   }
+  let fixed = installed_source_reader_fixed_retention_inventory()
+  Some({
+    record_headers: fixed.record_headers + 3L * originals,
+    reference_slots: fixed.reference_slots +
+    2L * fields +
+    9L * originals +
+    2L * ids +
+    2L * cursors,
+    scalar_words: fixed.scalar_words + 3L * originals + ids + cursors,
+    owned_utf16_units: text,
+    owned_wire_bytes: raw,
+  })
+}
+
+///|
+// Shared original reader frame; protocol-specific inventories add only DATA.
+fn installed_source_reader_fixed_retention_inventory() -> @execution.PreparationRepresentationUnits {
   // Source-owned reader frame, handle/custody/binding envelopes, captured
   // methods and callback environments, provider invocation context/limits,
   // prepared reader/state, two projected-name vectors and two live Sets.
@@ -180,7 +197,7 @@ fn installed_source_reader_retained_inventory(
   // RowRun's existing preparation flag now retains its SAME original response
   // borrow through workspace return and final cleanup. The reference replaces
   // that flag in the SAME resident slot; they never coexist in that frame.
-  let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L
+  let common_fields = 38L + 4L + 1L + 3L + 3L + 21L + 6L + 2L + 2L + 1L
   let provider_fields = 5L + 5L + 6L + 3L + 18L + 16L + 5L + 6L + 8L + 4L
   let closures = 13L
   // One resolver-close carrier (six fields), its original binding field and
@@ -198,29 +215,23 @@ fn installed_source_reader_retained_inventory(
   // credentials/secret/current closures belong to the selected domain quote.
   let resource_current_headers = 2L
   let resource_current_slots = 13L
-  let retained : @execution.PreparationRepresentationUnits = {
+  {
     record_headers: 39L +
     resolver_headers +
     native_callback_headers +
-    resource_current_headers +
-    3L * originals,
+    resource_current_headers,
     reference_slots: common_fields +
     provider_fields +
     closures +
     resolver_slots +
     native_callback_slots +
     resource_current_slots +
-    4L +
-    2L * fields +
-    9L * originals +
-    2L * ids +
-    2L * cursors,
+    4L,
     // The one native-prepared selection flag survives until reader retirement.
-    scalar_words: 20L + 3L * originals + ids + cursors,
-    owned_utf16_units: text,
-    owned_wire_bytes: raw,
+    scalar_words: 20L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
   }
-  Some(retained)
 }
 
 ///|

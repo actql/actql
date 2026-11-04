@@ -441,12 +441,33 @@ actual original Request/Run and admit the simultaneous constructor material
 before returning. Omitting the optional transport entry preserves the existing
 transport behavior but does not establish managed Table backing.
 
+The separate original `bodyReceived` entry receives only the fully arrived
+Buffer before UTF8/JSON decoding, including a subsequently refused payload.
+An announced length or successful parser return cannot manufacture that
+received-byte fact. The original response Buffer is neither copied nor
+re-encoded for this observation. The caller must consume each actual RowRun
+ticket at its corresponding original observation/page boundary; this transport
+entry itself issues no ticket or row and cannot infer a business outcome.
+Both synchronous entries use the SAME process callback custody and original
+cleanup. An asynchronous received-body result is refused and remains retained
+until its original task settles; foreign unjoined results stay pending.
+The Table bridge captures the original callbacks outside wire DATA, forwarding
+them unchanged through live reads and the original prepared operation.
+
+
 A refused entry dispatches no body. Its original cause, including immutable
 errors and thrown undefined, remains attached to the same process cleanup.
 A mistakenly returned task cannot stand in for backing: the existing process
 owner keeps that original task pending through process exit and joins its
 settlement before reporting cleanup complete. An unjoined foreign task remains
-pending. Process exit, capacity admission, Catalog cleanup and durable outcome
+pending. The Table bridge observes the SAME cleanup handle's actual pending
+state before publishing its writer-stopped observation. A completed exit wait
+or retry is insufficient when that original handle still retains callback or
+service duties. Pure preparation refusals before launcher selection have no
+physical child; once launch is selected, a missing or pending original cleanup
+observation cannot authorize staged-file cleanup. No receipt or successful
+response is synthesized from either case. Process exit, capacity admission,
+Catalog cleanup and durable outcome
 evidence remain separate obligations.
 
 The adapter package carries only the reviewed Python worker modules and pinned

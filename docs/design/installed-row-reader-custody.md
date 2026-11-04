@@ -96,6 +96,37 @@ once and rechecks current read authority after preparation and before read.
 Failure of the factory, method access or current check retains the original
 RowRun and its reservation; it never retries preparation to reconstruct them.
 
+The factory's existing second argument retains its original preparation before
+fallible constructor work. A failed factory or returned-method getter leaves
+that same preparation and its captured own synchronous `retire` method in the
+existing reader slots. Its managed alias retirement waits for its own partial
+children; only exact `true` lets the original RowRun continue cleanup. Reentry,
+replacement, truthy values and Promise settlement supply no acknowledgement.
+One unexpected Promise remains the entered flight until it settles, without
+repeating retirement while it is pending. The preparation is replaced by the
+returned reader only after all returned methods have been captured and checked.
+The original options receiver and third capacity-growth argument are preserved.
+This connection adds no Run, physical cleanup owner, budget or permission.
+
+The same private factory uses its third callback with the fixed
+`announced-body` phase for native construction before any response exists. It
+admits the fixed reader's complete cumulative constructor overlap on the
+original Query or whole-input RowRun reservation.
+The callback is usable only during that original read, after cleanup binding,
+with no outstanding response ticket. It rechecks original Resource current and
+the same reader after the callback, including when the declared peak is reused.
+A copied borrow, smaller declaration, pending/closed reservation, insufficient
+backing or reentrant stop cannot enter a constructor. A successful debit stays
+held if subsequent construction or its current check fails.
+
+This entry creates no page ticket, transfer allowance, attempt, permission or
+physical acknowledgement. Charged response decoding keeps the one-argument
+callback and exact latest-ticket requirement. Missing construction capability stays
+absent; a native reader requiring it must refuse before allocation. The actual
+native caller still supplies its justified request, parser, retained output
+and failed-child overlap before each constructor. The callback alone does not
+establish that recipe or qualify an installed native reader.
+
 The reader's `observe().cleanupConfirmed === true` must represent actual
 retirement of that same reader and all escaped custody. It is not inferred
 from method return, Promise settlement, cancellation acceptance, credential

@@ -16,7 +16,7 @@ import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs
 import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
-import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.generated.mjs';
 import {createInstalledCredentialSourceReader, installedJsonSourceReaderLimitNames,
   installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 import {types as nodeTypes} from 'node:util';
@@ -498,6 +498,9 @@ function reserveInstalledTableConstruction(original, material, profile) {
   // projections; do not infer that a provider's return settled its aliases.
   material.inputs.push(profile);
   material.nodes += allNodes; material.text += allText; material.wire += allWire;
+  // Return constructor DATA; the selected RowRun still reserves its own copies.
+  return sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+    [allNodes, allText, allWire, allNodes, allText, allWire]);
 }
 
 // The checked Environment owns its complete parse/native projection already.
@@ -1490,7 +1493,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           nodeTypes.isAsyncFunction(createBridge)) fail('InvalidInstalledTableBridgeConstructor');
       owned.attempted = true; owned.constructing = true;
       try {
-        reserveInstalledTableConstruction(original, material, checkedProfile);
+        const profileCapacity = reserveInstalledTableConstruction(original, material, checkedProfile);
         const bridge = requireSynchronousSourceConstruction(material, Reflect.apply(createBridge, undefined, []));
         owned.bridge = bridge; material.inputs.push(bridge);
         if (!bridge || typeof bridge !== 'object' || nodeTypes.isProxy(bridge) ||
@@ -1511,7 +1514,40 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
           targets: () => owned.adapter?.tableReadTargets ?? []});
         owned.site = site;
         current();
+        const capacityMethod = original.moon.clientProgramInstalledTableSourceReaderCapacity;
+        if (typeof capacityMethod !== 'function' || nodeTypes.isAsyncFunction(capacityMethod)) {
+          fail('InstalledTableSourceReaderUnavailable');
+        }
+        const columns = Math.max(...prepared.declared.views.map(view => view.fields.length));
+        const originalReaderCapacity = Reflect.apply(capacityMethod, original.moon, [columns, profileCapacity]);
+        // Preserve the original native reference Option for the existing typed
+        // Source composition. Its canonical binding alone exposes the value;
+        // Host never reconstructs a Some, tuple or scalar capacity.
+        const readerCapacity = runtimeUnboxedReferenceOption(originalReaderCapacity);
+        if (readerCapacity === undefined || readerCapacity === null || typeof readerCapacity !== 'object') {
+          fail('InstalledTableSourceReaderUnavailable');
+        }
+        material.providers.push(originalReaderCapacity);
+        reserveSource(original, material);
+        current();
+        const bindReader = reader => {
+          current();
+          if (owned.reader !== undefined || scope.reader !== undefined ||
+              bridge.frameLimits === undefined || !Object.isFrozen(bridge.frameLimits)) {
+            fail('InstalledTableSourceReaderUnavailable');
+          }
+          owned.reader = scope.reader = reader;
+          // Two actual commands, each with its ready and reply frame. Page
+          // count remains the original row-page profile; protocol transfer is
+          // the actual four original bounded bodies, not re-encoded rows.
+          scope.readerDemand = Object.freeze({nested:false,responses:4,
+            queryPages:input.limits.maxPages,maxResponseBytes:input.limits.maxPageBytes,
+            maxNodes:400000,maxDepth:32,maxRows:input.limits.maxPageRows,
+            maxTotalRows:input.limits.maxCaptureRows,
+            transferBytes:4n*BigInt(bridge.frameLimits.maxBytes)});
+        };
         const adapter = await createInstalledTableSource({...input, bridge, site, authorization,
+          readerCapacity, bindReader,
           moon: original.moon, sourceInitialization: context, ...prepared,
           baseEnvironmentWire: scope.baseEnvironmentWire,
           connectorId: scope.connectorId, connectorRegistration: scope.installation.registration,
