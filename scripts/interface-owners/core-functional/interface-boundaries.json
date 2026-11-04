@@ -32222,7 +32222,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "769d6baafe65e039eee2a7f6643663dd78002f7ebbc9f7c6c5627619400311a4",
+      "sha256": "76404d7bb4bc19e58b3a89d24b457b4a4b662bbae1af9e3c90c8cdfd847425d9",
       "exports": [],
       "operations": [
         {
@@ -32452,6 +32452,10 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "plain Model module retains"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "test \"captured Event Program reserves its original first task on the same finite Request before Start\""
               }
             ]
           }
@@ -71879,7 +71883,7 @@
     },
     {
       "module": "src/client_local_host/preparation_owned_run.mbt",
-      "sha256": "35686cce1d0f16e7d569ff322e9f37f022030602b21deebc26b76ba278caace1",
+      "sha256": "2784116fcd8ad439bd03b1b82bc9848ce7268598240ea54bec5107399b3a028c",
       "exports": [],
       "operations": [
         {
@@ -72143,6 +72147,10 @@
               {
                 "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
                 "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_capture_body_js_wbtest.mbt",
+                "anchor": "test \"captured Event Program reserves its original first task on the same finite Request before Start\""
               }
             ]
           }

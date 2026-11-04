@@ -257,7 +257,7 @@ fn prepare_retained_installed_capture_ledger(
 ) -> Result[@resources.Ledger, ClientInstalledManagedRunIssue] {
   guard value.captured_preparation is Some(original) &&
     physical_equal(original, plan) &&
-    value.preparation is Some(PureManaged(_, prepared)) &&
+    value.preparation is Some(PureManaged(admission, prepared)) &&
     physical_equal(prepared, plan.prepared) &&
     physical_equal(value.request, plan.request) else {
     return Err(ForeignOriginal)
@@ -298,7 +298,17 @@ fn prepare_retained_installed_capture_ledger(
       return Err(ForeignOriginal)
     }
   }
-  if !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+  let fits = match value.preparation_retirement {
+    None =>
+      installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger))
+    Some(PurePreparation(original)) =>
+      // This captured Plan retains the SAME backed Request body. Source
+      // and Compute constructors still reserve/grow on its finite Ledger;
+      // their whole-run maxima do not allocate storage at this handoff.
+      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
+    Some(EffectPlanPreparation(_)) => false
+  }
+  if !fits {
     return Err(InsufficientCapacity)
   }
   // The caller already crossed this Run's actual current boundary and its
