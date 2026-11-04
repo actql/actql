@@ -100,6 +100,14 @@ pub fn prepared_client_composed_infer_occurrences(
     let count = @pipeline.step_count(
       @lower.pipeline(@lower.bound_preparation(preparation)),
     )
+    if count == 0 {
+      // A checked input-only task has a real receiving Carrier, not a
+      // fabricated output operation. Keep the same owner/target validation.
+      guard client_task_output_target(graph, task) is Some(@pipeline.Input(_)) else {
+        return None
+      }
+      continue
+    }
     guard client_task_output_step(graph, task, count) is Some(last) else {
       return None
     }
