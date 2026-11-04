@@ -8523,7 +8523,7 @@ join cardinality assertion, and any optional output guard remain author-visible.
 Key deduplication, batching, paging, pushdown, materialization, and local join
 strategy are compiler/runtime choices.
 
-<!-- requirement-block: external-joins.the-external-right-input-must-resolve-one-pinned-relation-valued-search external-joins.its-default-read-mode-must-be-a-bounded-snapshot-or external-joins.the-left-relation-must-have-a-compiler-proven-positive-finite-row external-joins.the-authored-equality-keys-must-match-every-and-only-the external-joins.the-sourceview-must-prove-a-complete-response-for-each-requested external-joins.the-effective-data-policy-must-be-admitted-before-dispatch external-joins.the-selected-physical-strategy-must-fit-the-sealed-request-byte -->
+<!-- requirement-block: external-joins.the-external-right-input-must-resolve-one-pinned-relation-valued-search external-joins.its-default-read-mode-must-be-a-bounded-snapshot-or external-joins.the-left-relation-must-have-a-compiler-proven-positive-finite-row external-joins.check-must-not-require-an-exact-count-or-finite-upper-bound-proof external-joins.an-unavailable-estimate-must-remain-an-explicit-runtime-resource-admission-obligation external-joins.the-authored-equality-keys-must-match-every-and-only-the external-joins.the-sourceview-must-prove-a-complete-response-for-each-requested external-joins.the-effective-data-policy-must-be-admitted-before-dispatch external-joins.the-selected-physical-strategy-must-fit-the-sealed-request-byte -->
 The external right input MUST resolve one pinned relation-valued `search`,
 `fetch`, or `follow` SourceView. Its default read mode MUST be a bounded
 `snapshot` or bounded `changes` mode. Check MUST retain available checked
@@ -8541,7 +8541,7 @@ response limit is resolved separately as specified below. The effective data
 policy MUST be admitted before dispatch. The selected physical strategy MUST
 fit the sealed request, byte, attempt, cost, and duration envelope.
 
-<!-- requirement-block: external-joins.check-must-not-require-the-author-to-repeat-a-transport -->
+<!-- requirement-block: external-joins.an-unavailable-static-left-key-estimate-must-not-by-itself-produce-unbounded-external-join external-joins.execution-must-admit-resources-from-the-completed-original-left-relation external-joins.execution-must-not-pre-count-reread-recompile-or-create-a-replacement-run external-joins.unavailable-actual-resources-or-overflow-must-stop-acquisition-with-owned-cleanup external-joins.check-must-not-require-the-author-to-repeat-a-transport -->
 An unavailable static left-key estimate MUST NOT by itself produce
 `ACTQL_E_UNBOUNDED_EXTERNAL_JOIN`. Before allocating acquisition storage or
 accessing a provider, execution MUST use the completed original left Relation
@@ -8650,7 +8650,7 @@ A native batch MUST bind distinct `lookup_request_key`,
 `lookup_batch_request`, and `lookup_response_key` contracts, a positive
 `max_keys_per_request`, and the claim `preserves_per_key_semantics: true`.
 
-<!-- requirement-block: external-joins.every-positive-acquisition-bound-required-by-the-actql-lookup-barrier-0-1-schema-must external-joins.checked-arithmetic-must-reject-overflow-absent-capacity-evidence-or-a external-joins.the-acquisition-s-max-response-rows-is-derived-independently-of-the-logical-join-s -->
+<!-- requirement-block: external-joins.every-positive-acquisition-bound-required-by-the-actql-lookup-barrier-0-1-schema-must external-joins.unavailable-static-estimates-must-retain-runtime-admission-obligations external-joins.unknown-and-zero-must-not-become-fabricated-positive-bounds external-joins.checked-arithmetic-must-reject-overflow-absent-capacity-evidence-or-a external-joins.known-conservative-estimates-must-remain-available-above-host-ceilings external-joins.actual-allocation-contract-and-policy-breaches-must-fail external-joins.the-acquisition-s-max-response-rows-is-derived-independently-of-the-logical-join-s -->
 When a static bounded `actql-lookup-barrier/0.1` representation is selected,
 every positive acquisition bound required by its schema MUST be present. The schema is
 `schemas.lookup_barrier` in the
