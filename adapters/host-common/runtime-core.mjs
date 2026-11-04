@@ -2502,6 +2502,23 @@ function publicationControl(moon) {
         run, token(definition), original, graph, inputs, provider, snapshot.binding,
         snapshot.descriptorWire, available), 'RunHostContentInferInputRejected');
     },
+    startCheckedClientOriginalContentInferObservation(executions, generations, capacity, limits) {
+      if (!Array.isArray(generations)) throw new TypeError('Invalid Content capture inventory');
+      const originals = generations.map(generation => {
+        const original = serializationGenerationTokens.get(generation);
+        if (original === undefined) throw new TypeError('Foreign Client Content generation');
+        return original;
+      });
+      // Project the SAME private generation tokens as the input constructor.
+      // The existing typed issuer alone checks Run/Scope/current/complete
+      // inventory; this projection adds no callbackful evidence recheck.
+      return compiledRunResult(executions.length === 1
+        ? moon.clientProgramStartOriginalInferObservationIssuance(executions[0],
+          capacity, limits.maxSlots, limits.maxWireBytes, limits.maxWork, originals)
+        : moon.clientProgramStartCompleteOriginalInferObservationIssuance(executions,
+          capacity, limits.maxSlots, limits.maxWireBytes, limits.maxWork, originals),
+      'RunHostContentInferObservationRejected');
+    },
     startCheckedClientContentInferObservation(compiled, executions, generations, ledger, limits) {
       const run = compiledContent(compiled);
       if (!Array.isArray(generations)) throw new TypeError('Invalid Content capture inventory');

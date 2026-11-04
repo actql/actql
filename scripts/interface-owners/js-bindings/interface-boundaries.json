@@ -17911,7 +17911,9 @@
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
-            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand"
+            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals"
           ],
           "exports": [],
           "attributes": {
@@ -28213,6 +28215,23 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
+          "parameters": [
+            "executions",
+            "generations",
+            "capacity",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
+          "parameters": [
+            "generation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
           "parameters": [
             "compiled",
@@ -30688,7 +30707,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "136622b7de3817ba75ece147edc36222583fdec273a6d5f8140be767c4070edb"
+      "sha256": "4e2c6d3d8ba4eb1fc4fb2a305eeeddee9daebbd77469913c9f0066be9f2245e9"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -64278,7 +64297,6 @@
             "openNodeInferOperation/operation/operation/operation#3",
             "openNodeInferOperation/operation/operation/operation#4",
             "openNodeInferOperation/operation/operation/operation#5",
-            "openNodeInferOperation/operation/operation/operation#6",
             "openNodeInferOperation/operation/operation/saved/saved",
             "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
@@ -64289,7 +64307,8 @@
             "openNodeInferOperation/run/run#2",
             "openNodeInferOperation/runtimeCurrent/runtimeCurrent",
             "openNodeInferOperation/stop",
-            "openNodeInferOperation/stop/stop"
+            "openNodeInferOperation/stop/stop",
+            "openNodeInferOperation/operation/operation/owners/owners"
           ],
           "exports": [
             "openNodeInferOperation"
@@ -66329,7 +66348,7 @@
           "async": false
         },
         {
-          "name": "openNodeInferOperation/operation/operation/operation#6",
+          "name": "openNodeInferOperation/operation/operation/owners/owners",
           "parameters": [
             "owner"
           ],
@@ -66901,7 +66920,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "d988fe9d0bfcd1f8396416b4b864d99f33609cad389671fdd82f8496e3573fc0"
+      "sha256": "fa444c9f9c55bb0a76076a9db33574fbfcaffaf29e4d607b2910a3e3c247c756"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
