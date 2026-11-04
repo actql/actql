@@ -54,8 +54,13 @@ export async function openManagedContentSourceFixture({scratch, keys, account,
       const {moon, installation, sourceInitialization} = options;
       const service = captureInstalledSourceServices(options.installationServices,
         () => {throw new Error('ContentFixtureInstallationServicesUnavailable');});
-      const {declaration, declared, environment} = sourceInitialization.prepareDeclaration(fixture.declarationViewsWire);
-      assert.equal(declared.catalog_cid, fixture.declared.catalog_cid);
+      const {declaration, declared, environment} = sourceInitialization.prepareAuthoredCommands(
+        fixture.declarationViewsWire, Object.freeze({operation: 'files.write',
+          commands: Object.freeze([Object.freeze({resource: 'transfers', body: canonical(fixture.command)})]),
+          contracts: fixture.commandContracts}));
+      assert.equal(declared.catalog_cid, fixture.commandCatalogCid);
+      assert.deepEqual(declared.views, fixture.declared.views);
+      assert.deepEqual(declared.command_bodies, [canonical(fixture.command)]);
       const policy = service('sourceReaderImplementationProfile', {installation,
         sourceInitialization, metadataResponses: 0, originUnits: origin.length});
       const limits = Object.freeze({maxPages: 1, maxPageBytes: 8192, maxPageRows: 1, maxCaptureRows: 1});

@@ -80,7 +80,9 @@ export function contentCommandFixture({contentMime = 'application/pdf',
       target: {field: 'destination'}, contract: 'command:files.upload.v1',
       input: {name: {field: 'name'}, content: {field: 'content'}}}}},
   }], results: {r: {from: {stage: 'save', result: 'r'}}}};
-  return {program, environment, environmentWire, command, declaration, declarationViewsWire, declared, schema};
+  return {program, environment, environmentWire, command, declaration, declarationViewsWire, declared, schema,
+    commandContracts: Object.freeze([canonical(input), canonical(output)]),
+    commandCatalogCid: environmentBody.connector_catalogs[0].catalog_cid};
 }
 
 // Generation and destination acquisition are distinct checked dependencies.

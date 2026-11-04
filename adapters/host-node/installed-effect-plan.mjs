@@ -143,6 +143,65 @@ export function prepareInstalledStandardCreatePlanRecipe({moon, providerMoon, co
   }), rowOperations.length + memberOperations.length);
 }
 
+// Non-HTTP providers retain their actual pure constructor metadata. These six
+// extents describe returned/workspace DATA, never policy, grants or a Plan.
+// Common alone composes the native quantities, control codec and operation slots.
+export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputLimits, limits, construction}) {
+  if (typeof operation !== 'string' || !operation || !operation.isWellFormed() ||
+      !construction || nodeTypes.isProxy(construction) || !Object.isFrozen(construction)) {
+    fail('InstalledPhysicalWriteConstructionUnavailable');
+  }
+  const dimensions = ['nodes', 'text', 'wire'];
+  const selected = ['retained', 'workspace'].flatMap(name => {
+    const field = Object.getOwnPropertyDescriptor(construction, name);
+    const value = field?.value;
+    if (!field || !Object.hasOwn(field, 'value') || !value || nodeTypes.isProxy(value) ||
+        !Object.isFrozen(value) || Reflect.ownKeys(value).length !== dimensions.length) {
+      fail('InstalledPhysicalWriteConstructionUnavailable');
+    }
+    return dimensions.map(key => {
+      const field = Object.getOwnPropertyDescriptor(value, key);
+      if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'bigint' ||
+          field.value < 0n) fail('InstalledPhysicalWriteConstructionUnavailable');
+      return field.value;
+    });
+  });
+  const names = ['maxRequestBytes', 'maxRecoveryBytes', 'maxResponseBytes', 'maxOutcomeBytes', 'maxTransferBytes'];
+  if (Reflect.ownKeys(construction).length !== 2 || !limits || names.some(name =>
+      !Number.isSafeInteger(limits[name]) || limits[name] < 1 || limits[name] > 2147483647)) {
+    fail('InstalledPhysicalWriteConstructionUnavailable');
+  }
+  const physical = checked(moon.clientProgramInstalledSourceConstructionCapacity(...selected));
+  const controlEntryBytes = checked(moon.clientProgramInstalledEffectControlWireBound(
+    limits.maxOutcomeBytes, effectLedgerImplementationBounds.maxEntryBytes));
+  const quote = controlWireBytes => checked(moon.clientProgramInstalledPhysicalWriteRecipeCapacities(
+    inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
+    inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
+    limits.maxRequestBytes, limits.maxRecoveryBytes, limits.maxResponseBytes,
+    Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
+    effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
+    physical, controlWireBytes));
+  const quantities = quote(controlEntryBytes), fallback = quote(0);
+  if (!Array.isArray(quantities) || quantities.length !== 6 || !Array.isArray(fallback) || fallback.length !== 6) {
+    fail('InstalledPhysicalWriteConstructionUnavailable');
+  }
+  const captureOperation = operation + '.capture', requestOperation = operation + '.request';
+  const capture = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation, quantities));
+  const extent = (name, capacity, transfer, physical) => checked(
+    moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(name, capacity, transfer, physical));
+  return captureInstalledEffectPlanRecipe(Object.freeze({
+    memberOperations: Object.freeze([Object.freeze({operation: captureOperation, extent: capture})]),
+    rowOperations: Object.freeze([
+      Object.freeze({operation: requestOperation, extent: extent(requestOperation, quantities[2], 0n, false)}),
+      Object.freeze({operation, extent: extent(operation, quantities[3], BigInt(limits.maxTransferBytes), true)}),
+    ]),
+    savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
+    controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
+    requestConstruction: Object.freeze({operationIndex: 0}),
+    physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxTransferBytes)}),
+  }), 3);
+}
+
 // The selected Host supplies original typed extents from its actual implementation
 // recipe. Names/limits alone cannot select a Plan. Preserve those same opaque
 // Core values; this view creates no capacity, admission or permission.
