@@ -161,6 +161,12 @@ readers; it sends no Host shutdown operation and confirms no remote Delivery
 settlement or receipt. Observed cancellation uncertainty stays on the original
 read's error and attempt.
 
+When close itself finishes a reader whose iterator disposal or remote stream
+cancellation fails, close reports that original read failure after releasing
+the Client's confirmed local duties. Multiple such failures are retained in
+`cleanupError.errors`. This does not create a retry handle for a finished
+iterator or confirm remote cleanup.
+
 `ClientCleanupPending` with `cleanupPending: true` means release was not
 confirmed. Keep this Client and retry `await client.close()`; new use stays
 sealed. Private provider errors and cleanup handles are not exposed. Do not

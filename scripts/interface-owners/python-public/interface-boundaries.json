@@ -3973,7 +3973,7 @@
           ]
         }
       ],
-      "sha256": "67cacdf9e4b01821918a065a7d1c6fc44fe3a2294a1117291b186be4ebd70a69",
+      "sha256": "3acf1d16a823824259bd109ac25d7f052cb67c0b48371523871fc1571710ac76",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4203,6 +4203,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
                 "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_wait_since.py",
+                "anchor": "test_observation_history_rejects_rollback_and_scope_substitution"
               }
             ]
           }
@@ -6689,7 +6693,9 @@
           "name": "AsyncReader/__aexit__",
           "parameters": [
             "self",
-            "*exc"
+            "_type",
+            "failure",
+            "_traceback"
           ]
         },
         {
@@ -6861,7 +6867,7 @@
           ]
         }
       ],
-      "sha256": "c5af123f75ac2602c0b1bf7395a96cbf18f436426c68492c32939e02f28e1a00",
+      "sha256": "0cfd765463224b61d37f3a1bc6aaf56e8b3ca3e06aa8f7d7f22b214cd1d40699",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -7015,6 +7021,18 @@
               {
                 "path": "packages/python-sdk/README.md",
                 "anchor": "### Application row schemas"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_read_failure_and_cleanup_failure_are_both_preserved"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_all_preserves_read_failure_when_context_cleanup_also_fails"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_reader_context_preserves_body_failure_and_cancellation"
               }
             ]
           }

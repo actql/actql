@@ -9191,7 +9191,7 @@
     {
       "module": "packages/sdk/internal/client-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bfe3b77ab279534e5c129cc40674ddb6fd06f2172f14a79bb35aa3db14537c9a",
+      "sha256": "0d3d7c959d062729e764cee0ad24d3c0bad9a669b669ffae2e51320c14be8d6d",
       "exports": [
         "createClientLifecycle"
       ],
@@ -9340,6 +9340,10 @@
               {
                 "path": "packages/sdk/client-close.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/client-close.test.mjs",
+                "anchor": "client-initiated close reports original frame cleanup uncertainty after releasing its lease"
               }
             ]
           }
@@ -11297,7 +11301,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dab278e454f6d7587472110a7a9f702c2e4f02a0888a8b8096013a067fde390a",
+      "sha256": "c054a955cf26eb71c2f94642e2f930ae1aeebb398845bcaf68d6c1e049efb4a1",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -11625,6 +11629,13 @@
           "async": false
         },
         {
+          "name": "rejectDuplicateRowKeys",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
           "name": "retainDeliveryExplanation/retainDeliveryExplanation",
           "parameters": [
             "answer",
@@ -11644,7 +11655,8 @@
         {
           "name": "retainedValueBytes",
           "parameters": [
-            "value"
+            "value",
+            "raw"
           ],
           "async": false
         },
@@ -11847,7 +11859,8 @@
             "retainedValueBytes",
             "retainedValueBytes/visit/visit",
             "tighter",
-            "validationFailure/validationFailure"
+            "validationFailure/validationFailure",
+            "rejectDuplicateRowKeys"
           ],
           "exports": [
             "createResultFactory",
@@ -11949,6 +11962,10 @@
               {
                 "path": "packages/sdk/batch-row-accounting.test.mjs",
                 "anchor": "batches account each unchanged row once"
+              },
+              {
+                "path": "packages/sdk/typed-result-capture.test.mjs",
+                "anchor": "HTTP Result rows reject invalid values and decoded duplicate keys"
               }
             ]
           }
