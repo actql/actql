@@ -20,19 +20,34 @@ const openAcquiredEffectComputation = options => openEffectComputation({
 
 test('source-free composed Model admission retains custody without opening an installed Source', async () => {
   const prepared = {};
+  const request = {}, managedRun = {}, operationPlan = {};
   const failure = new Error('ModelOwnerUnavailable');
   let custody;
-  let sourceCalls = 0;
+  let sourceCalls = 0, planReads = 0;
   const resultPolicy = graphResultDataPolicy;
   const policyLimits = Object.freeze({maxWireBytes: 1024, maxNodes: 100, maxDepth: 8});
-  await assert.rejects(openEffectComputation({
-    modelController: {discover: () => []},
-    moon: {clientProgramInferPlanBoundary: () => ({_0: 0}),
-      clientProgramEffectSerializationOccurrences: () => [], clientProgramEffectAcquisitionCount(actual) {
+  // These nominal Plan/Request ports remain explicit. This failure fixture
+  // stops before Common admission or a physical Model/Source constructor.
+  const moon = {clientProgramInferPlanBoundary: () => ({_0: 0}),
+    clientProgramEffectSerializationOccurrences: () => [], clientProgramEffectAcquisitionCount(actual) {
       assert.equal(actual, prepared);
       return 0;
-    }},
-    acquired: {prepared, resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
+    }, clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
+      assert.equal(this, moon);
+      assert.equal(parent, managedRun);
+      assert.equal(actual, prepared);
+      assert.equal(identity, request);
+      assert.ok(custody, 'retain the same computation owner before reading its original Plan');
+      planReads++;
+      return {$tag: 1, _0: operationPlan};
+    }, clientProgramInstalledEffectManagedHostOpen() {
+      assert.fail('Model admission failure must not construct a Compute Host');
+    }};
+  await assert.rejects(openEffectComputation({
+    modelController: {discover: () => []},
+    moon, managedRun,
+    acquired: {prepared, requestIdentity: request,
+      resultDataPolicy: resultPolicy, resultDataPolicyLimits: policyLimits,
       control: {runDefinitionRunId: () => 'fixture-run', adoptCheckedClientEffectInferRun(allowed, definition, policy, limits) {
         assert.equal(policy, resultPolicy);
         assert.equal(limits, policyLimits);
@@ -47,6 +62,7 @@ test('source-free composed Model admission retains custody without opening an in
       open() { sourceCalls++; throw new Error('UnexpectedSourceOpen'); },
     }))},
   }), error => error === failure);
+  assert.equal(planReads, 1);
   assert.equal(sourceCalls, 0);
   assert.equal(await custody.cleanup(), false);
   await custody.close();
