@@ -7,6 +7,7 @@ fn request_capture_fixture(
   environment_wire? : String = source_query_original_environment,
   environment_cid? : String = "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
   current? : () -> Bool = () => true,
+  events? : Bool = false,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -15,8 +16,8 @@ fn request_capture_fixture(
   let environment = @publication_host.admit_client_check_environment(
     environment_wire,
     environment_cid,
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    { text_time: events, veca: false, },
+    { rela: true, sga: false, tea: events, calendar: false, text_rank: false, },
   ).unwrap()
   let (parent, child, _, input) = registration_parent_fixture(
     current~,
@@ -899,30 +900,10 @@ test "captured publication foreign definition leaves slot intact but semantic fa
 
 ///|
 test "captured Event Plan adopts the same backed Request and retires without changing resource policy" {
-  let environment = @publication_host.admit_client_check_environment(
-    source_query_original_environment,
-    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
-    { text_time: true, veca: false, },
-    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
-  ).unwrap()
-  let (parent, child, _, input) = registration_parent_fixture(
-    text=captured_events_schema_budget_program,
-    environment=Some(environment),
+  let (parent, input, prepared) = request_capture_fixture(
+    document=captured_events_schema_budget_program,
+    events=true,
   )
-  guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
-    fail("original captured Event Program must finish its supported check")
-  }
-  let prepared = compile_program_check_preparation(
-    child,
-    @publication_host.client_standard_program_preparation_limits(),
-  ).unwrap()
-  assert_true(
-    physical_equal(
-      continue_request_program_preparation(parent, input).unwrap(),
-      prepared,
-    ),
-  )
-  reserve_request_program_plan(parent, input).unwrap()
   let (plan, request) = request_capture_plan_fixture(prepared)
   complete_request_capture_preparation(parent, input, plan).unwrap()
   let run = begin_request_capture_managed_run(parent, request).unwrap()
@@ -934,8 +915,168 @@ test "captured Event Plan adopts the same backed Request and retires without cha
   )
   assert_true(plan.capacity_plan.demand_inventory.unwrap().carrier_values)
   let original = require_installed_managed_run(run).unwrap()
+  let read = begin_installed_managed_capture_read(run, 0).unwrap()
+  assert_true(
+    physical_equal(request_capture_ledger_fixture(run, plan).unwrap(), original),
+  )
   assert_eq(@resources.ledger_limits(original).execution_bytes, 536870912L)
   assert_eq(@resources.ledger_limits(original).retained_bytes, 536870912L)
+  retire_installed_source_read(read).unwrap()
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+test "captured Event Program reserves its original first task on the same finite Request before Start" {
+  for exhaust in [false, true] {
+    let (parent, input, prepared) = request_capture_fixture(
+      document=captured_events_schema_budget_program,
+      events=true,
+    )
+    let (plan, request) = request_capture_plan_fixture(prepared)
+    complete_request_capture_preparation(parent, input, plan).unwrap()
+    let run = begin_request_capture_managed_run(parent, request).unwrap()
+    let read = begin_installed_managed_capture_read(run, 0).unwrap()
+    let ledger = request_capture_ledger_fixture(run, plan).unwrap()
+    assert_true(physical_equal(ledger, parent.ledger))
+    let limits = @resources.ledger_limits(ledger)
+    let acquisition = prepared_installed_managed_capture_acquisition(plan, 0).unwrap()
+    let rows = start_installed_source_read_rows(
+      read,
+      acquisition,
+      "same-request-events",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(rows, 2048, 2, 2).unwrap()
+    let bytes = @utf8.encode("[{\"id\":3,\"amount\":7}]")
+    let charged = @row_source_host.charge_row_run_page(rows, bytes).unwrap()
+    assert_eq(
+      @row_source_host.accept_charged_row_run_page(rows, charged, bytes).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(rows).unwrap()
+    @row_source_host.begin_row_capture(rows).unwrap()
+    let mut complete = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(rows, 256).unwrap().0 {
+        complete = true
+        break
+      }
+    }
+    assert_true(complete)
+    let capture = @row_source_host.capture_row_run(rows).unwrap()
+    let (host, dag, _) = open_installed_managed_capture_host(
+      run,
+      prepared,
+      request,
+      [@row_source_host.row_capture_source(capture).unwrap()],
+    ).unwrap()
+    @row_source_host.retain_row_capture_task(capture, dag, 0).unwrap()
+    assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+    let graph = @strategy.captured_dag_graph(dag)
+    let task = @strategy.next_captured_task(dag).unwrap()
+    assert_eq(task, 1)
+    assert_eq(
+      @strategy.captured_task_target(dag, task),
+      Some(@pipeline.Step(0)),
+    )
+    let installed = @builtin.configured_local_module(
+      @builtin.configured_host_modules(host),
+    ).unwrap()
+    let dispatch = @local_driver.prepare_local_managed_dispatch_with_outputs(
+        installed,
+        [@local_driver.local_managed_captured_relation_input()],
+        @execution.process_managed_obligations(
+          @strategy.graph_task_owner(graph, task).unwrap(),
+        ),
+        0L,
+      )
+      .unwrap()
+      .unwrap()
+    @strategy.select_captured_managed_registration(
+      dag,
+      task,
+      @local_driver.local_dispatch_registration(installed),
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let blocker = if exhaust {
+      Some(
+        @resources.reserve_capacity(
+          ledger,
+          0L,
+          limits.execution_bytes - before.reserved_execution_bytes,
+        ).unwrap(),
+      )
+    } else {
+      None
+    }
+    let started = @local_driver.start_local_managed_dispatch_node(dispatch)
+    let mut cleanup : (() -> Bool)? = None
+    let mut stopped : (() -> Bool)? = None
+    if exhaust {
+      assert_true(started is Err(Execution(Physical(ExecutionLimit))))
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+      assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+      @resources.settle_capacity(ledger, blocker.unwrap()).unwrap()
+    } else {
+      let operations = started.unwrap()
+      cleanup = Some(operations.cleanup_refresh)
+      stopped = Some(operations.execution_stopped)
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+      assert_eq(
+        @resources.ledger_usage(ledger).reserved_attempts,
+        before.reserved_attempts + 1,
+      )
+      (operations.execute)().unwrap()
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts + 1)
+      let output_live = Ref(true)
+      (operations.prepare_finalization)(task, operations.storage_bytes, () => {
+        output_live.val
+      }).unwrap()
+      let mut finalized = false
+      for _ in 0..<10000 {
+        if (operations.advance_finalization)(256).unwrap().complete {
+          finalized = true
+          break
+        }
+      }
+      assert_true(finalized)
+      (operations.settle)().unwrap()
+      let completed = (operations.complete)(task, operations.storage_bytes, () => {
+        output_live.val
+      }).unwrap()
+      assert_eq(@execution.managed_completed_output_row_count(completed), 1)
+      assert_eq(
+        (operations.output_row)(0).unwrap(),
+        // The exact Step(0) derives clock_ms=id and the literal label before
+        // the later Events barrier. It has not produced a windowed Result.
+        "{\"clock_ms\":3,\"id\":3,\"label\":\"event\"}",
+      )
+      output_live.val = false
+      (operations.close)()
+    }
+    ignore(reject_client_local_run(dag))
+    for output in 0..<@strategy.graph_task_count(graph) {
+      @strategy.close_captured_task_output(dag, output)
+    }
+    retire_installed_source_read(read).unwrap()
+    @strategy.refresh_captured_retention(dag)
+    if cleanup is Some(refresh) {
+      let mut cleaned = false
+      for _ in 0..<10000 {
+        let released = refresh()
+        @strategy.refresh_captured_retention(dag)
+        if stopped.unwrap()() && released {
+          cleaned = true
+          break
+        }
+      }
+      assert_true(cleaned)
+    }
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_limits(ledger), limits)
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  }
 }

@@ -100,12 +100,9 @@ fn[I] begin_preparation_owned_installed_capture_run_original(
   if !installed_managed_run_purpose_supported(prepared) {
     return Err(Unsupported)
   }
-  let limits = match preparation_initial_limits(initial, input) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
-  }
-  if !installed_effect_limits_fit(plan.limits, limits) {
-    return Err(InsufficientCapacity)
+  match check_preparation_owned_body_limits(initial, input, capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   // This existing opaque constructor already selected ordinary, non-Model
   // capture. Disposal changes no byte debit or consumed input history.
