@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "f7d918368265a51118aea620b7546b5e4ac15148e033ec52504db4ba8a342e3b",
+    "sha256": "a34cd699677b467d80ddc6282ccc6981d6b64e4e659fccc8de89a0d366916f0d",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
