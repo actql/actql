@@ -309,8 +309,13 @@ test('Sheets clear keeps a lost response Unknown after cold restart without rese
   await execution.reconcile();
   const unknown = await until(async () => {
     const current = await execution.status();
-    return current.status === 'needs_reconciliation' ? current : undefined;
+    return current.status === 'needs_reconciliation' || terminal.has(current.status) ||
+      setup.observations.some(([name]) => name === 'effect_resume_failed') ? current : undefined;
   });
+  assert.equal(unknown.status, 'needs_reconciliation', JSON.stringify({status: unknown.status,
+    resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+      .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+        ? detail.code : 'UnavailableErrorTag')}));
   assert.equal(unknown.result_available, false);
   assert.equal(setup.state.cleared.length, 1);
   const before = setup.api.seen().length;
@@ -380,8 +385,13 @@ test('Sheets range Command retains an unknown acknowledgement across process res
   await execution.reconcile();
   const unknown = await until(async () => {
     const value = await execution.status();
-    return value.status === 'needs_reconciliation' ? value : undefined;
+    return value.status === 'needs_reconciliation' || terminal.has(value.status) ||
+      setup.observations.some(([name]) => name === 'effect_resume_failed') ? value : undefined;
   });
+  assert.equal(unknown.status, 'needs_reconciliation', JSON.stringify({status: unknown.status,
+    resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+      .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+        ? detail.code : 'UnavailableErrorTag')}));
   assert.equal(unknown.result_available, false);
   assert.equal(setup.state.updated.length, 1);
   const before = setup.api.seen().length;
