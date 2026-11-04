@@ -316,3 +316,30 @@ test "normal Events and Vectors Programs compile exact typed task edges and root
     )
   }
 }
+
+///|
+test "Events row Result subset retains its checked contract through another task" {
+  let document =
+    #|{"version":"actql/0.1","id":"events-result-contract","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"number":{"type":"int64","nullable":false},"clock_ms":{"type":"number","nullable":false}},"rows":[{"number":"1","clock_ms":1},{"number":"4","clock_ms":4}]},"as":"seed"},{"from":"seed","to_events":{"id":"number","time":"clock_ms"},"as":"events"},{"from":"events","window_events":{"kind":"fixed","size":2},"as":"windowed"},{"from":"windowed","events":true,"as":"rows"}],"results":{"r":{"from":"rows","fields":["number","window_start_ms","window_end_ms"]}}},{"id":"consumer","inputs":{"x":{"result":{"stage":"source","result":"r"}}},"steps":[{"select":["number","window_start_ms"],"as":"out"}],"results":{"r":{"from":"out","fields":["number","window_start_ms"]}}}],"results":{"windowed":{"from":{"stage":"source","result":"r"}},"consumed":{"from":{"stage":"consumer","result":"r"}}}}
+  let environment = admit_client_check_environment(
+    run_materials_environment_wire,
+    run_materials_environment_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let limits = run_materials_limits()
+  let prepared = prepare_effect_free_client_program(
+    document, Json, environment, None, limits.preparation,
+  ).unwrap()
+  let compilation = issue_prepared_client_task_compilation(
+    prepared, run_materials_manifests(), limits.sequence,
+    1000, 1000, 1000000, 100000, 100,
+  )
+  let compilation = match compilation {
+    Ok(value) => value
+    Err(Plan(TaskGraph(ContractMismatch))) =>
+      fail("checked Result projection and producer contract disagree")
+    Err(_) => fail("unexpected typed compilation refusal")
+  }
+  assert_eq(client_task_compilation_result_names(compilation).length(), 2)
+}
