@@ -19,6 +19,7 @@ import './native-runtime-bundle-fixture.test.mjs';
 import './native-sqlite-link-driver.test.mjs';
 import './native-signature-linux-declarations.test.mjs';
 import './native-core-progress.test.mjs';
+import './native-core-c-compiler.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));
@@ -664,6 +665,7 @@ function fixture(t) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
+    'native-core-c-compiler.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
     'native-filesystem-observation-fixture.mjs',
     'native-runtime-reader-custody-fixture.mjs',
@@ -693,7 +695,8 @@ const {join} = require('node:path');
 assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
 if (process.env.ACTQL_FIXTURE_NATIVE_COMMANDS) {
   require('node:fs').appendFileSync(process.env.ACTQL_FIXTURE_NATIVE_COMMANDS,
-    JSON.stringify(process.argv.slice(2)) + '\\n');
+    JSON.stringify({args:process.argv.slice(2),path:process.env.PATH,
+      allocator:process.env.MOONBIT_ALLOCATOR,compiler:process.env.MOON_CC}) + '\\n');
 }
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
      'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
@@ -1105,12 +1108,18 @@ test('strict Native checkpoint producers share the full release child compilatio
   assert.ifError(result.error);
   assert.equal(result.signal, null);
   assert.equal(result.status, 0, result.stderr);
-  const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+  const records = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
+  const calls = records.map(record => record.args);
   assert.equal(calls.length, 3);
   const compilation = args => args.filter(arg =>
     ['--target', 'native', '--strip', '--deny-warn', '--release'].includes(arg)).sort();
   assert.deepEqual(calls[2], ['test', '--target', 'native',
     '--deny-warn', '--release', '--strip', '-j', '3', '--verbose']);
+  assert(records[0].path === records[1].path);
+  assert.equal(records[0].path, f.env.PATH);
+  assert.match(records[2].path, /\/test-c-compiler:/u);
+  assert.equal(records[2].compiler, records[0].compiler);
+  assert.equal(records[2].allocator, records[0].allocator);
   for (const [index, file] of [
     'src/platform_native/client_host/run_checkpoint_wbtest.mbt',
     'src/platform_native/client_host/run_effect_receipt_wbtest.mbt',

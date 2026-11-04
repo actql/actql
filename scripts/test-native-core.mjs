@@ -11,6 +11,7 @@ import {classifyMoon} from './local-checks-policy.mjs';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
 import {nativePrivateHostFixture} from './native-private-host-fixture.mjs';
 import {nativeRuntimeReaderCustodyFixture} from './native-runtime-reader-custody-fixture.mjs';
+import {nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -58,6 +59,11 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
     throw new Error(`Native WAL fixture compilation failed: ${compiled.error?.message ?? compiled.signal ?? compiled.status}`);
   }
 }
+// Prepare the original checkpoint/Reader/WAL fixtures with their unchanged
+// compiler settings. Only the final complete release test child uses O1 C.
+const testCompiler = full && args.lastIndexOf('--release') >
+    Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
+  ? nativeCoreCCompiler(root, namespace) : {};
 // The full suite includes real target-observation tests. Provision their
 // private HTTPS/credential fixture instead of treating missing inputs as passes.
 const result = spawnSync(full ? process.execPath : 'moon', full
@@ -68,6 +74,7 @@ const result = spawnSync(full ? process.execPath : 'moon', full
   ...clientCheckpoint,
   ...privateHost,
   ...readerCustody,
+  ...testCompiler,
   ...(walFixture ? {ACTQL_TEST_NATIVE_UNCLOSED_SQLITE_FIXTURE: walFixture} : {}),
   ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT: join(namespace, 'standard'),
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(namespace, 'bundles'),

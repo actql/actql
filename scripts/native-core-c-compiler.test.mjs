@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join, delimiter} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import test from 'node:test';
+import {nativeCoreCArguments, nativeCoreCCompiler} from './native-core-c-compiler.mjs';
+
+test('Native Core C profile changes only the default optimization of one generated release test input', () => {
+  const root = '/original';
+  for (const kind of ['whitebox', 'blackbox', 'internal']) {
+    const input = `${root}/_build/native/release/test/pkg/pkg.${kind}_test.c`;
+    const args = ['-o', 'original.exe', '-fwrapv', '-fno-strict-aliasing',
+      '-O2', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', input, 'original.a', '-lm'];
+    assert.deepEqual(nativeCoreCArguments(root, args), args.map(x => x === '-O2' ? '-O1' : x));
+  }
+  for (const args of [
+    ['-O2', '/original/_build/native/release/build/pkg/pkg.c'],
+    ['-O2', '/original/src/platform_native/original_stub.c'],
+    ['-O2', '/foreign/_build/native/release/test/pkg/pkg.whitebox_test.c'],
+    ['-O2', '/original/_build/native/debug/test/pkg/pkg.whitebox_test.c'],
+    ['-O2', '/original/_build/native/release/test/pkg/original_stub.c'],
+    ['-O3', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c'],
+    ['-O0', '-O2', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c'],
+    ['-O2', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c', '/original/src/stub.c'],
+    ['--version'],
+  ]) assert.strictEqual(nativeCoreCArguments(root, args), args);
+});
+
+test('Native Core compiler PATH routing retains package C++/stub drivers and the original mimalloc runtime plan', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-cc-routing-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  for (const name of ['plain', 'custom', 'scratch']) mkdirSync(join(root, name));
+  writeFileSync(join(root, 'moon.mod'), 'name = "fixture/compiler_profile"\nversion = "0.0.0"\n');
+  writeFileSync(join(root, 'plain/moon.pkg'), '');
+  const driver = fileURLToPath(new URL('native-cxx-link-driver.sh', import.meta.url));
+  writeFileSync(join(root, 'custom/moon.pkg'), 'options("native-stub": ["helper.c"], link: {"native": {' +
+    '"cc": ' + JSON.stringify(driver) + ', "stub-cc": "c++", "cc-flags": "-O2"}})\n');
+  writeFileSync(join(root, 'custom/helper.c'), 'int original_stub(void) { return 1; }\n');
+  for (const name of ['plain', 'custom']) writeFileSync(join(root, name, 'main.mbt'),
+    'test "original selection" { assert_eq(1, 1) }\n');
+  const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
+  delete env.MOON_CC;delete env.MOONBIT_ALLOCATOR;
+  const plan = profile => {
+    const result = spawnSync(join(env.MOON_HOME, 'bin/moon'),
+      ['test', '--target', 'native', '--release', '--strip', '--dry-run'],
+      {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000, maxBuffer: 2 * 1024 ** 2});
+    assert.ifError(result.error);assert.equal(result.status, 0, result.stderr);
+    const lines = result.stdout.split('\n');
+    const command = lines.find(line => line.includes('/plain/plain.internal_test.c') && !line.includes('moonc'));
+    assert(command);assert(command.includes('libmoonbitrun.o'));
+    assert(command.includes('MOONBIT_ALLOCATOR_MIMALLOC'));
+    return {command, overrides: lines.filter(line =>
+      line.includes(driver + ' ') || line.includes('c++ ') && line.includes('helper'))};
+  };
+  const original = plan({}), profile = nativeCoreCCompiler(root, join(root, 'scratch'), env);
+  const actual = plan(profile);
+  assert(actual.command.includes('test-c-compiler/cc '));
+  assert.equal(actual.command.slice(actual.command.indexOf(' ')),
+    original.command.slice(original.command.indexOf(' ')));
+  assert(actual.overrides.length > 0);
+  assert.deepEqual(actual.overrides, original.overrides);
+});
+
+test('Native Core C launcher preserves compiler arguments, original environment and failure status', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), "actql-native-cc-'original-")));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const tools = join(root, 'original tools'), scratch = join(root, 'scratch');
+  mkdirSync(tools);mkdirSync(scratch);
+  const compiler = join(tools, 'cc');
+  writeFileSync(compiler, '#!' + process.execPath + '\n' +
+    'console.log(JSON.stringify({args:process.argv.slice(2),allocator:process.env.MOONBIT_ALLOCATOR,' +
+    'current:process.env.ACTQL_FIXTURE_CURRENT}));process.exit(7);\n');
+  chmodSync(compiler, 0o700);
+  const env = {...process.env, PATH: tools + delimiter + process.env.PATH,
+    MOONBIT_ALLOCATOR: 'mimalloc', ACTQL_FIXTURE_CURRENT: 'same-original'};
+  delete env.MOON_CC;
+  const profile = nativeCoreCCompiler(root, scratch, env);
+  assert.deepEqual(Object.keys(profile), ['PATH']);
+  assert.equal(profile.PATH.split(delimiter)[1], tools);
+  for (const input of ['_build/native/release/test/pkg/pkg.whitebox_test.c',
+    '_build/native/release/build/pkg/pkg.c', 'src/original_stub.c']) {
+    const args = ['-fwrapv', '-O2', join(root, input), '-Wl,--start-group', 'original.a', '-Wl,--end-group'];
+    const result = spawnSync('cc', args, {cwd: root, env: {...env, ...profile},
+      encoding: 'utf8', timeout: 5000});
+    assert.ifError(result.error);assert.equal(result.signal, null);
+    assert.equal(result.status, 7, result.stderr);
+    assert.deepEqual(JSON.parse(result.stdout), {args: nativeCoreCArguments(root, args),
+      allocator: 'mimalloc', current: 'same-original'});
+  }
+  assert.equal(readFileSync(compiler, 'utf8').includes('process.exit(7)'), true);
+  assert.deepEqual(nativeCoreCCompiler(root, scratch, {...env, MOON_CC: compiler}), {});
+});
