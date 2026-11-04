@@ -365,7 +365,7 @@ test('installed row source retains public output across Host reopen',
 // GitHub's numeric identities are int64, not Number measurements or clocks.
 // These authored fixture titles independently contain decimal Number data.
 const issueTitleNumber = field => ({cast: {value: {substring: {
-  value: {field}, start: {literal: 7}}}, target: 'number'}});
+  value: {field}, start: {literal: 7}}}, target: {type: 'number'}}});
 
 test('retained acquired rows feed numeric group slots and two consumers',
   async t => {

@@ -183,6 +183,37 @@ test "GitHub Source prefix quotes retained occurrences without constructing futu
 }
 
 ///|
+test "GitHub first full row page does not quote two pages or a byte per label object" {
+  let page = github_source_read_prefix_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    47562,
+    original_node_http_header_bound(),
+    1,
+  ).unwrap()
+  assert_true(@execution.execution_capacity_execution_bytes(page) < 536870912L)
+  let next = github_source_read_prefix_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    47562,
+    original_node_http_header_bound(),
+    2,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(next) >
+    @execution.execution_capacity_retained_bytes(page),
+  )
+}
+
+///|
 test "GitHub Source request quantity covers original escaped node cursor and all fixed document families" {
   let node = "\u{1}".repeat(256)
   let cursor = "\u{2}".repeat(1024)

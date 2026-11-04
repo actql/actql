@@ -148,8 +148,16 @@ fn github_read_prefix_construction_capacity(
   // current row is kept; parser/index scratch is separately bounded below.
   let row_bytes = "{\"id\":\"\",\"updatedAt\":\"\"}".length().to_int64()
   let prefix_rows = total_bytes / row_bytes + 1L
-  let rows = Int64::min(2L * max_rows.to_int64(), prefix_rows)
-  let subjects = Int64::min(2L * max_subjects.to_int64(), prefix_rows)
+  // Each original decoder rejects an overfull page before constructing its
+  // row vector. One first response cannot already hold two full pages.
+  let rows = Int64::min(
+    Int64::min(2L, body_pages.to_int64()) * max_rows.to_int64(),
+    prefix_rows,
+  )
+  let subjects = Int64::min(
+    Int64::min(2L, body_pages.to_int64()) * max_subjects.to_int64(),
+    prefix_rows,
+  )
   // Key/value strings are not duplicated by native typed getters. Their
   // backing survives the parser through the row/subject/continuation owner.
   // Co-count the Issue+PullRequest row alternatives:16H39R21W per row includes
@@ -214,7 +222,11 @@ fn github_read_prefix_construction_capacity(
   // first<=100. Invalid larger arrays refuse before any finished row export.
   // Keep their possible temporary arrays in total_nodes above, not output.
   let output_items = Int64::min(
-    total_nodes,
+    // Native label/assignee elements require a complete original name/login
+    // object, even when its Text is empty. Enumerated subjects are larger.
+    // These disjoint source objects bound the emitted text-array items; an
+    // invalid current element remains in parser/index scratch, not row JSON.
+    total_bytes / "{\"name\":\"\"}".length().to_int64() + 1L,
     2L * rows * 100L + pages.to_int64() * 100L,
   )
   guard @execution.checked_preparation_add_product(
@@ -236,14 +248,14 @@ fn github_read_prefix_construction_capacity(
   guard @encode.text_writer_construction_inventory(
       wire.to_int(),
       output_nodes.to_int(),
-      max_depth + 4,
+      5,
     )
     is Some(writer) &&
     @source.json_construction_extent(
       wire.to_int(),
       output_nodes.to_int(),
-      max_depth + 4,
-      normalize_keys=true,
+      5,
+      normalize_keys=false,
     )
     is Some(output) else {
     return None
@@ -257,6 +269,11 @@ fn github_read_prefix_construction_capacity(
         // JS accumulated completed rows survive beside native closed pages.
         // This complete Source constructor conservatively bounds that same
         // plain JSON forest and backing; it is NOT another admission or parse.
+        // Native exports have fixed ASCII member names and at most five
+        // container levels (including the Comment page wrapper). Host
+        // JSON.parse preserves them; it does not normalize each body-sized
+        // hypothetical key. Raw provider parsing above keeps its original
+        // NFC mode/depth, and RowRun owns its separate Source admission.
         record_headers: output.record_headers,
         reference_slots: output.reference_slots,
         scalar_words: output.scalar_words,

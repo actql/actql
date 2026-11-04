@@ -165,6 +165,14 @@ row and total-response rejection limits keep their original values. The shared
 native Reader composes its response/binding/credential inventory with that
 original provider quantity; neither quantity issues permission or a new budget.
 
+The fixed native exports have ASCII member names and at most five container
+levels. Their Host `JSON.parse` tree uses the preserving construction inventory;
+it does not normalize a hypothetical body-sized key. Raw provider parsing keeps
+its original NFC/depth contract, and the RowRun separately owns row admission.
+Native label/assignee strings come from disjoint complete name/login objects,
+which bound emitted array-item counts before construction. An invalid partial
+element remains covered by the current raw parser/index workspace.
+
 A complete page consumes the original response charge once. A dependent reply
 without a complete page consumes that same charge as an observation before the
 next receive. The native codec still decides completeness and provider meaning.
