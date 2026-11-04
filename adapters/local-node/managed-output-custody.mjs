@@ -1,4 +1,3 @@
-import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 // Completion keeps the original Local operations until their installed
 // cleanup refresh confirms release. Reuse the common recovery progression;
 // it never starts or advances another Compute attempt.
@@ -171,7 +170,7 @@ export async function refreshCompletedLocalManagedScratch(operations, available)
   operations.cleanup_refresh();
   let previous = cleanupContinuation(operations);
   while (typeof previous === 'bigint' && previous >= 0n) {
-    await yieldEventLoop();
+    await new Promise(resolve => setTimeout(resolve, 0));
     if (!available()) throw new Error('ReleasedLocalManagedOutput');
     const ready = cleanupContinuation(operations);
     if (typeof ready !== 'bigint' || ready < previous) return;
