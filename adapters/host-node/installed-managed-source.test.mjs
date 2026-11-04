@@ -488,3 +488,27 @@ test('explicit Effect Host selects the same installed Site for its existing mana
   assert.deepEqual(calls, ['same-owner-selection']);
   assert.strictEqual(original.prepareManagedPlan(), plan);
 });
+
+test('dispatch retains an unreturned original Source preparation after physical cleanup', () => {
+  const text = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const functions = [];
+  visit(syntax, node => {
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'retire') functions.push(node);
+  });
+  assert.equal(functions.length, 1);
+  let returns = 0;
+  const entry = {settled: true, physicalStarted: false,
+    sourcePreparations: [{original: 'same unreturned preparation'}],
+    retirePreparation() {returns++;}};
+  const entries = new Map([['original', entry]]);
+  const retire = new Function('entries', 'keyOf',
+    text.slice(functions[0].start, functions[0].end) + ';return retire;')(entries, () => 'original');
+  retire(entry);
+  assert.equal(returns, 0);
+  assert.equal(entries.get('original'), entry);
+  entry.sourcePreparations = undefined;
+  retire(entry);
+  assert.equal(returns, 1);
+  assert.equal(entries.size, 0);
+});
