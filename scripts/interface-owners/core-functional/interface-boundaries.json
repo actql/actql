@@ -30499,6 +30499,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "An additional optional text proof uses the same complete checked sequence"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Captured record measurement"
               }
             ],
             "inputsOutputs": [
@@ -30597,6 +30601,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "An additional optional text proof uses the same complete checked sequence"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Captured record measurement"
               }
             ],
             "extension": [
@@ -30629,6 +30637,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "An additional optional text proof uses the same complete checked sequence"
+              },
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"two captured Sources retain every Event task under the original execution policy\""
               }
             ]
           }
@@ -30746,7 +30758,7 @@
           }
         }
       ],
-      "sha256": "5401f328c7fbcd3ce843d740a2220d05bf36a2c43e8365ad9c8d77ce1ffd9d4b",
+      "sha256": "80913563af49902762909d4885568071c92fa356b704b4807eb98b8517e3d6b4",
       "exports": [],
       "operations": [
         {

@@ -81,6 +81,23 @@ admission using the shared representation-cost helper. Neither a successful
 count nor this configuration is backing, execution permission, publication
 acceptance or a physical release acknowledgement.
 
+## Captured record measurement
+
+A captured Compute suffix retains the original complete Relation and Event
+record schemas in its value-node inventory. The fixed-input guard measures all
+input records and the selected output, sharing one node budget across both
+sides. Twice that same inventory bounds their simultaneous successful scan;
+row objects and omitted cells are included. The configured measurement and the
+selected provider's quote consume this same bound. Byte, text, depth, work and
+row policies remain independent and unchanged. Unknown or incomplete schemas
+retain the general measurement profile.
+
+This does not reinterpret Event storage as a Relation, alter Carrier constructor
+limits, or release predecessor reservations. Every task's original retained and
+execution envelopes still contributes to the coexisting installed Plan. The
+proof applies to physical record measurement, not evaluator intermediates or
+arbitrary external values.
+
 ## Metadata funding
 
 [`capacity_metadata.mbt`](../../src/client_local_host/capacity_metadata.mbt)

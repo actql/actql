@@ -165,6 +165,9 @@ test "captured Event suffix uses original record schemas without a closed Source
   assert_eq(plan.execution.rows.max_rows, 100)
   assert_eq(plan.values.max_text_bytes, 500000)
   assert_true(demand.nodes < client_local_general_value_nodes())
+  assert_eq(plan.measurement.max_nodes, 2 * demand.nodes)
+  assert_eq(plan.measurement.max_bytes, 500000)
+  assert_eq(plan.measurement.max_depth, 100)
   assert_true(client_local_capacity_plan_matches(plan, tail, 100))
   // The actual configured per-task reservations still coexist. No max-only
   // fold, retired input discount, sampled row count or smaller policy is used.
@@ -264,4 +267,98 @@ test "Signed64 record cells retain one value node without a numeric wire proof" 
   ).unwrap()
   assert_true(client_local_scalar_schema_width(schema) is None)
   assert_eq(client_local_json_schema_nodes(schema, 1, 1), Some((2L, 0)))
+}
+
+///|
+let captured_multi_events_schema_budget_program : String =
+  #|{"id":"captured-two-source-events-schema-budget","results":{"windowed":{"from":{"stage":"events","result":"r"}},"consumed":{"from":{"stage":"consumer","result":"r"}}},"stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"results":{"r":{"fields":["id"],"from":"captured"}},"steps":[{"as":"filtered","filter":"id > 0"},{"as":"captured","select":["id"]}]},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"results":{"r":{"fields":["id"],"from":"captured"}},"steps":[{"as":"filtered","filter":"id > 0"},{"as":"captured","select":["id"]}]},{"id":"join","inputs":{"l":{"result":{"stage":"left","result":"r"}},"r":{"result":{"stage":"right","result":"r"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":100,"select":{"id":"left.id","right_id":"right.id"}},"as":"joined"},{"from":"joined","sort":[{"id":"asc"}],"as":"out"}],"results":{"r":{"from":"out","fields":["id","right_id"]}}},{"id":"events","inputs":{"rows":{"result":{"stage":"join","result":"r"}}},"steps":[{"from":"rows","derive":{"clock_ms":{"cast":{"value":{"substring":{"value":{"literal":"event 1"},"start":{"literal":7}}},"target":{"type":"number"}}},"label":{"literal":"event"},"other_label":{"literal":"second"}},"as":"clocked"},{"from":"clocked","to_events":{"id":"id","time":"clock_ms"},"as":"source"},{"from":"source","window_events":{"kind":"fixed","size":2},"as":"windowed"},{"from":"windowed","events":true,"as":"bridged"},{"from":"bridged","filter":"id > 0","as":"kept"},{"from":"kept","select":["id","label","other_label","window_start_ms","window_end_ms"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label","other_label","window_start_ms","window_end_ms"]}}},{"id":"consumer","inputs":{"x":{"result":{"stage":"events","result":"r"}}},"steps":[{"select":["id","window_start_ms"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","window_start_ms"]}}}],"version":"actql/0.1"}
+
+///|
+test "two captured Sources retain every Event task under the original execution policy" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    captured_multi_events_schema_budget_program,
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let assets = @publication_host.client_local_product_assets()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let capacities = []
+  for index in 0..<2 {
+    let requirement = prepare_local_query_requirement(
+      prepared,
+      index,
+      0,
+      installed,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    ).unwrap()
+    capacities.push(
+      installed_row_capture_capacity(
+        original_row_acquisition_fixture(requirement),
+      ).unwrap(),
+    )
+  }
+  let request = @publication_host.prepare_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "captured-multi-event-budget",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let capture = prepare_installed_managed_capture_plan(
+    prepared,
+    request,
+    capacities,
+    [4096L, 4096L],
+    [2048L, 2048L],
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  let plan = capture.capacity_plan
+  println(
+    "MULTI_EVENT tasks=\{@strategy.graph_task_count(capture.graph)} nodes=\{plan.values.max_nodes} retained=\{capture.limits.retained_bytes} execution=\{capture.limits.execution_bytes} proof=\{plan.value_node_demand is Some(_)}",
+  )
+  let mut all_tasks = 0L
+  let mut largest_task = 0L
+  for task in 2..<@strategy.graph_task_count(capture.graph) {
+    let envelope = @local_driver.local_dispatch_preparation_task_capacity(
+      capture.configuration.dispatch,
+      task,
+    ).unwrap()
+    all_tasks += envelope.execution_bytes
+    largest_task = Int64::max(largest_task, envelope.execution_bytes)
+  }
+  // Every original reservation survives with its downstream borrowers.
+  // A maximum-only fold would pass the ceiling but lose those obligations.
+  assert_eq(@strategy.graph_task_count(capture.graph), 10)
+  assert_eq(@strategy.graph_result_count(capture.graph), 2)
+  assert_eq(capture.limits.execution_bytes, all_tasks)
+  assert_true(all_tasks > largest_task)
+  assert_eq(
+    plan.measurement.max_nodes,
+    2 * plan.value_node_demand.unwrap().nodes,
+  )
+  assert_eq(plan.measurement.max_bytes, 500000)
+  assert_eq(plan.values.max_text_bytes, 500000)
+  assert_eq(plan.execution.rows.max_rows, 100)
+  assert_eq(capture.captures.length(), 2)
+  assert_true(capture.limits.execution_bytes <= 536870912L)
+  assert_true(capture.limits.retained_bytes <= 536870912L)
 }

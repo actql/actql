@@ -153,8 +153,10 @@ fn client_local_capacity_plan(
   // budget across input and final-output scans; two sides bound that budget.
   // Configure its actual constructor as well as the quote. Unknown/foreign
   // references keep the original envelope; byte/depth/work and Fragment
-  // execution limits are independent and remain unchanged.
-  let measurement = if content is Some(_) &&
+  // execution limits are independent and remain unchanged. Captured suffixes
+  // use the same complete record proof, including Event record projections;
+  // Carrier-private storage is not measured as a synthetic row here.
+  let measurement = if (content is Some(_) || graph_offset > 0) &&
     value_node_demand is Some(demand) &&
     demand.nodes <= 1073741823 {
     {
