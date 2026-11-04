@@ -73,6 +73,32 @@ test('close returns a paused Local reader before releasing its lease', async () 
   assert.equal(f.calls.includes('cancel'), false);
 });
 
+test('client-initiated close reports original frame cleanup uncertainty after releasing its lease', async () => {
+  const cleanup = new Error('frame cleanup uncertain');
+  let returns = 0, releases = 0;
+  const f = await local(() => ({kind: 'rows', frames: {
+    [Symbol.asyncIterator]() {return {
+      async next() {return {done: false, value: {value: {n: 7}, byteLength: 7}};},
+      async return() {returns++; throw cleanup;},
+    };},
+  }}), async () => {releases++;});
+  const reader = f.result.rows();
+  await reader[Symbol.asyncIterator]().next();
+  await assert.rejects(f.client.close(), error => {
+    assert.equal(error.code, 'ResultReadCleanupUnknown');
+    assert.equal(explainReadFailure(error).cleanup, 'unknown');
+    assert.equal(explainReadFailure(error).attemptId, reader.attemptId);
+    return true;
+  });
+  assert.equal(releases, 1);
+  assert.equal(returns, 1);
+  // Reporting uncertainty supplies no retry witness for this finished iterator.
+  await f.client.close();
+  assert.equal(releases, 1);
+  assert.equal(returns, 1);
+  assert.equal(f.calls.includes('cancel'), false);
+});
+
 test('close returns a paused batch wrapper and discards its buffered next row', async () => {
   let returns = 0;
   const f = await local(() => ({kind: 'rows', frames: {

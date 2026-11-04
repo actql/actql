@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, {mock} from 'node:test';
+import {connect} from './index.mjs';
 import {connectInProcess} from './host-port.mjs';
 import {submissionEpoch} from './submission-fixture.mjs';
 
@@ -60,4 +61,43 @@ test('typed frame wire refusal precedes row capture and retains cleanup', async 
   const f = await fixture(t, {value: {get text() {cells++; assert.fail('RowBeforeWireAdmission');}}, byteLength: 129});
   await assert.rejects(f.result.all(), {code: 'ResultRowWireLimit'});
   assert.equal(cells, 0); assert.deepEqual(f.cleanup(), {returns: 1, closes: 1});
+});
+
+test('typed Result values reject noncanonical scalars before application validation', async t => {
+  for (const value of [Infinity, -Infinity, NaN, -0, '\ud800']) {
+    let validations = 0;
+    const f = await fixture(t, {value: {nested: [value]}, byteLength: 32});
+    const schema = {'~standard': {version: 1, vendor: 'typed-result-capture',
+      validate(row) {validations++; return {value: row};}}};
+    await assert.rejects(f.result.all(schema), {code: 'InvalidResultFrame'});
+    assert.equal(validations, 0);
+    assert.deepEqual(f.cleanup(), {returns: 1, closes: 1});
+  }
+});
+
+test('HTTP Result rows reject invalid values and decoded duplicate keys', async t => {
+  let wire, reads = 0, validations = 0;
+  mock.method(globalThis, 'fetch', async url => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json({...profile, mode: 'remote', owner: 'remote'});
+    if (operation === 'attach') return Response.json(admission);
+    assert.equal(operation, 'read'); reads++;
+    return new Response(wire + '\n\x1e');
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect({mode: 'remote', endpoint: 'https://example.invalid/', token: 'token'});
+  t.after(() => client.close());
+  const result = (await client.attach(ref)).result('answer');
+  const schema = {'~standard': {version: 1, vendor: 'typed-result-capture',
+    validate(row) {validations++; return {value: row};}}};
+  const invalid = ['{"n":1e400}', '{"n":-0}', '{"n":"\\ud800"}',
+    '{"n":1,"n":2}', '{"n":1,"\\u006e":2}', '{"nested":[{"x":1,"x":2}]}'];
+  for (wire of invalid) {
+    await assert.rejects(result.all(schema), {code: 'InvalidResultFrame'});
+  }
+  assert.equal(validations, 0);
+  assert.equal(reads, invalid.length);
+  // Repeated keys in different objects and punctuation inside strings are valid.
+  wire = '{"nested":[{"x":1},{"x":2}],"text":"\\\"x\\\":{},[]","exact":"é\\r\\n"}';
+  assert.deepEqual(await result.all(), [JSON.parse(wire)]);
 });
