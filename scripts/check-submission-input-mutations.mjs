@@ -531,9 +531,10 @@ const accepted = (phase, assertion) => {
     : phase === 'check-locale-snapshot' ? sdkAcceptance
     : phase.startsWith('frontier-') || phase.startsWith('check-') ? checkAcceptance
     : phase.startsWith('cancellation-') ? cancellationAcceptance : acceptance;
+  const escape = value => value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const result = spawnSync(process.execPath, ['scripts/local-checks.mjs', 'test', 'node',
     '--timeout-seconds', '120', '--', '--test-name-pattern',
-    `^(?:${tests.map(value => value.name).join('|')})$`, file],
+    `^(?:${tests.map(value => escape(value.name)).join('|')})$`, file],
   {encoding: 'utf8', timeout: 130000, maxBuffer: 16 * 1024 * 1024});
   return mutationAcceptance(result, tests, file);
 };
@@ -557,6 +558,11 @@ const originals = new Map(selected.map(([, , , phase, , , sourceFile]) => mutati
 const buildOperationInputRuntime = () => execFileSync('moon',
   ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'],
   {stdio: 'inherit', timeout: 120000});
+const groups = new Map(selected.map(([, , , phase, assertion]) =>
+  [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));
+const baselines = [...groups.values()].map(({phase, assertion}) =>
+  ({phase, assertion, accepted: accepted(phase, assertion)}));
+if (baselines.some(result => !result.accepted)) throw new Error('Mutation baseline refused');
 const results = [];
 try {
   for (const [name, from, to, phase, assertion, additional = [], sourceFile] of selected) {
@@ -594,8 +600,7 @@ try {
   for (const [file, original] of originals) writeFileSync(file, original);
   if (originals.has('src/program_check/diagnostic_category.mbt')) buildOperationInputRuntime();
 }
-const restorations = new Map(selected.map(([, , , phase, assertion]) =>
-  [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));
-const restoredAccepted = [...restorations.values()].every(({phase, assertion}) => accepted(phase, assertion));
-console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
-if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
+const restoredSources = [...originals].every(([file, original]) => readFileSync(file, 'utf8') === original);
+const restoredAccepted = [...groups.values()].every(({phase, assertion}) => accepted(phase, assertion));
+console.log(JSON.stringify({baselines, mutations: results, restoredSources, restoredAccepted}, null, 2));
+if (!restoredSources || !restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
