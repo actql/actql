@@ -887,6 +887,11 @@ test "single native Model retains original Request Query capacity without a Row 
   )
   let loader = publication_test_loader(publication_test_url())
   let source_ref = f.declaration.unwrap().views[0].source_ref
+  let capacity = f.parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(
+    capacity,
+    f.input,
+  ).unwrap()
   let original = prepare_request_model_capture_module(
     f.parent,
     f.input,
@@ -910,6 +915,24 @@ test "single native Model retains original Request Query capacity without a Row 
       capture_parent_contract(loader, "actql-query-two-receipt.json"),
     ),
   ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, f.input).unwrap()
+  let legacy = request_model_material_body_bytes(3, index => {
+    capture_parent_contract(
+      loader,
+      if index == 0 {
+        "actql-query-acquisition.json"
+      } else if index == 1 {
+        "actql-query-process-evidence.json"
+      } else {
+        "actql-query-two-receipt.json"
+      },
+    )
+  }).unwrap()
+  // These actual protocols contain long schema Strings. Preserve the old
+  // live Request debit, without adding a hypothetical node per wire byte.
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(after.0 - before.0 < legacy)
+  assert_true(after.1 - before.1 < legacy)
   assert_eq(original.captures.length(), 1)
   let capture = original.captures[0]
   assert_false(capture.original_input)
@@ -3397,4 +3420,27 @@ test "captured unavailable originals receive no missing-copy credit or provider 
   @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "native protocol preflight sizes a long String as one node and retains old refusal fallback" {
+  let wire = "\"" + "x".repeat(12000) + "\""
+  let geometry = request_model_material_source_geometry(wire).unwrap()
+  assert_eq(geometry.0, 12002)
+  assert_eq(geometry.1, 1)
+  let actual = request_model_material_body_bytes(
+    1,
+    _ => wire,
+    source_geometry=true,
+  ).unwrap()
+  let legacy = request_model_material_body_bytes(1, _ => wire).unwrap()
+  assert_true(actual < legacy / 10L)
+  let malformed = String::from_array([(0xd800).unsafe_to_char()])
+  for refused in ["", malformed] {
+    assert_true(request_model_material_source_geometry(refused) is None)
+    assert_eq(
+      request_model_material_body_bytes(1, _ => refused, source_geometry=true),
+      request_model_material_body_bytes(1, _ => refused),
+    )
+  }
 }
