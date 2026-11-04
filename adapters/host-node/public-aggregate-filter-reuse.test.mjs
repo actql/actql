@@ -85,12 +85,12 @@ for (const mode of ['local', 'https']) {
         const run = await client.startSource(item.text, options);
         const state = await run.wait({signal: AbortSignal.timeout(15_000)});
         assert.equal(state.status, 'succeeded', item.name + ': ' + JSON.stringify(state));
-        assert.deepEqual(await run.result('answer').all(), item.expected, item.name);
-        assert.deepEqual((await run.result('answer').describe()).columns,
+        assert.deepEqual(await run.result('main').all(), item.expected, item.name);
+        assert.deepEqual((await run.result('main').describe()).columns,
           Object.keys(item.expected[0]).map(name => ({name, contract: number})), item.name);
         const before = dispatches();
         assert.deepEqual((await client.startSource(item.text, options)).ref, run.ref);
-        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(), item.expected, item.name);
+        assert.deepEqual(await (await client.attach(run.ref)).result('main').all(), item.expected, item.name);
         assert.equal(dispatches(), before, item.name + ': resend/attach must not execute again');
       }
     });
@@ -115,7 +115,7 @@ for (const mode of ['local', 'https']) {
         {format: 'sql', submissionRef: client.newSubmission({nonce: 'demanded-error'})});
       const state = await run.wait({signal: AbortSignal.timeout(15_000)});
       assert.equal(state.status, 'failed', JSON.stringify(state));
-      await assert.rejects(run.result('answer').all());
-      await assert.rejects(run.result('answer').describe());
+      await assert.rejects(run.result('main').all());
+      await assert.rejects(run.result('main').describe());
     });
 }
