@@ -4,6 +4,14 @@ import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, relative, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
+import {EventEmitter} from 'node:events';
+import {Readable, Writable} from 'node:stream';
+import {types} from 'node:util';
+import {syncBuiltinESMExports} from 'node:module';
+import http from 'node:http';
+import https from 'node:https';
+import net from 'node:net';
+import tls from 'node:tls';
 import './local-node-declared-exports.test.mjs';
 import './external-installed-helper-types.test.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
@@ -12,6 +20,8 @@ import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
 import {buildExternalLocalNodeRuntime} from './build-runtime-packages.mjs';
 import {ownHttpRequest} from '../adapters/host-common/http-exchange.mjs';
+import {httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix,
+  httpsCredentialResponseReadQuantum} from '../adapters/site-node/https-credential-resource.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 function fixture(t, {collision = false, adapterImport, deferAdapterImport = false} = {}) {
@@ -416,5 +426,73 @@ for (const missing of ['sourceReaderImplementation', 'createSourceReader']) {
       configurationReader: {readOriginalText() {assert.fail('No text');}, readJson() {assert.fail('No configuration');}}};
     delete construction[missing];
     await assert.rejects(load({}, {construction}), {code: 'ExternalReadConstructionUnavailable'});
+  });
+}
+
+async function originalExternalTransportReceiver() {
+  const {parse} = await import('acorn');
+  const fixture = readFileSync(join(repository, 'scripts/fixtures/external-installed/consumer.mjs'), 'utf8');
+  const resource = readFileSync(join(repository, 'adapters/site-node/https-credential-resource.mjs'), 'utf8');
+  const declaration = (source, name) => parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
+    .find(node => node?.type === 'FunctionDeclaration' && node.id.name === name);
+  const transport = declaration(fixture, 'captureFixtureTransport');
+  const receiver = declaration(resource, 'receive');
+  assert(transport && receiver);
+  // Execute both original bodies. Node HTTP/stream ports are explicit here;
+  // this does not issue Account, Credential, Common or physical socket ACKs.
+  const capture = Function('assert', 'https', 'http', 'net', 'tls', 'EventEmitter',
+    'Readable', 'Writable', 'syncBuiltinESMExports',
+    `${fixture.slice(transport.start, transport.end)}; return captureFixtureTransport;`)(
+    assert, https, http, net, tls, EventEmitter, Readable, Writable, syncBuiltinESMExports);
+  const receive = Function('httpsRequest', 'httpsCredentialResponseHeaderByteLimit',
+    'httpsCredentialAuthorizationPrefix', 'Buffer', 'types', 'nativePromiseThen',
+    'httpsCredentialResponseReadQuantum', 'fail', `${resource.slice(receiver.start, receiver.end)}; return receive;`)(
+    (...args) => https.request(...args), httpsCredentialResponseHeaderByteLimit,
+    httpsCredentialAuthorizationPrefix, Buffer, types, Promise.prototype.then,
+    httpsCredentialResponseReadQuantum, code => {throw Object.assign(new Error(code), {code});});
+  return {capture, receive};
+}
+
+for (const mode of ['ok', 'hold', 'lost-response']) {
+  test(`external fixture original HTTP receiver observes stream close (${mode})`, async t => {
+    const {capture, receive} = await originalExternalTransportReceiver();
+    const transport = capture(); t.after(() => transport.restore());
+    const controller = new AbortController(); t.after(() => controller.abort());
+    const effect = mode === 'lost-response';
+    transport.state.readMode = mode === 'hold' ? 'hold' : 'ok';
+    transport.state.effectMode = mode;
+    const binding = {}, charges = [];
+    let outcome = {kind: 'pending'};
+    const pending = receive({hostname: effect ? 'external-effect.fixture.invalid' : 'external-read.fixture.invalid',
+      path: effect ? '/events' : '/records?page=0', method: effect ? 'POST' : 'GET',
+      ...(effect ? {body: '{"key":"original","note":"literal note"}'} : {}),
+      requestBytes: effect ? Buffer.byteLength('{"key":"original","note":"literal note"}') : 0,
+      secret: 'fixture-only-token', headers: [], signal: controller.signal,
+      maxResponseBytes: 4096, binding, observeResponseBytes: count => {charges.push(count);}});
+    pending.then(value => {outcome = {kind: 'resolved', value};}, error => {outcome = {kind: 'rejected', error};});
+    const request = binding.request;
+    await new Promise(setImmediate); await new Promise(setImmediate);
+    if (mode === 'hold') {
+      assert.equal(outcome.kind, 'pending');
+      assert.equal(request.destroyed, false);
+      controller.abort();
+      await new Promise(setImmediate); await new Promise(setImmediate);
+      assert.equal(outcome.kind, 'rejected');
+      assert.equal(outcome.error.code, 'ABORT_ERR');
+    } else if (effect) {
+      assert.equal(outcome.kind, 'rejected');
+      assert.equal(outcome.error.code, 'ECONNRESET');
+      assert.deepEqual(transport.state.events, [{key: 'original', note: 'literal note'}]);
+    } else {
+      assert.equal(outcome.kind, 'resolved');
+      assert.deepEqual(JSON.parse(outcome.value.body.toString()),
+        {items: [{key: 'alpha', amount: 7}, {key: 'beta', amount: 2}], next: 1});
+      assert.equal(charges.reduce((sum, count) => sum + count, 0), outcome.value.body.byteLength);
+    }
+    assert.equal(request.closed, true);
+    assert.equal(binding.request, undefined);
+    assert.equal(transport.state.requests.length, 1);
+    assert.equal(transport.state.forbiddenNetworkCalls, 0);
   });
 }
