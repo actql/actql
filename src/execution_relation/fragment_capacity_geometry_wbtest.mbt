@@ -343,7 +343,7 @@ fn text_number_geometry_sequence() -> (
     registered_relation_contracts(),
     sequence,
     [context],
-    ["out"],
+    ["derive_1"],
     100000,
     10000,
   ).unwrap()
@@ -413,10 +413,21 @@ test "bounded text-number leaf geometry retains the actual scalar copy allowance
     execution_capacity_node_bytes(),
   )
   assert_true(
-    run_expr("\"CAST(SUBSTRING('Issue 5', 7) AS NUMBER)\"") is Ok(Number(5.0)),
+    run_expr(
+      cast_test_expression(
+        "{\"substring\":{\"value\":{\"literal\":\"Issue 5\"},\"start\":{\"literal\":7}}}",
+        "{\"type\":\"number\"}",
+      ),
+    )
+    is Ok(Number(5.0)),
   )
   assert_true(
-    run_expr("\"CAST(SUBSTRING('Issue nope', 7) AS NUMBER)\"")
+    run_expr(
+      cast_test_expression(
+        "{\"substring\":{\"value\":{\"literal\":\"Issue nope\"},\"start\":{\"literal\":7}}}",
+        "{\"type\":\"number\"}",
+      ),
+    )
     is Err({ kind: Scalar(InvalidOperand), .. }),
   )
 }
