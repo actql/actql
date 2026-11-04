@@ -1,0 +1,910 @@
+{
+  "qualification": "Source semantics only; runtime caller, native allocation and artifact acceptance are separate",
+  "declarations": [
+    {
+      "module": "src/sourceview_resolution/keyed_rows.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "391ac12ba5382b7835b31f20b118d8cf662cc466fea5c9d054cd25c4431bac38",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_keyed_row_bounds",
+          "declaration": "check_keyed_row_bounds ( facts : CheckedKeyedFacts , bounds : Array [ @ capacity . TargetRows ] , max_work : Int , ) - > Result [ KeyedRowBounds , KeyedRowsIssue ]"
+        },
+        {
+          "name": "check_keyed_row_estimates",
+          "declaration": "check_keyed_row_estimates ( facts : CheckedKeyedFacts , bounds : Array [ @ capacity . TargetRows ? ] , max_work : Int , ) - > Result [ KeyedRowBounds , KeyedRowsIssue ]"
+        },
+        {
+          "name": "keyed_rows_at",
+          "declaration": "keyed_rows_at ( v : KeyedRowBounds , i : Int ) - > @ capacity . TargetRows ?"
+        },
+        {
+          "name": "keyed_rows_count",
+          "declaration": "keyed_rows_count ( v : KeyedRowBounds ) - > Int"
+        },
+        {
+          "name": "keyed_rows_facts",
+          "declaration": "keyed_rows_facts ( v : KeyedRowBounds ) - > CheckedKeyedFacts"
+        },
+        {
+          "name": "keyed_rows_requirement_at",
+          "declaration": "keyed_rows_requirement_at ( v : KeyedRowBounds , i : Int , ) - > KeyedRowRequirement ?"
+        },
+        {
+          "name": "keyed_rows_work",
+          "declaration": "keyed_rows_work ( v : KeyedRowBounds ) - > Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_keyed_row_bounds",
+            "check_keyed_row_estimates",
+            "keyed_rows_at",
+            "keyed_rows_count",
+            "keyed_rows_facts",
+            "keyed_rows_requirement_at",
+            "keyed_rows_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/sourceview_resolution/lookup_bounds.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "4c0df7d041a3d055dd8e827694060994f671872928d9d078aed6eb77f42238d6",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_lookup_bounds",
+          "declaration": "check_lookup_bounds ( rows : KeyedRowBounds , policy : @ environment . LookupExecution , max_work : Int , ) - > Result [ LookupBounds , LookupBoundsIssue ]"
+        },
+        {
+          "name": "lookup_bounds_at",
+          "declaration": "lookup_bounds_at ( v : LookupBounds , i : Int ) - > LookupCounts ?"
+        },
+        {
+          "name": "lookup_bounds_count",
+          "declaration": "lookup_bounds_count ( v : LookupBounds ) - > Int"
+        },
+        {
+          "name": "lookup_bounds_policy",
+          "declaration": "lookup_bounds_policy ( v : LookupBounds ) - > @ environment . LookupExecution"
+        },
+        {
+          "name": "lookup_bounds_rows",
+          "declaration": "lookup_bounds_rows ( v : LookupBounds ) - > KeyedRowBounds"
+        },
+        {
+          "name": "lookup_bounds_work",
+          "declaration": "lookup_bounds_work ( v : LookupBounds ) - > Int"
+        },
+        {
+          "name": "lookup_counts",
+          "declaration": "lookup_counts ( rows : Int64 , batch_cap : Double ? , pages : Int64 , per_key : Int64 , page_bytes : Int64 , attempts : Int64 , ) - > LookupCounts ?"
+        },
+        {
+          "name": "lookup_product",
+          "declaration": "lookup_product ( a : Int64 , b : Int64 ) - > Int64 ?"
+        },
+        {
+          "name": "lookup_requirement_admission",
+          "declaration": "lookup_requirement_admission ( v : LookupRequirement ) - > LookupAdmission"
+        },
+        {
+          "name": "lookup_requirement_at",
+          "declaration": "lookup_requirement_at ( v : LookupBounds , i : Int ) - > LookupRequirement ?"
+        },
+        {
+          "name": "lookup_requirement_estimate",
+          "declaration": "lookup_requirement_estimate ( v : LookupRequirement ) - > LookupCounts ?"
+        },
+        {
+          "name": "lookup_requirement_join",
+          "declaration": "lookup_requirement_join ( v : LookupRequirement ) - > KeyedJoin"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_lookup_bounds",
+            "lookup_bounds_at",
+            "lookup_bounds_count",
+            "lookup_bounds_policy",
+            "lookup_bounds_rows",
+            "lookup_bounds_work",
+            "lookup_counts",
+            "lookup_product",
+            "lookup_requirement_admission",
+            "lookup_requirement_at",
+            "lookup_requirement_estimate",
+            "lookup_requirement_join"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/pipeline_check_context/source_row_selection.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "5113a0603e2d3547c249d5886c5c45181348c59e79eeb464846f4f362be7a37c",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "select_source_acquisition_rows",
+          "declaration": "select_source_acquisition_rows ( requests : SourceRequestContexts , max_work : Int , ) - > Result [ ( SourceRowContexts , Array [ Array [ @ capacity . TargetMembership ? ] ] ) , PrepareSourcesIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "select_source_acquisition_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/pipeline_check_context/source_producers.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "3421c0d07188c50224f86c35ae78e90dbbcacef55302c509a4c54ba64c1a35b5",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_source_producers",
+          "declaration": "bind_source_producers ( capacity : SourceCapacityContext , locations : Array [ Array [ ( Int , Int ) ] ] , max_work : Int , ) - > Result [ SourceProducerContext , SourceProducerIssue ]"
+        },
+        {
+          "name": "source_producer_at",
+          "declaration": "source_producer_at ( v : SourceProducerContext , stage : Int , join : Int , ) - > @ capacity . TargetMembership ?"
+        },
+        {
+          "name": "source_producer_capacity",
+          "declaration": "source_producer_capacity ( v : SourceProducerContext , ) - > SourceCapacityContext"
+        },
+        {
+          "name": "source_producer_work",
+          "declaration": "source_producer_work ( v : SourceProducerContext ) - > Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_source_producers",
+            "source_producer_at",
+            "source_producer_capacity",
+            "source_producer_work"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/pipeline_check_context/prepare_sources.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "8432d6b97eee54aaf2c47e7247947ea2f4ffe029c91ce2bf31391b06b5f0ff38",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_program_source_acquisitions",
+          "declaration": "prepare_program_source_acquisitions ( selected : SelectedPolicyContext , locations : Array [ Array [ ( Int , Int ) ] ] , limits : @ sourceviews . RequestLimits , max_bindings ~ : Int , max_slots ~ : Int , ) - > Result [ SourceProducerContext , PrepareSourcesIssue ]"
+        },
+        {
+          "name": "prepare_program_source_acquisitions_auto",
+          "declaration": "prepare_program_source_acquisitions_auto ( selected : SelectedPolicyContext , limits : @ sourceviews . RequestLimits , max_bindings ~ : Int , max_slots ~ : Int , ) - > Result [ SourceProducerContext , PrepareSourcesIssue ]"
+        },
+        {
+          "name": "prepare_program_sources",
+          "declaration": "prepare_program_sources ( selected : SelectedPolicyContext , bounds : Array [ Array [ @ step_bounds . TargetRows ] ] , locations : Array [ Array [ ( Int , Int ) ] ] , limits : @ sourceviews . RequestLimits , max_bindings ~ : Int , max_slots ~ : Int , ) - > Result [ SourceProducerContext , PrepareSourcesIssue ]"
+        },
+        {
+          "name": "prepare_program_sources_internal",
+          "declaration": "prepare_program_sources_internal ( selected : SelectedPolicyContext , bounds : Array [ Array [ @ step_bounds . TargetRows ] ] ? , locations : Array [ Array [ ( Int , Int ) ] ] ? , limits : @ sourceviews . RequestLimits , max_bindings ~ : Int , max_slots ~ : Int , ) - > Result [ SourceProducerContext , PrepareSourcesIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_program_source_acquisitions",
+            "prepare_program_source_acquisitions_auto",
+            "prepare_program_sources",
+            "prepare_program_sources_internal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/program_check/source_execution.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "d768d093feee8749c3271482b044d948bfc3d9b48e8b9cf566723e27e0a37398",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "keyed_execution_producer_matches",
+          "declaration": "keyed_execution_producer_matches ( bounds : @ sourceviews . LookupBounds , index : Int , join : @ sourceviews . KeyedJoin , membership : @ capacity . TargetMembership ? , ) - > Bool"
+        },
+        {
+          "name": "prepare_source_execution",
+          "declaration": "prepare_source_execution ( identity : @ context . ProgramSourceIdentity , budget : IdentityBudget , request_value_policies ? : Array [ HostRequestValuePolicyEvidence ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "keyed_execution_producer_matches",
+            "prepare_source_execution"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/program_check/check.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "88636b72f73903851e3d1fe63e7479dd8aac149adc6344ae34d4139ea5950098",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "audit_source_execution",
+          "declaration": "audit_source_execution ( inventory : @ context . CoreContractInventory , checks : Array [ SourceExecution ] , budget : IdentityBudget , ) - > Unit raise UnitBuildFailure"
+        },
+        {
+          "name": "check",
+          "declaration": "check ( program : @ syntax . Program , environment : @ environment . WireEnvironment , supplied : @ decode . Cursor ? , material : Array [ Array [ @ context . CapacityMaterial ] ] , expression_profiles : @ context . ExpressionProfiles , operation_profiles : @ context . PureOperationProfiles , limits : SourceLimits , max_work ~ : Int , max_bytes ~ : Int , max_nodes ~ : Int , max_depth ~ : Int , numeric_profile ? : @ numeric . Profile ?"
+        },
+        {
+          "name": "check_after_prelude",
+          "declaration": "check_after_prelude ( program : @ syntax . Program , environment : @ environment . WireEnvironment , supplied : @ decode . Cursor ? , material : Array [ Array [ @ context . CapacityMaterial ] ] , expression_profiles : @ context . ExpressionProfiles , operation_profiles : @ context . PureOperationProfiles , limits : SourceLimits , budget : IdentityBudget , declaration_work : Int , has_effects ~ : Bool , numeric_profile ? : @ numeric . Profile ?"
+        },
+        {
+          "name": "check_supported_source",
+          "declaration": "check_supported_source ( program : @ syntax . Program , budget : IdentityBudget , ) - > Unit raise LocalConstructionFailure"
+        },
+        {
+          "name": "checked_catalog_references",
+          "declaration": "checked_catalog_references ( program : CheckedProgram , ) - > @ environment . CatalogReferences"
+        },
+        {
+          "name": "checked_environment",
+          "declaration": "checked_environment ( program : CheckedProgram , ) - > @ environment . WireEnvironment"
+        },
+        {
+          "name": "checked_model_tasks",
+          "declaration": "checked_model_tasks ( program : CheckedProgram , ) - > @ environment . ModelTasks ?"
+        },
+        {
+          "name": "checked_program_has_effects",
+          "declaration": "checked_program_has_effects ( program : CheckedProgram ) - > Bool"
+        },
+        {
+          "name": "checked_selected_policy",
+          "declaration": "checked_selected_policy ( program : CheckedProgram , ) - > @ context . SelectedPolicyContext"
+        },
+        {
+          "name": "checked_stage_results",
+          "declaration": "checked_stage_results ( program : CheckedProgram ) - > @ results . Checked"
+        },
+        {
+          "name": "requirements",
+          "declaration": "requirements ( program : CheckedProgram , ) - > @ context . StageRequirementClosure"
+        },
+        {
+          "name": "unit_count",
+          "declaration": "unit_count ( program : CheckedProgram ) - > Int"
+        },
+        {
+          "name": "unit_definition_cid",
+          "declaration": "unit_definition_cid ( program : CheckedProgram , index : Int ) - > String ?"
+        },
+        {
+          "name": "unit_pipeline",
+          "declaration": "unit_pipeline ( program : CheckedProgram , index : Int , ) - > @ pipeline . CheckedPipeline ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "audit_source_execution",
+            "check",
+            "check_after_prelude",
+            "check_supported_source",
+            "checked_catalog_references",
+            "checked_environment",
+            "checked_model_tasks",
+            "checked_program_has_effects",
+            "checked_selected_policy",
+            "checked_stage_results",
+            "requirements",
+            "unit_count",
+            "unit_definition_cid",
+            "unit_pipeline"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/program_check/keyed_input_proof.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "739f89ee9e67c69abe21fb8d8b74698cca779d072aabd067187d9a24c65d6388",
+      "role": "common-semantics",
+      "owner": "Existing SourceView, pipeline producer context and checked Program owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "keyed_execution_requirement",
+          "declaration": "keyed_execution_requirement ( value : KeyedExecution ) - > @ sourceviews . LookupRequirement"
+        },
+        {
+          "name": "keyed_input_proof_acquired",
+          "declaration": "keyed_input_proof_acquired ( value : KeyedInputProof , ) - > ReidentifiedSourceInput ?"
+        },
+        {
+          "name": "keyed_input_proof_at",
+          "declaration": "keyed_input_proof_at ( program : CheckedProgram , index : Int , ) - > KeyedInputProof ?"
+        },
+        {
+          "name": "keyed_input_proof_bound",
+          "declaration": "keyed_input_proof_bound ( value : KeyedInputProof ) - > ReidentifiedStep ?"
+        },
+        {
+          "name": "keyed_input_proof_count",
+          "declaration": "keyed_input_proof_count ( program : CheckedProgram ) - > Int"
+        },
+        {
+          "name": "keyed_input_proof_execution",
+          "declaration": "keyed_input_proof_execution ( value : KeyedInputProof ) - > SourceExecution"
+        },
+        {
+          "name": "keyed_input_proof_source",
+          "declaration": "keyed_input_proof_source ( value : KeyedInputProof ) - > UnitOperationSource"
+        },
+        {
+          "name": "keyed_input_runtime_admission",
+          "declaration": "keyed_input_runtime_admission ( value : KeyedInputProof ) - > KeyedExecution ?"
+        },
+        {
+          "name": "prepare_keyed_input_proofs",
+          "declaration": "prepare_keyed_input_proofs ( units : Array [ BuiltUnit ] , checks : Array [ SourceExecution ] , budget : IdentityBudget , conversion ? : ProofConversion ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "keyed_execution_requirement",
+            "keyed_input_proof_acquired",
+            "keyed_input_proof_at",
+            "keyed_input_proof_bound",
+            "keyed_input_proof_count",
+            "keyed_input_proof_execution",
+            "keyed_input_proof_source",
+            "keyed_input_runtime_admission",
+            "prepare_keyed_input_proofs"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_check/keyed-runtime-obligation-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ pub enum SourceProducerIssue {
   InvalidLimits
   StageCountMismatch
   JoinCountMismatch(Int)
+  MissingEstimate(Int, Int)
   BudgetExceeded
   Membership(Int, Int, @capacity.TargetMembershipIssue)
 }
@@ -10,7 +11,7 @@ pub enum SourceProducerIssue {
 ///|
 struct SourceProducerContext {
   capacity : SourceCapacityContext
-  memberships : Array[Array[@capacity.TargetMembership]]
+  memberships : Array[Array[@capacity.TargetMembership?]]
   work : Int
 }
 
@@ -51,17 +52,20 @@ pub fn bind_source_producers(
       }
       work += 1
       let (visit, claim) = locations[i][j]
+      guard @sourceviews.keyed_rows_at(bounds, j) is Some(rows) else {
+        return Err(MissingEstimate(i, j))
+      }
       let result = match
         @capacity.bind_target_membership(
           closure,
-          @sourceviews.keyed_rows_at(bounds, j).unwrap(),
+          rows,
           visit,
           claim,
         ) {
         Ok(v) => v
         Err(e) => return Err(Membership(i, j, e))
       }
-      owned.push(result)
+      owned.push(Some(result))
     }
     memberships.push(owned)
   }
@@ -86,5 +90,5 @@ pub fn source_producer_at(
   stage : Int,
   join : Int,
 ) -> @capacity.TargetMembership? {
-  v.memberships.get(stage).bind(entries => entries.get(join))
+  v.memberships.get(stage).bind(entries => entries.get(join).bind(value => value))
 }

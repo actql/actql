@@ -1,0 +1,615 @@
+{
+  "qualification": "Exact original wire and empty-ModelTask constructor source correspondence; not complete Catalog, physical backing, installed artifact or release acceptance",
+  "declarations": [
+    {
+      "module": "src/check_environment/wire_admission_construction.mbt",
+      "sha256": "49e73b01fcb5f5cecc2c954603c2cca579c29ce1349fcc3f2a149c694fd24974",
+      "operations": [
+        {
+          "name": "wire_admission_add",
+          "declaration": "wire_admission_add ( left : RegistryConstructionExtent , right : RegistryConstructionExtent , ) - > RegistryConstructionExtent"
+        },
+        {
+          "name": "wire_admission_construction_extent",
+          "declaration": "wire_admission_construction_extent ( g : WireAdmissionConstructionGeometry , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "wire_admission_envelope_retained",
+          "declaration": "wire_admission_envelope_retained ( g : WireAdmissionConstructionGeometry , ) - > RegistryConstructionExtent"
+        },
+        {
+          "name": "wire_admission_geometry_valid",
+          "declaration": "wire_admission_geometry_valid ( g : WireAdmissionConstructionGeometry ) - > Bool"
+        },
+        {
+          "name": "wire_admission_manifest_scratch",
+          "declaration": "wire_admission_manifest_scratch ( g : WireAdmissionConstructionGeometry , ) - > RegistryConstructionExtent"
+        },
+        {
+          "name": "wire_admission_retained_extent",
+          "declaration": "wire_admission_retained_extent ( g : WireAdmissionConstructionGeometry , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "wire_admission_units",
+          "declaration": "wire_admission_units ( value : @ shape . CollectionConstructionExtent , ) - > RegistryConstructionExtent"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common wire/checker constructors and same SourceInitialization material; RelA is the generated mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "wire_admission_add",
+            "wire_admission_construction_extent",
+            "wire_admission_envelope_retained",
+            "wire_admission_geometry_valid",
+            "wire_admission_manifest_scratch",
+            "wire_admission_retained_extent",
+            "wire_admission_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/check_environment/model_task_construction.mbt",
+      "sha256": "6c3979f4436de2b746c8a7f1b3e472ab641d937292896af54a747c3654fbeee2",
+      "operations": [
+        {
+          "name": "empty_model_tasks_construction_extent",
+          "declaration": "empty_model_tasks_construction_extent ( original : WireEnvironment , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "empty_model_tasks_retained_extent",
+          "declaration": "empty_model_tasks_retained_extent ( original : WireEnvironment , ) - > RegistryConstructionExtent ?"
+        },
+        {
+          "name": "empty_model_tasks_retained_units",
+          "declaration": "empty_model_tasks_retained_units ( ) - > @ shape . CollectionConstructionExtent"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common wire/checker constructors and same SourceInitialization material; RelA is the generated mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "empty_model_tasks_construction_extent",
+            "empty_model_tasks_retained_extent",
+            "empty_model_tasks_retained_units"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_environment.mbt",
+      "sha256": "887655a26f87722876c4347247459452874746d4db4413340111afa0d51a3693",
+      "operations": [
+        {
+          "name": "admit_client_check_environment",
+          "declaration": "admit_client_check_environment ( body : String , evidence_bundle_cid : String , expressions : @ context . ExpressionProfiles , operations : @ context . PureOperationProfiles , numeric_profile_cid ? : String ?"
+        },
+        {
+          "name": "admit_client_check_environment_from_wire",
+          "declaration": "admit_client_check_environment_from_wire ( wire : @ environment . WireEnvironment , expressions : @ context . ExpressionProfiles , operations : @ context . PureOperationProfiles , numeric_profile ? : @ numeric . Profile ?"
+        },
+        {
+          "name": "admit_client_check_environment_wire",
+          "declaration": "admit_client_check_environment_wire ( body : String , evidence_bundle_cid : String , ) - > @ environment . WireEnvironment ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common wire/checker constructors and same SourceInitialization material; RelA is the generated mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "admit_client_check_environment",
+            "admit_client_check_environment_from_wire",
+            "admit_client_check_environment_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_environment_construction.mbt",
+      "sha256": "65de4c42f96fa76e4b4759008079eab5f1c31754f479eec161ae278ac513762f",
+      "operations": [
+        {
+          "name": "client_check_environment_wrapper_construction_extent",
+          "declaration": "client_check_environment_wrapper_construction_extent ( scratch : Bool , ) - > @ environment . RegistryConstructionExtent"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Common wire/checker constructors and same SourceInitialization material; RelA is the generated mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_check_environment_wrapper_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_check_environment_construction_bridge.mbt",
+      "sha256": "6c07a542e86acfcf7496abd8e7842fbfa972d80357eab4e34102333354f73386",
+      "operations": [
+        {
+          "name": "client_check_environment_add_extent",
+          "declaration": "client_check_environment_add_extent ( left : @ check_environment . RegistryConstructionExtent , right : @ check_environment . RegistryConstructionExtent , ) - > @ check_environment . RegistryConstructionExtent"
+        },
+        {
+          "name": "client_check_environment_capacity",
+          "declaration": "client_check_environment_capacity ( retained : @ check_environment . RegistryConstructionExtent , peak : @ check_environment . RegistryConstructionExtent , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_from_wire",
+          "declaration": "client_program_check_environment_from_wire ( original : @ check_environment . WireEnvironment , text_time : Bool , veca : Bool , rela : Bool , sga : Bool , tea : Bool , calendar : Bool , text_rank : Bool , ) - > @ program_check . CheckEnvironment ?"
+        },
+        {
+          "name": "client_program_check_environment_from_wire_construction_capacity",
+          "declaration": "client_program_check_environment_from_wire_construction_capacity ( original : @ check_environment . WireEnvironment , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_wire_construction_capacity",
+          "declaration": "client_program_check_environment_wire_construction_capacity ( bytes : Int , nodes : Int , depth : Int , fields : Int , objects : Int , arrays : Int , root_fields : Int , max_fields : Int , key_utf16_units : Int , max_key_utf16_units : Int , members : Int , snapshots : Int , catalogs : Int , manifest_entries : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_read_check_environment_wire",
+          "declaration": "client_program_read_check_environment_wire ( body : String , evidence_bundle_cid : String , ) - > @ check_environment . WireEnvironment ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing Common wire/checker constructors and same SourceInitialization material; RelA is the generated mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_check_environment_add_extent",
+            "client_check_environment_capacity",
+            "client_program_check_environment_from_wire",
+            "client_program_check_environment_from_wire_construction_capacity",
+            "client_program_check_environment_wire_construction_capacity",
+            "client_program_read_check_environment_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_check_environment_construction_bridge.mbt",
+      "sha256": "8265ef379b151be442f3738aac6bd525cfc468a5e3917f00df2079195cfe03fe",
+      "operations": [
+        {
+          "name": "client_check_environment_add_extent",
+          "declaration": "client_check_environment_add_extent ( left : @ check_environment . RegistryConstructionExtent , right : @ check_environment . RegistryConstructionExtent , ) - > @ check_environment . RegistryConstructionExtent"
+        },
+        {
+          "name": "client_check_environment_capacity",
+          "declaration": "client_check_environment_capacity ( retained : @ check_environment . RegistryConstructionExtent , peak : @ check_environment . RegistryConstructionExtent , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_from_wire",
+          "declaration": "client_program_check_environment_from_wire ( original : @ check_environment . WireEnvironment , text_time : Bool , veca : Bool , rela : Bool , sga : Bool , tea : Bool , calendar : Bool , text_rank : Bool , ) - > @ program_check . CheckEnvironment ?"
+        },
+        {
+          "name": "client_program_check_environment_from_wire_construction_capacity",
+          "declaration": "client_program_check_environment_from_wire_construction_capacity ( original : @ check_environment . WireEnvironment , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_check_environment_wire_construction_capacity",
+          "declaration": "client_program_check_environment_wire_construction_capacity ( bytes : Int , nodes : Int , depth : Int , fields : Int , objects : Int , arrays : Int , root_fields : Int , max_fields : Int , key_utf16_units : Int , max_key_utf16_units : Int , members : Int , snapshots : Int , catalogs : Int , manifest_entries : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_read_check_environment_wire",
+          "declaration": "client_program_read_check_environment_wire ( body : String , evidence_bundle_cid : String , ) - > @ check_environment . WireEnvironment ?"
+        }
+      ],
+      "exports": [],
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "Existing Common wire/checker constructors and same SourceInitialization material; RelA is the generated mirror",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_check_environment_add_extent",
+            "client_check_environment_capacity",
+            "client_program_check_environment_from_wire",
+            "client_program_check_environment_from_wire_construction_capacity",
+            "client_program_check_environment_wire_construction_capacity",
+            "client_program_read_check_environment_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/wire-admission-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

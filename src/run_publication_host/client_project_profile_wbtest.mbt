@@ -1,7 +1,7 @@
 ///|
 fn profile_project() -> ClientProjectConfiguration {
   admit_client_project_configuration(
-    "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"mock\":{\"data\":\"./data.json\",\"answers\":{\"task:é\":\"./answer.yaml\"}}}",
+    "{\"version\":\"actql-config/0.1\",\"profile\":\"mock\",\"mock\":{\"catalog\":\"./catalog-é.json\",\"data\":\"./data.json\",\"answers\":{\"task:é\":\"./answer.yaml\"}}}",
   ).unwrap()
 }
 
@@ -13,6 +13,7 @@ test "project profile retains the same original default and mock locators" {
     client_project_profile_matches(selected, Some(configuration), None),
   )
   assert_eq(selected.selected_profile(), Ok(Some("mock")))
+  assert_eq(selected.mock_catalog_file(), Ok(Some("./catalog-é.json")))
   assert_eq(selected.mock_data_file(), Ok(Some("./data.json")))
   assert_eq(selected.mock_answer_count(), Ok(1))
   assert_eq(selected.mock_answer_at(0), Ok(Some(("task:é", "./answer.yaml"))))
@@ -43,6 +44,7 @@ test "project profile override keeps exact text without acquiring mock originals
       Some("profile:é"),
     ),
   )
+  assert_eq(selected.mock_catalog_file(), Ok(None))
   assert_eq(selected.mock_data_file(), Ok(None))
   assert_eq(selected.mock_answer_count(), Ok(0))
   assert_eq(selected.mock_answer_at(0), Ok(None))
@@ -57,6 +59,7 @@ test "project profile refuses copied selection foreign equal project and changed
     client_project_profile_matches({ ..selected, }, Some(configuration), None),
   )
   assert_eq({ ..selected, }.selected_profile(), Err(ForeignOriginal))
+  assert_eq({ ..selected, }.mock_catalog_file(), Err(ForeignOriginal))
   assert_false(client_project_profile_matches(selected, Some(foreign), None))
   assert_false(client_project_profile_matches(selected, None, None))
   assert_false(
@@ -69,10 +72,12 @@ test "project profile original absence and explicit mock never synthesize materi
   let absent = select_client_project_profile(None, None, 0).unwrap()
   assert_true(client_project_profile_matches(absent, None, None))
   assert_eq(absent.selected_profile(), Ok(None))
+  assert_eq(absent.mock_catalog_file(), Ok(None))
   assert_eq(absent.mock_answer_count(), Ok(0))
   let mock = select_client_project_profile(None, Some("mock"), 4).unwrap()
   assert_true(client_project_profile_matches(mock, None, Some("mock")))
   assert_eq(mock.selected_profile(), Ok(Some("mock")))
+  assert_eq(mock.mock_catalog_file(), Ok(None))
   assert_eq(mock.mock_data_file(), Ok(None))
   assert_eq(mock.mock_answer_count(), Ok(0))
 }
@@ -112,6 +117,7 @@ test "project profile retirement severs originals without acknowledging physical
     client_project_profile_matches(selected, Some(configuration), None),
   )
   assert_eq(selected.selected_profile(), Err(Retired))
+  assert_eq(selected.mock_catalog_file(), Err(Retired))
   assert_eq(selected.mock_data_file(), Err(Retired))
   assert_eq(selected.mock_answer_count(), Err(Retired))
   assert_eq(selected.mock_answer_at(0), Err(Retired))

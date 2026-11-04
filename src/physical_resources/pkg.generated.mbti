@@ -252,9 +252,13 @@ pub fn grow_execution_reservation_capacity(Ledger, Reservation, Int64, Int64) ->
 
 pub fn grow_platform_vm_working_capacity(PlatformVMWorkingCapacity, Int64, Int64) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P] grow_preparation_body_inventory(PreparationBodyBorrow[P], P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
+
 pub fn[I, P] grow_preparation_capacity_inventory(PreparationCapacity[I, P], I, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[P, E] grow_prepared_run_operation_capacity(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+
+pub fn[I, P] grow_running_preparation_capacity_inventory(PreparationCapacity[I, P], I, P, OriginalLedgerIdentity, Int64, Int64, Int, Int, Int) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn[T] handoff_funded_read(FundedReadClaim[T], T) -> Result[Ledger, OriginalReadIssue]
 
@@ -318,6 +322,10 @@ pub fn[P] node_prepared_run_admission(NodeManagedRunAdmission[P]) -> PreparedRun
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
+pub fn original_captured_inputs_prefix_available(Ledger, Array[(Reservation, Holding)]) -> Bool
+
+pub fn original_captured_inputs_prefix_reservation_available(Ledger, Array[(Reservation, Holding)], Reservation) -> Bool
+
 pub fn original_captured_prefix_available(Ledger, Reservation, Holding) -> Bool
 
 pub fn original_captured_prefix_reservation_available(Ledger, Reservation, Holding, Reservation) -> Bool
@@ -332,11 +340,21 @@ pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], Ori
 
 pub fn original_keyed_child_preparation_available(OriginalLedgerIdentity, Ledger, Reservation, Int, prefix? : Reservation?) -> Bool
 
+pub fn original_keyed_inputs_child_preparation_available(OriginalLedgerIdentity, Ledger, Array[(Reservation, Holding)], Reservation, Int, prefix? : Reservation?) -> Bool
+
+pub fn original_keyed_inputs_lookup_dependents_retired(Ledger, Array[(Reservation, Holding)], Reservation, prefix? : Reservation?) -> Bool
+
+pub fn original_keyed_inputs_prefix_dependents_retired(Ledger, Array[(Reservation, Holding)], Reservation) -> Bool
+
+pub fn original_keyed_inputs_serialization_preparation_available(OriginalLedgerIdentity, Ledger, Array[(Reservation, Holding)], Reservation, Reservation, Int) -> Bool
+
 pub fn original_keyed_lookup_dependents_retired(Ledger, Reservation) -> Bool
 
 pub fn original_keyed_prefix_dependents_retired(Ledger, Reservation) -> Bool
 
 pub fn original_keyed_serialization_preparation_available(OriginalLedgerIdentity, Ledger, Reservation, Reservation, Int) -> Bool
+
+pub fn original_ledger_captured_inputs_preparation_available(OriginalLedgerIdentity, Array[(Reservation, Holding)], prefix? : Reservation?) -> Bool
 
 pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity, prefix? : Reservation?) -> Bool
 
@@ -393,6 +411,8 @@ pub fn[I, P] preparation_capacity_inventory_original(PreparationCapacity[I, P], 
 pub fn[I, P] preparation_capacity_reservation_retired(PreparationCapacity[I, P]) -> Bool
 
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
+
+pub fn preparation_inventory_growth_entry_construction() -> PreparationInventoryGrowthConstruction
 
 pub fn preparation_inventory_initial_control_slots(Int, Int, Int) -> (Int64, Int64, Int64)?
 
@@ -1044,6 +1064,12 @@ pub(all) enum PreparationCapacityIssue {
   BorrowReturned
   InvalidExtent
   Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PreparationInventoryGrowthConstruction {
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
 } derive(Eq, @debug.Debug)
 
 type PreparationIo

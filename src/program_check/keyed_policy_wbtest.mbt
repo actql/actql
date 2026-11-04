@@ -103,7 +103,7 @@ test "formal checking of two keyed joins retains their own response occurrences"
     unit.source_execution[9].kind is KeyedRequest(second) else {
     fail("missing keyed requests")
   }
-  assert_true(physical_equal(first.producer, second.producer))
+  assert_true(physical_equal(first.producer.unwrap(), second.producer.unwrap()))
   assert_eq(keyed_input_proof_count(programs[0]), 2)
   assert_true(
     physical_equal(

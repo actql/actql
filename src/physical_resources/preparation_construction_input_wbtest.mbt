@@ -35,7 +35,12 @@ test "construction input uses the same slots across working complete Run retirem
   )
   assert_false(preparation_body_usage_isolated(holder, ledger))
   assert_true(
-    (holder.reserve_publication_original)(data, 100L, 80L)
+    (holder.reserve_phase_original)(data, 0L, 0L, EnterRunningInventory)
+    is Err(ForeignOriginal),
+  )
+  assert_false(owner.inventory_growth_active)
+  assert_true(
+    (holder.reserve_phase_original)(data, 100L, 80L, Publication)
     is Err(ForeignOriginal),
   )
   assert_true(

@@ -11,16 +11,34 @@ pub(all) enum KeyedRowsIssue {
 ///|
 struct KeyedRowBounds {
   facts : CheckedKeyedFacts
-  bounds : Array[@capacity.TargetRows]
+  requirements : Array[KeyedRowRequirement]
   work : Int
 }
 
 ///|
-/// Requires one exact left-target proof per keyed join, in checked join order.
-/// Does not establish producer closure, Host bounds or runtime response validity.
+/// A checked estimate is planning information, never allocation or dispatch
+/// permission. An unknown estimate retains the exact original checked join.
+pub enum KeyedRowRequirement {
+  CheckedEstimate(@capacity.TargetRows)
+  RuntimeAdmission(KeyedJoin)
+}
+
+///|
+/// Compatibility entrance for callers supplying real estimates for every join.
 pub fn check_keyed_row_bounds(
   facts : CheckedKeyedFacts,
   bounds : Array[@capacity.TargetRows],
+  max_work : Int,
+) -> Result[KeyedRowBounds, KeyedRowsIssue] {
+  check_keyed_row_estimates(facts, bounds.map(bound => Some(bound)), max_work)
+}
+
+///|
+/// Validate each supplied estimate against its exact left target. Absence is
+/// an explicit runtime admission obligation, not zero, infinity or a proof.
+pub fn check_keyed_row_estimates(
+  facts : CheckedKeyedFacts,
+  bounds : Array[@capacity.TargetRows?],
   max_work : Int,
 ) -> Result[KeyedRowBounds, KeyedRowsIssue] {
   if max_work < 0 {
@@ -39,7 +57,10 @@ pub fn check_keyed_row_bounds(
       return Err(WorkLimit(i))
     }
     work += 1
-    let bound = bounds[i]
+    guard bounds[i] is Some(bound) else {
+      owned.push(KeyedRowRequirement::RuntimeAdmission(facts.entries[i].join))
+      continue
+    }
     let traversal = @capacity.target_rows_work(bound)
     if traversal > max_work - work {
       return Err(WorkLimit(i))
@@ -51,12 +72,12 @@ pub fn check_keyed_row_bounds(
     if @capacity.target_rows_target(bound) != facts.entries[i].join.left {
       return Err(WrongTarget(i))
     }
-    if @capacity.target_rows_value(bound) <= 0 {
+    if @capacity.target_rows_value(bound) < 0 {
       return Err(NonPositiveBound(i))
     }
-    owned.push(bound)
+    owned.push(CheckedEstimate(bound))
   }
-  Ok({ facts, bounds: owned, work, })
+  Ok({ facts, requirements: owned, work, })
 }
 
 ///|
@@ -71,10 +92,21 @@ pub fn keyed_rows_work(v : KeyedRowBounds) -> Int {
 
 ///|
 pub fn keyed_rows_count(v : KeyedRowBounds) -> Int {
-  v.bounds.length()
+  v.requirements.length()
 }
 
 ///|
 pub fn keyed_rows_at(v : KeyedRowBounds, i : Int) -> @capacity.TargetRows? {
-  v.bounds.get(i)
+  match v.requirements.get(i) {
+    Some(CheckedEstimate(bound)) => Some(bound)
+    _ => None
+  }
+}
+
+///|
+pub fn keyed_rows_requirement_at(
+  v : KeyedRowBounds,
+  i : Int,
+) -> KeyedRowRequirement? {
+  v.requirements.get(i)
 }

@@ -12,7 +12,7 @@ from test_local_original_metadata import OriginalMetadataTests
 
 BODY = ('{"connectors":"./connections.json","lock":null,'
         '"mock_answers":[["task:z","./z.yaml"],["task:a","./a.yaml"]],'
-        '"mock_data":"./raw.json","model_tasks":"./tasks.json",'
+        '"mock_catalog":"./catalog-é.json","mock_data":"./raw.json","model_tasks":"./tasks.json",'
         '"profile":"mock","state_dir":"./state"}')
 
 
@@ -29,6 +29,7 @@ class LocalProjectIntakeTests(unittest.TestCase):
         locations = project.prepare()
         self.assertIs(project.prepare(), locations)
         self.assertEqual(locations.profile, 'mock')
+        self.assertEqual(locations.mock_catalog, './catalog-é.json')
         self.assertEqual(locations.mock_answers, (('task:z', './z.yaml'), ('task:a', './a.yaml')))
         self.assertEqual(locations.state_dir, './state')
         with self.assertRaises(FrozenInstanceError): locations.profile = 'foreign'
@@ -38,6 +39,40 @@ class LocalProjectIntakeTests(unittest.TestCase):
         self.assertTrue(project.close())
         self.assertIs(core._loans[source.ticket], source)
         with self.assertRaises(ValueError): project.prepare()
+
+    def test_catalog_absence_and_invalid_metadata_keep_closed_projection(self):
+        absent = json.loads(BODY)
+        absent['mock_catalog'] = None
+        core, source, _, _, _ = OriginalMetadataTests().bridge(
+            kind=5, payload=wire(json.dumps(absent)))
+        project = OriginalLocalProjectConfiguration(core, source)
+        self.assertIsNone(project.prepare().mock_catalog)
+        self.assertTrue(project.close())
+        for replacement in (False, 42, [], {}):
+            with self.subTest(replacement=replacement):
+                invalid = json.loads(BODY)
+                invalid['mock_catalog'] = replacement
+                core, source, calls, _, _ = OriginalMetadataTests().bridge(
+                    kind=5, payload=wire(json.dumps(invalid)))
+                project = OriginalLocalProjectConfiguration(core, source)
+                with self.assertRaisesRegex(ValueError, 'Invalid original project locator'):
+                    project.prepare()
+                with self.assertRaisesRegex(ValueError, 'already failed'):
+                    project.prepare()
+                self.assertEqual(sum(name == 'produce' for _, name, _ in calls), 1)
+                self.assertTrue(project.close())
+        for key in ('mock_catalog', 'unexpected'):
+            invalid = json.loads(BODY)
+            if key == 'mock_catalog':
+                del invalid[key]
+            else:
+                invalid[key] = None
+            core, source, _, _, _ = OriginalMetadataTests().bridge(
+                kind=5, payload=wire(json.dumps(invalid)))
+            project = OriginalLocalProjectConfiguration(core, source)
+            with self.assertRaisesRegex(ValueError, 'Invalid original project metadata fields'):
+                project.prepare()
+            self.assertTrue(project.close())
 
     def test_failed_copy_and_cleanup_keep_same_child_without_reprepare(self):
         core, source, calls, codes, _ = OriginalMetadataTests().bridge(kind=5, payload=wire())

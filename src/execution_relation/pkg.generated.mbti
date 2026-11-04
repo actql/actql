@@ -582,6 +582,10 @@ pub fn completed_result_key_validation_matches(CompletedResultKeyValidation, Com
 
 pub fn completed_row_count(CompletedOutput) -> Int
 
+pub fn completed_segment_inputs_construction_inventory(Int) -> PreparationRepresentationUnits?
+
+pub fn completed_segment_inputs_output(CompletedSegmentInputs, GeneratedSequence, Array[(Int, Int, ProducerRead)]) -> CompletedOutput?
+
 pub fn completed_source_input_matches_read(CompletedOutput, SuppliedRelationRead) -> Bool
 
 pub fn completed_table_input_export_preparation_matches_owner(CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence, CompletedOutput) -> Bool
@@ -1300,6 +1304,8 @@ pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bo
 
 pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
 
+pub fn retain_completed_segment_inputs(CompletedOutput, GeneratedSequence, Array[(Int, Int, ProducerRead)], Int) -> CompletedSegmentInputs?
+
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
 pub fn retain_generated_sequence_refinement(GeneratedSequence, GeneratedSequence) -> GeneratedSequence?
@@ -1990,6 +1996,8 @@ pub(all) struct CompletedResultViewLimits {
   max_order_work : Int
   max_workspace_entries : Int
 }
+
+type CompletedSegmentInputs
 
 type CompletedSequence
 

@@ -1,0 +1,140 @@
+{
+  "qualification": "Reviewed native constructor DATA correspondence only; not original admission, capacity supply or installed acceptance",
+  "declarations": [
+    {
+      "module": "src/client_row_source_host/relation_restore_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "88cf2ebaf9731e0f43cf313f617a304011b650bd0f2e316715c94ac6e8c10525",
+      "role": "common-semantics",
+      "owner": "Existing Common full Relation declaration and original SourceInitialization construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "relation_restore_add",
+          "declaration": "relation_restore_add ( parts : Array [ @ execution . PreparationRepresentationUnits ] , value : @ execution . PreparationRepresentationUnits ? , ) - > Bool"
+        },
+        {
+          "name": "relation_restore_body",
+          "declaration": "relation_restore_body ( parts : Array [ @ execution . PreparationRepresentationUnits ] , value : RelationRestoreWireGeometry , request_contract : Bool , ) - > Bool"
+        },
+        {
+          "name": "relation_restore_canonical",
+          "declaration": "relation_restore_canonical ( geometry : RelationRestoreWireGeometry , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_canonical_bytes",
+          "declaration": "relation_restore_canonical_bytes ( value : RelationRestoreWireGeometry , ) - > Int64"
+        },
+        {
+          "name": "relation_restore_construction_inventory",
+          "declaration": "relation_restore_construction_inventory ( connector_id : String , registration : String , version : String , views_wire : String , resources : Array [ String ] , resource_kinds : Array [ String ] , schema_wires : Array [ String ] , request_wires : Array [ String ? ] , facts_wires : Array [ String ? ] , acquisition_wires : Array [ String ? ] , identity_wires : Array [ String ? ] , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_emission",
+          "declaration": "relation_restore_emission ( bytes : Int64 , nodes : Int64 , depth : Int , hash : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_raw_json",
+          "declaration": "relation_restore_raw_json ( geometry : RelationRestoreWireGeometry , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_scale",
+          "declaration": "relation_restore_scale ( value : @ execution . PreparationRepresentationUnits , count : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_shape_validator",
+          "declaration": "relation_restore_shape_validator ( geometry : RelationRestoreWireGeometry , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_source",
+          "declaration": "relation_restore_source ( geometry : RelationRestoreWireGeometry , indexed : Bool , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_restore_wire_geometry",
+          "declaration": "relation_restore_wire_geometry ( wire : String , ) - > RelationRestoreWireGeometry ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "relation_restore_add",
+            "relation_restore_body",
+            "relation_restore_canonical",
+            "relation_restore_canonical_bytes",
+            "relation_restore_construction_inventory",
+            "relation_restore_emission",
+            "relation_restore_raw_json",
+            "relation_restore_scale",
+            "relation_restore_shape_validator",
+            "relation_restore_source",
+            "relation_restore_wire_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-restore-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

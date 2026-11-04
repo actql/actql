@@ -23,6 +23,8 @@ import {
 }
 
 // Values
+pub fn advance_keyed_request_wire(KeyedRequestWireCursor) -> KeyedRequestWirePoll
+
 pub fn advance_keyed_row_request(KeyedRowRequestCursor) -> KeyedRowRequestPoll
 
 pub fn advance_keyed_row_response(KeyedRowResponseCursor) -> KeyedRowResponsePoll
@@ -38,6 +40,8 @@ pub fn attached_pipeline_stage(PipelineAttachment) -> @stage_parameters.Collecte
 pub fn bind_keyed_request_parameters(RequestParameters, KeyedRequest, Int) -> Result[ParameterizedKeyedRequest, RequestParameterIssue]
 
 pub fn bind_request_parameters(RequestParameters, DirectRequest, Int) -> Result[ParameterizedRequest, RequestParameterIssue]
+
+pub fn cancel_keyed_request_wire(KeyedRequestWireCursor) -> Unit
 
 pub fn cancel_keyed_row_request(KeyedRowRequestCursor) -> Unit
 
@@ -56,6 +60,8 @@ pub fn check_keyed_joins(PipelineRequests, Int) -> Result[CheckedKeyedJoins, Key
 pub fn check_keyed_request(RequestContext, ResolvedInput, RequestLimits) -> Result[KeyedRequest, RequestIssue]
 
 pub fn check_keyed_row_bounds(CheckedKeyedFacts, Array[@capacity_program_step.TargetRows], Int) -> Result[KeyedRowBounds, KeyedRowsIssue]
+
+pub fn check_keyed_row_estimates(CheckedKeyedFacts, Array[@capacity_program_step.TargetRows?], Int) -> Result[KeyedRowBounds, KeyedRowsIssue]
 
 pub fn check_lookup_bounds(KeyedRowBounds, @check_environment.LookupExecution, Int) -> Result[LookupBounds, LookupBoundsIssue]
 
@@ -145,6 +151,14 @@ pub fn keyed_request_input(KeyedRequest) -> ResolvedInput
 
 pub fn keyed_request_usage(KeyedRequest) -> (Int, Int, Int, Int)
 
+pub fn keyed_request_wire_next_inventory(KeyedRequestWireCursor) -> KeyedRequestWireInventory?
+
+pub fn keyed_request_wire_owner(KeyedRequestWireCursor) -> KeyedRowRequest
+
+pub fn keyed_request_wire_progress(KeyedRequestWireCursor) -> (Int64, Int, Int, Int)
+
+pub fn keyed_request_wire_start_inventory() -> KeyedRequestWireInventory
+
 pub fn keyed_row_request_field(KeyedRowRequest, String) -> @value_admission.CheckedValue?
 
 pub fn keyed_row_request_owner(KeyedRowRequest) -> ParameterizedKeyedRequest
@@ -163,6 +177,8 @@ pub fn keyed_rows_count(KeyedRowBounds) -> Int
 
 pub fn keyed_rows_facts(KeyedRowBounds) -> CheckedKeyedFacts
 
+pub fn keyed_rows_requirement_at(KeyedRowBounds, Int) -> KeyedRowRequirement?
+
 pub fn keyed_rows_work(KeyedRowBounds) -> Int
 
 pub fn keyed_source_capacity(KeyedSourceFacts) -> @check_environment.LookupCapacity
@@ -180,6 +196,14 @@ pub fn lookup_bounds_policy(LookupBounds) -> @check_environment.LookupExecution
 pub fn lookup_bounds_rows(LookupBounds) -> KeyedRowBounds
 
 pub fn lookup_bounds_work(LookupBounds) -> Int
+
+pub fn lookup_requirement_admission(LookupRequirement) -> LookupAdmission
+
+pub fn lookup_requirement_at(LookupBounds, Int) -> LookupRequirement?
+
+pub fn lookup_requirement_estimate(LookupRequirement) -> LookupCounts?
+
+pub fn lookup_requirement_join(LookupRequirement) -> KeyedJoin
 
 pub fn mode_checkpoint(DirectMode) -> ModeCheckpoint?
 
@@ -395,6 +419,8 @@ pub fn source_acquisition_source_index(SourceAcquisition) -> Int
 
 pub fn source_acquisition_work(SourceAcquisition) -> Int
 
+pub fn start_keyed_request_wire(KeyedRowRequest, Int, Int, Int) -> Result[KeyedRequestWireCursor, RequestWireIssue]
+
 pub fn start_keyed_row_request(ParameterizedKeyedRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowRequestCursor, KeyedRowRequestIssue]
 
 pub fn start_keyed_row_response(KeyedRowRequest, Array[@value_admission.Value], RequestLimits) -> Result[KeyedRowResponseCursor, KeyedRowResponseIssue]
@@ -483,6 +509,24 @@ type KeyedMode
 
 type KeyedRequest
 
+type KeyedRequestWireCursor
+
+pub(all) struct KeyedRequestWireInventory {
+  generation : Int64
+  fragment_bytes : Int
+  record_headers : Int64
+  reference_slots : Int64
+  scalar_words : Int64
+  owned_utf16_units : Int64
+} derive(Eq, @debug.Debug)
+
+pub enum KeyedRequestWirePoll {
+  WireContinue
+  WireFragment(String)
+  WireComplete(Int, Int, Int)
+  WireFailed(RequestWireIssue)
+}
+
 type KeyedRowBounds
 
 type KeyedRowRequest
@@ -503,6 +547,11 @@ pub enum KeyedRowRequestPoll {
   KeyedRowRequestContinue
   KeyedRowRequestComplete(KeyedRowRequest)
   KeyedRowRequestFailed(KeyedRowRequestIssue)
+}
+
+pub enum KeyedRowRequirement {
+  CheckedEstimate(@capacity_program_step.TargetRows)
+  RuntimeAdmission(KeyedJoin)
 }
 
 type KeyedRowResponseCursor
@@ -540,6 +589,11 @@ pub(all) struct Limits {
   max_views : Int
 }
 
+pub enum LookupAdmission {
+  EstimatedEnvelope
+  RuntimeAdmission
+}
+
 type LookupBounds
 
 pub(all) enum LookupBoundsIssue {
@@ -563,6 +617,12 @@ pub struct LookupCounts {
   response_rows : Int64
   decoded_response_bytes : Int64
 } derive(Eq, @debug.Debug)
+
+pub struct LookupRequirement {
+  join : KeyedJoin
+  estimate : LookupCounts?
+  admission : LookupAdmission
+}
 
 type ModeCheckpoint
 

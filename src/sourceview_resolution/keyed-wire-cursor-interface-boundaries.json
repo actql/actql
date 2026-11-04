@@ -1,0 +1,320 @@
+{
+  "qualification": "Source-scoped cursor and constructor DATA only; no assembly funding, provider I/O, installed acceptance or resource authority",
+  "declarations": [
+    {
+      "module": "src/sourceview_resolution/keyed_request_wire_cursor.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "12a0c5b0ff283766e0b6d3a86a596091809b9731588a9a2694564a42d127c40b",
+      "role": "common-semantics",
+      "owner": "Existing selected keyed request, buffered Writer and typed/canonical emitter construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "advance_keyed_request_wire",
+          "declaration": "advance_keyed_request_wire ( cursor : KeyedRequestWireCursor ) - > KeyedRequestWirePoll"
+        },
+        {
+          "name": "cancel_keyed_request_wire",
+          "declaration": "cancel_keyed_request_wire ( cursor : KeyedRequestWireCursor ) - > Unit"
+        },
+        {
+          "name": "keyed_request_wire_inventory",
+          "declaration": "keyed_request_wire_inventory ( generation : Int64 , fragment : Int , writer : @ encode . BufferedWriterConstructionInventory , typed : @ value . WireEmitConstructionInventory ? , ) - > KeyedRequestWireInventory"
+        },
+        {
+          "name": "keyed_request_wire_next_inventory",
+          "declaration": "keyed_request_wire_next_inventory ( cursor : KeyedRequestWireCursor ) - > KeyedRequestWireInventory ?"
+        },
+        {
+          "name": "keyed_request_wire_owner",
+          "declaration": "keyed_request_wire_owner ( cursor : KeyedRequestWireCursor ) - > KeyedRowRequest"
+        },
+        {
+          "name": "keyed_request_wire_progress",
+          "declaration": "keyed_request_wire_progress ( cursor : KeyedRequestWireCursor ) - > ( Int64 , Int , Int , Int )"
+        },
+        {
+          "name": "keyed_request_wire_start_inventory",
+          "declaration": "keyed_request_wire_start_inventory ( ) - > KeyedRequestWireInventory"
+        },
+        {
+          "name": "start_keyed_request_wire",
+          "declaration": "start_keyed_request_wire ( request : KeyedRowRequest , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ KeyedRequestWireCursor , RequestWireIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "advance_keyed_request_wire",
+            "cancel_keyed_request_wire",
+            "keyed_request_wire_inventory",
+            "keyed_request_wire_next_inventory",
+            "keyed_request_wire_owner",
+            "keyed_request_wire_progress",
+            "keyed_request_wire_start_inventory",
+            "start_keyed_request_wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/encode_core/buffered_writer_construction_inventory.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b9e695f68f82a6501bfab69d42846f6d7b075c762931be415f8287dd5ac4cb23",
+      "role": "common-semantics",
+      "owner": "Existing selected keyed request, buffered Writer and typed/canonical emitter construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "buffered_writer_construction_inventory",
+          "declaration": "buffered_writer_construction_inventory ( bytes : Int , retained_fragment_utf16 : Int , keys : Int , depth : Int , ) - > BufferedWriterConstructionInventory ?"
+        },
+        {
+          "name": "buffered_writer_next_construction_inventory",
+          "declaration": "buffered_writer_next_construction_inventory ( writer : Writer , fragment_bytes : Int , retained_fragment_utf16 : Int , ) - > BufferedWriterConstructionInventory ?"
+        },
+        {
+          "name": "buffered_writer_start_construction_inventory",
+          "declaration": "buffered_writer_start_construction_inventory ( ) - > BufferedWriterConstructionInventory"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "buffered_writer_construction_inventory",
+            "buffered_writer_next_construction_inventory",
+            "buffered_writer_start_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/value_admission/wire_emit_construction_inventory.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "37853404527cc4c93a3969b4e2b91021dc51b3ada1e366b1f72d19c1672b3124",
+      "role": "common-semantics",
+      "owner": "Existing selected keyed request, buffered Writer and typed/canonical emitter construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "wire_emit_construction_inventory",
+          "declaration": "wire_emit_construction_inventory ( pending : Int64 , decimal : DecimalValue ? , ) - > WireEmitConstructionInventory ?"
+        },
+        {
+          "name": "wire_emit_fragment_byte_bound",
+          "declaration": "wire_emit_fragment_byte_bound ( ) - > Int"
+        },
+        {
+          "name": "wire_emit_next_construction_inventory",
+          "declaration": "wire_emit_next_construction_inventory ( cursor : WireEmitCursor , ) - > WireEmitConstructionInventory ?"
+        },
+        {
+          "name": "wire_emit_start_construction_inventory",
+          "declaration": "wire_emit_start_construction_inventory ( ) - > WireEmitConstructionInventory"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "wire_emit_construction_inventory",
+            "wire_emit_fragment_byte_bound",
+            "wire_emit_next_construction_inventory",
+            "wire_emit_start_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/sourceview_resolution/keyed-wire-cursor-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

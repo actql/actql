@@ -1,0 +1,2161 @@
+{
+  "qualification": "Source-scoped semantic correspondence; no complete shared execution, Host funding, artifact or release claim",
+  "declarations": [
+    {
+      "module": "src/client_local_host/installed_managed_run.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "dce90520994f229653c04fc9706f6046f811416060fcc9708df6f34cad2fb177",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[P]check_installed_managed_run_admission",
+          "declaration": "[ P ] check_installed_managed_run_admission ( admission : @ resources . PreparedRunAdmission [ P ] , prepared : P , ledger : @ resources . Ledger , ) - > Result [ Unit , @ resources . ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "begin_installed_managed_run",
+          "declaration": "begin_installed_managed_run ( admission : @ resources . NodeManagedRunAdmission [ @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_managed_run_source_read",
+          "declaration": "begin_installed_managed_run_source_read ( value : ClientInstalledManagedRun , occurrence : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_managed_run_source_read_at",
+          "declaration": "begin_installed_managed_run_source_read_at ( value : ClientInstalledManagedRun , stage : Int , input : Int , task : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_managed_run_source_read_owned",
+          "declaration": "begin_installed_managed_run_source_read_owned ( value : ClientInstalledManagedRun , occurrence : Int , expected : ( Int , Int , Int ) ? , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_prepared_installed_managed_source_free_run",
+          "declaration": "begin_prepared_installed_managed_source_free_run ( admission : @ resources . NodeManagedRunAdmission [ @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , original : ClientInstalledManagedSourceFreePreparation , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_managed_run",
+          "declaration": "check_installed_managed_run ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_managed_run_binding",
+          "declaration": "check_installed_managed_run_binding ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "check_installed_managed_run_original",
+          "declaration": "check_installed_managed_run_original ( value : ClientInstalledManagedRun , ledger : @ resources . Ledger , preparation : ClientInstalledManagedRunOriginal , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "configure_installed_source_free_preparation",
+          "declaration": "configure_installed_source_free_preparation ( prepared : @ publication_host . PreparedClientProgram , original : ClientInstalledManagedSourceFreePreparation , retained_output : Bool , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedSourceFreePreparation , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_managed_capture_run_requirements",
+          "declaration": "installed_managed_capture_run_requirements ( prepared : @ publication_host . PreparedClientProgram , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_owner_graph",
+          "declaration": "installed_managed_owner_graph ( owner : ClientLocalSequenceOwner , ) - > @ strategy . CheckedDAG"
+        },
+        {
+          "name": "installed_managed_owner_shape_supported",
+          "declaration": "installed_managed_owner_shape_supported ( owner : ClientLocalSequenceOwner , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
+        },
+        {
+          "name": "installed_managed_publication_dag",
+          "declaration": "installed_managed_publication_dag ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ @ strategy . CapturedDAG , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_publication_limits",
+          "declaration": "installed_managed_publication_limits ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , max_payload_bytes : Int , ) - > @ publication_host . PublicationOutputExportLimits ?"
+        },
+        {
+          "name": "installed_managed_run_accounting",
+          "declaration": "installed_managed_run_accounting ( value : ClientInstalledManagedRun , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_run_accounting_values",
+          "declaration": "installed_managed_run_accounting_values ( ledger : @ resources . Ledger , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "installed_managed_run_compilation_original",
+          "declaration": "installed_managed_run_compilation_original ( run : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > @ publication_host . ClientRunCompilation ?"
+        },
+        {
+          "name": "installed_managed_run_invocation_original",
+          "declaration": "installed_managed_run_invocation_original ( run : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , ) - > ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "installed_managed_run_owner",
+          "declaration": "installed_managed_run_owner ( value : ClientInstalledManagedRun , ) - > Result [ ClientLocalSequenceOwner , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_run_purpose_supported",
+          "declaration": "installed_managed_run_purpose_supported ( prepared : @ publication_host . PreparedClientProgram , ) - > Bool"
+        },
+        {
+          "name": "installed_managed_run_requirements",
+          "declaration": "installed_managed_run_requirements ( prepared : @ publication_host . PreparedClientProgram , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_run_requirements_owned",
+          "declaration": "installed_managed_run_requirements_owned ( owner : ClientLocalSequenceOwner , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_run_shape_supported",
+          "declaration": "installed_managed_run_shape_supported ( prepared : @ publication_host . PreparedClientProgram , mock_model : Bool , ) - > Bool"
+        },
+        {
+          "name": "installed_mock_model_run_requirements",
+          "declaration": "installed_mock_model_run_requirements ( prepared : @ publication_host . PreparedClientProgram , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ Array [ Int64 ] , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_source_free_preparation_matches",
+          "declaration": "installed_source_free_preparation_matches ( value : ClientInstalledManagedSourceFreePreparation , owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Bool"
+        },
+        {
+          "name": "new_installed_managed_run",
+          "declaration": "new_installed_managed_run ( admission : @ resources . NodeManagedRunAdmission [ @ publication_host . PreparedClientProgram , ] , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , ) - > ClientInstalledManagedRun"
+        },
+        {
+          "name": "new_installed_managed_run_owned",
+          "declaration": "new_installed_managed_run_owned ( preparation : ClientInstalledManagedRunOriginal , request : @ publication_host . ClientRequestIdentity , ledger : @ resources . Ledger , ) - > ClientInstalledManagedRun"
+        },
+        {
+          "name": "open_installed_managed_source_free_host",
+          "declaration": "open_installed_managed_source_free_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , provider_factory ? : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ]"
+        },
+        {
+          "name": "open_installed_managed_source_free_host_original",
+          "declaration": "open_installed_managed_source_free_host_original ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output : Bool , provider_factory ? : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ]"
+        },
+        {
+          "name": "prepare_installed_managed_acquisitions_owned",
+          "declaration": "prepare_installed_managed_acquisitions_owned ( owner : ClientLocalSequenceOwner , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , direct_occurrences ? : @ publication_host . ClientDirectAcquisitionOccurrences ?"
+        },
+        {
+          "name": "prepare_installed_managed_run_ledger",
+          "declaration": "prepare_installed_managed_run_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_managed_run_ledger_owned",
+          "declaration": "prepare_installed_managed_run_ledger_owned ( value : ClientInstalledManagedRun , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_managed_source_free_with_contracts",
+          "declaration": "prepare_installed_managed_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+        },
+        {
+          "name": "prepared_installed_managed_publication_limits",
+          "declaration": "prepared_installed_managed_publication_limits ( value : ClientInstalledManagedSourceFreePreparation , prepared : @ publication_host . PreparedClientProgram , max_payload_bytes : Int , ) - > @ publication_host . PublicationOutputExportLimits ?"
+        },
+        {
+          "name": "prepared_installed_managed_source_free_requirements",
+          "declaration": "prepared_installed_managed_source_free_requirements ( value : ClientInstalledManagedSourceFreePreparation , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "require_installed_managed_run",
+          "declaration": "require_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retire_installed_managed_run",
+          "declaration": "retire_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "source_free_installed_managed_preparation_owned",
+          "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P]check_installed_managed_run_admission",
+            "begin_installed_managed_run",
+            "begin_installed_managed_run_source_read",
+            "begin_installed_managed_run_source_read_at",
+            "begin_installed_managed_run_source_read_owned",
+            "begin_prepared_installed_managed_source_free_run",
+            "check_installed_managed_run",
+            "check_installed_managed_run_binding",
+            "check_installed_managed_run_original",
+            "configure_installed_source_free_preparation",
+            "installed_managed_capture_run_requirements",
+            "installed_managed_owner_graph",
+            "installed_managed_owner_shape_supported",
+            "installed_managed_publication_dag",
+            "installed_managed_publication_limits",
+            "installed_managed_run_accounting",
+            "installed_managed_run_accounting_values",
+            "installed_managed_run_compilation_original",
+            "installed_managed_run_invocation_original",
+            "installed_managed_run_owner",
+            "installed_managed_run_purpose_supported",
+            "installed_managed_run_requirements",
+            "installed_managed_run_requirements_owned",
+            "installed_managed_run_shape_supported",
+            "installed_mock_model_run_requirements",
+            "installed_source_free_preparation_matches",
+            "new_installed_managed_run",
+            "new_installed_managed_run_owned",
+            "open_installed_managed_source_free_host",
+            "open_installed_managed_source_free_host_original",
+            "prepare_installed_managed_acquisitions_owned",
+            "prepare_installed_managed_run_ledger",
+            "prepare_installed_managed_run_ledger_owned",
+            "prepare_installed_managed_source_free_with_contracts",
+            "prepared_installed_managed_publication_limits",
+            "prepared_installed_managed_source_free_requirements",
+            "require_installed_managed_run",
+            "retire_installed_managed_run",
+            "source_free_installed_managed_preparation_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_capture_plan.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "95d11b5fbec46f0a24dc7a4a8ed8b5a2f987799943b82445c85bd22131dc787f",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_managed_capture_read",
+          "declaration": "begin_installed_managed_capture_read ( value : ClientInstalledManagedRun , occurrence : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_capture_plan",
+          "declaration": "installed_managed_capture_plan ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "open_installed_managed_capture_host",
+          "declaration": "open_installed_managed_capture_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "open_installed_managed_capture_host_owned",
+          "declaration": "open_installed_managed_capture_host_owned ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "prepare_installed_managed_capture_plan",
+          "declaration": "prepare_installed_managed_capture_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_managed_capture_plan_owned",
+          "declaration": "prepare_installed_managed_capture_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , model_purpose : Bool , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_retained_installed_capture_ledger",
+          "declaration": "prepare_retained_installed_capture_ledger ( value : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , capacities : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ledger : @ resources . Ledger , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_installed_managed_capture_acquisition",
+          "declaration": "prepared_installed_managed_capture_acquisition ( original : ClientInstalledManagedCapturePlan , occurrence : Int , ) - > @ row_source_host . RowAcquisition ?"
+        },
+        {
+          "name": "prepared_installed_managed_capture_requirements",
+          "declaration": "prepared_installed_managed_capture_requirements ( original : ClientInstalledManagedCapturePlan , ) - > Array [ Int64 ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_managed_capture_read",
+            "installed_managed_capture_plan",
+            "open_installed_managed_capture_host",
+            "open_installed_managed_capture_host_owned",
+            "prepare_installed_managed_capture_plan",
+            "prepare_installed_managed_capture_plan_owned",
+            "prepare_retained_installed_capture_ledger",
+            "prepared_installed_managed_capture_acquisition",
+            "prepared_installed_managed_capture_requirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_operation_demand.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "31fd553b9bcb531d4e2ef7e8462072babfb7644f0e72ec2ecf4efc26a1374e6e",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_effect_capacity_within",
+          "declaration": "installed_effect_capacity_within ( required : @ execution . ExecutionCapacity , maximum : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_control_phase_quote_capacity",
+          "declaration": "installed_effect_control_phase_quote_capacity ( ) - > @ execution . ExecutionCapacity"
+        },
+        {
+          "name": "installed_effect_limits_fit",
+          "declaration": "installed_effect_limits_fit ( required : @ resources . LedgerLimits , admitted : @ resources . LedgerLimits , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_managed_plan_has_host_input",
+          "declaration": "installed_effect_managed_plan_has_host_input ( plan : ClientInstalledEffectManagedPlan , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_operation_extent_capacity",
+          "declaration": "installed_effect_operation_extent_capacity ( value : ClientInstalledEffectOperationExtent , ) - > @ execution . ExecutionCapacity"
+        },
+        {
+          "name": "installed_effect_operation_extent_physical",
+          "declaration": "installed_effect_operation_extent_physical ( value : ClientInstalledEffectOperationExtent , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_operation_extent_transfer",
+          "declaration": "installed_effect_operation_extent_transfer ( value : ClientInstalledEffectOperationExtent , ) - > Int64"
+        },
+        {
+          "name": "installed_effect_plan_matches",
+          "declaration": "installed_effect_plan_matches ( plan : ClientInstalledEffectManagedPlan , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , ) - > Bool"
+        },
+        {
+          "name": "installed_effect_requirements",
+          "declaration": "installed_effect_requirements ( limits : @ resources . LedgerLimits , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "installed_effect_source_result_bound_scratch_bytes",
+          "declaration": "installed_effect_source_result_bound_scratch_bytes ( ) - > Int64"
+        },
+        {
+          "name": "prepare_installed_effect_capture_extent",
+          "declaration": "prepare_installed_effect_capture_extent ( operation : String , fixed_capacity : @ execution . ExecutionCapacity , capacity_per_checked_row : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_capture_recipe_extent",
+          "declaration": "prepare_installed_effect_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_host_input_capture_recipe_extent",
+          "declaration": "prepare_installed_effect_host_input_capture_recipe_extent ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_managed_plan",
+          "declaration": "prepare_installed_effect_managed_plan ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_effect_operation_demand",
+          "declaration": "prepare_installed_effect_operation_demand ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ ClientInstalledEffectOperationExtent ] , row_extents : Array [ ClientInstalledEffectOperationExtent ] , ) - > Result [ ClientInstalledEffectOperationDemand , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_operation_demand_with_controls",
+          "declaration": "prepare_installed_effect_operation_demand_with_controls ( prepared : @ publication_host . PreparedClientEffectComputation , stage_index : Int , effect_id : String , member_extents : Array [ ClientInstalledEffectOperationExtent ] , row_extents : Array [ ClientInstalledEffectOperationExtent ] , controls_per_row : @ execution . ExecutionCapacity , ) - > Result [ ClientInstalledEffectOperationDemand , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_operation_extent",
+          "declaration": "prepare_installed_effect_operation_extent ( operation : String , capacity : @ execution . ExecutionCapacity , transfer_bytes : Int64 , physical_attempt : Bool , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepare_installed_effect_staged_extent",
+          "declaration": "prepare_installed_effect_staged_extent ( initial : ClientInstalledEffectOperationExtent , maximum : ClientInstalledEffectOperationExtent , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_capture_children",
+          "declaration": "prepared_installed_effect_managed_capture_children ( plan : ClientInstalledEffectManagedPlan , ) - > Int"
+        },
+        {
+          "name": "prepared_installed_effect_managed_operation",
+          "declaration": "prepared_installed_effect_managed_operation ( plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationExtent , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_requirements",
+          "declaration": "prepared_installed_effect_managed_requirements ( plan : ClientInstalledEffectManagedPlan , ) - > Array [ Int64 ]"
+        },
+        {
+          "name": "prepared_installed_effect_managed_shape",
+          "declaration": "prepared_installed_effect_managed_shape ( plan : ClientInstalledEffectManagedPlan , ) - > ( Int , Int , Int )"
+        },
+        {
+          "name": "prepared_installed_effect_managed_source",
+          "declaration": "prepared_installed_effect_managed_source ( plan : ClientInstalledEffectManagedPlan , occurrence : Int , ) - > Result [ ( @ row_source_host . RowDeclaration , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "resolve_installed_effect_capture_extent",
+          "declaration": "resolve_installed_effect_capture_extent ( original : ClientInstalledEffectOperationExtent , rows : Int , ) - > ClientInstalledEffectOperationExtent ?"
+        },
+        {
+          "name": "resolve_installed_effect_id_extent",
+          "declaration": "resolve_installed_effect_id_extent ( original : ClientInstalledEffectOperationExtent , effect_id : String , ) - > ClientInstalledEffectOperationExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_effect_control_phase_quote_capacity",
+            "installed_effect_limits_fit",
+            "installed_effect_operation_extent_capacity",
+            "installed_effect_operation_extent_physical",
+            "installed_effect_operation_extent_transfer",
+            "installed_effect_plan_matches",
+            "installed_effect_requirements",
+            "installed_effect_source_result_bound_scratch_bytes",
+            "prepare_installed_effect_capture_extent",
+            "prepare_installed_effect_capture_recipe_extent",
+            "prepare_installed_effect_managed_plan",
+            "prepare_installed_effect_operation_demand",
+            "prepare_installed_effect_operation_demand_with_controls",
+            "prepare_installed_effect_operation_extent",
+            "prepared_installed_effect_managed_capture_children",
+            "prepared_installed_effect_managed_operation",
+            "prepared_installed_effect_managed_requirements",
+            "prepared_installed_effect_managed_shape",
+            "prepared_installed_effect_managed_source",
+            "resolve_installed_effect_capture_extent",
+            "resolve_installed_effect_id_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_capacity_within",
+            "prepare_installed_effect_staged_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_row_limit_wbtest.mbt",
+                "anchor": "test \"selected Request one-row-short ceiling retains"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_managed_plan_has_host_input",
+            "prepare_installed_effect_host_input_capture_recipe_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
+                "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_mock_model_plan.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "a8af1c16c20eb77549da59431230c921bd6e2b1cc010d93cae638f1ee94931ec",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_mock_model_compilation_matches",
+          "declaration": "installed_mock_model_compilation_matches ( prepared : @ publication_host . PreparedClientProgram , compilation : @ publication_host . ClientTaskCompilation , ) - > Bool"
+        },
+        {
+          "name": "installed_request_model_compilation_matches",
+          "declaration": "installed_request_model_compilation_matches ( prepared : @ publication_host . PreparedClientProgram , compilation : @ publication_host . ClientRunCompilation ? , compiled : @ publication_host . ClientCompiledRun , graph : @ publication_host . ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "prepare_installed_mock_model_capture_plan",
+          "declaration": "prepare_installed_mock_model_capture_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientTaskCompilation , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , direct_occurrences ? : @ publication_host . ClientDirectAcquisitionOccurrences ?"
+        },
+        {
+          "name": "prepare_installed_mock_model_capture_plan_binding",
+          "declaration": "prepare_installed_mock_model_capture_plan_binding ( original : ClientInstalledManagedCapturePlan , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , content_prefix ? : ClientInstalledManagedSerializationPreparation ?"
+        },
+        {
+          "name": "prepare_installed_mock_model_plan_owned",
+          "declaration": "prepare_installed_mock_model_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientRunCompilation ? , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , compute_limits : @ resources . LedgerLimits , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , content_prefix ? : ClientInstalledManagedSerializationPreparation ?"
+        },
+        {
+          "name": "prepare_installed_mock_model_source_free_plan",
+          "declaration": "prepare_installed_mock_model_source_free_plan ( original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , content_prefix ? : ClientInstalledManagedSerializationPreparation ?"
+        },
+        {
+          "name": "prepare_installed_mock_model_source_free_with_contracts",
+          "declaration": "prepare_installed_mock_model_source_free_with_contracts ( prepared : @ publication_host . PreparedClientProgram , compilation : @ publication_host . ClientTaskCompilation , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+        },
+        {
+          "name": "prepared_installed_managed_model_requirements",
+          "declaration": "prepared_installed_managed_model_requirements ( original : ClientInstalledManagedModelPlan , ) - > Array [ Int64 ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_mock_model_compilation_matches",
+            "installed_request_model_compilation_matches",
+            "prepare_installed_mock_model_capture_plan",
+            "prepare_installed_mock_model_capture_plan_binding",
+            "prepare_installed_mock_model_plan_owned",
+            "prepare_installed_mock_model_source_free_plan",
+            "prepare_installed_mock_model_source_free_with_contracts",
+            "prepared_installed_managed_model_requirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_source_read.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "83ec77509f18947b55e2d91d8f19009223e823552ddf356c633ed745da8eafea",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "attach_installed_source_read_acquisition",
+          "declaration": "attach_installed_source_read_acquisition ( value : ClientInstalledSourceRead , declaration : @ row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , acquisition : @ row_source_host . RowAcquisition , stage : Int , source_index : Int , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "begin_installed_source_read",
+          "declaration": "begin_installed_source_read ( child : @ resources . ImportedChildLedger , ) - > Result [ ClientInstalledSourceRead , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_effect_program",
+          "declaration": "bind_installed_source_read_effect_program ( value : ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_owner",
+          "declaration": "bind_installed_source_read_owner ( value : ClientInstalledSourceRead , owner : ClientLocalSequenceOwner , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_program",
+          "declaration": "bind_installed_source_read_program ( value : ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_current",
+          "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_ledger",
+          "declaration": "check_installed_source_read_ledger ( value : ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "claim_installed_source_read_start",
+          "declaration": "claim_installed_source_read_start ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , ) - > Result [ @ resources . Ledger , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "require_installed_source_read_current",
+          "declaration": "require_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ @ resources . Ledger , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "require_installed_source_read_original",
+          "declaration": "require_installed_source_read_original ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "retain_installed_source_read_run",
+          "declaration": "retain_installed_source_read_run ( value : ClientInstalledSourceRead , result : Result [ @ row_source_host . RowRun , @ row_source_host . RowHostIssue ] , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "retire_installed_source_read",
+          "declaration": "retire_installed_source_read ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_listing_rows",
+          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_provider_rows",
+          "declaration": "start_installed_source_read_provider_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_rows",
+          "declaration": "start_installed_source_read_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "attach_installed_source_read_acquisition",
+            "begin_installed_source_read",
+            "bind_installed_source_read_effect_program",
+            "bind_installed_source_read_owner",
+            "bind_installed_source_read_program",
+            "check_installed_source_read_current",
+            "check_installed_source_read_ledger",
+            "claim_installed_source_read_start",
+            "require_installed_source_read_current",
+            "require_installed_source_read_original",
+            "retain_installed_source_read_run",
+            "retire_installed_source_read",
+            "start_installed_source_read_listing_rows",
+            "start_installed_source_read_provider_rows",
+            "start_installed_source_read_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_whole_source_plan.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "024675bbf64577c9b66944d00c05fbf88650c293ace18afd05476415d1fb8bd7",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_managed_whole_source_read",
+          "declaration": "begin_installed_managed_whole_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , ) - > Result [ ( ClientInstalledSourceRead , @ sourceviews . SourceAcquisition , @ row_source_host . RowInputAcquisition , ClientInstalledWholeSourceCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "check_installed_whole_source_capacity",
+          "declaration": "check_installed_whole_source_capacity ( value : ClientInstalledWholeSourceCapacity , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity , ) - > Bool"
+        },
+        {
+          "name": "installed_managed_acquisition_result_publication",
+          "declaration": "installed_managed_acquisition_result_publication ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ Bool , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_source_input_kind",
+          "declaration": "installed_managed_source_input_kind ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , ) - > Result [ String , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_managed_whole_source_ledger",
+          "declaration": "installed_managed_whole_source_ledger ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacity : ClientInstalledWholeSourceCapacity , transfer : Int64 , scratch : Int64 , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_whole_source_acquisition",
+          "declaration": "installed_whole_source_acquisition ( value : ClientInstalledWholeSourceCapacity , ) - > @ row_source_host . RowInputAcquisition"
+        },
+        {
+          "name": "installed_whole_source_capture_capacity",
+          "declaration": "installed_whole_source_capture_capacity ( original : @ sourceviews . SourceAcquisition , acquisition : @ row_source_host . RowInputAcquisition , provider : @ execution . ExecutionCapacity ? , ) - > ClientInstalledWholeSourceCapacity ?"
+        },
+        {
+          "name": "installed_whole_source_original",
+          "declaration": "installed_whole_source_original ( value : ClientInstalledWholeSourceCapacity , ) - > @ sourceviews . SourceAcquisition"
+        },
+        {
+          "name": "prepare_installed_managed_whole_source_plan",
+          "declaration": "prepare_installed_managed_whole_source_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_managed_whole_source_plan_at_query_time",
+          "declaration": "prepare_installed_managed_whole_source_plan_at_query_time ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , invocation : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_managed_whole_source_plan_owned",
+          "declaration": "prepare_installed_managed_whole_source_plan_owned ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , source : ClientInstalledWholeSourceCapacity , transport_bytes : Int64 , transport_execution_bytes : Int64 , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time : @ publication_host . ClientQueryTimePreparation ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ ClientInstalledManagedCapturePlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepare_installed_whole_source_capacity",
+          "declaration": "prepare_installed_whole_source_capacity ( prepared : @ publication_host . PreparedClientProgram , original : @ sourceviews . SourceAcquisition , declaration : @ row_source_host . RowDeclaration , contracts : ClientInstalledSequenceContracts , limits : @ row_source_host . RowInputLimits , provider : @ execution . ExecutionCapacity ? , ) - > Result [ ClientInstalledWholeSourceCapacity , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "select_installed_effect_source_input",
+          "declaration": "select_installed_effect_source_input ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ sourceviews . SourceAcquisitionRoute , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "select_installed_source_input",
+          "declaration": "select_installed_source_input ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , stage : Int , source_index : Int , ) - > Result [ @ sourceviews . SourceAcquisitionRoute , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "select_installed_source_input_graph",
+          "declaration": "select_installed_source_input_graph ( graph : @ strategy . CheckedDAG , stage : Int , source_index : Int , ) - > Result [ @ sourceviews . SourceAcquisitionRoute , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "start_installed_whole_source_read_rows",
+          "declaration": "start_installed_whole_source_read_rows ( read : ClientInstalledSourceRead , acquisition : @ row_source_host . RowInputAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_managed_whole_source_read",
+            "check_installed_whole_source_capacity",
+            "installed_managed_acquisition_result_publication",
+            "installed_managed_source_input_kind",
+            "installed_managed_whole_source_ledger",
+            "installed_whole_source_acquisition",
+            "installed_whole_source_capture_capacity",
+            "installed_whole_source_original",
+            "prepare_installed_managed_whole_source_plan",
+            "prepare_installed_managed_whole_source_plan_at_query_time",
+            "prepare_installed_managed_whole_source_plan_owned",
+            "prepare_installed_whole_source_capacity",
+            "select_installed_effect_source_input",
+            "select_installed_source_input",
+            "select_installed_source_input_graph",
+            "start_installed_whole_source_read_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_effect_provider_source.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "628092d66fed2e6489aa1dc59d7ea58a0b62430e7a3eedf07ddbe7cf806a4d50",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "begin_installed_effect_managed_source_read",
+          "declaration": "begin_installed_effect_managed_source_read ( owner : ClientInstalledManagedRun , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "begin_installed_effect_managed_source_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_program_body.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "759198df49b7d30226ea25ec52c1c7825e7ca1385785b63c884beff0011952f8",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I,P]original_request_plan_construction_quote",
+          "declaration": "[ I , P ] original_request_plan_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , data : @ checked . ParsedCheckDataEstimate , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]begin_request_program_managed_run",
+          "declaration": "[ I ] begin_request_program_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_program_plan_input",
+          "declaration": "[ I ] borrow_request_program_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]borrow_request_program_preparation",
+          "declaration": "[ I ] borrow_request_program_preparation ( owner : ClientRequestPreparation [ I ] , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientProgram ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_program_preparation",
+          "declaration": "[ I ] complete_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedSourceFreePreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]complete_request_program_preparation_owned",
+          "declaration": "[ I ] complete_request_program_preparation_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedSourceFreePreparation , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]continue_request_program_preparation",
+          "declaration": "[ I ] continue_request_program_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]finish_request_program_artifact_work",
+          "declaration": "[ I ] finish_request_program_artifact_work ( owner : ClientRequestPreparation [ I ] , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_capture_module_body",
+          "declaration": "[ I ] prepare_request_capture_module_body ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedCapturePlan , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "[I]prepare_request_compilation_owned",
+          "declaration": "[ I ] prepare_request_compilation_owned ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , manifests : @ publication_host . ClientCompilationManifests , compilation_limits : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_compilation",
+          "declaration": "[ I ] prepare_request_program_compilation ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ @ publication_host . ClientRunCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "[I]prepare_request_program_module_body",
+          "declaration": "[ I ] prepare_request_program_module_body ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "[I]prepare_request_program_module_body_owned",
+          "declaration": "[ I ] prepare_request_program_module_body_owned ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , invocation ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , @ publication_host . ClientCompiledRun , @ publication . PublicationContract , ) ?"
+        },
+        {
+          "name": "[I]request_program_plan_quote",
+          "declaration": "[ I ] request_program_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_domain_run_metadata",
+          "declaration": "[ I ] reserve_request_domain_run_metadata ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , artifact : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_program_plan",
+          "declaration": "[ I ] reserve_request_program_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_query_time_invocation",
+          "declaration": "[ I ] reserve_request_query_time_invocation ( owner : ClientRequestPreparation [ I ] , input : I , compilation : @ publication_host . ClientRunCompilation , ) - > Result [ Unit , ClientRequestProgramPlanIssue ]"
+        },
+        {
+          "name": "[I]retain_request_program_module_inputs",
+          "declaration": "[ I ] retain_request_program_module_inputs ( owner : ClientRequestPreparation [ I ] , input : I , contracts : ClientInstalledSequenceContracts , captured : ClientInstalledManagedCapturePlan ? , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , ) - > Result [ @ publication_host . PreparedClientProgram , ClientRequestProgramPlanIssue , ]"
+        },
+        {
+          "name": "request_query_time_invocation_extent",
+          "declaration": "request_query_time_invocation_extent ( original : @ publication_host . ClientPureCompilationConstruction , ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I,P]original_request_plan_construction_quote",
+            "[I]begin_request_program_managed_run",
+            "[I]borrow_request_program_plan_input",
+            "[I]borrow_request_program_preparation",
+            "[I]complete_request_program_preparation",
+            "[I]complete_request_program_preparation_owned",
+            "[I]continue_request_program_preparation",
+            "[I]finish_request_program_artifact_work",
+            "[I]prepare_request_capture_module_body",
+            "[I]prepare_request_compilation_owned",
+            "[I]prepare_request_program_compilation",
+            "[I]prepare_request_program_module_body",
+            "[I]prepare_request_program_module_body_owned",
+            "[I]request_program_plan_quote",
+            "[I]reserve_request_domain_run_metadata",
+            "[I]reserve_request_program_plan",
+            "[I]reserve_request_query_time_invocation",
+            "[I]retain_request_program_module_inputs",
+            "request_query_time_invocation_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_effect_body.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "a0c99e16d1a97f0f97bdfdd4b4865280b8949a1b1fee863f677fdfce20d163e3",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_request_effect_managed_run",
+          "declaration": "[ I ] begin_request_effect_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]begin_request_effect_model_managed_run",
+          "declaration": "[ I ] begin_request_effect_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]borrow_request_effect_plan_input",
+          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]borrow_request_effect_preparation",
+          "declaration": "[ I ] borrow_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , ) - > Result [ @ resources . PreparationBodyBorrow [ ClientInstalledEffectManagedPlan ] , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]complete_request_effect_preparation",
+          "declaration": "[ I ] complete_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]continue_request_effect_preparation",
+          "declaration": "[ I ] continue_request_effect_preparation ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . PreparedClientEffectComputation , ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]finish_request_effect_run_adoption",
+          "declaration": "[ I ] finish_request_effect_run_adoption ( owner : ClientRequestPreparation [ I ] , result : Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ] , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_effect_model_read_scope",
+          "declaration": "[ I ] prepare_request_effect_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]request_effect_plan_quote",
+          "declaration": "[ I ] request_effect_plan_quote ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( Int64 , Int64 ) , ClientRequestPreparationIssue ]"
+        },
+        {
+          "name": "[I]reserve_request_effect_plan",
+          "declaration": "[ I ] reserve_request_effect_plan ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ Unit , ClientRequestPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_request_effect_managed_run",
+            "[I]begin_request_effect_model_managed_run",
+            "[I]borrow_request_effect_plan_input",
+            "[I]borrow_request_effect_preparation",
+            "[I]complete_request_effect_preparation",
+            "[I]continue_request_effect_preparation",
+            "[I]finish_request_effect_run_adoption",
+            "[I]prepare_request_effect_model_read_scope",
+            "[I]request_effect_plan_quote",
+            "[I]reserve_request_effect_plan"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_model_module.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "5742018e5551bee149546901444fd7e68745155c5f171541e25685e56c7a3c9b",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]begin_request_model_module",
+          "declaration": "[ I ] begin_request_model_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , captures : Int , installed_providers : Int , query_time : @ publication_host . ClientQueryTimePreparation ? , provider_captures ? : Int"
+        },
+        {
+          "name": "[I]prepare_request_model_capture_module",
+          "declaration": "[ I ] prepare_request_model_capture_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "[I]prepare_request_model_source_free_module",
+          "declaration": "[ I ] prepare_request_model_source_free_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepared_request_model_input_prefix",
+          "declaration": "prepared_request_model_input_prefix ( original : ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "prepared_request_model_input_suffix",
+          "declaration": "prepared_request_model_input_suffix ( original : ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence ? , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "request_model_module_container_bytes",
+          "declaration": "request_model_module_container_bytes ( tasks : Int , captures : Int , installed_providers : Int , provider_captures ? : Int"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]begin_request_model_module",
+            "[I]prepare_request_model_capture_module",
+            "[I]prepare_request_model_source_free_module",
+            "prepared_request_model_input_prefix",
+            "prepared_request_model_input_suffix",
+            "request_model_module_container_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_direct_occurrences.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "618e6df7af77a4efcbbca82907db2166be0d5d335ec0edb5f749140230ddd0a0",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_direct_occurrences_match_owner",
+          "declaration": "installed_direct_occurrences_match_owner ( selected : @ publication_host . ClientDirectAcquisitionOccurrences , owner : ClientLocalSequenceOwner , ) - > Bool"
+        },
+        {
+          "name": "installed_direct_occurrences_owned",
+          "declaration": "installed_direct_occurrences_owned ( owner : ClientLocalSequenceOwner , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_managed_run_direct_occurrence",
+          "declaration": "installed_managed_run_direct_occurrence ( run : ClientInstalledManagedRun , task : Int , ) - > ( Int , Int , Int ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_direct_occurrences_match_owner",
+            "installed_direct_occurrences_owned",
+            "installed_managed_run_direct_occurrence"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_direct_occurrences_layout.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "398141ad9dc8d80a1f648e3e9435685339e1c683d02fc2942df00c82f90e8579",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_direct_occurrences_layout",
+          "declaration": "installed_direct_occurrences_layout ( captures : Int ) - > ( Int64 , Int64 ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_direct_occurrences_layout"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_direct_source_read_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1d3dbb906d8d5069ca470bffb0a40112dd098812f2bc8a0d2d7776b6de354330",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_managed_run_source_read_at",
+          "declaration": "client_program_installed_managed_run_source_read_at ( value : @ client_local_host . ClientInstalledManagedRun , stage : Int , input : Int , task : Int , ) - > Result [ @ client_local_host . ClientInstalledSourceRead , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_managed_run_source_read_at"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node_rela/client_direct_source_read_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "1d3dbb906d8d5069ca470bffb0a40112dd098812f2bc8a0d2d7776b6de354330",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_managed_run_source_read_at",
+          "declaration": "client_program_installed_managed_run_source_read_at ( value : @ client_local_host . ClientInstalledManagedRun , stage : Int , input : Int , task : Int , ) - > Result [ @ client_local_host . ClientInstalledSourceRead , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_managed_run_source_read_at"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_direct_acquisition_occurrences.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "ae8119dbc3f42a06c63327abf695f0d9c7985e8e13c4f6afa1bb34bcb6760fc8",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_direct_acquisition_occurrence_at",
+          "declaration": "client_direct_acquisition_occurrence_at ( value : ClientDirectAcquisitionOccurrences , index : Int , ) - > ( Int , Int , Int ) ?"
+        },
+        {
+          "name": "client_direct_acquisition_occurrence_coordinate",
+          "declaration": "client_direct_acquisition_occurrence_coordinate ( prepared : PreparedClientProgram , check : @ checked . SourceExecution , remaining : Ref [ Int ] , ) - > Result [ ( Int , Int , Int ) , ClientDirectAcquisitionOccurrenceIssue ]"
+        },
+        {
+          "name": "client_direct_acquisition_occurrence_count",
+          "declaration": "client_direct_acquisition_occurrence_count ( value : ClientDirectAcquisitionOccurrences , ) - > Int"
+        },
+        {
+          "name": "client_direct_acquisition_occurrences_match_effect_program",
+          "declaration": "client_direct_acquisition_occurrences_match_effect_program ( value : ClientDirectAcquisitionOccurrences , prepared : PreparedClientEffectComputation , ) - > Bool"
+        },
+        {
+          "name": "client_direct_acquisition_occurrences_match_program",
+          "declaration": "client_direct_acquisition_occurrences_match_program ( value : ClientDirectAcquisitionOccurrences , prepared : PreparedClientProgram , ) - > Bool"
+        },
+        {
+          "name": "select_client_direct_acquisition_occurrences",
+          "declaration": "select_client_direct_acquisition_occurrences ( prepared : PreparedClientProgram , max_work : Int , ) - > Result [ ClientDirectAcquisitionOccurrences , ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "select_client_direct_acquisition_occurrences_owned",
+          "declaration": "select_client_direct_acquisition_occurrences_owned ( retained : ClientDirectAcquisitionProgramOwner , prepared : PreparedClientProgram , max_work : Int , ) - > Result [ ClientDirectAcquisitionOccurrences , ClientDirectAcquisitionOccurrenceIssue , ]"
+        },
+        {
+          "name": "select_client_effect_direct_acquisition_occurrences",
+          "declaration": "select_client_effect_direct_acquisition_occurrences ( prepared : PreparedClientEffectComputation , max_work : Int , ) - > Result [ ClientDirectAcquisitionOccurrences , ClientDirectAcquisitionOccurrenceIssue , ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_direct_acquisition_occurrence_at",
+            "client_direct_acquisition_occurrence_coordinate",
+            "client_direct_acquisition_occurrence_count",
+            "client_direct_acquisition_occurrences_match_effect_program",
+            "client_direct_acquisition_occurrences_match_program",
+            "select_client_direct_acquisition_occurrences",
+            "select_client_direct_acquisition_occurrences_owned",
+            "select_client_effect_direct_acquisition_occurrences"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

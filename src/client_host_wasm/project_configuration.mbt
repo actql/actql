@@ -64,6 +64,7 @@ fn original_project_configuration_body(
     return None
   }
   guard original.selection.selected_profile() is Ok(profile) &&
+    original.selection.mock_catalog_file() is Ok(mock_catalog) &&
     original.selection.mock_data_file() is Ok(mock_data) &&
     original.selection.mock_answer_count() is Ok(answer_count) else {
     return None
@@ -94,6 +95,7 @@ fn original_project_configuration_body(
       @encode.end_array(writer)
     }
     @encode.end_array(writer)
+    project_optional_text(writer, "mock_catalog", mock_catalog)
     project_optional_text(writer, "mock_data", mock_data)
     project_optional_text(
       writer,

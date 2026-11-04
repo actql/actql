@@ -1,4 +1,7 @@
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
+import {sourceAliasBorrowedGeometry} from './source-alias-construction.mjs';
+import {aliasRequestGeometry, snapshotAliasRequest, sourceAliasIdentityRow} from './source-alias-request.mjs';
 import {isAbsolute} from 'node:path';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
@@ -67,8 +70,7 @@ function admitNamespace(declaration, sources, aliases, environmentCid) {
     if (count > 1024 || bytes > 1024 * 1024) return undefined;
   }
   const allAliases = ordered.flatMap(value => value.aliases);
-  const rows = entries => entries.map(entry => [entry.name, entry.sourceRef,
-    entry.sourceViewContractCid, entry.schemaContractCid]).toSorted((left, right) =>
+  const rows = entries => entries.map(sourceAliasIdentityRow).toSorted((left, right) =>
       left[0] < right[0] ? -1 : left[0] > right[0] ? 1 : 0);
   if (JSON.stringify(rows(allAliases)) !== JSON.stringify(rows(aliases))) return undefined;
   return Object.freeze({name: declaration.name,
@@ -118,32 +120,47 @@ export function splitSourceAliasProfile(profile) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
   const {queryAliases = [], ...providerProfile} = profile;
-  if (!Array.isArray(queryAliases) || queryAliases.length > 1024 ||
-      Buffer.byteLength(JSON.stringify(queryAliases)) > 1024 * 1024) {
+  if (!Array.isArray(queryAliases) || queryAliases.length > 1024) {
+    throw new TypeError('InvalidPublicSourcePublication');
+  }
+  for (const entry of queryAliases) {
+    if (entry !== null && typeof entry === 'object' && Object.hasOwn(entry, 'request')) {
+      const request = Object.getOwnPropertyDescriptor(entry, 'request');
+      if (!request || !Object.hasOwn(request, 'value')) throw new TypeError('InvalidPublicSourcePublication');
+      aliasRequestGeometry(request.value);
+    }
+  }
+  if (Buffer.byteLength(JSON.stringify(queryAliases)) > 1024 * 1024) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
   // The profile was parsed by this loader; copy and freeze each metadata row
   // before it becomes shared with the installed Host's preparation closure.
   const aliases = Object.freeze(queryAliases.map(entry => {
     if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
-        Object.keys(entry).sort().join('\0') !==
+        Object.keys(entry).filter(key => key !== 'request').sort().join('\0') !==
           ['name', 'schemaContractCid', 'sourceRef', 'sourceViewContractCid'].join('\0') ||
-        !Object.values(entry).every(value => typeof value === 'string') ||
+        !['name', 'sourceRef', 'schemaContractCid', 'sourceViewContractCid']
+          .every(key => typeof entry[key] === 'string') ||
         entry.name.length === 0 || entry.name.length > 1024 ||
         entry.sourceRef.length === 0 || entry.sourceRef.length > 4096 ||
         ![entry.schemaContractCid, entry.sourceViewContractCid]
           .every(value => /^sha256:[0-9a-f]{64}$/u.test(value))) {
       throw new TypeError('InvalidPublicSourcePublication');
     }
-    return Object.freeze({...entry});
+    return Object.freeze({...entry, ...(Object.hasOwn(entry, 'request')
+      ? {request: snapshotAliasRequest(entry.request)} : {})});
   }));
   return {providerProfile, queryAliases: aliases};
 }
 
 export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],
   {namespace, selectorNamespace, installedSources = [], updateTargets = [], storeTargets = []} = {}) {
-  // Own even manually assembled metadata before validating or retaining it.
-  aliases = splitSourceAliasProfile({queryAliases: aliases}).queryAliases;
+  // Installed metadata already has one immutable owned snapshot. Validate
+  // plain DATA without invoking hooks, then borrow it through publication.
+  // Freeze is stability only; Common still checks the original Source owner.
+  if (types.isProxy(aliases)) throw new TypeError('InvalidPublicSourcePublication');
+  if (Object.isFrozen(aliases)) sourceAliasBorrowedGeometry(aliases);
+  else aliases = splitSourceAliasProfile({queryAliases: aliases}).queryAliases;
   if (!Array.isArray(tableWrites) || tableWrites.length > 1024 ||
       Buffer.byteLength(JSON.stringify(tableWrites)) > 1024 * 1024) {
     throw new TypeError('InvalidPublicTableWritePublication');

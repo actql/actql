@@ -106,6 +106,25 @@ export function localFilesLookupExecutionPolicy(sourceLimits) {
   });
 }
 
+// A selected Local service keeps its explicit lookup policy. Only response
+// wire transfer has the same dimension as the nominal Resource counter. Peak
+// memory is not a cumulative decoded-byte budget, and no row estimate is used.
+// This initial ceiling is not remaining capacity: the same Run Ledger still
+// reserves actual transfer before every provider operation.
+export function localResourceLookupExecutionPolicy(moon, original, selected) {
+  const policy = snapshotHostLookupExecutionPolicy(selected);
+  if (policy === undefined) return undefined;
+  const limits = moon.clientLocalPreparationResourceLimits(original);
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      (typeof limits[3] !== 'bigint' && !Number.isSafeInteger(limits[3]))) {
+    fail('LocalLookupResourcePolicy');
+  }
+  const transfer = BigInt(limits[3]);
+  if (transfer <= 0n || transfer > BigInt(Number.MAX_SAFE_INTEGER)) fail('LocalLookupResourcePolicy');
+  return snapshotHostLookupExecutionPolicy({...policy,
+    max_total_response_bytes: Math.min(policy.max_total_response_bytes, Number(transfer))});
+}
+
 export function selectInstalledHostEnvironment(moon, baseWire, selection, lookupSelection) {
   const policy = snapshotHostCapacityPolicy(selection);
   const lookup = snapshotHostLookupExecutionPolicy(lookupSelection);

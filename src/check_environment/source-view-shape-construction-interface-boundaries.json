@@ -1,0 +1,95 @@
+{
+  "qualification": "Original generated-rule and shared validator-frame constructor DATA; not grammar admission or resource supply",
+  "declarations": [
+    {
+      "module": "src/check_environment/source_view_shape_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "db642d452ea73eb12ac32864e2cec79d9a63cb3d6520a234744bbdde5c34091d",
+      "role": "common-semantics",
+      "owner": "Existing Common original SourceView shape interpreter and generated rule construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "source_view_shape_frame_construction",
+          "declaration": "source_view_shape_frame_construction ( nodes : Int64 , fields : Int64 , items : Int64 , path : Int64 , active : Bool , ) - > @ shape . CollectionConstructionExtent"
+        },
+        {
+          "name": "source_view_shape_validation_construction_extent",
+          "declaration": "source_view_shape_validation_construction_extent ( nodes : Int , max_fields : Int , max_items : Int , outer_depth : Int , ) - > @ shape . CollectionConstructionExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "source_view_shape_frame_construction",
+            "source_view_shape_validation_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/check_environment/source-view-shape-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

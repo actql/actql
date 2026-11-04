@@ -1,8 +1,9 @@
 // Real checked Source/Catalog/Command compilation. This is not physical
 // capture, approval, dispatch, recovery or a public COMMAND acceptance claim.
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {inspect} from 'node:util';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -13,6 +14,7 @@ import {composeInstalledEffects, installedEffectFor} from './installed-effect-in
 import {canonical, cid} from './fixtures/file-listing-source.fixture.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {contentCommandFixture} from './fixtures/content-command.fixture.mjs';
+import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 
 const baseWire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
 
@@ -78,7 +80,7 @@ test('structured Content COMMAND check closes only visible valid static Effects'
   assert.deepEqual(hidden.report.reasons, [], 'protected Effect inputs are not disclosed');
 });
 
-test('checked Content COMMAND selects only its published original installation contract', async () => {
+test('checked Content COMMAND selects only its published original installation contract', async t => {
   const {program, environment, environmentWire, command} = contentCommandFixture();
   const prepared = moon.clientProgramEffectPreparationReady(
     moon.clientProgramPrepareEffectComputationWithParameters(
@@ -91,10 +93,20 @@ test('checked Content COMMAND selects only its published original installation c
   const owner = Object.freeze({environmentWire,
     effectSelectors: Object.freeze([Object.freeze({...selector})]),
     async close() { closes += 1; }});
+  // This metadata owner supplies no physical Source or Command acceptance.
+  // Its Environment composition still uses the actual initial Resource and
+  // the same nominal Source services as an installed Host.
+  const root = await mkdtemp(join(tmpdir(), 'actql-command-composition-'));
+  const parent = createInstalledLoaderParent({root, moon});
+  t.after(async () => {await parent.close(); await rm(root, {recursive: true, force: true});});
+  parent.open();
   const options = {moon, baseEnvironmentWire: baseWire.trimEnd()};
+  const compose = value => parent.load((paths, captured) =>
+    composeInstalledEffects(paths, captured,
+      async (_path, _options, retain) => { retain(value); return value; }),
+  ['/fixture-command'], options);
   let inventory;
-  try { inventory = await composeInstalledEffects(['/fixture-command'], options,
-    async (_path, _options, retain) => { retain(owner); return owner; }); }
+  try { inventory = await compose(owner); }
   catch (error) { assert.fail(inspect(error, {depth: 8})); }
   assert.equal(installedEffectFor(inventory, descriptors), owner);
   for (const fault of [{commandCid: `sha256:${'a'.repeat(64)}`},
@@ -104,8 +116,7 @@ test('checked Content COMMAND selects only its published original installation c
       {code: 'InstalledEffectProgramMismatch'});
     const invalid = Object.freeze({...owner,
       effectSelectors: Object.freeze([Object.freeze({...selector, ...fault})])});
-    await assert.rejects(composeInstalledEffects(['/fixture-command'], options,
-      async (_path, _options, retain) => { retain(invalid); return invalid; }),
+    await assert.rejects(compose(invalid),
       error => (error.primaryFailure?.code ?? error.code) === 'InvalidInstalledEffectSelectors');
   }
   await inventory.close();

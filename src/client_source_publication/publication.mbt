@@ -299,7 +299,7 @@ fn client_source_context_from_root(
   let mut schema_work = 1000000
   for index, entry in aliases {
     @decode.closed_object(entry, [
-      "name", "sourceRef", "sourceViewContractCid", "schemaContractCid",
+      "name", "sourceRef", "sourceViewContractCid", "schemaContractCid", "request",
     ]).unwrap_or_else(() => raise PublicationStop(Publication))
     |> ignore
     let name = @query_syntax.parse_relation_path(
@@ -363,23 +363,8 @@ fn client_source_context_from_root(
     }
     let resource = source_ref[prefix.length():source_ref.length() -
     suffix.length()].to_owned()
-    let input = try {
-      let writer = @encode.writer(16384, 32, 8)
-      @encode.begin_object(writer)
-      for
-        (key, value) in [
-          ("connector", connector),
-          ("resource", resource),
-          ("view", view_id),
-        ] {
-        @encode.key(writer, key)
-        @encode.string_value(writer, value)
-      }
-      @encode.end_object(writer)
-      source_publication_cursor(@encode.finish(writer))
-    } catch {
-      _ => raise PublicationStop(Publication)
-    }
+    let request = source_publication_request(entry)
+    let input = source_publication_input(connector, resource, view_id, request)
     published.push({
       name,
       source_ref,
@@ -482,4 +467,86 @@ pub fn[T] admit_captured_query_declarations(
   read_source_parameter_declarations(indexed)
   .map(value => (indexed, value))
   .map_err(_ => Declarations)
+}
+
+///|
+// Installation request values are literal DATA. Only the existing direct-field
+// reference forms are excluded; nested business keys are never templates.
+fn source_publication_request(
+  entry : @decode.Cursor,
+) -> @decode.Cursor? raise PublicationStop {
+  let object = @decode.open_object(entry).unwrap_or_else(() => {
+    raise PublicationStop(Publication)
+  })
+  let request = @decode.lookup(object, "request")
+  if request is Some(value) {
+    guard @decode.object_length(value) is Some(count) else {
+      raise PublicationStop(Publication)
+    }
+    for index in 0..<count {
+      let (_, field) = @decode.field_at(value, index).unwrap()
+      if @decode.object_length(field) == Some(1) {
+        let (name, _) = @decode.field_at(field, 0).unwrap()
+        if name == "$param" || name == "$binding" {
+          raise PublicationStop(Publication)
+        }
+      }
+    }
+  }
+  request
+}
+
+///|
+// The existing admitted-source emitter preserves keys, order, nulls and values.
+// No schema defaults, correlation keys, Parameters or policy are synthesized.
+fn emit_source_publication_input(
+  writer : @encode.Writer,
+  connector : String,
+  resource : String,
+  view : String,
+  request : @decode.Cursor?,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  for
+    (key, value) in [
+      ("connector", connector),
+      ("resource", resource),
+      ("view", view),
+    ] {
+    @encode.key(writer, key)
+    @encode.string_value(writer, value)
+  }
+  if request is Some(value) {
+    @encode.key(writer, "request")
+    @stage_syntax.emit_admitted_source_value(value, writer)
+  }
+  @encode.end_object(writer)
+}
+
+///|
+// Bound the exact original emission before allocating its text and index. The
+// installing Host must fund that complete overlap before entering this constructor;
+// writer limits are not a Resource reservation or physical backing receipt.
+fn source_publication_input(
+  connector : String,
+  resource : String,
+  view : String,
+  request : @decode.Cursor?,
+  max_bytes? : Int = 1048576,
+) -> @decode.Cursor raise PublicationStop {
+  try {
+    // Preserve the old absent-request bounds, including its failure behavior.
+    let (bytes, nodes, depth) = if request is None {
+      (Int::min(max_bytes, 16384), 32, 8)
+    } else {
+      let measure = @encode.measuring_writer(max_bytes, 16384, 32)
+      emit_source_publication_input(measure, connector, resource, view, request)
+      @encode.finish_measurement_usage(measure)
+    }
+    let writer = @encode.writer(bytes, nodes, depth)
+    emit_source_publication_input(writer, connector, resource, view, request)
+    source_publication_cursor(@encode.finish(writer))
+  } catch {
+    _ => raise PublicationStop(Publication)
+  }
 }

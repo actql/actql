@@ -5,7 +5,7 @@ fn select_source_acquisition_rows(
   requests : SourceRequestContexts,
   max_work : Int,
 ) -> Result[
-  (SourceRowContexts, Array[Array[@capacity.TargetMembership]]),
+  (SourceRowContexts, Array[Array[@capacity.TargetMembership?]]),
   PrepareSourcesIssue,
 ] {
   let mut work = requests.work
@@ -27,9 +27,9 @@ fn select_source_acquisition_rows(
       ),
     )
     let closure = requests.contexts.contexts[stage].context.capacity
-    let rows = []
-    let owned = []
-    let selected_rows : Map[(Bool, Int), @capacity.TargetMembership] = Map([])
+    let rows : Array[@step_bounds.TargetRows?] = []
+    let owned : Array[@capacity.TargetMembership?] = []
+    let selected_rows : Map[(Bool, Int), @capacity.TargetMembership?] = Map([])
     for index in 0..<@sourceviews.keyed_join_count(joins) {
       if work == max_work {
         return Err(BudgetExceeded)
@@ -43,7 +43,7 @@ fn select_source_acquisition_rows(
         @pipeline.Step(i) => (true, i)
       }
       if selected_rows.get(key) is Some(selected) {
-        rows.push(@capacity.target_membership_rows(selected))
+        rows.push(selected.map(@capacity.target_membership_rows))
         owned.push(selected)
         continue
       }
@@ -79,9 +79,6 @@ fn select_source_acquisition_rows(
         work += 1
         let bound = @capacity.target_membership_rows(candidate)
         let value = @step_bounds.target_rows_value(bound)
-        if value <= 0 {
-          continue
-        }
         let cid = @step_bounds.target_rows_candidate_cid(bound)
         if cid.length() > max_work - work {
           return Err(BudgetExceeded)
@@ -99,20 +96,14 @@ fn select_source_acquisition_rows(
           best_cid = cid
         }
       }
-      guard best is Some(selected) else {
-        let join = @sourceviews.keyed_join_at(joins, index).unwrap()
-        let step = @pipeline.step_at(
-          pipeline,
-          @sourceviews.keyed_join_step(join),
-        ).unwrap()
-        return Err(Rows(MissingPositiveBound(stage, index, step.source)))
-      }
-      selected_rows[key] = selected
-      rows.push(@capacity.target_membership_rows(selected))
-      owned.push(selected)
+      // Absence is retained once for this exact target, never replaced by a
+      // Host ceiling, zero estimate or a second traversal of the same target.
+      selected_rows[key] = best
+      rows.push(best.map(@capacity.target_membership_rows))
+      owned.push(best)
     }
     let checked = match
-      @sourceviews.check_keyed_row_bounds(facts, rows, max_work - work) {
+      @sourceviews.check_keyed_row_estimates(facts, rows, max_work - work) {
       Ok(value) => value
       Err(error) => return Err(Rows(Stage(stage, error)))
     }

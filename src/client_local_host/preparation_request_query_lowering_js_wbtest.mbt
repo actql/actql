@@ -147,6 +147,9 @@ test "Request query lowerer keeps original quote through short grows and typed l
       parent.query_syntax.unwrap(),
       None,
       catalog,
+      @source_publication.prepared_published_request_copy_geometry(
+        publication, environment,
+      ).unwrap(),
     ).unwrap()
     let base = @resources.preparation_capacity_working_extents(
       parent.capacity,
@@ -455,6 +458,127 @@ test "source-free SQL capacity is refused before module completion on its origin
       @resources.ledger_usage(parent.ledger).reserved_execution_bytes,
       0L,
     )
+  }
+}
+
+///|
+fn request_literal_publication_fixture() -> (
+  @checked.CheckEnvironment,
+  @source_publication.PreparedPublishedQueryEnvironment,
+) {
+  let body =
+    #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[{"catalog_cid":"sha256:d9dea9f5c7de6a8b98b44908feb04bfc2144841367de6c427b4e999d5bfd8b95","commands":[],"connector_id":"crm/main","connector_version":"fixture","contracts":[{"body":{},"cid":"sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7","id":"member-2","kind":"carrier_facts","schema":"actql.contract/0.1","version":"fixture"},{"body":{},"cid":"sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc","id":"member-3","kind":"pushdown","schema":"actql.contract/0.1","version":"fixture"},{"body":{"additional_properties":false,"fields":{"glob":{"nullable":true,"type":"string"},"paths":{"items":{"nullable":false,"type":"string"},"nullable":true,"type":"array"},"region":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"cid":"sha256:7d12104e6e0846b4389a80dcfec7921f718caff0b061fb8d4cb4d1202ba3155e","id":"member-0","kind":"request_schema","schema":"actql.contract/0.1","version":"fixture"},{"body":{"classification":"unknown","source_ref":"connector://crm/main/records#v","version":"actql-source-data-policy/0.1"},"cid":"sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b","id":"member-4","kind":"data_policy","schema":"actql.contract/0.1","version":"fixture"},{"body":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"number"}},"nullable":false,"type":"object"},"cid":"sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759","id":"member-1","kind":"carrier_schema","schema":"actql.contract/0.1","version":"fixture"}],"schema":"actql.connector_catalog/0.1","source_views":[{"acquisition":{"authority":"read_metadata","default_mode":"snapshot","kind":"scan","modes":[{"bounded":true,"mode":"snapshot"}],"request_schema":{"cid":"sha256:7d12104e6e0846b4389a80dcfec7921f718caff0b061fb8d4cb4d1202ba3155e","id":"member-0","version":"fixture"}},"connector_id":"crm/main","connector_version":"fixture","contract_cid":"sha256:b844b32f283ef6077deb9ffd906da53679dd41f46607dbb3e0c8a48502164e75","output":{"carrier":"relation","data_policy":{"cid":"sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b","id":"member-4","version":"fixture"},"facts":{"cid":"sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7","id":"member-2","version":"fixture"},"schema":{"cid":"sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759","id":"member-1","version":"fixture"}},"pushdown":{"contract":{"cid":"sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc","id":"member-3","version":"fixture"},"operations":[]},"request_processing":{"mutates_business_state":false},"resource_kind":"record","schema":"actql.source_view/0.1","view_id":"v","view_version":"fixture"}]}],"contract_registry":[{"body":{},"cid":"sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7","id":"member-2","kind":"carrier_facts","schema":"actql.contract/0.1","version":"fixture"},{"body":{"additional_properties":false,"fields":{"id":{"nullable":false,"type":"number"}},"nullable":false,"type":"object"},"cid":"sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759","id":"member-1","kind":"carrier_schema","schema":"actql.contract/0.1","version":"fixture"},{"body":{"additional_properties":false,"fields":{"glob":{"nullable":true,"type":"string"},"paths":{"items":{"nullable":false,"type":"string"},"nullable":true,"type":"array"},"region":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"},"cid":"sha256:7d12104e6e0846b4389a80dcfec7921f718caff0b061fb8d4cb4d1202ba3155e","id":"member-0","kind":"request_schema","schema":"actql.contract/0.1","version":"fixture"},{"body":{},"cid":"sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc","id":"member-3","kind":"pushdown","schema":"actql.contract/0.1","version":"fixture"},{"body":{"classification":"unknown","source_ref":"connector://crm/main/records#v","version":"actql-source-data-policy/0.1"},"cid":"sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b","id":"member-4","kind":"data_policy","schema":"actql.contract/0.1","version":"fixture"}],"evidence_bundle_cid":"sha256:e7667ed7b3fbc887713dc45b63b96660ad8c73bb2b4808d866c831e840b835e1","host_policy_profile":{},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[{"acquisition":{"authority":"read_metadata","default_mode":"snapshot","kind":"scan","modes":[{"bounded":true,"mode":"snapshot"}],"request_schema":{"cid":"sha256:7d12104e6e0846b4389a80dcfec7921f718caff0b061fb8d4cb4d1202ba3155e","id":"member-0","version":"fixture"}},"connector_id":"crm/main","connector_version":"fixture","contract_cid":"sha256:b844b32f283ef6077deb9ffd906da53679dd41f46607dbb3e0c8a48502164e75","output":{"carrier":"relation","data_policy":{"cid":"sha256:87ee88c2e3c1afb3af1db36ec6a57cb43bb161b1e39c113cd523ac6451a6847b","id":"member-4","version":"fixture"},"facts":{"cid":"sha256:013b48b152bc91b471ab1d8f07eac6673a9e9c0a69fe15d684380fb39dc27bf7","id":"member-2","version":"fixture"},"schema":{"cid":"sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759","id":"member-1","version":"fixture"}},"pushdown":{"contract":{"cid":"sha256:4865d8d5fedb0d1cf12f78e31bfc23fef1d487ebbaf9ea0778adc171df0bfbbc","id":"member-3","version":"fixture"},"operations":[]},"request_processing":{"mutates_business_state":false},"resource_kind":"record","schema":"actql.source_view/0.1","view_id":"v","view_version":"fixture"}],"version":"actql-check-environment/0.1"}
+  let wire = @environment.read(
+    @utf8.encode(body),
+    "sha256:e7667ed7b3fbc887713dc45b63b96660ad8c73bb2b4808d866c831e840b835e1",
+    { max_bytes: 1048576, max_nodes: 16384, max_depth: 32, max_members: 32768, },
+  ).unwrap()
+  let environment = @checked.checking_environment(
+    wire,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  )
+  let publication = @source_publication.prepare_published_query_environment(
+    environment, "{\"environmentCid\":\"sha256:e7667ed7b3fbc887713dc45b63b96660ad8c73bb2b4808d866c831e840b835e1\",\"aliases\":[{\"name\":\"records\",\"sourceRef\":\"connector://crm/main/records#v\",\"sourceViewContractCid\":\"sha256:b844b32f283ef6077deb9ffd906da53679dd41f46607dbb3e0c8a48502164e75\",\"schemaContractCid\":\"sha256:918902ad5507c91441bf69c097259f7f3498aa1046161b5eba1f433550ed7759\",\"request\":{\"paths\":null,\"glob\":null,\"region\":\"europe\"}}]}",
+  ).unwrap()
+  (environment, publication)
+}
+
+///|
+test "Request literal copies grow the original quote before repeated alias lowering" {
+  let (environment, publication) = request_literal_publication_fixture()
+  let catalog = @source_publication.prepared_published_query_catalog(
+    publication, environment,
+  ).unwrap()
+  let geometry = @source_publication.prepared_published_request_copy_geometry(
+    publication, environment,
+  ).unwrap()
+  for retention in [true, false] {
+    let input = [1]
+    let parent = begin_request_preparation(
+      request_parent_fixture(input),
+      input,
+      client_local_resource_policy(),
+    ).unwrap()
+    let parsed = parse_request_query_syntax(
+      parent,
+      input,
+      "SELECT l.id AS left_id, r.id AS right_id FROM records AS l CROSS JOIN records AS r",
+      @frontend.Sql,
+    ).unwrap()
+    let syntax = parent.query_syntax.unwrap()
+    let bytes = request_query_lowering_data_bytes(
+      syntax,
+      None,
+      catalog,
+      geometry,
+    ).unwrap()
+    let no_request = request_query_lowering_data_bytes(
+      syntax,
+      None,
+      catalog,
+      (0, 0L),
+    ).unwrap()
+    let tokens = @query_syntax.token_count(@query_syntax.query_source(parsed)).to_int64()
+    let copied = (geometry.0.to_int64() + geometry.1) * tokens
+    assert_eq(
+      bytes - no_request,
+      request_query_literal_copy_bytes(geometry, tokens.to_int()).unwrap(),
+    )
+    assert_true(copied > geometry.0.to_int64() + geometry.1)
+    let base = @resources.preparation_capacity_working_extents(
+      parent.capacity,
+      input,
+    ).unwrap()
+    let limits = @resources.ledger_limits(parent.ledger)
+    let blocker = @resources.reserve_capacity(
+      parent.ledger,
+      if retention {
+        limits.retained_bytes - base.0 - bytes + 1L
+      } else {
+        0L
+      },
+      if retention {
+        0L
+      } else {
+        limits.execution_bytes - base.1 - bytes + 1L
+      },
+    ).unwrap()
+    assert_true(
+      lower_request_published_query(
+        parent,
+        input,
+        publication,
+        environment,
+        None,
+      )
+      is Err(Request(Capacity(_))),
+    )
+    let original = parent.query_syntax.unwrap().lowering.unwrap()
+    assert_true(original.output is None && parent.held_program is None)
+    assert_eq(original.quote, (base.0 + bytes, base.1 + bytes))
+    let foreign = request_literal_publication_fixture()
+    assert_true(
+      lower_request_published_query(parent, input, foreign.1, foreign.0, None)
+      is Err(Request(ForeignOriginal)),
+    )
+    @resources.settle_capacity(parent.ledger, blocker).unwrap()
+    let (lowered, original_catalog, _) = lower_request_published_query(
+      parent,
+      input,
+      publication,
+      environment,
+      None,
+    ).unwrap()
+    assert_true(physical_equal(original_catalog, catalog))
+    assert_true(
+      physical_equal(parent.held_program.unwrap(), lowered.program.unwrap()),
+    )
+    assert_true(
+      physical_equal(parent.query_syntax.unwrap().lowering.unwrap(), original),
+    )
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   }
 }
 

@@ -650,6 +650,12 @@ pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, 
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
+pub fn client_program_check_environment_from_wire(@check_environment.WireEnvironment, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
+
+pub fn client_program_check_environment_from_wire_construction_capacity(@check_environment.WireEnvironment) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_check_environment_wire_construction_capacity(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_check_environment_with_calendar_artifact(@program_check.CheckEnvironment, Bytes, Int, Int, Int, Int, Int, Int) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
@@ -1739,6 +1745,8 @@ pub fn client_program_installed_managed_run_requirements(@run_publication_host.P
 pub fn client_program_installed_managed_run_retire(@client_local_host.ClientInstalledManagedRun) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_run_source_read(@client_local_host.ClientInstalledManagedRun, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_run_source_read_at(@client_local_host.ClientInstalledManagedRun, Int, Int, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_serialization_prefix_cleanup(@client_local_host.ClientInstalledManagedRun, @client_local_host.ClientInstalledManagedSerializationPreparation) -> Result[Bool, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -2978,6 +2986,8 @@ pub fn client_program_query_time_created_at(@run_publication_host.ClientQueryTim
 
 pub fn client_program_query_time_invocation_original(@run_publication_host.ClientQueryTimePreparation, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
 
+pub fn client_program_read_check_environment_wire(String, String) -> @check_environment.WireEnvironment?
+
 pub fn client_program_read_composed_infer_model_execution(@run_publication_host.ClientInferOccurrence, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_read_infer_capture_bundle(String, String) -> Result[@run_publication.ModelCaptureBundleRead, @run_publication.RunEvidenceValueIssue]
@@ -3065,6 +3075,36 @@ pub fn client_program_recovered_table_preview_subject_cid(@run_publication_host.
 pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> Bool
 
 pub fn client_program_register_infer_raw_capture(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferDispatchAdmission, @run_publication.BoundModelInvocationScope, @run_publication.BoundModelRawCapturePolicy, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile?, AuthorizationAccount, String, String, () -> Bool, () -> AuthorizationAccount, () -> String, AuthorizationDecision?) -> Result[@run_publication_host.ClientModelRawCaptureRegistration, @run_publication_host.ClientModelRawCaptureIssue]
+
+pub fn client_program_relation_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RelationTargetDocument, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_relation_admit_document(Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_admit_target_document(@client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String], Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_document_usage(@client_row_source_host.RelationDocument) -> Array[Int64]?
+
+pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_relation_restore_construction_capacity(String, String, String, String, Array[String], Array[String], Array[String], Array[String?], Array[String?], Array[String?], Array[String?]) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_relation_target_before(@client_row_source_host.RelationTargetRow) -> String?
+
+pub fn client_program_relation_target_row_count(@client_row_source_host.RelationTargetDocument) -> Int?
+
+pub fn client_program_relation_target_row_identity(@client_row_source_host.RelationTargetDocument, Int) -> String?
+
+pub fn client_program_relation_target_text(@client_row_source_host.RelationTargetRow, String) -> String?
+
+pub fn client_program_relation_target_text_bytes(@client_row_source_host.RelationTargetRow, String) -> Bytes?
+
+pub fn client_program_relation_target_version(@client_row_source_host.RelationTargetRow) -> String?
+
+pub fn client_program_relation_update_mapping(@client_row_source_host.RowDeclaration, String, String, Array[String], String, String) -> Result[String, @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_release_captured_content_workspace(@physical_resources.Ledger, @physical_resources.Reservation) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -3303,6 +3343,8 @@ pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.Row
 pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, @query_planning.QueryEvidenceContracts, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
+
+pub fn client_program_row_source_prepare_update_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_project_json_page(Bytes, Array[String], Bool, Array[String], Int, Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceJsonPage, @client_row_source_host.RowSourceJsonPageIssue]
 
@@ -3758,6 +3800,18 @@ pub fn client_program_whole_source_target(@client_row_source_host.RowInputAcquis
 
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
 
+pub fn client_project_catalog_admission_construction_capacity(String) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_project_catalog_admit(String) -> Result[@run_publication_host.ClientProjectCatalog, @run_publication_host.ClientProjectCatalogIssue]
+
+pub fn client_project_catalog_count(@run_publication_host.ClientProjectCatalog) -> Int
+
+pub fn client_project_catalog_entry_original_json(@run_publication_host.ClientProjectCatalog, Int) -> String?
+
+pub fn client_project_catalog_name(@run_publication_host.ClientProjectCatalog, Int) -> String?
+
+pub fn client_project_catalog_original_wire(@run_publication_host.ClientProjectCatalog) -> String
+
 pub fn client_project_configuration_admit(String) -> Result[@run_publication_host.ClientProjectConfiguration, @run_publication_host.ClientProjectConfigurationIssue]
 
 pub fn client_project_configuration_connectors_file(@run_publication_host.ClientProjectConfiguration) -> String?
@@ -3770,6 +3824,8 @@ pub fn client_project_configuration_mock_answer_file(@run_publication_host.Clien
 
 pub fn client_project_configuration_mock_answer_task(@run_publication_host.ClientProjectConfiguration, Int) -> String?
 
+pub fn client_project_configuration_mock_catalog_file(@run_publication_host.ClientProjectConfiguration) -> String?
+
 pub fn client_project_configuration_mock_data_file(@run_publication_host.ClientProjectConfiguration) -> String?
 
 pub fn client_project_configuration_model_tasks_file(@run_publication_host.ClientProjectConfiguration) -> String?
@@ -3777,6 +3833,8 @@ pub fn client_project_configuration_model_tasks_file(@run_publication_host.Clien
 pub fn client_project_configuration_selected_profile(@run_publication_host.ClientProjectConfiguration) -> String?
 
 pub fn client_project_configuration_state_directory(@run_publication_host.ClientProjectConfiguration) -> String
+
+pub fn client_project_connections_admission_construction_capacity(String) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_project_connections_admit(String) -> Result[@run_publication_host.ClientProjectConnections, @run_publication_host.ClientProjectBindingsIssue]
 
@@ -3817,6 +3875,8 @@ pub fn client_project_profile_mock_answer_count(@run_publication_host.ClientProj
 pub fn client_project_profile_mock_answer_file(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 
 pub fn client_project_profile_mock_answer_task(@run_publication_host.ClientProjectProfileSelection, Int) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
+
+pub fn client_project_profile_mock_catalog_file(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 
 pub fn client_project_profile_mock_data_file(@run_publication_host.ClientProjectProfileSelection) -> Result[String?, @run_publication_host.ClientProjectProfileIssue]
 

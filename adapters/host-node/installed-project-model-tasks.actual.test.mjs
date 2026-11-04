@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {mkdtemp, writeFile, rm, open} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, rm, open} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join, dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
+import {loadInstalledProjectConfiguration, resolveInstalledProjectTaskPath, retireInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {loadInstalledProjectModelTasks} from './installed-project-model-tasks.mjs';
 import {installModelProviders} from './installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
@@ -31,14 +31,16 @@ const policy = original({schema: 'actql.contract/0.1', id: 'explicit-fixture-pol
     retention: 'none', training_use: 'forbidden'}});
 const declaration = name => `task: ${name}\ninput:\n  notes: string\noutput:\n  enabled: boolean\ninstructions: |-\n  Original é\n  second line\nlimits:\n  max_output_tokens: 200\n`;
 
-async function fixture(t, tasks = {'model-task:project': './task.yaml'}) {
+async function fixture(t, tasks = {'model-task:project': './task.yaml'}, registry = 'model-tasks.json') {
   const directory = await mkdtemp(join(tmpdir(), 'actql-project-tasks-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   await writeFile(join(directory, 'actql.config.json'),
-    '{"version":"actql-config/0.1","model_tasks":"./model-tasks.json"}');
-  await writeFile(join(directory, 'model-tasks.json'), canonical({version: 'actql-model-tasks/0.1',
+    JSON.stringify({version: 'actql-config/0.1', model_tasks: './' + registry}));
+  await mkdir(dirname(join(directory, registry)), {recursive: true});
+  await writeFile(join(directory, registry), canonical({version: 'actql-model-tasks/0.1',
     tasks, providers: {[providerId]: {type: 'fixture'}}, default_provider: providerId}));
-  await writeFile(join(directory, 'task.yaml'), declaration('model-task:project'));
+  await writeFile(join(directory, 'task.yaml'), declaration('model-task:root-decoy'));
+  await writeFile(join(dirname(join(directory, registry)), 'task.yaml'), declaration('model-task:project'));
   const project = await loadInstalledProjectConfiguration(moon, {directory});
   let current = true, sends = 0;
   const assertCurrent = () => {
@@ -177,4 +179,29 @@ test('actual retained project detects replacement of the selected installation p
   providers.set(providerId, f.providers().get(providerId));
   assert.throws(() => view.originalsForRuntime(moon), {code: 'InstalledModelDefaultsForeignOriginal'});
   assert.equal(f.sends(), 0);
+});
+
+
+test('actual normal Task loading uses the nested registry base instead of a project-root decoy', async t => {
+  const f = await fixture(t, {'model-task:project': './task.yaml'}, 'models/registry.json');
+  const view = await loadInstalledProjectModelTasks(moon, f.project, f.providers(),
+    {limits, assertCurrent: f.assertCurrent});
+  const [task] = view.originalsForRuntime(moon);
+  assert.equal(task.path, join(f.directory, 'models', 'task.yaml'));
+  assert.equal(task.wire, declaration('model-task:project'));
+  assert.equal(f.sends(), 0);
+});
+
+test('shared Task locator keeps existing path interpretation and rejects foreign retired originals', async t => {
+  const f = await fixture(t, {'model-task:project': './task.yaml'}, 'models/registry.json');
+  assert.equal(resolveInstalledProjectTaskPath(f.project, moon, '../task.yaml'), join(f.directory, 'task.yaml'));
+  const absolute = resolve(f.directory, 'elsewhere', 'task.yaml');
+  assert.equal(resolveInstalledProjectTaskPath(f.project, moon, absolute), absolute);
+  assert.throws(() => resolveInstalledProjectTaskPath({...f.project}, moon, './task.yaml'),
+    {code: 'ForeignInstalledProjectOriginal'});
+  assert.throws(() => resolveInstalledProjectTaskPath(f.project, {...moon}, './task.yaml'),
+    {code: 'ForeignInstalledProjectRuntime'});
+  retireInstalledProjectConfiguration(f.project, moon);
+  assert.throws(() => resolveInstalledProjectTaskPath(f.project, moon, './task.yaml'),
+    {code: 'InstalledProjectOriginalRetired'});
 });
