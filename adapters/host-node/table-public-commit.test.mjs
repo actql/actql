@@ -47,7 +47,7 @@ const account = () => canonicalJson({version: 'actql-execution-account-config/0.
     {entry_id: 'original-run-result-read', outcome: 'allow',
       principal: {any_of: [userInfo().username]},
       connection: {any_of: ['actql-remote-host']},
-      resource: {any_of: ['run', 'result/answer']},
+      resource: {any_of: ['result/answer', 'run']},
       operation: {any_of: ['read']}, exclusions: []},
     {entry_id: 'run', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]});
