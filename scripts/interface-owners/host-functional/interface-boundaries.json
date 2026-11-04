@@ -71766,7 +71766,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "76f503befbb9ec33dc1106cfeacc4f393352d73f3f4b77b7cd7c3c32c57734c4",
+      "sha256": "7c8d8ef38e9c8fe9058d0b23007a3e5966ee3ddc7e2ee405ea835d3bf4c926ee",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -72087,6 +72087,45 @@
             "fragment",
             "ordered",
             "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+          "parameters": [
+            "capacities",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -72745,7 +72784,12 @@
             "installPreparedProjectMockSources/modelPreparation/init:retain/init:retain",
             "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
             "installPreparedProjectMockSources/prepareManagedMockModelRun",
-            "installPreparedProjectMockSources/retireModelRead"
+            "installPreparedProjectMockSources/retireModelRead",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3"
           ],
           "exports": [],
           "attributes": {
@@ -72771,6 +72815,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "identity": [
@@ -72781,6 +72829,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "ownership": [
@@ -72795,6 +72847,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "synchronization": [
@@ -72805,6 +72861,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "failure": [
@@ -72819,6 +72879,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "cancellation": [
@@ -72843,6 +72907,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
+                "anchor": "pub fn client_program_installed_managed_run_prepare_ledger("
               }
             ],
             "extension": [
@@ -72871,6 +72943,18 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock Model dispatch uses the same adopted parent and one original two-Source Ledger'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock Model Ledger refuses a foreign Source and retains post-callback retirement without reborrowing'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock submit retains the actual returned parent for its existing dispatch comparison'"
               }
             ]
           }
