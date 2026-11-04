@@ -252,6 +252,34 @@ test('actual staged bytes, internal link targets, Git source and original assert
   assert.equal(runtimeForAction({id: 'mutations-js'}, host, f.state.actionRuntimes), f.runtime);
 });
 
+test('six-phase isolated cost metadata retains nonzero input inspection exactly once', async t => {
+  const f = fixture(t);
+  f.execution.costs.inputInspectionMilliseconds = 7;
+  f.files['receipts/mutations-js.json'].execution.milliseconds += 7;
+  const original = JSON.stringify(f.execution);
+  assert.deepEqual(await readActionRuntimes(f), f.state.actionRuntimes);
+  assert.equal(f.files['receipts/mutations-js.json'].execution.milliseconds, 22);
+  assert.equal(JSON.stringify(f.execution), original);
+});
+
+test('six-phase isolated cost metadata refuses omitted extra invalid and unbound phases', async t => {
+  for (const alter of [
+    f => delete f.execution.costs.inputInspectionMilliseconds,
+    f => f.execution.costs.unlistedMilliseconds = 0,
+    f => f.execution.costs.inputInspectionMilliseconds = -1,
+    f => f.execution.costs.inputInspectionMilliseconds = 0.5,
+    f => f.execution.costs.inputInspectionMilliseconds = NaN,
+    f => f.execution.costs.inputInspectionMilliseconds = Number.MAX_SAFE_INTEGER + 1,
+    f => f.files['receipts/mutations-js.json'].execution.milliseconds -= 7,
+  ]) {
+    const f = fixture(t);
+    f.execution.costs.inputInspectionMilliseconds = 7;
+    f.files['receipts/mutations-js.json'].execution.milliseconds += 7;
+    alter(f);
+    await assert.rejects(readActionRuntimes(f));
+  }
+});
+
 test('missing source, false directory membership, changed environment/definition and missing loader inputs reject', t => {
   const f = fixture(t);
   for (const alter of [
