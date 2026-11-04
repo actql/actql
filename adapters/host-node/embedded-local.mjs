@@ -4935,7 +4935,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           // Saved physical work keeps its original recovery owner. Do not
           // allocate another Model Scope for a previously started Run.
           if (retained?.physicalStartReserved === true) return;
-          prepareInstalledRequestModelRun(submission, requested, selection);
+          const model = prepareInstalledRequestModelRun(submission, requested, selection);
+          // A historical Source continuation dispatches this SAME adopted
+          // Model Run and its input borrow, just as fresh admission does.
+          if (held !== undefined) held.managedRun = model.managed.value;
           return;
         }
         const serializationCount = moon.clientProgramSerializationOccurrences(submission.preparedProgram).length;

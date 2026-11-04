@@ -272,3 +272,30 @@ for (const kind of ['backing-refusal', 'original-Account']) {
     assert.equal(retireInstalledSourceInitialization(f.services), true);
   });
 }
+
+test('native capture-only entry forwards the same original Ledger and acquisition promise', async () => {
+  const capture = {}, completion = Promise.resolve(capture), calls = [];
+  const authorization = Object.freeze({close() {assert.strictEqual(this, authorization); return true;}});
+  const profile = {environmentWire: '{"connector_catalogs":[]}', database: '/UNOPENED/original.duckdb',
+    schema: 'main', table: 'records', sourceRef: 'source:original', sourceAccess: {authorization},
+    transportLimits: {}, acquisitionPlanning: {}};
+  const moon = {};
+  const construct = await nativeConstructor({loadDuckDBNativeRuntime() {}, readFile,
+    contentCid, duckDBPhysicalTarget,
+    openCapturedDuckDBSource(options) {calls.push(options); return completion;}});
+  const adapter = await construct(profile, moon, {root: '/UNOPENED/original', principalId: 'fixture'});
+  const ledger = {}, preparedProgram = {}, preparedSource = {}, signal = new AbortController().signal;
+  const options = {preparedProgram, preparedSource, sourceAccess: profile.sourceAccess, ledger, signal};
+  assert.strictEqual(adapter.openCapture(options), completion);
+  assert.equal(calls.length, 1);
+  assert.strictEqual(calls[0].ledger, ledger);
+  assert.strictEqual(calls[0].preparedProgram, preparedProgram);
+  assert.strictEqual(calls[0].preparedSource, preparedSource);
+  assert.strictEqual(calls[0].sourceAccess, profile.sourceAccess);
+  assert.strictEqual(calls[0].signal, signal);
+  assert.strictEqual(await completion, capture);
+  assert.throws(() => adapter.openCapture({...options, ledger: undefined}), /InstalledSourceCaptureLedgerUnavailable/);
+  adapter.close();
+  assert.throws(() => adapter.openCapture(options), /InstalledSourceReaderNotCurrent/);
+  assert.equal(calls.length, 1, 'neither missing Ledger nor retired Source can reopen the original');
+});
