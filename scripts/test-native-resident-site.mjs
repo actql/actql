@@ -2443,12 +2443,15 @@ try {
     line.reason === 'credential-unavailable'), 'credential refusal');
   await chmod(tokenFile, 0o600);
   const second = dispatchFor('resident-dispatch-2', 4);
-  const secondSettled = await within(gateway.dispatch({dispatch: second,
+  const secondObserved = await within(gateway.dispatch({dispatch: second,
     inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(second)}),
   'second dispatch');
-  assert.notEqual(secondSettled.state[0], 0);
+  // A status may still be Accepted after credential repair. Completion is
+  // established by the same original dispatch's durable query below.
+  assert.equal(secondObserved.dispatchRequestCid, siteControl.identity(second));
   await waitFor(async () => (await entries()).length === 2, 'second entry');
   const secondTerminal = await settledQuery(second, 'second');
+  assert.equal(secondTerminal.dispatchRequestCid, secondObserved.dispatchRequestCid);
   assert.equal(secondTerminal.state[0], 3);
   await within(gateway.release({dispatch: second}), 'second release');
 
@@ -2733,8 +2736,8 @@ try {
     const blocked = startSite([], options);
     currentSite = blocked;
     const dispatch = dispatchFor(`resident-${tag}`, attempt);
-    // The gateway answers the dispatch once the attempt has started.
-    const started = within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+    // An authenticated Accepted status can answer before a holder claims.
+    const observed = within(gateway.dispatch({dispatch, inputBindingBody: '{}',
       dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
     try {
       await waitFor(() => blocked.lines.some(line => line.kind === 'accepted'),
@@ -2747,8 +2750,8 @@ try {
     } finally {
       await chmod(locked, 0o700);
     }
-    const startedState = await started;
-    assert.notEqual(startedState.state[0], 0);
+    const acceptedState = await observed;
+    assert.equal(acceptedState.dispatchRequestCid, siteControl.identity(dispatch));
     expectedEntries += 1;
     await waitFor(async () => (await entries()).length === expectedEntries,
       `${tag} entry after repair`);
