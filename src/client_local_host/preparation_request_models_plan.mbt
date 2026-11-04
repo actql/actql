@@ -338,19 +338,28 @@ fn request_model_plan_quantity_limits(
   plan : ClientInstalledManagedModelPlan,
   installed : @resources.QuantityAmounts,
 ) -> @resources.QuantityAmounts? {
+  request_model_group_quantity_limits(plan.graph, plan.models, installed)
+}
+
+///|
+fn request_model_group_quantity_limits(
+  first_graph : @publication_host.ClientInferPlanGraph,
+  models : Array[ClientInstalledModelReadPartition]?,
+  installed : @resources.QuantityAmounts,
+) -> @resources.QuantityAmounts? {
   let mut tokens = 0L
   let mut cost = 0L
   let mut duration = 0L
   // Borrow the actual compiler group already retained on this Plan. Singles
   // keep exactly their original execution contract and min intersection.
   let mut index = 0
-  let count = match plan.models {
+  let count = match models {
     None => 1
     Some(models) => models.length()
   }
   while index < count {
-    let graph = match plan.models {
-      None => plan.graph
+    let graph = match models {
+      None => first_graph
       Some(models) => models[index].graph
     }
     let execution = @publication_host.client_infer_plan_graph_execution_contract(

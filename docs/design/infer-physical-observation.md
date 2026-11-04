@@ -59,3 +59,21 @@ A complete group is not a singular Model-state writer. The existing singular
 writer refuses a group before consuming its descriptor. Authenticated recovery
 and independent saved Result access retain their existing contracts; a fresh
 Scope or successful public status is not a physical-stop or recovery receipt.
+
+
+## Effect Model startup on the original Request
+
+An Effect's Model child retains the same selected provider, Graph, rows and
+read consumer on the original Request Ledger. Generated Content inputs enter
+the same shared-provider startup as composed inputs; their authentic producer
+and generation still pass the existing input/current checks. The child does
+not require the whole Effect Ledger to equal its Model-only limits. Instead,
+the existing checked startup retains that exact Model limit object and checks
+it against the original parent without issuing another Ledger.
+
+Before binding the Model read Scope, the Request configures its selected
+installed quantities intersected with the original execution ceiling. Pure
+and Effect share the same quantity fold. An identical pending retry observes
+the retained configuration; a different configuration or already bound Run
+cannot reset consumption, uncertainty or original input work. Model startup
+continues to require exact agreement with this pre-read configuration.

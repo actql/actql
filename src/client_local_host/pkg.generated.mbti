@@ -754,7 +754,7 @@ pub fn[I] prepare_request_computation_policy_subjects(ClientRequestPreparation[I
 
 pub fn[I] prepare_request_effect_check_preparation(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], @run_publication_host.ClientEffectComputationLimits, source_catalog? : @program_check.PreparedSourceCatalog?, source_preparation? : @stage_parameters.Source?) -> Result[ClientProgramCheckPreparation[I, Unit], ClientRequestPreparationIssue]
 
-pub fn[I] prepare_request_effect_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
+pub fn[I] prepare_request_effect_model_read_scope(ClientRequestPreparation[I], I, ClientInstalledEffectManagedPlan, quantity_limits? : @physical_resources.QuantityAmounts?) -> Result[@run_publication_host.ClientModelReadScope, ClientInstalledManagedRunIssue]
 
 pub fn[I] prepare_request_keyed_content_plan(ClientRequestPreparation[I], I, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, @client_row_source_host.RowKeyedLimits, String, String, Array[Int64], Array[Int64], Int, Int, ClientInstalledSequenceContracts, Int, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.ExecutionCapacity?) -> Result[ClientInstalledManagedKeyedPreparation, ClientRequestProgramPlanIssue]
 
