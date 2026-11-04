@@ -75,9 +75,10 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const owners = new Set();
   for (let task = 0; task < count; task++) {
     let sourceRef;
-    if (managedPlan === undefined && requestIdentity !== undefined) {
-      // Preadmission reads the original checked Requests. The Plan, not this
-      // installation selection, later prepares the Query requirement once.
+    if (requestIdentity !== undefined) {
+      // Select the adapter from the original checked Request, including when
+      // its retained Plan contains a Native rather than a Row capture. The
+      // adapter consumes that Plan's own typed capture during preparation.
       const selection = checked(moon.clientProgramSelectInstalledEffectSourceInput(
         preparedEffect, requestIdentity, task, 0));
       if (moon.clientProgramSelectedSourceInputKind(selection) !== 'query') {
