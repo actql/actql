@@ -1027,6 +1027,16 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (retired) return true;
     if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
     if (working || pending !== undefined || run.selecting) return false;
+    // Recovered requests remain on their original member constructor tokens
+    // while any hot observation can borrow them. A stage close is not their
+    // final retirement. Drop aliases and retire those SAME children before
+    // returning this control/parent backing; pending cleanup stays pending.
+    const recovery = run.recoveredRequestInput;
+    if (recovery !== undefined) {
+      if (recovery.retire() !== true) return false;
+      if (run.recoveredRequestInput !== recovery || !sameRecord()) fail('ForeignInstalledEffectManagedRun');
+      run.recoveredRequestInput = undefined;
+    }
     // Actual complete dispatch retirement calls this before returning its
     // Core control backing. A retained Error may itself keep a heavy prefix.
     primary = undefined;

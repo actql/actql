@@ -34,6 +34,7 @@ const readPorts = (ownerOf, resourceFields = () => ({})) => {
   return {recipeOf, managedReadChild, describeMember};
 };
 const expression=(name,ports)=>{
+  if(name==='recoveredEntries'&&ports.validateRecoveredEntries===undefined) ports={...ports,validateRecoveredEntries:expression('validateRecoveredEntries',ports)};
   if (['checkRows', 'prepareCredentialOperation', 'physicalRoute', 'decideTargetRead'].includes(name) &&
       ports.recipeOf === undefined) ports = {...ports, recipeOf: recipePort(ports.ownerOf)};
   if (name === 'physicalRoute' && ports.describeMember === undefined) {
@@ -911,10 +912,11 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   assert.equal(calls.length, 2, 'consumed original never grants another operation');
 });
 
-function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false} = {}) {
+function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false} = {}) {
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [], children = [];
   const members = [{memberIndex: 0}, {memberIndex: 1}], active = new Set(), tokens = [];
-  let aliasesRetired = false, constructions = 0;
+  let aliasesRetired = false, constructions = 0, retirePending = pendingRetire;
+  const owners = [{}, {}];
   const original = Object.freeze({entries: Object.freeze([[], []]), currents: Object.freeze([{}, {}])});
   const runtime = {
     clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
@@ -936,15 +938,18 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     },
     clientProgramInstalledEffectOperationRetire(token, acknowledgement) {
       assert.equal(acknowledgement, true);assert(aliasesRetired);
-      events.push(`retire-${token.member}`);return {$tag: 1, _0: true};
+      events.push(`retire-${token.member}`);return {$tag: 1, _0: !retirePending};
     },
   };
   const run = {runtime, value: parent, prepared, request, operationPlan: plan,
+    controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
   const recipe = {captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1},
     memberOperations: [{operation: 'capture'}, {operation: 'capture'}]};
   const facts = {members, body: {}, durable: {}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
   const actual = expression('prepareRecoveredEntries', {moon: runtime, recipeOf: () => recipe, fail,
+    ownerOf: member => owners[member.memberIndex], sameValue: same,
+    validateRecoveredEntries(input, entries) {assert.strictEqual(input.body, facts.body);assert.strictEqual(entries, original.entries);events.push('recheck');},
     retainInstalledRowCaptureChild, prepareInstalledEffectRequestChild,
     recoveredEntries(input) {
       assert.strictEqual(input.body, facts.body);assert.strictEqual(input.members, members);
@@ -954,7 +959,9 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
     }});
   const invoke = () => actual({...facts, managedEffect: run, requestChildren: children,
     retireRequestAliases: () => aliasesRetired, assertCurrent() {}});
-  return {invoke, original, events, children, constructions: () => constructions, retire() {aliasesRetired = true;}};
+  return {invoke, original, events, children, run, facts, constructions: () => constructions,
+    retire() {aliasesRetired = true;}, finalRetire() {return run.recoveredRequestInput.retire();},
+    allowRetire() {retirePending = false;}};
 }
 
 test('cold request rebuilding enters every same-Plan member workspace before the single original provider constructor', async () => {
@@ -965,6 +972,7 @@ test('cold request rebuilding enters every same-Plan member workspace before the
   for (const child of f.children) {await child.prepared.release();assert.equal(child.prepared.status().pending, true);}
   f.retire();
   for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
+  assert.equal(f.finalRetire(), true);
   assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
 });
 
@@ -973,9 +981,10 @@ test('cold member reservation refusal preserves the exact undefined cause before
   let caught = false;
   try {f.invoke();} catch (error) {caught = true;assert.strictEqual(error, undefined);}
   assert(caught);assert.equal(f.constructions(), 0);
-  assert.deepEqual(f.events, ['retain-0', 'retain-1']);assert.equal(f.children.length, 1);
-  await f.children[0].prepared.release();assert.equal(f.children[0].prepared.status().pending, true);
-  f.retire();await f.children[0].prepared.retry();assert.equal(f.children[0].prepared.status().pending, false);
+  assert.deepEqual(f.events, ['retain-0', 'retain-1']);assert.equal(f.children.length, 0);
+  assert.equal(f.run.recoveredRequestInput.children.length, 1);
+  f.retire();assert.equal(f.finalRetire(), true);
+  assert.equal(f.run.recoveredRequestInput.children.length, 0);
 });
 
 test('cold provider constructor failure retains every original member prefix until the same alias retirement', async () => {
@@ -987,6 +996,7 @@ test('cold provider constructor failure retains every original member prefix unt
   for (const child of f.children) {await child.prepared.release();assert.equal(child.prepared.status().pending, true);}
   f.retire();
   for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
+  assert.equal(f.finalRetire(), true);
   assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
 });
 
@@ -999,4 +1009,62 @@ test('hot continuation preserves spent capture slots and uses its original disti
   for (const child of f.children) {await child.prepared.release();assert.equal(child.prepared.status().pending, true);}
   f.retire();
   for (const child of f.children) {await child.prepared.retry();assert.equal(child.prepared.status().pending, false);}
+  assert.equal(f.finalRetire(), true);
+});
+
+test('hot reconciliation borrows the same still-backed recovery requests without spending another constructor', async () => {
+  const f = recoveredConstructorFixture();
+  assert.strictEqual(f.invoke(), f.original);
+  assert.equal(f.finalRetire(), false, 'active stage still borrows the request body');
+  f.retire();await f.children[0].prepared.release();
+  assert.equal(f.run.recoveredRequestInput.borrowers, 0);
+  assert(!f.events.some(value => value.startsWith('retire-')), 'stage close keeps actual body backing');
+  assert.strictEqual(f.invoke(), f.original);
+  assert.equal(f.constructions(), 1);
+  assert.equal(f.events.filter(value => value.startsWith('retain-')).length, 2);
+  assert.equal(f.events.filter(value => value === 'recheck').length, 1);
+  assert.equal(f.finalRetire(), false);
+  await f.children[1].prepared.release();
+  assert.equal(f.finalRetire(), true);
+  assert.equal(f.run.recoveredRequestInput.result, undefined);
+  assert.equal(f.run.recoveredRequestInput.children.length, 0);
+  assert.throws(f.invoke, {code: 'InstalledEffectRecoveryInputRetired'});
+});
+
+test('hot recovery input refuses copied Preview and retains a pending original child without another constructor', async () => {
+  const f = recoveredConstructorFixture({pendingRetire: true});
+  f.invoke();f.retire();await f.children[0].prepared.release();
+  f.facts.body = {};
+  assert.throws(f.invoke, {code: 'ForeignInstalledRowEffectRequest'});
+  assert.equal(f.constructions(), 1);
+  assert.equal(f.finalRetire(), false);
+  assert.equal(f.run.recoveredRequestInput.result, undefined, 'aliases are cut before the first child settlement');
+  assert.throws(f.invoke, {code: 'InstalledEffectRecoveryInputRetired'});
+  f.allowRetire();assert.equal(f.finalRetire(), true);
+  assert.equal(f.events.filter(value => value.startsWith('retain-')).length, 2);
+});
+
+test('failed recovery constructor keeps its exact primary and cannot rebuild on hot observation', () => {
+  const f = recoveredConstructorFixture({failure: true});
+  let caught = 0;
+  for(let i=0;i<2;i++)try{f.invoke();}catch(error){caught++;assert.strictEqual(error,undefined);}
+  assert.equal(caught, 2);assert.equal(f.constructions(), 1);
+  f.retire();assert.equal(f.finalRetire(), true);
+});
+
+test('hot recovery refuses an overlapping stage borrow without granting another constructor or lease', () => {
+  const f=recoveredConstructorFixture();f.invoke();
+  assert.throws(f.invoke,{code:'InstalledEffectRecoveryInputBorrowed'});
+  assert.equal(f.run.recoveredRequestInput.borrowers,1);
+  assert.equal(f.constructions(),1);
+  assert.equal(f.children.length,1);
+});
+
+test('hot recovery checks the original live parent after closed or replaced Request custody', async () => {
+  for(const changed of ['closed','request']) {
+    const f=recoveredConstructorFixture();f.invoke();f.retire();await f.children[0].prepared.release();
+    if(changed==='closed')f.run.closed=true;else f.run.request={};
+    assert.throws(f.invoke,{code:'ForeignInstalledEffectManagedRun'});
+    assert.equal(f.run.recoveredRequestInput.borrowers,0);assert.equal(f.constructions(),1);
+  }
 });

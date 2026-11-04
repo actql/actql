@@ -733,6 +733,35 @@ test "zero Effect occurrences still retain the fixed control initialization fram
 }
 
 ///|
+test "recovered input control vector follows actual members independently of future row operations" {
+  for children in [12, 100] {
+    let base = installed_effect_operation_control_capacity(
+      children,
+      recovery_members=0,
+    ).unwrap()
+    let selected = installed_effect_operation_control_capacity(
+      children,
+      recovery_members=2,
+    ).unwrap()
+    // Same existing collection Owner:3 reference slots per actual vector
+    // item cover the old/new growth peak, independently of held row calls.
+    assert_eq(
+      @execution.execution_capacity_retained_bytes(selected) -
+      @execution.execution_capacity_retained_bytes(base),
+      2L * 3L * 8L,
+    )
+    assert_eq(
+      @execution.execution_capacity_execution_bytes(selected) -
+      @execution.execution_capacity_execution_bytes(base),
+      2L * 3L * 8L,
+    )
+  }
+  assert_true(
+    installed_effect_operation_control_capacity(12, recovery_members=-1) is None,
+  )
+}
+
+///|
 // Actual checked Program/Compute/operation Plan; no physical grant or normal
 // runtime here. The same closed row fact supplies capture storage only once.
 test "standard capture extent resolves same checked zero and three rows before its original member borrow" {

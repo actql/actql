@@ -20,8 +20,29 @@ pub struct ClientInstalledEffectOperationBorrow {
 // keeps spent occurrence controls live after those bodies actually retire.
 fn installed_effect_operation_control_capacity(
   children : Int,
+  recovery_members? : Int = 0,
 ) -> @execution.ExecutionCapacity? {
-  if children < 0 {
+  if children < 0 || recovery_members < 0 {
+    return None
+  }
+  // The same-Run recovered input adds1H8R4W and one Run reference. Its
+  // retirement method/context adds2H7R. One active stage borrow has2H4R
+  // returned holders, release/status method pairs4H14R, and one returned
+  // word. Body payloads remain on their original constructor tokens.
+  // The original child vector has ONE entry per actual installed member,
+  // independent of rows, future operation count or Host policy ceilings.
+  guard @shape.collection_construction_extent({
+      records: 9L,
+      record_references: 34L,
+      record_words: 5L,
+      reference_arrays: 1L,
+      reference_items: recovery_members.to_int64(),
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(recovery) else {
     return None
   }
   guard closed_values_append_capacity(children) is Some(slots) else {
@@ -81,14 +102,24 @@ fn installed_effect_operation_control_capacity(
     // text remains with the already-funded original Preview producer.
     // One same-Run optional actual-row inventory adds its field and one Some
     // carrier at most, independently of how many operation bodies are live.
-    record_headers: 10L + shared.record_headers + 11L * count + 69L + 4L,
+    record_headers: 10L +
+    shared.record_headers +
+    11L * count +
+    69L +
+    4L +
+    recovery.record_headers,
     reference_slots: 12L +
     slots +
     shared.reference_slots +
     17L * count +
     269L +
-    4L,
-    scalar_words: 25L + shared.scalar_words + 29L * count + 4L,
+    4L +
+    recovery.reference_slots,
+    scalar_words: 25L +
+    shared.scalar_words +
+    29L * count +
+    4L +
+    recovery.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -1383,7 +1414,10 @@ fn installed_effect_control_capacity_for_rows(
       }
     }
   }
-  guard installed_effect_operation_control_capacity(children.to_int())
+  guard installed_effect_operation_control_capacity(
+      children.to_int(),
+      recovery_members=plan.operations.length(),
+    )
     is Some(base) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_execution_bytes(base),
