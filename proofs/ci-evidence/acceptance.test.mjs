@@ -87,7 +87,7 @@ function fixture(event = 'push', fullCatalog = false) {
   const collectionBytes = jsonBytes({runtimeObservation: {milliseconds: 1, entries: 1, bytes: 1, inputDigest: hash(encode(runtime))},
     isolatedPreparationMilliseconds: 1, stagedSourceBytes: 1, comparison: comparison.costs, acquisitionMilliseconds: 0});
   const isolatedExecution = {owner: '3:4:5', costs: {preparationMilliseconds: 1, buildMilliseconds: 2,
-    executionMilliseconds: 3, inspectionMilliseconds: 2, closeMilliseconds: 2}};
+    executionMilliseconds: 3, inspectionMilliseconds: 2, closeMilliseconds: 2, inputInspectionMilliseconds: 0}};
   certificate.collectionCostsDigest = hash(collectionBytes); certificate.acquisitionDigest = hash(jsonBytes(acquisition));
   result.acquisition = acquisition;
   result.costObservation = checkCostObservation({collectionBytes, certificate, state, catalog, acquisition, comparison, receipts, isolatedExecution});
