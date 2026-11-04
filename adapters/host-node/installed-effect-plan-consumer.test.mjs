@@ -99,6 +99,48 @@ test('Effect native Source inputs retain complete physical bounds and each origi
   assert(Object.isFrozen(result)); assert(Object.isFrozen(result.inputs));
 });
 
+test('retained mixed Effect Sources select original Requests without a Row-only Plan getter', async () => {
+  const prepared = {}, request = {}, parent = {}, plan = {}, selections = [{}, {}], calls = [];
+  const refs = ['source:native', 'source:row'];
+  const sources = refs.map((ref, task) => ({
+    realizationKey: ['duckdb-acquired', 'row-source-acquired'][task],
+    admitsSource: actual => actual === ref,
+    managedCaptureCapacity() {}, ledgerCapacity() {return {};},
+    async prepare(facts) {
+      assert.strictEqual(this, sources[task]);
+      assert.strictEqual(facts.preparedEffect, prepared);
+      assert.strictEqual(facts.requestIdentity, request);
+      assert.strictEqual(facts.managedRun, parent);
+      assert.deepEqual(facts.occurrence, {stage: task, input: 0, task});
+      calls.push(`prepare-${task}`);
+      return selections[task];
+    }, open() {},
+  }));
+  const profile = bindInstalledManagedSources({sources}, actual => {
+    assert.strictEqual(actual, prepared); return parent;
+  });
+  const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
+      assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
+      assert.equal(input, 0); calls.push(`select-${task}`); return ok(selections[task]);
+    },
+    clientProgramSelectedSourceInputKind: () => 'query',
+    clientProgramSelectedSourceInputRef: selection => refs[selections.indexOf(selection)],
+    clientProgramInstalledEffectManagedPlanSource() {assert.fail('Native capture is not a Row capture');},
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('No second Query construction');},
+  };
+  const selected = selectAcquiredEffectSources({moon, preparedEffect: prepared,
+    requestIdentity: request, managedPlan: plan, sourceProfile: profile});
+  for (const {adapter, occurrence} of selected) {
+    assert.strictEqual(await adapter.prepare({preparedEffect: prepared, requestIdentity: request, occurrence}),
+      selections[occurrence.task]);
+  }
+  assert.deepEqual(calls, ['select-0', 'select-1', 'prepare-0', 'prepare-1']);
+  moon.clientProgramSelectedSourceInputKind = () => 'values';
+  assert.throws(() => selectAcquiredEffectSources({moon, preparedEffect: prepared,
+    requestIdentity: request, managedPlan: plan, sourceProfile: profile}), /UnsupportedEffectSourceRealization/);
+});
+
 test('Effect native Source selection refuses foreign or incomplete originals without row fallback', () => {
   const contracts = Object.freeze(['query', 'evidence', 'two-receipt']);
   const native = Object.freeze({sourceRef: 'source:native', schema: 'main', table: 'records', contracts});

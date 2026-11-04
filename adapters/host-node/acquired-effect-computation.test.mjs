@@ -28,11 +28,15 @@ const openAcquiredEffectComputation = options => {
       assert.equal(this, moon); sameOriginal(parent, value, identity);
       return {$tag: 1, _0: plan};
     },
-    clientProgramInstalledEffectManagedPlanSource(actual, task) {
-      assert.equal(this, moon); assert.equal(actual, plan);
+    clientProgramSelectInstalledEffectSourceInput(value, identity, task, input) {
+      assert.equal(this, moon); assert.equal(value, prepared); assert.equal(identity, request);
+      assert.equal(input, 0);
       assert(Number.isSafeInteger(task) && task >= 0 && task < sourceRefs.length);
-      return {$tag: 1, _0: {_0: sourceBudget.capacity, _1: sourceRefs[task]}};
+      return {$tag: 1, _0: sourceRefs[task]};
     },
+    clientProgramSelectedSourceInputKind: () => 'query',
+    clientProgramSelectedSourceInputRef: value => value,
+    clientProgramInstalledEffectManagedPlanSource() {assert.fail('Adapter selection must not demand a Row-only capture');},
     clientProgramInstalledEffectManagedRunPrepareLedger(parent, value, identity, capacities, transfer, execution,
       registry, values, fragment, ordered) {
       assert.equal(this, moon); sameOriginal(parent, value, identity);
