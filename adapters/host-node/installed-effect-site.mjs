@@ -202,6 +202,7 @@ function cleanupCustody(physical, requirePhysical = false) {
   let released = false;
   let inputsReleased = false;
   let recoveryResources;
+  let constructionOwner;
   const releaseAuthorizations = async () => {
     let failure;
     for (const state of authorizations) {
@@ -255,6 +256,11 @@ function cleanupCustody(physical, requirePhysical = false) {
       }
       release = operation;
     },
+    retainConstruction(original) {
+      if (constructionOwner !== undefined || typeof original?.close !== 'function' ||
+          typeof original?.status !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
+      constructionOwner = original;
+    },
     retainRecoveryResources(original) {
       if (recoveryResources === original) return;
       if (recoveryResources !== undefined || typeof original?.close !== 'function' ||
@@ -298,6 +304,10 @@ function cleanupCustody(physical, requirePhysical = false) {
       // this custody's strong aliases before that consuming return callback.
       stage = release = physical = undefined;
       authorizations.length = 0;
+      if (constructionOwner !== undefined) {
+        if (await constructionOwner.close() !== true || constructionOwner.status().pending !== false) return false;
+        constructionOwner = undefined;
+      }
       if (recoveryResources !== undefined) {
         if (await recoveryResources.close() !== true) return false;
         recoveryResources = undefined;
@@ -310,7 +320,7 @@ function cleanupCustody(physical, requirePhysical = false) {
         requirePhysical && !physicalReleased && physical === undefined ||
         physical !== undefined && !physicalReleased ||
         release !== undefined && !released ||
-        !disposed && stage?.dispose !== undefined || recoveryResources !== undefined;
+        !disposed && stage?.dispose !== undefined || recoveryResources !== undefined || constructionOwner !== undefined;
     },
   });
 }
@@ -426,7 +436,8 @@ export function createInstalledEffectSite({environmentWire,
       let stage;
       try {
         facts.assertUpdateSelectionCurrent?.();
-        const capturedFacts = {...facts, execution, checkedHost};
+        const capturedFacts = {...facts, execution, checkedHost,
+          retainConstructionOwner: owner => custody.retainConstruction(owner)};
         delete capturedFacts.contentOwner;
         if (contentOwner !== undefined) capturedFacts.contentOwner = contentOwner;
         stage = await prepareCaptured(Object.freeze(capturedFacts));
@@ -625,7 +636,8 @@ export function createInstalledEffectSite({environmentWire,
         }
         stage = await prepareRecovered(Object.freeze({...facts,
           recovered,
-          retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
+          retainRecoveryOwner: owner => custody.attachPhysical(owner),
+          retainConstructionOwner: owner => custody.retainConstruction(owner)}));
         recovered.assertUpdateSelectionCurrent?.();
       } catch (error) {
         if (!observing && !settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
