@@ -828,8 +828,10 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
   const run = await client.startSource(JSON.stringify(document), {format: 'json',
     submissionRef: client.newSubmission({nonce: 'github-two-source-events-failure'})});
   await firstClose;
+  // The demanded arithmetic fails in the selected execution task before
+  // publication. Its original Source holders still own cleanup and retry.
   assert.ok(observations.some(([name, detail]) =>
-    name === 'dispatch_failed' && detail.code === 'CapturedRunPublicationFailed'),
+    name === 'dispatch_failed' && detail.code === 'CapturedRunExecutionFailed'),
   JSON.stringify(observations));
   const reads = listings(setup.api).length;
   await assert.rejects(host.close(), error => {
