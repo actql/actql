@@ -4,7 +4,7 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan,
-  sourceFreeContentEffectPublicationPlan} from './local-values-plan.mjs';
+  sourceFreeContentEffectPublicationPlan, localContractLimits} from './local-values-plan.mjs';
 import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
@@ -373,7 +373,14 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       if (admission?.retained !== undefined) {
         const restored = sourceContinuation.restore(source, admission.retained, ledger);
         captures.push(restored.captured);
-        evidence.push(restored);
+        current();
+        // This wire came from the same authenticated, current Source closure.
+        // Admit its original sealed evidence into this control's nominal map;
+        // it is not a newly issued observation or a second provider read.
+        const sourceEvidence = infer === undefined ? undefined : acquired.control.admitRunEvidence(
+          'source_evidence', restored.sourceEvidenceWire, localContractLimits);
+        current();
+        evidence.push(sourceEvidence === undefined ? restored : {...restored, sourceEvidence});
         continue;
       }
       // A refused fence proves this attempt has not called the adapter.

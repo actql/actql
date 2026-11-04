@@ -768,3 +768,53 @@ test('acquired Effect publication reuses transferred Source evidence and admits 
   const values = new Function('sources', 'control', 'limits', 'return (' + text.slice(node.start, node.end) + ');')(sources, control, limits);
   assert.strictEqual(values[0], original); assert.strictEqual(values[1], legacy); assert.deepEqual(calls, ['legacy']);
 });
+
+function restoredModelSourceEvidenceFixture({infer = {}, refusal} = {}) {
+  const node = inferSourceNodes.find(value => value.type === 'IfStatement' &&
+    inferSourceText.slice(value.test.start, value.test.end) === 'admission?.retained !== undefined');
+  assert(node);
+  // Read the current branch, including its original continue, in one loop.
+  const currentText = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const tree = parse(currentText, {ecmaVersion: 'latest', sourceType: 'module'});
+  let currentBranch;
+  (function visit(value) {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'IfStatement' && currentText.slice(value.test.start, value.test.end) ===
+        'admission?.retained !== undefined') currentBranch = value;
+    for (const child of Object.values(value)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(currentBranch);
+  const original = {}, captured = {}, record = {}, source = {};
+  const restored = {captured, sourceEvidenceWire: 'same-authenticated-source-evidence'};
+  const calls = [], captures = [], evidence = [], limits = Object.freeze({maxWireBytes: 1000000});
+  const ports = {infer, admission: {retained: record}, source, ledger: {}, captures, evidence,
+    localContractLimits: limits, current() {calls.push('current');},
+    sourceContinuation: {restore(actual, retained) {
+      assert.strictEqual(actual, source); assert.strictEqual(retained, record);
+      calls.push('restore'); return restored;
+    }}, acquired: {control: {admitRunEvidence(name, wire, bound) {
+      assert.equal(name, 'source_evidence'); assert.equal(wire, restored.sourceEvidenceWire);
+      assert.strictEqual(bound, limits); assert.strictEqual(captures[0], captured);
+      calls.push('admit-original'); if (refusal) throw refusal; return original;
+    }}}};
+  const invoke = Function(...Object.keys(ports), 'for (const once of [0]) ' +
+    currentText.slice(currentBranch.start, currentBranch.end));
+  return {invoke: () => invoke(...Object.values(ports)), captures, captured, evidence, original, restored, calls};
+}
+
+test('restored Model Source admits its same sealed wire into the current nominal evidence owner', () => {
+  const f = restoredModelSourceEvidenceFixture(); f.invoke();
+  assert.strictEqual(f.evidence[0].sourceEvidence, f.original);
+  assert.strictEqual(f.evidence[0].captured, f.captured);
+  assert.equal(f.evidence[0].sourceEvidenceWire, f.restored.sourceEvidenceWire);
+  assert.deepEqual(f.calls, ['restore', 'current', 'admit-original', 'current']);
+});
+
+test('restored Model Source evidence refusal retains the original capture for cleanup', () => {
+  const refusal = Object.freeze(new Error('original sealed evidence refused'));
+  const f = restoredModelSourceEvidenceFixture({refusal});
+  assert.throws(f.invoke, error => error === refusal);
+  assert.deepEqual(f.captures, [f.captured]); assert.deepEqual(f.evidence, []);
+  assert.deepEqual(f.calls, ['restore', 'current', 'admit-original']);
+});
