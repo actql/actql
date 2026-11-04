@@ -118,6 +118,8 @@ pub fn prepare_local_write_projection(CatalogObservation, LocalCatalogObservatio
 
 pub fn prepare_observed_target_preview_row(SingleWriteRequest, TargetObservation, Int) -> Result[TargetPreviewRow, TargetObservationIssue]
 
+pub fn prepare_query_read_response(QueryRead, String, Bytes) -> Result[@source_value.JsonSourceGeometry, QueryReadIssue]
+
 pub fn prepare_read_projection(CatalogObservation, CatalogObservationBinding, String, Array[String], Int) -> Result[ReadProjection, ReadProjectionIssue]
 
 pub fn prepare_single_write_request(WriteBody, String, WriteTargetValue, WriteRequestLimits) -> Result[SingleWriteRequest, WriteRequestIssue]
@@ -181,6 +183,10 @@ pub fn query_read_complete(QueryRead) -> Bool
 pub fn query_read_next_path(QueryRead) -> Result[String?, QueryReadIssue]
 
 pub fn query_read_page_count(QueryRead) -> Int
+
+pub fn query_read_response_columns(QueryRead) -> Int
+
+pub fn query_read_response_value_node_bound(QueryRead, @source_value.JsonSourceGeometry) -> Int
 
 pub fn query_read_row_count(QueryRead) -> Int64
 
@@ -698,6 +704,7 @@ pub struct QueryRead {
   max_total_rows : Int64
   mut next_path : String?
   mut pending_page : QueryPage?
+  mut pending_source : QueryResponseSource?
   mut page_count : Int
   mut row_count : Int64
   mut interrupted : Bool
@@ -715,6 +722,8 @@ pub(all) enum QueryReadIssue {
   RowLimit
   Page(QueryPageIssue)
 } derive(Eq, @debug.Debug)
+
+type QueryResponseSource
 
 pub(all) struct QueryValueViolation {
   resource : String

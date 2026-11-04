@@ -360,6 +360,23 @@ pub fn project_query_page(
   api_version : String,
   limits : QueryPageLimits,
 ) -> Result[QueryPage, QueryPageIssue] {
+  project_query_page_with_original_parser(
+    bytes,
+    plan,
+    api_version,
+    limits,
+    None,
+  )
+}
+
+///|
+fn project_query_page_with_original_parser(
+  bytes : Bytes,
+  plan : ReadProjection,
+  api_version : String,
+  limits : QueryPageLimits,
+  parser : @source.JsonParse?,
+) -> Result[QueryPage, QueryPageIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_depth < 0 ||
@@ -371,20 +388,27 @@ pub fn project_query_page(
   if bytes.length() > limits.max_bytes {
     return Err(BudgetExceeded)
   }
-  let parsed = match
-    @source.parse_json_bytes_preserving(bytes, {
-      max_input_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    }) {
-    Ok(value) => value
-    Err(issue) =>
-      return Err(
-        match issue.issue {
-          InputLimit | NodeLimit | DepthLimit => BudgetExceeded
-          _ => InvalidResponse
-        },
-      )
+  let parsed = match parser {
+    None =>
+      match
+        @source.parse_json_bytes_preserving(bytes, {
+          max_input_bytes: limits.max_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(value) => value
+        Err(issue) => return Err(query_source_issue(issue))
+      }
+    Some(cursor) =>
+      for tick = 0 {
+        match @source.advance_json_parse(cursor, 4096) {
+          Ok(JsonParseContinue(..)) => continue tick + 1
+          Ok(JsonParseComplete(parsed, ..)) => break parsed.node
+          Ok(JsonParseFailed(issue, ..)) =>
+            return Err(query_source_issue(issue))
+          Err(_) => return Err(InvalidResponse)
+        }
+      }
   }
   let root = match
     @decode.admit(parsed, {
@@ -631,4 +655,12 @@ pub fn query_value_violation_json(value : QueryValueViolation) -> String {
     ("kind", value.kind.to_json()),
     ("resource", value.resource.to_json()),
   ]).stringify()
+}
+
+///|
+fn query_source_issue(issue : @source.ParseError) -> QueryPageIssue {
+  match issue.issue {
+    InputLimit | NodeLimit | DepthLimit => BudgetExceeded
+    _ => InvalidResponse
+  }
 }

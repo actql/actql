@@ -112,6 +112,7 @@ fn installed_source_reader_retained_inventory(
   columns : Int,
   secret_bytes : Int,
   track_row_identity? : Bool = true,
+  received? : (Int64, Int)? = None,
 ) -> @execution.PreparationRepresentationUnits? {
   // Same field order as the installed JSON reader's immutable limits view.
   // response/total/nodes/depth/rows/totalRows/pages/pageSize/cursor/identity/
@@ -132,7 +133,20 @@ fn installed_source_reader_retained_inventory(
   let ids = if track_row_identity { limits[5].to_int64() } else { 0L }
   let pages = limits[6].to_int64()
   let cursors = if track_row_identity { pages } else { 0L }
-  let originals = pages + 1L
+  let (total, originals) = match received {
+    None => (total, pages + 1L)
+    Some((bytes, count)) => {
+      if bytes < 0L ||
+        count < 0 ||
+        count > limits[6] ||
+        bytes > total + response {
+        return None
+      }
+      // Retain actual received originals plus one next physical body. Future
+      // page maxima are not already allocated retained response buffers.
+      (bytes, count.to_int64() + 1L)
+    }
+  }
   let fields = columns.to_int64()
   // Charge/retain the original received body before a total-byte refusal.
   // One offending response overlaps the admitted total; no new request is
@@ -643,6 +657,7 @@ pub fn installed_native_source_reader_capacity(
   columns : Int,
   secret_bytes : Int,
   native : @execution.ExecutionCapacity?,
+  received? : (Int64, Int)? = None,
 ) -> @execution.ExecutionCapacity? {
   guard native is Some(native) &&
     installed_source_reader_retained_inventory(
@@ -650,16 +665,27 @@ pub fn installed_native_source_reader_capacity(
       columns,
       secret_bytes,
       track_row_identity=false,
+      received~,
     )
     is Some(retained) else {
     return None
   }
   let controls = installed_source_reader_control_inventory()
+  let preflight = @source.json_source_preflight_control_extent()
+  let staged = if received is Some(_) { 1L } else { 0L }
   guard @execution.preparation_execution_capacity({
       retained,
       workspace: {
-        ..controls,
-        owned_utf16_units: limits[10].to_int64(),
+        record_headers: controls.record_headers +
+        staged * (preflight.record_headers + 4L),
+        reference_slots: controls.reference_slots +
+        staged * (preflight.reference_slots + 10L),
+        scalar_words: controls.scalar_words +
+        staged * (preflight.scalar_words + 4L),
+        // Fund the next bounded decoded Source String before its preflight.
+        // The grammar tree is admitted separately from that original geometry.
+        owned_utf16_units: limits[10].to_int64() +
+        (if received is Some(_) { limits[0].to_int64() } else { 0L }),
         owned_wire_bytes: limits[0].to_int64(),
       },
       retained_nodes: 0L,

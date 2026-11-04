@@ -184,6 +184,11 @@ export async function readSalesforceQuery(options) {
     ownedLimits.maxLocatorUnits, ownedLimits.maxPages,
     BigInt(ownedLimits.maxTotalRows),
   ));
+  try { options.onQueryRead?.(read); }
+  catch (cause) {
+    moon.salesforceQueryReadInterrupt(read);
+    throw cause;
+  }
   const result = await driveQueryPages({
     ...options, initialAuthorization: context.authorization,
     authorizationForPage: context.callbacks.authorizationForPage,
@@ -296,7 +301,7 @@ export function readSalesforceSourceChild(context, originalAuthorization, input)
 // shared Reader. Preparing this protocol retains original facts only. The two
 // metadata reads and all query pages happen after its original binding opens.
 export function prepareSalesforceSourceReadSequence(options) {
-  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity} = options;
+  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity, currentResponseCapacity} = options;
   options = undefined;
   let describe = method(site, 'describeForAcquisition');
   // The common owner selected this original acquisition before dispatch.
@@ -310,9 +315,39 @@ export function prepareSalesforceSourceReadSequence(options) {
   if (typeof recover !== 'function' || scope.operation !== 'salesforce:query:read' ||
       scope.runInvocationCid !== own(preparedRead, 'runInvocationCid') ||
       scope.dispatchRequestCid !== own(preparedRead, 'dispatchRequestCid')) fail('ForeignSalesforceSourceRead');
-  if (responseCapacity !== undefined && typeof responseCapacity !== 'function') fail('InvalidSalesforceSourceRead');
+  if (responseCapacity !== undefined && typeof responseCapacity !== 'function' ||
+      currentResponseCapacity !== undefined && typeof currentResponseCapacity !== 'function') fail('InvalidSalesforceSourceRead');
   let started = false, pending = false, retired = false, largestResponse = 0, capacity;
-  const sequence = Object.freeze({...(responseCapacity === undefined ? {} : {responseCapacity(bytes) {
+  let activeQuery, metadataBytes = 0;
+  const sequence = Object.freeze({...(currentResponseCapacity === undefined ? {} : {
+    responseCapacity(bytes, body, path, receivedBytes, responseCount) {
+      if (this !== sequence || !pending || retired ||
+          !Number.isSafeInteger(bytes) || bytes < 0 || bytes > limits.maxBytes ||
+          body?.byteLength !== bytes || typeof path !== 'string' ||
+          typeof receivedBytes !== 'bigint' || !Number.isSafeInteger(responseCount)) {
+        fail('InvalidSalesforceSourceResponseExtent');
+      }
+      if (activeQuery === undefined) metadataBytes = Math.max(metadataBytes, bytes);
+      const next = Reflect.apply(currentResponseCapacity, undefined, [{metadataBytes,
+        read: activeQuery, body, path, receivedBytes, responseCount}]);
+      // Reservation growth is monotonic while this reader retains its previous
+      // outputs. Coordinate maxima reuse the same immutable quantity family;
+      // they do not return a page, parser admission or execution authority.
+      if (capacity === undefined) capacity = next;
+      else {
+        const oldBytes = moon.clientProgramSerializationCapacityBytes(capacity);
+        const nextBytes = moon.clientProgramSerializationCapacityBytes(next);
+        if (runtimeField(nextBytes, 0) >= runtimeField(oldBytes, 0) && runtimeField(nextBytes, 1) >= runtimeField(oldBytes, 1)) capacity = next;
+        else {
+          capacity = moon.clientProgramRowSourceProviderCapacity(
+            runtimeField(nextBytes, 0) > runtimeField(oldBytes, 0) ? runtimeField(nextBytes, 0) : runtimeField(oldBytes, 0),
+            runtimeField(nextBytes, 1) > runtimeField(oldBytes, 1) ? runtimeField(nextBytes, 1) : runtimeField(oldBytes, 1));
+          if (capacity === undefined) fail('SalesforceSourceCapacityUnavailable');
+        }
+      }
+      return capacity;
+    },
+  }), ...(responseCapacity === undefined || currentResponseCapacity !== undefined ? {} : {responseCapacity(bytes) {
     if (this !== sequence || !pending || retired || !Number.isSafeInteger(bytes) || bytes < 0 ||
         bytes > limits.maxBytes) fail('InvalidSalesforceSourceResponseExtent');
     if (capacity === undefined || bytes > largestResponse) {
@@ -347,6 +382,7 @@ export function prepareSalesforceSourceReadSequence(options) {
       // full first Catalog before the independent current Describe begins.
       current = undefined;
       await readSalesforceQuery({moon: queryMoon, plan, apiVersion, limits,
+        onQueryRead(read) { activeQuery = read; },
         initialAuthorization, credential, signal: preparedRead.signal,
         authorizationForPage: (_path, index) => Object.freeze({...initialAuthorization,
           useId: `${preparedRead.nonce}-query-${index}`}),
@@ -362,7 +398,7 @@ export function prepareSalesforceSourceReadSequence(options) {
     if (pending) return false;
     if (!retired) {
       moon = queryMoon = site = declaration = preparedRead = originalAuthorization = recover = limits = undefined;
-      describe = recheck = values = credential = responseCapacity = capacity = undefined;
+      describe = recheck = values = credential = responseCapacity = currentResponseCapacity = capacity = activeQuery = undefined;
       retired = true;
     }
     return true;
