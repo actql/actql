@@ -1427,6 +1427,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
       'admitsSource','ledgerCapacity','prepare','open','close'].some(key => !selectedSurface.includes(key))) {
       fail('InvalidInstalledSourcePublication');
     }
+    // Common preparation cleanup is part of the original Source lifecycle.
+    // A provider's publication selection cannot hide an unentered read owner.
+    if (!selectedSurface.includes('retirePreparedSource')) selectedSurface.push('retirePreparedSource');
   }
   let publicationFields = {};
   if (publication !== undefined) {
