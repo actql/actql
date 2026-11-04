@@ -8,7 +8,7 @@ const keys = (value, expected) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join(',') === expected;
 const int64 = (value, minimum) => typeof value === 'bigint' && value >= minimum &&
   value <= 9_223_372_036_854_775_807n;
-const originals = new WeakSet();
+const originals = new WeakMap();
 const count = (value, minimum = 0) => Number.isSafeInteger(value) && value >= minimum;
 const unavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
   {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
@@ -133,6 +133,12 @@ export function retainInferOriginalReadRecipe(value) {
   return retainOriginalReadDeclaration(value, true);
 }
 
+// Original recipe controls remain distinct from the complete native+Node
+// Model allowance. This association adds no registration or resource owner.
+export function inferOriginalReadStartupCapacity(original) {
+  return originals.get(original) ?? original;
+}
+
 export function bindInferOriginalReadRecipe(moon, original, graph, limits, modelLedgerBytes) {
   if (!originals.has(original) || graph === undefined ||
       Object.hasOwn(original.nodeInstallation.layout, 'program_definition_cid') ||
@@ -165,7 +171,7 @@ export function bindInferOriginalReadRecipe(moon, original, graph, limits, model
   // Native construction/read/Model bounds stay intact. The installed recipe
   // adds its separately declared Node controls and physical buffer overlap;
   // it cannot replace or lower any stored native allowance.
-  return retainInferOriginalReadInstallation({...original,
+  const bound = retainInferOriginalReadInstallation({...original,
     bootstrap: {...original.bootstrap,
       bootstrapRetainedBytes: add(limits[0], original.bootstrap.bootstrapRetainedBytes),
       bootstrapExecutionBytes: add(limits[1], original.bootstrap.bootstrapExecutionBytes),
@@ -184,6 +190,9 @@ export function bindInferOriginalReadRecipe(moon, original, graph, limits, model
       parameter_values_cid: parameters, barrier_cid: barrier,
       retained_bytes: add(limits[2], original.nodeInstallation.layout.retained_bytes),
       execution_bytes: add(limits[3], original.nodeInstallation.layout.execution_bytes)}}});
+  originals.set(bound, Object.freeze({modelRetainedBytes: original.modelRetainedBytes,
+    modelExecutionBytes: original.modelExecutionBytes}));
+  return bound;
 }
 
 function retainOriginalReadDeclaration(value, recipe) {
@@ -240,6 +249,6 @@ function retainOriginalReadDeclaration(value, recipe) {
     ...(publicationCapacity === undefined ? {} : {publicationCapacity}),
     ...(currentStateCodec === undefined ? {} : {currentStateCodec}),
     ...(storeBootstrap === undefined ? {} : {storeBootstrap})});
-  originals.add(retained);
+  originals.set(retained, undefined);
   return retained;
 }

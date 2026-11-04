@@ -50717,11 +50717,12 @@
     {
       "module": "adapters/host-node/infer-original-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5b3ab614c4005be9bf27daf610afbb370e66b7938cfdb311d46b59194ea8c46a",
+      "sha256": "6421d80fa294f91a1a1b70159043ef4b8d9fd78c9e567b41f3b17858b9361df4",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
         "bindInferOriginalReadRecipe",
+        "inferOriginalReadStartupCapacity",
         "retainInferOriginalReadInstallation",
         "retainInferOriginalReadRecipe",
         "selectedInferOriginalCurrentStateCodec",
@@ -50792,6 +50793,13 @@
             "value",
             "fields",
             "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferOriginalReadStartupCapacity",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -51012,10 +51020,12 @@
             "snapshotInferOriginalCurrentStateCodec/bounded/bounded",
             "snapshotInferOriginalCurrentStateCodec/bounded/bounded/bounded",
             "snapshotInferOriginalCurrentStateCodec/fail/fail",
-            "unavailable/unavailable"
+            "unavailable/unavailable",
+            "inferOriginalReadStartupCapacity"
           ],
           "exports": [
             "bindInferOriginalReadRecipe",
+            "inferOriginalReadStartupCapacity",
             "retainInferOriginalReadInstallation",
             "retainInferOriginalReadRecipe",
             "selectedInferOriginalCurrentStateCodec",
@@ -125728,7 +125738,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "af19253eb9f2b3479cca32d76f2606b662fd34056c51734d76c1a7e71eb2a95e",
+      "sha256": "b7d5c9f86683aaefb319e128ac7f94de428f1fdebaab65180c9c202ff6f58dba",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -125955,6 +125965,7 @@
       "imports": [
         "./acquired-effect-sources.mjs",
         "./infer-operation.mjs",
+        "./infer-original-installation.mjs",
         "./installed-effect-plan.mjs",
         "node:util"
       ],

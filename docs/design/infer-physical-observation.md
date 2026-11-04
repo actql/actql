@@ -77,3 +77,18 @@ and Effect share the same quantity fold. An identical pending retry observes
 the retained configuration; a different configuration or already bound Run
 cannot reset consumption, uncertainty or original input work. Model startup
 continues to require exact agreement with this pre-read configuration.
+
+
+The installed recipe keeps its startup controls separate from the complete
+Model allowance. Binding a recipe adds native Model capacity to that allowance
+for the Plan; it does not turn the whole allowance into a live startup object.
+The existing installation association retains the original startup-control
+amounts without adding another registry or numerical policy.
+
+The same Effect Plan lends its selected Model limits to the original read
+Scope. Before input-capacity handoff, the Model child borrows those limits from
+that exact live consumer; a foreign or spent consumer cannot supply them.
+Checked input, item/work and request limits remain immutable. Startup controls
+and later physical-attempt/output duties are charged separately on the same
+original Ledger, within the already quoted total. No cancellation, absence or
+unused allowance acknowledges physical cleanup or refunds consumed work.

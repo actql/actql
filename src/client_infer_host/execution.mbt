@@ -926,6 +926,7 @@ fn stopped(active : Execution) -> Poll {
 ///|
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
+  let mut model_limits = active.limits.model
   let started = match active.source {
     Physical(provider) =>
       if active.original_preparation is Some(original) {
@@ -933,6 +934,28 @@ fn begin_model(active : Execution) -> Poll {
           active.plan is Some(plan) &&
           active.call_scope is Some(scope) else {
           return fail(active, InvalidAdvance)
+        }
+        if original.read is Claimed(consumer) {
+          let quoted = match
+            @publication_host.client_model_read_consumer_model_limits(
+              consumer,
+              bound.compiled,
+              bound.definition,
+              plan,
+            ) {
+            Err(issue) =>
+              return fail(
+                active,
+                OriginalCapacity(@publication_host.Read(issue)),
+              )
+            Ok(value) => value
+          }
+          if quoted is Some(ledger) {
+            // Reuse the same installed Plan allowance. Logical item/work and
+            // request bounds stay on the checked Model limits; the existing
+            // Model startup still checks its contract and parent capacity.
+            model_limits = { ..model_limits, ledger, }
+          }
         }
         // The seal is retained before attempting startup. A refused start must
         // not lose its unconsumed original capacity or input cleanup custody.
@@ -958,7 +981,7 @@ fn begin_model(active : Execution) -> Poll {
                 scope,
                 rows,
                 provider,
-                active.limits.model,
+                model_limits,
                 original.retained_bytes,
                 original.execution_bytes,
               )
@@ -985,7 +1008,7 @@ fn begin_model(active : Execution) -> Poll {
           rows,
           provider,
           active.fixed_request_cid,
-          active.limits.model,
+          model_limits,
           scope,
           dispatch_admission=active.dispatch_admission,
           durable_calls=active.durable_calls,

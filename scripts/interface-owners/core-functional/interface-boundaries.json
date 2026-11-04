@@ -32785,7 +32785,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_model_demand.mbt",
-      "sha256": "03abd6d213d3032283e2ce55fe8fba414e4e3b9afbf6bd5f5050ee3c9476bf46",
+      "sha256": "e27d887d7e2a8e9aa10b0f59041eb3f99aacb39528bc3a45547aef43d7b562cc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -40260,7 +40260,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "16660ca7e74a405f1bd0ad2a8340c1e11c01f7f50910e6729a9a00e7eb9fd97e",
+      "sha256": "46364495b374df520eafd57fc1137a8e4902d31420fe8eff81154dd0bf155d1a",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -66034,11 +66034,11 @@
       "operations": [
         {
           "name": "begin_client_model_read_scope",
-          "declaration": "begin_client_model_read_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ledger : @ resources . Ledger , bootstrap : @ resources . CapacityReservation , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientModelReadScope , ClientModelReadPreparationIssue ]"
+          "declaration": "begin_client_model_read_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ledger : @ resources . Ledger , bootstrap : @ resources . CapacityReservation , max_reservations : Int , max_holdings : Int , max_delegations : Int , model_limits ? : @ resources . LedgerLimits ?"
         },
         {
           "name": "bind_client_model_read_scope",
-          "declaration": "bind_client_model_read_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ ClientModelReadScope , ClientModelReadPreparationIssue ]"
+          "declaration": "bind_client_model_read_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , model_limits ? : @ resources . LedgerLimits ?"
         },
         {
           "name": "client_model_origin_matches",
@@ -66223,7 +66223,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "eaeafd7a3cd67b06716bc2ae7276a1a832ec3af07a250a08d9163c183197b772"
+      "sha256": "d9a6d02c79ea772fa4e65f8e16d4d50b307f51ac997004e8a7f75990afc16c72"
     },
     {
       "module": "src/run_publication_host/client_ordered_sequence.mbt",
@@ -78574,7 +78574,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "33f753544af98f63db4fcbea0b303b7b2e77664efb53769fd9c5733f5de0f98c"
+      "sha256": "0ea63fbea7542778f713d81cec680225fc42545ede5dab1b6773a82bd2955610"
     },
     {
       "module": "src/client_local_host/preparation_request_models_plan.mbt",
@@ -78992,6 +78992,201 @@
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
       "sha256": "858fd85cb47b85c1547acb3d24b4c0afd1ff2f7f2cb18d29782af3305d2342f0"
+    },
+    {
+      "module": "src/run_publication_host/client_model_read_consumer.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Model read consumer and Resource original handoff; immutable same-Plan Model allowance DATA only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "claim_client_model_read_preparation",
+          "declaration": "claim_client_model_read_preparation ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ClientModelReadConsumer , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "client_model_read_consumer_available",
+          "declaration": "client_model_read_consumer_available ( value : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Bool"
+        },
+        {
+          "name": "client_model_read_consumer_model_limits",
+          "declaration": "client_model_read_consumer_model_limits ( value : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Result [ @ resources . LedgerLimits ? , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "enter_client_model_read_consumer",
+          "declaration": "enter_client_model_read_consumer ( value : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "handoff_client_model_read_consumer_input_capacity",
+          "declaration": "handoff_client_model_read_consumer_input_capacity ( value : ClientModelReadConsumer , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , scope : ClientInferCallScope , rows : @ execution . PreparedInferRows , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( @ resources . Ledger , @ resources . CapacityReservation ) , ClientModelInputCapacityIssue , ]"
+        },
+        {
+          "name": "settle_client_model_read_consumer",
+          "declaration": "settle_client_model_read_consumer ( value : ClientModelReadConsumer , physical_cleanup_complete : Bool , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "stop_client_model_read_consumer",
+          "declaration": "stop_client_model_read_consumer ( value : ClientModelReadConsumer , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "claim_client_model_read_preparation",
+            "client_model_read_consumer_available",
+            "client_model_read_consumer_model_limits",
+            "enter_client_model_read_consumer",
+            "handoff_client_model_read_consumer_input_capacity",
+            "settle_client_model_read_consumer",
+            "stop_client_model_read_consumer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Effect Model startup on the original Request"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "98a96dad89c884ec47f581387709fcbccb69cb34712ffd6f2d5d6494f3069103"
     }
   ]
 }

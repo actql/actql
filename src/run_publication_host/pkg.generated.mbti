@@ -202,7 +202,7 @@ pub fn advance_release_client_effect_command_content_artifact(ClientEffectLocalR
 
 pub fn begin_client_keyed_lookup_response(ClientKeyedLookupInput, ClientKeyedRequest, @execution_relation.SuppliedRelationRead) -> Result[Unit, ClientKeyedRequestIssue]
 
-pub fn begin_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.CapacityReservation, Int, Int, Int) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
+pub fn begin_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.CapacityReservation, Int, Int, Int, model_limits? : @physical_resources.LedgerLimits?) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
 
 pub fn begin_client_model_resource_invalidation(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin], ClientModelReadPreparationIssue]
 
@@ -234,7 +234,7 @@ pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.Pu
 
 pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelRawResponse, ClientModelRawCaptureIssue]
 
-pub fn bind_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
+pub fn bind_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, model_limits? : @physical_resources.LedgerLimits?) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
 
 pub fn bind_client_model_read_scopes(ClientCompiledRun, @run_publication.PublicationContract, Array[ClientInferPlanGraph], @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, Array[Int64], Array[Int64]) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue]
 
@@ -897,6 +897,8 @@ pub fn client_model_read_available(ClientModelReadPreparation, ClientCompiledRun
 pub fn client_model_read_consumer_available(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
 
 pub fn client_model_read_consumer_handed_off_current(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
+
+pub fn client_model_read_consumer_model_limits(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.LedgerLimits?, ClientModelReadPreparationIssue]
 
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 

@@ -94,6 +94,23 @@ pub fn enter_client_model_read_consumer(
 }
 
 ///|
+/// Borrow the actual Plan's Model allowance on this same original consumer.
+/// This immutable DATA is not remaining capacity or a dispatch permission;
+/// the original input handoff still checks current rows and issues the token.
+pub fn client_model_read_consumer_model_limits(
+  value : ClientModelReadConsumer,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Result[@resources.LedgerLimits?, ClientModelReadPreparationIssue] {
+  guard @resources.funded_read_consumer_origin(value.consumer) is Some(origin) &&
+    client_model_origin_matches(origin, compiled, definition, plan) else {
+    return Err(ForeignRun)
+  }
+  Ok(origin.model_limits)
+}
+
+///|
 // Continue through the existing current scope/CompletedOutput input predicate,
 // after the early allocation has claimed this exact read once. This is not
 // permission to dispatch, or authentication of a restored response/Store.

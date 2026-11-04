@@ -1527,7 +1527,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "16660ca7e74a405f1bd0ad2a8340c1e11c01f7f50910e6729a9a00e7eb9fd97e",
+      "sha256": "46364495b374df520eafd57fc1137a8e4902d31420fe8eff81154dd0bf155d1a",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],

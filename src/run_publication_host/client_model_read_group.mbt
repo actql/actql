@@ -26,7 +26,7 @@ pub fn client_model_read_scopes_construction_inventory(
     return None
   }
   let n = count.to_int64()
-  // Scope+Origin 2H9R4W each; scope.group Some1H1R1W each;
+  // Scope+Origin 2H10R4W each; scope.group Some1H1R1W each;
   // ReadPreparation1H3R2W + consumer Some1H1R1W each.
   // Group1H3R6W and its pending claim Some1H1R1W.
   // The private and returned Scope Arrays, read Array and three original/partition
@@ -39,7 +39,7 @@ pub fn client_model_read_scopes_construction_inventory(
   }
   Some({
     record_headers: 2L + 5L * n + arrays.record_headers + h,
-    reference_slots: 4L + 14L * n + arrays.reference_slots + r,
+    reference_slots: 4L + 15L * n + arrays.reference_slots + r,
     scalar_words: 7L + 8L * n + arrays.scalar_words + w,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
@@ -116,6 +116,7 @@ pub fn bind_client_model_read_scopes(
   for index, plan in plans {
     let origin : ClientModelReadOrigin = {
       compiled,
+      model_limits: None,
       definition_cid: @publication.publication_contract_identity(definition),
       plan,
       host_policy_cid: @publication.run_publication_host_policy(

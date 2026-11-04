@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {installModelProviders} from './installed-model.mjs';
-import {selectedInferOriginalCurrentStateCodec, bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
+import {installedEffectModelPreparation} from './installed-effect-managed-run.mjs';
+import {selectedInferOriginalCurrentStateCodec, bindInferOriginalReadRecipe, inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
 
@@ -387,4 +388,52 @@ test('provider without an original-response hook acquires no reconciliation capa
   delete entry.reconcileResponse;
   assert.equal(installModelProviders(moon, () => [entry]).get('models/fixture').reconcileResponse, undefined);
   assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
+
+test('bound original recipe keeps startup controls separate from its complete Model allowance', () => {
+  const {moon, entry}=fixture(), graph={}, id=letter=>`sha256:${letter.repeat(64)}`;
+  const physical=installModelProviders(moon,()=>[{...entry,originalReadRecipe:originalRecipe()}]).get(entry.providerId);
+  moon.clientProgramInferPlanProgramCid=()=>id('a');
+  moon.clientProgramInferPlanParametersCid=()=>id('b');
+  moon.clientProgramInferPlanBoundary=()=>({_3:id('c')});
+  const bound=bindInferOriginalReadRecipe(moon,physical.originalReadRecipe,graph,nativeRecipeLimits,nativeModelLedgerBytes);
+  const startup=inferOriginalReadStartupCapacity(bound);
+  assert(Object.isFrozen(startup));
+  assert.deepEqual([startup.modelRetainedBytes,startup.modelExecutionBytes],[100n,5n]);
+  assert.deepEqual([bound.modelRetainedBytes,bound.modelExecutionBytes],[190n,45n]);
+  assert.equal(inferOriginalReadStartupCapacity(bound),startup);
+  const copy={...bound}; assert.equal(inferOriginalReadStartupCapacity(copy),copy,
+    'copied DATA never acquires the original startup association');
+  assert.equal(inferOriginalReadStartupCapacity(physical.originalReadRecipe),physical.originalReadRecipe,
+    'unbound and legacy declarations keep their original path');
+});
+
+
+test('actual Effect preparation passes original recipe startup controls while its Plan keeps the total Model allowance', () => {
+  const {moon, entry}=fixture(), graph={}, id=letter=>`sha256:${letter.repeat(64)}`;
+  const installed=installModelProviders(moon,()=>[{...entry,originalReadRecipe:originalRecipe()}]).get(entry.providerId);
+  moon.clientProgramInferPlanProgramCid=()=>id('a');
+  moon.clientProgramInferPlanParametersCid=()=>id('b');
+  moon.clientProgramInferPlanBoundary=()=>({_3:id('c')});
+  const physical=bindInferOriginalReadRecipe(moon,installed.originalReadRecipe,graph,nativeRecipeLimits,nativeModelLedgerBytes);
+  const compiled={},definition={},scope={},parent={},demand={},read={};let reads=0;
+  const control={prepareCheckedClientInferNodeReadLayout(...args) {
+    assert.deepEqual(args,[compiled,definition,graph,scope,physical.nodeInstallation]);reads++;return read;
+  }};
+  const runtime={clientProgramInstalledEffectModelReadWindow(value) {
+    assert.equal(this,runtime);assert.equal(value,demand);return [23n,29n];
+  }};
+  const run={model:{compiled,graph},publicationControl:control,modelRunDefinition:definition,
+    modelScope:scope,value:parent,modelDemand:demand,runtime,
+    modelSelection:{originalReadInstallation:physical}};
+  const preparation=installedEffectModelPreparation(run,()=>({}),()=>{});
+  assert.deepEqual([physical.modelRetainedBytes,physical.modelExecutionBytes],[190n,45n]);
+  assert.deepEqual([preparation.modelRetainedBytes,preparation.modelExecutionBytes],[100n,5n]);
+  assert.equal(preparation.metadataInstallation,physical);
+  preparation.retain();const selected=preparation.prepareRead();
+  assert.equal(selected.read,read);assert.equal(selected.scope,scope);assert.equal(selected.compiled,compiled);
+  assert.deepEqual([selected.modelRetainedBytes,selected.modelExecutionBytes],[100n,5n]);
+  assert.equal(reads,1);
+  assert.throws(()=>preparation.prepareRead(),{code:'ForeignInstalledEffectModelScope'});
 });
