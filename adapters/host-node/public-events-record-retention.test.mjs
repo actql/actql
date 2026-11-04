@@ -94,7 +94,10 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
   const authorization = {
     accountConfiguration: canonicalJson({
       version: 'actql-execution-account-config/0.1', account_id: 'events-record',
-      entries: [{entry_id: 'write', outcome: 'allow', principal: {all: true},
+      entries: [{entry_id: 'control-result-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/consumed_a', 'result/consumed_b', 'result/published', 'run']},
+        operation: {any_of: ['read']}, exclusions: []}, {entry_id: 'write', outcome: 'allow', principal: {all: true},
         connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}],
     }),
