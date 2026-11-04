@@ -965,6 +965,8 @@ test('a failed second row source preserves first-input cleanup without publicati
 test('two-source row cleanup retries without reacquisition after a later failure',
   async t => {
     let failClose = true;
+    let failedCloseAttempts = 0;
+    const closeFailure = new Error('FixtureRowCaptureCloseFailed');
     let reachedClose;
     const firstClose = new Promise(resolve => { reachedClose = resolve; });
     const observations = [];
@@ -974,7 +976,7 @@ test('two-source row cleanup retries without reacquisition after a later failure
       faultInjection(name, detail) {
         if (name === 'acquisition_cleanup_started' && detail.task === 0) {
           reachedClose();
-          if (failClose) throw new Error('FixtureRowCaptureCloseFailed');
+          if (failClose) { failedCloseAttempts++; throw closeFailure; }
         }
       }});
     await setup.publish();
@@ -1001,10 +1003,12 @@ test('two-source row cleanup retries without reacquisition after a later failure
     await assert.rejects(host.close(), error => {
       assert.equal(error.code, 'ClientDispatchCleanupPending');
       assert.ok(error.failures?.some(failure =>
-        failure.cleanup?.errors?.some(cause =>
-          cause.message === 'FixtureRowCaptureCloseFailed')));
+        failure.cleanup?.message === 'ClientSourceCleanupPending'));
+      // Public diagnostics retain inert text, never nested original failures.
+      assert.ok(error.failures.every(failure => failure.cleanup?.errors === undefined));
       return true;
     });
+    assert.ok(failedCloseAttempts >= 2);
     const pending = observations.filter(([name, detail]) =>
       name === 'acquisition_cleanup_started' && detail.task === 0);
     assert.ok(pending.length >= 2);
@@ -1051,7 +1055,7 @@ test('two-source cancellation retains the first row capture until stop and clean
         }
       }});
     await setup.publish();
-    const {client} = await setup.open();
+    const {client, host} = await setup.open();
     const document = JSON.stringify(twoRowSourceProgram());
     const run = await client.startSource(document, {format: 'json',
       submissionRef: client.newSubmission({nonce: 'github-two-source-cancel'})});
@@ -1066,6 +1070,9 @@ test('two-source cancellation retains the first row capture until stop and clean
     assert.equal(state.status, 'cancelled', JSON.stringify(state));
     assert.equal(state.result_available, false);
     await assert.rejects(run.result('joined').all(), {code: 'ResultAccessDenied'});
+    // A terminal Run observation can precede owner retirement. Await the
+    // original Host close before asserting physical capture cleanup.
+    await host.close();
     assert.equal(observations.filter(([name]) => name === 'acquisition_started').length, 1);
     assert.equal(observations.filter(([name]) => name === 'acquisition_cleanup_completed').length, 1);
     assertAcquisitionReleased(observations);
