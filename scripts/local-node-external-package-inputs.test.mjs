@@ -310,3 +310,15 @@ for (const role of ['read', 'effect']) {
       : ['original-site', 'original-text', 'declaration', 'original-text', 'mappings', 'site', 'effect']);
   });
 }
+
+for (const role of ['read', 'effect']) {
+  test(`external ${role} fixture refuses missing construction before any acquisition`, async () => {
+    const load = await externalFixtureLoader(role, {
+      readFile: () => assert.fail('No configuration or declaration before its construction owner'),
+      installRowSourceAuthorization: () => assert.fail('No independent authorization'),
+      openRowSourceCredentialSite: () => assert.fail('No independent Site'),
+    });
+    await assert.rejects(load({}, {}), {code: role === 'read'
+      ? 'ExternalReadConstructionUnavailable' : 'ExternalEffectConstructionUnavailable'});
+  });
+}

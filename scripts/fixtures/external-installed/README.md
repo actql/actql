@@ -25,6 +25,12 @@ manifests through the existing generator. Its Node distribution preserves
 `@actql/local-node` as the common owner, so the external adapters' imports of
 `@actql/local-node/connector-installation` refer to that same Host package.
 
+The installed loader supplies the original bound `construction` to each
+adapter. Both fixtures use it for accounted configuration reads, authored
+declaration/Mapping preparation, Site acquisition and final adapter creation.
+The same Host owner retains these originals and any failed prefix; an adapter
+cannot replace that association by calling an independent public constructor.
+
 ## Provider boundary
 
 The independently linked providers exchange only byte arrays, strings and
