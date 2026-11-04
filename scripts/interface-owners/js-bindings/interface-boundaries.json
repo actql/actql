@@ -37368,7 +37368,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "c55001ebb2ec176ef034ed53dbdaacf081081b255605ae0e0b0a86ab9a46c9d1",
+      "sha256": "018ebcc9fbbdbb357401f2aafcb55bc33d9b0fee3f3e58f11865507d3876cae7",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -86079,7 +86079,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7f3ffb74742d8cbd1a1abf902ee316e75a78a8807d39521491ae23e55b07e5d5",
+      "sha256": "e1eea0a8707f8b6169d2f44904dd8e1bbdaef9e383a6b17a2126609f25bed09d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -86644,7 +86644,9 @@
             "values",
             "fragment",
             "ordered",
-            "retainedRelationOutput"
+            "retainedRelationOutput",
+            "managedRun",
+            "requestIdentity"
           ],
           "async": true
         },
