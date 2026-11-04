@@ -146,6 +146,7 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHostObservation, observationTraceParent,
   captureManagedRunObservation} from '../host-common/observation.mjs';
+import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, observeNodeRestoredLocalStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
@@ -1267,12 +1268,39 @@ function validateSourceNamespace(value) {
 // Separate lexical scope: a returned cleanup continuation cannot keep the
 // retiring method's Prepared parameter or SDK request body alive.
 function managedPreparationRetirementContinuation(run, record) {
+  let retired = false, finalAccounting;
   return () => {
-    checked(Reflect.apply(run.retire,run.runtime,[run.value]));
+    if (!retired) {
+      let observed;
+      // The original input/control children have returned before this final
+      // cut. Core drops its Ledger on success; late Result observation keeps
+      // only these exact immutable scalars, never a live/current witness.
+      if (typeof run.usage === 'function') {
+        try {
+          const values = checked(Reflect.apply(run.usage, run.runtime, [run.value]));
+          const length = ledgerLimitsFields.length + ledgerUsageFields.length;
+          if (Array.isArray(values) && values.length === length &&
+              Reflect.ownKeys(values).length === length + 1) {
+            let numeric = true;
+            for (let index = 0; index < length; index++) {
+              const field = Object.getOwnPropertyDescriptor(values, String(index));
+              if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'bigint') {
+                numeric = false; break;
+              }
+            }
+            if (numeric) observed = Object.freeze(values);
+          }
+        } catch { /* Optional metadata cannot replace original cleanup. */ }
+      }
+      checked(Reflect.apply(run.retire,run.runtime,[run.value]));
+      finalAccounting = observed;
+      retired = true;
+    }
     run.manager.retireSeveredPreparation(run.original);
     record.computeLiveRuns.delete(run);
     for(const key of Object.keys(run)) run[key]=undefined;
     run.closed=true;
+    if (finalAccounting !== undefined) run.finalAccounting = finalAccounting;
   };
 }
 
@@ -3215,7 +3243,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return original.requested;
   };
-  const requestOf = ({preparedProgram, requestId}) => {
+  const requestOf = ({preparedProgram, requestId}, retainWholeSourceRefusal) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
       const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
@@ -3266,6 +3294,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
+        let unsupportedWholeSource;
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
@@ -3295,7 +3324,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
           const adapter = installedSourceFor(sourceProfile, sourceRef);
           if (kind === 'whole-input' && typeof adapter.managedWholeSourceCapacity !== 'function') {
-            throw new Error('InstalledSourceCapacityUnavailable');
+            const cause = new Error('InstalledSourceCapacityUnavailable');
+            unsupportedWholeSource = {cause, adapter, sourceRef};
+            throw cause;
           }
           if (acquisitionCount === 2 &&
               !installedSourceReadBindings(adapter).includes(sourceRef)) {
@@ -3307,7 +3338,16 @@ async function openInstalledHost(originalInstallation, preparation) {
           diagnostic('acquisition_preparation_rejected', {boundary: 'query_requirement',
             task, code: cause.code, issueTag: runtimeTag(cause.cause),
             requirementTag: runtimeTag(runtimeOptionalField(cause.cause, 0))});
-          throw clientOperationError('ClientProgramUnsupported', cause);
+          const error = clientOperationError('ClientProgramUnsupported', cause);
+          // Only this original static implementation selection can issue the
+          // same-candidate refusal. No reader, Model/Content or Run has begun.
+          if (unsupportedWholeSource?.cause === cause &&
+              !inferSelections.has(preparedProgram) &&
+              moon.clientProgramSerializationOccurrences(preparedProgram).length === 0) {
+            retainWholeSourceRefusal?.(error, requested,
+              unsupportedWholeSource.adapter, unsupportedWholeSource.sourceRef);
+          }
+          throw error;
         }
       }
       if (keyedAcquisition !== undefined) {
@@ -4829,8 +4869,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
   const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
     function(submission, held) {
-      const {requested, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
+      let requested, sourceRefusal;
       try {
+        const selected = requestOf(submission, (error, request, adapter, sourceRef) => {
+          sourceRefusal = Object.freeze({error, request, adapter, sourceRef,
+            profile: sourceProfile, requestId: submission.requestId});
+        });
+        requested = selected.requested;
+        const {acquisitionCount, keyedAcquisition, effectful} = selected;
         const selection = inferSelections.get(submission.preparedProgram);
         if (effectful) {
           if (installedEffect === undefined && effectInstallation === undefined ||
@@ -4898,7 +4944,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       } catch (error) {
         admissionFailures.set(submission, Object.freeze({error, requested,
-          prepared: submission.preparedProgram}));
+          prepared: submission.preparedProgram, sourceRefusal}));
         throw error;
       }
     }, {isOriginalPreparationRefusal(error, submission) {
@@ -4906,7 +4952,26 @@ async function openInstalledHost(originalInstallation, preparation) {
       const original = admissionFailures.get(submission);
       admissionFailures.delete(submission);
       if (original === undefined || original.error !== error ||
-          original.prepared !== submission.preparedProgram || typeof holderRefusal !== 'function') return false;
+          original.prepared !== submission.preparedProgram) return false;
+      const source = original.sourceRefusal;
+      if (source !== undefined) {
+        if (source.error !== error || source.requestId !== submission.requestId ||
+            source.profile !== sourceProfile || source.request === undefined ||
+            error.cleanupPending === true || error.cleanupHandle !== undefined ||
+            sourceFreeRequestIdentities.get(original.prepared)?.requested !== source.request ||
+            sourceFreeRequestIdentities.get(original.prepared)?.requestId !== source.requestId) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
+        prepareSubmit.assertOwned(original.prepared);
+        if (prepareSubmit.kindOf(original.prepared) !== 'effect_free' ||
+            inferSelections.has(original.prepared) ||
+            moon.clientProgramSerializationOccurrences(original.prepared).length !== 0 ||
+            installedSourceFor(sourceProfile, source.sourceRef) !== source.adapter ||
+            typeof source.adapter.managedWholeSourceCapacity === 'function' ||
+            journal.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
+        return true;
+      }
+      if (typeof holderRefusal !== 'function') return false;
       return Reflect.apply(holderRefusal, preparation,
         [error, original.prepared, original.requested]);
     }}));
@@ -5520,12 +5585,19 @@ async function openInstalledHost(originalInstallation, preparation) {
               recovery = preparation.retainModelRecoveryInput(moon, submission,
                 current.requestIdentity, current.runDefinition, assertCurrent,
                 () => !restorationReclaimed());
+              submission.preparedProgram = prepareSubmit.restoreInferOriginal(
+                inferOriginal, current.runDefinition, current.requestIdentity,
+                current.runAdmissionEvidence, submission);
+            } else {
+              // The admitted Model checkpoint retains this SAME Effect input.
+              // Keep its new physical-process request pending before Source
+              // preparation, exactly as on the existing held/read resume path.
+              recovery = preparation.retainEffectRequestInput(moon,
+                submission, undefined, token.snapshot.submission);
+              localPreparationCustody.attach(submission,
+                localPreparationCustody.adopt(await prepareCapturedSubmission(submission, ref), submission));
             }
-            submission.preparedProgram = inferOriginal === undefined
-              ? await prepareCapturedSubmission(submission, ref)
-              : prepareSubmit.restoreInferOriginal(inferOriginal, current.runDefinition,
-                current.requestIdentity, current.runAdmissionEvidence, submission);
-            if (recovery !== undefined) preparation.bindSourceRequest(submission, submission.preparedProgram);
+            preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);
             const admitted = journal.resolveDefinition(requested.requested,
               {namespaceId}, moon, control);
@@ -5548,7 +5620,10 @@ async function openInstalledHost(originalInstallation, preparation) {
                   claim, checkpointCid: parentCheckpoint.checkpointCid}}),
                 assertCurrent, observeStopped: () => { restorationStopConfirmed = true; }};
               restorationDispatchEntered = true;
-              return executeEffectComputation(facts, undefined, undefined, modelResume);
+              const result = await executeEffectComputation(facts, undefined, undefined, modelResume);
+              recovery.finish('returned');
+              recovery = undefined;
+              return result;
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
             if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
@@ -7334,6 +7409,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
         if (effectRetirement) run.retiringEffect = false;
       }
     },
+    assertUnadmittedSourceRequest(runtime, prepared, request) {
+      if (runtime !== moon || request === undefined || record.computeRuns?.has(prepared)) {
+        throw clientOperationError('ForeignInstalledComputeRun');
+      }
+      assertInitialControlHostPreparation(originals);
+      if (sourceManaged !== undefined) assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      else if (computeManaged !== undefined) assertManagedComputeInstallationCurrent(computeManaged, originals);
+      else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+      originalSourceManagedHostRequest(originals, prepared);
+    },
     isOriginalManagedComputePreparationRefusal(error, prepared, request) {
       const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;
       if (original === undefined || request === undefined || original.error !== error || run.failure !== error ||
@@ -7489,6 +7574,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
       const prior = index.get(key);
       if (prior !== undefined && prior !== run) throw clientOperationError('ForeignInstalledComputeRun');
       index.set(key, run);
+      // Capture the same native method without sampling or extending the
+      // Core Run lifetime. Final retirement supplies its last live DATA.
+      if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
     },
     managedComputeUsageReader(ref) {
       const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
@@ -7498,7 +7586,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
       // cannot keep a prepared Program, Core Run or Ledger alive afterward.
       return () => {
         const run = record.computeRunObservations?.get(key);
-        if (run === undefined || run.value === undefined || run.closed) return undefined;
+        if (run === undefined) return undefined;
+        if (run.closed) return run.finalAccounting;
+        if (run.value === undefined) return undefined;
         if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunAccounting;
         if (typeof run.usage !== 'function') return undefined;
         return checked(Reflect.apply(run.usage, run.runtime, [run.value]));

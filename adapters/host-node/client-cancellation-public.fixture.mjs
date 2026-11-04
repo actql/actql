@@ -49,6 +49,25 @@ const installation = {directory: join(directory, 'host'), authorization};
 const originalCAs = getCACertificates('default');
 const originalExec = DatabaseSync.prototype.exec;
 let client, host, server, database, faults = 0;
+let injectFinalCancellation = false;
+// The real Journal captures its original SQLite methods during installation.
+// Install this fixture hook before that capture; activate only for the SAME
+// cancellation's final transaction, after ordinary Run publication.
+DatabaseSync.prototype.exec = function(sql) {
+  let finalOperation = false;
+  if (injectFinalCancellation && sql === 'COMMIT' && faults === 0) {
+    try {
+      finalOperation = this.prepare(`SELECT outcome_wire FROM client_cancellation_operations
+        WHERE cancel_id = ?`).get(cancelId)?.outcome_wire != null;
+    } catch { /* Other existing Owner databases have no such table. */ }
+  }
+  if (finalOperation) {
+    faults++;
+    if (loss === 'after-commit') originalExec.call(this, sql);
+    throw new Error('CANCELLATION_FINAL_COMMIT_REPLY_LOST');
+  }
+  return originalExec.call(this, sql);
+};
 const snapshot = () => ({
   operations: database.prepare(`SELECT namespace_id, authority_scope_cid, cancel_id,
     run_definition_cid, expected_revision, intent_fingerprint_cid, outcome_wire,
@@ -153,28 +172,14 @@ try {
       {flag: 'wx', mode: 0o600});
     // Select this operation's final transaction, not a numbered COMMIT from
     // another journal. Pending identity custody is committed before this point.
-    DatabaseSync.prototype.exec = function(sql) {
-      let finalOperation = false;
-      if (sql === 'COMMIT' && faults === 0) {
-        try {
-          finalOperation = this.prepare(`SELECT outcome_wire FROM client_cancellation_operations
-            WHERE cancel_id = ?`).get(cancelId)?.outcome_wire != null;
-        } catch { /* Other existing Owner databases have no such table. */ }
-      }
-      if (finalOperation) {
-        faults++;
-        if (loss === 'after-commit') originalExec.call(this, sql);
-        throw new Error('CANCELLATION_FINAL_COMMIT_REPLY_LOST');
-      }
-      return originalExec.call(this, sql);
-    };
+    injectFinalCancellation = true;
     let failure, explanation;
     try { await run.cancel({cancelId, expectedRevision: cancelRef.expectedRevision}); }
     catch (error) {
       failure = {code: error.code, cancelRef: error.cancelRef};
       explanation = explainCancellation(error);
     }
-    finally { DatabaseSync.prototype.exec = originalExec; }
+    finally { injectFinalCancellation = false; }
     console.log('INSTALLED_CANCEL_PHASE', 'cancel-returned', failure?.code);
     assert.deepEqual(failure, {code: 'CancellationUnknown', cancelRef});
     assert.equal(faults, 1);
