@@ -747,7 +747,9 @@ fn unknown_effect_capture_controls(
     // The next decoder coexists with the already grown two-row controls.
     // Its complete retained tree is additive until this exact codec finishes.
     let next_codec = installed_effect_contract_response_construction_capacity(
-      installed_effect_control_wire_bound(1, 1000000).unwrap(), 64, 4,
+      installed_effect_control_wire_bound(1, 1000000).unwrap(),
+      64,
+      4,
     ).unwrap()
     assert_eq(
       @resources.ledger_usage(ledger).reserved_retention_bytes,
@@ -1742,4 +1744,145 @@ test "one current callback cannot retire or replace the original planned Run tup
     run.preparation = original.val
     retire_installed_managed_run(run).unwrap()
   }
+}
+
+///|
+test "cold inventory grows original symbolic member backing without opening or refunding physical work" {
+  let original = effect_operation_source_plan_fixture()
+  let fixed = @execution.execution_capacity(13L, 17L).unwrap()
+  let per_row = @execution.execution_capacity(37L, 61L).unwrap()
+  let recovery_extent = prepare_installed_effect_capture_extent(
+    "recovery", fixed, per_row,
+  ).unwrap()
+  let demand = prepare_installed_effect_operation_demand(
+    original.prepared,
+    original.operations[0].stage_index,
+    original.operations[0].effect_id,
+    [recovery_extent],
+    original.operations[0].row_extents,
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    original.prepared,
+    original.request,
+    original.declarations,
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    original.transport_bytes,
+    original.transport_execution_bytes,
+    original.installed_contracts,
+    original.values_body,
+    original.fragment_body,
+    original.ordered_body,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  assert_true(plan.closed_rows is None)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let reservation = control.reservation
+  assert_true(owner.source_free_captured is None)
+  assert_true(
+    retain_installed_effect_operation_construction(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+      0,
+      false,
+      0,
+      0,
+      "recovery",
+    )
+    is Err(InsufficientCapacity),
+  )
+  let before = @resources.ledger_usage(ledger)
+  let limits = @resources.ledger_limits(ledger)
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    limits.retained_bytes - before.held_bytes - before.reserved_retention_bytes,
+    0L,
+  ).unwrap()
+  let blocked = @resources.ledger_usage(ledger)
+  let preparation = owner.preparation.unwrap()
+  let admission = match preparation {
+    PlannedEffectManaged(admission, _) => admission
+    _ => fail("expected original Effect Plan")
+  }
+  assert_true(
+    retain_installed_effect_control_row_inventory(
+      owner,
+      preparation,
+      admission,
+      plan,
+      ledger,
+      control,
+      2,
+      () => Ok(()),
+    )
+    is Err(Ledger(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), blocked)
+  assert_true(control.captured_rows is None)
+  assert_true(physical_equal(control.reservation, reservation))
+  @resources.settle_capacity(ledger, blocker).unwrap()
+  retain_installed_effect_control_row_inventory(
+    owner,
+    preparation,
+    admission,
+    plan,
+    ledger,
+    control,
+    2,
+    () => Ok(()),
+  ).unwrap()
+  assert_eq(control.captured_rows, Some(2))
+  assert_true(physical_equal(control.reservation, reservation))
+  let child = retain_installed_effect_operation_construction(
+    owner,
+    plan.prepared,
+    plan.request,
+    plan,
+    0,
+    false,
+    0,
+    0,
+    "recovery",
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(child.extent.unwrap().capacity),
+    87L,
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(
+      child.extent.unwrap().capacity,
+    ),
+    139L,
+  )
+  begin_installed_effect_operation_construction(child).unwrap()
+  complete_installed_effect_operation_construction(child).unwrap()
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes,
+  )
+  retire_installed_managed_run(owner).unwrap()
 }

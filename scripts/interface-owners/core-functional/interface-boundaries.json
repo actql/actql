@@ -2358,7 +2358,8 @@
             "usageKeys/usageKeys/usageKeys",
             "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
             "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals"
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
+            "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory"
           ],
           "exports": [
             "contentCaptureControl",
@@ -11810,6 +11811,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
+          "parameters": [
+            "run",
+            "prepared",
+            "request",
+            "plan",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
           "parameters": [
             "capturedRun"
@@ -14492,7 +14507,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4e2c6d3d8ba4eb1fc4fb2a305eeeddee9daebbd77469913c9f0066be9f2245e9"
+      "sha256": "8b2a77995b12066f4786465ea6b5decce3f139c85220f6b4035c86fb09071bbe"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -33134,7 +33149,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "d4df65e6f54d6455b38d6070cd040735b07d0042a854b4e32300a1740b2f5a1d",
+      "sha256": "c7e81d9601d600fd51e340c55e7d9b94f81cb6109d6f220008ced917f9abfef4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -33254,6 +33269,10 @@
           "declaration": "retain_installed_effect_captured_input_inventory ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , inputs : @ strategy . CapturedEffectInputs , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "retain_installed_effect_control_row_inventory",
+          "declaration": "retain_installed_effect_control_row_inventory ( owner : ClientInstalledManagedRun , preparation : ClientInstalledManagedRunOriginal , admission : @ resources . PreparedRunAdmission [ ClientInstalledEffectManagedPlan ] , plan : ClientInstalledEffectManagedPlan , ledger : @ resources . Ledger , control : ClientEffectOperationControls , rows : Int , check_inventory : ( ) - > Result [ Unit , ClientInstalledManagedRunIssue ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "retain_installed_effect_operation_construction",
           "declaration": "retain_installed_effect_operation_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
         },
@@ -33264,6 +33283,10 @@
         {
           "name": "retain_installed_effect_operation_controls_before_construction",
           "declaration": "retain_installed_effect_operation_controls_before_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retain_installed_effect_recovered_input_inventory",
+          "declaration": "retain_installed_effect_recovered_input_inventory ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "retire_installed_effect_operation",
@@ -33384,7 +33407,9 @@
             "retain_installed_effect_operation_controls_before_construction",
             "select_installed_effect_operation_controls",
             "select_installed_effect_operation_original",
-            "retain_installed_effect_captured_input_inventory"
+            "retain_installed_effect_captured_input_inventory",
+            "retain_installed_effect_control_row_inventory",
+            "retain_installed_effect_recovered_input_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -51432,7 +51457,8 @@
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
             "client_program_installed_effect_operation_input_begin",
-            "client_program_installed_effect_captured_input_inventory_retain"
+            "client_program_installed_effect_captured_input_inventory_retain",
+            "client_program_installed_effect_recovered_input_inventory_retain"
           ],
           "exports": [],
           "attributes": {
@@ -51676,7 +51702,7 @@
           }
         }
       ],
-      "sha256": "f8d7f5d34abf25a83e725e5df38a7b097bf0736b43f7e4af2e7dea1973a9ea88",
+      "sha256": "ed998acb11f210a4f04c40a0fcdc69572efd70cdb3fde7cecc96f94b5fa897cf",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -51765,6 +51791,10 @@
         {
           "name": "client_program_installed_effect_operation_transfer_uncertain",
           "declaration": "client_program_installed_effect_operation_transfer_uncertain ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_recovered_input_inventory_retain",
+          "declaration": "client_program_installed_effect_recovered_input_inventory_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_response_buffer_construction_capacity",

@@ -1678,6 +1678,8 @@ pub fn client_program_installed_effect_operation_transfer_uncertain(@client_loca
 
 pub fn client_program_installed_effect_plan_matches_model_demand(@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledEffectModelDemand) -> Bool
 
+pub fn client_program_installed_effect_recovered_input_inventory_retain(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledEffectManagedPlan, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_effect_row_source_input_prepare(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]

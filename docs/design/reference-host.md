@@ -3284,3 +3284,15 @@ decoder peak. Only its synchronous completion returns that construction prefix;
 the original outer output allowance and accumulated peak/work history remain.
 No row count is invented, and no policy, admission, Ledger or budget domain is
 replaced.
+
+Cold Effect member recovery also resolves symbolic input demand from the
+already admitted Preview's member inventory. The managed Run retains its
+original Prepared/Request/Plan and allowed Run/Definition; the Preview must
+bind to that Run and Invocation, and a retained QueryTime must match too.
+No Host-supplied count or second wire parse supplies this proof. Member row
+counts remain within the Plan's existing ceiling. Warm input custody and cold
+Preview custody share the same control-capacity fold and reservation; a live
+larger captured inventory is retained rather than shrunk to selected changes.
+This immutable inventory is neither write permission nor physical outcome or
+cleanup evidence. Constructor entry follows the resize, and original current,
+reentry, failure and retirement fences remain in force.

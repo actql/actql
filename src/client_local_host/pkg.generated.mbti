@@ -990,6 +990,8 @@ pub fn retain_installed_effect_operation_construction(ClientInstalledManagedRun,
 
 pub fn retain_installed_effect_operation_controls_before_construction(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue]
 
+pub fn retain_installed_effect_recovered_input_inventory(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
+
 pub fn[I] retain_request_submitted_intent(ClientRequestPreparation[I], I, @run_publication_host.ClientSubmittedIntent) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn retained_installed_source_construction_capacity(@execution_relation.ExecutionCapacity) -> @execution_relation.ExecutionCapacity

@@ -133,13 +133,19 @@ for (const entrance of ['local', 'https']) {
     if (entrance === 'https') execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
       '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
       '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
+    let initialCompletion;
     const phase = async phase => {
       const child = spawnSync(process.execPath, [fixture], {input: JSON.stringify({phase, entrance,
         root: scratch.path, runtime: acceptance.runtime, program, scenario: 'explicit_restart'}),
       encoding: 'utf8', timeout: 30000, maxBuffer: 4 * 1024 * 1024});
       const report = JSON.parse(await readFile(join(scratch.path, `${phase}.json`), 'utf8'));
       assert.equal(child.error, undefined, String(child.error));
-      assert.equal(child.status, 0, `${JSON.stringify(report)}\n${child.stderr}`);
+      const complete = () => {
+        assert.equal(child.status, 0, `${JSON.stringify(report)}\n${child.stderr}`);
+        assert.equal(child.signal, null);
+      };
+      if (phase === 'restart-initial') initialCompletion = complete;
+      else complete();
       return report;
     };
     const initial = await phase('restart-initial');
@@ -158,10 +164,16 @@ for (const entrance of ['local', 'https']) {
     // has already been explicitly submitted. Inspect real durable births.
     await writeFile(join(scratch.path, 'unresolved-lookup-observation.json'),
       JSON.stringify({entrance, initial, requests, intents, links}), {mode: 0o600});
+    // A faulty automatic restart can fail its later lookup after dispatching.
+    // Observe that real excess first; missing work or an arbitrary child
+    // failure must still fail the infrastructure assertion, not this marker.
+    if (![initial.computes, requests.length, intents.length, links.length]
+      .some(count => count > 1)) initialCompletion();
     assert.deepEqual({computes: initial.computes, requests: requests.length,
       intents: intents.length, links: links.length},
     {computes: 1, requests: 1, intents: 1, links: 1},
     '[check-mutation:unresolvable-no-restart]');
+    initialCompletion();
     assert.deepEqual(requests.map(value => value.run_definition_cid), [initial.ref.runDefinitionCid]);
     assert.deepEqual(intents, [{nonce: 'deliberately-new-work', phase: 'ready'}]);
     assert.equal(initial.state.status, 'succeeded');

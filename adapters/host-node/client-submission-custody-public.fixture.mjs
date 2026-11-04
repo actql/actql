@@ -27,7 +27,10 @@ const authorization = {
   accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
     account_id: 'submission-custody', entries: [{entry_id: 'acceptance', outcome: 'allow',
       principal: {all: true}, connection: {all: true}, resource: {all: true},
-      operation: {any_of: ['write']}, exclusions: []}]}),
+      operation: {any_of: ['write']}, exclusions: []},
+    {entry_id: 'owner-read', outcome: 'allow', principal: {any_of: [principalId]},
+      connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/answer', 'run']},
+      operation: {any_of: ['read']}, exclusions: []}]}),
   reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId, publicKey: keys.publicKey}],
   reviewReaders: [principalId], hostKey: {keyId: 'host', privateKey: keys.privateKey},
   observe(name) {if (name === 'computed') computes++;},
@@ -190,7 +193,7 @@ try {
   for (let cause = error.cause; cause && causes.length < 8; cause = cause.cause) {
     causes.push({name: cause.name, code: cause.code});
   }
-  report = {error: error.code ?? error.message, stack: error.stack, causes};
+  report = {error: error.code ?? error.message, stack: error.stack, causes, computes};
 }
 finally {
   await close();

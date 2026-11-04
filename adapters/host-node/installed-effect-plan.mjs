@@ -1023,6 +1023,30 @@ export function prepareInstalledEffectControlConstruction(run) {
       if (pending === undefined) run.selecting = false;
     }
   };
+  const retainRecoveredInputs = (control, allowed, definition, invocation, preview) => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
+    const retain = control?.retainInstalledEffectRecoveredInputInventory;
+    if (typeof retain !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    working = true;
+    run.selecting = true;
+    try {
+      originalRecord();
+      // This grows the existing control token before entering a constructor;
+      // invoking work() here would incorrectly open that constructor first.
+      const result = Reflect.apply(retain, control,
+        [parent, prepared, request, plan, allowed, definition, invocation, preview]);
+      retainInvalid(result);
+      originalRecord();
+    } catch (cause) {
+      failed = true; primary = cause;
+      throw cause;
+    } finally {
+      working = false;
+      if (pending === undefined) run.selecting = false;
+    }
+  };
   const retire = () => {
     if (retired) return true;
     if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
@@ -1044,7 +1068,8 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, retainInputs}));
+  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec,
+    retainInputs, retainRecoveredInputs}));
 }
 
 // A composed generic owner keeps its original codec and full control quote.
