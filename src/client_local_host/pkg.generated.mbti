@@ -936,6 +936,8 @@ pub fn[I] reserve_request_program_plan(ClientRequestPreparation[I], I) -> Result
 
 pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, @run_publication_host.ClientRunCompilation) -> Result[Unit, ClientRequestProgramPlanIssue]
 
+pub fn[I] reserve_request_retained_program_material(ClientRequestPreparation[I], I, String) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] reserve_request_snapshot(ClientRequestPreparation[I], I, Int64, Int64) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger, ClientInstalledCaptureCapacity, () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer, original_input? : (String, String, Array[String])?) -> Result[ClientAccountedSourceCapture, ClientSourceCaptureIssue]
