@@ -64,7 +64,10 @@ pub fn[P, E] reserve_prepared_run_operation(
       transfer_bytes,
       retained_bytes,
       execution_bytes,
-      None,
+      // This installed operation path selects non-Model physical work. Keep
+      // the SAME Ledger's configured Model budget neutral, never absent.
+      // Actual Model attempts retain their separate amount-bearing entrance.
+      quantity_neutral_amounts(ledger),
     ).map(original => Physical(original))
   } else {
     match check_original_reservation_slot_current(ledger) {

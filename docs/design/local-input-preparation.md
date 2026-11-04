@@ -4975,6 +4975,11 @@ when the shared Ledger has Model dimensions; they neither omit those dimensions
 nor reset, replace or spend the Model's actual quote. The normal reservation
 still validates the current configuration and every existing limit.
 
+The existing non-Model Effect physical-operation entrance uses that same
+canonical neutral amount after capture. It retains consumed and uncertain Model
+quantities while reserving its own physical attempt, transfer and bytes. Model
+provider work still uses its original amount-bearing reservation entrance.
+
 The Source capture remains alive through prefix execution and original child
 cleanup. A refused input constructor keeps the retained prefix reservation for
 its original cleanup. Once provider entry has occurred, missing or failed child
