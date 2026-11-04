@@ -242,6 +242,7 @@ test "original implementation control material shares the checked row inventory 
 // generated, and expected identities/rows are not taken from execution output.
 fn effect_operation_source_plan_fixture(
   bounded_output? : Bool = false,
+  additional_source? : Bool = false,
   second_result? : Bool = false,
   provider? : @execution.ExecutionCapacity? = None,
   query_time_for? : ((
@@ -347,6 +348,19 @@ fn effect_operation_source_plan_fixture(
   } else {
     document
   }
+  let document = if additional_source {
+    document
+    .replace(
+      old="{\"id\":\"apply\",",
+      new="{\"id\":\"acquire_second\",\"inputs\":{\"remote\":{\"connector\":\"operation-source\",\"resource\":\"r\"}},\"steps\":[{\"filter\":\"id > 0\"},{\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{\"rows\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{\"id\":\"apply\",",
+    )
+    .replace(
+      old="\"inputs\":{\"input\":{\"result\":{\"stage\":\"acquire\",\"result\":\"rows\"}}},\"steps\":[{\"filter\":\"id > 2\",\"as\":\"selected\"}]",
+      new="\"inputs\":{\"input\":{\"result\":{\"stage\":\"acquire\",\"result\":\"rows\"}},\"other\":{\"result\":{\"stage\":\"acquire_second\",\"result\":\"rows\"}}},\"steps\":[{\"from\":\"input\",\"cross_join\":{\"with\":\"other\",\"max_output_rows\":10,\"select\":{\"id\":\"left.id\"}},\"as\":\"both\"},{\"from\":\"both\",\"filter\":\"id > 2\",\"as\":\"selected\"}]",
+    )
+  } else {
+    document
+  }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
       document,
@@ -395,7 +409,11 @@ fn effect_operation_source_plan_fixture(
   ).unwrap()
   let demand = prepare_installed_effect_operation_demand(
     prepared,
-    1,
+    if additional_source {
+      2
+    } else {
+      1
+    },
     "save",
     [extent],
     [extent],
@@ -417,11 +435,23 @@ fn effect_operation_source_plan_fixture(
   prepare_installed_effect_managed_plan(
     prepared,
     request,
-    [declaration],
+    if additional_source {
+      [declaration, declaration]
+    } else {
+      [declaration]
+    },
     original_row_query_contract_fixture,
     original_row_evidence_contract_fixture,
-    [1024L],
-    [2048L],
+    if additional_source {
+      [1024L, 1024L]
+    } else {
+      [1024L]
+    },
+    if additional_source {
+      [2048L, 2048L]
+    } else {
+      [2048L]
+    },
     contracts,
     source_query_original_values,
     Some(source_query_original_fragment),

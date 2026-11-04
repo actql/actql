@@ -1576,9 +1576,13 @@ pub fn client_program_installed_effect_content_preparation_provider(@client_loca
 
 pub fn client_program_installed_effect_control_wire_bound(Int, Int) -> Result[Int, @client_local_host.ClientInstalledManagedRunIssue]
 
+pub fn client_program_installed_effect_duckdb_source_input_prepare(String, String, String, String, String, String) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_effect_host_input_capture_recipe_extent_prepare(String, Array[@execution_relation.ExecutionCapacity], Int, Int, Int) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_http_response_construction_capacity(Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_installed_effect_managed_duckdb_capture(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Int) -> Result[(@query_planning.QueryRequirement, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_host_open(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource]) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1609,6 +1613,8 @@ pub fn client_program_installed_effect_managed_run_check(@client_local_host.Clie
 pub fn client_program_installed_effect_managed_run_prepare_ledger(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_effect_managed_source_plan_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[@client_local_host.ClientInstalledEffectSourceInput], String, String, Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@client_local_host.ClientInstalledEffectOperationDemand], @run_publication_host.ClientQueryTimePreparation?, @client_local_host.ClientInstalledEffectModelDemand?, Array[@local.ManagedProvider], @client_local_host.ClientInstalledEffectContentPreparation?) -> Result[@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_managed_source_read(@client_local_host.ClientInstalledManagedRun, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
@@ -1673,6 +1679,8 @@ pub fn client_program_installed_effect_operation_transfer_uncertain(@client_loca
 pub fn client_program_installed_effect_plan_matches_model_demand(@client_local_host.ClientInstalledEffectManagedPlan, @client_local_host.ClientInstalledEffectModelDemand) -> Bool
 
 pub fn client_program_installed_effect_response_buffer_construction_capacity(Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_installed_effect_row_source_input_prepare(@client_row_source_host.RowDeclaration, @execution_relation.ExecutionCapacity?) -> Result[@client_local_host.ClientInstalledEffectSourceInput, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_gmail_thread_reader_capacity(Array[Int], Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 

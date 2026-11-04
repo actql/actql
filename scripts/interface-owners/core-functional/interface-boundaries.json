@@ -33671,7 +33671,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "3ea569397d0e6b10c1006171638ef213cbd74577054a9dab8b89b80fef8cc487",
+      "sha256": "de57dfc1d75ad3e22be2b702a7a526073a2eee75a51adfaa55a00fa536af46bd",
       "exports": [],
       "operations": [
         {
@@ -33729,6 +33729,10 @@
         {
           "name": "prepare_installed_effect_managed_plan",
           "declaration": "prepare_installed_effect_managed_plan ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "prepare_installed_effect_managed_plan_owned",
+          "declaration": "prepare_installed_effect_managed_plan_owned ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ ClientInstalledEffectOperationDemand ] , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
         {
           "name": "prepare_installed_effect_operation_demand",
@@ -33801,7 +33805,8 @@
             "prepared_installed_effect_managed_requirements",
             "prepared_installed_effect_managed_shape",
             "prepared_installed_effect_managed_source",
-            "resolve_installed_effect_capture_extent"
+            "resolve_installed_effect_capture_extent",
+            "prepare_installed_effect_managed_plan_owned"
           ],
           "exports": [],
           "attributes": {
@@ -51706,7 +51711,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "e63d516f98dc039588d3c72a6836bf768bf00c2e5f5cc6dfa7cd6d2756aa0d45",
+      "sha256": "c6b9f5a50c5dcf16d9e77f1900825fc627b785561d773f5447294d033305260f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -51746,8 +51751,16 @@
           "declaration": "client_program_installed_effect_control_wire_bound ( outcome_bytes : Int , maximum_bytes : Int , ) - > Result [ Int , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "client_program_installed_effect_duckdb_source_input_prepare",
+          "declaration": "client_program_installed_effect_duckdb_source_input_prepare ( source_ref : String , database_schema : String , table : String , query_contract : String , evidence_contract : String , two_receipt_contract : String , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_host_input_capture_recipe_extent_prepare",
           "declaration": "client_program_installed_effect_host_input_capture_recipe_extent_prepare ( operation : String , recipe : Array [ @ execution . ExecutionCapacity ] , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_managed_duckdb_capture",
+          "declaration": "client_program_installed_effect_managed_duckdb_capture ( run : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ ( @ planning . QueryRequirement , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_managed_host_open",
@@ -51798,6 +51811,10 @@
           "declaration": "client_program_installed_effect_managed_provider_plan_prepare_at_query_time ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , query_time : @ publication_host . ClientQueryTimePreparation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_installed_effect_managed_source_plan_prepare",
+          "declaration": "client_program_installed_effect_managed_source_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , inputs : Array [ @ client_local_host . ClientInstalledEffectSourceInput ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , query_time : @ publication_host . ClientQueryTimePreparation ? , model : @ client_local_host . ClientInstalledEffectModelDemand ? , components : Array [ @ local . ManagedProvider ] , content : @ client_local_host . ClientInstalledEffectContentPreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_installed_effect_managed_source_read",
           "declaration": "client_program_installed_effect_managed_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ planning . QueryRequirement , @ client_row_source_host . RowAcquisition , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -51820,6 +51837,10 @@
         {
           "name": "client_program_installed_effect_operation_staged_extent_prepare",
           "declaration": "client_program_installed_effect_operation_staged_extent_prepare ( initial : @ client_local_host . ClientInstalledEffectOperationExtent , maximum : @ client_local_host . ClientInstalledEffectOperationExtent , ) - > Result [ @ client_local_host . ClientInstalledEffectOperationExtent , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_effect_row_source_input_prepare",
+          "declaration": "client_program_installed_effect_row_source_input_prepare ( declaration : @ client_row_source_host . RowDeclaration , provider : @ execution . ExecutionCapacity ? , ) - > Result [ @ client_local_host . ClientInstalledEffectSourceInput , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_local_file_store_control_wire_bound",
@@ -51877,7 +51898,11 @@
             "client_program_installed_effect_operation_staged_extent_prepare",
             "client_program_installed_standard_create_recipe_capacities",
             "client_program_installed_standard_driver_recipe_capacities",
-            "client_program_node_effect_managed_plan_cleanup"
+            "client_program_node_effect_managed_plan_cleanup",
+            "client_program_installed_effect_duckdb_source_input_prepare",
+            "client_program_installed_effect_managed_duckdb_capture",
+            "client_program_installed_effect_managed_source_plan_prepare",
+            "client_program_installed_effect_row_source_input_prepare"
           ],
           "exports": [],
           "attributes": {
@@ -71452,7 +71477,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_managed_run.mbt",
-      "sha256": "0ffae0eaf171878953e81c2cab5913154938a3ca4e0fee15052ecee5affe04e9",
+      "sha256": "d7e4b0bb9ac25729c558f4003b30fdbe69a2081faad016f2d83e5ad43d42c369",
       "exports": [],
       "operations": [
         {

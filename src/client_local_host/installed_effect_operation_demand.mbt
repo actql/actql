@@ -534,6 +534,50 @@ pub fn prepare_installed_effect_managed_plan(
   model? : ClientInstalledEffectModelDemand? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
 ) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
+  prepare_installed_effect_managed_plan_owned(
+    prepared,
+    request,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    provider_factory~,
+    query_time~,
+    source_providers~,
+    model~,
+    content~,
+  )
+}
+
+///|
+fn prepare_installed_effect_managed_plan_owned(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[ClientInstalledEffectOperationDemand],
+  provider_factory~ : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ],
+  query_time? : @publication_host.ClientQueryTimePreparation? = None,
+  source_providers? : Array[@execution.ExecutionCapacity]? = None,
+  model? : ClientInstalledEffectModelDemand? = None,
+  content? : ClientInstalledEffectContentPreparation? = None,
+  source_inputs? : Array[ClientInstalledEffectSourceInput]? = None,
+) -> Result[ClientInstalledEffectManagedPlan, ClientInstalledManagedRunIssue] {
   if !installed_effect_managed_request_matches(prepared, request) {
     return Err(ForeignOriginal)
   }
@@ -582,14 +626,29 @@ pub fn prepare_installed_effect_managed_plan(
   // This is the selected original installed reader declaration, not a grant,
   // capacity credit or a replacement acquisition. The Plan constructs each
   // original acquisition once and retains its complete provider overlap.
-  let provider_sources = match source_providers {
-    None => 0
-    Some(providers) => {
-      if providers.is_empty() || providers.length() != declarations.length() {
+  let provider_sources = match source_inputs {
+    Some(inputs) => {
+      if source_providers is Some(_) {
         return Err(ForeignOriginal)
       }
-      providers.length()
+      let mut providers = 0
+      for input in inputs {
+        if input is InstalledEffectRowSource(_, Some(_)) {
+          providers += 1
+        }
+      }
+      providers
     }
+    None =>
+      match source_providers {
+        None => 0
+        Some(providers) => {
+          if providers.is_empty() || providers.length() != declarations.length() {
+            return Err(ForeignOriginal)
+          }
+          providers.length()
+        }
+      }
   }
   let source_free = if @strategy.graph_captured_prefix(graph) == 0 {
     Some(
@@ -621,21 +680,48 @@ pub fn prepare_installed_effect_managed_plan(
       },
     )
   }
-  let acquisitions = match
-    prepare_installed_managed_acquisitions_owned(
-      Effect(prepared),
-      declarations,
-      query_contract_body,
-      evidence_contract_body,
-      installed_contracts,
-      values_body,
-      fragment_body,
-      ordered_body,
-      query_time=invocation,
-      direct_occurrences~,
-    ) {
-    Err(issue) => return Err(issue)
-    Ok(value) => value
+  let (declarations, acquisitions, captures) = match source_inputs {
+    Some(inputs) =>
+      match
+        prepare_installed_effect_source_inputs(
+          prepared, inputs, query_contract_body, evidence_contract_body, installed_contracts,
+          values_body, fragment_body, ordered_body, direct_occurrences, invocation,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+    None => {
+      let acquisitions = match
+        prepare_installed_managed_acquisitions_owned(
+          Effect(prepared),
+          declarations,
+          query_contract_body,
+          evidence_contract_body,
+          installed_contracts,
+          values_body,
+          fragment_body,
+          ordered_body,
+          query_time=invocation,
+          direct_occurrences~,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(value) => value
+      }
+      let captures = []
+      for index, acquisition in acquisitions {
+        let selected = match source_providers {
+          None => installed_row_capture_capacity(acquisition)
+          Some(providers) =>
+            installed_provider_row_capture_capacity(
+              acquisition,
+              Some(providers[index]),
+            )
+        }
+        guard selected is Some(capacity) else { return Err(Unsupported) }
+        captures.push(capacity)
+      }
+      (declarations, acquisitions, captures)
+    }
   }
   let sequences = match source_free {
     Some(value) => value.sequences
@@ -652,19 +738,6 @@ pub fn prepare_installed_effect_managed_plan(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-  }
-  let captures = []
-  for index, acquisition in acquisitions {
-    let selected = match source_providers {
-      None => installed_row_capture_capacity(acquisition)
-      Some(providers) =>
-        installed_provider_row_capture_capacity(
-          acquisition,
-          Some(providers[index]),
-        )
-    }
-    guard selected is Some(capacity) else { return Err(Unsupported) }
-    captures.push(capacity)
   }
   let compute = match
     prepare_installed_compute_preparation(
@@ -698,7 +771,7 @@ pub fn prepare_installed_effect_managed_plan(
   let original_compute_limits = compute_limits
   let mut reading_execution = compute_limits.execution_bytes
   let mut completed_execution = compute_limits.execution_bytes
-  if provider_sources > 0 {
+  if provider_sources > 0 && provider_sources == captures.length() {
     guard installed_effect_provider_execution_phases(
         captures,
         transport_execution_bytes,
@@ -897,7 +970,7 @@ pub fn prepare_installed_effect_managed_plan(
       }
     }
   }
-  if provider_sources > 0 {
+  if provider_sources > 0 && provider_sources == captures.length() {
     // Only the same ordinary provider profile selects this phase cut. Its
     // actual Row completion returns the reader's transient E-R first; all
     // acquisition/evidence/scratch and earlier capture remainders remain.
@@ -947,10 +1020,10 @@ pub fn prepare_installed_effect_managed_plan(
   // extents, contract/Program bodies and generated originals once at their
   // actual owners. Array spare capacity uses the existing pinned builtin rule.
   let members = selected_operations.length().to_int64()
-  let sources = declarations.length().to_int64()
+  let sources = captures.length().to_int64()
   let time_holder = if query_time is Some(_) { 1L } else { 0L }
   let model_holder = if model is Some(_) { 1L } else { 0L }
-  let acquisition_slots = closed_values_append_capacity(declarations.length()).unwrap()
+  let acquisition_slots = closed_values_append_capacity(captures.length()).unwrap()
   let owner_slots = closed_values_append_capacity(workspace.owners).unwrap()
   let row_slots = closed_values_append_capacity(workspace.rows).unwrap()
   let input_slots = closed_values_append_capacity(workspace.input_rows).unwrap()
@@ -1211,8 +1284,9 @@ pub fn prepared_installed_effect_managed_source(
   ),
   ClientInstalledManagedRunIssue,
 ] {
-  guard plan.declarations.get(occurrence) is Some(declaration) &&
-    plan.acquisitions.get(occurrence) is Some(acquisition) &&
+  guard installed_effect_source_row_index(plan, occurrence) is Some(row_index) &&
+    plan.declarations.get(row_index) is Some(declaration) &&
+    plan.acquisitions.get(row_index) is Some(acquisition) &&
     plan.captures.get(occurrence) is Some(capacity) else {
     return Err(Unsupported)
   }
