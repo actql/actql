@@ -62813,7 +62813,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "07603f9e73e9f5868375b644071f54f7bac36f09ccd34a58ed138f1f49f61a04",
+      "sha256": "e7bf49257dc181e8a4d50bc6fb880a07e9512d17b1f1ba2faa51debe6818aa9c",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -62952,6 +62952,13 @@
         {
           "name": "createInstalledDuckDBSource/adapter/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture",
+          "parameters": [
+            "options"
+          ],
           "async": false
         },
         {
@@ -63567,7 +63574,8 @@
             "createInstalledDuckDBSource/adapter/init:close/init:close",
             "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
             "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
-            "createInstalledDuckDBSource/catalogIds/catalogIds"
+            "createInstalledDuckDBSource/catalogIds/catalogIds",
+            "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture"
           ],
           "exports": [],
           "attributes": {
@@ -123692,7 +123700,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "859931c81713677201930265f4dfc7e1e7389655f828c035094e954198e23748",
+      "sha256": "1db86df58181da65a246a64ab12394240b2d2a45684858dba0d73ccdacb3360a",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [

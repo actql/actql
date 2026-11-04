@@ -760,7 +760,7 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
     prepareInstalledRequestModelRun: construct, admissionFailures: failures,
     missingModelExecutionRefusals: new WeakSet()};
   const admit = Function(...Object.keys(admissionPorts), 'return (' + hostSource.slice(admission.start, admission.end) + ');')(...Object.values(admissionPorts));
-  return {invoke, admit: () => admit(submission), saved: () => {saved = true;}, failures, submission,
+  return {invoke, admit: held => admit(submission, held), saved: () => {saved = true;}, failures, submission,
     calls, scope, prepared, selected, plan, request, early: () => earlyMockInferPlans.get(prepared),
     foreignRequest: () => construct(submission, {}, selected),
     get managed() {return managed;}};
@@ -1513,4 +1513,16 @@ test('Model consumers retain the original funded Request manager when both insta
     for (const name of names) assert.throws(() => host[name]({}, prepared), {code: 'NodeManagedRunCompilationUnavailable'});
     assert.equal(calls.length, names.length, 'No foreign fallback or construction after the original current failure');
   }
+});
+
+test('historical acquired Model admission forwards the same adopted Run to original Source dispatch', () => {
+  const f = installedModelRequestFixture({acquisitions: 1});
+  const held = {};
+  f.admit(held);
+  assert.strictEqual(held.managedRun, f.managed.value);
+  f.admit(held);
+  assert.strictEqual(held.managedRun, f.managed.value);
+  assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
+  assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  assert.equal(f.failures.has(f.submission), false);
 });
