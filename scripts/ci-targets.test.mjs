@@ -257,6 +257,30 @@ test('active main finishes while pending work coalesces; branches and performanc
     }
   }
 });
+for (const [name, entries, producerCount, remainingMinutes] of [
+  ['native', 'all', 4, 45],
+  ['native-macos', 'all', 4, 45],
+  ['native-separated-network', 'bundle', 2, 25],
+]) {
+  test(`Native preparation outer budgets retain every producer and consumer window (${name})`, () => {
+    const job = jobs[name];
+    const preparation = job.steps.find(step =>
+      step.name === 'Prepare exact-source scoped Native commands and components once');
+    assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
+      '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900');
+    assert.equal(preparation.if, undefined);
+    assert.equal(preparation['continue-on-error'], undefined);
+    // Each selected producer has its own 900-second bound and 30-second
+    // enclosing-call allowance. Keep three minutes for metadata and cleanup,
+    // rounded up to a finite five-minute workflow window. This is not a
+    // runtime capacity, a child timeout extension, or a cleanup acknowledgment.
+    const preparationMinutes = Math.ceil((producerCount * (900 + 30) + 180) / 300) * 5;
+    assert.equal(preparation['timeout-minutes'], preparationMinutes);
+    assert.equal(job['timeout-minutes'], preparationMinutes + remainingMinutes,
+      'the existing non-preparation window survives the outer scheduling correction');
+  });
+}
+
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.equal(jobs['session-evidence']['timeout-minutes'], 60);
   assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
