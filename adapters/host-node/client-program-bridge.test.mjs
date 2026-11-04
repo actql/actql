@@ -49,6 +49,10 @@ import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
   acquiredEffectPublicationAdmission, acquiredEffectPublicationPlan} from
   './local-values-plan.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
+import {bindInstalledManagedSources} from './installed-managed-source.mjs';
+import {prepareInstalledEffectManagedPlan, captureInstalledEffectPlanRecipe} from './installed-effect-plan.mjs';
+import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun} from './installed-effect-managed-run.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
 import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
@@ -2831,11 +2835,29 @@ test('one acquired Effect Program captures and computes from its owner',
     document.stages[1].effects = JSON.parse(effect.document).stages[0].effects;
     document.stages[1].effects.save.update.from.result = 'r';
     document.results = {answer: {from: {stage: 'compute_a', result: 'r'}}};
-    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
-      canonicalJson(document), 'json', environment, undefined, []);
-    const prepared = moon.clientProgramEffectPreparationReady(outcome);
-    assert.ok(prepared,
-      moon.clientProgramEffectPreparationIssueCode(outcome));
+    const preparation = await openFundedClientPreparation({moon, environment, allowEffects: true});
+    const requestInput = {kind: 'program', input: document};
+    const prepared = await preparation.prepare(requestInput);
+    let managedRecord, componentConstruction, adapter;
+    t.after(async () => {
+      if (componentConstruction !== undefined) {
+        assert.equal(checked(moon.clientProgramInstalledEffectOperationRetire(componentConstruction, true)), true);
+      }
+      adapter?.close();
+      if (managedRecord !== undefined) {
+        assert.equal(managedRecord.controlConstruction.retire(), true);
+        try {checked(moon.clientProgramInstalledManagedRunRetire(managedRecord.value));}
+        catch (cause) {
+          if (moon.clientProgramInstalledPreparationPayloadSevered(
+            managedRecord.value, managedRecord.request) !== true) throw cause;
+        }
+        preparation.retireOriginal(prepared);
+        preparation.manager.severPreparation(prepared, managedRecord.original);
+        checked(moon.clientProgramInstalledManagedRunRetire(managedRecord.value));
+        preparation.manager.retireSeveredPreparation(managedRecord.original);
+      } else preparation.retireOriginal(prepared);
+      await preparation.close();
+    });
     checked(moon.clientProgramEffectPrepareQueryAcquisition(prepared, 0, 0));
     const compileOutcome = moon.clientProgramCompileLocalEffects(prepared);
     assert.equal(moon.clientProgramEffectCompilationIssueCode(compileOutcome),
@@ -2853,8 +2875,7 @@ test('one acquired Effect Program captures and computes from its owner',
     const values = JSON.stringify(aoa['REL.values']);
     const fragment = JSON.stringify(aoa['ACTQL.expression_fragment/0.1']);
     const ordered = JSON.stringify(aoa['REL.derive.ordered']);
-    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
-      registryWire, values, fragment, ordered));
+    const registry = preparation.installedContracts;
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'acquired-effect-'));
@@ -2869,28 +2890,84 @@ test('one acquired Effect Program captures and computes from its owner',
       connection.closeSync();
       database.closeSync();
     }
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
+      compiled, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(
+      allowed, 'namespace-a', 'acquired-effect-run',
+      '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const bound = checked(moon.clientProgramBindCompiledEffectRun(
+      prepared, allowed, definition));
+    const request = moon.clientProgramEffectRequestIdentity(prepared, cid('a'),
+      'acquired-effect-run', moon.clientProgramSourceFreeInputIntentCid());
+    const authorization = await fixtureAuthorization([accountEntry('component-source-read', 'allow', {
+      principal: FIXTURE_CONTEXT.principal, connection: 'local-database', resource: databasePath, operation: 'read',
+    })]);
+    const sourceAccess = Object.freeze({authorization, connection: 'local-database',
+      resource: databasePath, sourceRef: 'connector://crm/main/r#v'});
     const sourceOptions = {moon, preparedEffect: prepared, registry,
       values, fragment, ordered, database: databasePath,
-      schema: 'main', table: 'records', sourceAccess: {
-        ...fixtureSourceAccess, sourceRef: 'connector://crm/main/r#v',
-      }, transportLimits: {maxRows: 100, maxCells: 1000,
+      schema: 'main', table: 'records', sourceAccess,
+      transportLimits: {maxRows: 100, maxCells: 1000,
         maxTransportBytes: 100000, maxSqlBytes: 10000,
         maxParameters: 10, maxColumns: 10,
         memoryBytes: 128 * 1024 * 1024, threads: 1}};
-    const preparedSource = await prepareCapturedDuckDBSource(sourceOptions);
-    const opened = await openCapturedDuckDBSource({...sourceOptions,
-      preparedSource});
+    adapter = await createInstalledDuckDBSource({...sourceOptions,
+      sourceRef: sourceAccess.sourceRef, environmentWire: wire}, moon,
+    {root: directory, principalId: FIXTURE_CONTEXT.principal});
+    let managedRun;
+    const sourceProfile = bindInstalledManagedSources(adapter, original => {
+      assert.strictEqual(original, prepared);
+      checked(moon.clientProgramInstalledEffectManagedRunCheck(managedRun, prepared, request));
+      return managedRun;
+    });
+    // This component never writes UPDATE. Its actual evidence/capture/export/
+    // recovery constructors use these existing decoder limits on the SAME Run.
+    // No row demand, transport debit or physical Effect attempt is installed.
+    const empty = checked(moon.clientProgramInstalledSourceConstructionCapacity(0n, 0n, 0n, 0n, 0n, 0n));
+    const construction = checked(moon.clientProgramComposeInstalledSourceConstructionCapacity(empty, [
+      moon.clientProgramInstalledJsonEffectRequestConstructionCapacity(empty, 1000000, 100000, 64),
+    ]));
+    const operation = 'component.capture-evidence';
+    const recipe = captureInstalledEffectPlanRecipe(Object.freeze({
+      memberOperations: Object.freeze([Object.freeze({operation,
+        extent: checked(moon.clientProgramInstalledEffectOperationExtentFromCapacity(
+          operation, construction, 0n, false))})]),
+      rowOperations: Object.freeze([]),
+    }), 1);
+    const [queryContract, evidenceContract] = await Promise.all([
+      'actql-query-acquisition.json', 'actql-query-process-evidence.json',
+    ].map(name => readFile(new URL('../../spec/contracts/' + name, import.meta.url), 'utf8')));
+    const runs = new WeakMap(), liveRuns = new Set();
+    const facts = Object.freeze({prepared, identity: request, compilation: compiled, allowed, definition,
+      queryTimePreparation: undefined, modelCompiled: undefined});
+    const selection = Object.freeze({prepareManagedPlan(actual, inputs) {
+      assert.strictEqual(actual, facts);
+      return prepareInstalledEffectManagedPlan({moon, facts, inputs, unit: {stageIndex: 1},
+        members: [{effectId: 'save'}], recipeFor: () => recipe});
+    }});
+    const managedOptions = {runs, liveRuns, runtime: moon, manager: preparation.manager,
+      prepared, request, requestInput, facts, selection, sourceProfile,
+      inputs: {queryContract, evidenceContract, installedContracts: registry, values, fragment, ordered},
+      assertCurrent: preparation.manager.assertResultReadCurrent, checked};
+    managedRun = prepareInstalledEffectManagedPlanRun(managedOptions);
+    managedRecord = readInstalledEffectManagedPlanRun(managedOptions);
+    const occurrence = Object.freeze({stage: 0, input: 0, task: 0});
+    const preparedSource = await sourceProfile.prepare({...sourceOptions, occurrence,
+      requestIdentity: request, managedRun});
+    const capacity = sourceProfile.ledgerCapacity(preparedSource);
+    assert.strictEqual(capacity.managedRun, managedRun);
+    const foreignRequest = moon.clientProgramEffectRequestIdentity(prepared, cid('f'),
+      'acquired-effect-run', moon.clientProgramSourceFreeInputIntentCid());
+    assert.throws(() => checked(moon.clientProgramInstalledEffectManagedDuckDBCapture(
+      managedRun, prepared, foreignRequest, 0)), 'a foreign Request cannot borrow this native capture');
+    const ledger = checked(moon.clientProgramInstalledEffectManagedRunPrepareLedger(managedRun,
+      prepared, request, [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
+      registry, values, fragment, ordered));
+    const opened = await sourceProfile.open({...sourceOptions, occurrence, preparedSource, ledger});
     try {
       assert.equal(opened.setup, undefined);
       assert.equal(moon.clientProgramEffectCapturedSourceMatches(prepared,
         opened.capture.source()), true);
-      const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
-        compiled, cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
-      const definition = checked(moon.clientProgramIssueEffectRunDefinition(
-        allowed, 'namespace-a', 'acquired-effect-run',
-        '2026-09-29T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
-      const bound = checked(moon.clientProgramBindCompiledEffectRun(
-        prepared, allowed, definition));
       const template = checked(moon.strategyRunEvidenceAdmit(
         'bound_invocation_template',
         moon.clientProgramEffectCompilationTemplateWire(compiled),
@@ -3086,20 +3163,20 @@ test('one acquired Effect Program captures and computes from its owner',
       let retained;
       const instants = ['2026-09-29T00:00:00.000Z',
         '2026-09-29T00:00:01.000Z'];
-      const computed = await openAcquiredEffectComputation({moon,
-        owner: bound, acquired: acquiredEffectPublicationAdmission({moon,
+      const computed = await openAcquiredEffectComputation({moon, managedRun,
+        owner: bound, acquired: acquiredEffectPublicationAdmission({moon, identity: request,
           control: runtimeCore(moon).publicationControl, prepared,
           compilation: compiled, allowed, definition,
           authorityScopeCid: cid('a'), namespaceId: 'namespace-a',
           storeAuthorityCid: cid('7'),
           now: () => '2026-09-29T00:00:02.000Z'}),
-        sourceProfile: {
+        sourceProfile: {...sourceProfile,
           admitsSource: ref => ref === sourceOptions.sourceAccess.sourceRef,
           prepare(options) {
             assert.equal(options.preparedEffect, prepared);
             return preparedSource;
           },
-          open() { return opened; },
+          open(options) {assert.strictEqual(options.ledger, ledger); return opened;},
         }, registry, values, fragment, ordered,
         sourceAccess: sourceOptions.sourceAccess,
         now: () => instants.shift(),
@@ -3125,6 +3202,12 @@ test('one acquired Effect Program captures and computes from its owner',
         assert.equal(pinResult.$tag, 1,
           pinResult.$tag === 0 ? `RunIssue ${pinResult._0.$tag}: ${JSON.stringify(pinResult._0)}` : undefined);
         const pins = checked(pinResult);
+        managedRecord.controlConstruction.retainInputs(pins);
+        componentConstruction = checked(moon.clientProgramInstalledEffectOperationConstructionRetain(
+          managedRun, prepared, request, managedRecord.operationPlan, 0, false, 0, 0, operation));
+        checked(moon.clientProgramInstalledEffectOperationConstructionBegin(componentConstruction));
+        assert.throws(() => checked(moon.clientProgramInstalledEffectOperationStart(componentConstruction)),
+          'pure constructor demand cannot authorize a physical Effect attempt');
         let imported, rootResult;
         try {
           assert.equal(moon.clientProgramEffectLocalResultCount(pins), 2);
@@ -3637,7 +3720,12 @@ test('one acquired Effect Program captures and computes from its owner',
         assert.equal(retained.cleanupPending(), false);
       }
       assert.throws(() => localInvocation(), 'released capture is rejected');
-    } finally { opened.close(); }
+    } finally {
+      opened.close();
+      if (componentConstruction !== undefined) {
+        checked(moon.clientProgramInstalledEffectOperationConstructionComplete(componentConstruction));
+      }
+    }
   });
 
 function effectInputPreview(prepared, evidence, definition, invocation,
