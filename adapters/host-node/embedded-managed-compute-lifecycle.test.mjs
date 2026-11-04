@@ -4,7 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
-import {finishInstalledEffectModelScope, prepareInstalledEffectManagedPlanRun} from './installed-effect-managed-run.mjs';
+import {finishInstalledEffectModelScope, prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun} from './installed-effect-managed-run.mjs';
 import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 
 // Selected actual Host statements/methods with explicit original ports. These
@@ -1917,4 +1917,127 @@ test('timed installing caller cuts invocation aliases before consumed parent set
   assert.equal(f.events.filter(event=>event==='consume-holder').length,1);
   assert.equal(f.events.filter(event=>event==='construct').length,1);
   finish();await f.initialControl.close();
+});
+
+// Exercise the original installing methods with both managers retained, as a
+// cold Host can be after an ordinary operation. Opaque Core ports here prove
+// owner selection/currentness only; they do not establish Resource admission.
+test('Effect and Compute consumers keep the original funded Request manager with both installations', () => {
+  const names = ['prepareManagedEffectPlanRun', 'effectManagedPlanRun',
+    'prepareManagedComputeRun', 'canRetireManagedPreparation'];
+  const declarations = declared('openPreparedInstalledHost').body.body
+    .filter(node => node.type === 'VariableDeclaration').flatMap(node => node.declarations);
+  const properties = declarations.find(node => node.id.name === 'preparation').init.arguments[0].properties;
+  const implementations = names.map(name => {
+    const method = properties.find(node => node.key?.name === name);
+    assert.ok(method, name); return text(method);
+  });
+  for (const sourcePresent of [true, false]) {
+    const calls = [], originals = {}, originalInstallation = {}, record = {};
+    const source = {}, compute = {}, manager = sourcePresent ? source : compute;
+    const effectPrepared = {}, computePrepared = {}, effectRequest = {}, computeRequest = {};
+    const effectInput = {}, computeInput = {}, plan = {}, effectParent = {}, computeParent = {};
+    const effectOriginal = {}, computeOriginal = {}, contracts = {};
+    const currentFailure = new Error('original funded manager current refusal');
+    let refuseCurrent = false;
+    const moon = {
+      clientProgramEffectAcquisitionCount() {return 0;},
+      clientProgramInstalledManagedRunRetire() {assert.fail('No retirement during facade selection');},
+      clientProgramInstalledManagedRunCheck(parent, prepared, request) {
+        assert.strictEqual(this, moon); assert.strictEqual(parent, computeParent);
+        assert.strictEqual(prepared, computePrepared); assert.strictEqual(request, computeRequest);
+        calls.push('compute-parent-current');
+      },
+      clientProgramInstalledEffectOperationControlsRetain(parent, prepared, request, originalPlan) {
+        assert.strictEqual(this, moon); assert.strictEqual(parent, effectParent);
+        assert.strictEqual(prepared, effectPrepared); assert.strictEqual(request, effectRequest);
+        assert.strictEqual(originalPlan, plan); calls.push('effect-controls'); return plan;
+      },
+      clientProgramInstalledEffectManagedOperationPlan(parent, prepared, request) {
+        assert.strictEqual(this, moon); assert.strictEqual(parent, effectParent);
+        assert.strictEqual(prepared, effectPrepared); assert.strictEqual(request, effectRequest);
+        calls.push('effect-parent-current'); return plan;
+      },
+      clientProgramInstalledEffectOperationControlConstructionBegin() {return {$tag: 1, _0: undefined};},
+      clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag: 1, _0: undefined};},
+    };
+    const adoption = (kind, prepared, input, request) => {
+      assert.strictEqual(prepared, kind === 'effect' ? effectPrepared : computePrepared);
+      assert.strictEqual(input, kind === 'effect' ? effectInput : computeInput);
+      assert.strictEqual(request, kind === 'effect' ? effectRequest : computeRequest);
+      calls.push(kind + '-adopt');
+      return {original: kind === 'effect' ? effectOriginal : computeOriginal,
+        value: kind === 'effect' ? effectParent : computeParent,
+        ...(kind === 'effect' ? {operationPlan: plan} : {})};
+    };
+    Object.assign(manager, {
+      adoptEffectPreparation(prepared, input, request, originalPlan) {
+        assert.strictEqual(this, manager); assert.strictEqual(originalPlan, plan);
+        return adoption('effect', prepared, input, request);
+      },
+      adoptPreparation(prepared, input, request) {
+        assert.strictEqual(this, manager); return adoption('compute', prepared, input, request);
+      },
+      retireRun() {assert.fail('Capability inspection cannot retire a Request');},
+    });
+    if (sourcePresent) Object.assign(compute, {
+      adoptEffectPreparation() {assert.fail('No foreign Compute manager may adopt a Source-funded Effect Request');},
+      adoptPreparation() {assert.fail('No foreign Compute manager may adopt a Source-funded Compute Request');},
+      retireRun() {assert.fail('No fallback retirement');},
+    });
+    const validate = expected => (actual, bag) => {
+      assert.strictEqual(actual, expected); assert.strictEqual(actual, manager);
+      assert.strictEqual(bag, originals); calls.push('same-manager-current');
+      if (refuseCurrent) throw currentFailure;
+    };
+    const ports = {moon, sourceManaged: sourcePresent ? source : undefined, computeManaged: compute,
+      originals, originalInstallation, record, control: {},
+      assertSourceManagedInstallationCurrent: validate(source),
+      assertManagedComputeInstallationCurrent: validate(compute),
+      originalSourceManagedHostRequest(bag, prepared) {
+        assert.strictEqual(bag, originals);
+        assert.ok(prepared === effectPrepared || prepared === computePrepared);
+        return prepared === effectPrepared ? effectInput : computeInput;
+      },
+      prepareInstalledEffectManagedPlanRun,
+      readInstalledEffectManagedPlanRun,
+      prepareInstalledSequenceContractOriginal(bag) {assert.strictEqual(bag, originals); return {admission: contracts};},
+      readInitialControlInstallationAsset() {assert.fail('No Source Query is constructed for this source-free facade');},
+      runtimeCore(runtime) {assert.strictEqual(runtime, moon); return {publicationControl: {}};},
+      checked: value => value,
+      clientOperationError: code => Object.assign(new Error(code), {code}),
+    };
+    const preparation = Function(...Object.keys(ports), 'return ({' + implementations.join(',') + '});')(...Object.values(ports));
+    const facts = Object.freeze({prepared: effectPrepared, identity: effectRequest,
+      compilation: {}, allowed: {}, definition: {}, queryTimePreparation: undefined, modelCompiled: undefined});
+    const selection = Object.freeze({prepareManagedPlan(actual, inputs) {
+      assert.strictEqual(actual, facts); assert.strictEqual(inputs.installedContracts, contracts); return plan;
+    }});
+    assert.strictEqual(preparation.prepareManagedEffectPlanRun(moon, facts, selection, {}), effectParent);
+    const effectRun = preparation.effectManagedPlanRun(moon, effectPrepared, effectRequest);
+    assert.strictEqual(effectRun.manager, manager); assert.strictEqual(effectRun.value, effectParent);
+    assert.strictEqual(preparation.prepareManagedComputeRun(moon, computePrepared, computeRequest), computeParent);
+    const computeRun = record.computeRuns.get(computePrepared);
+    assert.strictEqual(computeRun.manager, manager); assert.strictEqual(computeRun.original, computeOriginal);
+    assert.strictEqual(preparation.prepareManagedComputeRun(moon, computePrepared, computeRequest), computeParent);
+    assert.equal(preparation.canRetireManagedPreparation(), true);
+    if (sourcePresent) {
+      manager.retireRun = undefined;
+      assert.equal(preparation.canRetireManagedPreparation(), false, 'Missing original capability cannot select the other manager');
+    }
+    assert.equal(calls.filter(name => name === 'effect-adopt').length, 1);
+    assert.equal(calls.filter(name => name === 'compute-adopt').length, 1);
+    assert.throws(() => preparation.prepareManagedComputeRun(moon, computePrepared, {}), {code: 'ForeignInstalledComputeRun'});
+    assert.throws(() => preparation.effectManagedPlanRun(moon, effectPrepared, {}), {code: 'InstalledEffectPlanUnavailable'});
+    const before = calls.length;
+    refuseCurrent = true;
+    for (const invoke of [
+      () => preparation.prepareManagedEffectPlanRun(moon, facts, selection, {}),
+      () => preparation.effectManagedPlanRun(moon, effectPrepared, effectRequest),
+      () => preparation.prepareManagedComputeRun(moon, computePrepared, computeRequest),
+    ]) assert.throws(invoke, error => error === currentFailure);
+    assert.deepEqual(calls.slice(before), ['same-manager-current', 'same-manager-current', 'same-manager-current']);
+    assert.strictEqual(record.computeRuns.get(effectPrepared), effectRun);
+    assert.strictEqual(record.computeRuns.get(computePrepared), computeRun);
+  }
 });

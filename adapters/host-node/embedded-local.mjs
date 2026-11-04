@@ -6842,10 +6842,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return preparation.prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation);
     },
     prepareManagedEffectPlanRun(runtime, facts, selection, inputs, modelSelection, prepareContent) {
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined) throw clientOperationError('ForeignInstalledComputePreparation');
-      const current = () => (computeManaged === undefined
-        ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent)(manager, originals);
+      const current = () => (sourceManaged === undefined
+        ? assertManagedComputeInstallationCurrent : assertSourceManagedInstallationCurrent)(manager, originals);
       current();
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
@@ -6880,10 +6880,10 @@ async function openPreparedInstalledHost(options, initialEntry) {
     },
     effectManagedPlanRun(runtime, prepared, request) {
       if (runtime !== moon) throw clientOperationError('ForeignInstalledEffectManagedRun');
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (manager === undefined) throw clientOperationError('InstalledEffectPlanUnavailable');
-      const current = () => (computeManaged === undefined
-        ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent)(manager, originals);
+      const current = () => (sourceManaged === undefined
+        ? assertManagedComputeInstallationCurrent : assertSourceManagedInstallationCurrent)(manager, originals);
       return readInstalledEffectManagedPlanRun({runs: record.computeRuns, liveRuns: record.computeLiveRuns,
         runtime, prepared, request, assertCurrent: current, checked});
     },
@@ -7088,12 +7088,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
       finally {run.selecting = false;}
     },
     prepareManagedComputeRun(runtime, prepared, request, sourceProfile, prepareInvocation) {
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined) {
         throw clientOperationError('ForeignInstalledComputePreparation');
       }
-      const assertCurrent = computeManaged === undefined
-        ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent;
+      const assertCurrent = sourceManaged === undefined
+        ? assertManagedComputeInstallationCurrent : assertSourceManagedInstallationCurrent;
       assertCurrent(manager, originals);
       const runs = record.computeRuns ??= new WeakMap();
       // Exact Prepared lookup is not a second strong payload owner. The live
@@ -7187,7 +7187,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       } catch (error) {run.failure = error; throw error;}
     },
     canRetireManagedPreparation() {
-      return typeof (computeManaged ?? sourceManaged)?.retireRun === 'function';
+      return typeof (sourceManaged ?? computeManaged)?.retireRun === 'function';
     },
     retireManagedComputeRun(prepared) {
       const runs = record.computeRuns, liveRuns = record.computeLiveRuns;
