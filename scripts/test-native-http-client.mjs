@@ -42,7 +42,7 @@ import {pinnedEngineContracts} from
 
 const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
 if (focus !== undefined &&
-    !['remote-client-poll', 'http-retirement', 'http-symbol-unload',
+    !['effect-control-replay', 'remote-client-poll', 'http-retirement', 'http-symbol-unload',
       'http-constructor-retirement', 'resident-review-regressions',
       'resident-review-provider', 'resident-review-checkpoint',
       'resident-review-write'].includes(focus)) {
@@ -1082,6 +1082,44 @@ verification: try {
       `unsupported native HTTP test target ${process.platform}/${process.arch}`,
     );
   }
+  const runCheckpointControlReplay = async environment => {
+    const selected = ['--target', 'native', '--jobs', '1',
+      'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt'];
+    // Prepare only this exact Native test input before its finite replay timer.
+    // Compilation is not protocol execution or a nonzero-test pass. The later
+    // original command reuses these unchanged inputs and retains its 90s bound.
+    const started = performance.now();
+    console.error('Native Checkpoint control compile started');
+    execFileSync(moon, ['test', ...selected, '--build-only'], {
+      cwd: new URL('../', import.meta.url), env: environment, stdio: 'inherit',
+      timeout: 600_000,
+    });
+    console.error(`Native Checkpoint control compile complete (${Math.round(performance.now() - started)}ms)`);
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',JSON.parse(process.argv[1])," +
+      "{cwd:process.cwd(),timeout:90000});", JSON.stringify(selected)], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit', env: environment,
+    });
+    const [code, signal] = await once(child, 'exit');
+    if (code !== 0) {
+      throw new Error(`native Checkpoint control replay failed: ${code ?? signal}`);
+    }
+  };
+  if (focus === 'effect-control-replay') {
+    await runCheckpointControlReplay({
+      ...process.env,
+      ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+      ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+      ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+      ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+      ACTQL_TEST_NATIVE_SQLITE_LIBRARY: sqliteLibrary,
+      ACTQL_TEST_NATIVE_SQLITE_ROOT: sqliteRoot,
+      ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
+      ACTQL_REQUIRE_NATIVE_EFFECT_REPLAY_TESTS: '1',
+    });
+    break verification;
+  }
   if (focus === 'remote-client-poll') {
     // Reuse the real HTTPS peer and authored dispatch above. The child keeps
     // this event loop free to serve mTLS while enforcing nonzero test execution.
@@ -1454,18 +1492,9 @@ verification: try {
     host: nativeHttpHost, key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
   });
-  const checkpointReplay = spawn(process.execPath, ['--input-type=module', '-e',
-    "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
-    "process.exitCode=runFocusedTests('moon',['--target','native'," +
-    "'src/cmd/native_remote_resident_site/effect_checkpoint_replay_wbtest.mbt']," +
-    "{cwd:process.cwd(),timeout:90000});"], {
-    cwd: new URL('../', import.meta.url), stdio: 'inherit',
-    env: {...testEnvironment, ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin},
-  });
-  const [checkpointReplayCode, checkpointReplaySignal] = await once(checkpointReplay, 'exit');
-  if (checkpointReplayCode !== 0) {
-    throw new Error(`native Checkpoint control replay failed: ${checkpointReplayCode ?? checkpointReplaySignal}`);
-  }
+  await runCheckpointControlReplay({...testEnvironment,
+    ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL: effectCheckpointServer.origin,
+    ACTQL_REQUIRE_NATIVE_EFFECT_REPLAY_TESTS: '1'});
   execFileSync(moon, [
     'build', '--target', 'native', 'src/cmd/native_remote_credential',
   ], {cwd: new URL('../', import.meta.url), stdio: 'inherit'});
