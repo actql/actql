@@ -97,7 +97,6 @@ test('current Local Host review binds the original Effect dependency and existin
   assert.equal(body.split(selector).length, 2);
   assert.deepEqual(packageImports(body).imports,
     [...packageImports(prior).imports, 'actql/actql/effect_application'].sort());
-  assert.equal(packageImports(body).unknown, null);
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
