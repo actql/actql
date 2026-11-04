@@ -81,7 +81,7 @@ pub fn reserve_program_publication(
         physical_equal(demand.original, inventory) else {
         return Err(ForeignOriginal)
       }
-      (inventory, demand.rows, None)
+      (Some(inventory), demand.rows, None)
     }
     None =>
       // This SAME Plan already checked its flat Number/Boolean/Text schemas
@@ -93,17 +93,16 @@ pub fn reserve_program_publication(
             physical_equal(demand.original, inventory) else {
             return Err(ForeignOriginal)
           }
-          (inventory, demand.rows, Some(plan.values.max_text_bytes))
+          (Some(inventory), demand.rows, Some(plan.values.max_text_bytes))
         }
         None => {
-          // The same checked dispatch inventory can contain ARRAY/STRUCT.
-          // Only snapshot construction is delayed until its original export
-          // supplies exact geometry; execution remains on this original Plan.
-          guard plan.demand_inventory is Some(inventory) &&
-            plan.publication is Some(publication) else {
+          // Derived outputs need not have an input schema-demand inventory.
+          // Their same finished export supplies exact snapshot geometry; the
+          // original publication policy still bounds its accepted row count.
+          guard plan.publication is Some(publication) else {
             return Err(ForeignOriginal)
           }
-          (inventory, publication.rows, None)
+          (None, publication.rows, None)
         }
       }
   }
@@ -155,7 +154,7 @@ pub fn reserve_program_publication(
   }
   let mut retained = 0L
   let mut execution = 0L
-  if snapshot_prequoted {
+  if inventory is Some(inventory) {
     guard scalar_snapshot_layout(
         inventory.fields,
         inventory.names,
