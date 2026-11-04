@@ -21468,7 +21468,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ae3b90bef56ccdcf397665104f79c17ca2fd4deedea2691654f9f0159a6f5825",
+      "sha256": "6de9ab6b1b0325ab541a543074e4e2f1cffcf2388b80a0b6f2d2b83e23f63556",
       "contracts": [
         {
           "operations": [
@@ -21620,6 +21620,10 @@
               {
                 "path": "adapters/site-node/https-credential-response-accounting.test.mjs",
                 "anchor": "test('original HTTP overflow in either header block stays Unknown without another claim'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test(`Effect native Plan forwards original Source inputs with Model=${model} Content=${content}`"
               }
             ]
           }
