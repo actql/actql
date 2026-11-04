@@ -656,9 +656,14 @@ test('retained Source input problems recheck original intent and current disclos
     JSON.stringify(contracts.execution_contracts['REL.values']), undefined, undefined));
   const context = Object.freeze({runtime: moon, environment, preparedEnvironment, retainedRelationOutput: false});
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
+  let prepare;
   const originalPreparation = await prepareOrdinarySourceManagedInstallation(originals, {
     validator(actual) {assert.strictEqual(actual, originals);},
     preparationContext(actual) {assert.strictEqual(actual, originals); return context;},
+    retireInitialPreparation(actual, prepared) {
+      assert.strictEqual(actual, originals);
+      prepare.retireOriginal(prepared);
+    },
   }, false);
   let preparedRequest, originalReceipt, originalFailure, observations = 0;
   const closeOriginal = async () => {
@@ -676,7 +681,7 @@ test('retained Source input problems recheck original intent and current disclos
     if (failure !== undefined) throw failure;
   };
   t.after(closeOriginal);
-  const prepare = installNodeClientProgramPreparation({moon, environment,
+  prepare = installNodeClientProgramPreparation({moon, environment,
     async getFundedPreparation(request, selectedEnvironment, verifier, signal) {
       assert.equal(preparedRequest, undefined, 'only the original invocation prepares');
       assert.strictEqual(selectedEnvironment, environment);
@@ -690,7 +695,9 @@ test('retained Source input problems recheck original intent and current disclos
       try {return await originalPreparation.fundedPreparation(request, selectedEnvironment, verifier, signal);}
       catch (error) {originalFailure = error; throw error;}
     }});
-  const f = await fixture(t, {prepare, originalObservation(error, value) {
+  const f = await fixture(t, {prepare,
+    submit() {assert.fail('an invalid original Source cannot enter the Run owner');},
+    originalObservation(error, value) {
     assert.strictEqual(error, originalFailure);
     assert.strictEqual(value.input, preparedRequest.input);
     assert.strictEqual(value.parameters, preparedRequest.parameters);
