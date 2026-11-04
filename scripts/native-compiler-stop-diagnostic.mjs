@@ -40,7 +40,11 @@ export function coreChildProgress(snapshot, originalPid, root) {
         source = path; break;
       }
     }
+    const flags = phase === 'c-compile' ? row.command.split(/\s+/u).filter(arg =>
+      /^-O(?:0|1|2|3|g|s|z)$/u.test(arg)) : [];
     return {pid: row.pid, parent: row.parent, elapsed: row.elapsed, phase,
+      command: phase === 'unclassified' ? 'unclassified' : tool,
+      ...(flags.length ? {flags: flags.slice(0, 8)} : {}),
       ...(source ? {source} : {})};
   });
 }

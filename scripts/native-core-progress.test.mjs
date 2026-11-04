@@ -18,6 +18,8 @@ test('Core progress admits only original descendants and exposes generated compi
     '105 101 00:05 /pinned/bin/moonc build-package /checkout/original/src/execution_relation/a.mbt secret-key',
   ].join('\n');
   const records = coreChildProgress(snapshot, 100, root);
+  assert.equal(records[2].command, 'clang');
+  assert.deepEqual(records[2].flags, ['-O2']);
   assert.deepEqual(records.map(({pid, phase, source}) => ({pid, phase, source})), [
     {pid: 100, phase: 'wrapper', source: undefined},
     {pid: 101, phase: 'moon', source: undefined},
