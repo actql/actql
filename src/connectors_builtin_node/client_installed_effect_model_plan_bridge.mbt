@@ -585,3 +585,67 @@ pub fn client_program_prepare_request_model_source_free_component_module(
     }),
   ).map_err(issue => Preparation(issue))
 }
+
+///|
+// SAME source-free module and compiler vector, one callback per original
+// Model occurrence. Keep the optional suffix in the original typed closure;
+// JS receives only its existing binder, never an Option/tuple representation.
+#export_name("clientProgramPrepareRequestModelsSourceFreeComponentModule")
+pub fn client_program_prepare_request_models_source_free_component_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    Int,
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  guard @execution.checked_preparation_add_product(
+      installed_client_family_provider_count().to_int64(),
+      @publication_host.client_task_compilation_infers(compilation)
+      .length()
+      .to_int64(),
+      1L,
+    )
+    is Some(providers) &&
+    providers <= 2147483647L else {
+    let issue : @client_local_host.ClientRequestProgramPlanIssue = @client_local_host.Installed(
+      @client_local_host.InsufficientCapacity,
+    )
+    return Err(Preparation(issue))
+  }
+  @client_local_host.prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    retained_output,
+    providers.to_int(),
+    installed_client_family_providers,
+    query_time~,
+    components_factory=Some((index, capacity, prefix, suffix) => {
+      construct(index, capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  ).map_err(issue => Preparation(issue))
+}

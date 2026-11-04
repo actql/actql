@@ -5,6 +5,16 @@ fn installed_mock_model_compilation_matches(
   prepared : @publication_host.PreparedClientProgram,
   compilation : @publication_host.ClientTaskCompilation,
 ) -> Bool {
+  if compilation.infers.length() > 1 {
+    return physical_equal(compilation.owner, prepared) &&
+      @publication_host.client_task_compilation_serialization(compilation)
+      is None &&
+      installed_managed_owner_shape_supported(
+        Pure(prepared),
+        true,
+        model_graphs=Some(compilation.infers),
+      )
+  }
   physical_equal(compilation.owner, prepared) &&
   compilation.infers.length() == 1 &&
   physical_equal(compilation.infers[0].owner, prepared) &&
@@ -61,7 +71,16 @@ pub fn prepare_installed_mock_model_source_free_with_contracts(
       fragment_body,
       ordered_body,
       true,
-      model=Some(compilation.infers[0]),
+      model=if compilation.infers.length() == 1 {
+        Some(compilation.infers[0])
+      } else {
+        None
+      },
+      model_graphs=if compilation.infers.length() > 1 {
+        Some(compilation.infers)
+      } else {
+        None
+      },
       query_time~,
     ) {
     Err(issue) => return Err(issue)
@@ -120,7 +139,16 @@ pub fn prepare_installed_mock_model_capture_plan(
       retained_output~,
       provider_factory~,
       query_time~,
-      model=Some(compilation.infers[0]),
+      model=if compilation.infers.length() == 1 {
+        Some(compilation.infers[0])
+      } else {
+        None
+      },
+      model_graphs=if compilation.infers.length() > 1 {
+        Some(compilation.infers)
+      } else {
+        None
+      },
       direct_occurrences~,
     ) {
     Err(issue) => return Err(issue)

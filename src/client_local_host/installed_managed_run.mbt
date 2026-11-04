@@ -186,6 +186,7 @@ fn installed_managed_owner_shape_supported(
   owner : ClientLocalSequenceOwner,
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
   model_occurrence? : @publication_host.ClientInferOccurrence? = None,
   model_occurrences? : Array[@publication_host.ClientInferOccurrence]? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
@@ -196,7 +197,11 @@ fn installed_managed_owner_shape_supported(
   // Later module/Plan callers must supply their actual checked Graph instead.
   let selected_occurrence = match model {
     Some(selected) => Some(selected.occurrence)
-    None => model_occurrence
+    None =>
+      match model_graphs {
+        Some(graphs) => graphs.get(0).map(value => value.occurrence)
+        None => model_occurrence
+      }
   }
   // Reuse the same immutable checked occurrence inventory for the count and
   // ordered identity comparison; do not enumerate it again for the vector.
@@ -217,8 +222,33 @@ fn installed_managed_owner_shape_supported(
         },
       )
   }
+  if model_graphs is Some(graphs) {
+    guard mock_model &&
+      model is None &&
+      model_occurrences is None &&
+      owner is Pure(prepared) &&
+      original_occurrences is Some(expected) &&
+      graphs.length() > 1 &&
+      graphs.length() == expected.length() else {
+      return false
+    }
+    for index, selected in graphs {
+      if !physical_equal(selected.owner, prepared) ||
+        !@publication_host.client_infer_occurrence_matches_plan(
+          expected[index],
+          selected,
+        ) ||
+        selected.serialization is Some(_) {
+        return false
+      }
+    }
+  }
   let selected_count = match model_occurrences {
-    None => if mock_model { 1 } else { 0 }
+    None =>
+      match model_graphs {
+        Some(graphs) => graphs.length()
+        None => if mock_model { 1 } else { 0 }
+      }
     Some(originals) => {
       guard mock_model &&
         owner is Pure(prepared) &&
@@ -307,6 +337,7 @@ fn source_free_installed_managed_preparation_owned(
   ordered_body : String?,
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
@@ -321,6 +352,7 @@ fn source_free_installed_managed_preparation_owned(
       owner,
       mock_model,
       model~,
+      model_graphs~,
       content~,
     ) ||
     @strategy.graph_captured_prefix(graph) != 0 ||

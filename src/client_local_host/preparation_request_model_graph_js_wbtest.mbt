@@ -2318,6 +2318,57 @@ test "multiple Model graphs retain complete original order on one Request compil
   assert_true(physical_equal(compiled.infers[0], graphs[0]))
   assert_true(physical_equal(compiled.infers[1], graphs[1]))
   assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  let compiled_run = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compiled,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled_run, "two-model-original-module", "same-original", "2026-10-31T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-original-module",
+  ).unwrap()
+  let entries : Array[Int] = []
+  let backed = Ref(true)
+  let before_module = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  let module = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled_run,
+    definition,
+    compiled,
+    contracts,
+    true,
+    2,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      let during = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      ).unwrap()
+      backed.val = backed.val &&
+        during.0 > before_module.0 &&
+        during.1 > before_module.1
+      entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  assert_eq(entries, [0, 1])
+  assert_true(backed.val)
+  assert_true(
+    parent.program_source_free is Some(original_module) &&
+    physical_equal(original_module, module),
+  )
   @resources.return_preparation_body_borrow(holder).unwrap()
   assert_true(abort_request_preparation(parent).unwrap())
 }

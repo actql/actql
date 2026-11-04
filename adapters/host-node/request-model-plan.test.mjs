@@ -435,3 +435,37 @@ test('Request acquired Node Model selector refuses missing originals before any 
     assert.equal(f.run.preparedSequences, undefined);
   }
 });
+
+// Actual facade forwarding, explicit native constructor ports. No Common
+// original, tuple layout, physical funding or ordinary ABI is manufactured.
+test('plural Model module forwards the same compiler definition and indexed native callback',()=>{
+  const parsed=parse(runtimeSource,{ecmaVersion:'latest',sourceType:'module'});let method;
+  const walk=node=>{if(!node||typeof node!=='object')return;
+    if(node.type==='Property'&&node.method&&node.key.name==='prepareCheckedClientRequestModelsSourceFreeComponentModule')method=node;
+    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
+  walk(parsed);assert(method);
+  const parent={},input={},request={},compiled=Object.freeze({kind:'infer'}),definition={},rawCompiled={},rawDefinition={};
+  const compilation={},contracts={},queryTime={},module={},calls=[];
+  const prefixes=[{},{}],suffixes=[()=>{},()=>{}],providers=[{},{}];
+  const construct=(index,capacity,prefix,bindSuffix)=>{
+    assert.strictEqual(prefix,prefixes[index]);assert.strictEqual(bindSuffix,suffixes[index]);
+    assert.ok(capacity);calls.push(index);return providers[index];
+  };
+  const moon={clientProgramPrepareRequestModelsSourceFreeComponentModule(...args){
+    assert.strictEqual(this,moon);assert.deepEqual(args.slice(0,9),
+      [parent,input,request,rawCompiled,rawDefinition,compilation,contracts,true,queryTime]);
+    assert.strictEqual(args[9],construct,'forward the original callback unchanged');
+    for(let index=0;index<2;index++)assert.strictEqual(args[9](index,{},prefixes[index],suffixes[index]),providers[index]);
+    return {$tag:1,_0:module};
+  }};
+  const bind=Function('moon','compiledRunTokens','token','checked',
+    'return ({'+runtimeSource.slice(method.start,method.end)+'});')(moon,new WeakMap([[compiled,rawCompiled]]),
+      value=>{if(value!==definition)throw new TypeError('Foreign publication contract');return rawDefinition;},
+      value=>{assert.equal(value.$tag,1);return value._0;});
+  const invoke=(selected=compiled,publication=definition)=>bind.prepareCheckedClientRequestModelsSourceFreeComponentModule(
+    parent,input,request,selected,publication,compilation,contracts,true,queryTime,construct);
+  assert.strictEqual(invoke(),module);assert.deepEqual(calls,[0,1]);
+  assert.throws(()=>invoke({...compiled}),/Foreign Client compiled Infer preparation/);
+  assert.throws(()=>invoke(compiled,{...definition}),/Foreign publication contract/);
+  assert.deepEqual(calls,[0,1],'foreign facades cannot enter another constructor');
+});
