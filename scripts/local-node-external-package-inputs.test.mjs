@@ -274,7 +274,11 @@ async function assertExternalStandardPlan(options, profile) {
     clientProgramEffectAcquisitionCount:()=>0,
     clientProgramInstalledEffectOperationDemandWithControlsPrepare(p, stage, effect, members, rows, controls) {
       assert.equal(p,prepared);assert.equal(stage,0);assert.equal(effect,'create');
-      assert.deepEqual(members,[capture]);assert.deepEqual(rows,[request,write]);
+      // Capture and cold recovery are distinct constructor occurrences. Both
+      // retain the SAME quoted extent; recovery cannot reuse capture's slot.
+      assert.equal(members.length,2);
+      assert.strictEqual(members[0],capture);assert.strictEqual(members[1],capture);
+      assert.deepEqual(rows,[request,write]);
       assert.equal(controls,quantities[4]);return ok(demand);
     },
     clientProgramInstalledEffectManagedPlanPrepare(...args) {
@@ -285,6 +289,10 @@ async function assertExternalStandardPlan(options, profile) {
   const recipe = prepareInstalledStandardCreatePlanRecipe({moon,providerMoon:options.providerMoon,
     construction:standard.construction,credentialSite:{construction:{limits:{maxSecretBytes:4096},scope:{},issuer:{}}},
     limits:{maxWireBytes:4096,maxNodes:32,maxDepth:4},resourceTextUnits:6});
+  assert.deepEqual(recipe.captureConstruction,{operationIndex:0});
+  assert.deepEqual(recipe.recoveryConstruction,{operationIndex:1});
+  assert.notStrictEqual(recipe.captureConstruction,recipe.recoveryConstruction);
+  for(const entry of recipe.memberOperations) assert.strictEqual(entry.extent,capture);
   const prepared = Object.freeze({}),identity = Object.freeze({}),member = Object.freeze({effectId:'create'});
   const plan = prepareInstalledEffectManagedPlan({moon,facts:{prepared,identity},
     inputs:{installedContracts:{},values:'original-values'},unit:{stageIndex:0},members:[member],
