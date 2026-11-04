@@ -10,6 +10,7 @@ import {mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile} from 'node:fs/pr
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {Readable} from 'node:stream';
+import {EventEmitter} from 'node:events';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -68,6 +69,15 @@ const accountConfiguration = (outcome, operation, accountId) =>
       resource: {all: true}, operation: {any_of: [operation]},
       exclusions: []}]});
 
+const hostAccountConfiguration = outcome => {
+  const body = JSON.parse(accountConfiguration(outcome, 'write', 'host-account'));
+  body.entries.push({entry_id: 'host-observation', outcome: 'allow',
+    principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/b', 'result/c', 'run']},
+    operation: {any_of: ['read']}, exclusions: []});
+  return canonicalJson(body);
+};
+
 async function installedSource(root, readOutcome) {
   // Keep the generic checking fixture unchanged; this publication extends
   // the installed Host's selected base policy.
@@ -114,8 +124,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
   const source = profile ?? await installedSource(root, readOutcome);
   const steps = [];
   const authorization = {
-      accountConfiguration: accountConfiguration(runOutcome, 'write',
-        'host-account'),
+      accountConfiguration: hostAccountConfiguration(runOutcome),
       reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
         principalId: 'reviewer-principal',
         publicKey: pem(reviewerKeys.publicKey)}],
@@ -762,24 +771,33 @@ test('Remote Host close waits for a read recording its delivery attempt',
         authorization: 'Bearer owner-token'}});
     // A response that accepts every byte but holds its end.
     const response = () => {
-      const sent = {status: undefined, chunks: [], release: undefined};
+      const sent = Object.assign(new EventEmitter(),
+        {status: undefined, chunks: [], release: undefined});
+      sent.on('error', error => {sent.failure = error;});
       return Object.assign(sent, {
         destroyed: false, writableEnded: false, headersSent: false,
         writeHead(status) { sent.status = status; sent.headersSent = true; },
-        write(bytes, done) { sent.chunks.push(Buffer.from(bytes)); done?.(); },
+        write(bytes, done) { sent.chunks.push(Buffer.from(bytes)); done?.();return true; },
         end(bytes, done) {
           if (typeof bytes === 'function') [bytes, done] = [undefined, bytes];
           if (bytes !== undefined) sent.chunks.push(Buffer.from(bytes));
           sent.writableEnded = true;
           sent.release = done ?? (() => {});
         },
-        on() {}, off() {}, destroy() { sent.destroyed = true; },
+        destroy(error) {
+          sent.destroyed = true;
+          if (error !== undefined) sent.emit('error', error);
+          sent.emit('close');
+        },
       });
     };
     const held = response();
     const reading = host.handler(raw('read', {ref: execution.ref,
       resultName: 'b', format: 'jsonl', attemptId: 'close-read-a'}), held);
-    await waitFor(async () => held.release !== undefined, host.diagnose);
+    await waitFor(async () => {
+      if (held.failure !== undefined) throw held.failure;
+      return held.release !== undefined;
+    }, host.diagnose);
     assert.equal(held.status, 200, Buffer.concat(held.chunks).toString());
     assert.ok(Buffer.concat(held.chunks).length > 0);
     let closed = false;
@@ -802,4 +820,5 @@ test('Remote Host close waits for a read recording its delivery attempt',
     const attempt = await (await (await reopened.as('owner-token'))
       .attach(execution.ref)).result('b').deliveryAttempt('close-read-a');
     assert.equal(attempt.record?.state, 'succeeded');
+    await reopened.close();
   });
