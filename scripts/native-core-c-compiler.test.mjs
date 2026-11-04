@@ -13,7 +13,7 @@ test('Native Core C profile changes only the default optimization of one generat
     const input = `${root}/_build/native/release/test/pkg/pkg.${kind}_test.c`;
     const args = ['-o', 'original.exe', '-fwrapv', '-fno-strict-aliasing',
       '-O2', '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC', input, 'original.a', '-lm'];
-    assert.deepEqual(nativeCoreCArguments(root, args), args.map(x => x === '-O2' ? '-O1' : x));
+    assert.deepEqual(nativeCoreCArguments(root, args), args.map(x => x === '-O2' ? '-O0' : x));
   }
   for (const args of [
     ['-O2', '/original/_build/native/release/build/pkg/pkg.c'],
@@ -22,6 +22,7 @@ test('Native Core C profile changes only the default optimization of one generat
     ['-O2', '/original/_build/native/debug/test/pkg/pkg.whitebox_test.c'],
     ['-O2', '/original/_build/native/release/test/pkg/original_stub.c'],
     ['-O3', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c'],
+    ['-O1', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c'],
     ['-O0', '-O2', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c'],
     ['-O2', '/original/_build/native/release/test/pkg/pkg.whitebox_test.c', '/original/src/stub.c'],
     ['--version'],
