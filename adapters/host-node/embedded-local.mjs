@@ -269,7 +269,8 @@ export function readHostResultPublicationPreparation(originals) {
   const runtime = originals.installation.projectRuntime;
   const control = runtimeCore(runtime).publicationControl;
   return Object.freeze({runtime, control, root: journal.root, principalId: journal.principalId,
-    privateEvidenceKey: originals.installation.mockAccount?.evidenceKey.key,
+    privateEvidenceKey: originals.installation.effectInstallation?.privateEvidenceKey ??
+      originals.installation.mockAccount?.evidenceKey.key,
     storeAuthorityCid: localPublicationStoreAuthorityCid(journal.root, journal.principalId)});
 }
 

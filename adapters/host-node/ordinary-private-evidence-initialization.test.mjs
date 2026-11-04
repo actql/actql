@@ -304,6 +304,55 @@ test('ordinary Journal retains the same exclusion until a partial key FD closes 
   }
 });
 
+test('ordinary Result projects the original Effect key before opening the same Store', async () => {
+  const f = await fixture(undefined, false);
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.id?.name === 'readHostResultPublicationPreparation').declaration;
+  const key = Buffer.alloc(32, 7), mockKey = Buffer.alloc(32, 8);
+  const runtime = Object.freeze({}), control = createPublicationContractControlFixture();
+  f.originals.installation.projectRuntime = runtime;
+  f.originals.installation.effectInstallation = Object.freeze({privateEvidenceKey: key});
+  f.originals.installation.mockAccount = {evidenceKey: {key: mockKey}};
+  let current = true;
+  const read = new Function('readHostJournalPreparation', 'runtimeCore', 'localPublicationStoreAuthorityCid',
+    source.slice(declaration.start, declaration.end) + ';return readHostResultPublicationPreparation;')(
+    originals => {
+      assert.strictEqual(originals, f.originals);
+      assert.equal(current, true, 'The original Host still owns the projection');
+      return {root: f.root, principalId: 'fixture-owner'};
+    }, actual => {assert.strictEqual(actual, runtime); return {publicationControl: control};},
+    (root, principal) => {
+      assert.equal(root, f.root); assert.equal(principal, 'fixture-owner'); return authority;
+    });
+  const subject = read(f.originals);
+  assert.strictEqual(subject.privateEvidenceKey, key);
+  const view = prepareOrdinaryHostResult(f.originals, subject, () => assert.fail('No business Run'));
+  try {
+    const options = {directory: join(f.root, 'publication'), storeAuthorityCid: authority,
+      capacityBytes: 1048576, maxObjectBytes: 65536, maxObjects: 32,
+      maxContractNodes: 1000, maxContractDepth: 64, privateEvidenceKey: key};
+    assert.throws(() => view.openStore({...options, privateEvidenceKey: Buffer.from(key)}, control),
+      {message: 'ForeignInstalledHostPublicationStore'});
+    const store = await view.openStore(options, control);
+    assert.equal(store.status().closed, false);
+    assert.deepEqual(key, Buffer.alloc(32, 7), 'Store setup preserves the supplier-owned key');
+    assert.equal(existsSync(join(f.directory, PRIVATE_EVIDENCE_KEY_FILE)), false,
+      'An independently supplied key does not generate a replacement');
+    delete f.originals.installation.effectInstallation;
+    assert.strictEqual(read(f.originals).privateEvidenceKey, mockKey,
+      'The existing Mock key remains the fallback original');
+    current = false;
+    assert.throws(() => read(f.originals), /The original Host still owns the projection/u);
+  } finally {
+    await f.journal.close();
+    assert.equal((await view.close()).pending, false);
+    await f.close();
+    key.fill(0); mockKey.fill(0);
+  }
+});
+
 // Execute the actual public caller and private setup declarations. Profile I/O
 // and the Core contract control are explicit ports; Root/Store/key filesystem
 // initialization and original cleanup below use their production owners.
