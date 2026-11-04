@@ -317,3 +317,13 @@ test('completed scratch refresh preserves original errors and stops when its liv
   await assert.rejects(running, {message: 'ReleasedLocalManagedOutput'});
   assert.equal(refreshes, 1);
 });
+
+test('completed scratch module bundles for the shared browser boundary without Node builtins', async () => {
+  const {build} = await import('esbuild');
+  const result = await build({
+    entryPoints: [new URL('./managed-output-custody.mjs', import.meta.url).pathname],
+    bundle: true, platform: 'browser', format: 'esm', write: false, logLevel: 'silent',
+  });
+  assert.equal(result.outputFiles.length, 1);
+  assert.ok(result.outputFiles[0].contents.length > 0);
+});

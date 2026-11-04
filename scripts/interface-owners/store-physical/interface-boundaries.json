@@ -254,7 +254,7 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f9d5a57243b7e9b05065dfa088bd952f82df1337a2672d66d14844155eaaf45b",
+      "sha256": "9280a6e0712edbe611eccf83c0c9a22f1a729c4d0d4938b0d7dc2db92ff2d92f",
       "exports": [
         "closeCompletedLocalManagedOutput",
         "closeCompletedLocalManagedOutputAsync",
@@ -333,6 +333,13 @@
             "available"
           ],
           "async": true
+        },
+        {
+          "name": "refreshCompletedLocalManagedScratch/refreshCompletedLocalManagedScratch",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
         },
         {
           "name": "retainProgressingCleanup",
@@ -508,7 +515,8 @@
             "continueLocalManagedFailureCleanup",
             "continueLocalManagedFailureCleanup/flight/flight",
             "retirementProgress",
-            "refreshCompletedLocalManagedScratch"
+            "refreshCompletedLocalManagedScratch",
+            "refreshCompletedLocalManagedScratch/refreshCompletedLocalManagedScratch"
           ],
           "exports": [
             "closeCompletedLocalManagedOutputAsync",
@@ -625,8 +633,7 @@
       ],
       "imports": [
         "../host-common/managed-failure.mjs",
-        "../store-local/managed-memory-representations.mjs",
-        "node:timers/promises"
+        "../store-local/managed-memory-representations.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
