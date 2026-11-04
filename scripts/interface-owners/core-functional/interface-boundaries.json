@@ -43929,7 +43929,7 @@
     },
     {
       "module": "src/client_local_host/schema_proof_inventory.mbt",
-      "sha256": "ddc80d44a8778a187188e45a04ed6d57305b275497d7f001c329c9880b99db34",
+      "sha256": "b23029703c7b693dabddff6c743ac56aec41e3caadf2e00cd40b23702b3d5fd7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",
@@ -43939,6 +43939,10 @@
         {
           "name": "client_local_inventory_nodes",
           "declaration": "client_local_inventory_nodes ( inventory : ClientLocalSchemaProofInventory , max_rows : Int , ) - > Int ?"
+        },
+        {
+          "name": "client_local_record_value_schema",
+          "declaration": "client_local_record_value_schema ( carrier : @ carrier . Carrier , capture_suffix : Bool , ) - > @ schema . Schema ?"
         },
         {
           "name": "client_local_schema_proof_inventory",
@@ -43954,6 +43958,7 @@
           "operations": [
             "<module>",
             "client_local_inventory_nodes",
+            "client_local_record_value_schema",
             "client_local_schema_proof_inventory",
             "client_local_schema_proof_work"
           ],
@@ -43963,6 +43968,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Captured Event record capacity"
               }
             ],
             "inputsOutputs": [
@@ -43975,12 +43984,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Captured Event record capacity"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Captured Event record capacity"
               }
             ],
             "synchronization": [
@@ -44005,6 +44022,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Captured Event record capacity"
               }
             ],
             "extension": [
@@ -44017,6 +44038,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The optional checked value-node proof preserves closed Object fields and"
+              },
+              {
+                "path": "src/client_local_host/closed_carrier_capacity_wbtest.mbt",
+                "anchor": "test \"captured Event suffix uses original record schemas without a closed Source cardinality\""
               }
             ]
           }
@@ -44208,7 +44233,7 @@
     },
     {
       "module": "src/client_local_host/value_node_demand.mbt",
-      "sha256": "8d311551b61c333eb4c43f958984bbd32117191bbbdb12cfc98c2b194fb21b6f",
+      "sha256": "b0ee315db4a6b98f045dfee9d15d7ca13d283ae073aa9597f9e9cf7639faa8a9",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "B — original prepared schema demand and installed Effect composition",

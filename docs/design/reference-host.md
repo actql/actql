@@ -3241,3 +3241,20 @@ outputs. Only the remaining structural input roles become workspace; the
 original full execution and failed-prefix peak stays unchanged. An absent
 output shape supplies no such lifetime proof and keeps the general response
 constructor, including a retained Cursor's original backing.
+
+
+### Captured Event record capacity
+
+The materializing Local Compute suffix may borrow the complete record schema
+already retained by its checked Event carrier. This is a value-node footprint
+proof, not a conversion to Relation or a closed Source cardinality claim.
+Unknown/open record fields keep the general envelope. Source-free closed
+Carrier paths retain their existing independent item-count proof selection.
+Signed64 cells occupy one admitted value node while retaining their canonical
+decimal String wire; the Number/Boolean text-free proof does not include them.
+
+The same Plan configures the actual input/output value envelopes and retains
+all physical task reservations. Row, text, Event-container, provider metadata,
+work and resource ceilings remain independent. The original Request funds the
+borrowed Carrier/schema control frame through the existing proof scratch quote
+before Plan construction; no schema is rebuilt and no second owner is issued.

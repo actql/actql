@@ -21,10 +21,13 @@ fn client_local_value_node_proof_scratch_bytes() -> Int64? {
   // Its collector/returned record/current borrowed getter use the fixed tail.
   // Successive original sequences are inspected synchronously, not coheld.
   let slots = client_local_scalar_text_proof_slots().to_int64()
+  // One coheld optional-schema callback/frame, five original Carrier/schema
+  // references and two captured-suffix/Event control bits. Borrowed getters
+  // construct no schema, field array, text or retained proof certificate.
   guard @execution.preparation_representation_cost({
-      record_headers: 4L * levels + 5L * slots + 6L,
-      reference_slots: 10L * levels + 10L * slots + 12L,
-      scalar_words: 14L * levels + 8L * slots + 16L,
+      record_headers: 4L * levels + 5L * slots + 7L,
+      reference_slots: 10L * levels + 10L * slots + 17L,
+      scalar_words: 14L * levels + 8L * slots + 18L,
       owned_utf16_units: 0L,
       owned_wire_bytes: 0L,
     })
@@ -67,6 +70,10 @@ fn client_local_json_contract_nodes(
     // node envelope retains the Decimal record/coefficient; decoded input,
     // wire, CAST and aggregate workspace keep their independent old bounds.
     @contract.Decimal(..) => Some(1L)
+    // The admitted Signed64 is one original Int64 value, and its canonical
+    // wire is a decimal String. Retain the independent text/wire envelopes;
+    // this never enters the Number/Boolean or text-free scalar proof.
+    @contract.Signed64 => Some(1L)
     // The original Vector contract fixes every component's Number type and
     // dimension. Its JSON array is one node plus that many scalar nodes; the
     // Carrier provider still owns its separate vector storage/workspace.

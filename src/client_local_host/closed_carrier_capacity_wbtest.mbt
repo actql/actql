@@ -112,3 +112,156 @@ test "closed Carrier facts configure every original task without replacing provi
     )
   }
 }
+
+///|
+// An open acquired Source keeps its original row/text/Carrier limits. The
+// Compute suffix borrows checked Event record schemas, not a closed-item count.
+let captured_events_schema_budget_program : String =
+  #|{"id":"captured-events-schema-budget","results":{"windowed":{"from":{"stage":"events","result":"r"}},"consumed":{"from":{"stage":"consumer","result":"r"}}},"stages":[{"id":"acquire","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"results":{"r":{"fields":["id"],"from":"captured"}},"steps":[{"as":"filtered","filter":"id > 0"},{"as":"captured","select":["id"]}]},{"id":"events","inputs":{"rows":{"result":{"stage":"acquire","result":"r"}}},"steps":[{"from":"rows","derive":{"clock_ms":{"field":"id"},"label":{"literal":"event"}},"as":"clocked"},{"from":"clocked","to_events":{"id":"id","time":"clock_ms"},"as":"source"},{"from":"source","window_events":{"kind":"fixed","size":2},"as":"windowed"},{"from":"windowed","events":true,"as":"bridged"},{"from":"bridged","select":["id","label","window_start_ms","window_end_ms"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","label","window_start_ms","window_end_ms"]}}},{"id":"consumer","inputs":{"x":{"result":{"stage":"events","result":"r"}}},"steps":[{"select":["id","window_start_ms"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","window_start_ms"]}}}],"version":"actql/0.1"}
+
+///|
+test "captured Event suffix uses original record schemas without a closed Source cardinality" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    captured_events_schema_budget_program,
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let assets = @publication_host.client_local_product_assets()
+  let installed = prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let sequences = prepare_client_local_sequences(
+    prepared,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_captured_prefix(graph), 1)
+  let tail = sequences[1:].to_owned()
+  let plan = client_local_capacity_plan(
+    tail,
+    100,
+    scalar_values=true,
+    graph=Some(graph),
+    graph_offset=1,
+  )
+  let demand = plan.value_node_demand.unwrap()
+  assert_true(plan.demand_inventory.unwrap().carrier_values)
+  assert_eq(plan.demand_inventory.unwrap().closed_rows, None)
+  assert_eq(plan.admitted_rows, 100)
+  assert_eq(plan.execution.rows.max_rows, 100)
+  assert_eq(plan.values.max_text_bytes, 500000)
+  assert_true(demand.nodes < client_local_general_value_nodes())
+  assert_true(client_local_capacity_plan_matches(plan, tail, 100))
+  // The actual configured per-task reservations still coexist. No max-only
+  // fold, retired input discount, sampled row count or smaller policy is used.
+  let requirement = original_row_requirement(prepared)
+  let acquisition = original_row_acquisition_fixture(requirement)
+  let capacity = installed_row_capture_capacity(acquisition).unwrap()
+  let request = @publication_host.prepare_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "captured-event-budget",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let capture = prepare_installed_managed_capture_plan(
+    prepared,
+    request,
+    [capacity],
+    [4096L],
+    [2048L],
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    retained_output=true,
+    provider_factory=_ => [],
+  ).unwrap()
+  assert_true(capture.limits.execution_bytes <= 536870912L)
+  assert_true(capture.limits.retained_bytes <= 536870912L)
+  assert_eq(capture.captures.length(), 1)
+  assert_eq(@strategy.graph_result_count(graph), 2)
+}
+
+///|
+test "Event record proof borrows only complete original fields and leaves closed-carrier selection unchanged" {
+  let id = @schema.Unqualified("id")
+  let clock = @schema.Unqualified("time")
+  let fields = [
+    (id, Some(@contract.primitive(StringType, nullable=false))),
+    (clock, Some(@contract.primitive(TimestampType, nullable=false))),
+  ]
+  let complete = @carrier.rows(
+    fields,
+    field_set=Closed,
+    max_fields=3,
+    max_name_bytes=100,
+  ).unwrap()
+  let original = @carrier.complete_schema(complete).unwrap()
+  let events = @carrier.events(complete, id~, time=clock).unwrap()
+  assert_true(
+    physical_equal(
+      client_local_record_value_schema(events, true).unwrap(),
+      original,
+    ),
+  )
+  assert_true(client_local_record_value_schema(events, false) is None)
+  let open = @carrier.rows(
+    fields,
+    field_set=Open,
+    max_fields=3,
+    max_name_bytes=100,
+  ).unwrap()
+  assert_true(
+    client_local_record_value_schema(
+      @carrier.events(open, id~, time=clock).unwrap(),
+      true,
+    )
+    is None,
+  )
+  let unknown = @carrier.rows(
+    [fields[0], fields[1], (@schema.Unqualified("payload"), None)],
+    field_set=Closed,
+    max_fields=3,
+    max_name_bytes=100,
+  ).unwrap()
+  assert_true(
+    client_local_record_value_schema(
+      @carrier.events(unknown, id~, time=clock).unwrap(),
+      true,
+    )
+    is None,
+  )
+  assert_true(
+    physical_equal(
+      client_local_record_value_schema(@carrier.relation(complete), false).unwrap(),
+      original,
+    ),
+  )
+}
+
+///|
+test "Signed64 record cells retain one value node without a numeric wire proof" {
+  let signed = @contract.primitive(Signed64Type, nullable=false)
+  assert_eq(client_local_json_contract_nodes(signed, Ref(1), 1), Some(1L))
+  let schema = @schema.from_fields(
+    [(@schema.Unqualified("id"), signed)],
+    max_fields=1,
+    max_name_bytes=2,
+  ).unwrap()
+  assert_true(client_local_scalar_schema_width(schema) is None)
+  assert_eq(client_local_json_schema_nodes(schema, 1, 1), Some((2L, 0)))
+}

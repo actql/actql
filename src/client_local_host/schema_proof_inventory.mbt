@@ -1,4 +1,22 @@
 ///|
+// Borrow complete checked record fields from the original carrier. Event
+// payloads in a captured suffix have the same immutable field contracts; they are not converted to
+// Relations or evidence. Their container/clock storage keeps its own provider
+// quote and the existing row/item limits remain unchanged. Source-free closed
+// Carrier paths keep their earlier independent item-count proof selection.
+fn client_local_record_value_schema(
+  carrier : @carrier.Carrier,
+  capture_suffix : Bool,
+) -> @schema.Schema? {
+  match carrier {
+    @carrier.Relation(records) => @carrier.complete_schema(records)
+    @carrier.EventValue(events) if capture_suffix =>
+      @carrier.complete_schema(@carrier.event_records(events))
+    _ => None
+  }
+}
+
+///|
 /// One work-bounded inventory per original prepared owner. Shared task views
 /// reuse checked schema facts, never storage: repeated ports remain counted.
 // `_observed_*` fields retain exact bound observations for white-box tests;
@@ -123,6 +141,7 @@ fn client_local_schema_proof_inventory(
     None
   }
   let mut selected_sources = 0
+  let mut event_records = false
   for index, sequence in sequences {
     if remaining < 1 {
       return None
@@ -185,7 +204,12 @@ fn client_local_schema_proof_inventory(
     }
     let mut weighted_outputs : Int64? = weighted_inputs
     for input in 0..<inputs {
-      guard @lower.preparation_input_schema(prepared, input) is Some(schema) else {
+      let carrier = @lower.preparation_input_carrier(prepared, input)
+      event_records = event_records || carrier is Some(@carrier.EventValue(_))
+      guard carrier.bind(value => {
+          client_local_record_value_schema(value, graph_offset > 0)
+        })
+        is Some(schema) else {
         if carrier_bound is Some(_) {
           continue
         } else {
@@ -267,7 +291,10 @@ fn client_local_schema_proof_inventory(
           _ => None
         }
       }
-      if @lower.node_relation_schema(node) is Some(schema) {
+      let output_carrier = @lower.node_output_carrier(node)
+      event_records = event_records || output_carrier is @carrier.EventValue(_)
+      if client_local_record_value_schema(output_carrier, graph_offset > 0)
+        is Some(schema) {
         let width = @schema.field_count(schema)
         if remaining < 1 || width > remaining - 1 {
           return None
@@ -321,8 +348,15 @@ fn client_local_schema_proof_inventory(
         weighted_outputs = None
       }
       for port in 0..<count {
-        guard @lower.node_input_target(node, port) is Some(target) &&
-          @lower.preparation_schema_at(prepared, target) is Some(input_schema) else {
+        guard @lower.node_input_target(node, port) is Some(target) else {
+          return None
+        }
+        let carrier = @lower.preparation_carrier_at(prepared, target)
+        event_records = event_records || carrier is Some(@carrier.EventValue(_))
+        guard carrier.bind(value => {
+            client_local_record_value_schema(value, graph_offset > 0)
+          })
+          is Some(input_schema) else {
           if carrier_bound is Some(_) {
             continue
           } else {
@@ -438,7 +472,7 @@ fn client_local_schema_proof_inventory(
       Some(bound) => Some(bound)
       None => closed_rows
     },
-    carrier_values: carrier_bound is Some(_),
+    carrier_values: carrier_bound is Some(_) || event_records,
   })
 }
 
