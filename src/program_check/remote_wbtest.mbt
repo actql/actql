@@ -296,7 +296,11 @@ fn remote_construction_fixture(
     limit_inputs.push((@utf8.encode(text), cid))
   }
   let arithmetic = @wire.check_mixed_claims(
-    if omit_estimate { [host_wire] } else { [@wire.program_proof_witness(proof), host_wire] },
+    if omit_estimate {
+      [host_wire]
+    } else {
+      [@wire.program_proof_witness(proof), host_wire]
+    },
     limit_inputs,
     {
       max_entities: 100,
@@ -306,10 +310,15 @@ fn remote_construction_fixture(
       max_depth: 100,
     },
   ).unwrap()
-  let claims = @wire.check_mixed_program_claims(arithmetic, if omit_estimate { [] } else { [proof] }, {
-    max_witnesses: 10,
-    max_references: 100,
-  }).unwrap()
+  let claims = @wire.check_mixed_program_claims(
+    arithmetic,
+    if omit_estimate {
+      []
+    } else {
+      [proof]
+    },
+    { max_witnesses: 10, max_references: 100, },
+  ).unwrap()
   let sources = @host.bind_claim_sources(claims, [policy], {
     max_entries: 100,
     max_bytes: 100000,
@@ -443,7 +452,11 @@ fn remote_construction_fixture(
     None,
     {
       wire: environment,
-      locations: if omit_estimate { None } else { Some([if second_join { [(0, 0), (0, 0)] } else { [(0, 0)] }]) },
+      locations: if omit_estimate {
+        None
+      } else {
+        Some([if second_join { [(0, 0), (0, 0)] } else { [(0, 0)] }])
+      },
     },
     materials,
     { text_time: false, veca: false, },

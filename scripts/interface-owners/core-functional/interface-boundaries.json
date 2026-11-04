@@ -61603,7 +61603,7 @@
     {
       "module": "src/physical_resources/preparation_publication_phase.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "db2b8e2bd1380f379b9415c58f9214cd7a5acdf2af11f219688fc7406addf999",
+      "sha256": "df7f3dacd30e45bd7468ab98a86f7b69c232fbd5ee879b1ba93825c1b7fbeaab",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],

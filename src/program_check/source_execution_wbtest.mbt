@@ -133,7 +133,9 @@ test "source Host and response bindings retain one exact request and ordered pre
   assert_eq(request_binding.stage, 0)
   assert_eq(request_binding.index, 0)
   assert_eq(@sourceviews.keyed_join_step(request_binding.join), 1)
-  let estimate = @sourceviews.lookup_requirement_estimate(request_binding.requirement).unwrap()
+  let estimate = @sourceviews.lookup_requirement_estimate(
+    request_binding.requirement,
+  ).unwrap()
   assert_eq(estimate.input_rows, 1L)
   assert_eq(estimate.rows_per_key, 2L)
   assert_eq(estimate.response_rows, 2L)

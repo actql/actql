@@ -56,12 +56,7 @@ pub fn bind_source_producers(
         return Err(MissingEstimate(i, j))
       }
       let result = match
-        @capacity.bind_target_membership(
-          closure,
-          rows,
-          visit,
-          claim,
-        ) {
+        @capacity.bind_target_membership(closure, rows, visit, claim) {
         Ok(v) => v
         Err(e) => return Err(Membership(i, j, e))
       }
@@ -90,5 +85,7 @@ pub fn source_producer_at(
   stage : Int,
   join : Int,
 ) -> @capacity.TargetMembership? {
-  v.memberships.get(stage).bind(entries => entries.get(join).bind(value => value))
+  v.memberships
+  .get(stage)
+  .bind(entries => entries.get(join).bind(value => value))
 }

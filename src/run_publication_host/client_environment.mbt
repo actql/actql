@@ -20,11 +20,16 @@ pub fn admit_client_check_environment(
       Some(selected)
     }
   }
-  guard admit_client_check_environment_wire(body, evidence_bundle_cid) is Some(wire) else {
+  guard admit_client_check_environment_wire(body, evidence_bundle_cid)
+    is Some(wire) else {
     return None
   }
   admit_client_check_environment_from_wire(
-    wire, expressions, operations, numeric_profile=numeric, graph~,
+    wire,
+    expressions,
+    operations,
+    numeric_profile=numeric,
+    graph~,
   )
 }
 
@@ -77,7 +82,7 @@ pub fn admit_client_check_environment_from_wire(
       wire,
       expressions,
       operations,
-      numeric_profile=numeric_profile,
+      numeric_profile~,
       graph~,
       model_tasks=Some(model_tasks),
     ),

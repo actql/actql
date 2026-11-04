@@ -213,7 +213,7 @@
     },
     {
       "module": "src/run_publication_host/client_environment.mbt",
-      "sha256": "887655a26f87722876c4347247459452874746d4db4413340111afa0d51a3693",
+      "sha256": "b0952081a74afa18b5407beafc437c4e8622e567bbf0c638723185d521a82702",
       "operations": [
         {
           "name": "admit_client_check_environment",

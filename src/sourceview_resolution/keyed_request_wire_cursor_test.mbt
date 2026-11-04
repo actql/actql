@@ -1,7 +1,10 @@
 ///|
 // Called by the existing independently pinned Catalog/parameter fixtures.
 // No synthetic request owner or diagnostic-only constructor is introduced.
-fn check_keyed_request_wire_cursor(request : KeyedRowRequest, expected : String) -> Unit raise {
+fn check_keyed_request_wire_cursor(
+  request : KeyedRowRequest,
+  expected : String,
+) -> Unit raise {
   let initial = keyed_request_wire_start_inventory()
   assert_true(initial.record_headers > 0L)
   let cursor = start_keyed_request_wire(request, 10000, 1000, 30).unwrap()
@@ -27,7 +30,9 @@ fn check_keyed_request_wire_cursor(request : KeyedRowRequest, expected : String)
       }
       WireFailed(_) => fail("same original wire cursor unexpectedly failed")
     }
-    if turns > 1000 { fail("request wire cursor failed to progress") }
+    if turns > 1000 {
+      fail("request wire cursor failed to progress")
+    }
   }
   assert_true(keyed_request_wire_next_inventory(cursor) is None)
   assert_true(advance_keyed_request_wire(cursor) is WireFailed(_))
@@ -40,7 +45,10 @@ fn check_keyed_request_wire_cursor(request : KeyedRowRequest, expected : String)
   let short = start_keyed_request_wire(request, 1, 1000, 30).unwrap()
   let mut failed = false
   for _ in 0..<20 {
-    if advance_keyed_request_wire(short) is WireFailed(_) { failed = true; break }
+    if advance_keyed_request_wire(short) is WireFailed(_) {
+      failed = true
+      break
+    }
   }
   assert_true(failed)
   assert_true(keyed_request_wire_next_inventory(short) is None)
@@ -52,23 +60,53 @@ test "keyed request fragments include large authored and parameter values from o
   let payload = "x".repeat(2048)
   for parameter in [false, true] {
     let input = "{\"connector\":\"crm/main\",\"resource\":\"r\",\"request\":{\"tenant\":" +
-      (if parameter { "{\"$param\":\"tenant\"}" } else { "\"" + payload + "\"" }) + "}}"
-    let inputs = fixture_inputs(input, declarations=if parameter {
-      "\"params\":{\"tenant\":{\"type\":\"string\"}},"
-    } else { "" })
+      (if parameter {
+        "{\"$param\":\"tenant\"}"
+      } else {
+        "\"" + payload + "\""
+      }) +
+      "}}"
+    let inputs = fixture_inputs(
+      input,
+      declarations=if parameter {
+        "\"params\":{\"tenant\":{\"type\":\"string\"}},"
+      } else {
+        ""
+      },
+    )
     let resolved = resolve(inputs, source_acquisition_catalog(), caps()).unwrap()
     let context = prepare_requests(resolved, request_slots(inputs), 1000000).unwrap()
-    let request = check_keyed_request(context, at(resolved, 0).unwrap(), request_caps()).unwrap()
-    let parameters = prepare_request_parameters(context, supplied_values(inputs, if parameter {
-      "{\"tenant\":\"" + payload + "\"}"
-    } else { "{}" }), 1000000).unwrap()
+    let request = check_keyed_request(
+      context,
+      at(resolved, 0).unwrap(),
+      request_caps(),
+    ).unwrap()
+    let parameters = prepare_request_parameters(
+      context,
+      supplied_values(
+        inputs,
+        if parameter {
+          "{\"tenant\":\"" + payload + "\"}"
+        } else {
+          "{}"
+        },
+      ),
+      1000000,
+    ).unwrap()
     let selected = bind_keyed_request_parameters(parameters, request, 1000000).unwrap()
-    let preparation = start_keyed_row_request(selected, [@value.number_value(7.0).unwrap()], request_caps()).unwrap()
+    let preparation = start_keyed_row_request(
+      selected,
+      [@value.number_value(7.0).unwrap()],
+      request_caps(),
+    ).unwrap()
     let mut completed = None
     for _ in 0..<100 {
       match advance_keyed_row_request(preparation) {
         KeyedRowRequestContinue => ()
-        KeyedRowRequestComplete(value) => { completed = Some(value); break }
+        KeyedRowRequestComplete(value) => {
+          completed = Some(value)
+          break
+        }
         KeyedRowRequestFailed(_) => fail("original request preparation failed")
       }
     }

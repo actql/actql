@@ -48,7 +48,8 @@ fn keyed_execution_producer_matches(
   match
     (
       @sourceviews.keyed_rows_requirement_at(
-        @sourceviews.lookup_bounds_rows(bounds), index,
+        @sourceviews.lookup_bounds_rows(bounds),
+        index,
       ),
       membership,
     ) {
@@ -248,7 +249,10 @@ fn prepare_source_execution(
         raise ForeignOwner
       }
       let membership = @context.source_producer_at(producer, stage, index)
-      guard physical_equal(@sourceviews.lookup_requirement_join(requirement), join) &&
+      guard physical_equal(
+          @sourceviews.lookup_requirement_join(requirement),
+          join,
+        ) &&
         keyed_execution_producer_matches(bounds, index, join, membership) else {
         raise ForeignOwner
       }

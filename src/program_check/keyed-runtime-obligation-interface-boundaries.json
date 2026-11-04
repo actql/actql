@@ -119,7 +119,7 @@
     {
       "module": "src/sourceview_resolution/lookup_bounds.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "4c0df7d041a3d055dd8e827694060994f671872928d9d078aed6eb77f42238d6",
+      "sha256": "3d1b66de0f3c8057f689427951d19234b8e40b932d934d063ba9e45ebac2f438",
       "role": "common-semantics",
       "owner": "Existing SourceView, pipeline producer context and checked Program owners",
       "exports": [],
@@ -344,7 +344,7 @@
     {
       "module": "src/pipeline_check_context/source_producers.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3421c0d07188c50224f86c35ae78e90dbbcacef55302c509a4c54ba64c1a35b5",
+      "sha256": "c75feb048b06e415a7febb792c65e902606fd91dc1b93b1bf0002d300b8a8365",
       "role": "common-semantics",
       "owner": "Existing SourceView, pipeline producer context and checked Program owners",
       "exports": [],
@@ -544,7 +544,7 @@
     {
       "module": "src/program_check/source_execution.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "d768d093feee8749c3271482b044d948bfc3d9b48e8b9cf566723e27e0a37398",
+      "sha256": "09a2ba2dcb506a17722c899c0349517ed2fcbdaee8184a54c39ee6e896bece4c",
       "role": "common-semantics",
       "owner": "Existing SourceView, pipeline producer context and checked Program owners",
       "exports": [],
@@ -784,14 +784,14 @@
     {
       "module": "src/program_check/keyed_input_proof.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "739f89ee9e67c69abe21fb8d8b74698cca779d072aabd067187d9a24c65d6388",
+      "sha256": "229a001c854be1490c1aca8e8b2f3b4f79c5f4170efe349d3b72aba3bedc6427",
       "role": "common-semantics",
       "owner": "Existing SourceView, pipeline producer context and checked Program owners",
       "exports": [],
       "operations": [
         {
           "name": "keyed_execution_requirement",
-          "declaration": "keyed_execution_requirement ( value : KeyedExecution ) - > @ sourceviews . LookupRequirement"
+          "declaration": "keyed_execution_requirement ( value : KeyedExecution , ) - > @ sourceviews . LookupRequirement"
         },
         {
           "name": "keyed_input_proof_acquired",
@@ -819,7 +819,7 @@
         },
         {
           "name": "keyed_input_runtime_admission",
-          "declaration": "keyed_input_runtime_admission ( value : KeyedInputProof ) - > KeyedExecution ?"
+          "declaration": "keyed_input_runtime_admission ( value : KeyedInputProof , ) - > KeyedExecution ?"
         },
         {
           "name": "prepare_keyed_input_proofs",

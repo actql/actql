@@ -4,14 +4,14 @@
     {
       "module": "src/sourceview_resolution/keyed_request_wire_cursor.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "12a0c5b0ff283766e0b6d3a86a596091809b9731588a9a2694564a42d127c40b",
+      "sha256": "33f1a565a2fdd185437cab2db5d69a381dbf1ecd80a2b0ef318e46eaa7447502",
       "role": "common-semantics",
       "owner": "Existing selected keyed request, buffered Writer and typed/canonical emitter construction owners",
       "exports": [],
       "operations": [
         {
           "name": "advance_keyed_request_wire",
-          "declaration": "advance_keyed_request_wire ( cursor : KeyedRequestWireCursor ) - > KeyedRequestWirePoll"
+          "declaration": "advance_keyed_request_wire ( cursor : KeyedRequestWireCursor , ) - > KeyedRequestWirePoll"
         },
         {
           "name": "cancel_keyed_request_wire",
@@ -23,15 +23,15 @@
         },
         {
           "name": "keyed_request_wire_next_inventory",
-          "declaration": "keyed_request_wire_next_inventory ( cursor : KeyedRequestWireCursor ) - > KeyedRequestWireInventory ?"
+          "declaration": "keyed_request_wire_next_inventory ( cursor : KeyedRequestWireCursor , ) - > KeyedRequestWireInventory ?"
         },
         {
           "name": "keyed_request_wire_owner",
-          "declaration": "keyed_request_wire_owner ( cursor : KeyedRequestWireCursor ) - > KeyedRowRequest"
+          "declaration": "keyed_request_wire_owner ( cursor : KeyedRequestWireCursor , ) - > KeyedRowRequest"
         },
         {
           "name": "keyed_request_wire_progress",
-          "declaration": "keyed_request_wire_progress ( cursor : KeyedRequestWireCursor ) - > ( Int64 , Int , Int , Int )"
+          "declaration": "keyed_request_wire_progress ( cursor : KeyedRequestWireCursor , ) - > ( Int64 , Int , Int , Int )"
         },
         {
           "name": "keyed_request_wire_start_inventory",
@@ -219,7 +219,7 @@
     {
       "module": "src/value_admission/wire_emit_construction_inventory.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "37853404527cc4c93a3969b4e2b91021dc51b3ada1e366b1f72d19c1672b3124",
+      "sha256": "bd4492ae354d3b0ebc1ccc43e8bd822fb25410f94ff251820c2790ed8c2494bb",
       "role": "common-semantics",
       "owner": "Existing selected keyed request, buffered Writer and typed/canonical emitter construction owners",
       "exports": [],

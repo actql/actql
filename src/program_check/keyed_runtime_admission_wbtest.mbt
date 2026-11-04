@@ -16,18 +16,34 @@ test "unknown keyed estimate retains exact execution obligation without a signed
   assert_true(keyed_input_proof_bound(obligation) is None)
   assert_true(keyed_input_proof_acquired(obligation) is None)
   assert_true(execution.producer is None)
-  assert_true(@sourceviews.lookup_requirement_estimate(execution.requirement) is None)
-  assert_true(@sourceviews.lookup_requirement_admission(execution.requirement) is @sourceviews.RuntimeAdmission)
-  assert_true(physical_equal(@sourceviews.lookup_requirement_join(execution.requirement), execution.join))
+  assert_true(
+    @sourceviews.lookup_requirement_estimate(execution.requirement) is None,
+  )
+  assert_true(
+    @sourceviews.lookup_requirement_admission(execution.requirement)
+    is @sourceviews.RuntimeAdmission,
+  )
+  assert_true(
+    physical_equal(
+      @sourceviews.lookup_requirement_join(execution.requirement),
+      execution.join,
+    ),
+  )
   assert_eq(@sourceviews.keyed_join_left(execution.join), @pipeline.Step(0))
   assert_eq(keyed_input_proof_source(obligation).source_ordinal, 1)
-  assert_true(keyed_input_proof_execution(obligation).phase is BeforeProviderAccess)
-  assert_true(keyed_input_proof_execution(obligation).failure is PreventProviderAccess)
-  try prepare_keyed_input_proofs(
-    program.units,
-    programs[1].units[0].source_execution,
-    { work: 100000, bytes: 100000, nodes: 10000, depth: 100, },
-  ) catch {
+  assert_true(
+    keyed_input_proof_execution(obligation).phase is BeforeProviderAccess,
+  )
+  assert_true(
+    keyed_input_proof_execution(obligation).failure is PreventProviderAccess,
+  )
+  try
+    prepare_keyed_input_proofs(
+      program.units,
+      programs[1].units[0].source_execution,
+      { work: 100000, bytes: 100000, nodes: 10000, depth: 100, },
+    )
+  catch {
     ForeignOwner => ()
     error => raise error
   } noraise {

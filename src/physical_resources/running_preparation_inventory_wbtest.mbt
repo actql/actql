@@ -153,8 +153,9 @@ test "running census rechecks callback retirement and nested growth before alloc
             ledger.original_inventory.unwrap().closing = true
           } else {
             nested_refused.val = grow_running_preparation_capacity_inventory(
-              owner, input, body, identity, 300L, 150L, 5, 4, 3,
-            ) is Err(WorkActive)
+                owner, input, body, identity, 300L, 150L, 5, 4, 3,
+              )
+              is Err(WorkActive)
           }
         }
         0
@@ -229,20 +230,39 @@ test "running census refuses zero-byte new slots after imported parent stopping"
 // Return only the adopted holders and body. The generic input/capacity aliases
 // do not escape this actual adoption boundary into the Run caller.
 fn adopted_running_inventory_fixture() -> (
-  Ledger, PreparationBodyBorrow[Array[Int]], PreparationBodyBorrow[Array[Int]],
-  PreparationRetirement, Array[Int], OriginalLedgerIdentity,
+  Ledger,
+  PreparationBodyBorrow[Array[Int]],
+  PreparationBodyBorrow[Array[Int]],
+  PreparationRetirement,
+  Array[Int],
+  OriginalLedgerIdentity,
 ) raise {
-  let ledger = create_ledger({planning_work:100, attempts:20, holdings:20,
-    transfer_bytes:10000L, retained_bytes:10000L, execution_bytes:10000L}).unwrap()
+  let ledger = create_ledger({
+    planning_work: 100,
+    attempts: 20,
+    holdings: 20,
+    transfer_bytes: 10000L,
+    retained_bytes: 10000L,
+    execution_bytes: 10000L,
+  }).unwrap()
   let input = [1]
   let body = [2]
-  let owner : PreparationCapacity[Array[Int], Array[Int]] =
-    reserve_preparation_capacity_inventory(ledger, input, 100L, 50L, max_borrowers=2).unwrap()
+  let owner : PreparationCapacity[Array[Int], Array[Int]] = reserve_preparation_capacity_inventory(
+    ledger,
+    input,
+    100L,
+    50L,
+    max_borrowers=2,
+  ).unwrap()
   let identity = preparation_capacity_inventory_original(owner, input).unwrap()
   complete_preparation_capacity(owner, input, body, 100L, 50L).unwrap()
   claim_original_ledger_run_binding(identity, ledger).unwrap()
   let (retirement, holder, run_holder) = transfer_preparation_adoption_holders(
-    owner, input, body, ledger, () => Ok(()),
+    owner,
+    input,
+    body,
+    ledger,
+    () => Ok(()),
   ).unwrap()
   assert_true(owner.retirement_claimed)
   (ledger, holder, run_holder, retirement, body, identity)
@@ -251,18 +271,42 @@ fn adopted_running_inventory_fixture() -> (
 ///|
 test "adopted Run grows through retained holder after Request aliases are dropped" {
   let (ledger, holder, run_holder, retirement, body, identity) = adopted_running_inventory_fixture()
-  grow_preparation_body_inventory(run_holder, body, identity, 200L, 100L, 4, 3, 2).unwrap()
+  grow_preparation_body_inventory(
+    run_holder, body, identity, 200L, 100L, 4, 3, 2,
+  ).unwrap()
   assert_eq(ledger.original_inventory.unwrap().max_reservations, 4)
-  assert_true(grow_preparation_body_inventory(run_holder, [2], identity, 300L, 150L, 5, 4, 3) is Err(_))
+  assert_true(
+    grow_preparation_body_inventory(
+      run_holder,
+      [2],
+      identity,
+      300L,
+      150L,
+      5,
+      4,
+      3,
+    )
+    is Err(_),
+  )
   assert_false(retire_transferred_preparation(retirement).unwrap())
-  assert_true(grow_preparation_body_inventory(run_holder, body, identity, 300L, 150L, 5, 4, 3) is Err(_))
+  assert_true(
+    grow_preparation_body_inventory(
+      run_holder, body, identity, 300L, 150L, 5, 4, 3,
+    )
+    is Err(_),
+  )
   assert_false(return_preparation_body_borrow(holder).unwrap())
   // Run cleanup must acknowledge its original census separately from holders.
   assert_false(return_preparation_body_borrow(run_holder).unwrap())
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_true(retire_transferred_preparation(retirement).unwrap())
   assert_eq(ledger_usage(ledger).live_reservations, 0)
-  assert_true(grow_preparation_body_inventory(run_holder, body, identity, 300L, 150L, 5, 4, 3) is Err(_))
+  assert_true(
+    grow_preparation_body_inventory(
+      run_holder, body, identity, 300L, 150L, 5, 4, 3,
+    )
+    is Err(_),
+  )
 }
 
 ///|
@@ -271,23 +315,41 @@ test "adopted Run growth rechecks callback retirement and exact holder return" {
     let (ledger, holder, run_holder, retirement, body, identity) = adopted_running_inventory_fixture()
     let entered = Ref(false)
     ledger.imported_child = Some({
-      nonce:1L, admit:_ => 0,
-      current:_ => {
+      nonce: 1L,
+      admit: _ => 0,
+      current: _ => {
         if !entered.val {
           entered.val = true
-          if retire { retire_transferred_preparation(retirement) |> ignore }
-          else { return_preparation_body_borrow(run_holder) |> ignore }
+          if retire {
+            retire_transferred_preparation(retirement) |> ignore
+          } else {
+            return_preparation_body_borrow(run_holder) |> ignore
+          }
         }
         0
       },
-      limit:(_, _) => 0L, capacity:(_, _) => 0L, report:(_, _) => 0,
-      stop:_ => 0, fixed_capacities:false, working:None, ledger:Some(ledger),
-      stopping:false, unavailable:false,
+      limit: (_, _) => 0L,
+      capacity: (_, _) => 0L,
+      report: (_, _) => 0,
+      stop: _ => 0,
+      fixed_capacities: false,
+      working: None,
+      ledger: Some(ledger),
+      stopping: false,
+      unavailable: false,
     })
-    assert_true(grow_preparation_body_inventory(run_holder, body, identity, 200L, 100L, 4, 3, 2) is Err(_))
+    assert_true(
+      grow_preparation_body_inventory(
+        run_holder, body, identity, 200L, 100L, 4, 3, 2,
+      )
+      is Err(_),
+    )
     assert_eq(ledger.original_inventory.unwrap().max_reservations, 2)
     assert_eq(ledger_usage(ledger).reserved_retention_bytes, 100L)
-    assert_true(preparation_body_borrow_value(holder) is Some(_) || preparation_body_retirement_started(holder))
+    assert_true(
+      preparation_body_borrow_value(holder) is Some(_) ||
+      preparation_body_retirement_started(holder),
+    )
   }
 }
 
@@ -297,7 +359,9 @@ test "running inventory entry carriers are fixed before variable admission" {
   assert_eq(units.record_headers, 10L)
   assert_eq(units.reference_slots, 10L)
   assert_eq(units.scalar_words, 16L)
-  assert_true(physical_equal(units, preparation_inventory_growth_entry_construction()))
+  assert_true(
+    physical_equal(units, preparation_inventory_growth_entry_construction()),
+  )
 }
 
 ///|
@@ -306,23 +370,35 @@ test "adopted holder fences nested entry before another current callback and cle
   let callbacks = Ref(0)
   let refused = Ref(false)
   ledger.imported_child = Some({
-    nonce: 1L, admit: _ => 0,
+    nonce: 1L,
+    admit: _ => 0,
     current: _ => {
       callbacks.val += 1
       refused.val = grow_preparation_body_inventory(
-        run_holder, body, identity, 300L, 150L, 5, 4, 3,
-      ) is Err(WorkActive)
+          run_holder, body, identity, 300L, 150L, 5, 4, 3,
+        )
+        is Err(WorkActive)
       0
     },
-    limit: (_, _) => 0L, capacity: (_, _) => 0L, report: (_, _) => 0,
-    stop: _ => 0, fixed_capacities: false, working: None, ledger: Some(ledger),
-    stopping: false, unavailable: false,
+    limit: (_, _) => 0L,
+    capacity: (_, _) => 0L,
+    report: (_, _) => 0,
+    stop: _ => 0,
+    fixed_capacities: false,
+    working: None,
+    ledger: Some(ledger),
+    stopping: false,
+    unavailable: false,
   })
-  grow_preparation_body_inventory(run_holder, body, identity, 200L, 100L, 4, 3, 2).unwrap()
+  grow_preparation_body_inventory(
+    run_holder, body, identity, 200L, 100L, 4, 3, 2,
+  ).unwrap()
   assert_true(refused.val)
   assert_eq(callbacks.val, 1)
   assert_eq(ledger.original_inventory.unwrap().max_reservations, 4)
-  grow_preparation_body_inventory(run_holder, body, identity, 300L, 150L, 5, 4, 3).unwrap()
+  grow_preparation_body_inventory(
+    run_holder, body, identity, 300L, 150L, 5, 4, 3,
+  ).unwrap()
   assert_eq(callbacks.val, 2)
   assert_eq(ledger.original_inventory.unwrap().max_reservations, 5)
 }
