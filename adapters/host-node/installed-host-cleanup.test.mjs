@@ -43,6 +43,7 @@ function failRequestJournalInitialization(t, phase, closeFailures) {
   const primary = new Error(`RequestJournal${phase}Failure`);
   const cleanup = new Error('RequestJournalInitializationCloseFailure');
   const calls = {schema: 0, prepare: 0, close: 0};
+  let closeAllowed = false;
   DatabaseSync.prototype.exec = function(sql) {
     const result = exec.call(this, sql);
     if (sql.includes('CREATE TABLE IF NOT EXISTS client_requests')) {
@@ -60,7 +61,7 @@ function failRequestJournalInitialization(t, phase, closeFailures) {
     return prepare.call(this, sql);
   };
   DatabaseSync.prototype.close = function() {
-    if (databases.has(this) && ++calls.close <= closeFailures) throw cleanup;
+    if (databases.has(this) && ++calls.close <= closeFailures && !closeAllowed) throw cleanup;
     return close.call(this);
   };
   const restore = () => {
@@ -73,11 +74,32 @@ function failRequestJournalInitialization(t, phase, closeFailures) {
     // Test failure must not leak a real SQLite connection either.
     for (const database of databases) if (database.isOpen) close.call(database);
   });
-  return {primary, cleanup, calls, restore,
+  return {primary, cleanup, calls, restore, allowClose() {closeAllowed = true;},
     assertClosed() {
       assert.equal(databases.size, 1);
       for (const database of databases) assert.equal(database.isOpen, false);
     }};
+}
+
+// Install before the constructor captures its native close. Only the actual
+// request writer identified by its original DDL is faulted, after arming.
+function failRequestJournalClose(t, failure) {
+  const exec = DatabaseSync.prototype.exec, close = DatabaseSync.prototype.close;
+  const databases = new Set(); let armed = false, calls = 0;
+  DatabaseSync.prototype.exec = function(sql) {
+    if (sql.includes('CREATE TABLE IF NOT EXISTS client_requests')) databases.add(this);
+    return Reflect.apply(exec, this, [sql]);
+  };
+  DatabaseSync.prototype.close = function() {
+    if (armed && databases.has(this) && ++calls === 1) throw failure;
+    return Reflect.apply(close, this, []);
+  };
+  t.after(() => {
+    DatabaseSync.prototype.exec = exec; DatabaseSync.prototype.close = close;
+    for (const database of databases) if (database.isOpen) Reflect.apply(close, database, []);
+  });
+  return {arm() {assert.equal(databases.size, 1); armed = true;}, calls: () => calls,
+    assertClosed() {for (const database of databases) assert.equal(database.isOpen, false);}};
 }
 
 for (const phase of ['schema', 'prepare']) {
@@ -135,30 +157,39 @@ for (const phase of ['schema', 'prepare']) {
         registerModelProviders:()=>{registrations++;return [];}};
       const initial = await openInstalledRemoteHttpHost(options);
       await initial.close();
-      // Both the constructor cleanup and the Host's initial drain fail.
-      const fault = failRequestJournalInitialization(t, phase, 2);
+      // Hold the same real native close fault through every initializer drain.
+      const fault = failRequestJournalInitialization(t, phase, Infinity);
       let failure;
       await assert.rejects(openInstalledRemoteHttpHost(options), error => {
         failure = error;
         assert.equal(error.code, 'InstalledHostInitializationFailed');
         assert.equal(error.primaryFailure, fault.primary);
-        assert.equal(error.cause.code, 'InstalledHostInitializationFailed');
-        assert.equal(error.cause.primaryFailure, fault.primary);
-        assert.equal(error.cause.cause.code, 'SqliteJournalInitializationCleanupPending');
-        assert.equal(error.cause.cause.primaryFailure, fault.primary);
-        assert.equal(error.cause.cause.cause, fault.primary);
+        // The current Host retains each actual initial-control/runtime
+        // carrier. Every one must preserve this same original primary.
+        let journalFailure = error, carriers = 0;
+        while (journalFailure.code === 'InstalledHostInitializationFailed' && carriers < 8) {
+          assert.equal(journalFailure.primaryFailure, fault.primary);
+          journalFailure = journalFailure.cause; carriers++;
+        }
+        assert.ok(carriers >= 2 && carriers < 8);
+        assert.equal(journalFailure.code, 'InstalledHostJournalCleanupPending');
+        assert.equal(journalFailure.primaryFailure, fault.primary);
+        assert.equal(journalFailure.cause.code, 'SqliteJournalInitializationCleanupPending');
+        assert.equal(journalFailure.cause.primaryFailure, fault.primary);
+        assert.equal(journalFailure.cause.cause, fault.primary);
         assert.equal(error.cleanupPending, true);
         assert.ok(error.cleanupErrors.some(item => item.error === fault.cleanup));
-        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization', 'runtime']);
+        assert.deepEqual(error.cleanupHandle.status().owners, ['initialization', 'initial-control']);
         return true;
       });
-      assert.equal(fault.calls.close, 2);
+      const pendingCloses = fault.calls.close;
+      assert.ok(pendingCloses >= 2); fault.allowClose();
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
       assert.equal(failure.cleanupPending, false);
       assert.deepEqual(failure.cleanupHandle.status().owners, []);
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
       assert.deepEqual(fault.calls, {schema: 1,
-        prepare: phase === 'prepare' ? 1 : 0, close: 3});
+        prepare: phase === 'prepare' ? 1 : 0, close: pendingCloses + 1});
       fault.assertClosed();
       fault.restore();
       const reopened = await openInstalledRemoteHttpHost(options);
@@ -174,22 +205,17 @@ test('request journal fences admission but retries a failed physical close',
     await mkdir(root, {recursive: true});
     const directory = await mkdtemp(join(root, 'request-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const journal = openClientRequestJournal(directory);
-    const close = DatabaseSync.prototype.close;
     const failure = new Error('RequestJournalCloseFailure');
-    let calls = 0;
-    DatabaseSync.prototype.close = function () {
-      if (++calls === 1) throw failure;
-      return close.call(this);
-    };
-    t.after(() => { DatabaseSync.prototype.close = close; });
+    const fault = failRequestJournalClose(t, failure);
+    const journal = openClientRequestJournal(directory);
+    fault.arm();
     assert.throws(() => journal.close(), error => error === failure);
     assert.throws(() => journal.lookupRunDefinition({}, {}, {}),
       {code: 'ClientRequestJournalClosed'});
     journal.close();
-    assert.equal(calls, 2);
+    assert.equal(fault.calls(), 2);
     journal.close();
-    assert.equal(calls, 2);
+    assert.equal(fault.calls(), 2); fault.assertClosed();
   });
 
 test('Checkpoint installation retains its journal before returning an owner',
@@ -285,7 +311,7 @@ test('installed Host retains a failed Checkpoint initialization close',
     const primary = new Error('CheckpointCommitFailure');
     const cleanup = new Error('CheckpointCloseFailure');
     let commits = 0;
-    let closes = 0;
+    let closes = 0, releaseCleanup = false;
     DatabaseSync.prototype.exec = function(sql) {
       if (sql.includes('CREATE TABLE IF NOT EXISTS runs')) {
         checkpointDatabases.add(this);
@@ -296,7 +322,7 @@ test('installed Host retains a failed Checkpoint initialization close',
       return result;
     };
     DatabaseSync.prototype.close = function() {
-      if (checkpointDatabases.has(this) && ++closes <= 2) throw cleanup;
+      if (checkpointDatabases.has(this)) {closes++; if (!releaseCleanup) throw cleanup;}
       return close.call(this);
     };
     let failure;
@@ -312,8 +338,10 @@ test('installed Host retains a failed Checkpoint initialization close',
           'initialization'));
         return true;
       });
+      const beforeRetry = closes;
+      assert.ok(beforeRetry >= 1); releaseCleanup = true;
       assert.equal((await failure.cleanupHandle.retry()).pending, false);
-      assert.equal(closes, 3);
+      assert.equal(closes, beforeRetry + 1);
     } finally {
       DatabaseSync.prototype.exec = exec;
       DatabaseSync.prototype.close = close;
@@ -512,15 +540,10 @@ test('real journal close failure retains only its Host cleanup owner',
     await mkdir(root, {recursive: true});
     const directory = await mkdtemp(join(root, 'journal-close-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
-    const journal = openClientRequestJournal(directory);
-    const originalClose = DatabaseSync.prototype.close;
     const injectedFailure = new Error('InjectedJournalCloseFailure');
-    let physicalCloseCalls = 0;
-    DatabaseSync.prototype.close = function () {
-      if (++physicalCloseCalls === 1) throw injectedFailure;
-      return originalClose.call(this);
-    };
-    t.after(() => { DatabaseSync.prototype.close = originalClose; });
+    const fault = failRequestJournalClose(t, injectedFailure);
+    const journal = openClientRequestJournal(directory);
+    fault.arm();
     const calls = [];
     const shutdown = createInstalledHostShutdown({
       stop: () => calls.push('stop'),
@@ -547,7 +570,7 @@ test('real journal close failure retains only its Host cleanup owner',
     assert.deepEqual(shutdown.status().pending, []);
     assert.deepEqual(calls, ['stop', 'drain', 'retire', 'checkpoint',
       'journal', 'source', 'effect', 'store', 'journal']);
-    assert.equal(physicalCloseCalls, 2);
+    assert.equal(fault.calls(), 2); fault.assertClosed();
     const reopened = openClientRequestJournal(directory);
     reopened.close();
   });
@@ -560,16 +583,11 @@ test('installed Host refuses requests after a failed physical close',
     await mkdir(root, {recursive: true});
     const directory = await mkdtemp(join(root, 'host-close-'));
     t.after(() => rm(directory, {recursive: true, force: true}));
+    const injectedFailure = new Error('InjectedHostJournalCloseFailure');
+    const fault = failRequestJournalClose(t, injectedFailure);
     const host = await openInstalledRemoteHttpHost({directory,
       authenticate: () => 'owner'});
-    const originalClose = DatabaseSync.prototype.close;
-    const injectedFailure = new Error('InjectedHostJournalCloseFailure');
-    let physicalCloses = 0;
-    DatabaseSync.prototype.close = function () {
-      if (++physicalCloses === 1) throw injectedFailure;
-      return originalClose.call(this);
-    };
-    t.after(() => { DatabaseSync.prototype.close = originalClose; });
+    fault.arm();
     let pending;
     await assert.rejects(host.close(), error => {
       pending = error;
@@ -586,7 +604,7 @@ test('installed Host refuses requests after a failed physical close',
     assert.deepEqual(JSON.parse(body), {code: 'ClientHostClosing'});
     assert.equal((await pending.cleanupHandle.retry()).storeCleanupPending,
       false);
-    assert.ok(physicalCloses >= 2);
+    assert.equal(fault.calls(), 2); fault.assertClosed();
     const reopened = await openInstalledRemoteHttpHost({directory,
       authenticate: () => 'owner'});
     await reopened.close();
@@ -758,7 +776,7 @@ for (const kind of ['frozen', 'undefined']) {
           // until the original Checkpoint and resource shutdown acknowledge.
           assert.deepEqual(error.cleanupHandle.status().pending,
             ['checkpoint', 'journal', 'source', 'effect', 'store', 'diagnostic',
-              'finalize']);
+              'initialControl', 'finalize']);
           return true;
         });
         await failure.cleanupHandle.retry();
