@@ -261,7 +261,7 @@ for (const mode of ['raw', 'managed']) {
 // Actual shared Reader plus the existing Salesforce query sequencer. The Site
 // issuer, typed codecs, same-parent capacity and physical Resource are explicit
 // ports; this is not normal Common/HTTPS or numerical backing acceptance.
-function managedSourceFixture({rejected = false, consumeFailure = false, responseBacking = false, wholeInput = false} = {}) {
+function managedSourceFixture({rejected = false, consumeFailure = false, responseBacking = false, currentBacking = false, wholeInput = false} = {}) {
   const events = [], cells = Object.freeze([Object.freeze([Object.freeze({typed: true})])]);
   const columns = Object.freeze(['Id']), acquisition = Object.freeze({}), declaration = Object.freeze({});
   const plan = Object.freeze({}), query = Object.freeze({}), observation = Object.freeze({});
@@ -287,7 +287,15 @@ function managedSourceFixture({rejected = false, consumeFailure = false, respons
         callResource: input => request.readChild(metadata, input)});
       return {evidence: {observationJson: '{}'}, observationCid: 'original-observation'};
     }});
+  const quotes = [], quantityTokens = new Set();
+  const quantity = (retained, execution) => {
+    const token = Object.freeze({retained, execution});quantityTokens.add(token);return token;
+  };
   const moon = Object.freeze({
+    clientProgramSerializationCapacityBytes(token) {
+      assert(quantityTokens.has(token));return {_0:token.retained,_1:token.execution};
+    },
+    clientProgramRowSourceProviderCapacity: quantity,
     [wholeInput ? 'clientProgramRecheckSalesforceInputProjection'
       : 'clientProgramRecheckSalesforceRowProjection'](d, a, o, max) {
       assert.equal(this, moon);assert.equal(d, declaration);assert.equal(a, acquisition);assert.equal(o, observation);
@@ -339,6 +347,15 @@ function managedSourceFixture({rejected = false, consumeFailure = false, respons
       return prepareSalesforceSourceReadSequence({moon, queryMoon, site, declaration,
         preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization,
         recover(_evidence, run) {assert.equal(run, 'original-run');events.push('recover');return observation;}, limits,
+        ...(currentBacking ? {currentResponseCapacity(input) {
+          assert(chargeByBody.has(input.body));
+          assert.equal(input.receivedBytes, [...chargeByBody.keys()].reduce((sum, body) => sum + BigInt(body.byteLength), 0n));
+          assert.equal(input.responseCount, chargeByBody.size);
+          if (input.path === path) assert.equal(input.read, query);
+          else assert.equal(input.read, undefined);
+          quotes.push(input);events.push('current-quote');
+          return quantity(4096n + input.receivedBytes, input.read === query ? 8192n : 16384n);
+        }} : {}),
         ...(responseBacking ? {responseCapacity(bytes) {
           assert.equal(bytes,Buffer.byteLength('metadata bytes'));events.push('response-quote');return responseCapacity;
         }} : {})});
@@ -351,10 +368,13 @@ function managedSourceFixture({rejected = false, consumeFailure = false, respons
     consumeValues(names, rows, {charge}) {
       assert.equal(names, columns);assert.equal(rows, cells);assert([...chargeByBody.values()].includes(charge));
       consumed++;events.push('consume');if (consumeFailure) throw undefined;return rows.length;
-    }}), undefined, responseBacking ? capacity => {
+    }}), undefined, currentBacking ? capacity => {
+      assert(quantityTokens.has(capacity));
+      assert.equal(capacity.execution,16384n);events.push('current-grow');
+    } : responseBacking ? capacity => {
       assert.equal(capacity,responseCapacity);events.push('response-grow');
     } : undefined);
-  return {reader, factory, events, counts: () => ({charges, consumed, closes, pages})};
+  return {reader, factory, events, quotes, counts: () => ({charges, consumed, closes, pages})};
 }
 
 test('Salesforce response backing quotes its largest original body once before both metadata and typed query consumers', async () => {
@@ -445,4 +465,18 @@ test('Salesforce complete-input sequence selects its original typed projection a
   f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed, true);
   assert.equal(f.factory.retire(), true);
   assert.deepEqual(f.counts(), {charges: 3, consumed: 1, closes: 1, pages: 1});
+});
+
+
+test('Salesforce current constructor receives the original body and query with exact raw-prefix counters', async () => {
+  const f=managedSourceFixture({currentBacking:true});
+  assert.deepEqual(await f.reader.read(),{pages:3,rowCount:1});
+  assert.deepEqual(f.quotes.map(value=>value.metadataBytes),[14,14,14]);
+  assert.deepEqual(f.quotes.map(value=>value.receivedBytes),[14n,28n,39n]);
+  assert.deepEqual(f.quotes.map(value=>value.responseCount),[1,2,3]);
+  assert.equal(f.events.filter(value=>value==='current-grow').length,3);
+  assert(f.events.indexOf('current-grow')<f.events.indexOf('recover'));
+  assert(f.events.lastIndexOf('current-grow')<f.events.indexOf('decode'));
+  f.reader.requestStop();assert.equal(f.reader.observe().cleanupConfirmed,true);
+  assert.equal(f.factory.retire(),true);
 });

@@ -521,7 +521,8 @@ export function createInstalledCredentialSourceReader(options) {
               }
               await verifyChild();
               if (responseCapacity !== undefined) {
-                const capacity = callProjection(responseCapacity, provider, [response.body.byteLength]);
+                const capacity = callProjection(responseCapacity, provider, [response.body.byteLength,
+                  response.body, request.target, responseBytes, responseCount]);
                 callProjection(reserveResponseCapacity, undefined, [capacity]);
                 // Same checked Resource current boundary above; do not repeat
                 // its external callback merely to inspect these local fences.

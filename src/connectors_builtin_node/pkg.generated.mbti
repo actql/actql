@@ -1802,6 +1802,8 @@ pub fn client_program_installed_provider_row_capture_capacity_matches(@client_lo
 
 pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_salesforce_current_response_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int, @actql/actql/connectors/salesforce/catalog.QueryRead?, String, Bytes?, Int64, Int) -> Result[@execution_relation.ExecutionCapacity, @actql/actql/connectors/salesforce/catalog.QueryReadIssue]
+
 pub fn client_program_installed_salesforce_source_reader_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_installed_salesforce_source_reader_response_capacity(Array[Int], Int, Int, Array[Int], Int, Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?

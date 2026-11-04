@@ -247,7 +247,7 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     maxTargetBytes, maxValueNodes: readLimits.maxNodes, maxValueTextBytes: readLimits.maxBytes,
     maxRowsWireBytes: readLimits.maxBytes, maxRowsWireNodes: readLimits.maxNodes,
     maxRowsWireDepth: readLimits.maxDepth, maxSecretBytes: readerPolicy[0]});
-  const capacityMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSalesforceSourceReaderResponseCapacity');
+  const capacityMethod = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledSalesforceCurrentResponseCapacity');
   if (!capacityMethod || !Object.hasOwn(capacityMethod, 'value') || typeof capacityMethod.value !== 'function') {
     fail('InstalledSourceReaderRuntimeUnavailable');
   }
@@ -257,16 +257,14 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
       name => DEFAULT_SALESFORCE_CATALOG_LIMITS.describe[name])),
     DEFAULT_SALESFORCE_CATALOG_LIMITS.maxObservationBytes, bindingUnits, resourceUnits,
     readLimits.maxPages, site.apiVersion.length, 4096]);
-  const responseCapacity = bytes => {
-    const value = Reflect.apply(capacityMethod.value, moon, [...capacityArguments, bytes]);
-    if (value === undefined || value === null) fail('InstalledSourceReaderCapacityUnavailable');
-    return value;
-  };
-  // Raw response retention and the protocol/request controls precede I/O.
-  // Only an actually owned body supplies the subsequent parser extent; its
-  // original limits remain unchanged and the SAME RowRun grows before decode.
-  const capacity = responseCapacity(0);
-  if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
+  const currentResponseCapacity = ({metadataBytes, read, path = '', body,
+    receivedBytes, responseCount}) => checked(Reflect.apply(capacityMethod.value,
+    moon, [...capacityArguments, metadataBytes, read, path, body,
+      receivedBytes, responseCount]));
+  // Fund one next physical body and fixed preflight controls. Received raw
+  // originals grow from this same reader's actual counters, not maxTotal.
+  const capacity = currentResponseCapacity({metadataBytes: 0,
+    receivedBytes: 0n, responseCount: 0});
   const sequence = Object.freeze({operation: 'salesforce:query:read', maxUses: readLimits.maxPages,
     children: Object.freeze([Object.freeze({operation: 'salesforce:catalog:describe', maxUses: 2})])});
   const implementation = construction.sourceReaderImplementation({limits: readerLimits,
@@ -276,7 +274,7 @@ async function installedSalesforceAdapter({moon, queryMoon, site, authorization,
     prepareReadSequence(input) {
       return prepareSalesforceSourceReadSequence({moon, queryMoon, site, declaration, recover,
         preparedRead: input.preparedRead, originalAuthorization: input.originalAuthorization,
-        limits: readLimits, responseCapacity});
+        limits: readLimits, currentResponseCapacity});
     }});
   const binding = installedSalesforceSiteBinding(site, connectorId);
   return construction.createRowSource({bindingCid: binding.bindingCid, providerReader,

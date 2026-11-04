@@ -370,3 +370,29 @@ Ledger or retired custody refuses without falling back to a standalone Run.
 Compute stops before the borrowed lookup and Direct input are reclaimed;
 their cleanup and final parent retirement remain separate duties. The
 standalone path and Model/serialization purposes retain their own contracts.
+
+## Salesforce response construction on the original reader
+
+The installed Salesforce reader charges and retains each original response
+before projection. Its raw-body inventory consists of the received prefix and
+one next bounded transport buffer, including the first offending response. The
+aggregate byte and response-count limits remain rejection limits; future pages
+are not already allocated bodies.
+
+The existing QueryRead retains the original body, path and digest with the
+Source preflight cursor. Unicode and byte preflight observe wire geometry
+before grammar construction. This geometry bounds malformed prefixes as well
+as successful input; it is neither a parsed page nor authority to execute.
+The same RowRun must admit the constructor peak before QueryRead transfers and
+advances that same parser. A copied or changed body cannot consume the cursor.
+The original JSON, node, depth, field, row and locator checks still decide
+admission. Missing nullable cells, compound roles and multipicklist expansion
+remain in the value-construction inventory.
+
+Prior Describe material and the next query workspace have separate extents.
+A large query body does not enlarge an already completed Describe parser.
+Only one query page is pending; its original acknowledgment precedes the next
+locator request. Interruption retires its pending parser through the existing
+QueryRead, while the reader retains raw responses, failed children and physical
+cleanup responsibilities. Neither parser retirement nor a quantity quote is a
+physical-stop or Host-close acknowledgment.

@@ -252,6 +252,8 @@ fn sf_read_query_construction_inventory(
   pages : Int,
   api_units : Int,
   soql_units : Int,
+  source_nodes? : Int? = None,
+  value_nodes? : Int? = None,
 ) -> @execution.PreparationExecutionInventory? {
   if limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
@@ -264,6 +266,17 @@ fn sf_read_query_construction_inventory(
     soql_units < 1 ||
     limits.max_nodes == 2147483647 {
     return None
+  }
+  let parser_nodes = Int::max(
+    1,
+    Int::min(limits.max_nodes, source_nodes.unwrap_or(limits.max_nodes)),
+  )
+  let limits = {
+    ..limits,
+    max_nodes: Int::max(
+      1,
+      Int::min(limits.max_nodes, value_nodes.unwrap_or(limits.max_nodes)),
+    ),
   }
   let n = limits.max_nodes.to_int64()
   let width = columns.to_int64()
@@ -420,7 +433,7 @@ fn sf_read_query_construction_inventory(
   }
   guard @decode.preserving_json_admission_construction_inventory(
       limits.max_bytes,
-      limits.max_nodes,
+      parser_nodes,
       limits.max_depth,
     )
     is Some(parsed) &&
@@ -610,13 +623,21 @@ pub fn native_read_construction_capacity(
   pages : Int,
   api_units : Int,
   soql_units : Int,
+  query_geometry? : @source.JsonSourceGeometry? = None,
+  value_nodes? : Int? = None,
 ) -> @execution.ExecutionCapacity? {
   guard sf_read_observation_construction_inventory(
       describe, max_observation_bytes, binding_units, resource_units,
     )
     is Some(metadata) &&
     sf_read_query_construction_inventory(
-      query, columns, pages, api_units, soql_units,
+      query,
+      columns,
+      pages,
+      api_units,
+      soql_units,
+      source_nodes=query_geometry.map(geometry => geometry.node_upper),
+      value_nodes~,
     )
     is Some(query) &&
     @execution.compose_preparation_representation([

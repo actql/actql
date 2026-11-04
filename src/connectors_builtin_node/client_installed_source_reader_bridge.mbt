@@ -261,3 +261,129 @@ fn installed_salesforce_reader_capacity(
   }
   @execution.add_execution_capacity(capacity, controls)
 }
+
+///|
+/// This is the existing reader's next constructor DATA, not admission or a
+/// replacement query. The QueryRead retains its original preflight before any
+/// fallible quote; only its same body/path can later consume that parser.
+#export_name("clientProgramInstalledSalesforceCurrentResponseCapacity")
+pub fn client_program_installed_salesforce_current_response_capacity(
+  limits : Array[Int],
+  columns : Int,
+  secret_bytes : Int,
+  describe : Array[Int],
+  max_observation_bytes : Int,
+  binding_units : Int,
+  resource_units : Int,
+  query_pages : Int,
+  api_units : Int,
+  soql_units : Int,
+  metadata_bytes : Int,
+  read : @salesforce_catalog.QueryRead?,
+  path : String,
+  body : Bytes?,
+  received_bytes : Int64,
+  received_responses : Int,
+) -> Result[@execution.ExecutionCapacity, @salesforce_catalog.QueryReadIssue] {
+  if limits.length() != 16 ||
+    describe.length() != 5 ||
+    metadata_bytes < 0 ||
+    metadata_bytes > describe[0] ||
+    query_pages < 1 ||
+    query_pages > 2147483645 ||
+    limits[6] != query_pages + 2 {
+    return Err(InvalidLimits)
+  }
+  let (geometry, value_nodes, query_columns) = match (read, body) {
+    (Some(read), Some(body)) => {
+      let geometry = match
+        @salesforce_catalog.prepare_query_read_response(read, path, body) {
+        Ok(geometry) => geometry
+        Err(issue) => return Err(issue)
+      }
+      (
+        Some(geometry),
+        Some(
+          @salesforce_catalog.query_read_response_value_node_bound(
+            read, geometry,
+          ),
+        ),
+        @salesforce_catalog.query_read_response_columns(read),
+      )
+    }
+    (Some(_), None) => return Err(InvalidLimits)
+    (None, _) => (None, None, columns)
+  }
+  let metadata = Int::max(1, metadata_bytes)
+  let query_bytes = geometry.map(g => Int::max(1, g.input_bytes)).unwrap_or(1)
+  let native = @salesforce_host.native_read_construction_capacity(
+    {
+      max_bytes: metadata,
+      max_nodes: Int::min(describe[1], metadata),
+      max_depth: describe[2],
+      max_fields: describe[3],
+      max_name_units: describe[4],
+    },
+    {
+      max_bytes: query_bytes,
+      max_nodes: if geometry is Some(_) {
+        limits[2]
+      } else {
+        1
+      },
+      max_depth: limits[3],
+      max_rows: limits[4],
+      max_locator_units: limits[8],
+    },
+    max_observation_bytes,
+    binding_units,
+    resource_units,
+    query_columns,
+    query_pages,
+    api_units,
+    soql_units,
+    query_geometry=geometry,
+    value_nodes=if geometry is Some(_) { value_nodes } else { Some(1) },
+  )
+  guard @client_local_host.installed_native_source_reader_capacity(
+      limits,
+      columns,
+      secret_bytes,
+      native,
+      received=Some((received_bytes, received_responses)),
+    )
+    is Some(reader) else {
+    return Err(InvalidLimits)
+  }
+  // Existing callback/peak carrier plus original query/metadata scalar slots.
+  // Current DTO, two projected quantity tuples, Result/Option/error paths and
+  // coordinate-maximum composition coexist only during this synchronous cut.
+  guard @encode.hash_writer_live_key_inventory(0, 0) is Some(hash) else {
+    return Err(InvalidLimits)
+  }
+  guard @execution.preparation_execution_capacity({
+      retained: {
+        record_headers: 6L,
+        reference_slots: 24L,
+        scalar_words: 4L,
+        owned_utf16_units: 128L,
+        owned_wire_bytes: 0L,
+      },
+      workspace: {
+        record_headers: 32L + hash.record_headers,
+        reference_slots: 88L + hash.reference_slots,
+        scalar_words: 40L + hash.scalar_words,
+        owned_utf16_units: hash.owned_utf16_units,
+        owned_wire_bytes: hash.owned_wire_bytes,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    })
+    is Some(controls) &&
+    @execution.add_execution_capacity(reader, controls) is Some(capacity) else {
+    return Err(InvalidLimits)
+  }
+  Ok(capacity)
+}
