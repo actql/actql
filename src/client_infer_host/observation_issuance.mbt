@@ -69,11 +69,16 @@ pub struct ObservationIssuance {
 // Compiler order is independent of which original finishes first and retains
 // the ONE whole-Run publication borrow. Find that actual nominal receiver
 // without reordering members; a non-owner comparison runs no current callback.
-fn complete_original_observation_funding_current(
+fn original_observation_inventory_valid(owners : Array[Execution]) -> Bool {
+  !owners.is_empty() && owners.length() <= 128
+}
+
+///|
+fn complete_original_observation_backing_current(
   owners : Array[Execution],
   capacity : @model.OriginalModelPublicationCapacity,
 ) -> Bool {
-  if owners.is_empty() || owners.length() > 128 {
+  if !original_observation_inventory_valid(owners) {
     return false
   }
   let found = owners.any(active => {
@@ -83,17 +88,32 @@ fn complete_original_observation_funding_current(
   })
   found &&
   owners.all(active => {
-    original_infer_publication_owner_current(active) &&
+    !active.advancing &&
+    !active.reclaimed &&
+    active.phase is Terminal &&
+    active.model is Some(model) &&
+    active.call_scope is Some(scope) &&
     @model.original_model_publication_capacity_matches_parent(
-      capacity,
-      active.model.unwrap(),
-      active.call_scope.unwrap(),
+      capacity, model, scope,
     )
   })
 }
 
 ///|
-fn observation_issuance_funding_current(
+// New issuance still needs the original handed-off read. Retirement of
+// already-owned metadata needs its SAME live Model/publication backing, not
+// permission to produce more evidence after the read consumer was stopped.
+fn complete_original_observation_funding_current(
+  owners : Array[Execution],
+  capacity : @model.OriginalModelPublicationCapacity,
+) -> Bool {
+  original_observation_inventory_valid(owners) &&
+  owners.all(original_infer_publication_owner_current) &&
+  complete_original_observation_backing_current(owners, capacity)
+}
+
+///|
+fn observation_issuance_backing_current(
   state : ObservationIssuanceState,
 ) -> Bool {
   match state.funding {
@@ -101,8 +121,19 @@ fn observation_issuance_funding_current(
       @resources.reservation_open(reservation) &&
       @resources.check_original_resources_mutable(ledger) is Ok(_)
     Some(Original(capacity)) =>
-      complete_original_observation_funding_current(state.owners, capacity)
+      complete_original_observation_backing_current(state.owners, capacity)
     None => false
+  }
+}
+
+///|
+fn observation_issuance_funding_current(
+  state : ObservationIssuanceState,
+) -> Bool {
+  match state.funding {
+    Some(Original(capacity)) =>
+      complete_original_observation_funding_current(state.owners, capacity)
+    _ => observation_issuance_backing_current(state)
   }
 }
 
@@ -738,7 +769,7 @@ pub fn cleanup_observation_issuance(
   if active.uses > 0 || !@bounded.session_stopped(active.session) {
     return Ok(false)
   }
-  if !observation_issuance_funding_current(active.state) {
+  if !observation_issuance_backing_current(active.state) {
     return Err(Model(@model.OutputIdentity))
   }
   // The legacy metadata Ledger can differ from the borrowed Models. Check

@@ -55,6 +55,13 @@ actual read and Scope retires before the existing Run and Request aliases are
 severed. Construction failure and cancellation use this same cleanup sequence.
 A pending child, reentry or replaced carrier cannot become parent cleanup ACK.
 
+Stopping the original read consumer prevents new observation issuance and
+further evidence work. It does not prevent retirement of already-owned
+observation metadata. That retirement still requires the same live original
+Model, Scope, publication reservation and mutable Resource fence; a parked or
+foreign backing is refused. Retiring the metadata does not return the caller's
+publication borrow or acknowledge its remaining Store and alias duties.
+
 A complete group is not a singular Model-state writer. The existing singular
 writer refuses a group before consuming its descriptor. Authenticated recovery
 and independent saved Result access retain their existing contracts; a fresh
