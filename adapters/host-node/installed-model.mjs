@@ -7,18 +7,43 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation, retainInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {types as nodeTypes} from 'node:util';
+import {runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 
-const modelExecutionAbsences = new WeakMap();
+const modelMetadataRefusals = new WeakMap();
 const originalArrayIterator = Array.prototype[Symbol.iterator];
 const originalArrayFind = Array.prototype.find;
+const originalArrayMap = Array.prototype.map;
+const originalArrayFilter = Array.prototype.filter;
 
 // Consume this reader's exact synchronous absence once. A copied exception,
 // another Prepared/installation/occurrence or a callback throw is no proof.
 export function consumeInstalledModelExecutionAbsence(error, prepared, installation, occurrence) {
-  const original = modelExecutionAbsences.get(error);
-  modelExecutionAbsences.delete(error);
+  return consumeInstalledModelPreparationRefusal(error, prepared, installation, occurrence);
+}
+
+export function consumeInstalledModelPreparationRefusal(error, prepared, installation, occurrence,
+  beforeRead, execution) {
+  const original = modelMetadataRefusals.get(error);
+  modelMetadataRefusals.delete(error);
   return original !== undefined && original.prepared === prepared &&
-    original.installation === installation && original.occurrence === occurrence;
+    original.installation === installation && original.occurrence === occurrence &&
+    (original.beforeRead === undefined || original.beforeRead === beforeRead) &&
+    (original.execution === undefined || original.execution === execution);
+}
+
+function originalModelMaterialIntrinsics() {
+  return Object.getOwnPropertyDescriptor(Array.prototype, Symbol.iterator)?.value === originalArrayIterator &&
+    Object.getOwnPropertyDescriptor(Array.prototype, 'find')?.value === originalArrayFind &&
+    Object.getOwnPropertyDescriptor(Array.prototype, 'map')?.value === originalArrayMap &&
+    Object.getOwnPropertyDescriptor(Array.prototype, 'filter')?.value === originalArrayFilter;
+}
+
+function checkedModelMetadata(result, original) {
+  // Only this original native RETURN, after successful synchronous material
+  // funding, supplies the witness. Callback/native throws never enter here.
+  if (original === undefined || !runtimeIsError(result)) return checked(result);
+  try {return checked(result);}
+  catch (error) {modelMetadataRefusals.set(error, original); throw error;}
 }
 
 // These are aliases in the existing installation, not another Provider
@@ -448,30 +473,33 @@ export function installModelProviders(moon, register, assertHostRuntime,
   return result;
 }
 
-export function readInstalledModelDependencies(moon, execution, installation, beforeRead) {
+export function readInstalledModelDependencies(moon, execution, installation, beforeRead, prepared, occurrence) {
   if (beforeRead !== undefined) {
     const original = originalModelMaterialArrays(installation);
     const references = moon.clientProgramInferDependencyReferences(execution);
     const media = moon.clientProgramInferMediaDependencyReferences(execution);
     const read = media.length !== 0 ? moon.clientProgramReadInferModelDependenciesWithMedia
       : moon.clientProgramReadInferModelDependencies;
-    beforeRead(3 + media.length, index => {
+    const funded = beforeRead(3 + media.length, index => {
       const cid = index < 3 ? runtimeField(references, index) : runtimeField(media[index - 3], 1);
       // Empty is sizing DATA for an absent body only. The actual reader below
       // still receives undefined and keeps its original missing-body refusal.
       return original.bodies.find(entry => entry.cid === cid)?.bodyWire ?? '';
     }, original.executions.length + original.bodies.length);
+    const witness = funded === undefined && prepared !== undefined &&
+      original.ordinaryOriginal && originalModelMaterialIntrinsics()
+      ? {prepared, installation, occurrence, beforeRead, execution} : undefined;
     checkInstallation(installation);
     const bodies = new Map(original.bodies.map(entry => [entry.cid, entry.bodyWire]));
     if (media.length !== 0) {
-      return checked(Reflect.apply(read, moon, [execution,
+      return checkedModelMetadata(Reflect.apply(read, moon, [execution,
         bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)), bodies.get(runtimeField(references, 2)),
         media.filter(entry => bodies.has(runtimeField(entry, 1))).map(entry =>
-          runtimePair(runtimeField(entry, 0), bodies.get(runtimeField(entry, 1))))]));
+          runtimePair(runtimeField(entry, 0), bodies.get(runtimeField(entry, 1))))]), witness);
     }
-    return checked(Reflect.apply(read, moon, [execution,
+    return checkedModelMetadata(Reflect.apply(read, moon, [execution,
       bodies.get(runtimeField(references, 0)), bodies.get(runtimeField(references, 1)),
-      bodies.get(runtimeField(references, 2))]));
+      bodies.get(runtimeField(references, 2))]), witness);
   }
   return readInstalledModelDependenciesLegacy(moon, execution, installation);
 }
@@ -565,7 +593,7 @@ export function readInstalledModelExecution(moon, prepared, installation, occurr
     if (original.emptyOriginal === true) {
       const error = Object.assign(new Error('InstalledInferModelExecutionUnavailable'),
         {code: 'InstalledInferModelExecutionUnavailable'});
-      modelExecutionAbsences.set(error, {prepared, installation, occurrence});
+      modelMetadataRefusals.set(error, {prepared, installation, occurrence});
       throw error;
     }
     const taskCid = occurrence === undefined ? moon.clientProgramInferModelTaskCid(prepared, step)
@@ -578,10 +606,12 @@ export function readInstalledModelExecution(moon, prepared, installation, occurr
     const wire = entry.bodyWire, cid = entry.cid;
     const read = occurrence === undefined ? moon.clientProgramReadInferModelExecution
       : moon.clientProgramReadComposedInferModelExecution;
-    beforeRead(1, () => wire, original.executions.length + original.bodies.length);
+    const funded = beforeRead(1, () => wire, original.executions.length + original.bodies.length);
+    const witness = funded === undefined && original.ordinaryOriginal && originalModelMaterialIntrinsics()
+      ? {prepared, installation, occurrence, beforeRead} : undefined;
     checkInstallation(installation);
-    return Object.freeze({step, execution: checked(Reflect.apply(read, moon,
-      occurrence === undefined ? [prepared, step, wire, cid] : [occurrence, wire, cid]))});
+    return Object.freeze({step, execution: checkedModelMetadata(Reflect.apply(read, moon,
+      occurrence === undefined ? [prepared, step, wire, cid] : [occurrence, wire, cid]), witness)});
   }
   return readInstalledModelExecutionLegacy(moon, prepared, installation, occurrence);
 }
@@ -622,18 +652,6 @@ function originalModelMaterialArrays(installation) {
       !Object.isFrozen(executions.value) || !Object.isFrozen(bodies.value)) {
     throw new TypeError('InstalledModelMaterialOriginalUnavailable');
   }
-  // Only ordinary immutable empty DATA can establish absence without running
-  // an iterator, element getter, replacement find or the funded read callback.
-  // Other accepted originals keep their existing reader and Unknown behavior.
-  if (!nodeTypes.isProxy(installation) &&
-      [executions.value, bodies.value].every(entries => !nodeTypes.isProxy(entries) &&
-        Object.getPrototypeOf(entries) === Array.prototype && entries.length === 0 &&
-        Object.getOwnPropertyDescriptor(entries, Symbol.iterator) === undefined &&
-        Object.getOwnPropertyDescriptor(entries, 'find') === undefined) &&
-      Object.getOwnPropertyDescriptor(Array.prototype, Symbol.iterator)?.value === originalArrayIterator &&
-      Object.getOwnPropertyDescriptor(Array.prototype, 'find')?.value === originalArrayFind) {
-    return {executions: executions.value, bodies: bodies.value, emptyOriginal: true};
-  }
   const ownString = (entry, key) => {
     if (entry === null || typeof entry !== 'object' || !Object.isFrozen(entry)) {
       throw new TypeError('InstalledModelMaterialOriginalUnavailable');
@@ -643,10 +661,37 @@ function originalModelMaterialArrays(installation) {
       throw new TypeError('InstalledModelMaterialOriginalUnavailable');
     }
   };
-  for (const entry of executions.value) {
-    ownString(entry, 'modelTaskCid'); ownString(entry, 'bodyWire'); ownString(entry, 'cid');
-  }
-  for (const entry of bodies.value) {ownString(entry, 'bodyWire'); ownString(entry, 'cid');}
-  return {executions: executions.value, bodies: bodies.value};
+  const validate = (entries, fields) => {
+    const ordinaryArray = !nodeTypes.isProxy(entries) &&
+      Object.getPrototypeOf(entries) === Array.prototype &&
+      Reflect.ownKeys(entries).length === entries.length + 1 && originalModelMaterialIntrinsics();
+    let ordinary = ordinaryArray;
+    const entryFields = entry => {
+      const plain = entry !== null && typeof entry === 'object' && !nodeTypes.isProxy(entry) &&
+        [Object.prototype, null].includes(Object.getPrototypeOf(entry));
+      ordinary &&= plain && Reflect.ownKeys(entry).length === fields.length;
+      for (const key of fields) ownString(entry, key);
+    };
+    if (ordinaryArray) {
+      // Inspect each original field once. Accessors retain their old reader
+      // behavior but cannot supply a callback-free native-result witness.
+      for (let index = 0; index < entries.length; index++) {
+        const field = Object.getOwnPropertyDescriptor(entries, String(index));
+        const own = field !== undefined && Object.hasOwn(field, 'value');
+        ordinary &&= own;
+        entryFields(own ? field.value : entries[index]);
+      }
+    } else for (const entry of entries) entryFields(entry);
+    return ordinary;
+  };
+  const ordinaryExecutions = validate(executions.value, ['modelTaskCid', 'bodyWire', 'cid']);
+  const ordinaryBodies = validate(bodies.value, ['bodyWire', 'cid']);
+  const environment = Object.getOwnPropertyDescriptor(installation, 'environmentWire');
+  const ordinaryOriginal = !nodeTypes.isProxy(installation) &&
+    [Object.prototype, null].includes(Object.getPrototypeOf(installation)) &&
+    Reflect.ownKeys(installation).length === 3 && typeof environment?.value === 'string' &&
+    ordinaryExecutions && ordinaryBodies;
+  return {executions: executions.value, bodies: bodies.value, ordinaryOriginal,
+    emptyOriginal: ordinaryOriginal && executions.value.length === 0};
 }
 
