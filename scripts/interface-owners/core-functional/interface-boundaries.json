@@ -50513,7 +50513,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "f36374e195cf65834f4021bdb3994e5abe308bf4b164d9ee3a286c95e4041baa",
+      "sha256": "e63d516f98dc039588d3c72a6836bf768bf00c2e5f5cc6dfa7cd6d2756aa0d45",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -50635,6 +50635,10 @@
         {
           "name": "client_program_installed_local_file_store_recipe_capacities",
           "declaration": "client_program_installed_local_file_store_recipe_capacities ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , native_original_bytes : Int64 , path_bytes : Int , name_bytes : Int , max_components : Int , native_depth : Int , content_read_window_bytes : Int , control_wire_bytes : Int ? , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_physical_write_recipe_capacities",
+          "declaration": "client_program_installed_physical_write_recipe_capacities ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , physical : @ execution . ExecutionCapacity , control_wire_bytes : Int , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_standard_create_recipe_capacities",
@@ -50821,6 +50825,7 @@
             "client_program_installed_effect_control_wire_bound",
             "client_program_installed_local_file_store_control_wire_bound",
             "client_program_installed_local_file_store_recipe_capacities",
+            "client_program_installed_physical_write_recipe_capacities",
             "client_program_installed_standard_create_request_recipe_capacities"
           ],
           "exports": [],
@@ -50829,36 +50834,60 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
               }
             ],
             "cancellation": [
@@ -50871,18 +50900,38 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
               }
             ],
             "verification": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Sheets append codec lifetime"
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer recipe retains original constructor and unchanged capture/control siblings\""
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
               }
             ]
           }
@@ -76536,6 +76585,97 @@
         }
       ],
       "referenceQualification": "Existing same-Request read-only restoration reservation and constructor-current/nominal/cleanup controls. The existing saved compiled owner, input token and saved Scope remain separate; this source/API registration is not normal Model replay or physical acceptance."
+    },
+    {
+      "module": "src/client_local_host/installed_physical_write_recipe.mbt",
+      "sha256": "57d88dfeba55ef303300f9b0c9d09e708e2f9084fe887a1e2d0f3495434986b2",
+      "exports": [],
+      "operations": [
+        {
+          "name": "installed_physical_write_recipe_capacities",
+          "declaration": "installed_physical_write_recipe_capacities ( body_bytes : Int , body_nodes : Int , body_depth : Int , preview_bytes : Int , preview_nodes : Int , preview_depth : Int , request_bytes : Int , recovery_bytes : Int , response_bytes : Int , stored_bytes : Int , stored_nodes : Int , stored_depth : Int , physical : @ execution . ExecutionCapacity , control_wire_bytes ? : Int ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
+      "referenceQualification": "Existing non-HTTP constructor/capture/control quantity fold only; no Run admission, physical attempt or cleanup acknowledgement",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "installed_physical_write_recipe_capacities"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "Common retains it unchanged and adds only its existing JSON/capture/control"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "pub fn installed_physical_write_recipe_capacities("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer recipe retains original constructor and unchanged capture/control siblings\""
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same installed Effect control reservation keeps management/index growth"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "guard installed_standard_host_capture_row_capacity("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous constructor DATA fold; existing managed Run and retained physical child keep all cancellation and retirement duties."
+            },
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe.mbt",
+                "anchor": "standard_create_saved_control_capacity("
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer recipe retains original constructor and unchanged capture/control siblings\""
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Request-owned execution preparation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer recipe retains original constructor and unchanged capture/control siblings\""
+              },
+              {
+                "path": "src/client_local_host/installed_physical_write_recipe_wbtest.mbt",
+                "anchor": "test \"physical writer refuses invalid bounds and retains full failed request envelope\""
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }
