@@ -13467,7 +13467,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "7f3ffb74742d8cbd1a1abf902ee316e75a78a8807d39521491ae23e55b07e5d5",
+      "sha256": "e1eea0a8707f8b6169d2f44904dd8e1bbdaef9e383a6b17a2126609f25bed09d",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14019,7 +14019,9 @@
             "values",
             "fragment",
             "ordered",
-            "retainedRelationOutput"
+            "retainedRelationOutput",
+            "managedRun",
+            "requestIdentity"
           ],
           "async": true
         },

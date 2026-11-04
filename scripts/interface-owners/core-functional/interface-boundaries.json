@@ -32203,12 +32203,16 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "56fa75aa7b12d61a84b97674b27f421797c98ace2de38134b595eec494c09727",
+      "sha256": "769d6baafe65e039eee2a7f6643663dd78002f7ebbc9f7c6c5627619400311a4",
       "exports": [],
       "operations": [
         {
           "name": "begin_installed_managed_capture_read",
           "declaration": "begin_installed_managed_capture_read ( value : ClientInstalledManagedRun , occurrence : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "bind_retained_installed_capture_host",
+          "declaration": "bind_retained_installed_capture_host ( value : ClientInstalledManagedRun , plan : ClientInstalledManagedCapturePlan , ledger : @ resources . Ledger , run : @ strategy . CapturedDAG , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "installed_managed_capture_plan",
@@ -32221,6 +32225,14 @@
         {
           "name": "open_installed_managed_capture_host_owned",
           "declaration": "open_installed_managed_capture_host_owned ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "open_installed_managed_keyed_capture_host",
+          "declaration": "open_installed_managed_keyed_capture_host ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "open_installed_managed_keyed_capture_host_owned",
+          "declaration": "open_installed_managed_keyed_capture_host_owned ( value : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ ( @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ strategy . CapturedDAG , Array [ @ execution . GeneratedSequence ] , ) , ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "prepare_installed_managed_capture_plan",
@@ -32421,6 +32433,80 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "plain Model module retains"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bind_retained_installed_capture_host",
+            "open_installed_managed_keyed_capture_host",
+            "open_installed_managed_keyed_capture_host_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed relation on the original materializing Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "retained Plan supplies its original Direct capacity, generated sequences and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The same Request, Prepared and Source identities remain bound"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Request's admitted Run Ledger."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Existing current and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Ledger or retired custody refuses without falling back to a standalone Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Compute stops before the borrowed lookup and Direct input are reclaimed;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "RowRun, lookup assembly and Compute reserve their actual demand on that same"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "standalone path and Model/serialization purposes retain their own contracts."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"managed keyed Source borrows its original Request Ledger without another whole-budget quote\""
+              },
+              {
+                "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
               }
             ]
           }
@@ -58518,7 +58604,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_whole_source_capture_bridge.mbt",
-      "sha256": "cf876b4bd376813cab562b747e1dd84f67aa08f52a29f40d1f67b45cafb96fec",
+      "sha256": "ca3078d97fd8cd1000e16a816cc923adfa451c58cc8338628e64d55ab26eac3f",
       "exports": [],
       "operations": [
         {
@@ -58556,6 +58642,10 @@
         {
           "name": "client_program_open_installed_managed_capture_host",
           "declaration": "client_program_open_installed_managed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "client_program_open_installed_managed_keyed_capture_host",
+          "declaration": "client_program_open_installed_managed_keyed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "client_program_prepare_installed_managed_whole_source_plan",
@@ -58930,6 +59020,78 @@
               {
                 "path": "src/client_local_host/installed_whole_source_query_time_js_wbtest.mbt",
                 "anchor": "whole Source timed Plan and module retain the first original invocation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_open_installed_managed_keyed_capture_host"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed relation on the original materializing Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "retained Plan supplies its original Direct capacity, generated sequences and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The same Request, Prepared and Source identities remain bound"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Request's admitted Run Ledger."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Existing current and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Ledger or retired custody refuses without falling back to a standalone Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Compute stops before the borrowed lookup and Direct input are reclaimed;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "RowRun, lookup assembly and Compute reserve their actual demand on that same"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "standalone path and Model/serialization purposes retain their own contracts."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"managed keyed Source borrows its original Request Ledger without another whole-budget quote\""
+              },
+              {
+                "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
               }
             ]
           }
@@ -59385,7 +59547,7 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_whole_source_capture_bridge.mbt",
-      "sha256": "7f8865f6c9bac0c0383ec24764ef1e19021124e38488759008524eebc9677d12",
+      "sha256": "210f285c099ed3fd61371e20abbb77a7f44a3a214d710d4652f74660de857e12",
       "exports": [],
       "operations": [
         {
@@ -59423,6 +59585,10 @@
         {
           "name": "client_program_open_installed_managed_capture_host",
           "declaration": "client_program_open_installed_managed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , sources : Array [ @ query . CapturedInputSource ] , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
+        },
+        {
+          "name": "client_program_open_installed_managed_keyed_capture_host",
+          "declaration": "client_program_open_installed_managed_keyed_capture_host ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , lookup : @ publication_host . ClientKeyedLookupInput , ) - > Result [ @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , @ client_local_host . ClientInstalledCaptureHostIssue , ]"
         },
         {
           "name": "client_program_prepare_installed_managed_whole_source_plan",
@@ -59797,6 +59963,78 @@
               {
                 "path": "src/client_local_host/installed_whole_source_query_time_js_wbtest.mbt",
                 "anchor": "whole Source timed Plan and module retain the first original invocation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_open_installed_managed_keyed_capture_host"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Keyed relation on the original materializing Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "retained Plan supplies its original Direct capacity, generated sequences and"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The same Request, Prepared and Source identities remain bound"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Request's admitted Run Ledger."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Existing current and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Ledger or retired custody refuses without falling back to a standalone Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Compute stops before the borrowed lookup and Direct input are reclaimed;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "RowRun, lookup assembly and Compute reserve their actual demand on that same"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "standalone path and Model/serialization purposes retain their own contracts."
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"managed keyed Source borrows its original Request Ledger without another whole-budget quote\""
+              },
+              {
+                "path": "src/client_local_host/installed_keyed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"managed keyed Host retains the original configuration and rejects a foreign Ledger\""
               }
             ]
           }

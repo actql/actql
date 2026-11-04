@@ -2644,6 +2644,8 @@ pub fn client_program_open_captured_local_retained_host(@run_publication_host.Pr
 
 pub fn client_program_open_installed_managed_capture_host(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[@execution_query.CapturedInputSource]) -> Result[@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_local_host.ClientInstalledCaptureHostIssue]
 
+pub fn client_program_open_installed_managed_keyed_capture_host(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientKeyedLookupInput) -> Result[@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @client_local_host.ClientInstalledCaptureHostIssue]
+
 pub fn client_program_open_installed_managed_source_free_composed_infer_host(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Array[@local.ManagedProvider]) -> Result[@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_open_installed_managed_source_free_host(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_local_host.ClientInstalledSequenceContracts, String, String?, String?, Bool) -> Result[@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue]?, @client_local_host.ClientInstalledManagedRunIssue]

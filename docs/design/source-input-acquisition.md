@@ -351,3 +351,22 @@ strand a later original read until global installation close. Unknown physical
 work still blocks this cut. No read, retry, replacement Ledger or cleanup ACK is
 created by returning an unentered preparation. Per-capture cleanup and complete
 Run/preparation retirement remain different observation boundaries.
+
+## Keyed relation on the original materializing Run
+
+An ordinary Direct Source followed by a keyed relation borrows the same
+Request's admitted Run Ledger. Optional cardinality estimates do not create
+a second budget or turn an unknown row count into a checked bound. The
+retained Plan supplies its original Direct capacity, generated sequences and
+configured Compute; opening the keyed input does not check or compile again.
+The same Request, Prepared and Source identities remain bound, including the
+right-side key, version, correlation and current read authorization.
+
+RowRun, lookup assembly and Compute reserve their actual demand on that same
+finite Ledger before use and grow there as actual inputs arrive. A whole
+execution ceiling is not an additional execution cost. Existing current and
+post-callback original fences remain authoritative. Foreign Request, capacity,
+Ledger or retired custody refuses without falling back to a standalone Run.
+Compute stops before the borrowed lookup and Direct input are reclaimed;
+their cleanup and final parent retirement remain separate duties. The
+standalone path and Model/serialization purposes retain their own contracts.

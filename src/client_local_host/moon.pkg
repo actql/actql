@@ -120,6 +120,7 @@ options(
     "preparation_request_serialization_compilation_js_wbtest.mbt": [ "js" ],
     "installed_keyed_content_originals_js_wbtest.mbt": [ "js" ],
     "installed_capture_original_row_js_wbtest.mbt": [ "js" ],
+    "installed_keyed_capture_parent_js_wbtest.mbt": [ "js" ],
     "installed_capture_provider_source_js_wbtest.mbt": [ "js" ],
     "preparation_request_query_syntax_js_wbtest.mbt": [ "js" ],
     "preparation_request_query_lowering_js_wbtest.mbt": [ "js" ],

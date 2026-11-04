@@ -2523,7 +2523,8 @@ export async function createInstalledRowSource({moon, declaration, commands,
           return checked(moon.clientProgramKeyedLookupOpenDag(preparedProgram,
             lookup, ledger));
         },
-        async openHost({registry, values, fragment, ordered, retainedRelationOutput = false}) {
+        async openHost({registry, values, fragment, ordered, retainedRelationOutput = false,
+          managedRun, requestIdentity}) {
           if (closed) fail('InstalledSourceClosed');
           signal?.throwIfAborted();
           for (const child of children) {
@@ -2532,6 +2533,14 @@ export async function createInstalledRowSource({moon, declaration, commands,
           }
           if (closed) fail('InstalledSourceClosed');
           if (preparedEffect !== undefined) fail('InstalledKeyedEffectDagRequiresRunOwner');
+          if (managedRun !== undefined || requestIdentity !== undefined) {
+            if (managedRun === undefined || requestIdentity === undefined ||
+                typeof moon.clientProgramOpenInstalledManagedKeyedCaptureHost !== 'function') {
+              fail('InstalledKeyedHostOriginalRunUnavailable');
+            }
+            return checked(moon.clientProgramOpenInstalledManagedKeyedCaptureHost(
+              managedRun, preparedProgram, requestIdentity, lookup));
+          }
           const host = moon.clientProgramKeyedLookupOpenLocalHost(preparedProgram,
             lookup, ledger, registry, values, fragment, ordered, retainedRelationOutput);
           if (host === undefined) fail('InstalledKeyedHostPreparation');
