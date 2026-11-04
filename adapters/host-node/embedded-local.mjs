@@ -5519,12 +5519,19 @@ async function openInstalledHost(originalInstallation, preparation) {
               recovery = preparation.retainModelRecoveryInput(moon, submission,
                 current.requestIdentity, current.runDefinition, assertCurrent,
                 () => !restorationReclaimed());
+              submission.preparedProgram = prepareSubmit.restoreInferOriginal(
+                inferOriginal, current.runDefinition, current.requestIdentity,
+                current.runAdmissionEvidence, submission);
+            } else {
+              // The admitted Model checkpoint retains this SAME Effect input.
+              // Keep its new physical-process request pending before Source
+              // preparation, exactly as on the existing held/read resume path.
+              recovery = preparation.retainEffectRequestInput(moon,
+                submission, undefined, token.snapshot.submission);
+              localPreparationCustody.attach(submission,
+                localPreparationCustody.adopt(await prepareCapturedSubmission(submission, ref), submission));
             }
-            submission.preparedProgram = inferOriginal === undefined
-              ? await prepareCapturedSubmission(submission, ref)
-              : prepareSubmit.restoreInferOriginal(inferOriginal, current.runDefinition,
-                current.requestIdentity, current.runAdmissionEvidence, submission);
-            if (recovery !== undefined) preparation.bindSourceRequest(submission, submission.preparedProgram);
+            preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);
             const admitted = journal.resolveDefinition(requested.requested,
               {namespaceId}, moon, control);
@@ -5547,7 +5554,10 @@ async function openInstalledHost(originalInstallation, preparation) {
                   claim, checkpointCid: parentCheckpoint.checkpointCid}}),
                 assertCurrent, observeStopped: () => { restorationStopConfirmed = true; }};
               restorationDispatchEntered = true;
-              return executeEffectComputation(facts, undefined, undefined, modelResume);
+              const result = await executeEffectComputation(facts, undefined, undefined, modelResume);
+              recovery.finish('returned');
+              recovery = undefined;
+              return result;
             }
             if (parentCheckpoint !== undefined) throw new Error('ModelReadParentRunMismatch');
             if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');
