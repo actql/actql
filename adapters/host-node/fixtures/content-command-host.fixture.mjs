@@ -223,7 +223,7 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
     schemaContractCid: view.carrier_schema_cid}));
   await writeFile(sourceProfilePath, canonical({version: sourceVersion, connectorId: 'content-fixture',
     sourceOrigin: managedSource.origin, queryAliases}));
-  await writeFile(effectProfilePath, canonical({version: effectVersion}));
+  await writeFile(effectProfilePath, canonical({version: effectVersion, connectorId: 'content-fixture'}));
   const installation = {directory: join(scratch.path, 'host'), connectorTable, sourceProfilePath,
       ...(installEffects ? {effectProfilePath} : {}),
       modelInstallation, registerModelProviders, hostCapacityPolicy,
@@ -264,6 +264,8 @@ export async function openContentCommandHost({scratch, generated, keys, entrance
         const tag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
           ? value : undefined;
         failures.push({code: tag(error.code), name: tag(error.name), tag: tag(error.message),
+          sourceLocations: typeof error.stack === 'string'
+            ? (error.stack.match(/(?:adapters|packages)\/[A-Za-z0-9_./-]+\.mjs:\d+:\d+/gu) ?? []).slice(0, 4) : [],
           ...(error.code === 'ERR_MODULE_NOT_FOUND' && error.url?.startsWith('file:')
             ? {module: error.url} : {})});
         visit(error.primaryFailure); visit(error.cause);
