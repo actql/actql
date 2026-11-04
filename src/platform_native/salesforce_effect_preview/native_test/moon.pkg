@@ -13,3 +13,7 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
 } for "test"
+
+options(
+  link: { "native": { "cc": "./scripts/native-sqlite-link-driver.sh" } },
+)
