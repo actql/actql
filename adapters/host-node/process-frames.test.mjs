@@ -119,3 +119,33 @@ test('current callback cannot allocate a frame after closing the same reader', (
   const header=Buffer.alloc(4);header.writeUInt32BE(4);
   assert.throws(()=>reader.feed(header),{code:'FrameReaderClosed'});
 });
+
+test('complete original IPC body is observed once before UTF8 or JSON decoding, including refused bodies', () => {
+  const malformed = Buffer.from('{not JSON'), header = Buffer.alloc(4);
+  header.writeUInt32BE(malformed.length);
+  let received;
+  const calls = [];
+  const reader = createProcessFrameReader(limits, () => assert.fail('invalid JSON cannot dispatch'),
+    length => {assert.equal(length, malformed.length);calls.push('reserve');},
+    body => {assert(Buffer.isBuffer(body));received = body;calls.push('receive');});
+  reader.feed(header);
+  assert.equal(received,undefined,'an announcement is never a received body');
+  assert.throws(() => reader.feed(malformed), SyntaxError);
+  assert.deepEqual(calls,['reserve','receive']);
+  assert.deepEqual(received,malformed);
+  assert.throws(() => reader.feed(malformed), {code:'FrameReaderClosed'});
+});
+
+test('original IPC received-body refusal or reentry cannot decode or accept the body', () => {
+  const frame = encodeProcessFrame({value:'original'},limits);
+  const cause = Object.freeze({original:'received-body-refusal'});
+  let accepts = 0;
+  const reader = createProcessFrameReader(limits,()=>{accepts++;},undefined,()=>{throw cause;});
+  assert.throws(()=>reader.feed(frame), error=>error===cause);
+  assert.equal(accepts,0);
+  let reentrant;
+  reentrant = createProcessFrameReader(limits,()=>assert.fail('closed received body dispatch'),undefined,()=>{
+    assert.throws(()=>reentrant.end(),{code:'TruncatedFrame'});
+  });
+  assert.throws(()=>reentrant.feed(frame),{code:'FrameReaderClosed'});
+});

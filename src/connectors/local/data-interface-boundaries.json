@@ -597,7 +597,7 @@
   {
     "module": "adapters/connectors/local/host/iceberg-process.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "e86547b8663af772b52305468b76e07d8d6c15f542f63797dda3f61c36793678",
+    "sha256": "f7d918368265a51118aea620b7546b5e4ac15148e033ec52504db4ba8a342e3b",
     "exports": [
       "admitIcebergStorageMapping",
       "createIcebergPhysicalBridge",
@@ -706,7 +706,8 @@
           "rows",
           "reservation",
           "schemaWire",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": false
       },
@@ -723,7 +724,8 @@
           "receipt",
           "mapping",
           "signal",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": true
       },
@@ -740,7 +742,8 @@
         "parameters": [
           "selector",
           "signal",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": true
       },
@@ -770,7 +773,8 @@
           "payload",
           "signal",
           "stopped",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": true
       },
@@ -794,7 +798,8 @@
         "parameters": [
           "operation",
           "signal",
-          "beforeBodyAllocation"
+          "beforeBodyAllocation",
+          "bodyReceived"
         ],
         "async": false
       },
@@ -899,8 +904,8 @@
     "contracts": [
       {
         "operations": [
-          "<module>",
           "<anonymous>",
+          "<module>",
           "admitIcebergStorageMapping",
           "cid/cid",
           "createIcebergPhysicalBridge",

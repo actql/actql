@@ -45,15 +45,18 @@ test('Table owned Site keeps its original close and rejects new grants during pe
   const authorization = {close() {
     assert.equal(this, authorization); calls++;
     // Grant issuance must stop before entering the original callback.
+    assert.equal(site.referenceCurrent(),false);
     assert.throws(() => site.issueReadGrant(request), {code: 'InstalledTableSiteClosed'});
     assert.throws(() => site.close(), {code: 'InstalledSourceAuthorizationCleanupPending'});
     if (mode === 'failed') throw cause;
     return mode === 'ack';
   }};
   ({site, request} = fixture(authorization));
+  assert.equal(site.referenceCurrent(),true);
   assert.deepEqual(site.issueReadGrant(request),
     {runInvocationCid: request.runInvocationCid, dispatchRequestCid: request.dispatchRequestCid});
   assert.throws(() => site.close(), {code: 'InstalledSourceAuthorizationCleanupPending'});
+  assert.equal(site.referenceCurrent(),false);
   assert.equal(calls, 1);
   authorization.close = () => {foreign++; return true;};
   mode = 'failed';

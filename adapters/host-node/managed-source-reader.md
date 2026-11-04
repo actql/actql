@@ -404,3 +404,150 @@ marks itself closed and refuses retirement while that preparation is pending.
 The original settlement then fails its closed fence; only a later original
 close may retire physical children and clear evidence. Pending callback custody
 therefore cannot be mistaken for a completed capture return.
+
+
+## Announced IPC body construction
+
+A local process announces a checked frame length before the body Buffer,
+UTF8 String, native JSON tree or bounded snapshot exists. That announcement
+is not a received page or transfer evidence. The original RowRun's private
+`reserveResponseCapacity(capacity, 'announced-body')` call enters
+`grow_row_run_response_construction_capacity` on the same response borrow.
+It requires an already started provider reader, its original bound cleanup
+observer, and no outstanding page charge. The existing one-argument call
+continues to require and preserve the original unconsumed page charge. Both
+entrances use the same monotone reservation grow, original acquisition and
+Resource current callback; neither begins another attempt or refunds work.
+
+The JS session captures both original Core methods once. A missing constructor
+method or an unknown private phase refuses before the body allocation. Current
+callback reentry, cancellation or a requested stop prevents subsequent use of
+that reader. A successful grow remains charged if later construction fails;
+only original reader retirement and the existing RowRun cleanup can release
+it. The extra captured method contributes one retained reference in the shared
+reader inventory. Reusing the same charged-page quantity keeps its existing
+original-state and ticket checks. Before-page construction still checks the
+mutable original Resource when that immutable quantity is reused.
+
+This entry does not itself quote a Table process, fund its preparer or provide
+a managed Table Plan. The Table caller must supply its actual simultaneous
+body, decoder, output and failed-child inventory before the corresponding
+constructor. It cannot fabricate a received-byte ticket, use a guessed amount,
+or substitute process exit for Resource, Catalog or publication cleanup.
+
+
+## Table announced-body construction inventory
+
+The existing Local Table frame reader runs native `JSON.parse` before its
+bounded `snapshot`. `maxNodes` therefore cannot limit the native tree which
+already exists at shape refusal. The original checked announced body length
+bounds both value/field occurrences and decoded UTF16 units. The existing
+Source owner supplies the span-free JSON tree envelope; the snapshot keeps
+that same structural envelope and borrows original scalar/key String backing.
+No key NFC or scalar conversion is introduced by this construction quote.
+
+The explicit snapshot call chain includes its rejecting call. Each live level
+retains the original item/prototype/result/property/key/child roots, property
+descriptor and the depth/array/index/count fields. Its original parents Set
+uses the shared growing collection envelope. The same peak includes the raw
+Buffer, decoded String, fatal decoder/options, one scalar-stringify String
+and decimal-index String. Finite numeric text uses the existing Host writer's
+25-unit envelope; string escaping is bounded by six units per original unit
+plus quotes. Algorithmic frames and these constructed objects are counted;
+opaque VM/GC backing remains outside the existing logical tariff.
+
+`installed_table_source_body_capacity(previous, bytes, depth)` composes this
+full peak with the original previous capacity through the common checked
+capacity fold. `clientProgramInstalledTableSourceBodyCapacity` returns that
+same opaque native value in the existing Result ABI, with no Host Option or
+record construction. This is DATA only. The original provider must back the
+fixed quotation/prelude before entry and reserve on its same cleanup-bound
+RowRun before the body allocation. Successive bodies retain both full peaks;
+new callbacks or equal values do not establish retirement. Missing, invalid
+or overflowing data refuses without an implicit allowance.
+
+This inventory covers incoming native body construction only. A normal Table
+reader still needs its own original initial controls, outbound/profile material,
+row serialization/output and failed-child overlap, actual Source registration
+and same-Request Plan before it can run. These obligations cannot be inferred
+from this pure quote or the explicit Core consuming component.
+
+
+## Normal Table same-Request reader
+
+The existing bound Source constructor retains the checked Table profile, its
+original bridge, declaration, Authorization and Site. It quotes the Table
+reader from that SAME profile constructor DATA, reserves the quantity on the
+original initial parent, then registers the original reader and row demand on
+the same Source scope BEFORE the ordinary row Source constructor. Missing
+quantity or registration refuses; it never chooses the old unaccounted reader
+as a normal fallback. The existing direct low-level factory remains explicit
+without a Source initialization owner; it supplies no managed Plan evidence.
+
+The reader contributes the common fixed RowRun controls once, its own original
+callback/stop/handle inventory and one entry of its existing live-reader Set.
+The shared collection owner supplies that Set growth envelope. The same
+checked profile constructor backs each of the three existing outbound stages:
+payload snapshot, complete-envelope preflight and channel encoding. No fake
+credential, guessed readerCapacity, new Root or user capacity knob is added.
+Fixed quotation controls are included before the body quote; the active
+original RowRun admits every additional body/metadata/output peak before its
+constructor, preserving all previous/failed peaks until original retirement.
+
+The Table factory supplies the SAME reader record to the shared Host's existing
+second preparation argument before reading options or constructing its abort
+signal. That record has an own synchronous `retire` method. A failed getter or
+partial signal construction keeps that original in the Host's existing retry
+slots; it cannot strand a new unregistered reader or retire a sibling. The
+reader is ready only after those constructors and same-record fences finish.
+Each getter's returned original is checked before retention or the next signal
+constructor. A reentrant retirement cannot restore a spent record's Run,
+consumer or signal aliases. These fences add no retained carrier.
+Its added early-retire closure and handle slot belong to the same quoted
+constructor inventory.
+
+The bridge exposes its SAME frozen frame bounds. Two commands (generation
+resolution and data read) each have one original ready and reply body. This
+physical transfer inventory is independent of the unchanged row-page profile.
+`charge_row_run_response_body` requires the same cleanup-bound provider Run
+and charges the complete original Buffer against its original physical
+transfer reservation. A raw protocol envelope is not constrained by a later
+projected row JSON size; the ordinary row admission still checks that size,
+schema, rows and values. Announcements and re-encoded row arrays issue no raw
+received-byte evidence. The original non-provider/page charge entry is unchanged.
+After the received-body charge callback, the reader checks its same current
+state again before UTF8/JSON decoding. A reentrant stop retains the actual
+received ticket and charged bytes, but cannot enter that next constructor.
+
+Earlier real tickets are consumed once as observations before the next
+constructor; the last original data-response ticket remains live through the
+existing charged grow and final row admission. Metadata used by the next read
+is reserved before its three outbound constructors; final JSON stringify and
+its Host/decoder Buffers are reserved before construction as well. Empty typed
+input still produces one original checked empty page. Original decomposed text,
+NULL/omission, generation/schema correspondence and all three read-authority
+checks remain. No implicit projection or scalar conversion replaces them.
+
+`requestStop` aborts only this reader's original process signal. Its existing
+process cleanup handle retains invalid callbacks and pending tasks; a settled
+read, exception or requested stop is not retirement. The same observer/retry
+checks that original handle until it is actually no longer pending, then cuts
+the reader's callback/options/body aliases. The original row/capture/input and
+Source owners retain their separate Resource, publication and final-cleanup
+duties. Source retirement stops its original live readers and cannot return
+while any remains pending. Whole-Relation Effect planning and ordinary
+Python/Catalog/normal distribution qualification remain separate consumers.
+
+Retry without an entered cleanup task, or after that same reader has retired,
+returns synchronously. It must not manufacture a fresh pending Promise on each
+Host cleanup attempt. An existing cleanup task keeps its original Promise and
+status observation; settlement alone remains insufficient. The Table Site's
+original reader reference becomes non-current as soon as its existing retiring
+fence closes grant issuance, before entering its owned authorization callback.
+That false reference is not physical cleanup or a parent release ACK.
+
+The same response-growth entrances also preserve `InputResponse` for a checked
+whole-input acquisition. Its existing input-capacity owner adds the provider
+extent and original scratch; it is never cast to a Query acquisition. Both
+entrances retain the same current, monotone-dimension and cleanup fences.
+The separate direct Query capture workspace-retirement cut is unchanged.

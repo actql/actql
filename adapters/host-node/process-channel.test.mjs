@@ -324,3 +324,120 @@ test('Table prepared and readonly operations keep the original per-call body ent
   await refused(()=>bridge.cleanup(prepared));
   assert.equal(calls,6);
 });
+
+test('Table original pending body callback custody cannot become a stopped writer after process exit', async () => {
+  const [{createIcebergPhysicalBridge},{createHash}] = await Promise.all([
+    import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const bridge = createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-pending-body',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),
+      limits:{bytes:1,files:1,operations:1}}});
+  // A foreign thenable is neither assimilated nor promoted to a settled
+  // callback. No Python/Catalog/resource/ordinary operation is supplied here.
+  const original = Object.freeze({then() {assert.fail('foreign callback result cannot be assimilated');}});
+  const schemaWire = '{"fields":[]}', schemaCid = `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+  const prepared = bridge.prepareWrite({operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,
+    input_carrier:{kind:'relation',cid:cid('d')}},mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,
+    beforeBodyAllocation() {return original;}});
+  let failure;
+  try {await bridge.execute(prepared,{useCid:cid('e')});} catch (error) {failure = error;}
+  assert.equal(failure?.code,'ExecutionChannelFailure');
+  assert.equal(failure.cause?.message,'InvalidFrameCapacityHandoff');
+  const cleanup = failure.cleanupHandle;
+  await cleanup.whenStopped();
+  assert.equal(cleanup.status().pending,true,'the original callback duty survives actual process exit');
+  assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:false});
+  assert.strictEqual(failure.cleanupHandle,cleanup);
+  await assert.rejects(bridge.cleanup(prepared),{code:'TableWriterNotStopped'});
+  assert.equal(cleanup.status().pending,true);
+});
+
+test('Table pure body callback refusal before launcher selection has no physical cleanup debt', async () => {
+  const [{createIcebergPhysicalBridge},{createHash}] = await Promise.all([
+    import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const bridge = createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-inert-body',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),
+      limits:{bytes:1,files:1,operations:1}}});
+  const schemaWire = '{"fields":[]}', schemaCid = `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+  let called = false;
+  const prepared = bridge.prepareWrite({operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,
+    input_carrier:{kind:'relation',cid:cid('d')}},mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,
+    async beforeBodyAllocation() {called = true;}});
+  await assert.rejects(bridge.execute(prepared,{useCid:cid('e')}),{code:'InvalidExecutionConfiguration'});
+  assert.equal(called,false);
+  assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:true});
+});
+
+test('same original process observes received body bytes after allocation and before its reply decoding', async () => {
+  const announced=[],received=[];
+  const config=configuration();
+  const channel=await startManagedExecution({...config,
+    beforeBodyAllocation(length){announced.push(length);},
+    bodyReceived(body){assert(Buffer.isBuffer(body));received.push(body);}});
+  try {
+    assert.equal(received.length,1);
+    assert.equal(received[0].length,announced[0]);
+    assert.equal(JSON.parse(received[0].toString()).kind,'ready');
+    const result=await channel.request({command:'echo',value:'e\u0301\r\n'});
+    assert.equal(result.value,'e\u0301\r\n');assert.equal(received.length,2);
+    assert.equal(received[1].length,announced[1]);
+    const raw=JSON.parse(received[1].toString());
+    assert.equal(raw.kind,'reply');assert.deepEqual(Object.keys(raw.body).sort(),['pid','value']);
+    assert.equal(raw.body.value,result.value);assert.equal(raw.body.pid,result.pid);
+    assert.equal(Object.getPrototypeOf(result),null,'the bounded original snapshot keeps its existing prototype');
+  } finally {await channel.close();}
+  assert.equal(channel.cleanupHandle.status().pending,false);
+});
+
+for(const [name,result]of [['original-frozen',Object.freeze(new Error('OriginalReceiveFailure'))],['original-undefined',undefined]]){
+  test(`same original received-body ${name} failure retains cause and actual cleanup`,async()=>{
+    let failure,received=0;
+    try {await startManagedExecution({...configuration(),bodyReceived(body){received++;assert(Buffer.isBuffer(body));throw result;}});}
+    catch(error){failure=error;}
+    assert.equal(received,1);assert.equal(failure?.code,'ExecutionChannelFailure');
+    assert.equal(Object.hasOwn(failure,'cause'),true);assert.equal(failure.cause,result);
+    const cleanup=failure.cleanupHandle;await cleanup.retry();assert.equal(cleanup.status().pending,false);
+    assert.equal(failure.cleanupHandle,cleanup);
+  });
+}
+
+test('received-body returned task stays with SAME process cleanup until original settlement',async()=>{
+  let release,failure;const task=new Promise(resolve=>{release=resolve;});
+  try {
+    try {await startManagedExecution({...configuration(),bodyReceived(){return task;}});}
+    catch(error){failure=error;}
+    assert.equal(failure?.code,'ExecutionChannelFailure');
+    const cleanup=failure.cleanupHandle,joined=cleanup.retry();
+    await cleanup.whenStopped();assert.equal(cleanup.status().pending,true);
+    release();await joined;assert.equal(cleanup.status().pending,false);
+  } finally {release();if(failure?.cleanupHandle)await failure.cleanupHandle.retry();}
+});
+
+test('Table actual read and prepared operations forward original received-byte observer outside wire data',async()=>{
+  const [{createIcebergPhysicalBridge},{createHash}]=await Promise.all([
+    import('../connectors/local/host/iceberg-process.mjs'),import('node:crypto')]);
+  const cid=x=>`sha256:${x.repeat(64)}`,refusal=Object.freeze(new Error('OriginalTableReceivedBody'));let received=0;
+  const bodyReceived=body=>{assert(Buffer.isBuffer(body));received++;throw refusal;};
+  const bridge=createIcebergPhysicalBridge({python:pathToFileURL(process.execPath),run:'table-received-original',
+    entry:new URL('./process-fixture.mjs',import.meta.url),
+    catalog:{database:'/UNOPENED/table.db',warehouse:'/UNOPENED/warehouse',catalogCid:cid('a'),limits:{bytes:1,files:1,operations:1}}});
+  const reject=async action=>{let failure;try{await action();}catch(error){failure=error;}
+    assert.equal(failure?.cause,refusal);await failure.cleanupHandle.retry();assert.equal(failure.cleanupHandle.status().pending,false);};
+  const selector={catalog_identity_cid:cid('a'),namespace:['analytics'],table_name:'rows',
+    table_uuid:'00000000-0000-0000-0000-000000000001',schema_cid:cid('b')};
+  await reject(()=>bridge.resolveGeneration(selector,undefined,undefined,bodyReceived));
+  await reject(()=>bridge.read({}, {},undefined,undefined,bodyReceived));
+  await reject(()=>bridge.reconcileOperation({request_cid:cid('c')},undefined,undefined,bodyReceived));
+  const schemaWire='{"fields":[]}',schemaCid=`sha256:${createHash('sha256').update(schemaWire).digest('hex')}`;
+  const input={operation:{action:'create',request_cid:cid('c'),schema_cid:schemaCid,input_carrier:{kind:'relation',cid:cid('d')}},
+    mapping:{},rows:[],reservation:{bytes:1,files:1},schemaWire,bodyReceived};
+  const prepared=bridge.prepareWrite(input);input.bodyReceived=()=>assert.fail('replacement observer');
+  await reject(()=>bridge.inspect(prepared));
+  await reject(()=>bridge.execute(prepared,{useCid:cid('e')}));
+  assert.deepEqual(bridge.status(prepared),{attempted:true,stopped:true});
+  await reject(()=>bridge.reconcile(prepared));await reject(()=>bridge.cleanup(prepared));
+  assert.equal(received,7);
+});

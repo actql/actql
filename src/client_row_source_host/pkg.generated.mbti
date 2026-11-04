@@ -93,6 +93,8 @@ pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
 
 pub fn charge_row_run_page(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
 
+pub fn charge_row_run_response_body(RowRun, Bytes) -> Result[RowPageCharge, RowHostIssue]
+
 pub fn check_row_acquisition_original(RowAcquisition, RowDeclaration, @query_planning.QueryRequirement) -> Result[Unit, RowHostIssue]
 
 pub fn check_row_input_acquisition_declaration(RowInputAcquisition, RowDeclaration) -> Result[Unit, RowHostIssue]
@@ -130,6 +132,8 @@ pub fn generate_relation_row_declaration(String, String, String, Array[RowRelati
 pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]
 
 pub fn grow_row_run_response_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]
+
+pub fn grow_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]
 
 pub fn issue_row_input_source_evidence(RowInputAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
 

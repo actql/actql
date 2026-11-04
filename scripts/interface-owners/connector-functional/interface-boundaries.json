@@ -12032,7 +12032,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "520fc796039c114cae2b722e204c51d17ef442e724f92bc3e83927ce04dfc8bc",
+      "sha256": "74395a8103d53caa2aa328894ab6e55fa74e2ed13196700193c2f17d80ea44b1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -12189,6 +12189,18 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/readerRetired/readerRetired/readerRetired",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readerRetired/readerRetired/readerRetired#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/readProvider",
           "parameters": [
             "prepare",
@@ -12214,7 +12226,15 @@
         {
           "name": "startInstalledRowRun/readProvider/reserveResponseCapacity/reserveResponseCapacity",
           "parameters": [
-            "capacity"
+            "capacity",
+            "phase"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/readProvider/retainPreparation/retainPreparation",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -12351,10 +12371,11 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
-            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/readProvider",
             "startInstalledRowRun/readProvider/readProvider",
             "startInstalledRowRun/readProvider/readProvider#2",
+            "startInstalledRowRun/readProvider/reserveResponseCapacity/reserveResponseCapacity",
+            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
@@ -12364,8 +12385,7 @@
             "startInstalledRowRun/startInstalledRowRun",
             "startInstalledRowRun/stopReader/stopReader",
             "startInstalledRowRun/stopReader/stopReader/stopReader",
-            "startInstalledRowRun/stopReader/stopReader/stopReader#2",
-            "startInstalledRowRun/readProvider/reserveResponseCapacity/reserveResponseCapacity"
+            "startInstalledRowRun/stopReader/stopReader/stopReader#2"
           ],
           "exports": [
             "startInstalledRowRun"
@@ -13148,12 +13168,295 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/readProvider/retainPreparation/retainPreparation",
+            "startInstalledRowRun/readerRetired/readerRetired/readerRetired",
+            "startInstalledRowRun/readerRetired/readerRetired/readerRetired#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "RowRun remains the sole acquisition, capture and release owner"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramCapturedTaskSourceMatches"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceCaptureCleanup"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The factory's existing second argument retains its original preparation"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceCaptureAdvance"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "InstalledSourceCleanupPending"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "signal?.throwIfAborted"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "capacity.executionBytes"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Native Source original unknown recovery"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceStartListingAccounted"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-run.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.test.mjs",
+                "anchor": "original Source evidence is issued once then consumed from the same live capture without wire admission"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Native response construction phase"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "same RowRun recovers the actual shared factory preparation after its original constructor refuses"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "The same private factory uses its third callback"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Announced IPC body construction"
+              }
+            ]
+          }
         }
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],

@@ -154,3 +154,110 @@ test "WholeInput response growth refuses one short byte dimension atomically" {
     assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   }
 }
+
+///|
+test "WholeInput announced body reserves the same original before transfer then consumes its actual ticket once" {
+  let (_, _, selected) = whole_row_selection()
+  let (run, ledger) = whole_response_growth_start(selected, 20L, 30L)
+  let borrow = @row_host.borrow_row_input_run_responses(run, selected).unwrap()
+  let capacity = @execution.execution_capacity(11L, 23L).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  let stopped = Ref(false)
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => stopped.val).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  @row_host.grow_row_run_response_construction_capacity(borrow, capacity).unwrap()
+  let grown = @resources.ledger_usage(ledger)
+  assert_eq(
+    grown.reserved_retention_bytes,
+    before.reserved_retention_bytes + 4L,
+  )
+  assert_eq(
+    grown.reserved_execution_bytes,
+    before.reserved_execution_bytes + 14L,
+  )
+  assert_eq(grown.transferred_bytes, 0L)
+  assert_true(
+    @row_host.row_run_response_selection(borrow)
+    is Ok(@row_host.InputResponse(_)),
+  )
+  let body = @utf8.encode("{\"original_protocol\":true}")
+  let charge = @row_host.charge_row_run_response_body(run, body).unwrap()
+  assert_true(
+    @row_host.grow_row_run_response_construction_capacity(borrow, capacity)
+    is Err(InvalidState),
+  )
+  @row_host.grow_row_run_response_capacity(borrow, capacity).unwrap()
+  assert_eq(
+    @row_host.accept_charged_row_run_page(
+      run,
+      charge,
+      @utf8.encode("[{\"id\":1}]"),
+    ).unwrap(),
+    1,
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    body.length().to_int64(),
+  )
+  assert_true(
+    @row_host.consume_row_run_response_charge(run, charge)
+    is Err(Physical(InvalidCharge)),
+  )
+  assert_true(
+    @row_host.close_accounted_row_run(run) is Err(Evidence(UnverifiedTransport)),
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_execution_bytes,
+    grown.reserved_execution_bytes,
+  )
+  stopped.val = true
+  @row_host.close_accounted_row_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}
+
+///|
+test "WholeInput announced body refuses either short dimension without issuing a charge or changing its original selection" {
+  let (_, _, selected) = whole_row_selection()
+  for dimension in 0..<2 {
+    let (run, ledger) = whole_response_growth_start(
+      selected,
+      if dimension == 0 {
+        3L
+      } else {
+        4L
+      },
+      if dimension == 1 {
+        13L
+      } else {
+        14L
+      },
+    )
+    let borrow = @row_host.borrow_row_input_run_responses(run, selected).unwrap()
+    @row_host.bind_row_run_response_borrow_cleanup(borrow, () => true).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let result = @row_host.grow_row_run_response_construction_capacity(
+      borrow,
+      @execution.execution_capacity(11L, 23L).unwrap(),
+    )
+    assert_true(
+      if dimension == 0 {
+        result is Err(Physical(RetentionLimit))
+      } else {
+        result is Err(Physical(ExecutionLimit))
+      },
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_true(
+      @row_host.row_run_response_selection(borrow)
+      is Ok(@row_host.InputResponse(_)),
+    )
+    // No received-byte charge was issued by the refusing announced-length path.
+    let charge = @row_host.charge_row_run_response_body(run, @utf8.encode("{}")).unwrap()
+    @row_host.consume_row_run_response_charge(run, charge).unwrap()
+    @row_host.close_accounted_row_run(run).unwrap()
+  }
+}
