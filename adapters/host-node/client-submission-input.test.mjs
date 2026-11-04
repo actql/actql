@@ -386,6 +386,15 @@ for (const entrance of ['local', 'https']) {
           if (loss === undefined) assert.deepEqual(found, sdk.getSubmissionOutcome(result));
           else assert.equal(sdk.getSubmissionOutcome(result), undefined);
         } else assert.deepEqual(found.problem, {code: 'submission_history_unresolvable'});
+        if (!committed) {
+          // The canonical Submission lookup above is not the separate existing
+          // Request lookup. Exercise that original absence projection too;
+          // neither read grants a Run reference or a permission to resubmit.
+          const absent = await f.client.lookupRequest(submissionRequestId(snapshot.submissionRef));
+          assert.deepEqual(absent, {kind: 'not_found'});
+          assert.equal(sdk.explainRequestLookup(absent).observation, 'lookup_unresolved',
+            '[check-mutation:request-public-observation]');
+        }
         assert.equal(sdk.getSubmissionInput(found), undefined);
         assert.deepEqual(f.stored(), stored);
         f.revoke();
