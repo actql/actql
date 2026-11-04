@@ -224,7 +224,8 @@ test('deal-review catalog separates physical UTF8 files from logical keyed Conte
     assert.equal(Object.hasOwn(view, 'facts'), false, 'the installed owner binds file profile identities');
     assert.equal(Object.hasOwn(view, 'resource_identity'), false);
   }
-  assert.deepEqual(drive.query_aliases, [{name: 'drive.files', resource: 'files'},
+  assert.deepEqual(drive.query_aliases, [{name: 'drive.files', resource: 'files',
+    request: {paths: null, glob: null}},
     {name: 'drive.contents', resource: 'contents'}]);
   assert.deepEqual(drive.file_bindings, [{listing_resource: 'files', content_resource: 'contents',
     data_resource: 'files', identity_field: 'id', name_field: 'name', version_field: 'version',
