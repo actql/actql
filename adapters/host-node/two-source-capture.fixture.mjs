@@ -78,6 +78,8 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   const common = {registry, values: JSON.stringify(aoa['REL.values']),
     fragment: JSON.stringify(aoa['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa['REL.derive.ordered'])};
+  common.registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    common.registry, common.values, common.fragment, common.ordered));
   for (const [task, side] of ['left', 'right'].entries()) {
     const database = join(root, `${side}.duckdb`);
     const instance = await DuckDBInstance.create(database);

@@ -289,13 +289,17 @@ test('checked acquired source and downstream task emit their input ports',
       moon.clientProgramPrepareQueryAcquisition(prepared, 1, 0)));
     assert.throws(() => checked(
       moon.clientProgramPrepareQueryAcquisition(prepared, 4, 0)));
-    const [registry, contracts] = await Promise.all([
+    const [registryWire, contracts] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
         import.meta.url), 'utf8'),
     ]);
     const aoa = JSON.parse(contracts);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, JSON.stringify(aoa.execution_contracts['REL.values']),
+      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
     const requirement = checked(
       moon.clientProgramPrepareLocalQueryRequirement(prepared, 0, 0,
         registry, JSON.stringify(aoa.execution_contracts['REL.values']),
@@ -2017,11 +2021,15 @@ for (const retained of [false, true]) test(
   const prepared = moon.clientProgramPrepareEffectFree(
     JSON.stringify(inputStageResultProgram), 'json', environment);
   assert.ok(prepared);
-  const [registry, contract] = await Promise.all([
+  const [registryWire, contract] = await Promise.all([
     readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
   ]);
   const bodies = JSON.parse(contract).execution_contracts;
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    registryWire, JSON.stringify(bodies['REL.values']),
+    JSON.stringify(bodies['ACTQL.expression_fragment/0.1']),
+    JSON.stringify(bodies['REL.derive.ordered'])));
   const openHost = retained ? moon.clientProgramOpenSourceFreeLocalRetainedHost
     : moon.clientProgramOpenSourceFreeLocalHost;
   const setup = openHost(prepared, registry,
@@ -2757,7 +2765,7 @@ test('one acquired Effect Program captures and computes from its owner',
     const compiled = checked(compileOutcome);
     assert.deepEqual(moon.clientProgramEffectCompilationResultNames(compiled),
       ['answer']);
-    const [registry, contracts] = await Promise.all([
+    const [registryWire, contracts] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -2767,6 +2775,8 @@ test('one acquired Effect Program captures and computes from its owner',
     const values = JSON.stringify(aoa['REL.values']);
     const fragment = JSON.stringify(aoa['ACTQL.expression_fragment/0.1']);
     const ordered = JSON.stringify(aoa['REL.derive.ordered']);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, fragment, ordered));
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'acquired-effect-'));
@@ -3934,7 +3944,7 @@ test('Host admits and retains the exact checked Effect Run Definition',
     assert.throws(() => control.bindCheckedClientEffectRun(
       changed, admission, definition),
     /Run Definition differs from checked Effect/u);
-    const [registry, contract] = await Promise.all([
+    const [registryWire, contract] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -3942,6 +3952,8 @@ test('Host admits and retains the exact checked Effect Run Definition',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, undefined, undefined));
     const host = moon.clientProgramOpenSourceFreeLocalEffectHost(
       boundRun, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(host);
@@ -4078,7 +4090,7 @@ test('admitted source-free Effect Run computes through the installed Host',
     assert.ok(foreign);
     assert.equal(moon.clientProgramBindEffectRun(
       foreign, admission, definition), undefined);
-    const [registry, contract] = await Promise.all([
+    const [registryWire, contract] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -4086,9 +4098,11 @@ test('admitted source-free Effect Run computes through the installed Host',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
-    assert.equal(moon.clientProgramOpenSourceFreeLocalEffectHost(
-      bound, registry.replace('"REL.values"', '"REL.changed"'),
-      values, 1n, 0n, 0n, 0n), undefined);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, undefined, undefined));
+    assert.throws(() => checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire.replace('"REL.values"', '"REL.changed"'), values, undefined, undefined)),
+    {code: 'MoonBitHostFailure'});
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
@@ -4944,7 +4958,7 @@ test('owned update Plan matches approved rows and rejects altered intent',
     const bound = moon.clientProgramBindEffectRun(
       prepared, admission, definition);
     assert.ok(bound);
-    const [registry, contract] = await Promise.all([
+    const [registryWire, contract] = await Promise.all([
       readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
         import.meta.url), 'utf8'),
       readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -4952,6 +4966,8 @@ test('owned update Plan matches approved rows and rejects altered intent',
     ]);
     const values = JSON.stringify(
       JSON.parse(contract).execution_contracts['REL.values']);
+    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+      registryWire, values, undefined, undefined));
     const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
       bound, registry, values, 1n, 0n, 0n, 0n);
     assert.ok(owned);
@@ -5943,11 +5959,13 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           evidence[0], observation, 100000, 10000, 64));
         const bound = moon.clientProgramBindEffectRun(
           prepared, admission, definition);
-        const registry = await readFile(new URL(
+        const registryWire = await readFile(new URL(
           '../../spec/dependencies/aoa-pipeline-registry.json',
           import.meta.url), 'utf8');
         const contract = JSON.parse(await readFile(new URL(
           '../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+        const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+          registryWire, JSON.stringify(contract.execution_contracts['REL.values']), undefined, undefined));
         const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound,
           registry, JSON.stringify(contract.execution_contracts['REL.values']),
           1n, 0n, 0n, 0n);
@@ -6509,7 +6527,7 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   const bound = moon.clientProgramBindEffectRun(
     prepared, admission, definition);
   assert.ok(bound);
-  const [registry, contract] = await Promise.all([
+  const [registryWire, contract] = await Promise.all([
     readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
       import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -6517,6 +6535,8 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
   ]);
   const values = JSON.stringify(
     JSON.parse(contract).execution_contracts['REL.values']);
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    registryWire, values, undefined, undefined));
   const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
     bound, registry, values, 1n, 0n, 0n, 0n);
   assert.ok(owned);
@@ -6632,7 +6652,7 @@ test('Effect sources retain exact physical producers across split Stages',
       const bound = moon.clientProgramBindEffectRun(
         prepared, admission, definition);
       assert.ok(bound);
-      const [registry, contract] = await Promise.all([
+      const [registryWire, contract] = await Promise.all([
         readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',
           import.meta.url), 'utf8'),
         readFile(new URL('../../spec/contracts/actql-aoa.json',
@@ -6640,6 +6660,8 @@ test('Effect sources retain exact physical producers across split Stages',
       ]);
       const values = JSON.stringify(
         JSON.parse(contract).execution_contracts['REL.values']);
+      const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+        registryWire, values, undefined, undefined));
       const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(
         bound, registry, values, 1n, 0n, 0n, 0n);
       assert.ok(owned);
