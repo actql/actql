@@ -326,3 +326,97 @@ test "bounded leaf geometry accepts actual checked typed null parameter" {
     is Some(_),
   )
 }
+
+///|
+fn text_number_geometry_sequence() -> (
+  GeneratedSequence,
+  FragmentRuntimeContext,
+) raise {
+  let owner = bound_pipeline(
+    (
+      #|[{"values":{"schema":{"title":{"type":"string","nullable":false}},"rows":[{"title":"Issue 5"}]},"as":"seed"},{"derive":{"clock_ms":{"cast":{"value":{"substring":{"value":{"field":"title"},"start":{"literal":7}}},"target":{"type":"number"}}}},"as":"out"}]
+    ),
+  )
+  let sequence = prepared_sequence(owner)
+  let context = sequence_fragment_context(sequence, 1, 1L)
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    sequence,
+    [context],
+    ["out"],
+    100000,
+    10000,
+  ).unwrap()
+  (select_generated_sequence_step(generated, 1).unwrap(), context)
+}
+
+///|
+test "bounded text-number leaf geometry retains the actual scalar copy allowance" {
+  let (selected, context) = text_number_geometry_sequence()
+  let limits = leaf_geometry_limits(100)
+  let original = bounded_leaf_fragment_capacity(selected, context, limits).unwrap()
+  let larger = bounded_leaf_fragment_capacity(
+    selected,
+    {
+      ..context,
+      limits: {
+        ..context.limits,
+        max_live_value_bytes: context.limits.max_live_value_bytes + 1L,
+      },
+    },
+    limits,
+  ).unwrap()
+  let one = preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 2L,
+    scalar_words: 2L,
+    owned_utf16_units: 4L,
+    owned_wire_bytes: 4L,
+  }).unwrap()
+  assert_eq(larger - original, one)
+  assert_true(one < execution_capacity_node_bytes())
+  assert_true(
+    bounded_leaf_fragment_capacity(
+      selected,
+      {
+        ..context,
+        limits: {
+          ..context.limits,
+          max_live_value_bytes: 9223372036854775807L,
+        },
+      },
+      limits,
+    )
+    is None,
+  )
+  let physical : FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let capacity = generated_bounded_sequence_capacity(selected, limits, physical).unwrap()
+  let larger_context = {
+    ..context,
+    physical: {
+      ..context.physical,
+      max_body_nodes: context.physical.max_body_nodes + 1,
+    },
+  }
+  let larger_capacity = generated_bounded_sequence_capacity(
+    { ..selected, contexts: [larger_context], },
+    limits,
+    physical,
+  ).unwrap()
+  assert_eq(
+    larger_capacity.execution_bytes - capacity.execution_bytes,
+    execution_capacity_node_bytes(),
+  )
+  assert_true(
+    run_expr("\"CAST(SUBSTRING('Issue 5', 7) AS NUMBER)\"") is Ok(Number(5.0)),
+  )
+  assert_true(
+    run_expr("\"CAST(SUBSTRING('Issue nope', 7) AS NUMBER)\"")
+    is Err({ kind: Scalar(InvalidOperand), .. }),
+  )
+}

@@ -3,7 +3,9 @@
 // This is not a bound inferred from an AST's encoded size. The three accepted
 // evaluator cases (expression.mbt) return an input/prior-slot alias, capture an
 // immutable admitted literal (scalar.mbt), or return inline Null. None builds
-// a new value tree. Logical live-byte guards still execute unchanged.
+// a new value tree. A separately inventoried scalar pipeline below admits
+// Number CAST of a two-argument SUBSTRING over one original Text field and
+// an admitted numeric literal. Logical live-byte guards execute unchanged.
 //
 // Only replace the generic live-value DATA premium. The caller MUST retain
 // the complete physical node/byte/depth traversal quote, input/output DATA,
@@ -27,6 +29,7 @@ fn bounded_leaf_fragment_capacity(
   }
   let count = @lower.bindings_count(bindings)
   let ordered = @lower.bindings_ordered(bindings)
+  let mut text_number = false
   for index in 0..<count {
     guard @lower.binding_at(bindings, index) is Some((_, expression)) else {
       return None
@@ -39,6 +42,23 @@ fn bounded_leaf_fragment_capacity(
         if !bounded_leaf_prior_slot_supported(ordered, index, slot) {
           return None
         }
+      @lower.Cast(child) => {
+        // This exact evaluator path allocates scalar text, not a value tree.
+        // General CAST, nested expressions and dynamic substring positions
+        // retain the original generic quote.
+        guard @lower.expression_contract(expression).shape is @contract.Number &&
+          @lower.expression_contract(child).shape is @contract.Text(_) &&
+          @lower.expression_body(child)
+          is @lower.Many(@lower.Substring, [text, start]) &&
+          @lower.expression_body(text)
+          is @lower.Field(_, @relation.InputField(_)) &&
+          @lower.expression_contract(text).shape is @contract.Text(_) &&
+          @lower.expression_body(start) is @lower.Literal(_) &&
+          @lower.expression_contract(start).shape is @contract.Number else {
+          return None
+        }
+        text_number = true
+      }
       _ => return None
     }
   }
@@ -52,7 +72,7 @@ fn bounded_leaf_fragment_capacity(
   // Current-row snapshot, binding values, and output aliases are separate
   // occurrences. Their immutable backing remains with its original owner.
   let aliases = inputs + outputs + count.to_int64()
-  preparation_representation_cost({
+  let aliases_bytes = preparation_representation_cost({
     // Per root: LogicalRoot, measurement+Some, lease, scope Some, value/tag
     // carriers, plus conservative spare headers. References include both
     // root/lease arrays and scope slots/free-list spare capacity. Scalar words
@@ -67,6 +87,34 @@ fn bounded_leaf_fragment_capacity(
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   })
+  if !text_number {
+    return aliases_bytes
+  }
+  let live = context.limits.max_live_value_bytes
+  if live < 0L || live > (9223372036854775807L - 256L) / 4L {
+    return None
+  }
+  // expression_text_functions admits every slice byte before its builder.
+  // CAST charges that original root before parse_json; successful numeric
+  // text is ASCII and its input is borrowed by Parser. The slice builder and
+  // read_binary64 spelling builder execute in succession. Keep two complete
+  // part/header/slot sets per admitted byte, spare array slots and both text
+  // spellings, including the failed-parser prefix. Fixed tail covers the
+  // Cast/Many/TextFunction continuations, Parser/Node/Span/Point and roots.
+  // The original operation workspace and full physical traversal envelope
+  // remain independently charged by the caller.
+  guard aliases_bytes is Some(base) &&
+    preparation_representation_cost({
+      record_headers: 128L + 2L * live,
+      reference_slots: 256L + 2L * live,
+      scalar_words: 256L + 2L * live,
+      owned_utf16_units: 4L * live,
+      owned_wire_bytes: 4L * live,
+    })
+    is Some(copies) else {
+    return None
+  }
+  checked_preparation_add_product(base, copies, 1L)
 }
 
 ///|
