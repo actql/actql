@@ -1,8 +1,9 @@
 // Reduce C optimization only for generated release test executables. Moon's
 // release IR, runtime allocator, package linker overrides and FFI stay intact.
+import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {mkdirSync, realpathSync, writeFileSync} from 'node:fs';
-import {delimiter, isAbsolute, join, relative, resolve, sep} from 'node:path';
+import {accessSync, constants, mkdirSync, realpathSync, statSync, symlinkSync, writeFileSync} from 'node:fs';
+import {delimiter, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 
 export function nativeCoreCArguments(repository, args) {
   const inputs = args.filter(arg => /\.(?:c|cc|cpp|cxx)$/u.test(arg));
@@ -21,8 +22,14 @@ export function nativeCoreCCompiler(repository, scratch, env = process.env) {
     return {};
   }
   repository = realpathSync(repository);
-  const compiler = realpathSync(execFileSync('/bin/sh', ['-c', 'command -v cc'],
-    {env, encoding: 'utf8', timeout: 5000}).trim());
+  const selected = execFileSync('/bin/sh', ['-c', 'command -v cc'],
+    {env, encoding: 'utf8', timeout: 5000}).trim();
+  // Moon selects ar beside the PATH-selected cc before resolving symlinks.
+  // Keep that original companion, never a realpath or unrelated PATH archiver.
+  const companion = join(dirname(selected), 'ar');
+  accessSync(companion, constants.X_OK);
+  assert(statSync(companion).isFile(), 'Native archiver must be an executable file');
+  const archiver = realpathSync(companion), compiler = realpathSync(selected);
   const directory = join(realpathSync(scratch), 'test-c-compiler');
   mkdirSync(directory, {mode: 0o700});
   // Launch Node directly, without another system shell stripping the original
@@ -32,6 +39,7 @@ export function nativeCoreCCompiler(repository, scratch, env = process.env) {
     ').then(m => m.runNativeCoreCCompiler(' + JSON.stringify(repository) + ',' +
     JSON.stringify(compiler) + ',process.argv.slice(2)));\n',
   {mode: 0o700, flag: 'wx'});
+  symlinkSync(archiver, join(directory, 'ar'));
   // PATH probing preserves Moon's normal allocator/runtime object selection.
   // MOON_CC would also override package C++/archive drivers and FFI compilers.
   return {PATH: directory + delimiter + env.PATH};
