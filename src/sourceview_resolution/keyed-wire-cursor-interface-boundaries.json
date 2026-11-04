@@ -11,7 +11,7 @@
       "operations": [
         {
           "name": "advance_keyed_request_wire",
-          "declaration": "advance_keyed_request_wire ( cursor : KeyedRequestWireCursor ) - > KeyedRequestWirePoll"
+          "declaration": "advance_keyed_request_wire ( cursor : KeyedRequestWireCursor , ) - > KeyedRequestWirePoll"
         },
         {
           "name": "cancel_keyed_request_wire",
@@ -23,15 +23,15 @@
         },
         {
           "name": "keyed_request_wire_next_inventory",
-          "declaration": "keyed_request_wire_next_inventory ( cursor : KeyedRequestWireCursor ) - > KeyedRequestWireInventory ?"
+          "declaration": "keyed_request_wire_next_inventory ( cursor : KeyedRequestWireCursor , ) - > KeyedRequestWireInventory ?"
         },
         {
           "name": "keyed_request_wire_owner",
-          "declaration": "keyed_request_wire_owner ( cursor : KeyedRequestWireCursor ) - > KeyedRowRequest"
+          "declaration": "keyed_request_wire_owner ( cursor : KeyedRequestWireCursor , ) - > KeyedRowRequest"
         },
         {
           "name": "keyed_request_wire_progress",
-          "declaration": "keyed_request_wire_progress ( cursor : KeyedRequestWireCursor ) - > ( Int64 , Int , Int , Int )"
+          "declaration": "keyed_request_wire_progress ( cursor : KeyedRequestWireCursor , ) - > ( Int64 , Int , Int , Int )"
         },
         {
           "name": "keyed_request_wire_start_inventory",

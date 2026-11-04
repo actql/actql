@@ -791,7 +791,7 @@
       "operations": [
         {
           "name": "keyed_execution_requirement",
-          "declaration": "keyed_execution_requirement ( value : KeyedExecution ) - > @ sourceviews . LookupRequirement"
+          "declaration": "keyed_execution_requirement ( value : KeyedExecution , ) - > @ sourceviews . LookupRequirement"
         },
         {
           "name": "keyed_input_proof_acquired",
@@ -819,7 +819,7 @@
         },
         {
           "name": "keyed_input_runtime_admission",
-          "declaration": "keyed_input_runtime_admission ( value : KeyedInputProof ) - > KeyedExecution ?"
+          "declaration": "keyed_input_runtime_admission ( value : KeyedInputProof , ) - > KeyedExecution ?"
         },
         {
           "name": "prepare_keyed_input_proofs",
