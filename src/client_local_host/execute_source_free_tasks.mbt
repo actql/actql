@@ -108,7 +108,7 @@ pub fn execute_source_free_local_tasks_guarded(
       index >= 0 &&
       index < count &&
       tasks[index] is None &&
-      @strategy.graph_task_owner(graph, index) is Some(owner) else {
+      @strategy.graph_task_owner(graph, index) is Some(_) else {
       return reject(UnsupportedGraph)
     }
     // Carrier snapshots remain with their existing physical Store owner.
@@ -127,12 +127,19 @@ pub fn execute_source_free_local_tasks_guarded(
       }
       inputs.push(output)
     }
+    let obligations = match
+      @strategy.captured_next_managed_obligations(
+        run,
+        @host_driver.compute_host_max_entries(
+          @builtin.configured_host_runtime(setup),
+        ),
+      ) {
+      Ok(value) => value
+      Err(_) => return reject(Driver(Configuration(InvalidLimits)))
+    }
     let prepared = match
       @local_driver.prepare_local_managed_dispatch(
-        installed,
-        inputs,
-        @execution.process_managed_obligations(owner),
-        0L,
+        installed, inputs, obligations, 0L,
       ) {
       Ok(Some(value)) => value
       Ok(None) => return reject(UnsupportedGraph)

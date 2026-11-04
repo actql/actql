@@ -765,6 +765,7 @@ pub fn[T] start_local_managed_dispatch(
   ).filter(requirement => requirement.need is @execution.EstablishedBy(_))
   let finalization_started = Ref(false)
   let finalization_ready = Ref(false)
+  let finalization_metadata_grown = Ref(false)
   let finalization_cancelled = Ref(false)
   let finalization_row = Ref(0)
   let finalization_receipt_steps = Ref(0L)
@@ -1497,6 +1498,7 @@ pub fn[T] start_local_managed_dispatch(
         available() else {
         return Err(Configuration(InvalidLimits))
       }
+
       let values = match
         @execution.prepare_managed_output_values(
           @connector.managed_fixed_compute_request_owner(request),
@@ -1670,6 +1672,43 @@ pub fn[T] start_local_managed_dispatch(
             }
             (@execution.LogicalRelation, @execution.NamedResult, Some(result)) => {
               if finalization_result_preparation.val is None {
+                // Only a Named Result constructs these row indices. Other
+                // task identities do not reserve an unused Result workspace.
+                if !finalization_metadata_grown.val {
+                  if setup.metadata.result_rows_reserved is Some(initial) {
+                    let rows = @execution.completed_row_count(output)
+                    if rows < 0 || rows > setup.imports.max_rows {
+                      return Err(Configuration(InvalidLimits))
+                    }
+                    let extra_rows = Int::max(0, rows - initial)
+                    // Result projection and stable ordering own two index arrays. This is
+                    // their existing logical cursor-root allowance, not measured heap/RSS.
+                    guard @execution.execution_capacity_inventory_add(
+                        setup.capacity.scratch_bytes,
+                        CursorRootSlots,
+                        extra_rows.to_int64(),
+                        2,
+                      )
+                      is Some(scratch) else {
+                      return Err(Configuration(InvalidLimits))
+                    }
+                    if extra_rows > 0 {
+                      match
+                        @strategy.grow_task_execution_workspace(
+                          setup.run,
+                          execution,
+                          scratch,
+                        ) {
+                        Ok(_) => ()
+                        Err(issue) => return Err(Execution(Physical(issue)))
+                      }
+                      if !live.val || disposed.val || !available() {
+                        return Err(Execution(Stopped))
+                      }
+                    }
+                  }
+                  finalization_metadata_grown.val = true
+                }
                 let preparation = match
                   @execution.start_completed_result_relation_export(
                     output,

@@ -579,6 +579,8 @@ pub fn graph_task_target(@physical_strategy.CheckedDAG, Int) -> @pipeline_typing
 
 pub fn graph_task_unit_index(@physical_strategy.CheckedDAG, Int) -> Int?
 
+pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
+
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
 
 pub fn host_cleanup_runtime_action_code(HostCleanupRuntimeAction) -> Int

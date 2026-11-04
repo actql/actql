@@ -31,6 +31,8 @@ test "metadata policy preserves zero wire legacy and rejects negative independen
       { ..legacy, completion_entries: -1, },
       { ..legacy, result_workspace_entries: -1, },
       { ..legacy, retained_bytes: -1L, },
+      { ..legacy, result_rows_reserved: Some(-1), },
+      { ..legacy, result_rows_reserved: Some(101), },
     ] {
     assert_true(local_managed_metadata_limits(limits, Some(bad)) is None)
   }

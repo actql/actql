@@ -232,6 +232,7 @@ pub(all) struct LocalManagedMetadataLimits {
   completion_entries : Int
   schema : @execution_relation.RelationSchemaIdentityLimits
   result_workspace_entries : Int
+  result_rows_reserved : Int?
   retained_bytes : Int64
 }
 

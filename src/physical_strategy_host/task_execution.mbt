@@ -8,7 +8,7 @@ struct TaskExecution {
   registration_key : String
   reservation : @resources.Reservation
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
-  scratch : Int64
+  mut scratch : Int64
   mut hooks : @connector.ExecutionLifecycleOperations[RunIssue]?
   mut execution_settled : Bool
   mut disposed : Bool
@@ -758,6 +758,54 @@ pub fn charge_task_execution_transfer(
     return Err(ClosedReservation)
   }
   @resources.charge_transfer(run.ledger, execution.reservation, bytes)
+}
+
+///|
+/// Grow workspace on the SAME original task before its next constructor.
+/// The absolute extent is idempotent; attempts, transfers and output retention
+/// are unchanged. The ordinary scratch witness retains the grown amount until
+/// the installed driver actually retires it, including on failure or stop.
+pub fn grow_task_execution_workspace(
+  run : CapturedDAG,
+  execution : TaskExecution,
+  scratch : Int64,
+) -> Result[Unit, @resources.LedgerIssue] {
+  if !task_execution_matches(run, execution) {
+    return Err(ForeignOwner)
+  }
+  if run.stopped || execution.disposed || execution.execution_settled {
+    return Err(ClosedReservation)
+  }
+  if scratch < execution.scratch {
+    return Err(InvalidCharge)
+  }
+  let (retained, capacity) = match
+    @resources.reservation_capacity_amounts(run.ledger, execution.reservation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let extra = scratch - execution.scratch
+  if extra > 9223372036854775807L - capacity {
+    return Err(InvalidCharge)
+  }
+  match
+    @resources.grow_execution_reservation_capacity(
+      run.ledger,
+      execution.reservation,
+      retained,
+      capacity + extra,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  execution.scratch = scratch
+  // The resource current callback may have stopped this same original. Its
+  // grown reservation remains owned for cleanup; no constructor may follow.
+  if run.stopped || execution.disposed || execution.execution_settled {
+    Err(ClosedReservation)
+  } else {
+    Ok(())
+  }
 }
 
 ///|

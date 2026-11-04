@@ -234,6 +234,11 @@ fn client_local_capacity_plan(
       max_depth: imports.wire.max_depth,
     },
     result_workspace_entries: imports.max_rows,
+    result_rows_reserved: if scalar_values {
+      Some(1)
+    } else {
+      None
+    },
     retained_bytes: 0L,
   }
   // The same producer proof bounds every JSON node, including its opaque
@@ -286,12 +291,12 @@ fn client_local_capacity_plan(
     result_envelope is Some(envelope) &&
     inventory is Some(proof) &&
     client_local_inventory_nodes(proof, max_rows) is Some(_) {
-    client_local_scalar_metadata_envelope(proof, original, max_rows, envelope)
+    client_local_scalar_metadata_envelope(proof, original, 1, envelope)
   } else {
     None
   }
   let metadata_quote = client_local_result_metadata_quote(
-    graph, scalar_values, result_envelope, max_rows,
+    graph, scalar_values, result_envelope, 1,
   )
   // Unavailable Plans carry no usable metadata amount and cannot pass either
   // the typed constructor refusal or the original Plan matcher below.

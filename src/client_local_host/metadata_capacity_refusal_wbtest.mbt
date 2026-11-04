@@ -71,7 +71,15 @@ fn metadata_capacity_array_prepared(
 }
 
 ///|
-test "metadata quote failure is distinguished before provider construction" {
+// This component uses the real prepared graph and execution on one explicitly
+// unaccounted diagnostic Ledger; it is not an installed physical Run service.
+fn metadata_capacity_host(
+  prepared : @publication_host.PreparedClientProgram,
+) -> (
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @resources.Ledger,
+  @resources.LedgerLimits,
+) raise {
   let assets = @publication_host.client_local_product_assets()
   let contracts = prepare_installed_sequence_contracts(
     assets.registry,
@@ -79,39 +87,123 @@ test "metadata quote failure is distinguished before provider construction" {
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let prepared = metadata_capacity_array_prepared(10000000)
-  let sequences = prepare_client_local_sequences(
-    prepared,
-    contracts,
-    assets.values,
-    Some(assets.fragment),
-    assets.ordered,
-  ).unwrap()
-  let plan = client_local_capacity_plan(
-    sequences,
-    10000000,
-    scalar_values=true,
-    graph=Some(@publication_host.prepared_client_graph(prepared)),
-  )
-  assert_true(plan._retained_result_envelope is Some(_))
-  assert_eq(plan.metadata_retained_bytes, 0L)
-  assert_true(plan.metadata_quote is MetadataUnavailable)
-  assert_false(client_local_capacity_plan_matches(plan, sequences, 10000000))
-  let mut factories = 0
-  let result = prepare_installed_managed_source_free_with_contracts(
+  let original = prepare_installed_managed_source_free_with_contracts(
     prepared,
     contracts,
     assets.values,
     Some(assets.fragment),
     assets.ordered,
     retained_output=true,
-    provider_factory=_ => {
-      factories += 1
-      []
-    },
+    provider_factory=_ => [],
+  ).unwrap()
+  assert_true(original.capacity_plan.metadata_retained_bytes > 0L)
+  assert_eq(original.capacity_plan.metadata.result_rows_reserved, Some(1))
+  let ledger = @resources.create_ledger(original.limits).unwrap()
+  let setup = open_checked_local_host(
+    prepared,
+    None,
+    contracts,
+    assets.values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=Some(assets.fragment),
+    ordered_body=assets.ordered,
+    retained_output=true,
+    acquisition_ledger=Some(ledger),
+    source_free_preparation=Some(original),
+  ).unwrap()
+  // Use the same trusted publication policy as the ordinary Node caller.
+  // This makes the actual Named Result projection/order owner construct its
+  // row indices; an output-only task would not need that workspace.
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+      true,
+      false,
+      false,
+      false,
+    ),
   )
-  assert_true(result is Err(MetadataCapacityUnavailable))
-  assert_eq(factories, 0)
+  (setup, ledger, original.limits)
+}
+
+///|
+test "unknown array metadata funds actual two rows independently of the ten million row policy" {
+  let prepared = metadata_capacity_array_prepared(10000000)
+  let (setup, ledger, _) = metadata_capacity_host(prepared)
+  let execution = match
+    execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
+    Ok(value) => value
+    Err(failure) => {
+      retry_local_values_execution_failure_cleanup(failure) |> ignore
+      fail("actual two-row metadata execution failed")
+    }
+  }
+  assert_eq(execution.rows().unwrap(), [
+    "{\"x\":1,\"xs\":[1,2]}", "{\"x\":2,\"xs\":[1,2]}",
+  ])
+  let attempts = @resources.ledger_usage(ledger).attempts
+  assert_eq(
+    attempts,
+    @strategy.graph_task_count(
+      @publication_host.prepared_client_graph(prepared),
+    ),
+  )
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, attempts)
+  assert_eq(
+    (
+      usage.held_bytes,
+      usage.reserved_retention_bytes,
+      usage.reserved_execution_bytes,
+    ),
+    (0L, 0L, 0L),
+  )
+}
+
+///|
+test "actual metadata growth exhaustion preserves the same Run attempt and cleanup" {
+  let prepared = metadata_capacity_array_prepared(10000000)
+  let (setup, ledger, limits) = metadata_capacity_host(prepared)
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  let graph = @strategy.captured_dag_graph(run)
+  let last = @strategy.graph_result_task(graph, 0).unwrap()
+  let blocker : Ref[@resources.CapacityReservation?] = Ref(None)
+  let result = execute_source_free_local_tasks_guarded(setup, 64, 100000, fn() {
+    let usage = @resources.ledger_usage(ledger)
+    if blocker.val is None && usage.attempts == last + 1 {
+      // Leave the selected provider's already-reserved workspace untouched,
+      // but exhaust the SAME Ledger before Result metadata growth starts.
+      blocker.val = Some(
+        @resources.reserve_capacity(
+          ledger,
+          0L,
+          limits.execution_bytes - usage.reserved_execution_bytes,
+        ).unwrap(),
+      )
+    }
+    true
+  })
+  assert_true(blocker.val is Some(_))
+  guard result is Err(failure) else { fail("exhausted metadata completed") }
+  assert_true(failure.issue is Driver(Execution(Physical(ExecutionLimit))))
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  @resources.settle_capacity(ledger, blocker.val.unwrap()).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, last + 1)
+  assert_eq(
+    (
+      usage.held_bytes,
+      usage.reserved_retention_bytes,
+      usage.reserved_execution_bytes,
+    ),
+    (0L, 0L, 0L),
+  )
 }
 
 ///|
@@ -150,10 +242,7 @@ test "metadata capacity controls preserve successful scalar and general layouts"
     if query == "SELECT 7 AS x" {
       let proof = plan.schema_inventory.unwrap()
       let specialized = client_local_scalar_metadata_envelope(
-        proof,
-        graph,
-        plan.execution.rows.max_rows,
-        envelope,
+        proof, graph, 1, envelope,
       ).unwrap()
       assert_eq(plan.metadata_retained_bytes, specialized.0)
     } else {
@@ -161,7 +250,7 @@ test "metadata capacity controls preserve successful scalar and general layouts"
       assert_eq(
         client_local_result_metadata_retained(
           envelope,
-          plan.execution.rows.max_rows,
+          1,
           client_node_publication_schema_bytes(),
         ),
         Some(plan.metadata_retained_bytes),
@@ -185,7 +274,7 @@ test "metadata capacity controls preserve successful scalar and general layouts"
 }
 
 ///|
-test "unproved metadata envelope overflow remains a required quote refusal" {
+test "policy row product does not allocate an overflowing metadata envelope" {
   let assets = @publication_host.client_local_product_assets()
   let contracts = prepare_installed_sequence_contracts(
     assets.registry,
@@ -207,10 +296,13 @@ test "unproved metadata envelope overflow remains a required quote refusal" {
     scalar_values=true,
     graph=Some(@publication_host.prepared_client_graph(prepared)),
   )
-  assert_true(plan._retained_result_envelope is None)
-  assert_true(plan.metadata_quote is MetadataUnavailable)
-  assert_eq(plan.metadata_retained_bytes, 0L)
-  assert_false(client_local_capacity_plan_matches(plan, sequences, 2147483647))
+  assert_eq(
+    plan._retained_result_envelope.unwrap().workspace_entries,
+    2147483647,
+  )
+  assert_true(plan.metadata_quote is MetadataQuoted(_))
+  assert_true(plan.metadata_retained_bytes > 0L)
+  assert_true(client_local_capacity_plan_matches(plan, sequences, 2147483647))
 }
 
 ///|
