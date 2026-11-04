@@ -38,6 +38,11 @@ integers. Provider exports never accept a common runtime opaque handle. The
 injected `moon` owns declarations, Mappings, acquisition, capture, credentials,
 Effect claims and recovery. `providerMoon` owns only the following pure ABI:
 
+The consumer's explicit HTTPS port uses Node Readable and Writable lifecycle
+events, including observed binary reads and request close after response close.
+It exercises the original Credential receiver without opening a socket or
+supplying a physical socket cleanup acknowledgement.
+
 - Read: `externalReadRequestJson(page)` constructs one of two fixed paths.
   `externalReadPageJson(bytes, page)` projects `items` to declared rows and
   admits only `next: 1` from the first page or `next: null`. Each page permits
