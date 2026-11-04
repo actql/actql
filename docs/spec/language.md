@@ -8702,16 +8702,23 @@ the acquisition-wide elapsed deadline, including resumed waiting, not a sum of
 parallel attempt durations or a fresh deadline on resume.
 
 <!-- requirement-block: external-joins.lookup-host-static-fit -->
-Static capacity resolution MUST check that the SourceView's worst-case complete
-logical decoded response fits the selected decoded-response ceiling using
-checked arithmetic. This does not prove the wire extent of a compressed
-response. Selected transport plans additionally fit their own request, response,
-redirect and timeout constraints and the aggregate envelope. In particular, the
-existing HTTP network policy retains its separate compressed/decompressed
-per-request bounds; this Host component does not replace them. Declaring a
-maximum retry count grants no retry capability and does not guarantee that all
-retries fit the remaining byte or deadline budgets. Dispatch and unresolved-usage
-reservations remain subject to those budgets before further work is admitted.
+Static capacity resolution MAY retain a checked worst-case complete logical
+decoded-response estimate. An unavailable estimate, estimate overflow, or an
+estimate above the selected decoded-response ceiling MUST NOT by itself reject
+an otherwise valid acquisition. These cases retain the original checked join,
+SourceView and Host policy as a runtime admission obligation. A fitting estimate
+does not grant resources or prove the wire extent of a compressed response.
+Execution MUST admit the next managed construction and physical operation on
+the same Run Ledger, enforce the selected per-request and cumulative ceilings,
+and retain owned cleanup on refusal. A fixed construction that cannot fit the
+selected budget may be refused before it starts. Selected transport plans retain
+their request, response, redirect and timeout constraints; the existing HTTP
+network policy's separate compressed/decompressed per-request bounds remain in
+force. Declaring a maximum retry count grants no retry capability and does not
+guarantee that all retries fit the remaining byte or deadline budgets. Dispatch
+and unresolved-usage reservations remain subject to those budgets before further
+work is admitted. Budget exhaustion MUST NOT publish an incomplete acquisition
+as a complete Source response.
 
 <!-- requirement-block: external-joins.upstream-candidate-completeness-and-complete-response-for-requested-keys-are-separate external-joins.acquisitions-with-different-input-aliases-response-policies-null-policies-or -->
 A real static capacity proof binds the left row estimate, SourceView and

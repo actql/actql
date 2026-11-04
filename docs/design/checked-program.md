@@ -1000,22 +1000,30 @@ acquisitions remain distinct even when they select the same claim.
 
 `prepare_program_source_acquisitions_auto` is the formal entry's selection path.
 For every keyed join's actual left target, it searches all visits and sparse
-claim slots of the same owned capacity closure. It retains a positive applicable
-row bound with the smallest value; equal values are ordered by the admitted
-witness CID. Equal witnesses may retain the first owned occurrence, without
+claim slots of the same owned capacity closure. When available, it retains an
+applicable row bound, including genuine zero, with the smallest value; equal
+values are ordered by the admitted witness CID. Equal witnesses may retain the first owned occurrence, without
 substituting CID equality for membership. This is a deterministic implementation
 choice among valid producer proofs, not an additional language constraint or a
-new proof rule. A Host ceiling alone is not a producer bound. Absence of a
-positive applicable proof fails explicitly.
+new proof rule. A Host ceiling alone is not a producer bound. Absence of an
+applicable proof retains the original checked join and left target as a runtime
+resource-admission obligation. It does not manufacture a count or discard the
+producer correspondence. Supplied malformed or foreign evidence still fails.
 
-The selected membership keeps its consumer visit, claim-table visit, original
-claim index and producer visit. Cross-visit evidence is checked by the shared
+An available selected membership keeps its consumer visit, claim-table visit,
+original claim index and producer visit. Cross-visit evidence is checked by the shared
 target-candidate collector. Repeated joins with the same left target reuse the
 selection within that Stage and closure; they still retain distinct acquisition
 occurrences. All visited slots, unsuccessful target checks, candidate retention
 and CID comparisons consume the request budget. Row validation remains charged
 as its own pass. The selected immutable memberships flow through policy and
 lookup-capacity construction without reconstructing successful target checks.
+Unknown estimates flow through the same preparation with their original
+join/target ownership. Lookup planning may retain optional worst-case estimates,
+but neither their absence nor exceeding a cumulative ceiling proves actual
+execution cannot fit. The completed original left input supplies the runtime
+row count, and the same Run Ledger admits actual construction and requests.
+No count-only Source read, recheck or replacement Run is introduced.
 
 The formal result also retains `KeyedInputProof` entries. Each entry binds the
 exact keyed request execution record and the consumer join's `UnitOperationSource`
