@@ -1468,7 +1468,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "07bc1845cf8d3176d2bf94988e462478e6975dc838cae9d335d11a20fdc56bf1",
+      "sha256": "53928f2f260b31209d2e3f0d41131f437f8c979f1376014c02004bb2a1c714e2",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -1587,6 +1587,13 @@
         },
         {
           "name": "openCapturedDuckDBSource/openCapturedDuckDBSource#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openCapturedDuckDBSource/openCapturedDuckDBSource#4",
           "parameters": [],
           "async": false
         },
@@ -1671,6 +1678,7 @@
             "openCapturedDuckDBSource/openCapturedDuckDBSource",
             "openCapturedDuckDBSource/openCapturedDuckDBSource#2",
             "openCapturedDuckDBSource/openCapturedDuckDBSource#3",
+            "openCapturedDuckDBSource/openCapturedDuckDBSource#4",
             "openCapturedDuckDBSource/recovery/init:cleanup/init:cleanup",
             "openCapturedDuckDBSource/recovery/init:close/init:close",
             "openCapturedDuckDBSource/recovery/recovery",
@@ -1693,6 +1701,10 @@
               {
                 "path": "adapters/host-node/captured-duckdb-source.mjs",
                 "anchor": "Program and MoonBit acquisition planner own the source request and query"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "inputsOutputs": [
@@ -1709,12 +1721,20 @@
               {
                 "path": "adapters/host-node/captured-duckdb-source.mjs",
                 "anchor": "preparations = new WeakMap()"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/captured-duckdb-source.mjs",
                 "anchor": "acquisitionOutcome"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "synchronization": [
@@ -1739,6 +1759,10 @@
               {
                 "path": "adapters/host-node/captured-duckdb-source.mjs",
                 "anchor": "transportLimitKeys"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "extension": [
@@ -1755,6 +1779,10 @@
               {
                 "path": "adapters/host-node/acquired-effect-installed-capacity.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback'"
               }
             ]
           }

@@ -230,7 +230,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const {requirement, evidenceContext} = owner;
   const {acquisition, broad, selection} = authorizedSelection ?? owner;
   const {runNativeHostQuery, runBroadHostQuery, runStrategyNativeHostQuery,
-    nativeSourceIdentityMatches, issueNativeSourceEvidence} = native.host;
+    nativeSourceIdentityMatches, issueNativeSourceEvidence,
+    prepareNativeSourceEvidenceOriginal} = native.host;
   let capture;
   try {
     capture = broad
@@ -295,6 +296,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       occurrence: owner.occurrence,
       acquisition: selection === undefined ? undefined : freezeAcquisitionDiagnostic({
         selection, observation: JSON.parse(capture.document())}),
+      prepareSourceEvidenceOriginal: options => prepareNativeSourceEvidenceOriginal(capture,
+        {...options, context: evidenceContext, identity, logicalInput}),
       issueSourceEvidence: options => issueNativeSourceEvidence(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});

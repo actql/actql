@@ -56,6 +56,45 @@ export async function issueNativeSourceEvidence(capture, options) {
   return owned.issue(options);
 }
 
+
+// The existing physical capture retains this original typed evidence through
+// preparation and one synchronous transfer. This is payload custody only;
+// current authorization and issuance remain with that capture's original issuer.
+function sourceEvidenceOriginalAccess(current, issue) {
+  let evidence, preparing = false;
+  return Object.freeze({
+    async prepare(options) {
+      current();
+      if (preparing || evidence !== undefined) {
+        throw new DuckDBTransportError('SourceEvidencePending');
+      }
+      preparing = true;
+      try {
+        const original = await issue(options);
+        current();
+        if (original === undefined) throw new DuckDBTransportError('SourceEvidenceUnavailable');
+        evidence = original;
+      } finally {preparing = false;}
+    },
+    take() {
+      current();
+      if (evidence === undefined) throw new DuckDBTransportError('SourceEvidenceUnavailable');
+      const original = evidence;
+      evidence = undefined;
+      return original;
+    },
+    retire() {evidence = undefined;},
+  });
+}
+
+// Only the original physical capture can prepare this nominal evidence. The
+// existing wire-returning entry above keeps its compatibility behavior.
+export async function prepareNativeSourceEvidenceOriginal(capture, options) {
+  const owned = ownedSourceCaptures.get(capture);
+  if (owned === undefined) throw new DuckDBTransportError('UnknownSourceCapture');
+  return owned.prepare(options);
+}
+
 function logicalComparisonAccounting(values) {
   if (values == null) return Object.freeze({
     comparisonWork: 0, comparisonBytes: 0, comparisonNodes: 0,
@@ -1356,8 +1395,25 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     return sourceCapture ??= checked(moon.nativeHostSourceCapture(
       capturedRun, captured.observation));
   };
+  const evidenceOriginal = sourceEvidenceOriginalAccess(() => {
+    liveRun();
+  }, ({context, identity, logicalInput, authorityScopeCid,
+    effectiveDataPolicyCid, signal: issuanceSignal}) => {
+    const held = retainedSourceCapture();
+    const sourceRef = moon.nativeHostSourceCaptureSourceRef(held);
+    if (sourceRef === undefined) throw new DuckDBTransportError('ClosedSourceCapture');
+    return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
+      retainedSourceCapture();
+      return checked(moon.nativeHostIssueSourceEvidenceOriginal(held, context, identity,
+        logicalInput, authorityScopeCid, effectiveDataPolicyCid, observedAt));
+    }, issuanceSignal);
+  });
   const result = Object.freeze({
     observation: captured.observation,
+    takeSourceEvidenceOriginal() {
+      if (this !== result) throw new DuckDBTransportError('UnknownSourceCapture');
+      return evidenceOriginal.take();
+    },
     usage: captured.usage,
     diagnostics: Object.freeze({
       ...captured.diagnostics,
@@ -1395,10 +1451,12 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       // close. Failed close retries retain that same owner; the weak entry's
       // liveRun guard preserves the established closed-evidence failure.
       sourceCapture = undefined;
+      evidenceOriginal.retire();
       captureReleased = true;
     },
   });
   ownedSourceCaptures.set(result, Object.freeze({
+    prepare: options => evidenceOriginal.prepare(options),
     issue: ({context, identity, logicalInput, authorityScopeCid,
       effectiveDataPolicyCid, signal: issuanceSignal}) => {
       const held = retainedSourceCapture();
@@ -1559,8 +1617,25 @@ export async function runBroadHostQuery(grant, setup, limits, signal,
     return sourceCapture ??= checked(moon.broadHostSourceCapture(
       capturedRun, captured.observation));
   };
+  const evidenceOriginal = sourceEvidenceOriginalAccess(() => {
+    if (closed) throw new DuckDBTransportError('ClosedSourceCapture');
+  }, ({context, identity, logicalInput, authorityScopeCid,
+    effectiveDataPolicyCid, signal: issuanceSignal}) => {
+    const held = retainedSourceCapture();
+    const sourceRef = moon.broadHostSourceCaptureSourceRef(held);
+    if (sourceRef === undefined) throw new DuckDBTransportError('ClosedSourceCapture');
+    return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
+      retainedSourceCapture();
+      return checked(moon.broadHostIssueSourceEvidenceOriginal(held, context, identity,
+        logicalInput, authorityScopeCid, effectiveDataPolicyCid, observedAt));
+    }, issuanceSignal);
+  });
   const result = Object.freeze({
     observation: captured.observation,
+    takeSourceEvidenceOriginal() {
+      if (this !== result) throw new DuckDBTransportError('UnknownSourceCapture');
+      return evidenceOriginal.take();
+    },
     document: () => moon.broadHostDocument(captured.observation),
     bindInput: (receiver, inputIndex) => captured.bindInput(receiver, inputIndex),
     source: () => checked(moon.broadHostSourceCaptureSource(
@@ -1577,10 +1652,12 @@ export async function runBroadHostQuery(grant, setup, limits, signal,
       if (captureReleased) return;
       closed = true;
       captured.close();
+      evidenceOriginal.retire();
       captureReleased = true;
     },
   });
   ownedSourceCaptures.set(result, Object.freeze({
+    prepare: options => evidenceOriginal.prepare(options),
     issue: ({context, identity, logicalInput, authorityScopeCid,
       effectiveDataPolicyCid, signal: issuanceSignal}) => {
       const held = retainedSourceCapture();

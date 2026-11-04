@@ -42,6 +42,8 @@ pub fn broad_host_finish(BroadNodeRun) -> Unit raise NodeHostFailure
 
 pub fn broad_host_issue_source_evidence(@host.BroadHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
 
+pub fn broad_host_issue_source_evidence_original(@host.BroadHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> @run_publication.RunEvidenceValue raise NodeHostFailure
+
 pub fn broad_host_max_name_bytes(BroadNodeRun) -> Int
 
 pub fn broad_host_metadata(BroadNodeRun, Int, String, String) -> Unit raise NodeHostFailure
@@ -391,6 +393,8 @@ pub fn native_host_document(@acquisition.DuckDBNativeObservation) -> String
 pub fn native_host_finish(NativeNodeRun) -> Unit raise NodeHostFailure
 
 pub fn native_host_issue_source_evidence(@host.NativeHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
+
+pub fn native_host_issue_source_evidence_original(@host.NativeHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> @run_publication.RunEvidenceValue raise NodeHostFailure
 
 pub fn native_host_measurement_usage(@acquisition.DuckDBNativeObservation) -> Array[Int]
 

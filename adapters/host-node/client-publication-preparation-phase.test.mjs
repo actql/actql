@@ -819,3 +819,83 @@ test('failed Host initialization cannot lend retained publication identity while
   assert.throws(() => registry.assertRetainedPreparation(host, installation, host),
     /InstalledHostPreparationChanged/);
 });
+
+
+test('DuckDB original evidence transfer retains the same issuer value and rejects pending or retired access', async () => {
+  const original = {}, options = {}, seen = [];
+  let live = true, complete;
+  class Failure extends Error {constructor(code) {super(code); this.code = code;}}
+  const create = get('../connectors/duckdb/node/host.mjs', 'sourceEvidenceOriginalAccess', {
+    DuckDBTransportError: Failure,
+  });
+  const access = create(() => {if (!live) throw new Failure('ClosedSourceCapture');}, value => {
+    assert.equal(value, options); seen.push(value);
+    return new Promise(resolve => {complete = resolve;});
+  });
+  const preparing = access.prepare(options);
+  assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
+  await assert.rejects(access.prepare(options), {code: 'SourceEvidencePending'});
+  complete(original); await preparing;
+  assert.equal(access.take(), original);
+  assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
+  const next = access.prepare(options);
+  live = false; complete(original);
+  await assert.rejects(next, {code: 'ClosedSourceCapture'});
+  assert.throws(() => access.take(), {code: 'ClosedSourceCapture'});
+  // No successful physical retirement was inferred from the failed prepare.
+  live = true;
+  const retained = access.prepare(options); complete(original); await retained;
+  access.retire();
+  assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
+  assert.equal(seen.length, 3);
+});
+
+test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback', async () => {
+  for (const broad of [false, true]) {
+    const preparedProgram = {}, preparedSource = {checkedSource: {sourceRef: 'original'}},
+      registry = {}, sourceAccess = {}, requirement = {}, evidenceContext = {}, identity = {},
+      logicalInput = {}, capturedSource = {}, acquisition = {}, ledger = {}, options = {};
+    const capture = Object.freeze({source: () => capturedSource, close() {},
+      document() {assert.fail('No observation wire required for evidence preparation');}});
+    const owner = {moon: undefined, checkedOwner: preparedProgram, effectful: false,
+      occurrence: {stage: 0, input: 0, task: 0}, registry, values: 'values', fragment: 'fragment',
+      ordered: 'ordered', database: 'unopened', schema: 'main', table: 'records', sourceAccess,
+      transportLimits: {}, acquisitionPlanning: undefined, acquisition, broad,
+      requirement, evidenceContext, selection: undefined};
+    const moon = owner.moon = {
+      clientProgramCapturedTaskSourceMatches: (actual, source, task) => {
+        assert.equal(actual, preparedProgram); assert.equal(source, capturedSource); assert.equal(task, 0); return true;
+      },
+      clientProgramIdentifyCapturedSourceRelation: source => {assert.equal(source, capturedSource); return identity;},
+      clientProgramIssueCapturedTaskSourceLogical: (...values) => {
+        assert.deepEqual(values, [preparedProgram, capturedSource, identity, requirement, 0]); return logicalInput;
+      },
+    };
+    const prepareNativeSourceEvidenceOriginal = async (original, selected) => {
+      assert.equal(original, capture);
+      assert.deepEqual(selected, {...options, context: evidenceContext, identity, logicalInput});
+    };
+    const native = {session: {authorizeLocalDatabase: async () => ({})}, host: {
+      runNativeHostQuery() {assert.fail('The original parent Ledger must be retained');},
+      runStrategyNativeHostQuery: async () => {assert.equal(broad, false); return capture;},
+      runBroadHostQuery: async () => {assert.equal(broad, true); return capture;},
+      nativeSourceIdentityMatches: (actual, selected) => actual === capture && selected === identity,
+      prepareNativeSourceEvidenceOriginal,
+      issueNativeSourceEvidence() {assert.fail('No evidence wire or readmission');},
+    }};
+    const open = get('./captured-duckdb-source.mjs', 'openCapturedDuckDBSource', {
+      preparations: new WeakMap([[preparedSource, owner]]), admittedTransportPolicy: () => ({}),
+      transportLimitKeys: [], currentReadDecision: async () => ({action: 'dispatch'}),
+      loadDuckDBNativeRuntime: async () => native, checked: value => value,
+      runtimeIsOk: () => false, runtimeField() {assert.fail('No synthetic runtime tuple');},
+      acquisitionFailure() {assert.fail('Unexpected physical failure');},
+      ExecutionAuthorizationError: class extends Error {},
+    });
+    const result = await open({moon, preparedProgram, registry, values: 'values', fragment: 'fragment',
+      ordered: 'ordered', database: 'unopened', schema: 'main', table: 'records', sourceAccess,
+      preparedSource, transportLimits: {}, ledger});
+    assert.equal(result.capture, capture);
+    await result.prepareSourceEvidenceOriginal(options);
+    await result.close();
+  }
+});

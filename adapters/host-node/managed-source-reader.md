@@ -387,3 +387,14 @@ retires; no cleanup flag is cleared to manufacture acknowledgement. A cleanup
 exception after a previously successful read is still a cleanup exception.
 This changes no current boundary, capacity, callback count, physical stop or
 response evidence rule.
+
+
+The installed DuckDB capture follows the same original-evidence transfer. Its
+existing Native/Broad issuer projects the already issued `RunEvidenceValue`
+directly; the compatibility wire method encodes that same typed projection.
+The actual physical capture retains the value during preparation and exposes
+the one-shot transfer on that same object. A copied object cannot take it.
+Its existing current read decision still precedes issuance. Pending or failed
+physical retirement retains the original evidence duty; successful original
+close drops the retained value. No JSON round trip admits another evidence
+value, and no new capture or read permission is created.

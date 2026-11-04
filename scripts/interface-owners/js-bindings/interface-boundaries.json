@@ -15,7 +15,7 @@
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0274909c80b3d54f0776e246053b22224ade8f50a02df58b41e12e24dbba77f5",
+      "sha256": "155a45bdf9bb9a5788723b110b6689ddd409ede17de6286a371671e1d31d44ae",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -27,6 +27,7 @@
         "managedColumnCodecContractCid",
         "nativeSourceIdentityMatches",
         "openResidentStrategyEnvironment",
+        "prepareNativeSourceEvidenceOriginal",
         "runBroadHostQuery",
         "runFixedHostCompute",
         "runManagedColumnStrategyHostCompute",
@@ -310,6 +311,14 @@
           "async": false
         },
         {
+          "name": "prepareNativeSourceEvidenceOriginal",
+          "parameters": [
+            "capture",
+            "options"
+          ],
+          "async": true
+        },
+        {
           "name": "registerRetained",
           "parameters": [
             "output",
@@ -494,7 +503,34 @@
           "async": false
         },
         {
+          "name": "runBroadHostQuery/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runBroadHostQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runBroadHostQuery/evidenceOriginal/evidenceOriginal#2",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
           "name": "runBroadHostQuery/result/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runBroadHostQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
           "parameters": [],
           "async": false
         },
@@ -532,12 +568,7 @@
         {
           "name": "runBroadHostQuery/runBroadHostQuery",
           "parameters": [
-            "context",
-            "identity",
-            "logicalInput",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "issuanceSignal"
+            "options"
           ],
           "async": false
         },
@@ -548,6 +579,18 @@
         },
         {
           "name": "runBroadHostQuery/runBroadHostQuery#2",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "runBroadHostQuery/runBroadHostQuery#3",
           "parameters": [
             "identity"
           ],
@@ -1181,6 +1224,28 @@
           "async": false
         },
         {
+          "name": "runHostNativeQuery/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
+          "parameters": [
+            "context",
+            "identity",
+            "logicalInput",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "issuanceSignal"
+          ],
+          "async": false
+        },
+        {
           "name": "runHostNativeQuery/liveRun/liveRun",
           "parameters": [],
           "async": false
@@ -1199,6 +1264,11 @@
         },
         {
           "name": "runHostNativeQuery/result/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runHostNativeQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
           "parameters": [],
           "async": false
         },
@@ -1262,6 +1332,13 @@
         {
           "name": "runHostNativeQuery/runHostNativeQuery#2",
           "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "runHostNativeQuery/runHostNativeQuery#3",
+          "parameters": [
             "context",
             "identity",
             "logicalInput",
@@ -1272,7 +1349,7 @@
           "async": false
         },
         {
-          "name": "runHostNativeQuery/runHostNativeQuery#3",
+          "name": "runHostNativeQuery/runHostNativeQuery#4",
           "parameters": [
             "identity"
           ],
@@ -1406,6 +1483,31 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess",
+          "parameters": [
+            "current",
+            "issue"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/init:take/init:take",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -1998,10 +2100,16 @@
         },
         {
           "operations": [
-            "issueNativeSourceEvidence"
+            "issueNativeSourceEvidence",
+            "prepareNativeSourceEvidenceOriginal",
+            "sourceEvidenceOriginalAccess",
+            "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
+            "sourceEvidenceOriginalAccess/init:retire/init:retire",
+            "sourceEvidenceOriginalAccess/init:take/init:take"
           ],
           "exports": [
-            "issueNativeSourceEvidence"
+            "issueNativeSourceEvidence",
+            "prepareNativeSourceEvidenceOriginal"
           ],
           "attributes": {
             "responsibility": [
@@ -2012,6 +2120,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "inputsOutputs": [
@@ -2032,6 +2144,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "ownership": [
@@ -2042,6 +2158,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "synchronization": [
@@ -2082,6 +2202,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "extension": [
@@ -2106,6 +2230,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback'"
               }
             ]
           }
@@ -2935,7 +3063,11 @@
             "runBroadHostQuery/captured/captured/port/port/port",
             "runBroadHostQuery/captured/captured/run/run",
             "runBroadHostQuery/complete/complete",
+            "runBroadHostQuery/evidenceOriginal/evidenceOriginal",
+            "runBroadHostQuery/evidenceOriginal/evidenceOriginal#2",
+            "runBroadHostQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
             "runBroadHostQuery/result/init:close/init:close",
+            "runBroadHostQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
             "runBroadHostQuery/result/result",
             "runBroadHostQuery/result/result#2",
             "runBroadHostQuery/result/result#3",
@@ -2943,6 +3075,7 @@
             "runBroadHostQuery/retainedSourceCapture/retainedSourceCapture",
             "runBroadHostQuery/runBroadHostQuery",
             "runBroadHostQuery/runBroadHostQuery#2",
+            "runBroadHostQuery/runBroadHostQuery#3",
             "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery"
           ],
           "exports": [
@@ -2957,6 +3090,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "inputsOutputs": [
@@ -2977,6 +3114,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "ownership": [
@@ -2987,6 +3128,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "synchronization": [
@@ -3027,6 +3172,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "extension": [
@@ -3051,6 +3200,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback'"
               }
             ]
           }
@@ -3378,10 +3531,14 @@
             "runHostNativeQuery/evidence/evidence",
             "runHostNativeQuery/evidence/evidence/evidence",
             "runHostNativeQuery/evidence/evidence/evidence#2",
+            "runHostNativeQuery/evidenceOriginal/evidenceOriginal",
+            "runHostNativeQuery/evidenceOriginal/evidenceOriginal#2",
+            "runHostNativeQuery/evidenceOriginal/evidenceOriginal/evidenceOriginal",
             "runHostNativeQuery/liveRun/liveRun",
             "runHostNativeQuery/output/output",
             "runHostNativeQuery/output/output/output",
             "runHostNativeQuery/result/init:close/init:close",
+            "runHostNativeQuery/result/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal",
             "runHostNativeQuery/result/result",
             "runHostNativeQuery/result/result#2",
             "runHostNativeQuery/result/result#3",
@@ -3393,6 +3550,7 @@
             "runHostNativeQuery/runHostNativeQuery",
             "runHostNativeQuery/runHostNativeQuery#2",
             "runHostNativeQuery/runHostNativeQuery#3",
+            "runHostNativeQuery/runHostNativeQuery#4",
             "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery"
           ],
           "exports": [],
@@ -3405,6 +3563,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "inputsOutputs": [
@@ -3425,6 +3587,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "ownership": [
@@ -3435,6 +3601,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "synchronization": [
@@ -3475,6 +3645,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "extension": [
@@ -3499,6 +3673,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback'"
               }
             ]
           }
@@ -32854,7 +33032,7 @@
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "07bc1845cf8d3176d2bf94988e462478e6975dc838cae9d335d11a20fdc56bf1",
+      "sha256": "53928f2f260b31209d2e3f0d41131f437f8c979f1376014c02004bb2a1c714e2",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -32975,6 +33153,13 @@
         },
         {
           "name": "openCapturedDuckDBSource/openCapturedDuckDBSource#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "openCapturedDuckDBSource/openCapturedDuckDBSource#4",
           "parameters": [],
           "async": false
         },
@@ -33843,6 +34028,7 @@
             "openCapturedDuckDBSource/openCapturedDuckDBSource",
             "openCapturedDuckDBSource/openCapturedDuckDBSource#2",
             "openCapturedDuckDBSource/openCapturedDuckDBSource#3",
+            "openCapturedDuckDBSource/openCapturedDuckDBSource#4",
             "openCapturedDuckDBSource/recovery/init:cleanup/init:cleanup",
             "openCapturedDuckDBSource/recovery/init:close/init:close",
             "openCapturedDuckDBSource/recovery/recovery"
@@ -33859,6 +34045,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "inputsOutputs": [
@@ -33879,6 +34069,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "ownership": [
@@ -33889,6 +34083,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "synchronization": [
@@ -33929,6 +34127,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Original Source evidence transfer"
               }
             ],
             "extension": [
@@ -33953,6 +34155,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('DuckDB captured Source prepares evidence on the same original physical capture without wire fallback'"
               }
             ]
           }
