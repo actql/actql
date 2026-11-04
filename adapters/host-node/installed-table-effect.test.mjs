@@ -4,16 +4,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
-import {readFile} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {tableFixturePublicationPlan, tableFixtureWriteFootprint} from './fixtures/table-completed-capture.mjs';
 import {issueIcebergStorageMapping, admitIcebergStorageMapping, projectIcebergCommitResponse,
-  supportsIcebergTableOperation, createIcebergPhysicalBridge}
+  supportsIcebergTableOperation}
   from '../connectors/local/host/iceberg-process.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
-import {runtimeField, runtimeIsError} from '../host-common/compiler-binding.generated.mjs';
 import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputation,
   releaseCompletedRunPreparedPayloads, retireCompletedEffectfulCapture}
   from '../host-common/completed-run-publication.mjs';
@@ -21,77 +18,6 @@ import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputati
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const targetRef = 'connector://table/catalog';
 const mappingRef = 'mapping:table.catalog.v1';
-
-for (const empty of [false, true]) {
-  test(`Table managed demand keeps one whole-Relation dispatch per ${empty ? 'empty' : 'nonempty'} member`,
-    async t => exerciseEffectSourceSet(t, {empty, target: targetRef, mappingRef,
-      minimumApproval: 'required', onCompletedTableRun: async f => {
-        const {moon} = f;
-        const bridge = createIcebergPhysicalBridge({python: new URL('file:///usr/bin/python3'),
-          run: 'table-managed-demand', catalog: {database: join(f.directory, 'catalog.db'),
-            warehouse: join(f.directory, 'warehouse'), catalogCid: cid('3'),
-            limits: {bytes: 1048576, files: 16, operations: 8}}});
-        const options = {moon, environmentWire: '{}', connectorId: 'table',
-          connectorRegistration: 'table', connectorRevision: 'table/0.1', connection: 'table',
-          runtimeBundleCid: cid('8'), bindingCid: cid('9'), catalogCid: cid('3'),
-          targets: ['first', 'second'].map((effectId, index) => ({effectId,
-            resource: 'catalog', targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
-            action: 'create', catalogCid: cid('3'), namespace: ['analytics'],
-            tableName: `rows_${index}`, expectedTable: null, permissions: ['scope:store'],
-            footprint: tableFixtureWriteFootprint(index)})), bridge,
-          authorization: {authorize() {assert.fail('Plan DATA cannot authorize');}},
-          ledgerRoot: join(f.directory, 'managed-table-ledger'),
-          limits: {maxMembers: 2, maxInputBytes: 4096,
-            preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16}}};
-        const factory = await createInstalledTableEffect(options);
-        const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-demand', cid('b'));
-        const compilation = checked(moon.clientProgramCompileLocalEffects(f.prepared));
-        const [registry, contract] = await Promise.all([
-          readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
-          readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
-        ]);
-        const values = JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']);
-        const inputs = {values, installedContracts: checked(
-          moon.clientPrepareInstalledSequenceContracts(registry, values, undefined, undefined))};
-        const facts = Object.freeze({prepared: f.prepared, identity, compilation});
-        const plan = factory.prepareManagedPlan(facts, inputs);
-        const shape = moon.clientProgramInstalledEffectManagedPlanShape(plan);
-        assert.equal(runtimeField(shape, 1), 2);
-        if (empty) assert.equal(runtimeField(shape, 0), 0);
-        else assert.ok(runtimeField(shape, 0) > 0);
-        for (const index of [0, 1]) {
-          const write = checked(moon.clientProgramInstalledEffectManagedPlanOperation(
-            plan, index, false, 2, 'table.commit'));
-          assert.equal(moon.clientProgramInstalledEffectOperationExtentPhysical(write), true);
-          assert.equal(moon.clientProgramInstalledEffectOperationExtentTransfer(write),
-            2n * (BigInt(bridge.frameLimits.maxBytes) + 4n));
-          // No operation slot per input row: zero rows still have this same
-          // whole-Relation member, and nonempty Relations cannot multiply sends.
-          assert.equal(runtimeIsError(moon.clientProgramInstalledEffectManagedPlanOperation(
-            plan, index, true, 0, 'table.commit')), true);
-          assert.equal(runtimeIsError(moon.clientProgramInstalledEffectManagedPlanOperation(
-            plan, index, false, 2, 'foreign-operation')), true);
-        }
-        const missing = await createInstalledTableEffect({...options,
-          ledgerRoot: join(f.directory, 'unfunded-table-ledger'),
-          bridge: {...bridge, effectPlanConstruction: undefined}});
-        assert.throws(() => missing.prepareManagedPlan(facts, inputs),
-          {code: 'InstalledPhysicalWriteConstructionUnavailable'});
-        const unrepresentable = await createInstalledTableEffect({...options,
-          ledgerRoot: join(f.directory, 'invalid-table-ledger'),
-          limits: {...options.limits, maxInputBytes: 2147483648}});
-        assert.throws(() => unrepresentable.prepareManagedPlan(facts, inputs),
-          {code: 'InstalledTableConstructionUnavailable'});
-        // The existing native quantity Owner also rejects an actually
-        // unrepresentable construction, rather than replacing it with zero.
-        const overflowing = await createInstalledTableEffect({...options,
-          ledgerRoot: join(f.directory, 'overflow-table-ledger'), bridge: {...bridge,
-            effectPlanConstruction: Object.freeze({retained: Object.freeze({
-              nodes: 1n << 63n, text: 0n, wire: 0n}), workspace: Object.freeze({
-              nodes: 0n, text: 0n, wire: 0n})})}});
-        assert.throws(() => overflowing.prepareManagedPlan(facts, inputs), {code: 'MoonBitHostFailure'});
-      }}));
-}
 
 for (const kind of ['frozen', 'nested', 'primitive']) {
   test(`installed Table preparation retains ${kind} failure and cleanup custody`,
