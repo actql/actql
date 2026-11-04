@@ -20,7 +20,10 @@ const keys = generateKeyPairSync('ed25519');
 let computes = 0;
 const authorization = {
   accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
-    account_id: 'read-row-capacity', entries: [{entry_id: 'write', outcome: 'allow',
+    account_id: 'read-row-capacity', entries: [{entry_id: 'owner-read', outcome: 'allow',
+      principal: {any_of: [userInfo().username]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []},
+    {entry_id: 'write', outcome: 'allow',
       principal: {all: true}, connection: {all: true}, resource: {all: true},
       operation: {any_of: ['write']}, exclusions: []}]}),
   reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
