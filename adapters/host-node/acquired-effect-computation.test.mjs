@@ -562,3 +562,73 @@ for (const [name, options] of [
   assert.equal(fixture.value.cleanupPending(), true);
   if (options.physicalReady === false) assert.deepEqual(fixture.events, ['physical']);
 });
+
+
+// Actual cleanup and successful publication block, extracted unchanged. The
+// Core/Store/Task owner ports are explicit; this is not ordinary funding proof.
+function persistedModelScratchFixture({retire = true, releaseFailure} = {}) {
+  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const declaration = ast.body.map(node => node.declaration ?? node)
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'openAcquiredEffectComputation');
+  const cleanup = declaration.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'cleanupInfer'));
+  const main = declaration.body.body.find(node => node.type === 'TryStatement');
+  const persisted = main.block.body.find(node => node.type === 'IfStatement' &&
+    source.slice(node.start, node.end).includes('(await inferCapture.persist()).plan'));
+  assert.ok(cleanup && persisted);
+  const events = [], plan = {}, content = {live: true};
+  let modelClosed = false;
+  const inferCapture = {persist: async () => {events.push('persist'); return {plan};},
+    custody: {retirePublication: async () => {events.push('retire-publication'); return retire;},
+      close: async () => {events.push('close-model'); modelClosed = true;},
+      cleanupPending: () => !modelClosed}};
+  const inferOperation = {publicationCapacityPending: () => true,
+    releaseOriginalPublicationCapacity() {
+      events.push('release-capacity');
+      if (releaseFailure !== undefined) releaseFailure();
+      return true;
+    }};
+  const execution = {async refreshCompletedScratch() {
+    assert.strictEqual(this, execution); assert.equal(modelClosed, true);
+    events.push('refresh-original-scratch'); assert.equal(content.live, true);
+  }};
+  const run = new Function('inferCapture', 'inferOperation', 'execution', 'events', `
+    let inferReleased=false,inferCloseAttempted=false,modelReleased=false,modelCloseAttempted=false;
+    const modelContinuation={close(){throw Error('same journal continuation must remain');}};
+    const originalPreparation={},component={};
+    let publicationPlan;
+    const current=()=>{};
+    const faultInjection=async()=>{events.push('capture-committed');};
+    ${source.slice(cleanup.start, cleanup.end)}
+    return async()=>{${source.slice(persisted.start, persisted.end)} return publicationPlan;};
+  `)(inferCapture, inferOperation, execution, events);
+  return {run, events, plan, content, inferCapture};
+}
+
+test('persisted original Model retires its aliases before scratch refresh while Content and journal remain', async () => {
+  const f = persistedModelScratchFixture();
+  assert.strictEqual(await f.run(), f.plan);
+  assert.deepEqual(f.events, ['persist', 'retire-publication', 'release-capacity',
+    'close-model', 'refresh-original-scratch', 'capture-committed']);
+  assert.equal(f.content.live, true);
+});
+
+test('pending original Model publication keeps aliases and forbids scratch refresh', async () => {
+  const f = persistedModelScratchFixture({retire: false});
+  await assert.rejects(f.run(), {code: 'ClientDispatchCleanupPending'});
+  assert.deepEqual(f.events, ['persist', 'retire-publication']);
+  assert.equal(f.inferCapture.custody.cleanupPending(), true);
+  assert.equal(f.content.live, true);
+});
+
+test('original Model alias retirement preserves thrown undefined null and Error before refresh', async () => {
+  for (const original of [undefined, null, new Error('original Model retirement')]) {
+    const f = persistedModelScratchFixture({releaseFailure() {throw original;}});
+    let rejected = false;
+    try {await f.run();} catch (error) {rejected = true; assert.strictEqual(error, original);}
+    assert.equal(rejected, true);
+    assert.deepEqual(f.events, ['persist', 'retire-publication', 'release-capacity']);
+    assert.equal(f.content.live, true);
+  }
+});

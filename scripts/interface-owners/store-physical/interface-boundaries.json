@@ -254,11 +254,12 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0934b69dc9ecd64b759ebddd216acec572bc7a218aed9f3f9f776301bc2157b6",
+      "sha256": "f9d5a57243b7e9b05065dfa088bd952f82df1337a2672d66d14844155eaaf45b",
       "exports": [
         "closeCompletedLocalManagedOutput",
         "closeCompletedLocalManagedOutputAsync",
-        "continueLocalManagedFailureCleanup"
+        "continueLocalManagedFailureCleanup",
+        "refreshCompletedLocalManagedScratch"
       ],
       "operations": [
         {
@@ -324,6 +325,14 @@
           "name": "continueLocalManagedFailureCleanup/flight/flight",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "refreshCompletedLocalManagedScratch",
+          "parameters": [
+            "operations",
+            "available"
+          ],
+          "async": true
         },
         {
           "name": "retainProgressingCleanup",
@@ -498,11 +507,13 @@
             "continueFailureCleanup/continueFailureCleanup",
             "continueLocalManagedFailureCleanup",
             "continueLocalManagedFailureCleanup/flight/flight",
-            "retirementProgress"
+            "retirementProgress",
+            "refreshCompletedLocalManagedScratch"
           ],
           "exports": [
             "closeCompletedLocalManagedOutputAsync",
-            "continueLocalManagedFailureCleanup"
+            "continueLocalManagedFailureCleanup",
+            "refreshCompletedLocalManagedScratch"
           ],
           "attributes": {
             "responsibility": [
@@ -583,6 +594,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Failure, cancellation and publication"
+              },
+              {
+                "path": "src/client_local_host/managed_cleanup_control_inventory.mbt",
+                "anchor": "managed_cleanup_control_units"
               }
             ],
             "extension": [
@@ -599,6 +614,10 @@
               {
                 "path": "adapters/local-node/managed-output-custody.test.mjs",
                 "anchor": "completed memory retirement refuses copied wrappers and replaced recovery handles"
+              },
+              {
+                "path": "adapters/local-node/managed-output-custody.test.mjs",
+                "anchor": "completed live Local material refreshes only progressing original scratch without close or ACK"
               }
             ]
           }
@@ -606,7 +625,8 @@
       ],
       "imports": [
         "../host-common/managed-failure.mjs",
-        "../store-local/managed-memory-representations.mjs"
+        "../store-local/managed-memory-representations.mjs",
+        "node:timers/promises"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

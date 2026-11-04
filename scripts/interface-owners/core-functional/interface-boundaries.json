@@ -21656,7 +21656,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
+      "sha256": "108ccfd8042ffce6254d9efd8cb5ff5cd5e4240a2a3e794a1b96812307b421fb",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -21847,6 +21847,16 @@
           "async": false
         },
         {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#2",
           "parameters": [
             "input",
@@ -21879,6 +21889,11 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
           "parameters": [
             "emit",
             "readSignal",
@@ -21887,16 +21902,11 @@
           "async": false
         },
         {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
           "parameters": [
             "emit",
             "readSignal"
           ],
-          "async": false
-        },
-        {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
-          "parameters": [],
           "async": false
         },
         {
@@ -22115,7 +22125,9 @@
             "stopBoundedExecution/stopBoundedExecution",
             "validateManagedAdvance/validateManagedAdvance",
             "yieldToHost/yieldToHost",
-            "yieldToHost/yieldToHost/yieldToHost"
+            "yieldToHost/yieldToHost/yieldToHost",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5"
           ],
           "exports": [
             "localStrategyContribution"

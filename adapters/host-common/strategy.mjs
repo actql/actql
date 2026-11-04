@@ -630,6 +630,7 @@ export async function runInstalledStrategy({
   // Retain its owner and report unknown cleanup rather than forgetting it.
   const unconfirmedRelease = new Set();
   let cleanupInFlight;
+  let refreshingCompletedScratch = false;
   let failed = false;
   let failure;
   let checkpointPause;
@@ -1065,6 +1066,7 @@ export async function runInstalledStrategy({
             result.carrierMaterial,
           materialGeneration: result.materialGeneration ?? result.material ??
             result.carrierMaterial,
+          scratchOwner: result,
           withRows: result.withRows,
           close: siteResult?.close,
           releaseOwner: siteResult,
@@ -1265,6 +1267,23 @@ export async function runInstalledStrategy({
         }),
         ...stored,
       });
+    },
+    async refreshCompletedScratch() {
+      if (closed) throw new StrategyHostError('ReleasedStrategy');
+      if (failed || !runFinished) throw new StrategyHostError('StrategyNotComplete');
+      if (refreshingCompletedScratch) throw new StrategyHostError('StrategyScratchRefreshReentrant');
+      refreshingCompletedScratch = true;
+      try {
+        for (const result of managedOutputs.values()) {
+          const owner = result.scratchOwner;
+          const refresh = owner.refreshCompletedScratch;
+          if (refresh !== undefined) {
+            if (typeof refresh !== 'function') throw new StrategyHostError('InvalidCompletedScratchRefresh');
+            await Reflect.apply(refresh, owner, []);
+            if (closed) throw new StrategyHostError('ReleasedStrategy');
+          }
+        }
+      } finally { refreshingCompletedScratch = false; }
     },
     usage: () => core.usage(setup),
     cleanupPending,

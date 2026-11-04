@@ -16481,7 +16481,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e38e01ffb65aee94ccce145c722b0fe3a727dbc274fd14d2a2b548dfe477fedb",
+      "sha256": "298209d5545a1169ca0d8495f5d03ab24c3f9bec9eab79c6dda2b8ebd7f231ce",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -16822,6 +16822,11 @@
           "async": false
         },
         {
+          "name": "runInstalledStrategy/init:refreshCompletedScratch/init:refreshCompletedScratch",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "runInstalledStrategy/init:storePublicationResult/init:storePublicationResult",
           "parameters": [
             "result",
@@ -17091,7 +17096,8 @@
             "runInstalledStrategy/settleSiteAfterFailure/settleSiteAfterFailure/drive/drive",
             "runInstalledStrategy/siteCompletionPermit/init:assertAvailable/init:assertAvailable",
             "runInstalledStrategy/siteCompletionReady/siteCompletionReady",
-            "StrategyHostError/constructor:constructor/constructor:constructor"
+            "StrategyHostError/constructor:constructor/constructor:constructor",
+            "runInstalledStrategy/init:refreshCompletedScratch/init:refreshCompletedScratch"
           ],
           "exports": [
             "StrategyHostError",

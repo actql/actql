@@ -80,8 +80,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
   let modelCloseAttempted = false, modelReleased = false;
   const inferCleanupPending = () => (inferCapture !== undefined || inferOperation !== undefined) && !inferReleased ||
     modelContinuation !== undefined && !modelReleased;
-  const cleanupInfer = async () => {
-    let failure;
+  const cleanupInfer = async (includeContinuation = true) => {
+    let failure, failed = false;
     if ((inferCapture !== undefined || inferOperation !== undefined) && !inferReleased) {
       const recover = inferCloseAttempted;
       inferCloseAttempted = true;
@@ -93,18 +93,19 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
         }
         const result = await (recover ? child.cleanup() : child.close());
         inferReleased = result !== false && child.cleanupPending() === false;
-      } catch (error) { failure = error; }
+      } catch (error) { failure = error; failed = true; }
     }
-    if (modelContinuation !== undefined && !modelReleased) {
+    if (includeContinuation && modelContinuation !== undefined && !modelReleased) {
       const recover = modelCloseAttempted;
       modelCloseAttempted = true;
       try {
         const result = await (recover ? modelContinuation.cleanup() : modelContinuation.close());
         modelReleased = result !== false && modelContinuation.cleanupPending() === false;
-      } catch (error) { failure ??= error; }
+      } catch (error) { if (!failed) { failure = error; failed = true; } }
     }
-    if (failure !== undefined) throw failure;
-    return !inferCleanupPending();
+    if (failed) throw failure;
+    return ((inferCapture === undefined && inferOperation === undefined) || inferReleased) &&
+      (!includeContinuation || modelContinuation === undefined || modelReleased);
   };
   const custody = Object.freeze({
     async close() {
@@ -545,6 +546,24 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       current();
       publicationPlan = (await inferCapture.persist()).plan;
       current();
+      if (originalPreparation !== undefined) {
+        // The complete immutable publication plan and Store capture now own
+        // their evidence. Retire only the original Model aliases/borrow first;
+        // Content and the same journal continuation retain their own lifetime.
+        const refreshScratch = execution.refreshCompletedScratch;
+        if (typeof refreshScratch !== 'function') {
+          throw new TypeError('InstalledEffectCompletedScratchUnavailable');
+        }
+        if (!await cleanupInfer(false)) {
+          throw Object.assign(new Error('ClientDispatchCleanupPending'),
+            {code: 'ClientDispatchCleanupPending'});
+        }
+        current();
+        // This reconciles actual stopped-provider scratch while preserving
+        // successful output/holding custody. It grants no physical close ACK.
+        await Reflect.apply(refreshScratch, execution, []);
+        current();
+      }
       await faultInjection?.('infer_capture_committed', {});
       current();
     }
