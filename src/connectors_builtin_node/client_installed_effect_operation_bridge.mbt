@@ -3,6 +3,20 @@
 // bridges project no Ledger and supply no grant, new Root or cleanup ACK.
 
 ///|
+#export_name("clientProgramInstalledEffectCapturedInputInventoryRetain")
+pub fn client_program_installed_effect_captured_input_inventory_retain(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  inputs : @strategy.CapturedEffectInputs,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.retain_installed_effect_captured_input_inventory(
+    owner, prepared, request, plan, inputs,
+  )
+}
+
+///|
 #export_name("clientProgramInstalledEffectOperationBorrow")
 pub fn client_program_installed_effect_operation_borrow(
   owner : @client_local_host.ClientInstalledManagedRun,

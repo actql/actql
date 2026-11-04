@@ -757,6 +757,7 @@ export function prepareInstalledEffectControlConstruction(run) {
   const codecBegin = runtime?.clientProgramInstalledEffectOperationLedgerCodecBegin;
   const codecComplete = runtime?.clientProgramInstalledEffectOperationLedgerCodecComplete;
   const hasHostInput = runtime?.clientProgramInstalledEffectManagedPlanHasHostInput;
+  const retainInventory = runtime?.clientProgramInstalledEffectCapturedInputInventoryRetain;
   const parseJson = JSON.parse;
   const jsonReceiver = JSON;
   if (![begin, complete, readPlan].every(method => typeof method === 'function') || parent === undefined || plan === undefined) {
@@ -894,6 +895,27 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (typeof beginInput !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
     return invoke(jsonReceiver, parseJson, [wire], wire);
   };
+  const retainInputs = inputs => {
+    if (retired) fail('InstalledEffectControlConstructionRetired');
+    if (failed) throw primary;
+    if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
+    if (typeof retainInventory !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    working = true;
+    run.selecting = true;
+    try {
+      originalRecord();
+      const result = Reflect.apply(retainInventory, runtime, [parent, prepared, request, plan, inputs]);
+      retainInvalid(result);
+      checked(result);
+      originalRecord();
+    } catch (cause) {
+      failed = true; primary = cause;
+      throw cause;
+    } finally {
+      working = false;
+      if (pending === undefined) run.selecting = false;
+    }
+  };
   const retire = () => {
     if (retired) return true;
     if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
@@ -904,7 +926,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     retired = true;
     return true;
   };
-  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec}));
+  return Object.freeze(Object.assign(work, {retire, parsePreview, ledgerCodec, retainInputs}));
 }
 
 // A composed generic owner keeps its original codec and full control quote.

@@ -4496,6 +4496,23 @@ per-wrapper phase, numerical policy, Resource owner or provider-authored recipe.
 
 ### Same-boundary Effect reservation
 
+For an open input, the original executor row ceiling remains a rejection
+bound. It does not fund hypothetical future rows. The immutable Effect Plan
+retains the absent row fact and initially admits only fixed member demand.
+After Compute, the same Run pins its original completed inputs and uses their
+verified row metadata before constructing member capture or proposal data.
+Managed generation references retain the row inventory from their original
+verified completion receipt; this does not export rows or reopen a producer.
+
+That actual inventory grows the existing operation-control reservation on
+the same parent Ledger before any variable constructor enters. The Resource
+current callback and callback-free original/retention fences still precede
+mutation. The actual row inventory belongs to that Run's control record, not
+the immutable reusable Plan. Per-row operations reserve their own body,
+transfer and attempt at their existing entrance. Missing or unavailable input
+remains absent, and a refused growth starts no constructor. A known closed
+inventory keeps its already funded path without another row observation.
+
 An operation borrow reads its immutable Plan and extent, then enters the
 existing Resource admission once. After its original physical current callback,
 a non-escaping internal Core continuation checks the same Local owner, Ledger,

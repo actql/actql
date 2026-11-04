@@ -437,6 +437,254 @@ test "planned Effect Compute executes retained sequence on the original managed 
 }
 
 ///|
+test "unknown Effect capture grows its same control from completed original rows before child construction" {
+  let plan = effect_operation_source_plan_fixture()
+  assert_true(plan.closed_rows is None)
+  // Existing fixed policy and explicit transport/current ports. This does not
+  // establish normal Account/SDK/Journal funding or provider acceptance.
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[1] += 2L
+  quote[3] += 14L
+  // The existing preparation fixture adds its original ten-byte carrier.
+  // Keep the actual admitted policy at exactly 512 MiB, including that input.
+  quote[4] = 536870902L
+  quote[5] = 536870902L
+  let (input, initial, ledger, capacity) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  assert_eq(@resources.ledger_limits(ledger).retained_bytes, 536870912L)
+  assert_eq(@resources.ledger_limits(ledger).execution_bytes, 536870912L)
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial,
+    input,
+    capacity,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner,
+    plan.prepared,
+    plan.request,
+    plan,
+  ).unwrap()
+  |> ignore
+  let control = owner.effect_operation_controls.unwrap()
+  let token = control.reservation
+  let (read, _, acquisition, _) = begin_installed_effect_managed_source_read(
+    owner,
+    plan.declarations[0],
+    0,
+  ).unwrap()
+  let rows = start_installed_source_read_rows(
+    read,
+    acquisition,
+    "unknown-effect-original-rows",
+    _ => true,
+    1024L,
+    2048L,
+  ).unwrap()
+  @row_source_host.begin_row_run(rows, 128, 3, 3).unwrap()
+  // This declared record view has the ordinary rows protocol, not a Files
+  // listing profile. Charge/admit its one original page through that owner.
+  assert_eq(
+    @row_source_host.accept_row_run_page(
+      rows,
+      @utf8.encode("[{\"id\":3},{\"id\":5}]"),
+    ).unwrap(),
+    2,
+  )
+  @row_source_host.finish_row_run(rows).unwrap()
+  @row_source_host.begin_row_capture(rows).unwrap()
+  let mut captured_source = false
+  for _ in 0..<10000 {
+    if @row_source_host.advance_row_capture(rows, 256).unwrap().0 {
+      captured_source = true
+      break
+    }
+  }
+  assert_true(captured_source)
+  let source = @row_source_host.capture_row_run(rows).unwrap()
+  let bound = effect_parent_bound_run(plan.prepared)
+  let (host, captured, _) = open_installed_effect_managed_host(owner, bound, [
+      @row_source_host.row_capture_source(source).unwrap(),
+    ])
+    .unwrap()
+    .unwrap()
+  let dag = @strategy.captured_effect_run_dag(captured)
+  @row_source_host.retain_row_capture_task(source, dag, 0).unwrap()
+  let graph = @strategy.captured_dag_graph(dag)
+  let task = @strategy.next_captured_task(dag).unwrap()
+  assert_eq(task, 1)
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(host),
+  ).unwrap()
+  // The predecessor is the already captured Source, not a managed output
+  // supplied by this fixture. Select that existing typed input alternative.
+  let available : Array[@local_driver.LocalManagedAvailableOutput[Int]] = [
+    @local_driver.local_managed_captured_relation_input(),
+  ]
+  let dispatch = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      available,
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(graph, task).unwrap(),
+      ),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  // Preparation is side-effect free. The common Host must select the SAME
+  // original registration before that candidate may enter the Run lifecycle.
+  @strategy.select_captured_managed_registration(
+    dag,
+    task,
+    @local_driver.local_dispatch_registration(installed),
+  ).unwrap()
+  let operations = match
+    @local_driver.start_local_managed_dispatch_node(dispatch) {
+    Ok(value) => value
+    Err(Execution(Physical(issue))) =>
+      fail("UnknownEffectOriginalComputePhysical: " + @debug.to_string(issue))
+    Err(Execution(ActivationNotAuthorized)) =>
+      fail("UnknownEffectOriginalComputeActivationNotAuthorized")
+    Err(Execution(ForeignCandidate)) =>
+      fail("UnknownEffectOriginalComputeForeignCandidate")
+    Err(Execution(ForeignCapture)) =>
+      fail("UnknownEffectOriginalComputeForeignCapture")
+    Err(Execution(NotReady)) => fail("UnknownEffectOriginalComputeNotReady")
+    Err(Execution(Stopped)) => fail("UnknownEffectOriginalComputeStopped")
+    Err(Execution(UnsupportedGraph)) =>
+      fail("UnknownEffectOriginalComputeUnsupportedGraph")
+    Err(Execution(PreviewWorkLimit)) =>
+      fail("UnknownEffectOriginalComputePreviewWorkLimit")
+    Err(Execution(MissingOutput)) =>
+      fail("UnknownEffectOriginalComputeMissingOutput")
+    Err(Execution(Capture(_))) => fail("UnknownEffectOriginalComputeCapture")
+    Err(Execution(Binding(_))) => fail("UnknownEffectOriginalComputeBinding")
+    Err(Execution(Read(_))) => fail("UnknownEffectOriginalComputeRead")
+    Err(Execution(Compute(_))) => fail("UnknownEffectOriginalComputeCandidate")
+    Err(Execution(Implementation(_))) =>
+      fail("UnknownEffectOriginalComputeImplementation")
+    Err(Configuration(CommonInputRows)) =>
+      fail("UnknownEffectOriginalComputeCommonInputRows")
+    Err(Configuration(_)) => fail("UnknownEffectOriginalComputeConfiguration")
+    Err(_) => fail("UnknownEffectOriginalComputeOther")
+  }
+  assert_true(operations.inputs.is_empty())
+  (operations.execute)().unwrap()
+  let output_live = Ref(true)
+  (operations.prepare_finalization)(task, operations.storage_bytes, () => {
+    output_live.val
+  }).unwrap()
+  let mut finalized = false
+  for _ in 0..<10000 {
+    if (operations.advance_finalization)(256).unwrap().complete {
+      finalized = true
+      break
+    }
+  }
+  assert_true(finalized)
+  (operations.settle)().unwrap()
+  let completed = (operations.complete)(task, operations.storage_bytes, () => {
+    output_live.val
+  }).unwrap()
+  assert_eq(@execution.managed_completed_output_row_count(completed), 2)
+  let inputs = @strategy.pin_captured_effect_sources(captured, 2).unwrap()
+  assert_eq(
+    @strategy.captured_effect_inputs_row_inventory(inputs, plan.rows),
+    Some(2),
+  )
+  let before = @resources.ledger_usage(ledger)
+  let copied = { ..plan, rows: plan.rows, }
+  assert_true(
+    retain_installed_effect_captured_input_inventory(
+      owner,
+      plan.prepared,
+      plan.request,
+      copied,
+      inputs,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
+  retain_installed_effect_captured_input_inventory(
+    owner,
+    plan.prepared,
+    plan.request,
+    plan,
+    inputs,
+  ).unwrap()
+  assert_true(physical_equal(owner.effect_operation_controls.unwrap(), control))
+  assert_true(physical_equal(control.reservation, token))
+  assert_eq(control.captured_rows, Some(2))
+  let grown = @resources.ledger_usage(ledger)
+  assert_true(grown.reserved_retention_bytes > before.reserved_retention_bytes)
+  assert_eq(grown.attempts, before.attempts)
+  assert_eq(grown.transferred_bytes, before.transferred_bytes)
+  for index in 0..<2 {
+    let child = borrow_installed_effect_operation(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+      0,
+      true,
+      0,
+      index,
+      "operation",
+    ).unwrap()
+    start_installed_effect_operation(child).unwrap()
+    assert_false(retire_installed_effect_operation(child, false).unwrap())
+    assert_true(retire_installed_effect_operation(child, true).unwrap())
+  }
+  assert_true(
+    borrow_installed_effect_operation(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+      0,
+      true,
+      0,
+      2,
+      "operation",
+    )
+    is Err(InsufficientCapacity),
+  )
+  assert_true(@strategy.release_captured_effect_inputs(inputs))
+  assert_eq(
+    @strategy.captured_effect_inputs_row_inventory(inputs, plan.rows),
+    None,
+  )
+  // Revoke the same publication witness after its last original input pin.
+  // A permanently true witness correctly keeps the managed snapshot alive.
+  output_live.val = false
+  (operations.close)()
+  @strategy.stop_captured_dag(dag)
+  @strategy.close_captured_task_output(dag, 1)
+  @strategy.close_captured_task_output(dag, 0)
+  retire_installed_source_read(read).unwrap()
+  @strategy.refresh_captured_retention(dag)
+  // Logical close/stop is not the managed output's physical cleanup ACK.
+  // Drive the original bounded disposal before returning the parent holder.
+  let mut cleaned = false
+  for _ in 0..<10000 {
+    let stopped = (operations.execution_stopped)()
+    let released = (operations.cleanup_refresh)()
+    @strategy.refresh_captured_retention(dag)
+    if stopped && released {
+      cleaned = true
+      break
+    }
+  }
+  assert_true(cleaned)
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
 test "planned Effect Compute rejects foreign bound Run and fences same-parent callback reentry" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)

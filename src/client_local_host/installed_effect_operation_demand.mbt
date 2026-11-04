@@ -404,6 +404,7 @@ struct ClientInstalledEffectManagedPlan {
   capacity_plan : ClientLocalCapacityPlan
   configuration : ClientPreparedLocalConfiguration
   rows : Int
+  closed_rows : Int?
   held_children : Int
   operation_control_capacity : @execution.ExecutionCapacity
   operation_control_idle_execution : Int64
@@ -702,8 +703,8 @@ pub fn prepare_installed_effect_managed_plan(
   }
 
   // The exact checked graph/sequence inventory supplies the domain-independent
-  // row bound. The existing executor guard remains the fallback for open input;
-  // no independent row ceiling is introduced for the operation implementation.
+  // row bound. The existing executor guard still rejects oversized open input;
+  // it is never a prediction charged as already retained rows.
   let workspace : ClientLocalSchemaProofWorkspace = {
     owners: 0,
     rows: 0,
@@ -731,18 +732,21 @@ pub fn prepare_installed_effect_managed_plan(
       ),
     )
   }
-  let rows = match proof {
-    Some({ closed_rows: Some(count), .. }) => count
-    _ => @publication_host.client_standard_values_sequence_limits().max_rows
-  }
+  let closed_rows = proof.bind(value => value.closed_rows)
+  let rows = closed_rows.unwrap_or(
+    @publication_host.client_standard_values_sequence_limits().max_rows,
+  )
+  // Absence is not a zero-row fact. Retain the executor's original rejection
+  // ceiling above, but fund only fixed member controls until completed inputs
+  // supply their original inventory on this SAME adopted Run.
+  let funded_rows = closed_rows.unwrap_or(0)
   // Complete the selected capture templates from the SAME immutable row
   // inventory above. Static extents keep their original identity. No second
   // schema traversal, Plan preparation or caller-supplied row count is used.
   let resolved_operations = selected_operations.copy()
   for index, demand in selected_operations {
-    if demand.member_extents.any(extent => {
-        extent.checked_row_capacity is Some(_)
-      }) {
+    if closed_rows is Some(_) &&
+      demand.member_extents.any(extent => extent.checked_row_capacity is Some(_)) {
       let member_extents = demand.member_extents.copy()
       for slot, original in demand.member_extents {
         guard resolve_installed_effect_capture_extent(original, rows)
@@ -756,6 +760,7 @@ pub fn prepare_installed_effect_managed_plan(
   }
   let mut attempts = compute_limits.attempts.to_int64()
   let mut held_children = 0L
+  let mut child_limit = 0L
   let mut transfer = compute_limits.transfer_bytes
   let mut retained = compute_limits.retained_bytes
   let mut execution = compute_limits.execution_bytes
@@ -773,13 +778,13 @@ pub fn prepare_installed_effect_managed_plan(
           implementation_control_retained,
           QuotedBytes,
           @execution.execution_capacity_retained_bytes(original),
-          rows,
+          funded_rows,
         )
         is Some(next_retained) else {
         return Err(Unsupported)
       }
       implementation_control_retained = next_retained
-      if rows > 0 {
+      if funded_rows > 0 {
         // Actual grant/Ledger/projector callbacks use one same-Run control
         // frame, complete synchronously and retain their outputs separately.
         let control_workspace = @execution.execution_capacity_execution_bytes(
@@ -795,16 +800,21 @@ pub fn prepare_installed_effect_managed_plan(
       }
     }
     for
-      (extents, multiplicity) in [
-        (demand.member_extents, 1),
-        (demand.row_extents, rows),
+      (extents, multiplicity, ceiling) in [
+        (demand.member_extents, 1, 1),
+        (demand.row_extents, funded_rows, rows),
       ] {
       if extents.length() > remaining {
         return Err(Unsupported)
       }
       remaining -= extents.length()
       extent_count += extents.length().to_int64()
-      for extent in extents {
+      for original in extents {
+        let extent = match
+          resolve_installed_effect_capture_extent(original, funded_rows) {
+          Some(value) => value
+          None => return Err(Unsupported)
+        }
         if extent.maximum is Some(_) {
           staged_extents += 1L
         }
@@ -813,6 +823,11 @@ pub fn prepare_installed_effect_managed_plan(
           return Err(Unsupported)
         }
         held_children += count
+        let ceiling = ceiling.to_int64()
+        if child_limit > 2147483647L - ceiling {
+          return Err(Unsupported)
+        }
+        child_limit += ceiling
         if extent.physical_attempt {
           if attempts > 2147483647L - count {
             return Err(Unsupported)
@@ -922,7 +937,7 @@ pub fn prepare_installed_effect_managed_plan(
   let row_slots = closed_values_append_capacity(workspace.rows).unwrap()
   let input_slots = closed_values_append_capacity(workspace.input_rows).unwrap()
   // Fixed retained controls: Plan(1H,20R,4W) and its operation-control
-  // capacity(1H,0R,2W), six Array wrappers/backings
+  // capacity(1H,0R,2W), its optional original closed-row inventory, six Array wrappers/backings
   // (12H,6R,6W), two LedgerLimits(2H,0R,12W), source-free Some(1H,1R,1W).
   // Operations/declarations are exact copies; transport arrays own scalar
   // slots; acquisitions are appended with pinned spare capacity. Per selected
@@ -945,6 +960,7 @@ pub fn prepare_installed_effect_managed_plan(
   // beside the initial extent (4H8R8W). Immutable installation inputs are borrowed.
   let controls = @execution.preparation_representation_cost({
     record_headers: 17L +
+    (if closed_rows is Some(_) { 1L } else { 0L }) +
     5L * members +
     controlled_members +
     sources +
@@ -952,7 +968,7 @@ pub fn prepare_installed_effect_managed_plan(
     3L * model_holder +
     3L * provider_sources.to_int64() +
     4L * staged_extents,
-    reference_slots: 27L +
+    reference_slots: 28L +
     members +
     sources +
     2L * acquisition_slots +
@@ -965,7 +981,8 @@ pub fn prepare_installed_effect_managed_plan(
     9L * model_holder +
     7L * provider_sources.to_int64() +
     8L * staged_extents,
-    scalar_words: 26L -
+    scalar_words: 26L +
+    (if closed_rows is Some(_) { 1L } else { 0L }) -
     model_holder +
     controlled_members +
     5L * sources +
@@ -1117,7 +1134,8 @@ pub fn prepare_installed_effect_managed_plan(
     capacity_plan,
     configuration,
     rows,
-    held_children: held_children.to_int(),
+    closed_rows,
+    held_children: child_limit.to_int(),
     operation_control_capacity,
     operation_control_idle_execution,
     _observed_compute_limits: original_compute_limits,
@@ -1133,7 +1151,8 @@ pub fn prepared_installed_effect_managed_requirements(
 }
 
 ///|
-/// Live management capacity only, not a consumed send/row count or authority.
+/// Original operation-coordinate ceiling, not an initial reservation, observed
+/// row count, consumed send or authority. Unknown rows grow the SAME Run token.
 pub fn prepared_installed_effect_managed_capture_children(
   plan : ClientInstalledEffectManagedPlan,
 ) -> Int {

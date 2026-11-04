@@ -781,6 +781,49 @@ function controlWorkFixture(overrides = {}) {
   return {run,work,events,runtime};
 }
 
+test('captured Effect inventory uses the captured method and same parent before any constructor', () => {
+  const inputs = {}, events = [];
+  let f;
+  f = controlWorkFixture({clientProgramInstalledEffectCapturedInputInventoryRetain(parent, prepared, request, plan, original) {
+    assert.strictEqual(this, f.runtime);
+    assert.strictEqual(parent, f.run.value);
+    assert.strictEqual(prepared, f.run.prepared);
+    assert.strictEqual(request, f.run.request);
+    assert.strictEqual(plan, f.run.operationPlan);
+    assert.strictEqual(original, inputs);
+    assert.throws(() => f.work.retainInputs(inputs), {code: 'InstalledEffectControlConstructionPending'});
+    events.push('inventory');
+    return {$tag: 1, _0: undefined};
+  }});
+  f.runtime.clientProgramInstalledEffectCapturedInputInventoryRetain = () => assert.fail('replaced method');
+  f.work.retainInputs(inputs);
+  assert.deepEqual(events, ['inventory']);
+  assert.deepEqual(f.events, []);
+  assert.equal(f.run.selecting, false);
+});
+
+test('captured Effect inventory preserves the original refusal and fences post-current replacement', () => {
+  let calls = 0;
+  const f = controlWorkFixture({clientProgramInstalledEffectCapturedInputInventoryRetain() {
+    calls++;
+    throw undefined;
+  }});
+  for (let index = 0; index < 2; index++) {
+    let caught = false;
+    try {f.work.retainInputs({});} catch (cause) {caught = true; assert.strictEqual(cause, undefined);}
+    assert.equal(caught, true);
+  }
+  assert.equal(calls, 1);
+  assert.equal(f.run.selecting, false);
+  let changed;
+  changed = controlWorkFixture({clientProgramInstalledEffectCapturedInputInventoryRetain() {
+    changed.run.value = {};
+    return {$tag: 1, _0: undefined};
+  }});
+  assert.throws(() => changed.work.retainInputs({}), {code: 'ForeignInstalledEffectManagedRun'});
+  assert.deepEqual(changed.events, []);
+});
+
 test('control construction enters once before the same original callback and keeps its original receiver and returned DATA', () => {
   const f=controlWorkFixture(),receiver={},input={},output={};
   const method=function(value){assert.equal(this,receiver);assert.equal(value,input);assert.equal(f.run.selecting,true);f.events.push('work');return output;};

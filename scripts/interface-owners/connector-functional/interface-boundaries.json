@@ -4651,7 +4651,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "b693fde85e7c4922f2056173be0629356dc6b389122b0cea6d5debfe8d79effb",
+      "sha256": "d9894ba1804f81cb9f6a129888e4237ec375ffe7cce50b4ce354bf6d272cd083",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -20237,6 +20237,13 @@
           "async": false
         },
         {
+          "name": "prepareInstalledEffectControlConstruction/retainInputs/retainInputs",
+          "parameters": [
+            "inputs"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
           "parameters": [
             "value"
@@ -20677,7 +20684,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a5e739723deeadfdd3b7ef81174c51c398e72d006b364b21c57042a82929a850",
+      "sha256": "304257471c3494751078efc343caaa6704958f692536d511dbae664e5c5cc2a5",
       "contracts": [
         {
           "operations": [
@@ -20842,7 +20849,8 @@
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
             "prepareInstalledEffectControlConstruction/retire/retire",
-            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
+            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
+            "prepareInstalledEffectControlConstruction/retainInputs/retainInputs"
           ],
           "exports": [
             "prepareInstalledEffectControlConstruction"
@@ -20858,30 +20866,50 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "cancellation": [
@@ -20894,6 +20922,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "extension": [
@@ -20906,6 +20938,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same installed Effect control reservation keeps management/index growth"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
               }
             ]
           }

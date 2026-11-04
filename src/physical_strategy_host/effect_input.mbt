@@ -783,6 +783,65 @@ pub fn captured_effect_inputs_match_run(
 }
 
 ///|
+/// The installed parent retains the original captured DAG, not a replacement
+/// opened from the same checked computation or Definition CID.
+pub fn captured_effect_inputs_match_captured_run(
+  value : CapturedEffectInputs,
+  run : CapturedDAG,
+) -> Bool {
+  value.live && !run.stopped && physical_equal(value.run.captured, run)
+}
+
+///|
+/// Callback-free retention fence after the installed parent's current call.
+/// Availability and row/export authority remain separate use-site checks.
+pub fn captured_effect_inputs_retained(value : CapturedEffectInputs) -> Bool {
+  if !value.live || value.run.captured.stopped {
+    return false
+  }
+  for input in value.entries {
+    if input is Some(input) &&
+      !captured_any_result_borrow_retained(input.borrow) {
+      return false
+    }
+  }
+  for input in value.table_entries {
+    if input is Some(input) &&
+      !captured_table_input_borrow_retained(input.borrow) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Maximum actual member inventory from the already completed, pinned inputs.
+/// A member without a relation has its one authored scalar invocation. Missing
+/// material is not zero. No export, provider read or compilation is performed.
+pub fn captured_effect_inputs_row_inventory(
+  value : CapturedEffectInputs,
+  max_rows : Int,
+) -> Int? {
+  if !value.live || value.run.captured.stopped || max_rows < 0 {
+    return None
+  }
+  let mut rows = 0
+  for index in 0..<value.entries.length() {
+    let count = match (value.entries[index], value.table_entries[index]) {
+      (Some(input), None) => captured_any_result_borrow_row_count(input.borrow)
+      (None, Some(input)) => captured_table_input_borrow_row_count(input.borrow)
+      (None, None) => Some(1)
+      _ => None
+    }
+    guard count is Some(count) && count >= 0 && count <= max_rows else {
+      return None
+    }
+    rows = Int::max(rows, count)
+  }
+  Some(rows)
+}
+
+///|
 /// Keep the exact admitted Run with a live source pin. A matching checked
 /// Program alone cannot transfer this captured input to another Run.
 pub fn captured_effect_inputs_run_definition_cid(

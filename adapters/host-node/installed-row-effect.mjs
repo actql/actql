@@ -2425,6 +2425,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       await releaseInputPins();
     };
     ownInputs(releaseInputPins, () => { captureOpen = false; });
+    if (managedEffect !== undefined) {
+      if (typeof controlConstruction.retainInputs !== 'function') fail('InstalledEffectOperationRuntimeUnavailable');
+      controlConstruction.retainInputs(inputs);
+    }
     // Reserve each original member's capture body before export can append
     // proposal rows, parse their values or issue canonical CREATE inventory.
     // These SAME arrays and children survive through ordinary route retirement.

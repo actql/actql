@@ -32390,7 +32390,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "e3538d034ef2cc0c5619d3f4909bf99857cc4dc06e4fadc46729ba382fb70d11",
+      "sha256": "c9f25c583b6ece0cbc4c998d5e87676c2713b02b0d58de8f93f365bd1a8bc81b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -32466,6 +32466,10 @@
           "declaration": "installed_effect_control_capacity ( control : ClientEffectOperationControls ? , plan : ClientInstalledEffectManagedPlan , input ? : ( String , @ execution . ExecutionCapacity ) ?"
         },
         {
+          "name": "installed_effect_control_capacity_for_rows",
+          "declaration": "installed_effect_control_capacity_for_rows ( plan : ClientInstalledEffectManagedPlan , rows : Int , ) - > ( @ execution . ExecutionCapacity , Int64 ) ?"
+        },
+        {
           "name": "installed_effect_control_execution",
           "declaration": "installed_effect_control_execution ( control : ClientEffectOperationControls ? , capacity : @ execution . ExecutionCapacity , idle : Int64 , ) - > Int64"
         },
@@ -32500,6 +32504,10 @@
         {
           "name": "resize_installed_effect_operation_control_construction",
           "declaration": "resize_installed_effect_operation_control_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , active : Bool , input_wire ? : String ?"
+        },
+        {
+          "name": "retain_installed_effect_captured_input_inventory",
+          "declaration": "retain_installed_effect_captured_input_inventory ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , inputs : @ strategy . CapturedEffectInputs , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "retain_installed_effect_operation_construction",
@@ -32632,7 +32640,8 @@
             "retain_installed_effect_operation_controls",
             "retain_installed_effect_operation_controls_before_construction",
             "select_installed_effect_operation_controls",
-            "select_installed_effect_operation_original"
+            "select_installed_effect_operation_original",
+            "retain_installed_effect_captured_input_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -32646,30 +32655,50 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "cancellation": [
@@ -32682,6 +32711,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "extension": [
@@ -32694,6 +32727,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
               }
             ]
           }
@@ -32702,7 +32739,8 @@
           "operations": [
             "begin_installed_effect_operation_control_input",
             "installed_effect_control_capacity",
-            "installed_effect_host_preview_input_capacity"
+            "installed_effect_host_preview_input_capacity",
+            "installed_effect_control_capacity_for_rows"
           ],
           "exports": [],
           "attributes": {
@@ -32716,30 +32754,50 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "cancellation": [
@@ -32752,6 +32810,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host Preview input construction stays on the same managed Effect control reservation."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "extension": [
@@ -32768,6 +32830,10 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
               }
             ]
           }
@@ -32853,7 +32919,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "8fe677dde6d343cf7feaba58dbb114401e83e8d93008c9f03f8cb36f45c0f482",
+      "sha256": "9302371a8b194f3ee8f952a3f2fcd3d73b7c3d23ccc7f75f0548a438efae2e86",
       "exports": [],
       "operations": [
         {
@@ -49727,7 +49793,8 @@
             "client_program_installed_effect_operation_control_construction_begin",
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
-            "client_program_installed_effect_operation_input_begin"
+            "client_program_installed_effect_operation_input_begin",
+            "client_program_installed_effect_captured_input_inventory_retain"
           ],
           "exports": [],
           "attributes": {
@@ -49741,30 +49808,50 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "cancellation": [
@@ -49777,6 +49864,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "After Compute, the same Run pins its original completed inputs and uses their"
               }
             ],
             "extension": [
@@ -49789,6 +49880,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
               }
             ]
           }
@@ -49943,8 +50038,12 @@
           }
         }
       ],
-      "sha256": "9f5dbc4f4bb5e8f46a5be4101f5754ba7d7b5b8b63406d79785ee0fd351274d6",
+      "sha256": "f8d7f5d34abf25a83e725e5df38a7b097bf0736b43f7e4af2e7dea1973a9ea88",
       "operations": [
+        {
+          "name": "client_program_installed_effect_captured_input_inventory_retain",
+          "declaration": "client_program_installed_effect_captured_input_inventory_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , inputs : @ strategy . CapturedEffectInputs , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
         {
           "name": "client_program_installed_effect_http_response_construction_capacity",
           "declaration": "client_program_installed_effect_http_response_construction_capacity ( max_response_bytes : Int , max_header_bytes : Int , ) - > @ execution . ExecutionCapacity ?"

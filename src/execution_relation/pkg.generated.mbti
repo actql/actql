@@ -870,6 +870,8 @@ pub fn managed_completed_reference_available(ManagedCompletionReference) -> Bool
 
 pub fn[T] managed_completed_reference_matches(ManagedCompletionReference, ManagedCompletedOutput[T]) -> Bool
 
+pub fn managed_completed_reference_row_count(ManagedCompletionReference) -> Int?
+
 pub fn managed_completed_reference_same(ManagedCompletionReference, ManagedCompletionReference) -> Bool
 
 pub fn[T] managed_completed_same_occurrence(ManagedCompletedOutput[T], ManagedCompletedOutput[T]) -> Bool
@@ -1497,6 +1499,8 @@ pub fn supplied_relation_read_rows_identity(SuppliedRelationRead, RowWireLimits)
 pub fn supplied_relation_read_same_binding(SuppliedRelationRead, SuppliedRelationRead) -> Bool
 
 pub fn supplied_relation_read_schema(SuppliedRelationRead) -> @relation_schema.Schema
+
+pub fn supplied_relation_read_usage(SuppliedRelationRead) -> ValueUsage
 
 pub fn take_admitted_output_preparation_rows(AdmittedOutputPreparation) -> AdmittedOutputRows?
 

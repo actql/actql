@@ -77,14 +77,16 @@ fn installed_effect_operation_control_capacity(
   let retained : @execution.PreparationRepresentationUnits = {
     // Optional Host input tuple/Some and its retained opaque capacity. Wire
     // text remains with the already-funded original Preview producer.
-    record_headers: 9L + shared.record_headers + 11L * count + 69L + 4L,
-    reference_slots: 11L +
+    // One same-Run optional actual-row inventory adds its field and one Some
+    // carrier at most, independently of how many operation bodies are live.
+    record_headers: 10L + shared.record_headers + 11L * count + 69L + 4L,
+    reference_slots: 12L +
     slots +
     shared.reference_slots +
     17L * count +
     267L +
     4L,
-    scalar_words: 24L + shared.scalar_words + 29L * count + 4L,
+    scalar_words: 25L + shared.scalar_words + 29L * count + 4L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
@@ -253,7 +255,7 @@ fn borrow_installed_effect_operation_original(
       ForeignOriginal,
     )
   }
-  let extent = match
+  let original_extent = match
     prepared_installed_effect_managed_operation(
       plan, member_index, per_row, operation_index, operation,
     ) {
@@ -262,6 +264,23 @@ fn borrow_installed_effect_operation_original(
       return refuse_installed_effect_operation_after_current(
         owner, prepared, request, issue,
       )
+  }
+  let extent = if plan.closed_rows is None {
+    guard owner.effect_operation_controls.bind(value => value.captured_rows)
+      is Some(rows) &&
+      (!per_row || row_index < rows) &&
+      resolve_installed_effect_capture_extent(original_extent, rows)
+      is Some(extent) else {
+      return refuse_installed_effect_operation_after_current(
+        owner,
+        prepared,
+        request,
+        InsufficientCapacity,
+      )
+    }
+    extent
+  } else {
+    original_extent
   }
   if defer_construction && extent.physical_attempt {
     return refuse_installed_effect_operation_after_current(
@@ -601,6 +620,7 @@ fn retain_installed_effect_operation_controls(
         construction_active: false,
         ledger_codec_active: false,
         ledger_codec_workspace: 0L,
+        captured_rows: None,
         host_input: None,
       }
       owner.effect_operation_controls = Some(control)
@@ -780,7 +800,12 @@ pub fn begin_installed_effect_operation_input(
   }
   guard resolve_installed_effect_id_extent(input, demand.effect_id)
     is Some(input) &&
-    resolve_installed_effect_capture_extent(input, plan.rows) is Some(input) &&
+    (match plan.closed_rows {
+      Some(rows) => Some(rows)
+      None => owner.effect_operation_controls.bind(value => value.captured_rows)
+    })
+    is Some(rows) &&
+    resolve_installed_effect_capture_extent(input, rows) is Some(input) &&
     installed_effect_capacity_within(extent.capacity, input.capacity) &&
     installed_effect_capacity_within(input.capacity, maximum.capacity) else {
     return Err(InsufficientCapacity)
@@ -1297,6 +1322,185 @@ fn installed_effect_host_preview_input_capacity(
 }
 
 ///|
+// Original per-operation control allowances times the actual completed member
+// inventory. This reuses the existing control/collection tariffs; body tokens
+// still reserve their own bytes, transfer and attempts at their real entrance.
+fn installed_effect_control_capacity_for_rows(
+  plan : ClientInstalledEffectManagedPlan,
+  rows : Int,
+) -> (@execution.ExecutionCapacity, Int64)? {
+  if rows < 0 || rows > plan.rows {
+    return None
+  }
+  let mut children = 0L
+  let mut retained = 0L
+  let mut workspace = 0L
+  for demand in plan.operations {
+    guard @execution.checked_preparation_add_product(
+        children,
+        demand.row_extents.length().to_int64(),
+        rows.to_int64(),
+      )
+      is Some(count) &&
+      @execution.checked_preparation_add_product(
+        count,
+        demand.member_extents.length().to_int64(),
+        1L,
+      )
+      is Some(count) &&
+      count <= 2147483647L else {
+      return None
+    }
+    children = count
+    if demand.controls_per_row is Some(original) {
+      guard @execution.execution_capacity_inventory_add(
+          retained,
+          QuotedBytes,
+          @execution.execution_capacity_retained_bytes(original),
+          rows,
+        )
+        is Some(next) else {
+        return None
+      }
+      retained = next
+      if rows > 0 {
+        workspace = Int64::max(
+          workspace,
+          @execution.execution_capacity_execution_bytes(original) -
+          @execution.execution_capacity_retained_bytes(original),
+        )
+      }
+    }
+  }
+  guard installed_effect_operation_control_capacity(children.to_int())
+    is Some(base) &&
+    @execution.checked_preparation_add_product(
+      @execution.execution_capacity_execution_bytes(base),
+      retained,
+      1L,
+    )
+    is Some(idle) &&
+    @execution.checked_preparation_add_product(retained, workspace, 1L)
+    is Some(execution) &&
+    @execution.execution_capacity(retained, execution) is Some(implementation) &&
+    @execution.add_execution_capacity(base, implementation) is Some(capacity) else {
+    return None
+  }
+  Some((capacity, idle))
+}
+
+///|
+/// Bind actual completed input inventory to this Run's existing control token
+/// before capture/export constructors. The Plan keeps its original policy
+/// ceiling; neither an equal checked graph nor a Host-supplied count qualifies.
+pub fn retain_installed_effect_captured_input_inventory(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  expected_plan : ClientInstalledEffectManagedPlan,
+  inputs : @strategy.CapturedEffectInputs,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.original is Some(original) && physical_equal(original, owner) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.effect_operation_opening || owner.effect_operation_closing {
+    return Err(AlreadyBound)
+  }
+  // Availability may call the original installed material. Fence that call,
+  // its metadata projection and the later Resource current in one same-owner
+  // flight; a nested call cannot observe or admit another inventory.
+  owner.effect_operation_opening = true
+  defer {
+    owner.effect_operation_opening = false
+  }
+  guard owner.preparation is Some(preparation) &&
+    preparation is PlannedEffectManaged(admission, plan) &&
+    owner.ledger is Some(ledger) &&
+    owner.effect_operation_controls is Some(control) &&
+    owner.source_free_captured is Some(captured) else {
+    return Err(Retired)
+  }
+  match check_installed_effect_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !physical_equal(plan, expected_plan) ||
+    !@strategy.captured_effect_inputs_match_captured_run(inputs, captured) ||
+    !@strategy.captured_effect_inputs_match_computation(
+      inputs,
+      @publication_host.prepared_client_effect_computation_graph(prepared),
+    ) {
+    return Err(ForeignOriginal)
+  }
+  // A closed inventory already funded its original constructors. Do not turn
+  // a scalar/no-input member into a relation, recount known rows or add another
+  // current callback merely because the normal Host shares this entrance.
+  if plan.closed_rows is Some(_) {
+    return check_installed_effect_operation_original(
+      owner,
+      ledger,
+      preparation,
+      Some(control),
+    )
+  }
+  // Exactly one metadata observation, no count-only row/provider pass. A
+  // revoked generation cannot supply a number; its pending cleanup stays put.
+  guard @strategy.captured_effect_inputs_row_inventory(inputs, plan.rows)
+    is Some(rows) else {
+    return Err(InsufficientCapacity)
+  }
+  if control.construction_active ||
+    control.ledger_codec_active ||
+    (control.captured_rows is Some(original) && original != rows) {
+    return Err(AlreadyBound)
+  }
+  guard installed_effect_control_capacity(
+      Some(control),
+      plan,
+      captured_rows=Some(rows),
+    )
+    is Some((capacity, idle)) else {
+    return Err(Unsupported)
+  }
+  let result = @resources.resize_prepared_run_operation_control_construction(
+    admission,
+    plan,
+    ledger,
+    () => {
+      match
+        check_installed_effect_operation_original(
+          owner,
+          ledger,
+          preparation,
+          Some(control),
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      guard owner.source_free_captured is Some(original) &&
+        physical_equal(original, captured) &&
+        @strategy.captured_effect_inputs_match_captured_run(inputs, captured) &&
+        @strategy.captured_effect_inputs_retained(inputs) else {
+        return Err(ForeignOriginal)
+      }
+      Ok(())
+    },
+    control.reservation,
+    @execution.execution_capacity_retained_bytes(capacity),
+    installed_effect_control_execution(Some(control), capacity, idle),
+  ).map_err(installed_effect_operation_reservation_issue)
+  match result {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      if plan.closed_rows is None {
+        control.captured_rows = Some(rows)
+      }
+      Ok(())
+    }
+  }
+}
+
+///|
 // Preserve every retained Host forest until this same control Owner retires.
 // Synchronous Host parsing and the old control callbacks do not overlap their
 // private scratch. Native member/cold/physical backing remains independent.
@@ -1305,6 +1509,7 @@ fn installed_effect_control_capacity(
   plan : ClientInstalledEffectManagedPlan,
   input? : (String, @execution.ExecutionCapacity)? = None,
   codec_workspace? : Int64? = None,
+  captured_rows? : Int? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -1323,7 +1528,18 @@ fn installed_effect_control_capacity(
       None => 0L
     },
   )
-  let base = plan.operation_control_capacity
+  let rows = match captured_rows {
+    Some(_) => captured_rows
+    None => control.bind(value => value.captured_rows)
+  }
+  let (base, base_idle) = if plan.closed_rows is None && rows is Some(rows) {
+    guard installed_effect_control_capacity_for_rows(plan, rows) is Some(value) else {
+      return None
+    }
+    value
+  } else {
+    (plan.operation_control_capacity, plan.operation_control_idle_execution)
+  }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
   guard @execution.checked_preparation_add_product(
       base_retained, codec_workspace, 1L,
@@ -1339,9 +1555,7 @@ fn installed_effect_control_capacity(
     is Some(original) else {
     return None
   }
-  guard selected is Some((_, host)) else {
-    return Some((original, plan.operation_control_idle_execution))
-  }
+  guard selected is Some((_, host)) else { return Some((original, base_idle)) }
   let host_retained = @execution.execution_capacity_retained_bytes(host)
   guard @execution.checked_preparation_add_product(
       @execution.execution_capacity_retained_bytes(original),
@@ -1349,11 +1563,7 @@ fn installed_effect_control_capacity(
       1L,
     )
     is Some(retained) &&
-    @execution.checked_preparation_add_product(
-      plan.operation_control_idle_execution,
-      host_retained,
-      1L,
-    )
+    @execution.checked_preparation_add_product(base_idle, host_retained, 1L)
     is Some(idle) &&
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_execution_bytes(original),
@@ -1362,7 +1572,7 @@ fn installed_effect_control_capacity(
     )
     is Some(control_execution) &&
     @execution.checked_preparation_add_product(
-      plan.operation_control_idle_execution,
+      base_idle,
       @execution.execution_capacity_execution_bytes(host),
       1L,
     )

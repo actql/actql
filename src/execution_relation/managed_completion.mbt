@@ -210,6 +210,7 @@ struct ManagedCompletedOutput[T] {
 /// completion can create it.
 struct ManagedCompletionReference {
   lifecycle : @managed_carrier.CompletionReference
+  rows : Int
 }
 
 ///|
@@ -791,7 +792,23 @@ pub fn[T] revoke_unpublished_managed_completed_output(
 pub fn[T] managed_completed_reference(
   output : ManagedCompletedOutput[T],
 ) -> ManagedCompletionReference {
-  { lifecycle: @managed_carrier.completion_reference(output.lifecycle), }
+  {
+    lifecycle: @managed_carrier.completion_reference(output.lifecycle),
+    rows: output.material.receipt.rows,
+  }
+}
+
+///|
+/// The verified completion's original row inventory, without reading its
+/// payload, reopening its producer or issuing another completion.
+pub fn managed_completed_reference_row_count(
+  reference : ManagedCompletionReference,
+) -> Int? {
+  if managed_completed_reference_available(reference) {
+    Some(reference.rows)
+  } else {
+    None
+  }
 }
 
 ///|

@@ -109,6 +109,8 @@ pub fn captured_any_result_borrow_matches_run(CapturedAnyResultBorrow, CapturedD
 
 pub fn captured_any_result_borrow_occurrence(CapturedAnyResultBorrow) -> @execution_relation.ManagedResultOccurrence
 
+pub fn captured_any_result_borrow_row_count(CapturedAnyResultBorrow) -> Int?
+
 pub fn captured_any_result_borrows_share_view(CapturedAnyResultBorrow, CapturedAnyResultBorrow) -> Bool
 
 pub fn captured_any_result_output_set_borrow_at(CapturedAnyResultOutputSet, Int) -> CapturedAnyResultBorrow?
@@ -163,9 +165,15 @@ pub fn captured_effect_input_task(CapturedEffectInput) -> Int
 
 pub fn captured_effect_inputs_count(CapturedEffectInputs) -> Int
 
+pub fn captured_effect_inputs_match_captured_run(CapturedEffectInputs, CapturedDAG) -> Bool
+
 pub fn captured_effect_inputs_match_computation(CapturedEffectInputs, @physical_strategy.CheckedEffectComputationDAG) -> Bool
 
 pub fn captured_effect_inputs_match_run(CapturedEffectInputs, CapturedEffectRunDAG) -> Bool
+
+pub fn captured_effect_inputs_retained(CapturedEffectInputs) -> Bool
+
+pub fn captured_effect_inputs_row_inventory(CapturedEffectInputs, Int) -> Int?
 
 pub fn captured_effect_inputs_run_definition_cid(CapturedEffectInputs) -> String?
 
@@ -330,6 +338,8 @@ pub fn captured_table_input_borrow_cell_output(CapturedTableInputBorrow) -> @exe
 pub fn[T] captured_table_input_borrow_matches_managed(CapturedTableInputBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
 
 pub fn captured_table_input_borrow_occurrence(CapturedTableInputBorrow) -> @execution_relation.ManagedTableInputOccurrence
+
+pub fn captured_table_input_borrow_row_count(CapturedTableInputBorrow) -> Int?
 
 pub fn captured_table_input_borrows_share_view(CapturedTableInputBorrow, CapturedTableInputBorrow) -> Bool
 

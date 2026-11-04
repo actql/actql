@@ -1213,6 +1213,33 @@ test "Effect Result bounds preserve unknown inputs instead of assuming the obser
 }
 
 ///|
+test "unknown Effect input funds fixed member work without reserving future policy-max rows" {
+  let plan = effect_operation_source_plan_fixture()
+  assert_true(plan.capacity_plan.demand_inventory.unwrap().closed_rows is None)
+  // The unchanged executor/coordinate ceiling remains a rejection bound.
+  assert_eq(
+    plan.rows,
+    @publication_host.client_standard_values_sequence_limits().max_rows,
+  )
+  assert_eq(plan.held_children, 1 + plan.rows)
+  // Only the actual fixed member is initially admitted. Unknown is not a
+  // zero-row fact and cannot enter any row constructor before captured input.
+  assert_eq(plan.limits.attempts - plan._observed_compute_limits.attempts, 1)
+  assert_eq(
+    plan.limits.transfer_bytes - plan._observed_compute_limits.transfer_bytes,
+    7L,
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ) <
+    @execution.execution_capacity_retained_bytes(
+      installed_effect_operation_control_capacity(plan.held_children).unwrap(),
+    ),
+  )
+}
+
+///|
 test "Effect Result bounds keep multiple original member occurrences and endpoint widths" {
   let plan = effect_operation_source_plan_fixture(
     bounded_output=true,
