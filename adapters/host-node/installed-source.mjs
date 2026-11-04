@@ -1,4 +1,4 @@
-import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
 import {sourceAliasIdentityRow} from './source-alias-request.mjs';
 import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry,
   sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry} from './source-alias-construction.mjs';
@@ -531,11 +531,13 @@ export async function loadInstalledSources(paths, options) {
     let environmentWire, environmentOriginal;
     const bindings = new Map();
     for (const source of sources) {
-      const combinedOriginal = composeInstalledSourceEnvironment(options.installationServices, options.moon,
-          options.baseEnvironmentWire, environmentOriginal, source.environmentOriginal ?? source.environmentWire);
+      const combinedOriginal = composeInstalledInventoryEnvironment(options.installationServices, options.moon,
+          options.baseEnvironmentWire, environmentOriginal, source.environmentOriginal ?? source.environmentWire, () => {
+            verifyInstalledConnectorBindings(environmentWire === undefined ? undefined
+              : {environmentWire, connectorBindings: [...bindings.values()]}, source);
+            return source === sources.at(-1);
+          });
       const combined = combinedOriginal.wire;
-      verifyInstalledConnectorBindings(environmentWire === undefined ? undefined
-        : {environmentWire, connectorBindings: [...bindings.values()]}, source);
       environmentWire = combined;
       environmentOriginal = combinedOriginal;
       // Validate a member's own duplicates before coalescing matching physical

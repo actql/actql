@@ -47,6 +47,18 @@ Published Source contexts retain the central result instead of rebuilding it
 or manufacturing a Row declaration. Existing aggregate cleanup continues to
 own partially loaded adapters and physical children.
 
+A successful synchronous input constructor cuts its callback aliases and
+replaces its peak quote with its original retained-output quote. Failed or
+asynchronous constructors keep their admitted peak and original custody.
+The two Common inventory folds additionally own a local merged prefix. After
+all next-member checks succeed, the same owner can retire only that prefix's
+new containers, wire and native Environment. Base/member originals remain
+live because the successor borrows their leaves. A shared prior manifest,
+a normally borrowed prefix or a final returned prefix remains retained.
+The release closure is private to the existing composition index, checks the
+same reader/current owner, and can refund each range only once. This is a
+synchronous constructor cut, not a physical child acknowledgement.
+
 ## Synchronization
 
 The composer sets its busy fence before reader lookup, refuses reentry and

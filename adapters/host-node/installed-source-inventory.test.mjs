@@ -5,14 +5,16 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
+import {installedInventoryComponent, copyInstalledInventoryLoader} from './fixtures/installed-inventory-component.fixture.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {installedSourcePaths} from './installed-source.mjs';
 
-const moon = await import(new URL('../../_build/js/release/build/' +
-  'connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
+const runtimeUrl = new URL('../../_build/js/release/build/' +
+  'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
+const moon = await import(runtimeUrl.href);
 const baseWire = (await readFile(new URL('../../spec/' +
   'local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 function environment(ids, change = () => {}) {
@@ -33,12 +35,13 @@ function profile(name, changes = {}) {
     connectorBindings: [binding(name)], ...changes};
 }
 
-// Copy only the loader under test into an isolated installation tree. The
-// ordinary connector table supplies an authored fixture module; production
-// admission and cleanup have no injection or resolver hook for this test.
+// Authored member modules supply inert or deliberately malformed inventory
+// DATA. The actual fold owns composition and cleanup; this component does not
+// establish bound module initialization or physical provider admission.
 async function installation(t) {
   const root = await mkdtemp(join(tmpdir(), 'actql-source-inventory-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  let component;
+  t.after(async () => {await component?.close(); await rm(root, {recursive: true, force: true});});
   const host = join(root, 'adapters', 'host-node');
   const connectors = join(root, 'adapters', 'connectors-builtin');
   await mkdir(host, {recursive: true});
@@ -46,7 +49,7 @@ async function installation(t) {
   const original = fileURLToPath(new URL('./', import.meta.url));
   for (const entry of await readdir(original, {withFileTypes: true})) {
     if (entry.name === 'installed-source.mjs') {
-      await copyFile(join(original, entry.name), join(host, entry.name));
+      await copyInstalledInventoryLoader(new URL('./installed-source.mjs', import.meta.url), join(host, entry.name));
     } else if (entry.isFile() && entry.name.endsWith('.mjs')) {
       await symlink(join(original, entry.name), join(host, entry.name));
     }
@@ -55,10 +58,10 @@ async function installation(t) {
     join(root, 'adapters', 'connectors'));
   await writeFile(join(connectors, 'installations.generated.mjs'), `
     import * as fixture from './fixture.mjs';
-    export const installedConnectors = [{name: 'inventory_fixture',
+    export const installedConnectors = Object.freeze([Object.freeze({name: 'inventory_fixture',
       registration: 'inventory_fixture', revision: 'inventory_fixture/0.1',
-      source: {profileVersion: 'actql-installed-inventory-fixture/0.1',
-        load: async () => fixture}}];
+      source: Object.freeze({profileVersion: 'actql-installed-inventory-fixture/0.1',
+        load: async () => fixture})})]);
   `);
   await writeFile(join(connectors, 'fixture.mjs'), `
     export const events = [], blocked = new Set(), loaded = new Map();
@@ -103,9 +106,11 @@ async function installation(t) {
     }
     return result;
   };
-  const options = {root, principalId: 'inventory', moon, baseEnvironmentWire: baseWire,
+  const options = {root, principalId: 'inventory', moon, runtimeUrl, baseEnvironmentWire: baseWire,
     resolveSecret() { fixture.events.push(['secret']); throw new Error('UnexpectedSecret'); }};
-  return {...fixture, ...loader, paths, options};
+  component = installedInventoryComponent(loader, fixture.loaded);
+  return {...fixture, ...loader, paths, options,
+    loadInstalledSources: (paths, options) => component.load('source', paths, options)};
 }
 const primary = message => error => {
   assert.equal(error.primaryFailure?.message ?? error.message, message);
