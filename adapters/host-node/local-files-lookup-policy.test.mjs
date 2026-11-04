@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
-import {localFilesLookupExecutionPolicy, snapshotHostLookupExecutionPolicy,
+import {localFilesLookupExecutionPolicy, localResourceLookupExecutionPolicy, snapshotHostLookupExecutionPolicy,
   selectInstalledHostEnvironment} from './installed-host-policy.mjs';
+
+import {LOCAL_FILES_DEFAULT_LIMITS} from '../connectors/local/host/installed-project-files.mjs';
 
 // Execute the actual finite Host projection with explicit nominal-Owner ports.
 // This is not a public Host, Common execution, backing or permission fixture.
@@ -28,9 +30,11 @@ const method=methods[0].value;
 function hostProjection({moon,projectSourcePreparation,mockPreparation,sourceManaged,originals,assertCurrent}){
   return new Function('moon','projectSourcePreparation','mockPreparation','sourceManaged','originals',
     'assertSourceManagedInstallationCurrent','clientOperationError','localFilesLookupExecutionPolicy',
+    'localResourceLookupExecutionPolicy','LOCAL_FILES_DEFAULT_LIMITS',
     'return function'+source.slice(method.start,method.end))(
       moon,projectSourcePreparation,mockPreparation,sourceManaged,originals,assertCurrent,
-      code=>Object.assign(new Error(code),{code}),localFilesLookupExecutionPolicy);
+      code=>Object.assign(new Error(code),{code}),localFilesLookupExecutionPolicy,
+      localResourceLookupExecutionPolicy,LOCAL_FILES_DEFAULT_LIMITS);
 }
 const limits={maxFiles:1000,maxPages:64,maxPageBytes:1048576,maxDurationMs:30000};
 
@@ -60,7 +64,10 @@ test('Local lookup arithmetic stays exact and refuses invalid or unrepresentable
 });
 
 test('actual Host default selection retains the same Project Source receiver runtime and current original',()=>{
-  const moon={},sourceManaged={},originals={},bundle={sources:[{limits}]};
+  const policyOriginal={};
+  const moon={clientLocalResourcePolicyOriginal:()=>policyOriginal,
+    clientLocalPreparationResourceLimits:original=>original===policyOriginal ? [1,1,1,100000000000n,1,1] : []},
+    sourceManaged={},originals={},bundle={sources:[{limits}]};
   let current=true,observed=0;
   const projectSourcePreparation={originalsForRuntime(runtime){
     assert.strictEqual(this,projectSourcePreparation);assert.strictEqual(runtime,moon);observed++;return bundle;
@@ -109,4 +116,36 @@ test('selected lookup limits enter the same canonical Environment without changi
   assert.deepEqual(selected.host_policy_profile.lookup_execution,policy);
   assert.deepEqual(selected.host_policy_profile.capacity,base.host_policy_profile.capacity);
   assert.notEqual(selected.evidence_bundle_cid,base.evidence_bundle_cid);
+});
+
+
+test('normal and declared Local sources share explicit service policy and nominal transfer narrowing',()=>{
+  const policyOriginal={}, moon={clientLocalResourcePolicyOriginal:()=>policyOriginal,
+    clientLocalPreparationResourceLimits:original=>original===policyOriginal ? [1,1,1,12345n,1,1] : []};
+  const projectSourcePreparation={originalsForRuntime:()=>({sources:[{limits:LOCAL_FILES_DEFAULT_LIMITS}]})};
+  const mockPreparation={originalsForRuntime:()=>({physicalKind:'declared-json-document',sources:[]})};
+  const common={moon,sourceManaged:{},originals:{},assertCurrent(){}};
+  const normal=hostProjection({...common,projectSourcePreparation})(moon);
+  const declared=hostProjection({...common,mockPreparation})(moon);
+  assert.deepEqual(normal,declared);
+  const explicit=localFilesLookupExecutionPolicy([LOCAL_FILES_DEFAULT_LIMITS]);
+  assert.deepEqual(normal,{...explicit,max_total_response_bytes:12345});
+  assert.equal(normal.max_total_decoded_response_bytes,explicit.max_total_decoded_response_bytes);
+  assert.equal(normal.max_total_request_bytes,explicit.max_total_request_bytes);
+  assert.equal(normal.max_total_duration_ms,explicit.max_total_duration_ms);
+  assert.throws(()=>localResourceLookupExecutionPolicy(moon,{},explicit),/InvalidInstalledHostCapacityPolicy/);
+  assert.equal(localResourceLookupExecutionPolicy(moon,{},undefined),undefined);
+});
+
+test('declared Local policy requires the exact selected nominal preparation and currentness',()=>{
+  const policyOriginal={},moon={clientLocalResourcePolicyOriginal:()=>policyOriginal,
+    clientLocalPreparationResourceLimits:()=>[1,1,1,100000000000n,1,1]};
+  let current=true,reads=0;
+  const mockPreparation={originalsForRuntime(runtime){assert.equal(this,mockPreparation);
+    assert.equal(runtime,moon);reads++;return {physicalKind:'declared-json-document'};}};
+  const projection=hostProjection({moon,mockPreparation,sourceManaged:{},originals:{},
+    assertCurrent(){if(!current)throw Error('RetiredOriginal');}});
+  assert.ok(projection(moon));assert.equal(reads,1);
+  current=false;assert.throws(()=>projection(moon),/RetiredOriginal/);assert.equal(reads,1);
+  assert.throws(()=>projection({}),/ForeignInstalledProjectSourcePreparation/);
 });

@@ -110,6 +110,15 @@ export function composeInstalledCheckEnvironmentOriginal(moon, baseWire,
   const baseOriginal = admittedDocument(moon, baseInput);
   const sourceOriginal = sourceInput === undefined ? undefined : admittedDocument(moon, sourceInput);
   const effectOriginal = effectInput === undefined ? undefined : admittedDocument(moon, effectInput);
+  return composeAdmittedCheckEnvironmentOriginals(baseOriginal, sourceOriginal, effectOriginal,
+    (wire, evidenceCid, body) => admitEnvironment(moon, wire, evidenceCid, body));
+}
+
+// Shared pure composition, not an installed admission or ownership factory.
+// Installed consumers surround this same constructor with their material's
+// reservation and retain only their nominally issued result.
+export function composeAdmittedCheckEnvironmentOriginals(baseOriginal, sourceOriginal,
+  effectOriginal, admit) {
   const base = baseOriginal.body, source = sourceOriginal?.body, effect = effectOriginal?.body;
   const allowedKeys = new Set([...Object.keys(base),
     'connector_manifest']);
@@ -151,7 +160,7 @@ export function composeInstalledCheckEnvironmentOriginal(moon, baseWire,
   const evidenceCid = contentCid(body);
   const wire = canonicalJson({...body, evidence_bundle_cid: evidenceCid});
   if (Buffer.byteLength(wire, 'utf8') > maxEnvironmentBytes) refuse('EnvironmentSize');
-  return admitEnvironment(moon, wire, evidenceCid, body);
+  return admit(wire, evidenceCid, body);
 }
 
 // A matching static declaration does not establish that two installed roles

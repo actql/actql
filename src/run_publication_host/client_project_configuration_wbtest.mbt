@@ -8,6 +8,7 @@ test "project configuration defaults are metadata without Host authority" {
   assert_eq(config.model_tasks_file(), None)
   assert_eq(config.lock_file(), None)
   assert_eq(config.selected_profile(), None)
+  assert_eq(config.mock_catalog_file(), None)
   assert_eq(config.mock_data_file(), None)
   assert_eq(config.mock_answer_count(), 0)
   assert_eq(config.mock_answer_at(-1), None)
@@ -50,6 +51,7 @@ test "project configuration leaves path resolution and profile decisions to cons
     assert_eq(config.selected_profile(), Some(profile))
     assert_eq(config.state_directory(), "../shared")
     assert_eq(config.mock_answer_count(), 0)
+    assert_eq(config.mock_catalog_file(), None)
     assert_eq(config.mock_data_file(), None)
   }
 }
@@ -132,4 +134,49 @@ test "project configuration enforces the original exact wire intake bound" {
   assert_true(
     admit_client_project_configuration(exact + " ") is Err(InvalidConfiguration),
   )
+}
+
+///|
+test "project configuration retains explicit catalog text without discovering a default" {
+  let config = admit_client_project_configuration(
+    (
+      #|{"version":"actql-config/0.1","mock":{"catalog":"../catalog-é😀.json","data":"./rows.json","answers":{}}}
+    ),
+  ).unwrap()
+  assert_eq(config.mock_catalog_file(), Some("../catalog-é😀.json"))
+  assert_eq(config.mock_data_file(), Some("./rows.json"))
+  assert_eq(config.mock_answer_count(), 0)
+}
+
+///|
+test "project configuration rejects invalid and duplicate catalog locators" {
+  for
+    value in [
+      "null", "false", "42", "[]", "{}", "\"\"", "\"a\\u0000b\"", "\"\\ud800\"",
+    ] {
+    assert_true(
+      admit_client_project_configuration(
+        "{\"version\":\"actql-config/0.1\",\"mock\":{\"catalog\":" +
+        value +
+        "}}",
+      )
+      is Err(InvalidConfiguration),
+    )
+  }
+  for
+    wire in [
+      (
+        #|{"version":"actql-config/0.1","mock":{"catalog":"a","catalog":"b"}}
+      ),
+      (
+        #|{"version":"actql-config/0.1","mock":{"catalog":"a","cata\u006cog":"b"}}
+      ),
+      (
+        #|{"version":"actql-config/0.1","mock":{"catalog":"a","unknown":false}}
+      ),
+    ] {
+    assert_true(
+      admit_client_project_configuration(wire) is Err(InvalidConfiguration),
+    )
+  }
 }

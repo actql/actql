@@ -1,0 +1,90 @@
+{
+  "qualification": "Original cursor import/snapshot constructor DATA; not query admission, Resource backing or whole publication construction",
+  "declarations": [
+    {
+      "module": "src/program_source_builder/import_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b9527ca0534deb54d9df9174a517f704a29b784aba609986d03cd58d11f19c23",
+      "role": "common-semantics",
+      "owner": "Existing Program Source builder import and Source snapshot construction owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "cursor_import_construction_extent",
+          "declaration": "cursor_import_construction_extent ( nodes : Int , text_utf16 : Int , ) - > @ source . JsonLiteralConstructionExtent ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cursor_import_construction_extent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/program_source_builder/import-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

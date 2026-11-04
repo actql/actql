@@ -27,7 +27,7 @@ test "project configuration metadata preserves explicit original absence" {
   assert_eq(
     original_project_configuration_body(original),
     Some(
-      b"{\"connectors\":null,\"lock\":null,\"mock_answers\":[],\"mock_data\":null,\"model_tasks\":null,\"profile\":null,\"state_dir\":\"./.actql\"}",
+      b"{\"connectors\":null,\"lock\":null,\"mock_answers\":[],\"mock_catalog\":null,\"mock_data\":null,\"model_tasks\":null,\"profile\":null,\"state_dir\":\"./.actql\"}",
     ),
   )
 }
@@ -36,13 +36,13 @@ test "project configuration metadata preserves explicit original absence" {
 test "project configuration metadata uses same typed override and ordered mock locators" {
   let original = project_metadata_fixture(
     (
-      #|{"configuration":"{\"version\":\"actql-config/0.1\",\"connectors\":\"./connectors.json\",\"model_tasks\":\"./tasks.json\",\"lock\":\"./lock.json\",\"state_dir\":\"./state\",\"profile\":\"production\",\"mock\":{\"data\":\"./data.json\",\"answers\":{\"task:z\":\"./z.yaml\",\"task:a\":\"./a.yaml\"}}}","profile":"mock"}
+      #|{"configuration":"{\"version\":\"actql-config/0.1\",\"connectors\":\"./connectors.json\",\"model_tasks\":\"./tasks.json\",\"lock\":\"./lock.json\",\"state_dir\":\"./state\",\"profile\":\"production\",\"mock\":{\"catalog\":\"./catalog.json\",\"data\":\"./data.json\",\"answers\":{\"task:z\":\"./z.yaml\",\"task:a\":\"./a.yaml\"}}}","profile":"mock"}
     ),
   ).unwrap()
   assert_eq(
     original_project_configuration_body(original),
     Some(
-      b"{\"connectors\":\"./connectors.json\",\"lock\":\"./lock.json\",\"mock_answers\":[[\"task:z\",\"./z.yaml\"],[\"task:a\",\"./a.yaml\"]],\"mock_data\":\"./data.json\",\"model_tasks\":\"./tasks.json\",\"profile\":\"mock\",\"state_dir\":\"./state\"}",
+      b"{\"connectors\":\"./connectors.json\",\"lock\":\"./lock.json\",\"mock_answers\":[[\"task:z\",\"./z.yaml\"],[\"task:a\",\"./a.yaml\"]],\"mock_catalog\":\"./catalog.json\",\"mock_data\":\"./data.json\",\"model_tasks\":\"./tasks.json\",\"profile\":\"mock\",\"state_dir\":\"./state\"}",
     ),
   )
   let production = { ..original, requested: Some("production"), }

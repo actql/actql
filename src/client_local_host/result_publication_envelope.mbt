@@ -1,6 +1,7 @@
 ///|
-/// Result metadata is derived from the original checked graph, not successful
-/// rows. Repeated order terms and aliases are original occurrences.
+/// Result metadata limits come from the checked graph and row policy. They
+/// are not an initial allocation quote. Repeated order terms and aliases are
+/// original occurrences; actual row workspace is funded before construction.
 priv struct ClientLocalResultEnvelope {
   fields : Int
   mapping_work : Int
@@ -66,19 +67,23 @@ fn client_local_result_envelope(
   }
   let row_slots = 2L * max_rows.to_int64() + order_terms.to_int64()
   let field_slots = 8L + 5L * fields.to_int64()
-  if row_slots > 2147483647L || field_slots > 2147483647L {
+  if field_slots > 2147483647L {
     return None
   }
+  // The index representation retains its Int ceiling even when the policy's
+  // theoretical row product is larger. Actual construction checks this limit;
+  // a two-row result does not allocate the policy maximum in advance.
+  let row_slots = Int64::min(row_slots, 2147483647L).to_int()
   Some({
     fields,
     mapping_work,
     order_terms,
-    workspace_entries: row_slots.to_int(),
+    workspace_entries: row_slots,
     // Snapshot admission retains 8 owner entries +3F field tuples +2F sort
     // indices. Its counter is separate from Result view construction.
     publication_workspace_entries: Int::max(
       100,
-      Int::max(row_slots.to_int(), field_slots.to_int()),
+      Int::max(row_slots, field_slots.to_int()),
     ),
   })
 }

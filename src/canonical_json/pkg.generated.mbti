@@ -31,6 +31,8 @@ pub fn cid_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.Enc
 
 pub fn emit_pending_frames(CanonicalEmit) -> Int
 
+pub fn emit_storage_frames(CanonicalEmit) -> Int
+
 pub fn emit_value(CanonicalValue, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn finish_material(CanonicalMaterial) -> (CanonicalValue, (Int, Int, Int)) raise @encode_core.EncodeFailure

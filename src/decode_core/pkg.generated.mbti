@@ -103,6 +103,8 @@ pub fn required(ObjectView, String) -> Result[Cursor, Issue]
 
 pub fn safe_integer(Cursor) -> Result[Int64, Issue]
 
+pub fn shallow_value_view_construction_extent(Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn start_admission(@source_value.Node, Limits) -> Result[Admission, Issue]
 
 pub fn text(Cursor) -> Result[String, Issue]

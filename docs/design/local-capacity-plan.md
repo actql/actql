@@ -261,9 +261,14 @@ not reused as its funding evidence.
 
 For non-scalar source-free Results, the original generic wire/value allowance is
 preserved. Newly admitted Result field/view/snapshot metadata is additionally
-funded by `(24F + 2R + O + 64) * 256 + 8 * schemaByteCeiling`. Scalar metadata
-already includes these categories and is not charged twice. A plan carrying
-nonzero metadata cannot be quoted without the retained-input inventory.
+funded by `(24F + 2R + O + 64) * 256 + 8 * schemaByteCeiling`. Here R is the
+initial funded metadata window, one row, rather than the executor's maximum
+allowed rows. Before Named Result projection and ordering construct indices,
+the same task grows its original execution reservation for two index slots per
+additional actual row. That workspace remains owned until its real retirement;
+it is not a second Ledger or a new input-count proof. Scalar metadata already
+includes these categories and is not charged twice. A plan carrying nonzero
+fixed metadata cannot be quoted without the retained-input inventory.
 
 The physical memory representation retains its reader across both row access
 and awaited commit. Closing waits for readers; the Site holding releases only

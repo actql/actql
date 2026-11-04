@@ -2,6 +2,7 @@
 // in-process Frontend. MoonBit checks its members against the admitted
 // Check Environment before lowering or preparing a Program.
 import {sourceAliasPublicationOriginal} from './source-alias-publication.mjs';
+import {aliasRequestGeometry} from './source-alias-request.mjs';
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const aliasKeys = ['name', 'schemaContractCid', 'sourceRef',
   'sourceViewContractCid'];
@@ -26,7 +27,8 @@ function checkedPublication(moon, environment, publication) {
       selected.environmentCid !== environmentCid ||
       !Array.isArray(selected.aliases) ||
       selected.aliases.length > maxAliases ||
-      !selected.aliases.every(alias => exact(alias, aliasKeys) &&
+      !selected.aliases.every(alias => exact(alias, [...aliasKeys,
+        ...(alias !== null && typeof alias === 'object' && Object.hasOwn(alias, 'request') ? ['request'] : [])]) &&
         typeof alias.name === 'string' && alias.name.length > 0 &&
         alias.name.length <= 1024 &&
         typeof alias.sourceRef === 'string' &&
@@ -34,6 +36,12 @@ function checkedPublication(moon, environment, publication) {
         cidPattern.test(alias.sourceViewContractCid) &&
         cidPattern.test(alias.schemaContractCid))) {
     throw new TypeError('InvalidPublicSourcePublication');
+  }
+  for (const alias of selected.aliases) {
+    if (!Object.hasOwn(alias, 'request')) continue;
+    const request = Object.getOwnPropertyDescriptor(alias, 'request');
+    if (!request || !Object.hasOwn(request, 'value')) throw new TypeError('InvalidPublicSourcePublication');
+    aliasRequestGeometry(request.value);
   }
   const wire = JSON.stringify(selected);
   if (Buffer.byteLength(wire) > maxPublicationBytes ||

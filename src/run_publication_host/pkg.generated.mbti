@@ -16,6 +16,7 @@ import {
   "actql/actql/execution_site",
   "actql/actql/logical_request_scope",
   "actql/actql/lowering_relation",
+  "actql/actql/numeric_reduction",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/physical_strategy_host",
@@ -42,6 +43,10 @@ import {
 
 // Values
 pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?
+
+pub fn admit_client_check_environment_from_wire(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, graph? : Bool) -> @program_check.CheckEnvironment?
+
+pub fn admit_client_check_environment_wire(String, String) -> @check_environment.WireEnvironment?
 
 pub fn admit_client_compilation_manifests(String, String, Int, Int, Int) -> Result[ClientCompilationManifests, ClientCompilationManifestIssue]
 
@@ -88,6 +93,8 @@ pub fn admit_client_local_signing_bootstrap_policy(String, String) -> Result[Cli
 pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
 
 pub fn admit_client_native_product_members(String, String, String, String) -> Result[ClientNativeProductMembers, ClientNativeLocalRuntimeIssue]
+
+pub fn admit_client_project_catalog(String) -> Result[ClientProjectCatalog, ClientProjectCatalogIssue]
 
 pub fn admit_client_project_configuration(String) -> Result[ClientProjectConfiguration, ClientProjectConfigurationIssue]
 
@@ -347,6 +354,8 @@ pub fn client_captured_content_wire(ClientCapturedContent) -> String
 
 pub fn client_captured_content_workspace_capacity(Int, inventory_count? : Int) -> (Int64, Int64)?
 
+pub fn client_check_environment_wrapper_construction_extent(Bool) -> @check_environment.RegistryConstructionExtent
+
 pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
 
 pub fn client_compilation_grammar_manifest_cid(ClientCompilationManifests) -> String
@@ -398,6 +407,14 @@ pub fn client_compiled_run_source_free_result_policy_body(ClientCompiledRun) -> 
 pub fn client_compiled_run_static_plan_view(ClientCompiledRun, PreparedClientProgram, Int, Int, Int, inspect_installed? : Bool) -> Result[String, ClientCompiledRunPlanIssue]
 
 pub fn client_compiled_run_template(ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_direct_acquisition_occurrence_at(ClientDirectAcquisitionOccurrences, Int) -> (Int, Int, Int)?
+
+pub fn client_direct_acquisition_occurrence_count(ClientDirectAcquisitionOccurrences) -> Int
+
+pub fn client_direct_acquisition_occurrences_match_effect_program(ClientDirectAcquisitionOccurrences, PreparedClientEffectComputation) -> Bool
+
+pub fn client_direct_acquisition_occurrences_match_program(ClientDirectAcquisitionOccurrences, PreparedClientProgram) -> Bool
 
 pub fn client_direct_result_root_name(ClientDirectResultRoot) -> String
 
@@ -950,6 +967,10 @@ pub fn client_original_keyed_capture_available(ClientModelReadScope, ClientCompi
 pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLookupInput) -> Bool
 
 pub fn client_original_keyed_prefix_lookup_input(ClientOriginalKeyedPrefixLookup) -> ClientKeyedLookupInput?
+
+pub fn client_project_catalog_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn client_project_connections_admission_construction_inventory(String) -> @execution_relation.PreparationRepresentationUnits?
 
 pub fn client_project_model_task_selection_for(ClientProjectModelTaskSelection, ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration) -> (String, String?, String)?
 
@@ -2219,6 +2240,10 @@ pub fn seal_client_requested_effect_stop(ClientRequestedEffectStop, @checkpoint_
 
 pub fn seal_client_requested_effect_stop_body(ClientRequestedEffectStop, String, String, @checkpoint_runtime.WireLimits) -> Result[String, ClientRequestedEffectStopIssue]
 
+pub fn select_client_direct_acquisition_occurrences(PreparedClientProgram, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
+
+pub fn select_client_effect_direct_acquisition_occurrences(PreparedClientEffectComputation, Int) -> Result[ClientDirectAcquisitionOccurrences, ClientDirectAcquisitionOccurrenceIssue]
+
 pub fn select_client_project_model_task(ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, Int) -> Result[ClientProjectModelTaskSelection, ClientProjectModelTaskSelectionIssue]
 
 pub fn select_client_project_profile(ClientProjectConfiguration?, String?, Int) -> Result[ClientProjectProfileSelection, ClientProjectProfileIssue]
@@ -2469,6 +2494,17 @@ pub(all) enum ClientCompiledRunPlanIssue {
   UnsupportedCompilation
   Projection(ClientInteractivePlanIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ClientDirectAcquisitionOccurrenceIssue {
+  InvalidLimits
+  WorkLimit
+  ForeignRequest
+  UnsupportedShape
+  DuplicateCapture
+  MissingCapture
+}
+
+type ClientDirectAcquisitionOccurrences
 
 pub struct ClientDirectResultRoot {
   wire : String
@@ -3610,11 +3646,21 @@ pub(all) enum ClientProjectBindingsIssue {
   BindingsUnavailable
 } derive(Eq, @debug.Debug)
 
+type ClientProjectCatalog
+pub fn ClientProjectCatalog::at(Self, Int) -> (String, String)?
+pub fn ClientProjectCatalog::count(Self) -> Int
+pub fn ClientProjectCatalog::original_wire(Self) -> String
+
+pub(all) enum ClientProjectCatalogIssue {
+  InvalidCatalog
+} derive(Eq, @debug.Debug)
+
 type ClientProjectConfiguration
 pub fn ClientProjectConfiguration::connectors_file(Self) -> String?
 pub fn ClientProjectConfiguration::lock_file(Self) -> String?
 pub fn ClientProjectConfiguration::mock_answer_at(Self, Int) -> (String, String)?
 pub fn ClientProjectConfiguration::mock_answer_count(Self) -> Int
+pub fn ClientProjectConfiguration::mock_catalog_file(Self) -> String?
 pub fn ClientProjectConfiguration::mock_data_file(Self) -> String?
 pub fn ClientProjectConfiguration::model_tasks_file(Self) -> String?
 pub fn ClientProjectConfiguration::selected_profile(Self) -> String?
@@ -3659,6 +3705,7 @@ pub(all) enum ClientProjectProfileIssue {
 type ClientProjectProfileSelection
 pub fn ClientProjectProfileSelection::mock_answer_at(Self, Int) -> Result[(String, String)?, ClientProjectProfileIssue]
 pub fn ClientProjectProfileSelection::mock_answer_count(Self) -> Result[Int, ClientProjectProfileIssue]
+pub fn ClientProjectProfileSelection::mock_catalog_file(Self) -> Result[String?, ClientProjectProfileIssue]
 pub fn ClientProjectProfileSelection::mock_data_file(Self) -> Result[String?, ClientProjectProfileIssue]
 pub fn ClientProjectProfileSelection::selected_profile(Self) -> Result[String?, ClientProjectProfileIssue]
 

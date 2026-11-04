@@ -10,7 +10,7 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 // exact selected entry before installation; this does not create an installed
 // Source, credential use, current authority, capacity or durable publication.
 export async function loadInstalledProjectConnections(moon, project,
-  {assertCurrent, openFile = open} = {}) {
+  {assertCurrent, openFile = open, installationInventory} = {}) {
   const projectOriginal = installedProjectOriginalsForRuntime(project, moon);
   const directory = project.directory;
   if (typeof directory !== 'string' || !directory ||
@@ -34,13 +34,23 @@ export async function loadInstalledProjectConnections(moon, project,
     fail('InvalidInstalledProjectConnectionsSelection');
   }
   const path = selected == null ? undefined : resolve(directory, selected);
-  const wire = path === undefined ? undefined :
-    await readBoundedConfigurationUtf8(path, {maxBytes: 65536, openFile});
+  const wire = path === undefined ? undefined : installationInventory === undefined
+    ? await readBoundedConfigurationUtf8(path, {maxBytes: 65536, openFile})
+    : await installationInventory.readMetadataUtf8(path, 65536);
   // No second parse or file read can replace this exact acquisition. Close
   // failures retain the original FD on the existing reader's cleanup carrier.
   check();
-  const connections = wire === undefined ? undefined :
-    checked(Reflect.apply(admit, moon, [wire]));
+  const admission = () => checked(Reflect.apply(admit, moon, [wire]));
+  const connections = wire === undefined ? undefined : installationInventory === undefined
+    ? admission() : installationInventory.prepareMetadataInput(Object.freeze({
+      capacity() {
+        const quote = moon.clientProjectConnectionsAdmissionConstructionCapacity;
+        if (typeof quote !== 'function') fail('InstalledProjectRuntimeUnavailable');
+        const quantity = Reflect.apply(quote, moon, [wire]);
+        if (quantity == null) fail('InstalledProjectMetadataCapacityUnavailable');
+        return quantity;
+      }, project: admission,
+    }));
   check();
   const original = Object.freeze({project: projectOriginal, path, wire, connections});
   return Object.freeze({originalsForRuntime(runtime) {

@@ -491,15 +491,30 @@ pub fn[I] prepare_request_model_capture_module(
         Err(issue) => return Err(ModelSource(issue))
         Ok(value) => value
       }
+      let direct = match installed_direct_occurrences_owned(Pure(prepared)) {
+        Ok(value) => value
+        Err(issue) => return Err(Installed(issue))
+      }
+      if @publication_host.client_direct_acquisition_occurrence_count(direct) !=
+        count {
+        return Err(Installed(ForeignOriginal))
+      }
       let captures = []
-      for stage in 0..<count {
+      for index in 0..<count {
+        guard @publication_host.client_direct_acquisition_occurrence_at(
+            direct, index,
+          )
+          is Some((stage, source_input, task)) &&
+          task == index else {
+          return Err(Installed(ForeignOriginal))
+        }
         let requirement = match
           (match query_time {
             Some(original) =>
               prepare_local_query_requirement_at_query_time(
                 prepared,
                 stage,
-                0,
+                source_input,
                 original,
                 request,
                 contracts,
@@ -511,7 +526,7 @@ pub fn[I] prepare_request_model_capture_module(
               prepare_local_query_requirement(
                 prepared,
                 stage,
-                0,
+                source_input,
                 contracts,
                 contracts.original.values_body,
                 contracts.original.fragment_body,
@@ -522,14 +537,14 @@ pub fn[I] prepare_request_model_capture_module(
           Ok(value) => value
         }
         let source = match
-          @row_source_host.prepare_row_source(requirement, declarations[stage]) {
+          @row_source_host.prepare_row_source(requirement, declarations[index]) {
           Err(issue) => return Err(ModelSource(@row_source_host.Source(issue)))
           Ok(value) => value
         }
         let acquisition = match
           @row_source_host.prepare_declared_row_acquisition_with_contracts(
             source,
-            declarations[stage].connector_registration,
+            declarations[index].connector_registration,
             protocols,
           ) {
           Err(issue) => return Err(ModelSource(issue))
@@ -540,7 +555,7 @@ pub fn[I] prepare_request_model_capture_module(
             Some(originals) =>
               installed_provider_row_capture_capacity(
                 acquisition,
-                originals[stage],
+                originals[index],
               )
             None => installed_row_capture_capacity(acquisition)
           }) {
@@ -571,6 +586,7 @@ pub fn[I] prepare_request_model_capture_module(
             providers
           },
           query_time~,
+          direct_occurrences=Some(direct),
         ) {
         Err(issue) => return Err(Installed(issue))
         Ok(value) => value

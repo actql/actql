@@ -34,7 +34,7 @@ export const LOCAL_STORE_LIMITS=Object.freeze({maxRows:100,maxRequestBytes:10000
 
 export async function installPreparedProjectLocalFileEffects({moon,preparation,sourceManaged,
   baseEnvironmentWire,authorizationFor,principalId,runtimeBundleCid,ledgerRoot,
-  nativeFilesystem,effectResources,sourceBindings}) {
+  nativeFilesystem,effectResources,sourceBindings,installationServices}) {
   if(typeof preparation?.originalsForRuntime!=='function'||
       typeof sourceManaged?.assertCurrent!=='function'||typeof authorizationFor!=='function'||
       typeof principalId!=='string'||!isCid(runtimeBundleCid)||typeof ledgerRoot!=='string'||
@@ -54,7 +54,7 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
   // These selectors name already admitted Project entries, not new profile
   // reads. Reuse the existing installation inventory and partial-close owner.
   const effects=await composeInstalledEffects(bundle.sources.map(entry=>entry.connection),
-    {moon,baseEnvironmentWire},async(connection,_options,retain)=>{
+    {moon,baseEnvironmentWire,installationServices},async(connection,_options,retain)=>{
       current();
       const entries=bundle.sources.filter(entry=>entry.connection===connection);
       if(entries.length!==1)fail('InvalidLocalFileEffectInstallation');

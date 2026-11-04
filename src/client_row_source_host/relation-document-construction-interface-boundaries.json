@@ -1,0 +1,130 @@
+{
+  "qualification": "Source-scoped semantic correspondence; no complete shared execution, Host funding, artifact or release claim",
+  "declarations": [
+    {
+      "module": "src/client_row_source_host/relation_document_construction.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "ac0caa666a57e12771713158dc32c2d5d827ee6e09af3b61ae8925f9a51c7486",
+      "role": "common-semantics",
+      "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "exports": [],
+      "operations": [
+        {
+          "name": "relation_document_construction_inventory",
+          "declaration": "relation_document_construction_inventory ( limits : RowPageLimits , projections : Array [ RelationDocumentProjectionConstruction ] , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_construction_limits_valid",
+          "declaration": "relation_document_construction_limits_valid ( limits : RowPageLimits ) - > Bool"
+        },
+        {
+          "name": "relation_document_construction_scale",
+          "declaration": "relation_document_construction_scale ( units : @ execution . PreparationRepresentationUnits , count : Int64 , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_mapping_construction_inventory",
+          "declaration": "relation_document_mapping_construction_inventory ( limits : RowPageLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_nested_construction",
+          "declaration": "relation_document_nested_construction ( fields : @ contract . Fields , ) - > ( Int , Bool , Bool , Bool )"
+        },
+        {
+          "name": "relation_document_projection_construction_inventory",
+          "declaration": "relation_document_projection_construction_inventory ( projection : RelationDocumentProjectionConstruction , limits : RowPageLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_projection_contract",
+          "declaration": "relation_document_projection_contract ( declaration : RowDeclaration , resource : String , primary_identity : String , limits : RowPageLimits , ) - > Result [ @ contract . Contract , RowMappingIssue ]"
+        },
+        {
+          "name": "relation_document_raw_construction_inventory",
+          "declaration": "relation_document_raw_construction_inventory ( limits : RowPageLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "relation_document_typed_construction",
+          "declaration": "relation_document_typed_construction ( original : @ contract . Contract , limits : RowPageLimits , ) - > @ execution . PreparationRepresentationUnits ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "relation_document_construction_inventory",
+            "relation_document_construction_limits_valid",
+            "relation_document_construction_scale",
+            "relation_document_mapping_construction_inventory",
+            "relation_document_nested_construction",
+            "relation_document_projection_construction_inventory",
+            "relation_document_projection_contract",
+            "relation_document_raw_construction_inventory",
+            "relation_document_typed_construction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-document-construction-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+///|
+/// Pure borrowed-string geometry for one actual full Relation restore plus
+/// DeclarationJson export. The installing parent reserves this SAME opaque
+/// quantity before invoking either constructor; this port performs neither.
+#export_name("clientProgramRelationRestoreConstructionCapacity")
+pub fn client_program_relation_restore_construction_capacity(
+  connector_id : String,
+  registration : String,
+  version : String,
+  views_wire : String,
+  resources : Array[String],
+  resource_kinds : Array[String],
+  schema_wires : Array[String],
+  request_wires : Array[String?],
+  facts_wires : Array[String?],
+  acquisition_wires : Array[String?],
+  identity_wires : Array[String?],
+) -> @execution.ExecutionCapacity? {
+  guard @client_row_source_host.relation_restore_construction_inventory(
+      connector_id, registration, version, views_wire, resources, resource_kinds,
+      schema_wires, request_wires, facts_wires, acquisition_wires, identity_wires,
+    )
+    is Some(retained) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace: {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}

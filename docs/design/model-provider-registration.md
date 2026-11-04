@@ -634,7 +634,11 @@ Contract references after inventory retirement.
 The private Node installation reader acquires only the original selected
 profile's named answer files and their registered Task files. Task locators
 are relative to the original registry; answer locators are relative to the
-original project configuration. The same captured runtime, project/profile
+original project configuration. Both ordinary Task loading and mock-answer Task
+loading use the same live issued-project resolver for this interpretation. A
+copied, foreign-runtime or retired project cannot supply the registry base.
+The resolver performs no I/O and does not widen the existing locator policy,
+change physical read/close custody, or mint a provider or execution authority. The same captured runtime, project/profile
 pair and currentness callback survive each awaited read/close. Replacing a file
 does not rewrite a retained original. Read/close failure keeps the existing
 original-FD cleanup carrier and does not retry the read.
@@ -660,7 +664,7 @@ installation. In particular, a mock choice cannot inherit production Provider
 configuration or silently continue through configured live connections.
 
 Only the original mock choice projects its same configuration's explicit
-`mock.data` and `mock.answers` locators. Other named profiles retain their exact
+`mock.catalog`, `mock.data` and `mock.answers` locators. Other named profiles retain their exact
 name without acquiring those fixtures. Missing mock locators are declared
 absence, not undiscovered files or permission to invent records or answers.
 The existing physical Source/Model Owners must acquire and admit the selected

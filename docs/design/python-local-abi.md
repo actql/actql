@@ -2393,9 +2393,11 @@ The same metadata family admits project configuration and profile selection
 through `admit_client_project_configuration` and `select_client_project_profile`.
 The retained input contains the original configuration wire or explicit absence
 and the original profile override or absence. Core retains that same nominal
-selection before fallible encoding; the seven-field locator projection is DATA,
+selection before fallible encoding; the eight-field locator projection is DATA,
 not an installed Source, Model registration, permission or funding promise.
-Python preserves ordered task/answer locators and performs no profile rewrite.
+Python preserves the explicit `mock_catalog` locator and ordered task/answer
+locators and performs no profile rewrite. The catalog locator uses the same
+original file acquisition and retirement as the other project inputs.
 
 The existing Core lock and bounded input/output loans cover this preparation.
 A failed parse, copy or cleanup retains the same child; it is not prepared again.

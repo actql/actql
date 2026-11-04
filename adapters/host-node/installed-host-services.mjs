@@ -1,3 +1,4 @@
+import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
@@ -11,8 +12,8 @@ import {createInstalledTableSource, installedTableReadSite} from './installed-ta
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {installDuckDBSourceProfile, createInstalledDuckDBSource} from './installed-duckdb-source.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
-import {installedCheckEnvironmentInputs, composeInstalledCheckEnvironmentOriginal} from './installed-check-environment.mjs';
-import {readSourceProfileJson, readBoundedConfigurationText, installedConfigurationByteLimit,
+import {installedCheckEnvironmentInputs} from './installed-check-environment.mjs';
+import {readSourceProfileJson, readBoundedConfigurationText, readBoundedConfigurationUtf8, installedConfigurationByteLimit,
   installedConfigurationChunkBytes, readOriginalConfigurationText, readOriginalConfigurationBytes,
   installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
 import {runtimeField, runtimeIsBoxedSome} from '../host-common/compiler-binding.generated.mjs';
@@ -263,13 +264,47 @@ function freezeSourceProjection(value) {
 // This reader is created only by the real initializer, before the first
 // configuration open. Its fixed Buffer peak is reserved before allocation;
 // actual received bytes fund native decoding BEFORE concat/text/JSON.parse.
+// One pure metadata/native-input constructor under an already existing Source
+// material. Context and metadata-reader entrances supply only private guards;
+// neither can replace the original material or reserve after construction.
+function prepareSourceNativeInput(original, material, projection, attempts, validate, retain) {
+  if (material.phase !== 'working' || material.busy || attempts.has(projection)) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  validate();
+  const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+  attempts.add(projection);
+  let quantity;
+  material.busy = true;
+  try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
+  finally {material.busy = false;}
+  if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
+  material.providers.push(quantity); material.inputs.push(projection);
+  reserveSource(original, material);
+  validate();
+  if (material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  let value;
+  material.busy = true;
+  try {
+    value = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
+    material.inputs.push(value);
+    validate();
+    if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
+      fail('InvalidInstalledSourceNativeInput');
+    }
+    retain(value);
+  } finally {material.busy = false;}
+  reconcileSource(original, material);
+  return value;
+}
+
 export function installedSourceConfigurationReader(services) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
   const material = sourceMaterial(original);
   if (material === undefined) return undefined;
   if (material.configurationReader !== undefined) return material.configurationReader;
-  async function read(path, options, json) {
+  async function read(path, options, json, strictUtf8 = false) {
     if (options !== undefined && (nodeTypes.isProxy(options) ||
         Reflect.ownKeys(options).some(name => name !== 'maxBytes'))) {
       fail('InvalidInstalledConfigurationReaderOptions');
@@ -296,7 +331,8 @@ export function installedSourceConfigurationReader(services) {
         reserveSource(original, material, json ? 4n * decoded : 0n,
           12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
       };
-      const value = await (json ? readSourceProfileJson : readBoundedConfigurationText)(path,
+      const value = await (json ? readSourceProfileJson
+        : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
         {maxBytes, beforeDecode, io: sourceIo(original, material)});
       // The original file has actually closed before retaining/reconciling.
       material.inputs.push(value);
@@ -338,7 +374,19 @@ export function installedSourceConfigurationReader(services) {
     } catch (cause) {retainSourceFailure(material, cause, workspace); throw cause;}
     finally {material.ioPending--;}
   }
+  const metadataProjections = new WeakSet();
+  const validateMetadataInput = () => {
+    if (sourceMaterial(original) !== material || material.phase !== 'working') {
+      fail('ForeignInstalledSourceInitialization');
+    }
+  };
+  const retainMetadataInput = () => {};
   const reader = Object.freeze({
+    prepareNativeInput(projection) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return prepareSourceNativeInput(original, material, projection, metadataProjections,
+        validateMetadataInput, retainMetadataInput);
+    },
     parseJsonText(text) {
       if (this !== reader || typeof text !== 'string' || !material.inputs.includes(text)) {
         fail('ForeignInstalledConfigurationText');
@@ -365,6 +413,10 @@ export function installedSourceConfigurationReader(services) {
     readText(path, options) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
       return read(path, options, false);
+    },
+    readUtf8(path, options) {
+      if (this !== reader) fail('ForeignInstalledConfigurationReader');
+      return read(path, options, false, true);
     },
     async readOriginalText(path) {
       if (this !== reader) fail('ForeignInstalledConfigurationReader');
@@ -497,7 +549,7 @@ export function beginInstalledSourceInitialization(services, installation, conne
   if (original.selected.get(installation) === undefined || typeof connectorId !== 'string' ||
       typeof baseEnvironmentWire !== 'string' || !['source', 'effect'].includes(role) ||
       role === 'effect' && installation.effect === undefined) fail('ForeignInstalledSourceInitialization');
-  return createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role);
+  return createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role, services);
 }
 
 // The existing builtin publishes its complete Environment, rather than a Row
@@ -512,7 +564,7 @@ export function beginInstalledPublishedSourceInitialization(services, installati
       typeof sourceRef !== 'string' || typeof wire !== 'string' || typeof baseEnvironmentWire !== 'string') {
     fail('ForeignInstalledSourceInitialization');
   }
-  const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source');
+  const context = createInstalledSourceContext(original, material, installation, undefined, baseEnvironmentWire, 'source', services);
   try {
     const environment = context.preparePublishedEnvironment(wire);
     // Catalog views carry their checked contract identity, not a source_ref.
@@ -542,12 +594,17 @@ export function beginInstalledPublishedSourceInitialization(services, installati
   }
 }
 
-function createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role) {
+function createInstalledSourceContext(original, material, installation, connectorId, baseEnvironmentWire, role, services) {
   const scope = {installation, connectorId, baseEnvironmentWire, role, prepared: undefined,
     source: undefined, active: true};
   material.contexts.push(scope); material.constructors++;
   const inputProjections = new WeakSet();
   const nativeInputOriginals = new WeakSet();
+  const validateNativeInputContext = () => {
+    if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
+        material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
+  };
+  const retainNativeInput = value => nativeInputOriginals.add(value);
   function prepareSourceEnvironment(declared, mappings = []) {
     const geometry = sourceEnvironmentConstructionGeometry(scope.baseEnvironmentWire, declared, mappings);
     const before = scope.prepared;
@@ -780,33 +837,9 @@ function createInstalledSourceContext(original, material, installation, connecto
       } finally {material.busy = false;}
     },
     prepareNativeInput(projection) {
-      if (this !== context || !scope.active || scope.prepared !== undefined || scope.source !== undefined ||
-          material.phase !== 'working' || material.busy || inputProjections.has(projection)) {
-        fail('ForeignInstalledSourceInitialization');
-      }
-      const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
-      inputProjections.add(projection);
-      let quantity;
-      material.busy = true;
-      try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
-      finally {material.busy = false;}
-      if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
-      material.providers.push(quantity); material.inputs.push(projection);
-      reserveSource(original, material);
-      if (!scope.active || scope.prepared !== undefined || scope.source !== undefined ||
-          material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
-      let value;
-      material.busy = true;
-      try {
-        value = requireSynchronousSourceConstruction(material, Reflect.apply(project, projection, []));
-        material.inputs.push(value);
-        if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || 'then' in value) {
-          fail('InvalidInstalledSourceNativeInput');
-        }
-        nativeInputOriginals.add(value);
-      } finally {material.busy = false;}
-      reconcileSource(original, material);
-      return value;
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      return prepareSourceNativeInput(original, material, projection, inputProjections,
+        validateNativeInputContext, retainNativeInput);
     },
     prepareProviderEffect(site, provider, mappingOriginals) {
       if (this !== context || scope.role !== 'effect' || !scope.active || scope.prepared !== undefined ||
@@ -856,23 +889,14 @@ function createInstalledSourceContext(original, material, installation, connecto
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.declarationAttempted ||
           material.phase !== 'working' || material.busy || typeof wire !== 'string') fail('ForeignInstalledSourceInitialization');
       scope.declarationAttempted = true;
-      const basis = 16n * (BigInt(wire.length) + BigInt(scope.baseEnvironmentWire.length));
-      reserveSource(original, material, basis, basis, basis);
+      // The central constructor retains every input and native original under
+      // this exact existing material before constructing the published view.
+      const environment = composeInstalledSourceEnvironment(services, original.moon,
+        scope.baseEnvironmentWire, undefined, wire);
       if (!scope.active || scope.prepared !== undefined || material.phase !== 'working') fail('ForeignInstalledSourceInitialization');
-      let environment;
-      material.busy = true;
-      try {
-        environment = composeInstalledCheckEnvironmentOriginal(original.moon, scope.baseEnvironmentWire,
-          undefined, wire);
-        // A published Table Environment is its own actual admitted original;
-        // it is never manufactured into a RowDeclaration or restored again.
-        freezeSourceProjection(environment.body);
-        scope.prepared = Object.freeze({environment});
-        scope.publishedEnvironment = true;
-        material.inputs.push(wire, environment);
-        material.nodes += basis; material.text += basis; material.wire += basis;
-      } finally {material.busy = false;}
-      reconcileSource(original, material);
+      scope.prepared = Object.freeze({environment});
+      scope.publishedEnvironment = true;
+      material.inputs.push(environment);
       return environment;
     },
     prepareNativeDeclaration(projection) {
@@ -936,7 +960,9 @@ function createInstalledSourceContext(original, material, installation, connecto
       try {
         const environment = scope.role === 'effect' ? undefined
           : rowSourceCheckEnvironment(scope.baseEnvironmentWire, declared);
-        prepared = Object.freeze({declaration, declared, environment});
+        // Borrow the exact already-owned export. Consumers must not serialize
+        // or export the declaration again just to recover its original wire.
+        prepared = Object.freeze({declaration, declared, wire: declaredWire, environment});
         scope.prepared = prepared;
         // Preserve the existing raw Mapping continuation's declaration basis.
         scope.declarationBasis = 16n * (BigInt(declaredWire.length) + BigInt(scope.baseEnvironmentWire.length));
@@ -945,6 +971,34 @@ function createInstalledSourceContext(original, material, installation, connecto
       } finally {material.busy = false;}
       reconcileSource(original, material);
       return Object.freeze({...projected, ...prepared});
+    },
+    prepareBorrowedDeclaration(sourceContext) {
+      const source = sourceContexts.get(sourceContext);
+      if (this !== context || scope.role !== 'effect' || !scope.active ||
+          scope.prepared !== undefined || scope.source !== undefined || scope.declarationAttempted ||
+          material.phase !== 'working' || material.busy || source === undefined ||
+          source.original !== original || source.material !== material ||
+          source.scope.role !== 'source' || source.scope.installation !== scope.installation ||
+          source.scope.connectorId !== scope.connectorId ||
+          source.scope.baseEnvironmentWire !== scope.baseEnvironmentWire ||
+          !source.scope.active || source.scope.closed || source.scope.prepared?.declaration === undefined ||
+          source.scope.prepared.commands !== undefined || typeof source.scope.declarationBasis !== 'bigint') {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      const prepared = source.scope.prepared;
+      scope.declarationAttempted = true;
+      // Both contexts already belong to this exact material. Borrow the
+      // existing immutable tuple without a copied declaration or new owner.
+      // The original constructor quantity remains retained by that material.
+      reserveSource(original, material);
+      if (!scope.active || material.phase !== 'working' || scope.prepared !== undefined ||
+          !source.scope.active || source.scope.closed || source.scope.prepared !== prepared) {
+        fail('ForeignInstalledSourceInitialization');
+      }
+      scope.prepared = prepared;
+      scope.declarationBasis = source.scope.declarationBasis;
+      scope.borrowedDeclaration = source.scope;
+      return prepared;
     },
     prepareMappings(writesJson, writes) {
       if (this !== context || !scope.active || scope.prepared === undefined ||
@@ -972,7 +1026,13 @@ function createInstalledSourceContext(original, material, installation, connecto
         const write = field(writes, String(i)), resource = field(write, 'resource'), sources = field(write, 'sources');
         if (typeof resource !== 'string' || !Array.isArray(sources) || nodeTypes.isProxy(sources) ||
             !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
-        units += BigInt(resource.length);
+        const operationField = Object.getOwnPropertyDescriptor(write, 'operation');
+        const operation = operationField === undefined ? 'create' : field(write, 'operation');
+        if (operation !== 'create' && operation !== 'update' ||
+            operation === 'update' && typeof original.prepareUpdateMapping !== 'function') {
+          fail('InvalidInstalledEffectMappings');
+        }
+        units += BigInt(resource.length + operation.length);
         for (let j = 0; j < sources.length; j++) {
           const source = field(sources, String(j));
           for (const name of ['target', 'field', 'null_behavior']) {
@@ -997,9 +1057,12 @@ function createInstalledSourceContext(original, material, installation, connecto
       material.busy = true;
       try {
         const runtime = Object.freeze({clientProgramRowSourcePrepareMapping: (...args) =>
-          Reflect.apply(original.prepareMapping, original.moon, args)});
+          Reflect.apply(original.prepareMapping, original.moon, args),
+          clientProgramRowSourcePrepareUpdateMapping: (...args) =>
+            Reflect.apply(original.prepareUpdateMapping, original.moon, args)});
         const mappings = Object.freeze(writes.map(write => Object.freeze({resource: write.resource,
-          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources)})));
+          ...rowSourceMapping(runtime, scope.prepared.declaration, writesJson, write.resource, write.sources,
+            Object.getOwnPropertyDescriptor(write, 'operation')?.value ?? 'create')})));
         const environment = rowSourceCheckEnvironment(scope.baseEnvironmentWire, scope.prepared.declared,
           mappings.map(mapping => mapping.body));
         prepared = Object.freeze({...scope.prepared, environment, mappings});
@@ -1316,6 +1379,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
       current(); return value;
     },
     prepareAuthoredDeclaration: prepare('prepareAuthoredDeclaration'),
+    prepareBorrowedDeclaration: prepare('prepareBorrowedDeclaration'),
     prepareMappings: prepare('prepareMappings'),
     prepareDeclaredCommands: prepare('prepareDeclaredCommands'),
     prepareDerivedDeclaredCommands: prepare('prepareDerivedDeclaredCommands'),
@@ -1638,6 +1702,19 @@ export function finishInstalledSourceInitialization(context, adapter, cause, fai
   retained.scope.active = false; retained.material.constructors--;
 }
 
+// Nominal admission for the common installed Environment composer. Reused
+// metadata still belongs to this exact live Source material and runtime.
+export function installedSourceEnvironmentConstructionReader(services, moon) {
+  const original = installations.get(services);
+  if (original === undefined || original.moon !== moon) fail('ForeignInstalledHostServices');
+  original.current();
+  const material = sourceMaterial(original);
+  if (material === undefined || material.phase !== 'working' || material.busy) {
+    fail('ForeignInstalledSourceInitialization');
+  }
+  return installedSourceConfigurationReader(services);
+}
+
 export function reserveInstalledSourceEnvironment(services, ...wires) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
@@ -1731,6 +1808,11 @@ export function borrowInstalledSourceInitialization(services, sourceOriginal, en
   return view;
 }
 
+export function isInstalledSourceInitializationRetired(services) {
+  const original = installations.get(services);
+  return original !== undefined && original.material?.phase === 'retired';
+}
+
 export function retireInstalledSourceInitialization(services) {
   const original = installations.get(services);
   if (original === undefined) fail('ForeignInstalledHostServices');
@@ -1764,6 +1846,7 @@ export function retireInstalledSourceInitialization(services) {
     material.input = material.unit = material.capacity = material.methods = undefined;
     original.initialPreparation = undefined;
     material.phase = 'retired';
+    releaseRetiredInstalledEnvironmentComposition(services);
   }
   return completed;
 }
@@ -2083,9 +2166,10 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const admitAcquisitionContracts = moon.clientProgramRowSourceAdmitAcquisitionContracts;
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
+  const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping});
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping});
   return services;
 }
 
