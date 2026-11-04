@@ -245,6 +245,73 @@ fn[I] begin_request_model_module(
 }
 
 ///|
+// Only the existing native protocol path needs these Source controls. Fund
+// them before preflight, then dispose the cursor/tuple before returning this
+// exact temporary debit on the SAME still-working original reservation.
+fn[I] request_native_model_protocol_construction_bytes(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  prepared : @publication_host.PreparedClientProgram,
+  query : String,
+  evidence : String,
+  receipts : String,
+) -> Result[Int64, ClientRequestProgramPlanIssue] {
+  guard owner.program_capacity is Some(capacity) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  match
+    reserve_request_domain_graph_construction(
+      owner, input, prepared, request_model_material_preflight_control_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The checked grow retained its exact absolute target. Read that DATA,
+  // not the same current callback again merely to recover the prior debit.
+  guard owner.program_domain_quote is Some((quoted_r, quoted_e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let r = quoted_r - request_model_material_preflight_control_bytes
+  let e = quoted_e - request_model_material_preflight_control_bytes
+  let bytes = request_model_material_body_bytes(
+    3,
+    index => {
+      if index == 0 {
+        query
+      } else if index == 1 {
+        evidence
+      } else {
+        receipts
+      }
+    },
+    source_geometry=true,
+  )
+  // Source owns no physical child, and all three cursors have returned here.
+  let returned = @resources.reconcile_working_preparation_phase(
+    capacity, input, r, e,
+  )
+  guard owner.phase == Selecting &&
+    owner.input is Some(original_input) &&
+    physical_equal(original_input, input) &&
+    owner.compiled_program is Some(original_prepared) &&
+    physical_equal(original_prepared, prepared) &&
+    owner.program_capacity is Some(original_capacity) &&
+    physical_equal(original_capacity, capacity) &&
+    owner.program_domain_quote == Some((quoted_r, quoted_e)) else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  match returned {
+    Err(issue) => return Err(Preparation(Capacity(issue)))
+    Ok(_) => ()
+  }
+  owner.program_domain_quote = None
+  match bytes {
+    None => Err(Preparation(Policy))
+    Some(value) => Ok(value)
+  }
+}
+
+///|
 // The actual existing input/suffix lowering, selected by the SAME checked
 // occurrence. Each constructor grows the same Request before invoking it.
 fn[I] construct_request_model_input(
@@ -596,17 +663,33 @@ pub fn[I] prepare_request_model_capture_module(
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      guard request_model_material_body_bytes(if native { 3 } else { 2 }, index => {
-          if index == 2 {
-            native_receipt_body.unwrap()
-          } else if index == 0 {
-            query_contract_body
-          } else {
-            evidence_contract_body
-          }
-        })
-        is Some(protocol_bytes) &&
-        request_local_query_construction_bytes() is Some(query_bytes) &&
+      let protocol_bytes = if native {
+        match
+          request_native_model_protocol_construction_bytes(
+            owner,
+            input,
+            prepared,
+            query_contract_body,
+            evidence_contract_body,
+            native_receipt_body.unwrap(),
+          ) {
+          Err(issue) => return Err(issue)
+          Ok(value) => value
+        }
+      } else {
+        match
+          request_model_material_body_bytes(2, index => {
+            if index == 0 {
+              query_contract_body
+            } else {
+              evidence_contract_body
+            }
+          }) {
+          None => return Err(Preparation(Policy))
+          Some(value) => value
+        }
+      }
+      guard request_local_query_construction_bytes() is Some(query_bytes) &&
         @execution.checked_preparation_add_product(
           protocol_bytes,
           query_bytes,
