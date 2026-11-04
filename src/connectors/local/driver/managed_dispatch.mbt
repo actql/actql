@@ -2740,15 +2740,23 @@ pub fn[T] start_local_managed_dispatch(
     // -1 means no authorized local continuation, not a stop/release witness.
     // Provider, borrowed input, snapshot and active-reader waits retain custody.
     cleanup_local_continuation: fn() {
-      if !disposed.val ||
-        live.val ||
+      // Completed Relation material owns its independent receipt/index. Its
+      // stopped provider can retire temporary roots before that live output
+      // closes; this cursor is not an output or physical cleanup ACK.
+      let completed_relation = live.val &&
+        settled.val &&
+        finalization_ready.val &&
+        finalization_completed.val is Some(_) &&
+        retained.val is Some(_) &&
+        ordinary.val is Some(_)
+      if ((!disposed.val || live.val) && !completed_relation) ||
         scratch_uses.val != 0 ||
         provider_execution.val is Some(_) ||
         relation_snapshot_cancel.val is Some(_) ||
-        input_stop.phase != Stopped ||
+        (!completed_relation && input_stop.phase != Stopped) ||
         carrier.val is Some(_) ||
         !retired_carriers.is_empty() ||
-        retained.val is Some(_) ||
+        (retained.val is Some(_) && !completed_relation) ||
         snapshot_storage_released.val is Some(_) {
         return -1L
       }

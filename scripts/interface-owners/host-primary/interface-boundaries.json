@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "852a8dd46362c7eced0425dc5088f34a4f5d2dd64afe021ad819751493d1349c",
+      "sha256": "108a02bc5490303c9481f2985b89b9c5144a10b55b2446a15a7694bdc97a3699",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -72,7 +72,9 @@
         },
         {
           "name": "openAcquiredEffectComputation/cleanupInfer/cleanupInfer",
-          "parameters": [],
+          "parameters": [
+            "includeContinuation"
+          ],
           "async": true
         },
         {

@@ -31333,7 +31333,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "852a8dd46362c7eced0425dc5088f34a4f5d2dd64afe021ad819751493d1349c",
+      "sha256": "108a02bc5490303c9481f2985b89b9c5144a10b55b2446a15a7694bdc97a3699",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -31399,7 +31399,9 @@
         },
         {
           "name": "openAcquiredEffectComputation/cleanupInfer/cleanupInfer",
-          "parameters": [],
+          "parameters": [
+            "includeContinuation"
+          ],
           "async": true
         },
         {
@@ -100106,7 +100108,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "345163893ae19eb2d038eb9702c676a962eb257e857a12c11337a11593afe548",
+      "sha256": "108ccfd8042ffce6254d9efd8cb5ff5cd5e4240a2a3e794a1b96812307b421fb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -100298,6 +100300,16 @@
           "async": false
         },
         {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#2",
           "parameters": [
             "input",
@@ -100330,6 +100342,11 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
           "parameters": [
             "emit",
             "readSignal",
@@ -100338,16 +100355,11 @@
           "async": false
         },
         {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
           "parameters": [
             "emit",
             "readSignal"
           ],
-          "async": false
-        },
-        {
-          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
-          "parameters": [],
           "async": false
         },
         {
@@ -100556,7 +100568,9 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved#3",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved/resolved",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolvedRowPlan/resolvedRowPlan",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/siteInputs/siteInputs"
+            "localStrategyContribution/init:runPrepared/init:runPrepared/siteInputs/siteInputs",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5"
           ],
           "exports": [
             "localStrategyContribution"

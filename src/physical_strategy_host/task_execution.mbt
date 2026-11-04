@@ -1118,9 +1118,33 @@ fn release_task_execution_owned(
   run : CapturedDAG,
   execution : TaskExecution,
 ) -> Result[Bool, @resources.LedgerIssue] {
-  if !execution.disposed ||
-    !execution.execution_settled ||
-    !task_execution_matches(run, execution) {
+  if !execution.execution_settled || !task_execution_matches(run, execution) {
+    return Ok(false)
+  }
+  if !execution.disposed {
+    // A successful output owns its separate holding. Late provider cleanup
+    // may now witness scratch retirement without revoking that output or
+    // acknowledging its retention. The existing cleanup latch fences reentry.
+    if !task_done(run, execution.task) {
+      return Ok(false)
+    }
+    let scratch_released = task_execution_scratch_released(execution)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    if scratch_released && @resources.reservation_open(execution.reservation) {
+      match
+        @resources.settle_execution_reservation(
+          run.ledger,
+          execution.reservation,
+          remaining_execution=0L,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
+    // Output/holding/hooks remain with their original owner. This is never
+    // the full cleanup acknowledgement while that output is still live.
     return Ok(false)
   }
   let scratch_released = task_execution_scratch_released(execution)
@@ -1199,9 +1223,9 @@ fn release_task_execution_owned(
 }
 
 ///|
-/// Poll installed cleanup facts after disposal, without treating this call as
-/// evidence of native stop or file deletion. The exact task remains tracked
-/// until both confirmations have arrived; no consumed transfer is refunded.
+/// Poll original cleanup facts after disposal, or only witnessed scratch of
+/// an already settled successful task while its output remains live. False
+/// retains output/holding custody; no consumed transfer or work is refunded.
 pub fn refresh_task_execution_cleanup(
   run : CapturedDAG,
   execution : TaskExecution,
@@ -1214,7 +1238,8 @@ pub fn refresh_task_execution_cleanup(
   if !task_execution_matches(run, execution) {
     return Err(ForeignOwner)
   }
-  if !execution.disposed {
+  if !execution.disposed &&
+    (!execution.execution_settled || !task_done(run, execution.task)) {
     return Err(InvalidCharge)
   }
   release_task_execution(run, execution)
