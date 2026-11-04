@@ -3643,6 +3643,18 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declaration, provider, query, evidence,
         transport, scratch, contracts, retainedOutput, queryTime, bindOriginal]));
     },
+    prepareCheckedClientRequestModelDuckDBComponentCaptureModule(parent, input, request, compiled, definition, compilation,
+      sourceRef, schema, table, query, evidence, receipts, transport, scratch, contracts, retainedOutput, queryTime, bindOriginal) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelDuckDBComponentCaptureModule;
+      if (typeof prepare !== 'function') throw new TypeError('Request Model module constructor unavailable');
+      // Same existing private originals, never the wire/identity facade.
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, sourceRef, schema, table, query, evidence, receipts,
+        transport, scratch, contracts, retainedOutput, queryTime, bindOriginal]));
+    },
     prepareCheckedClientRequestModelsSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrences, graphs, selected) {
       const value = compiledRunTokens.get(compiled);

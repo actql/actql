@@ -691,6 +691,73 @@ pub fn client_program_prepare_request_model_provider_component_capture_module(
 }
 
 ///|
+/// Keep the existing native Query/protocol originals on the SAME Request;
+/// no Row declaration, provider or independent Ledger is substituted.
+#export_name("clientProgramPrepareRequestModelDuckDBComponentCaptureModule")
+pub fn client_program_prepare_request_model_duckdb_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  source_ref : String,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+  transport_bytes : Int64,
+  transport_execution_bytes : Int64,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [],
+    query_contract_body,
+    evidence_contract_body,
+    [transport_bytes],
+    [transport_execution_bytes],
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    native_source_ref=Some(source_ref),
+    native_database_schema=Some(database_schema),
+    native_table=Some(table),
+    native_receipt_body=Some(two_receipt_contract_body),
+    // Keep the optional sequence in this typed closure. JS forwards the
+    // binder unchanged; it never unwraps/reboxes this original Option.
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 // Bind the actual deferred Model provider before the one source-free module
 // configures its Local dispatch. The optional suffix remains native.
 #export_name("clientProgramPrepareRequestModelSourceFreeComponentModule")

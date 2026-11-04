@@ -793,9 +793,18 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // to a bag retired by its current callback; retain only the live original.
     const original = adapter.managedEffectPlanSelection();
     current();
-    if (original?.declaration === undefined || original.provider === undefined ||
+    const native = original?.nativeSource;
+    if ((original?.declaration === undefined) === (native === undefined) ||
+        native === undefined && original.provider === undefined ||
         typeof original.transferBytes !== 'bigint' || original.transferBytes < 0n ||
-        typeof original.executionBytes !== 'bigint' || original.executionBytes < 0n) {
+        typeof original.executionBytes !== 'bigint' || original.executionBytes < 0n ||
+        native !== undefined && (!plain || native === null || !Object.isFrozen(native) ||
+          native.sourceRef !== sourceRef || original.provider !== undefined ||
+          ![native.sourceRef, native.schema, native.table].every(value => typeof value === 'string' && value.length > 0) ||
+          !Array.isArray(native.contracts) || !Object.isFrozen(native.contracts) || native.contracts.length !== 3 ||
+          native.contracts.some(value => typeof value !== 'string' || value.length === 0) ||
+          typeof moon.clientProgramPrepareRequestModelDuckDBComponentCaptureModule !== 'function' ||
+          typeof model.control.prepareCheckedClientRequestModelDuckDBComponentCaptureModule !== 'function')) {
       throw clientOperationError('InstalledModelSourcePreparationUnavailable');
     }
     run.modelSourceSelection = original;
@@ -863,15 +872,18 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         model.occurrence, model.graph, model.selectedBounds, physical);
   } else if (count === 1) {
     const original = run.modelSourceSelection;
-    const query = readInitialControlInstallationAsset(initialControl, originals,
-      'spec/contracts/actql-query-acquisition.json');
-    const evidence = readInitialControlInstallationAsset(initialControl, originals,
-      'spec/contracts/actql-query-process-evidence.json');
+    const native = original.nativeSource;
+    const query = native === undefined ? readInitialControlInstallationAsset(initialControl, originals,
+      'spec/contracts/actql-query-acquisition.json') : native.contracts[0];
+    const evidence = native === undefined ? readInitialControlInstallationAsset(initialControl, originals,
+      'spec/contracts/actql-query-process-evidence.json') : native.contracts[1];
     const plain = model.serializationGraph === undefined;
-    const construct = plain ? model.control.prepareCheckedClientRequestModelProviderComponentCaptureModule
-      : model.control.prepareCheckedClientRequestModelProviderCaptureModule;
+    const construct = native !== undefined ? model.control.prepareCheckedClientRequestModelDuckDBComponentCaptureModule
+      : plain ? model.control.prepareCheckedClientRequestModelProviderComponentCaptureModule
+        : model.control.prepareCheckedClientRequestModelProviderCaptureModule;
     const args = [parent, input, run.request, model.compiled, model.runDefinition, compilation,
-      original.declaration, original.provider, query, evidence,
+      ...(native === undefined ? [original.declaration, original.provider, query, evidence]
+        : [native.sourceRef, native.schema, native.table, query, evidence, native.contracts[2]]),
       original.transferBytes, original.executionBytes, installed.admission,
       retainedRelationOutput, run.queryTimePreparation];
     if (plain) args.push((_capacity, prefix, bindSuffix) => {

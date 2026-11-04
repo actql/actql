@@ -10,6 +10,7 @@ const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'u
 const runtimeSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
 const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
+  prepareCheckedClientRequestModelDuckDBComponentCaptureModule: 'clientProgramPrepareRequestModelDuckDBComponentCaptureModule',
   prepareCheckedClientRequestModelCaptureModule: 'clientProgramPrepareRequestModelCaptureModule',
   prepareCheckedClientRequestModelComponentCaptureModule: 'clientProgramPrepareRequestModelComponentCaptureModule',
   prepareCheckedClientRequestModelProviderCaptureModule: 'clientProgramPrepareRequestModelProviderCaptureModule',
@@ -26,7 +27,7 @@ const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
-  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false, facadeBindings = false, missingSelectorPort, absentSourceRef = false, throwSelector = false, selectorCause} = {}) {
+  serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false, facadeBindings = false, missingSelectorPort, absentSourceRef = false, throwSelector = false, selectorCause, native = false, nativeChange, missingNativeModule = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
   const graph = {}, occurrence = {}, bounds = {}, q = {}, admission = {}, initialControl = {};
   const declarations = [{}, {}], provider = {}, sourceRef = 'fixture/transfers', selectedSource = {};
@@ -108,6 +109,17 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       if (expireComponent) current = false;
       return componentProvider;
     },
+    clientProgramPrepareRequestModelDuckDBComponentCaptureModule(...args) {
+      assert.equal(this, moon);
+      assert.deepEqual(args.slice(0,17), [parent,input,request,rawCompiled,rawDefinition,compilation,
+        sourceRef,'main','records','native-query','native-evidence','native-receipts',512n,256n,
+        admission,true,timed ? q : undefined]);
+      assert.equal(args.length,18); assert.equal(model.component,undefined);
+      calls.push('backed native component module');
+      assert.strictEqual(args[17]({},inputPrefix,suffixBinder),componentProvider);
+      assert.strictEqual(model.component.provider,componentProvider);
+      return ok(module);
+    },
     clientProgramPrepareRequestModelProviderComponentCaptureModule(...args) {
       assert.deepEqual(args.slice(0, 15), [parent, input, request, rawCompiled, rawDefinition, compilation,
         declarations[0], provider, 'query', 'evidence', 512n, 256n,
@@ -170,6 +182,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     delete moon.clientProgramPrepareRequestModelProviderCaptureModule;
   }
   if (missingComponent) delete moon.clientProgramPrepareRequestModelProviderComponentCaptureModule;
+  if (missingNativeModule) delete moon.clientProgramPrepareRequestModelDuckDBComponentCaptureModule;
   if (missingSelectorPort !== undefined) delete moon[missingSelectorPort];
   const checkedResult = value => {assert.equal(value.$tag, 1); return value._0;};
   if (facadeBindings) {
@@ -192,8 +205,11 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   const adapter = {managedEffectPlanSelection() {
     assert.equal(this, adapter); calls.push('original provider selection');
     if (expireProvider) current = false;
-    return Object.freeze({declaration: declarations[0], provider: missingProvider ? undefined : provider,
-      transferBytes: 512n, executionBytes: 256n});
+    return Object.freeze(native ? {nativeSource:Object.freeze({sourceRef,schema:'main',table:'records',
+      contracts:Object.freeze(['native-query','native-evidence','native-receipts']),...nativeChange}),
+      transferBytes:512n,executionBytes:256n}
+      : {declaration: declarations[0], provider: missingProvider ? undefined : provider,
+        transferBytes: 512n, executionBytes: 256n});
   }};
   const ports = {openNodeComposedInferProvider, assertSourceManagedHostPreparation(value) {
     assert.equal(value, originals); if (!current) throw primary;
@@ -663,4 +679,26 @@ test('complete captured Request Model module uses actual checked Direct Stage an
   assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.modelSourceSelections.length, 2);
   assert.deepEqual(f.calls, ['bounds0', 'bounds1', 'Direct4:1', 'Direct6:2',
     'one captured complete module', 'provider0', 'provider1', 'one captured complete Plan']);
+});
+
+
+test('single native Model module retains the exact original Query protocols and private compiler', () => {
+  const f=fixture({count:1,native:true,facadeBindings:true});
+  assert.equal(f.construct(),f.plan);
+  assert.equal(f.run.preparedSequences,f.module);
+  assert.deepEqual(f.calls,['bounds','original provider selection','backed native component module','component provider','bind-generic-captured']);
+});
+
+test('single native Model refuses changed Source or incomplete protocols before constructing a module', () => {
+  for (const nativeChange of [{sourceRef:'source:foreign'}, {contracts:Object.freeze(['query','evidence'])},
+    {contracts:['native-query','native-evidence','native-receipts']}, {table:''}]) {
+    const f=fixture({count:1,native:true,nativeChange});
+    assert.throws(f.construct,{code:'InstalledModelSourcePreparationUnavailable'});
+    assert.equal(f.run.preparedSequences,undefined);
+    assert.equal(f.model.component,undefined);
+    assert.deepEqual(f.calls,['bounds','original provider selection']);
+  }
+  const missing=fixture({count:1,native:true,missingNativeModule:true});
+  assert.throws(missing.construct,{code:'InstalledModelSourcePreparationUnavailable'});
+  assert.equal(missing.run.preparedSequences,undefined);
 });

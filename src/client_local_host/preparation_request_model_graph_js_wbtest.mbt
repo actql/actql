@@ -880,6 +880,86 @@ test "single generic acquired Model binds original Request module and Scope with
 }
 
 ///|
+test "single native Model retains original Request Query capacity without a Row declaration" {
+  let f = request_serialized_model_fixture(
+    single_capture=true,
+    serialized=false,
+  )
+  let loader = publication_test_loader(publication_test_url())
+  let source_ref = f.declaration.unwrap().views[0].source_ref
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [],
+    capture_parent_contract(loader, "actql-query-acquisition.json"),
+    capture_parent_contract(loader, "actql-query-process-evidence.json"),
+    [4096L],
+    [2048L],
+    f.contracts,
+    true,
+    0,
+    _ => [],
+    native_source_ref=Some(source_ref),
+    native_database_schema=Some("main"),
+    native_table=Some("records"),
+    native_receipt_body=Some(
+      capture_parent_contract(loader, "actql-query-two-receipt.json"),
+    ),
+  ).unwrap()
+  assert_eq(original.captures.length(), 1)
+  let capture = original.captures[0]
+  assert_false(capture.original_input)
+  assert_true(capture.acquisition is None && capture.provider is None)
+  assert_eq(
+    @planning.query_requirement_source(capture.requirement).0,
+    source_ref,
+  )
+  let plan = prepare_request_model_capture_plan(
+    f.parent,
+    f.input,
+    original,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let (requirement, same_capture) = installed_managed_duckdb_capture(
+    run,
+    f.prepared,
+    f.request,
+    0,
+  ).unwrap()
+  assert_true(physical_equal(capture, same_capture))
+  assert_true(physical_equal(capture.requirement, requirement))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
 // Actual accounted RowRun/capture on the SAME Request Model Scope. The
 // installation/profile/Resource and transport verifier remain explicit test
 // ports; these tests issue no normal Account grant, Model send or physical IO.
