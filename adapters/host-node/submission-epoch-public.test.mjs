@@ -18,6 +18,9 @@ import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
+// These public SQL inputs omit RESULT. The ordinary Source frontend selects
+// its public_primary Result `main` (source_frontend/lower.mbt), while the
+// internal stage keeps `rows`; no structured `answer` export is authored here.
 const invocationHint = 'Keep the original submission reference and use a currently authorized lookup. This invocation outcome does not establish another invocation\'s acceptance, grant permission to resubmit, or authorize changed input or a new restart decision.';
 const storedAdmissionCounts = root => {
   const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'),
@@ -42,7 +45,7 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []},
       {entry_id: 'owner-read', outcome: 'allow', principal: {any_of: [principalId]},
-        connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/answer', 'run']},
+        connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/main', 'run']},
         operation: {any_of: ['read']}, exclusions: []}]}),
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
@@ -126,7 +129,7 @@ for (const entrance of ['local', 'https']) {
       attemptId: 'typed-first-invocation'});
     assert.equal(getSubmissionAttempt(original).kind, 'recorded');
     assert.equal((await original.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
-    assert.deepEqual(await original.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await original.result('main').all(), [{n: 1}]);
     const before = storedAdmissionCounts(f.root);
     await assert.rejects(f.client.startSource('SELECT 2 AS n', {format: 'sql', submissionRef,
       attemptId: 'typed-changed-invocation'}), error => {
@@ -153,7 +156,7 @@ for (const entrance of ['local', 'https']) {
       attemptId: 'typed-original-replay'});
     assert.equal(getSubmissionAttempt(replay).kind, 'already_satisfied');
     assert.deepEqual(replay.ref, original.ref);
-    assert.deepEqual(await replay.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await replay.result('main').all(), [{n: 1}]);
     assert.equal(f.computes, 1);
     await f.close(); await f.open();
     const restored = await f.client.lookupSubmission(submissionRef);
@@ -197,7 +200,7 @@ for (const entrance of ['local', 'https']) {
     const retained = await f.client.lookupSubmission(submissionRef);
     assert.equal(retained.kind, 'ready');
     assert.deepEqual(retained.admission.ref, original.ref);
-    assert.deepEqual(await original.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await original.result('main').all(), [{n: 1}]);
     assert.equal(f.computes, 1);
   });
 }
@@ -233,7 +236,7 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
       recovery = client.recoverRequest(run);
     }
     assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
-    assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await run.result('main').all(), [{n: 1}]);
     assert.deepEqual(recovery.target.submissionRef, submissionRef);
     const savedTarget = JSON.parse(JSON.stringify(recovery.target));
     const first = await recovery.lookup();
@@ -254,7 +257,7 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     await assert.rejects(restored.attach({...found}), {code: 'InvalidRequestRecoveryObservation'});
     const repeated = await client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
-    assert.deepEqual(await repeated.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await repeated.result('main').all(), [{n: 1}]);
     assert.equal(f.computes, 1);
   });
 }
@@ -383,7 +386,7 @@ for (const [entrance, lostReply] of [['local', false], ['https', false], ['https
       run = await f.client.attach(found.admission.ref);
     } else run = await pending;
     assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
-    assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await run.result('main').all(), [{n: 1}]);
     const expected = await f.client.lookupSubmission(freshRef);
     assert.deepEqual(expected.unresolvedHistory, unresolvedHistory);
     assert.deepEqual(expected.admission.ref, run.ref);
@@ -672,7 +675,7 @@ if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
     assert.deepEqual(lookedUp.submissionRef, original);
     const execution = await f.client.attach(lookedUp.admission.ref);
     assert.equal((await execution.wait({until: 'terminal'})).status, 'succeeded');
-    assert.deepEqual(await execution.result('answer').all(), [{n: 1}]);
+    assert.deepEqual(await execution.result('main').all(), [{n: 1}]);
     await f.close(); await f.open();
     const restored = JSON.parse((await run('lookup-submission', '--submission-ref-file', 'original.json')).stdout);
     assert.deepEqual(restored, lookedUp);
