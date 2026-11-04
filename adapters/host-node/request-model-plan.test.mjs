@@ -11,6 +11,7 @@ const runtimeSource = readFileSync(new URL('../host-common/runtime-core.mjs', im
 const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
   prepareCheckedClientRequestModelDuckDBComponentCaptureModule: 'clientProgramPrepareRequestModelDuckDBComponentCaptureModule',
+  prepareCheckedClientRequestModelsDuckDBComponentCaptureModule: 'clientProgramPrepareRequestModelsDuckDBComponentCaptureModule',
   prepareCheckedClientRequestModelCaptureModule: 'clientProgramPrepareRequestModelCaptureModule',
   prepareCheckedClientRequestModelComponentCaptureModule: 'clientProgramPrepareRequestModelComponentCaptureModule',
   prepareCheckedClientRequestModelProviderCaptureModule: 'clientProgramPrepareRequestModelProviderCaptureModule',
@@ -563,9 +564,9 @@ for (const [method, port, plural] of [
 });
 
 
-function completeModelPlanFixture({expireMember, badOrder = false, captured = false} = {}) {
+function completeModelPlanFixture({expireMember, badOrder = false, captured = false, native = false, nativeChange, missingNativeModule = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {},
-    compiled = {}, definition = {}, admission = {}, initialControl = {}, calls = [], prefixes = [{}, {}], providers = [{}, {}];
+    compiled = native ? Object.freeze({kind: 'infer'}) : {}, definition = {}, admission = {}, initialControl = {}, calls = [], prefixes = [{}, {}], providers = [{}, {}];
   const selected = Object.freeze([0, 1].map(() => Object.freeze({graph: {}, occurrence: {}, selectedBounds: {}})));
   const model = {prepared, compiled, runDefinition: definition,
     selection: Object.freeze({components: selected}), graph: Object.freeze(selected.map(value => value.graph))};
@@ -576,7 +577,7 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
   let live = true;
   const current = () => {if (!live) throw primary;};
   const moon = {
-    clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return captured ? 2 : 0;},
+    clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return native ? 1 : captured ? 2 : 0;},
     clientProgramPreparedComposedInferBounds() {assert.fail('Reuse each retained selected Limits');},
     clientProgramComposedInferRetainedLimits(bounds) {
       const index = selected.findIndex(value => value.selectedBounds === bounds); assert(index >= 0);
@@ -606,11 +607,14 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
   };
   model.control = control;
   run.runtime = moon;
-  const sourceProfile = {}, coordinates = Object.freeze([Object.freeze([4, 1, 0]), Object.freeze([6, 2, 1])]),
-    sourceOriginals = [0, 1].map(() => Object.freeze({declaration: {}, provider: {}, transferBytes: 123n, executionBytes: 45n}));
+  const sourceProfile = {}, coordinates = Object.freeze((native ? [[4, 1, 0]] : [[4, 1, 0], [6, 2, 1]]).map(Object.freeze)),
+    sourceOriginals = native ? [Object.freeze({nativeSource: Object.freeze({sourceRef: 'source:native', schema: 'main', table: 'records',
+      contracts: Object.freeze(['native-query', 'native-evidence', 'native-receipts']), ...nativeChange}),
+      transferBytes: 123n, executionBytes: 45n})]
+      : [0, 1].map(() => Object.freeze({declaration: {}, provider: {}, transferBytes: 123n, executionBytes: 45n}));
   const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: false,
     managedSourceProfile: sourceProfile, computeRuns: new WeakMap([[prepared, run]])}};
-  if (captured) {
+  if (captured || native) {
     run.sourceProfile = sourceProfile;
     moon.clientProgramRequestModelDirectSourceCoordinates = (p, i) => {
       assert.equal(p, parent); assert.equal(i, input); return coordinates;
@@ -621,7 +625,7 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
       assert(index >= 0); calls.push('Direct'+stage+':'+input); return sourceOriginals[index];
     };
     moon.clientProgramSelectedSourceInputKind = () => 'query';
-    moon.clientProgramSelectedSourceInputRef = value => sourceOriginals.indexOf(value);
+    moon.clientProgramSelectedSourceInputRef = value => native ? 'source:native' : sourceOriginals.indexOf(value);
     control.prepareCheckedClientRequestModelsProviderComponentCaptureModule = function(...args) {
       assert.equal(this, control); assert.deepEqual(args.slice(0, 6), [parent, input, request, compiled, definition, compilation]);
       assert.deepEqual(args.slice(6, 12), [sourceOriginals.map(source => source.declaration), sourceOriginals.map(source => source.provider),
@@ -636,6 +640,27 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
       calls.push('one captured complete Plan'); return plan;
     };
   }
+  if (native) {
+    // Exercise the actual thin facade as well as the Host caller. The returned
+    // compilation is the same private original, never an equal facade/clone.
+    const rawCompiled = {}, rawDefinition = {};
+    moon.clientProgramPrepareRequestModelsDuckDBComponentCaptureModule = function(...args) {
+      assert.equal(this, moon);
+      assert.deepEqual(args.slice(0, 17), [parent, input, request, rawCompiled, rawDefinition, compilation,
+        'source:native', 'main', 'records', 'native-query', 'native-evidence', 'native-receipts', 123n, 45n,
+        admission, true, undefined]);
+      calls.push('one native complete module');
+      for (let index = 0; index < 2; index++) {
+        assert.equal(args[17](index, {}, prefixes[index], () => {}), providers[index]);
+      }
+      return module;
+    };
+    const method = actualModuleMethods.get('prepareCheckedClientRequestModelsDuckDBComponentCaptureModule');
+    if (method !== undefined) Object.assign(control, Function('moon', 'compiledRunTokens', 'token', 'checked',
+      'return ({' + runtimeSource.slice(method.start, method.end) + '});')(moon,
+      new WeakMap([[compiled, rawCompiled]]), value => {assert.equal(value, definition); return rawDefinition;}, value => value));
+    if (missingNativeModule) delete control.prepareCheckedClientRequestModelsDuckDBComponentCaptureModule;
+  }
   const ports = {assertSourceManagedHostPreparation: current, originalSourceManagedHostRequest: current,
     prepareInstalledSequenceContractOriginal: () => ({moon, control: initialControl, contracts: {}, admission}),
     runtimeCore: () => ({publicationControl: control}), checked: value => value,
@@ -643,7 +668,7 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
       assert.equal(actual, initialControl); assert.equal(o, originals);
       return path.includes('process-evidence') ? 'evidence-contract' : 'query-contract';
     },
-    installedSourceFor(profile, index) {assert.equal(profile, sourceProfile); return {managedEffectPlanSelection() {return sourceOriginals[index];}};},
+    installedSourceFor(profile, index) {assert.equal(profile, sourceProfile); if (native) assert.equal(index, 'source:native'); return {managedEffectPlanSelection() {return sourceOriginals[native ? 0 : index];}};},
     clientOperationError: code => Object.assign(new Error(code), {code}),
     openNodeComposedInferProvider(options) {
       const index = selected.indexOf(options.selected); assert(index >= 0);
@@ -701,4 +726,32 @@ test('single native Model refuses changed Source or incomplete protocols before 
   const missing=fixture({count:1,native:true,missingNativeModule:true});
   assert.throws(missing.construct,{code:'InstalledModelSourcePreparationUnavailable'});
   assert.equal(missing.run.preparedSequences,undefined);
+});
+
+
+test('native captured Model group uses one original Source and compiler for both ordered components', () => {
+  const f = completeModelPlanFixture({native: true});
+  assert.equal(f.invoke(), f.plan);
+  assert.equal(f.run.preparedSequences, f.module);
+  assert.equal(f.run.modelSourceSelections.length, 1);
+  assert.deepEqual(f.calls, ['bounds0', 'bounds1', 'Direct4:1', 'one native complete module',
+    'provider0', 'provider1', 'one captured complete Plan']);
+});
+
+test('native captured Model group refuses changed original Source and missing typed module before providers', () => {
+  for (const options of [{nativeChange: {table: ''}}, {nativeChange: {sourceRef: 1}},
+    {nativeChange: {contracts: ['native-query', 'native-evidence', 'native-receipts']}}, {missingNativeModule: true}]) {
+    const f = completeModelPlanFixture({native: true, ...options});
+    assert.throws(f.invoke, {code: 'InstalledModelSourcePreparationUnavailable'});
+    assert.equal(f.run.preparedSequences, undefined);
+    assert(f.model.components.every(member => member.component === undefined));
+  }
+});
+
+test('native captured Model group keeps both original children when later current refuses', () => {
+  const f = completeModelPlanFixture({native: true, expireMember: 1});
+  assert.throws(f.invoke, cause => cause === f.primary);
+  assert(f.model.components.every(member => member.component !== undefined));
+  assert.equal(f.run.preparedSequences, undefined);
+  assert.equal(f.run.modelPlan, undefined);
 });
