@@ -642,7 +642,7 @@ pub fn prepare_installed_effect_managed_plan(@run_publication_host.PreparedClien
 
 pub fn prepare_installed_effect_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
-pub fn prepare_installed_effect_model_demand(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @physical_resources.LedgerLimits, Int64, Int64, Int, Int, Int) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
+pub fn prepare_installed_effect_model_demand(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @physical_resources.LedgerLimits, Int64, Int64, Int, Int, Int, bootstrap? : (Int64, Int64)?) -> Result[ClientInstalledEffectModelDemand, ClientInstalledManagedRunIssue]
 
 pub fn prepare_installed_effect_operation_demand(@run_publication_host.PreparedClientEffectComputation, Int, String, Array[ClientInstalledEffectOperationExtent], Array[ClientInstalledEffectOperationExtent]) -> Result[ClientInstalledEffectOperationDemand, ClientInstalledManagedRunIssue]
 

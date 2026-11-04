@@ -1780,6 +1780,8 @@ pub fn client_program_installed_model_defaults_usage(@run_publication_host.Clien
 
 pub fn client_program_installed_native_source_reader_capacity(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?
 
+pub fn client_program_installed_node_effect_model_demand_prepare(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @client_infer_host.Limits, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, Int64, Int64, Int, Int, Int, Int64, Int64) -> Result[@client_local_host.ClientInstalledEffectModelDemand, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
 pub fn client_program_installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
