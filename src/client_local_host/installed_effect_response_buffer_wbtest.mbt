@@ -649,6 +649,36 @@ test "stored control includes retained Receipt outcomes beyond the smaller Ledge
 }
 
 ///|
+test "saved contract control keeps its complete peak without retaining private decoder families per row" {
+  let selected = standard_create_saved_control_capacity(1000000, 512, 16).unwrap()
+  // Four returned Receipt families and the original logical Ledger still
+  // coexist. A private million-byte decoder/index is not one returned family.
+  let receipts = @execution.execution_capacity_inventory(
+    [
+      { unit: ValueNodeSlots, count: 512L, copies: 4, },
+      { unit: DecodedTextBytes, count: 1000000L, copies: 3, },
+      { unit: QuotedBytes, count: 4096L, copies: 1, },
+    ],
+    [],
+    RetainedAlongsideExecution,
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(selected),
+    @execution.execution_capacity_retained_bytes(receipts),
+  )
+  let complete = installed_json_effect_response_construction_capacity(
+    @execution.execution_capacity(0L, 0L).unwrap(),
+    1000000,
+    512,
+    16,
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_execution_bytes(selected) >=
+    @execution.execution_capacity_execution_bytes(complete),
+  )
+}
+
+///|
 test "stored control sequential scratch keeps retained and execution overflow closed" {
   let maximum = @execution.execution_capacity(
     9223372036854775807L, 9223372036854775807L,

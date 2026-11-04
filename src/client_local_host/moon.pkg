@@ -52,6 +52,7 @@ import {
 }
 
 import {
+  "actql/actql/effect_application" @effect,
   "actql/actql/capacity_host_witness" @binding_host,
   "actql/actql/capacity_witness" @binding_wire,
   "actql/actql/local_veca_provider" @nearest_provider,
