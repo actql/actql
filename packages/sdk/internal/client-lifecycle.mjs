@@ -8,6 +8,7 @@ export function createClientLifecycle(port) {
   let released = false;
   const activeReaders = new Set();
   const readerCleanups = new Set();
+  const readCleanupFailures = [];
   function close() {
     // Revoke new use before returning, including while physical cleanup waits.
     closed = true;
@@ -21,6 +22,13 @@ export function createClientLifecycle(port) {
       // must settle without another application call into the iterator.
       for (const reader of readers) reader.abort();
       await Promise.allSettled(readers.map(reader => reader.finish()));
+      for (const reader of readers) {
+        // Only the original reader marks a failed disposal without a retry
+        // witness. Registered Local close duties are confirmed separately.
+        if (reader.cleanupFailure !== undefined && !readCleanupFailures.includes(reader.cleanupFailure)) {
+          readCleanupFailures.push(reader.cleanupFailure);
+        }
+      }
       const failures = [];
       for (const cleanup of [...readerCleanups]) {
         try { await cleanup(); readerCleanups.delete(cleanup); }
@@ -33,6 +41,13 @@ export function createClientLifecycle(port) {
         try { await port?.close?.(); }
         catch { throw new ClientError('ClientCleanupPending', {cleanupPending: true}); }
         released = true;
+      }
+      // Report the original read's uncertainty after releasing actual local
+      // duties. A finished iterator supplies no fabricated cleanup retry owner.
+      if (readCleanupFailures.length === 1) throw readCleanupFailures.pop();
+      if (readCleanupFailures.length > 1) {
+        throw new ClientError('ResultReadCleanupUnknown', {cleanupError:
+          new AggregateError(readCleanupFailures.splice(0), 'Multiple reader cleanup failures')});
       }
     }).finally(() => { closeFlight = undefined; });
     return closeFlight;

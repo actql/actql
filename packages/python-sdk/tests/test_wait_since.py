@@ -94,6 +94,45 @@ class WaitAsyncTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(self.responses[-1].is_closed)
         self.assertEqual([operation for operation, _ in self.requests], ['connect', 'attach', 'wait', 'wait'])
 
+    async def test_observation_history_rejects_rollback_and_scope_substitution(self):
+        run = await self.connect(state(10))
+        self.assertEqual((await run.status()).revision, 10)
+        for operation in ('status', 'wait', 'reconcile'):
+            for reply in (state(9), state(11) | {'run_id': 'foreign-run'}):
+                with self.subTest(operation=operation, reply=reply):
+                    self.reply = reply
+                    with self.assertRaises(ClientError) as caught:
+                        await getattr(run, operation)()
+                    self.assertEqual(caught.exception.code, 'StaleHostRunObservation')
+        # Refused observations must not replace either admitted revision domain.
+        self.reply = state(11)
+        observed = await run.reconcile()
+        self.assertEqual((observed.run_id, observed.revision), ('wait-original', 11))
+        self.assertEqual(observed.control['revision'], 2)
+        self.assertNotIn('cancel', [operation for operation, _ in self.requests])
+
+    async def test_state_history_does_not_depend_on_optional_control(self):
+        reply = state(10)
+        del reply['control']
+        run = await self.connect(reply)
+        self.assertEqual((await run.status()).revision, 10)
+        self.reply = reply | {'revision': 9}
+        with self.assertRaises(ClientError) as caught:
+            await run.wait()
+        self.assertEqual(caught.exception.code, 'StaleHostRunObservation')
+        self.reply = reply
+        self.assertEqual((await run.status()).revision, 10)
+
+    async def test_rejected_control_does_not_advance_state_history(self):
+        run = await self.connect(state(10))
+        await run.status()
+        self.reply = state(12) | {'control': state()['control'] | {'revision': 1}}
+        with self.assertRaises(ClientError) as caught:
+            await run.status()
+        self.assertEqual(caught.exception.code, 'StaleHostRunObservation')
+        self.reply = state(11)
+        self.assertEqual((await run.status()).revision, 11)
+
     async def test_newer_running_state_does_not_satisfy_wait(self):
         run = await self.connect(state(8, 'running'))
         with self.assertRaises(ClientError) as error: await run.wait(since=7)
