@@ -136,8 +136,16 @@ class AsyncReader:
             raise ClientError('ReaderClosed')
         return self
 
-    async def __aexit__(self, *exc):
-        await self.aclose()
+    async def __aexit__(self, _type, failure, _traceback):
+        try:
+            await self.aclose()
+        except ClientError as cleanup:
+            if failure is None:
+                raise
+            # Context exit may retry a failed read's response cleanup. Keep
+            # that original failure and every cleanup failure on the same reader.
+            cleanup.cleanup_error = getattr(failure, 'cleanup_error', None)
+            failure.cleanup_error = cleanup
 
     def __aiter__(self):
         return self

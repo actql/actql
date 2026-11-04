@@ -175,6 +175,67 @@ class AsyncSchemaTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(handler.stream.closes, 2)
                 self.assertEqual(handler.operations.count('read'), 1)
 
+    async def test_all_preserves_read_failure_when_context_cleanup_also_fails(self):
+        client, result, handler = await self.open(b'{"n":"invalid"}\n\x1e')
+        cleanup_pending = True
+
+        async def close():
+            handler.stream.closes += 1
+            if cleanup_pending:
+                raise OSError('private persistent cleanup detail')
+
+        handler.stream.aclose = close
+        try:
+            with self.assertRaises(ClientError) as caught:
+                await result.all(schema=Row)
+            failure = caught.exception
+            self.assertEqual(failure.code, 'ResultSchemaMismatch')
+            self.assertIsInstance(failure.validation_error, ValidationError)
+            self.assertEqual(failure.cleanup_error.code, 'ReaderCleanupFailed')
+            self.assertEqual(failure.cleanup_error.cleanup_error.code, 'ReaderCleanupFailed')
+            self.assertEqual(len(client._readers), 1)
+            reader = next(iter(client._readers))
+            self.assertEqual(failure.attempt_id, reader.attempt_id)
+            self.assertIsNotNone(reader._response)
+            self.assertEqual(handler.operations.count('read'), 1)
+            cleanup_pending = False
+            await reader.aclose()
+            self.assertNotIn(reader, client._readers)
+            self.assertEqual(handler.stream.closes, 3)
+        finally:
+            cleanup_pending = False
+            await client.aclose()
+
+    async def test_reader_context_preserves_body_failure_and_cancellation(self):
+        for primary in (ClientError('ApplicationStopped'), asyncio.CancelledError()):
+            with self.subTest(primary=type(primary).__name__):
+                client, result, handler = await self.open()
+                cleanup_pending = True
+
+                async def close():
+                    handler.stream.closes += 1
+                    if cleanup_pending:
+                        raise OSError('private pending cleanup detail')
+
+                handler.stream.aclose = close
+                reader = result.rows()
+                try:
+                    with self.assertRaises(type(primary)) as caught:
+                        async with reader:
+                            await reader.__anext__()
+                            raise primary
+                    self.assertIs(caught.exception, primary)
+                    self.assertEqual(primary.cleanup_error.code, 'ReaderCleanupFailed')
+                    self.assertIn(reader, client._readers)
+                    self.assertIsNotNone(reader._response)
+                    cleanup_pending = False
+                    await reader.aclose()
+                    self.assertNotIn(reader, client._readers)
+                    self.assertEqual(handler.operations.count('read'), 1)
+                finally:
+                    cleanup_pending = False
+                    await client.aclose()
+
     async def test_cancellation_is_not_replaced_by_cleanup_failure(self):
         client, result, handler = await self.open(fail_close=True)
         entered = asyncio.Event()

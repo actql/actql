@@ -6570,7 +6570,9 @@
           "name": "AsyncReader/__aexit__",
           "parameters": [
             "self",
-            "*exc"
+            "_type",
+            "failure",
+            "_traceback"
           ]
         },
         {
@@ -6742,7 +6744,7 @@
           ]
         }
       ],
-      "sha256": "0eb06136763e1d161f70a087d14b1e0c29fa205755772855ce1fb37795557d7e",
+      "sha256": "0cfd765463224b61d37f3a1bc6aaf56e8b3ca3e06aa8f7d7f22b214cd1d40699",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -6900,6 +6902,14 @@
               {
                 "path": "packages/python-sdk/tests/test_result_schema.py",
                 "anchor": "test_read_failure_and_cleanup_failure_are_both_preserved"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_all_preserves_read_failure_when_context_cleanup_also_fails"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_reader_context_preserves_body_failure_and_cancellation"
               }
             ]
           }
