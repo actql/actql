@@ -211,6 +211,7 @@ const authorization = {accountConfiguration, checkpointTtlMs, leaseMs: 1000,
 let diagnosticMoon;
 const checked = value => { assert.equal(value?.$tag, 1); return value._0; };
 const installation = {directory: path('host'), modelInstallation, authorization,
+  hostCapacityPolicy: base.host_policy_profile.capacity,
   ...(sourceProfilePath === undefined ? {} : {sourceProfilePath}),
   registerModelProviders: moon => {
     diagnosticMoon = moon;

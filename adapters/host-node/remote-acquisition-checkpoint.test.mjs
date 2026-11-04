@@ -23,6 +23,8 @@ import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
+const fixtureHostCapacityPolicy = Object.freeze(JSON.parse(await readFile(join(repository,
+  'spec/local-check-environment.json'), 'utf8')).host_policy_profile.capacity);
 const scratch = join(repository, '_build', 'remote-acquisition-checkpoint');
 await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
@@ -56,7 +58,7 @@ test('acquisition fixture retains its independently pinned identity', () => {
   const {evidence_bundle_cid: expected, ...body} = sourceEnvironment;
   assert.equal(machineCid(body), expected);
   assert.equal(expected,
-    'sha256:535c4c9bbefc918c4e1c67afcc8a7fae402d37b9113d039b3a03c758ae59a58e');
+    'sha256:19b12bb2e1a64301bca6709ba8b2336d04fca3293983f9aae7ff653619a6e9cf');
 });
 
 const accountConfiguration = (outcome, operation, accountId) =>
@@ -132,6 +134,7 @@ async function acquiringHost(t, {readOutcome = 'delegate',
     directory: join(root, 'state'),
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     sourceProfilePath: source.path, authorization,
+    hostCapacityPolicy: fixtureHostCapacityPolicy,
   });
   let host = await openHost();
   const seedHistorical = async (requestId, {runHeld} = {}) => {
