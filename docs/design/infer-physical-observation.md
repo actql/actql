@@ -39,6 +39,12 @@ once. A Source capture retains the original checked Direct Stage/input/task
 coordinates from preparation through acquisition and execution. Occurrence order
 is not a substitute for Stage or input coordinates.
 
+A native Query Source shared by several Model occurrences keeps its original
+Source reference, database/table and admitted protocol bodies on that same
+module. The indexed typed component callback retains each original Model input
+and suffix; it does not manufacture a Row declaration/provider or parse and
+compile an independent Query for each Model.
+
 The existing original read owns a closed group of consumers on one Run binding,
 one descriptor, one read claim and the same Ledger. Each original Model Scope
 consumes only its declared partition. Work and attempts remain consumed when a
