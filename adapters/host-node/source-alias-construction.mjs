@@ -45,7 +45,7 @@ export function captureSourceAliasConstruction(configurationReader, moon) {
 // stringify runs to discover this bound. A successful projection retains both
 // the parsed original and its independently owned alias request snapshots.
 export function sourceAliasProfileConstructionGeometry(profileWire) {
-  const input = sourceJsonWireGeometry(profileWire);
+  const input = sourceJsonWireGeometry(profileWire, true);
   const n = input.nodes, u = input.units;
   const parsed = n, providerSpread = 1n + n;
   const aliasArrayAndRows = 1n + n, requestSnapshots = n, result = 4n;

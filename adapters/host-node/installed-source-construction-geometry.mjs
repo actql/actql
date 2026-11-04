@@ -3,9 +3,9 @@
 import {types as nodeTypes} from 'node:util';
 const invalid = () => {throw new TypeError('InvalidInstalledSourceConstructionGeometry');};
 
-export function sourceJsonWireGeometry(wire) {
-  if (typeof wire !== 'string') invalid();
-  let nodes = 1n, depth = 0n, maximum = 0n, weighted = 0n;
+export function sourceJsonWireGeometry(wire, payloadOnly = false) {
+  if (typeof wire !== 'string' || typeof payloadOnly !== 'boolean') invalid();
+  let nodes = 1n, depth = 0n, maximum = 0n, weighted = 0n, units = 0n;
   let quoted = false, escaped = false;
   for (let index = 0; index < wire.length; index++) {
     const code = wire.charCodeAt(index);
@@ -17,7 +17,14 @@ export function sourceJsonWireGeometry(wire) {
       depth++;
       if (depth > maximum) maximum = depth;
     }
-    weighted += depth + 1n;
+    // Only the Alias Profile constructor selects payload demand: its reader
+    // already retains the whole wire. RFC JSON whitespace outside a String
+    // produces no parsed/snapshot/escaped String. Every inside-String unit,
+    // escape and non-whitespace token still contributes before JSON.parse.
+    if (!payloadOnly || quoted || code !== 32 && code !== 9 && code !== 10 && code !== 13) {
+      weighted += depth + 1n;
+      if (payloadOnly) units++;
+    }
     if (quoted) {
       if (escaped) escaped = false;
       else if (code === 92) escaped = true;
@@ -25,7 +32,7 @@ export function sourceJsonWireGeometry(wire) {
     } else if (code === 34) quoted = true;
     else if ((code === 125 || code === 93) && depth > 0n) depth--;
   }
-  return {nodes, units: BigInt(wire.length), weighted, depth: maximum};
+  return {nodes, units: payloadOnly ? units : BigInt(wire.length), weighted, depth: maximum};
 }
 
 // Literal wrapper vocabulary added by rowSourceCheckEnvironment. Include

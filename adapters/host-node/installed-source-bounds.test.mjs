@@ -12,6 +12,7 @@ import {installedSourceIdentity, loadInstalledSource,
 import {installedRuntimeBundleCid, installedConfigurationChunkBytes} from './source-profile-json.mjs';
 import {installedSourceFixtureLifetime} from './fixtures/installed-source-initialization.mjs';
 import {retireInstalledSourceInitialization} from './installed-host-services.mjs';
+import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry} from './source-alias-construction.mjs';
 
 const byteLimit = 8 * 1024 * 1024;
 const canonical = value => Array.isArray(value)
@@ -92,22 +93,45 @@ async function fundedConfiguration(t) {
   const opened = lifetime.open({root, moon, installation: Object.freeze({}),
     runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)});
   return {path: join(root, 'configuration'), reader: opened.configurationReader,
-    services: opened.installationServices, quotes};
+    services: opened.installationServices, moon, quotes};
 }
+
+test('funded Source Alias profile preserves real string demand and refuses its constructor before allocation', async t => {
+  const f = await fundedConfiguration(t);
+  const wire = JSON.stringify({value: ' '.repeat(byteLimit / 2)});
+  await writeFile(f.path, wire);
+  const original = await f.reader.readText(f.path, {maxBytes: byteLimit});
+  assert.equal(original, wire);
+  const quantity = sourceAliasProfileConstructionGeometry(original);
+  assert.equal(quantity.bounds.input.units, BigInt(wire.length), 'inside-string spaces remain actual payload');
+  const construct = captureSourceAliasConstruction(f.reader, f.moon);
+  let entered = false;
+  assert.throws(() => construct(quantity, () => {
+    entered = true;
+    return Object.freeze(JSON.parse(original));
+  }), error => error.message === 'MoonBitHostFailure' &&
+    /PreparationCapacityIssue.*Resource$/u.test(error.cause?.constructor?.name ?? ''));
+  assert.equal(entered, false, 'the same finite preparation owner refuses before the real parse');
+});
 
 test('funded Source text decoder retains one String and exact file limit refusals', async t => {
   const f = await fundedConfiguration(t), bytes = Buffer.from([0xff, 0xc0, 0x00, 0x61]);
   await writeFile(f.path, bytes);
   const text = await f.reader.readText(f.path, {maxBytes: bytes.length});
-  assert.equal(text, bytes.toString('utf8'));
+  assert.equal(text, '\ufffd\ufffd\0a');
   const decoded = BigInt(bytes.length), textBound = 3n * decoded;
   assert(BigInt(Buffer.byteLength(text)) <= textBound, 'replacement UTF8 belongs to the one decoded String');
-  assert(f.quotes.some(q => q[0] === 0n && q[1] === textBound && q[3] === 0n &&
-    q[4] === textBound && q[5] === 2n * decoded + BigInt(installedConfigurationChunkBytes)));
-  assert.equal(f.quotes.at(-1)[1], textBound);
+  assert(f.quotes.some(q => q[0] === 0n && q[1] === textBound && q[2] === decoded && q[3] === 0n &&
+    q[4] === 0n && q[5] === 2n * decoded + BigInt(installedConfigurationChunkBytes)));
+  assert.equal(f.quotes.at(-1)[1], BigInt(Buffer.byteLength('\ufffd\ufffd\0a')));
   await assert.rejects(f.reader.readText(f.path, {maxBytes: bytes.length - 1}), /InvalidInstalledSourceProfile/);
   // A refused bound does not grant a new read or change the original reader.
   assert.equal(await f.reader.readText(f.path, {maxBytes: bytes.length}), text);
+  assert.throws(() => Reflect.apply(f.reader.readText, {...f.reader}, [f.path, {maxBytes: bytes.length}]),
+    {code: 'ForeignInstalledConfigurationReader'});
+  assert.equal(retireInstalledSourceInitialization(f.services), true);
+  await assert.rejects(f.reader.readText(f.path + '.unopened', {maxBytes: bytes.length}),
+    /InstalledSourceInitializationClosed/);
 });
 
 test('funded Source strict UTF8 and JSON retain their distinct original decode envelopes', async t => {
@@ -115,7 +139,7 @@ test('funded Source strict UTF8 and JSON retain their distinct original decode e
   await writeFile(f.path, bytes);
   assert.equal(await f.reader.readUtf8(f.path, {maxBytes: bytes.length}), text);
   const decoded = BigInt(bytes.length);
-  assert(f.quotes.some(q => q[1] === decoded && q[4] === decoded &&
+  assert(f.quotes.some(q => q[1] === decoded && q[2] === decoded && q[4] === 0n &&
     q[5] === 2n * decoded + BigInt(installedConfigurationChunkBytes)));
   await writeFile(f.path, Buffer.from([0xff]));
   await assert.rejects(f.reader.readUtf8(f.path, {maxBytes: 1}), {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
@@ -283,6 +307,7 @@ test('public Local initialization refuses the profile bound and retries the same
   let credentialOperations = 0;
   const options = {mode: 'local', owner: 'local', installation: {
     directory: join(root, 'host'), sourceProfilePath: path,
+    hostCapacityPolicy: JSON.parse(input.checkEnvironmentWire).host_policy_profile.capacity,
     resolveSourceSecret: () => { credentialOperations++; throw new Error('UnexpectedCredentialOperation'); }}};
   await writePadded(path, input, byteLimit + 1);
   await assert.rejects(connectEmbeddedLocal(options), {message: 'InvalidInstalledSourceProfile'});
