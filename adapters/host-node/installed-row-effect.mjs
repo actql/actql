@@ -3023,9 +3023,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const calls = [];
     const members = facts.members;
     for (const [index, member] of members.entries()) {
-      const recipe = recipeOf(member), selected = recipe?.captureConstruction;
+      const recipe = recipeOf(member), selected = recipe?.recoveryConstruction;
       const operation = selected === undefined ? undefined : recipe.memberOperations[selected.operationIndex]?.operation;
-      if (operation === undefined) fail('InstalledEffectCaptureConstructionUnavailable');
+      if (operation === undefined || selected.operationIndex === recipe.captureConstruction?.operationIndex) {
+        fail('InstalledEffectRecoveryConstructionUnavailable');
+      }
       let original;
       retainInstalledRowCaptureChild({children: requestChildren, assertCurrent, signal,
         create() {

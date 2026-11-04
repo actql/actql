@@ -150,7 +150,9 @@ test('Salesforce managed recipes retain original native profiles and distinct me
     'only the original maximum prequotes the full Host parser; warm input has not been built');
   for (const [kind, recipe] of Object.entries(recipes)) {
     assert.strictEqual(recipe.controlsPerRow, capacities[4]);
-    assert.equal(recipe.memberOperations.length, 4);
+    assert.equal(recipe.memberOperations.length, 5);
+    assert.deepEqual(recipe.recoveryConstruction, {operationIndex: 4, inputExtent: recipe.captureConstruction.inputExtent});
+    assert.strictEqual(recipe.memberOperations[4].extent, recipe.memberOperations[0].extent);
     assert.equal(recipe.rowOperations.length, kind === 'create' ? 2 : 5);
     const descriptions = recipe.credentialOperations.filter(entry => entry.phase.endsWith('-describe'));
     assert.deepEqual(descriptions.map(entry => entry.operationIndex), [1, 2, 3]);

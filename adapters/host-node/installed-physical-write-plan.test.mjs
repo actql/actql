@@ -38,6 +38,8 @@ test('physical writer composer keeps typed original and shared control codec wit
   assert.equal(quotes[0].at(-2), f.physical);
   assert.equal(quotes[1].at(-2), f.physical);
   assert.deepEqual(quotes.map(value => value.at(-1)), [2000, 0]);
+  assert.deepEqual(recipe.recoveryConstruction, {operationIndex: 1});
+  assert.strictEqual(recipe.memberOperations[1].extent, recipe.memberOperations[0].extent);
   assert.equal(recipe.rowOperations[0].extent.capacity, f.quantities[2]);
   assert.equal(recipe.rowOperations[1].extent.capacity, f.quantities[3]);
   assert.equal(recipe.physicalWrite.transferBytes, 123n);

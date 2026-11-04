@@ -24,12 +24,14 @@ export function prepareLocalFileStorePlanRecipe({moon, inputLimits, limits, writ
   const physical = checked(moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(
     'files.write', quantities[3], BigInt(limits.maxFileBytes), true));
   return captureInstalledEffectPlanRecipe(Object.freeze({
-    memberOperations: Object.freeze([Object.freeze({operation: 'files.write.capture', extent: capture})]),
+    memberOperations: Object.freeze([Object.freeze({operation: 'files.write.capture', extent: capture}),
+      Object.freeze({operation: 'files.write.capture', extent: capture})]),
     rowOperations: Object.freeze([Object.freeze({operation: 'files.write.request', extent: request}),
       Object.freeze({operation: 'files.write', extent: physical})]),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
     controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
+    recoveryConstruction: Object.freeze({operationIndex: 1}),
     requestConstruction: Object.freeze({operationIndex: 0}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxFileBytes)}),
-  }), 3);
+  }), 4);
 }

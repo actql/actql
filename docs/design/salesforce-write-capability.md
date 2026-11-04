@@ -210,8 +210,11 @@ physical cleanup. Returned material remains charged when scratch
 finishes. Failed or invalid asynchronous construction keeps the complete
 original prefix until its existing retirement confirms release.
 
-Cold reconstruction uses the same capture occurrence and the same complete
-request constructor, including Host output parsing. It preserves both named
+Hot and cold reconstruction use the distinct, originally quoted recovery
+construction occurrence on the same Plan. It retains the original capture
+extent and the same complete request constructor, including Host output parsing; the
+completed capture coordinate stays spent. Existing Describe and row indexes
+remain unchanged. It preserves both named
 Describe and historical whole-Catalog recovery. Whole-Catalog metadata is
 bounded cumulatively by the original raw-byte inventory, rather than multiplying
 one full response by every Resource. The standard Node Store's object bound
