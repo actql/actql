@@ -79,24 +79,25 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
 
 // One current map records each input's exact review, while archived preimages
 // above remain evidence for their own source only, never runtime acceptance.
-test('current Local Host review binds the original Effect dependency and existing JS selectors', () => {
+test('current Local Host review binds the original carrier dependency and existing JS selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
   const entry = currentPackageConfigurations[path];
-  assert.equal(entry.revision, 'e9b3409db9a89b230b1c5a1598f2221d6e80388e');
-  assert.equal(entry.digest, '42f83fa2f1ad053fa7b456e3ff58216827ae1ef8321e10b16cfe6ac79c3d7d5d');
+  assert.equal(entry.revision, '6b3099abb66ad19db08558ff077b508a743a0431');
+  assert.equal(entry.digest, 'd912a60c2dc285826993b93adc3528cb74d7240a9df21de264b07fecc3c72564');
   const selectedTree = gitTree(root, entry.revision);
   const body = selectedTree.read(path).toString();
   assert.equal(hash(body), entry.digest);
   execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
-  const prior = gitTree(root, '566220718ba5d0c93378419387f59802c5a56cfa').read(path).toString();
-  assert.equal(hash(prior), '954d9601ff5c5745b53f13ce74b1c2c5da870c5f9a87681df1212864826dd2b8');
-  const dependency = '  "actql/actql/effect_application" @effect,\n';
+  const prior = gitTree(root, 'e9b3409db9a89b230b1c5a1598f2221d6e80388e').read(path).toString();
+  assert.equal(hash(prior), '42f83fa2f1ad053fa7b456e3ff58216827ae1ef8321e10b16cfe6ac79c3d7d5d');
+  const dependency = '  "actql/actql/carrier_contract" @carrier,\n';
   assert.equal(body.split(dependency).length, 2);
   assert.equal(body.replace(dependency, ''), prior);
   const selector = '    "preparation_request_model_recovery_js_wbtest.mbt": [ "js" ],\n';
   assert.equal(body.split(selector).length, 2);
   assert.deepEqual(packageImports(body).imports,
-    [...packageImports(prior).imports, 'actql/actql/effect_application'].sort());
+    [...packageImports(prior).imports, 'actql/actql/carrier_contract'].sort());
+  assert.equal(body.split('  "actql/actql/effect_application" @effect,\n').length, 2);
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
@@ -104,6 +105,7 @@ test('current Local Host review binds the original Effect dependency and existin
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes('src/relation_typing/moon.pkg'));
   assert(selected.paths.includes('src/effect_application/moon.pkg'));
+  assert(selected.paths.includes('src/carrier_contract/moon.pkg'));
   assert(selected.paths.includes('src/client_local_host/installed_kintone_whole_source_js_wbtest.mbt'));
   assert(selected.paths.includes('src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt'));
   for (const changed of [prior, body.replace(selector, selector.replace('"js"', '"native"'))]) {
