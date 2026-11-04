@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 
-const path = 'packages/sdk/index.mjs';
+const path = 'packages/sdk/operation-presentation.mjs';
 const boundary = 'adapters/host-node/client-effect-uncertainty.test.mjs';
 const unit = 'packages/sdk/effect-uncertainty.test.mjs';
 const publicCases = ['local', 'https'].map(entrance => ({
@@ -38,6 +38,9 @@ const physicalExchange = `    const response = await receive({
       key,
       signal,
       maxResponseBytes,
+      binding,
+      retainRunResponseOriginal,
+      observeResponseBytes,
     });`;
 const ownerObservationCase = (name, id) => [{name, assertions: [{id, operator: 'strictEqual'}]}];
 const ownerObservationUnit = 'packages/sdk/owner-observations.test.mjs';
@@ -53,7 +56,7 @@ const mutations = [
   ['SDK Owner observation grants copied responses explanation custody',
     "ownerObservationExplanations.get(result), 'ownerObservations', options",
     "ownerObservationExplanations.get(result) ?? result, 'ownerObservations', options", ownerObservationUnit,
-    ownerObservationCase('SDK explains retention_expired from the original Owner facts without I/O', 'owner-copy')],
+    ownerObservationCase('SDK explains retention_expired from the original Owner facts without I/O', 'owner-copy'), false, 'packages/sdk/internal/run-observation.mjs'],
   ['SDK Owner observation fabricates a protected stream identity',
     "if (view.kind === 'unavailable') return advice(view, view.problem === undefined ? [",
     "if (view.kind === 'unavailable') return advice({...view, ownerRef: {kind: view.owner, scopeCid: 'private', streamCid: 'private'}}, view.problem === undefined ? [", ownerObservationUnit,
@@ -61,7 +64,8 @@ const mutations = [
       assertions: [{id: 'owner-protected', operator: 'deepStrictEqual'}]}]],
   ['a lost Effect reply automatically resends the authorized physical write',
     physicalExchange,
-    `    const physicalOptions = { ...operation, secret, ca, cert, key, signal, maxResponseBytes };
+    `    const physicalOptions = { ...operation, secret, ca, cert, key, signal, maxResponseBytes,
+      binding, retainRunResponseOriginal, observeResponseBytes };
     const response = await receive(physicalOptions).catch(() => receive(physicalOptions));`,
     boundary, ownerCases, false, 'adapters/site-node/https-credential-resource.mjs'],
   ['an unresolved Effect is presented as successful',
@@ -81,17 +85,19 @@ const mutations = [
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
   ['a reused Local response rebinds an earlier observation to another Run',
-    'const captureResponse = (value, captured = new Map()) => {',
-    'const captureResponse = (value, captured = new Map()) => { return value;', unit, custodyCases, true],
+    'export const captureResponse = (value, captured = new Map()) => {',
+    'export const captureResponse = (value, captured = new Map()) => { return value;',
+    unit, custodyCases, false, 'packages/sdk/internal/data.mjs'],
   ['a Local Effect reply clone failure loses the SDK refusal',
-    "        if (runObservationFailures.has(cause)) throw cause;\n" +
-      "        throw rejectedRunObservation(ref, operation, 'malformed_response');",
-    "        if (runObservationFailures.has(cause)) throw cause;\n        throw cause;", unit, copiedShapeCases(['proxy'])],
+    "      try { state = captureResponse(state); }\n" +
+      "      catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }",
+    "      try { state = captureResponse(state); }\n      catch (cause) { throw cause; }",
+    unit, copiedShapeCases(['proxy']), false, 'packages/sdk/internal/run-observation.mjs'],
   ['a Local Effect reply bypasses native shape-loss admission',
-    "        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);\n" +
-      "        if (structuralKey(state) !== observedKey) {\n" +
-      "          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }",
-    '', unit, copiedShapeCases(['date', 'control-date', 'action-date'])],
+    "        if (!(operation === 'wait' ? validRunWaitContract(state, body.since)\n" +
+      "          : validRunState(state))) throw rejectedRunObservation(ref, operation, problem);",
+    '', unit, copiedShapeCases(['date', 'control-date', 'action-date']), false,
+    'packages/sdk/internal/run-observation.mjs'],
 ];
 
 const accepted = (file, expected) => {
@@ -116,16 +122,16 @@ for (const [name, from, , , , , mutationPath = path] of mutations) {
   const original = originals.get(mutationPath);
   if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
 }
+const groups = new Map(selected.map(([, , , file, expected]) =>
+  [JSON.stringify([file, expected]), {file, expected}]));
+const baselines = [...groups.values()].map(({file, expected}) =>
+  ({file, names: expected.map(test => test.name), accepted: accepted(file, expected)}));
+if (baselines.some(result => !result.accepted)) throw new Error('Mutation baseline refused');
 try {
-  for (const [name, from, to, file, expected, bypassLaterCopy, mutationPath = path] of selected) {
+  for (const [name, from, to, file, expected, , mutationPath = path] of selected) {
     const original = originals.get(mutationPath);
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     let altered = original.replace(from, to);
-    if (bypassLaterCopy) {
-      const copy = '        state = structuredClone(state);';
-      if (altered.split(copy).length !== 2) throw new Error(`Copy fault anchor not unique: ${name}`);
-      altered = altered.replace(copy, '        state = state;');
-    }
     writeFileSync(mutationPath, altered);
     try { results.push({name, rejected: !accepted(file, expected)}); }
     finally { writeFileSync(mutationPath, original); }
@@ -133,9 +139,10 @@ try {
 } finally {
   for (const [mutationPath, original] of originals) writeFileSync(mutationPath, original);
 }
+const restoredSources = [...originals].every(([target, original]) => readFileSync(target, 'utf8') === original);
 const restorations = new Map(selected.map(([, , , file, expected]) =>
   [JSON.stringify([file, expected]), {file, expected}]));
 const restoredAccepted = [...restorations.values()]
   .every(({file, expected}) => accepted(file, expected));
-console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
-if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
+console.log(JSON.stringify({baselines, mutations: results, restoredSources, restoredAccepted}, null, 2));
+if (!restoredSources || !restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;

@@ -1815,3 +1815,35 @@ test "capture and recovery constructors spend distinct original slots on the sam
   assert_eq(owner.effect_operations.length(), 2)
   retire_installed_managed_run(owner).unwrap()
 }
+
+///|
+test "Ledger codec cannot borrow retained Host input to replace missing original control capacity" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let missing = @execution.execution_capacity_retained_bytes(
+      plan.operation_control_capacity,
+    ) +
+    1L
+  let host = @execution.execution_capacity(missing * 2L, missing * 3L).unwrap()
+  // Pure layout counter only: this input pair grants no Host/Run/physical
+  // authority. Its independent retained forest must stay fully additive.
+  let (with_host, _) = installed_effect_control_capacity(
+    None,
+    plan,
+    input=Some(("layout-only-original-input", host)),
+  ).unwrap()
+  assert_true(@execution.execution_capacity_retained_bytes(with_host) > missing)
+  assert_true(
+    installed_effect_control_capacity(
+      None,
+      plan,
+      input=Some(("layout-only-original-input", host)),
+      codec_retained=missing,
+    )
+    is None,
+  )
+  assert_true(
+    installed_effect_control_capacity(None, plan, codec_retained=missing)
+    is None,
+  )
+}

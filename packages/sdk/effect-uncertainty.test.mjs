@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {connect, connectInProcess, explainEffectUncertainty} from './index.mjs';
+import {connect, connectInProcess, explainEffectUncertainty, explainRunObservationFailure} from './index.mjs';
 import {validRunState} from '@actql/client-wire';
 
 const ref = {namespaceId: 'namespace-a',
@@ -157,6 +157,44 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       assert.deepEqual(explainEffectUncertainty(answer), expected('confirmed', 4));
       assert.equal(conversions, 0);
       assert.equal(explainEffectUncertainty(reply), undefined);
+      assert.deepEqual(operations, ['connect', 'attach', operation]);
+    });
+  }
+}
+
+// Negative custody fixtures retain invalid DATA or an actual capture failure.
+// Valid enumerable Proxy/Date fields above remain supported without a clone.
+for (const operation of ['status', 'wait', 'reconcile']) {
+  for (const kind of ['proxy', 'date', 'control-date', 'action-date']) {
+    test(`Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`, async t => {
+      const value = state(20, {revision: 4, cancellation_requested: false,
+        physical_stop: 'confirmed'});
+      const reply = kind === 'proxy' ? new Proxy(value, {
+        get(target, key, receiver) {
+          if (key === 'next_action') throw new Error('private-effect-capture');
+          return Reflect.get(target, key, receiver);
+        },
+      }) : kind === 'date' ? Object.assign(new Date(0), value, {result_available: 'true'})
+        : kind === 'control-date' ? {...value,
+          control: Object.assign(new Date(0), value.control, {physical_stop: 'invalid'})}
+          : {...value, next_action: Object.assign(new Date(0), {kind: 'reconcile', effects: 42})};
+      const operations = [];
+      const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+        perform(current, body) {
+          operations.push(current);
+          if (current === 'connect') return {...profile, mode: 'local', owner: 'local'};
+          if (current === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
+          assert.equal(current, operation);
+          return reply;
+        },
+      });
+      t.after(() => client.close());
+      const execution = await client.attach(ref);
+      let failure;
+      try { await execution[operation](); } catch (cause) { failure = cause; }
+      assert.equal(failure?.code, 'InvalidHostRunState', '[check-mutation:effect-copied-shape]');
+      assert.equal(explainRunObservationFailure(failure)?.problem, 'malformed_response');
+      assert.equal(explainEffectUncertainty(failure), undefined);
       assert.deepEqual(operations, ['connect', 'attach', operation]);
     });
   }
