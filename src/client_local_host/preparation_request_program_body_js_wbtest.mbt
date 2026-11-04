@@ -1576,11 +1576,25 @@ test "Request Plan quote backs original checked node proof frames before factory
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()
+  // No Direct capture is selected, but its borrowed Plan field still lives
+  // alongside the checked proof. This is one reference, never another graph.
+  let direct_selector_field = @execution.preparation_representation_cost({
+    record_headers: 0L,
+    reference_slots: 1L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
   assert_eq(
     quote,
     (
-      before.0 + data + retained,
-      before.1 + data + retained + scratch + original_tail_field,
+      before.0 + data + retained + direct_selector_field,
+      before.1 +
+      data +
+      retained +
+      scratch +
+      original_tail_field +
+      direct_selector_field,
     ),
   )
   // The old data-only allowance is deliberately insufficient. The original
