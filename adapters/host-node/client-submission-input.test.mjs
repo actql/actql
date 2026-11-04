@@ -131,6 +131,7 @@ async function fixture(t, entrance, loss, {checkingEnvironment = environment, pu
   const failedRequests = new WeakMap();
   let diagnosticRecords = 0;
   const diagnose = detail => {
+    if (process.env.ACTQL_TEST_PREPARATION_DIAGNOSTICS !== '1') return;
     if (diagnosticRecords >= 12) return;
     diagnosticRecords++;
     try {t.diagnostic(`ACTQL_PREPARATION_ORIGINAL ${JSON.stringify(detail)}`);}
