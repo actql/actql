@@ -184,6 +184,9 @@ test('public HTTP source text uses the installed alias and existing Run owner', 
 async function effectFixture({twoMembers = false} = {}) {
   const environment = JSON.parse(await readFile(join(repository,
     'packages/sdk/fixtures/values.environment.json'), 'utf8'));
+  const base = JSON.parse(await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8'));
+  environment.host_policy_profile.text_time_evaluation = base.host_policy_profile.text_time_evaluation;
   const target = 'connector://crm/account';
   const schema = {additional_properties: false, fields: {
     Id: {nullable: false, type: 'number'},
