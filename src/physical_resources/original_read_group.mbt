@@ -46,9 +46,13 @@ pub fn original_read_children_construction_slots(
   let n = count.to_int64()
   // Group1H1R2W; TWO Array old/new envelopes, each3H(13+3n)R2W;
   // each entry1H3R3W and its existing consumer1H1R. The resident
-  // claim slot plus its Some add1H2R; each possible partial capacity Some
-  // adds1H1R. Values/Graphs and physical buffers are borrowed.
-  Some((8L + 3L * n, 29L + 11L * n, 6L + 3L * n))
+  // claim slot plus its Some add1H2R1W; each possible partial capacity Some
+  // adds1H1R1W. Values/Graphs and physical buffers are borrowed.
+  guard @preparation_counts.preparation_array_slots(2L, 2L * n, true)
+    is Some((h, r, w)) else {
+    return None
+  }
+  Some((h + 2L + 3L * n, r + 3L + 5L * n, w + 3L + 4L * n))
 }
 
 ///|

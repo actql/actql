@@ -817,8 +817,14 @@ fn[I] prepare_request_compilation_owned(
     | Some(RequestModelGraph(_, _, _, _))
     | Some(RequestModelGraphs(_, _, _, _)) =>
       return Err(Preparation(WrongPhase))
-    Some(RequestModelCompilation(_, _, _, _))
-    | Some(RequestModelsCompilation(_, _, _, _)) => ModelPlanReserved
+    Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
+    Some(RequestModelsCompilation(selected_manifests, selected_limits, _, _)) => {
+      if !physical_equal(selected_manifests, manifests) ||
+        selected_limits != limits {
+        return Err(Preparation(ForeignOriginal))
+      }
+      ModelPlanReserved
+    }
     Some(RequestSerializationCompilation(_, _, _, _))
     | Some(RequestKeyedSerializationCompilation(_, _, _, _)) =>
       ContentPlanReserved

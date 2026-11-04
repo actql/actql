@@ -2339,7 +2339,7 @@ test "multiple Model graphs retain complete original order on one Request compil
   let before_module = @resources.preparation_capacity_working_extents(
     capacity, input,
   ).unwrap()
-  let module = prepare_request_model_source_free_module(
+  let original_module_value = prepare_request_model_source_free_module(
     parent,
     input,
     request,
@@ -2367,8 +2367,9 @@ test "multiple Model graphs retain complete original order on one Request compil
   assert_true(backed.val)
   assert_true(
     parent.program_source_free is Some(original_module) &&
-    physical_equal(original_module, module),
+    physical_equal(original_module, original_module_value),
   )
-  @resources.return_preparation_body_borrow(holder).unwrap()
-  assert_true(abort_request_preparation(parent).unwrap())
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

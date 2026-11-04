@@ -17,3 +17,25 @@ pub fn checked_nonnegative_add_product(
     Some(total + count * coefficient)
   }
 }
+
+///|
+/// Pinned logical Array wrapper/backing convention used by preparation
+/// inventories. Elements are borrowed references; independently owned entry
+/// records and payloads belong to their constructor. This is not a byte price
+/// or an engine heap estimate. Growth includes the old/new backing overlap.
+pub fn preparation_array_slots(
+  count : Int64,
+  items : Int64,
+  growing : Bool,
+) -> (Int64, Int64, Int64)? {
+  let headers = if growing { 3L } else { 2L }
+  let backing = if growing { 13L } else { 9L }
+  let entries = if growing { 3L } else { 2L }
+  guard checked_nonnegative_add_product(0L, count, headers) is Some(h) &&
+    checked_nonnegative_add_product(0L, count, backing) is Some(r) &&
+    checked_nonnegative_add_product(r, items, entries) is Some(r) &&
+    checked_nonnegative_add_product(0L, count, 2L) is Some(w) else {
+    return None
+  }
+  Some((h, r, w))
+}
