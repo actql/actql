@@ -5652,6 +5652,21 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+// Inert test providers extend the SAME selected Host policy, as installed
+// Source declarations do. Their publication creates no dispatch authority.
+async function checkOnlyEffectEnvironment(entrance) {
+  const body = JSON.parse(await readFile(join(repository,
+    'packages/sdk/fixtures/values.environment.json'), 'utf8'));
+  const select = entrance === 'http' ? selectInstalledHostEnvironment
+    : selectInstalledLocalMaterializationEnvironment;
+  const base = select(moon, (await readFile(join(repository,
+    'spec/local-check-environment.json'), 'utf8')).trimEnd());
+  body.host_policy_profile = JSON.parse(base).host_policy_profile;
+  delete body.evidence_bundle_cid;
+  body.evidence_bundle_cid = contentCid(body);
+  return canonicalText(body);
+}
+
 // Actual installed providers are observed separately from Run admission.
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: installed scoped authoring checks and supplementation execute only on explicit start`, async t => {
@@ -5662,8 +5677,7 @@ for (const entrance of ['local', 'http']) {
       registerModelProviders: () => [{providerId: 'models/authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedAuthoringModelExecution');}}],
-      effectInstallation: {environmentWire: (await readFile(join(repository,
-        'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(entrance),
         execute() {effectCalls++; throw new Error('UnexpectedAuthoringEffectExecution');},
         resume() {resumes++; throw new Error('UnexpectedAuthoringEffectResume');}}};
     const configuration = {...configurations.allowed, seedAuthoringRows: true};
@@ -5900,8 +5914,7 @@ for (const entrance of ['local', 'http']) {
       registerModelProviders: () => [{providerId: 'models/protected-authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedProtectedAuthoringModelExecution');}}],
-      effectInstallation: {environmentWire: (await readFile(join(repository,
-        'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd(),
+      effectInstallation: {environmentWire: await checkOnlyEffectEnvironment(entrance),
         execute() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectExecution');},
         resume() {effectCalls++; throw new Error('UnexpectedProtectedAuthoringEffectResume');}}};
     const clients = [];
