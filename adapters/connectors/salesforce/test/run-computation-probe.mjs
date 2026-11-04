@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {assertTestExecution, nodeTestArguments} from '../../../../scripts/test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'effect-computation-probe');
@@ -14,7 +15,7 @@ const preload = new URL('../../../../scripts/fixtures/' +
   'effect-computation-probe-preload.mjs', import.meta.url).href;
 const entry = new URL('../../../host-node/entry.mjs', import.meta.url).href;
 const installed =
-  'adapters/connectors/salesforce/test/installed-salesforce-effect.test.mjs';
+  'adapters/connectors/salesforce/test/installed-salesforce-effect-recovery.test.mjs';
 // Read→Compute→Effect through the Remote HTTP Host, whose restarts run in
 // the test process: each case acquires and computes once, and no restart
 // computes again.
@@ -34,14 +35,17 @@ const pattern = name => `^${name.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}$`;
 for (const [index, [file, name]] of cases.entries()) {
   const log = join(root, `calls-${index}.txt`);
   await writeFile(log, '');
-  const result = spawnSync(process.execPath, [
+  const args = nodeTestArguments([
     '--experimental-test-module-mocks', '--import', preload,
-    '--test', '--test-name-pattern', pattern(name), file,
-  ], {cwd: repository, encoding: 'utf8', timeout: 180_000,
+    '--test-name-pattern', pattern(name), file,
+  ]);
+  const result = spawnSync(process.execPath, args,
+    {cwd: repository, encoding: 'utf8', timeout: 180_000,
     env: {...process.env, ACTQL_TEST_EFFECT_ENTRY: entry,
       ACTQL_TEST_EFFECT_CALL_LOG: log}});
-  assert.equal(result.status, 0,
-    `${name}: ${result.error ?? ''}\n${result.stdout}\n${result.stderr}`);
+  const checked = assertTestExecution('node', process.execPath, args, result);
+  assert.equal(checked.counts.passed, 1,
+    `${name}: the original restart case must execute exactly once`);
   const events = (await readFile(log, 'utf8')).trim().split('\n');
   assert.ok(events.includes('probe'), 'the real Host probe must be loaded');
   assert.equal(events.filter(event => event === 'compute').length, 1,
