@@ -83,10 +83,10 @@ function admitNamespace(declaration, sources, aliases, environmentCid) {
 // Complete installed selector registrations are a separate domain from query
 // aliases. The common Catalog Owner checks every participating environment and
 // its exact correspondence to the Host's unfiltered SourceRequestContracts.
-function admitSelectorNamespace(declaration, sources, moon, environment, environmentCid) {
+function admitSelectorNamespace(declaration, sources, moon, environment, environmentCid, preparedEnvironment) {
   const range = admitRegistrationRange(declaration, sources);
   if (range === undefined) return undefined;
-  if (typeof moon.clientProgramCheckSourceSelectorRange !== 'function') {
+  if (typeof moon.clientProgramCheckPreparedSourceSelectorRange !== 'function') {
     throw new TypeError('InvalidSourceSelectorNamespaceInstallation');
   }
   let bytes = 0;
@@ -107,7 +107,7 @@ function admitSelectorNamespace(declaration, sources, moon, environment, environ
     identities.push({path: facts.path, revision: facts.revision,
       environmentCid: moon.clientProgramCheckingEnvironmentCid(admitted)});
   }
-  const catalogRange = moon.clientProgramCheckSourceSelectorRange(environment, registrations);
+  const catalogRange = moon.clientProgramCheckPreparedSourceSelectorRange(environment, preparedEnvironment, registrations);
   if (catalogRange === undefined) return undefined;
   return Object.freeze({name: declaration.name, range: catalogRange,
     revision: digest({version: 'actql-source-selector-namespace/0.1',
@@ -216,7 +216,7 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
   const queryAlias = namespace === undefined ? undefined :
     admitNamespace(namespace, installedSources, aliases, publication.environmentCid);
   const sourceSelector = selectorNamespace === undefined ? undefined :
-    admitSelectorNamespace(selectorNamespace, installedSources, moon, environment, publication.environmentCid);
+    admitSelectorNamespace(selectorNamespace, installedSources, moon, environment, publication.environmentCid, preparedEnvironment);
   if (queryAlias !== undefined || sourceSelector !== undefined) {
     namespaces.set(publication, Object.freeze({queryAlias, sourceSelector}));
   }

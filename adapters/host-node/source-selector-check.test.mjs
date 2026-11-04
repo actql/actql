@@ -13,9 +13,7 @@ import test, {after} from 'node:test';
 import * as sdk from '../../packages/sdk/index.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
-import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from './local-account-config.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 
@@ -54,30 +52,34 @@ async function fixture(t, entrance, {registered = false, namespace = 'registrati
   grant = 'allow', grantNamespace = namespace, unstable = false, accountFile, omitNamespace = false} = {}) {
   const root = await mkdtemp(new URL(`${entrance}-`, scratch).pathname);
   const counts = {sourcePages: 0, physicalTarget: 0, credentials: 0, model: 0, effect: 0, resume: 0, dispatch: 0};
-  let sourceProfilePath, connectorTable;
+  let sourceProfilePath, connectorTable, client, host, server;
+  t.after(async () => {
+    await client?.close();
+    if (server !== undefined) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
+    await host?.close();
+    await rm(root, {recursive: true, force: true});
+  });
   if (registered) {
     sourceProfilePath = join(root, 'source.json');
     const profile = {version: 'actql-installed-selector-test-source/0.1', generation: 1};
     await writeFile(sourceProfilePath, JSON.stringify(profile));
     connectorTable = createInstalledConnectorTable([{name: 'selector_fixture', registration: 'selector_fixture',
       revision: 'selector_fixture/0.1', source: {profileVersion: profile.version, load: async () => ({
-        check: value => value,
+        check: value => Object.freeze({...value, connectorId: 'fixture'}),
         identityParts: value => [value],
-        async load(value, {moon: runtime, baseEnvironmentWire, principalId}) {
-          const declaration = checked(runtime.clientProgramRowSourceRestoreDeclaration(
-            'fixture', 'selector_fixture', 'selector_fixture/0.1', JSON.stringify({views: [
-              {resource: 'r', resource_kind: 'row', fields: [{name: 'id', type: 'number', nullable: false}]},
-            ]}), undefined));
-          const declared = JSON.parse(runtime.clientProgramRowSourceDeclarationJson(declaration));
-          const environmentWire = rowSourceCheckEnvironment(baseEnvironmentWire, declared).wire;
-          const authorization = await createLocalAuthorizationGate({principal: principalId,
-            accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
-              account_id: 'private-source', entries: []})});
-          t.after(() => authorization.close());
-          if (unstable) await writeFile(sourceProfilePath, JSON.stringify({...value, generation: 2}));
-          return createInstalledRowSource({moon: runtime, declaration, declared, environmentWire,
-            connectorId: 'fixture', connectorRegistration: 'selector_fixture', connectorRevision: 'selector_fixture/0.1',
-            site: {connection: 'selector-fixture', close() {}}, authorization,
+        async load(value, {principalId, construction}) {
+          construction.prepareAuthoredDeclaration(JSON.stringify({views: [
+            {resource: 'r', resource_kind: 'row', fields: [{name: 'id', type: 'number', nullable: false}]},
+          ]}));
+          await construction.openSpecializedSite({
+            authorizationConstructor: () => createLocalAuthorizationGate({principal: principalId,
+              accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
+                account_id: 'private-source', entries: []})}),
+            siteConstructor: (_profile, {authorization}) => Object.freeze({
+              connection: 'selector-fixture', close: () => authorization.close()}),
+          });
+          if (unstable) await writeFile(sourceProfilePath, JSON.stringify({version: value.version, generation: 2}));
+          return construction.createRowSource({connection: 'selector-fixture',
             bindingCid: contentCid({site: 'selector-fixture'}), readOperation: 'read',
             physicalTarget() {counts.physicalTarget++; assert.fail('Check must not select a physical target');},
             readPages() {counts.sourcePages++; assert.fail('Check must not read Source pages');},
@@ -98,21 +100,17 @@ async function fixture(t, entrance, {registered = false, namespace = 'registrati
       reviewers: [{keyId: 'selector-reviewer', reviewerId: 'selector-reviewer', principalId: principal,
         publicKey: keys.publicKey.export({format: 'pem', type: 'spki'})}]},
   };
-  let client;
   if (entrance === 'local') {
-    try { client = await connectEmbeddedLocal({mode: 'local', owner: 'local', installation}); }
-    catch (error) { console.error('Fixture initialization:', error.primaryFailure ?? error); throw error; }
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', installation});
   }
   else {
-    const host = await openInstalledRemoteHttpHost({...installation,
+    host = await openInstalledRemoteHttpHost({...installation,
       authenticate: header => header === 'Bearer selector-token' ? principal : undefined,
       beforeDispatch() {counts.dispatch++; assert.fail('Check must not dispatch');}});
-    const server = createServer({key, cert}, (request, response) => host.handler(request, response));
+    server = createServer({key, cert}, (request, response) => host.handler(request, response));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    t.after(async () => {server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); await host.close();});
     client = await sdk.connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'selector-token'});
   }
-  t.after(async () => {await client.close(); await rm(root, {recursive: true, force: true});});
   const assertCheckOnly = (submitted = 0) => {
     const db = new DatabaseSync(join(root, 'state/requests/client-requests.sqlite3'), {readOnly: true});
     try {
@@ -138,10 +136,14 @@ for (const entrance of ['local', 'https']) {
     assert.equal(outcome.kind, 'not_accepted');
     const checked = sdk.getSubmissionCheckObservation(rejection);
     assert.equal(checked.report.verdict, 'invalid');
-    assert.deepEqual(checked.report.reasons, [absentReason(checked, input.stages[0].inputs.rows)]);
+    const {location: _authoredOnly, ...reason} = absentReason(checked, input.stages[0].inputs.rows);
+    // This projects the SAME captured native Program refusal. Its detached
+    // keys have no original authored coordinates; explicit check keeps them.
+    assert.deepEqual(checked.report.reasons, [reason]);
+    assert.equal(Object.hasOwn(checked.report.reasons[0], 'location'), false);
     const original = sdk.getCheckInput(checked, 'program');
     assert.deepEqual(original.value, input);
-    assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location).input, original);
+    assert.equal(sdk.resolveCheckLocation(checked, checked.report.reasons[0].location), undefined);
     sdk.explainCheckReason(checked.report.reasons[0]);
     assert.deepEqual(sdk.getCheckFixes(checked), []);
     assert.equal(sdk.getSubmissionCheckObservation({...rejection}), undefined);

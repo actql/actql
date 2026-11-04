@@ -92524,7 +92524,7 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1944e6efc697d642675e793d4282828b5b2e418d2a1f926a2a0ce0b400155921",
+      "sha256": "bfd760503467f652a2151364dfde82efc67c9e333a01087bf7ed760ebbfb124d",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -92651,7 +92651,8 @@
             "sources",
             "moon",
             "environment",
-            "environmentCid"
+            "environmentCid",
+            "preparedEnvironment"
           ],
           "async": false
         },
@@ -93194,6 +93195,18 @@
               {
                 "path": "adapters/host-node/source-alias-construction.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication-borrow.test.mjs",
+                "anchor": "test('selector range borrows the same prepared publication Catalog exactly once'"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication-borrow.test.mjs",
+                "anchor": "test('selector range preserves original refusal and never falls back to a fresh Catalog'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"original selector absence uses the same prepared publication Catalog without another resolution\""
               }
             ]
           }

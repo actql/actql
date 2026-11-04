@@ -150,3 +150,22 @@ test "retained original budgets and invalid settings do not become supplied type
     assert_true(!report.contains("private-supplied"), msg=report)
   }
 }
+
+///|
+test "prepared selector range keeps the original admitted Catalog depth bound" {
+  let environment = binding_check_environment()
+  for depth in [64, 65] {
+    let original = @checked.prepare_source_catalog(environment, {
+      max_work: 1000000,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: depth,
+    }).unwrap()
+    let range = source_selector_range(
+      environment,
+      [environment],
+      Some(original),
+    )
+    assert_true(if depth == 64 { range is Some(_) } else { range is None })
+  }
+}

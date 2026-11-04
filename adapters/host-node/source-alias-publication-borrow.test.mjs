@@ -40,3 +40,31 @@ test('frozen outer metadata cannot hide mutable or executable request DATA', () 
   assert.equal(hooks, 0);
   assert.equal(f.calls.length, 0);
 });
+
+test('selector range borrows the same prepared publication Catalog exactly once', () => {
+  const f = fixture(), prepared = Object.freeze({original: true}), calls = [];
+  f.moon.clientProgramPreparePublicSourceEnvironment = (environment, wire) => {
+    assert.equal(environment, f.environment);f.calls.push({owner: environment, wire});return prepared;
+  };
+  f.moon.clientProgramCheckSourceSelectorRange = () => assert.fail('No second Catalog');
+  f.moon.clientProgramCheckPreparedSourceSelectorRange = (environment, original, registrations) => {
+    assert.equal(environment, f.environment);assert.equal(original, prepared);
+    assert.deepEqual(registrations, []);calls.push(original);return Object.freeze({original});
+  };
+  const publication = sourceAliasPublication(f.moon, f.environment, [], [], {
+    selectorNamespace: {name: 'registrations', profilePaths: []}, installedSources: []});
+  assert.equal(sourceAliasPublicationOriginal(f.moon, f.environment, publication).preparedEnvironment, prepared);
+  assert.equal(f.calls.length, 1);assert.deepEqual(calls, [prepared]);
+});
+
+test('selector range preserves original refusal and never falls back to a fresh Catalog', () => {
+  for (const missing of [false, true]) {
+    const f = fixture(), original = new Error('OriginalPreparedCatalogRefusal');let calls = 0;
+    f.moon.clientProgramCheckSourceSelectorRange = () => assert.fail('No independent Catalog fallback');
+    if (!missing) f.moon.clientProgramCheckPreparedSourceSelectorRange = () => {calls++;throw original;};
+    assert.throws(() => sourceAliasPublication(f.moon, f.environment, [], [], {
+      selectorNamespace: {name: 'registrations', profilePaths: []}, installedSources: []}),
+    missing ? /InvalidSourceSelectorNamespaceInstallation/u : error => error === original);
+    assert.equal(f.calls.length, 1);assert.equal(calls, missing ? 0 : 1);
+  }
+});
