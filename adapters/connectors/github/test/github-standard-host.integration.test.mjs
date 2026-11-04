@@ -364,8 +364,6 @@ test('installed row source retains public output across Host reopen',
 
 // GitHub's numeric identities are int64, not Number measurements or clocks.
 // These authored fixture titles independently contain decimal Number data.
-// Event identity/clock fixtures use that explicit Number; the original int64
-// provider number remains in the payload and its schema-directed Result wire.
 const issueTitleNumber = field => ({cast: {value: {substring: {
   value: {field}, start: {literal: 7}}}, target: {type: 'number'}}});
 
@@ -470,7 +468,7 @@ test('retained GitHub rows keep Event times through a fixed window', async t => 
     inputs: {rows: {result: {stage: 'acquire', result: 'r'}}},
     steps: [
       {from: 'rows', derive: {clock_ms: issueTitleNumber('title')}, as: 'clocked'},
-      {from: 'clocked', to_events: {id: 'clock_ms', time: 'clock_ms'}, as: 'source'},
+      {from: 'clocked', to_events: {id: 'number', time: 'clock_ms'}, as: 'source'},
       {from: 'source', window_events: {kind: 'fixed', size: 2},
         as: 'windowed'},
       {from: 'windowed', events: true, as: 'out'},
@@ -590,7 +588,7 @@ const twoSourceEventsWindowProgram = () => {
     inputs: {rows: {result: {stage: 'join', result: 'r'}}},
     steps: [
       {from: 'rows', derive: {clock_ms: issueTitleNumber('left_title')}, as: 'clocked'},
-      {from: 'clocked', to_events: {id: 'clock_ms', time: 'clock_ms'}, as: 'source'},
+      {from: 'clocked', to_events: {id: 'number', time: 'clock_ms'}, as: 'source'},
       {from: 'source', window_events: {kind: 'fixed', size: 2},
         as: 'windowed'},
       {from: 'windowed', events: true, as: 'bridged'},
