@@ -41495,7 +41495,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "390831c169a2f6b1db1b7b3801a78a9905724f343777ac3818c2900e681b2d95",
+      "sha256": "4794f2157135f478189a2b461c5b19cd3afcd0cf33101642c92b6245cd35cad6",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -41666,6 +41666,14 @@
               {
                 "path": "src/client_local_host/preparation_request_same_stage_model_js_wbtest.mbt",
                 "anchor": "same-stage acquired serialized Model preserves original capture module inputs"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"two Source singleton Model component keeps its backed original prefix and suffix before configuration\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"two Source singleton Model component refuses original current loss before its constructor\""
               }
             ]
           }
