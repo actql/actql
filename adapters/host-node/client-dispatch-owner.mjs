@@ -575,6 +575,20 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     }
     entries.set(keyOf(accepted.ref), entry);
     entry.promise = Promise.resolve().then(async () => {
+      // Request preparation can already own unentered Source reads. Keep
+      // their original retirement ports before a start or authorization
+      // refusal; started captures still complete their physical cleanup first.
+      const preparedSources = held.preparedSources ?? (held.preparedSource === undefined ? [] : [{
+        adapter: installedSourceFor(sourceProfile, held.preparedSource.checkedSource.sourceRef),
+        prepared: held.preparedSource,
+      }]);
+      for (const source of preparedSources) {
+        const retire = source.adapter.retirePreparedSource;
+        if (retire === undefined) continue;
+        if (typeof retire !== 'function') throw new TypeError('InstalledSourceCleanupUnavailable');
+        entry.sourcePreparations ??= [];
+        entry.sourcePreparations.push({source: source.adapter, prepared: source.prepared, retire});
+      }
       const claim = await startRun({identity: requested, namespaceId,
         principalId: actual, connection});
       if (claim.kind !== 'reserved' &&
@@ -723,15 +737,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           ...(managedKeyed ? {managedRun: held.managedRun, requestIdentity: requested} : {})};
       }
       if (multiple) {
-        // Preparation creates the whole original prefix before the first
-        // physical read. Retain each existing preparation's retirement port
-        // before a sibling can fail; started captures still close above first.
-        entry.sourcePreparations = held.preparedSources.flatMap(source => {
-          const retire = source.adapter.retirePreparedSource;
-          if (retire === undefined) return [];
-          if (typeof retire !== 'function') throw new TypeError('InstalledSourceCleanupUnavailable');
-          return [{source: source.adapter, prepared: source.prepared, retire}];
-        });
         // Read approvals retain their occurrence and physical target. Resolve
         // resumed access before selecting configurations and sizing the one
         // ledger; the exact preparations below also own the subsequent reads.
