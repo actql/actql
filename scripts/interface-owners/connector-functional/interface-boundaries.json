@@ -20244,6 +20244,7 @@
         "prepareInstalledEffectManagedPlan",
         "prepareInstalledEffectOwnedRequestChild",
         "prepareInstalledEffectRequestChild",
+        "prepareInstalledPhysicalWritePlanRecipe",
         "prepareInstalledStandardCreatePlanRecipe"
       ],
       "operations": [
@@ -20796,6 +20797,55 @@
           "async": false
         },
         {
+          "name": "prepareInstalledPhysicalWritePlanRecipe",
+          "parameters": [
+            "moon",
+            "operation",
+            "inputLimits",
+            "limits",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
+          "parameters": [
+            "name",
+            "capacity",
+            "transfer",
+            "physical"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
+          "parameters": [
+            "controlWireBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareInstalledStandardCreatePlanRecipe",
           "parameters": [
             "moon",
@@ -20857,7 +20907,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "389faeb98c57da9668cd9c58a41560c2f1f1261f886dcf3b5b387b26002c4a0f",
+      "sha256": "db83976b08c5c4ea5b8f0ddd83de73735a8d4aa5696f69fffc74a61c45691369",
       "contracts": [
         {
           "operations": [
@@ -21018,12 +21068,12 @@
             "prepareInstalledEffectControlConstruction/originalRecord/originalRecord",
             "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction",
             "prepareInstalledEffectControlConstruction/prepareInstalledEffectControlConstruction#2",
+            "prepareInstalledEffectControlConstruction/retainInputs/retainInputs",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/joined/joined",
             "prepareInstalledEffectControlConstruction/retainInvalid/retainInvalid/settled/settled",
             "prepareInstalledEffectControlConstruction/retire/retire",
-            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord",
-            "prepareInstalledEffectControlConstruction/retainInputs/retainInputs"
+            "prepareInstalledEffectControlConstruction/sameRecord/sameRecord"
           ],
           "exports": [
             "prepareInstalledEffectControlConstruction"
@@ -21123,11 +21173,18 @@
           "operations": [
             "installedEffectRecipeForControlEntryLimit",
             "installedEffectSavedControlEntryLimit",
-            "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit"
+            "installedEffectSavedControlEntryLimit/installedEffectSavedControlEntryLimit",
+            "prepareInstalledPhysicalWritePlanRecipe",
+            "prepareInstalledPhysicalWritePlanRecipe/extent/extent",
+            "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
+            "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
+            "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
           ],
           "exports": [
             "installedEffectRecipeForControlEntryLimit",
-            "installedEffectSavedControlEntryLimit"
+            "installedEffectSavedControlEntryLimit",
+            "prepareInstalledPhysicalWritePlanRecipe"
           ],
           "attributes": {
             "responsibility": [
@@ -21138,18 +21195,30 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-effect-plan.mjs",
                 "anchor": "Math.max(...recipes.map(recipe => recipe?.savedControlCodec?.maxEntryBytes ??"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-effect-plan.mjs",
                 "anchor": "recipe.savedControlCodec.fallbackCapacity"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "ownership": [
@@ -21160,6 +21229,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "synchronization": [
@@ -21170,12 +21243,20 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-effect-plan.mjs",
                 "anchor": "const codec = own(fields.savedControlCodec.value, ['maxEntryBytes', 'fallbackCapacity']);"
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
               }
             ],
             "cancellation": {
@@ -21185,6 +21266,10 @@
               {
                 "path": "adapters/host-node/installed-effect-plan.mjs",
                 "anchor": "controlsPerRow: recipe.savedControlCodec.fallbackCapacity"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "extension": [
@@ -21195,12 +21280,24 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Local file bytes and publication"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.mjs",
+                "anchor": "export function prepareInstalledPhysicalWritePlanRecipe"
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/local/host/local-file-store-plan.test.mjs",
                 "anchor": "test('closed saved codec preserves the generic composed owner control allowance'"
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "anchor": "test('physical writer composer keeps typed original and shared control codec without a credential occurrence'"
+              },
+              {
+                "path": "adapters/host-node/installed-physical-write-plan.test.mjs",
+                "anchor": "test('physical writer composer refuses missing mutable extra and invalid constructor metadata before native calls'"
               }
             ]
           }

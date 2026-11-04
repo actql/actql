@@ -126000,7 +126000,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "13908820ca39fd84518ae5093e7fc41450cc94777c2bd7dddd94e3be42fb92ae",
+      "sha256": "68644f6b1d0e40a7a483812f1f87b814464cd6708116f5af2615f028dabcceb3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -126476,6 +126476,15 @@
           "name": "createInstalledSourceContext/captureDeclarationViews",
           "parameters": [
             "views"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContext/context/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
+          "parameters": [
+            "viewsWire",
+            "specification",
+            "expectedCatalogCid"
           ],
           "async": false
         },
@@ -127207,6 +127216,7 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./installed-authored-command.mjs",
         "./installed-check-environment.mjs",
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
@@ -127838,6 +127848,7 @@
             "completeInstalledSourceInitialization",
             "createInstalledSourceContext",
             "createInstalledSourceContext/captureDeclarationViews",
+            "createInstalledSourceContext/context/init:prepareAuthoredCommands/init:prepareAuthoredCommands",
             "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
             "createInstalledSourceContext/context/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration/init:prepareAuthoredDeclaration",
             "createInstalledSourceContext/context/init:prepareDeclaration/init:prepareDeclaration",
@@ -127962,6 +127973,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "prepareAuthoredCommands(viewsWire, specification, expectedCatalogCid)"
               }
             ],
             "identity": [
@@ -128034,6 +128049,10 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               }
             ],
             "cancellation": [
@@ -128126,6 +128145,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command composition retains exact contract bodies and source catalog while quoting before projection'"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
               }
             ]
           }
@@ -128293,12 +128320,12 @@
         },
         {
           "operations": [
+            "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/field/field",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mappings/mappings",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime",
-            "createInstalledSourceContext/context/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
             "createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/runtime/runtime#2",
             "createInstalledSourceContext/retainNativeInput/retainNativeInput",
             "createInstalledSourceContext/validateNativeInputContext/validateNativeInputContext",
@@ -132651,6 +132678,300 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/installed-authored-command.mjs",
+      "sha256": "483693fe87f0c03979ff877866bbed50d2a2e9c05aef994bf7795bda95556dbf",
+      "exports": [
+        "authoredCommandProjection"
+      ],
+      "operations": [
+        {
+          "name": "authoredCommandProjection",
+          "parameters": [
+            "moon",
+            "specification"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/captured/captured",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/entries/entries",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/entries/entries/entries",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/entries/entries/entries#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/entries/entries/entries#3",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:capacity/init:capacity",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:capacity/init:capacity/geometry/geometry",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/added/added",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/bodies/bodies",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/byCid/byCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/completed/completed",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/declared/declared",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/declared/declared#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/init:project",
+          "parameters": [
+            "prior"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/init:project/init:project/init:project#2",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/own/own",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/own/own/own",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "authoredCommandProjection/own/own/own#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./installed-source-construction-geometry.mjs",
+        "./local-account-config.mjs",
+        "node:crypto",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "C — existing standard Host Source/Effect service originals",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "authoredCommandProjection",
+            "authoredCommandProjection/captured/captured",
+            "authoredCommandProjection/entries/entries",
+            "authoredCommandProjection/entries/entries/entries",
+            "authoredCommandProjection/entries/entries/entries#2",
+            "authoredCommandProjection/entries/entries/entries#3",
+            "authoredCommandProjection/init:capacity/init:capacity",
+            "authoredCommandProjection/init:capacity/init:capacity/geometry/geometry",
+            "authoredCommandProjection/init:project/init:project",
+            "authoredCommandProjection/init:project/init:project/added/added",
+            "authoredCommandProjection/init:project/init:project/bodies/bodies",
+            "authoredCommandProjection/init:project/init:project/byCid/byCid",
+            "authoredCommandProjection/init:project/init:project/completed/completed",
+            "authoredCommandProjection/init:project/init:project/declared/declared",
+            "authoredCommandProjection/init:project/init:project/declared/declared#2",
+            "authoredCommandProjection/init:project/init:project/init:project",
+            "authoredCommandProjection/init:project/init:project/init:project#2",
+            "authoredCommandProjection/own/own",
+            "authoredCommandProjection/own/own/own",
+            "authoredCommandProjection/own/own/own#2",
+            "cid/cid",
+            "fail/fail"
+          ],
+          "exports": [
+            "authoredCommandProjection"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Bound connector construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-authored-command.mjs",
+                "anchor": "export function authoredCommandProjection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-authored-command.mjs",
+                "anchor": "cid(preimage) !== contract_cid"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "authoredCommandProjection(original.moon, specification)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.mjs",
+                "anchor": "capacity(wire)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Pure authored declaration and native-quantity projection; original initializer retains failure debt and cancellation. No Site, physical child or cleanup acknowledgement is created."
+            },
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-authored-command.mjs",
+                "anchor": "geometry.retained.nodes, geometry.retained.text, geometry.retained.wire"
+              },
+              {
+                "path": "adapters/host-node/managed-source-reader.md",
+                "anchor": "## Bound connector construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/source-declaration-continuations.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command composition retains exact contract bodies and source catalog while quoting before projection'"
+              },
+              {
+                "path": "adapters/host-node/installed-authored-command.test.mjs",
+                "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -132663,10 +132984,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 189,
-    "operations": 4985,
-    "exports": 1148,
-    "explicitContractGroups": 518
+    "modules": 194,
+    "operations": 5136,
+    "exports": 1169,
+    "explicitContractGroups": 540
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
