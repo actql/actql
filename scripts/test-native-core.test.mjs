@@ -18,6 +18,7 @@ import './native-private-host-fixture.test.mjs';
 import './native-runtime-bundle-fixture.test.mjs';
 import './native-sqlite-link-driver.test.mjs';
 import './native-signature-linux-declarations.test.mjs';
+import './native-core-progress.test.mjs';
 
 test('Native Effect capture progress preserves partial evidence without reading private files', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-capture-progress-'));

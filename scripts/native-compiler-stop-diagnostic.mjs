@@ -1,7 +1,80 @@
 // Failure-only observation of one original compiler command, not a test runner.
-import {spawnSync} from 'node:child_process';
+import {execFile, spawnSync} from 'node:child_process';
 import {mkdtempSync} from 'node:fs';
 import {join} from 'node:path';
+
+// The nonzero-test recorder buffers output until the original Moon exits.
+// Observe only that live child's descendants while retaining the recorder,
+// command, test selection and deadline. Metadata is never a test/cleanup ACK.
+export function coreChildProgress(snapshot, originalPid, root) {
+  const rows = new Map();
+  for (const line of snapshot.split('\n')) {
+    const match = /^\s*(\d+)\s+(\d+)\s+([\d:-]+)\s+(.+)$/u.exec(line);
+    if (!match) continue;
+    const pid = Number(match[1]), parent = Number(match[2]);
+    if (!Number.isSafeInteger(pid) || !Number.isSafeInteger(parent) || pid < 1 || rows.has(pid)) return [];
+    rows.set(pid, {pid, parent, elapsed: match[3], command: match[4]});
+  }
+  if (!rows.has(originalPid)) return [];
+  const owned = new Set([originalPid]);
+  for (let size = 0; size !== owned.size;) {
+    size = owned.size;
+    for (const row of rows.values()) if (owned.has(row.parent)) owned.add(row.pid);
+  }
+  return [...rows.values()].filter(row => owned.has(row.pid)).slice(0, 16).map(row => {
+    const executable = row.command.split(/\s+/u, 1)[0];
+    const tool = executable.slice(executable.lastIndexOf('/') + 1);
+    const phase = /^(?:clang(?:-\d+)?|cc|gcc)$/u.test(tool) ? 'c-compile'
+      : tool === 'moonc' ? 'moon-compile' : tool === 'moon' ? 'moon'
+      : executable.startsWith(root + '/_build/native/') && executable.endsWith('.exe') ? 'test'
+      : tool === 'node' ? 'wrapper' : 'unclassified';
+    // Project only compiler/test source names below this original checkout.
+    // Do not print argv, environment, private fixture paths or arbitrary tools.
+    let source;
+    for (const part of row.command.split(root + '/').slice(1)) {
+      const path = /^[A-Za-z0-9_./+-]+/u.exec(part)?.[0];
+      if (!path || /(?:^|\/)\.\.(?:\/|$)/u.test(path)) continue;
+      if ((phase === 'c-compile' && /^_build\/native\/(?:debug|release)\/(?:test|build)\/.+\.c$/u.test(path)) ||
+          (phase === 'moon-compile' && /^src\/.+\.mbt$/u.test(path)) ||
+          (phase === 'test' && /^_build\/native\/(?:debug|release)\/test\/.+\.exe$/u.test(path))) {
+        source = path; break;
+      }
+    }
+    return {pid: row.pid, parent: row.parent, elapsed: row.elapsed, phase,
+      ...(source ? {source} : {})};
+  });
+}
+
+export function observeCoreChildProgress(child, {root, intervalMs = 30000, run = execFile,
+  write = value => console.error('ACTQL_NATIVE_CORE_PROGRESS ' + JSON.stringify(value))} = {}) {
+  let stopped = false, pending = false, timer;
+  const started = performance.now();
+  const stop = () => { stopped = true; clearInterval(timer); };
+  if (!Number.isSafeInteger(child.pid) || child.pid < 1) return stop;
+  const sample = () => {
+    if (stopped || pending || child.exitCode !== null || child.signalCode !== null) return;
+    pending = true;
+    const observed = (error, stdout) => {
+      pending = false;
+      if (stopped || child.exitCode !== null || child.signalCode !== null) return;
+      try {
+        const processes = error ? [] : coreChildProgress(stdout, child.pid, root);
+        write({elapsedMs: Math.round(performance.now() - started),
+          observation: processes.length ? 'observed' : 'unavailable', processes});
+      } catch { /* Progress failure cannot replace the original result. */ }
+    };
+    try {
+      run('/bin/ps', ['-axo', 'pid=,ppid=,etime=,command='],
+        {encoding: 'utf8', timeout: 5000, maxBuffer: 2 * 1024 * 1024}, observed);
+    } catch (error) { observed(error); }
+  };
+  child.once('exit', stop);
+  child.once('error', stop);
+  timer = setInterval(sample, intervalMs);
+  timer.unref();
+  sample();
+  return stop;
+}
 
 export function failedCoreDriver(root, moonHome) {
   const tool = join(moonHome, 'bin', 'moon');

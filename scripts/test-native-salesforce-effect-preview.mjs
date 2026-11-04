@@ -10,7 +10,7 @@ import {nativeEffectReviewFixture} from './fixtures/native-effect-review-fixture
 import {nativeEffectCheckpointReplyFixture} from './fixtures/native-effect-checkpoint-server.mjs';
 import {readNativeEffectCaptureProgress} from './fixtures/native-effect-capture-progress.mjs';
 import {startNativeBearerServers} from './fixtures/native-bearer-servers.mjs';
-import {failedCoreDriver, diagnoseFailedCoreDriver} from './native-compiler-stop-diagnostic.mjs';
+import {failedCoreDriver, diagnoseFailedCoreDriver, observeCoreChildProgress} from './native-compiler-stop-diagnostic.mjs';
 import {redactCommandEvidence} from './packed-query-evidence.mjs';
 const residentMappedCreate = process.argv.includes('--resident-original-mapped-create-write');
 const residentApprovedRow = residentMappedCreate || process.argv.includes('--resident-approved-row-write');
@@ -327,7 +327,12 @@ try {
       compilerDriver.write(chunk, 'stderr');
     });
   }
+  // This observer reads only the original live process tree. Keep buffered
+  // nonzero-test evidence and all selected tests/deadlines unchanged.
+  const stopProgress = compilerDriver
+    ? observeCoreChildProgress(child, {root: process.cwd()}) : () => {};
   const [code, signal] = await once(child, 'close');
+  stopProgress();
   child = undefined;
   if (code !== 0 && compilerDriver) {
     let diagnostic;
