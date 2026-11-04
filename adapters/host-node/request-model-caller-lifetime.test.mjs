@@ -243,6 +243,7 @@ function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false,
     physicalDone = true;
   };
   const moon = {
+    clientProgramAcquisitionCount: () => 0,
     clientProgramInstalledManagedRunRetire(v) {
       assert.equal(this, moon); assert.equal(v, value); calls.push('retire');
       payloadSevered = true;
@@ -756,7 +757,8 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   const failures = new WeakMap(), admissionPorts = {...ports,
     requestOf: () => ({requested: request, acquisitionCount: acquisitions, effectful: false}),
     journal: {resolveDefinition: () => saved ? {physicalStartReserved: true} : undefined}, namespaceId: 'fixture',
-    prepareInstalledRequestModelRun: construct, admissionFailures: failures};
+    prepareInstalledRequestModelRun: construct, admissionFailures: failures,
+    missingModelExecutionRefusals: new WeakSet()};
   const admit = Function(...Object.keys(admissionPorts), 'return (' + hostSource.slice(admission.start, admission.end) + ');')(...Object.values(admissionPorts));
   return {invoke, admit: () => admit(submission), saved: () => {saved = true;}, failures, submission,
     calls, scope, prepared, selected, plan, request, early: () => earlyMockInferPlans.get(prepared),
@@ -907,7 +909,7 @@ test('Host unadopted Model Scope cleanup keeps original thrown causes and pendin
 });
 
 
-test('actual acquired Model admission retains one Request compiler prefix and Scope and refuses a missing original read installation', () => {
+test('actual acquired Model admission retains one Request compiler prefix and Scope with its selected physical or generic plan', () => {
   const f = installedModelRequestFixture({serialized: true, acquisitions: 1});
   f.admit(); f.admit();
   assert.equal(f.early().model.scope, f.scope); assert.equal(f.early().managed, f.managed);
@@ -915,12 +917,14 @@ test('actual acquired Model admission retains one Request compiler prefix and Sc
   assert.equal(f.calls.filter(v => v === 'construct').length, 1);
   assert.equal(f.calls.filter(v => v === 'same prefix').length, 1);
   const plain = installedModelRequestFixture({acquisitions: 1});
-  // Plain acquired Models are supported by the current constructor. An
-  // actually missing physical original, rather than this fixture's inert
-  // placeholder object, is the existing refusal boundary.
   plain.selected.originalReadInstallation = undefined;
-  assert.throws(plain.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
-  assert.equal(plain.early(), undefined);
+  plain.admit(); plain.admit();
+  assert.equal(plain.early().model.originalReadInstallation, undefined);
+  assert.equal(plain.calls.filter(value => value === 'construct').length, 1);
+  const serialized = installedModelRequestFixture({acquisitions: 1, serialized: true});
+  serialized.selected.originalReadInstallation = undefined;
+  assert.throws(serialized.invoke, {code: 'HostResultPublicationPurposeUnavailable'});
+  assert.equal(serialized.early(), undefined);
 });
 
 test('source-free configured Model admission retains its generic Request Plan without inventing a Node read', () => {
@@ -959,12 +963,17 @@ const sourceFreePreparation = Function('checked', 'retireNodeInferOriginalRead',
   'return ' + installedInferSource.slice(sourceFreePreparationNode.start, sourceFreePreparationNode.end))(
   value => value, retirementFor(() => true));
 
-function sourceFreePreparationFixture({readFailure} = {}) {
+function sourceFreePreparationFixture({readFailure, captured = false} = {}) {
   const prepared = {}, selected = {graph: {}}, plan = {compiled: {}, runDefinition: {}}, scope = {}, read = {};
   const calls = [], host = {}, publication = {};
   const component = Object.freeze({provider: {}, bindOriginal() {return component;}});
   let finished = false;
-  const moon = {clientProgramAcquisitionCount: p => {assert.equal(p, prepared); return 0;},
+  const captureSource = {}, capturedInput = {capture: {source: () => captureSource}}, sourceLedger = {};
+  const moon = {clientProgramAcquisitionCount: p => {assert.equal(p, prepared); return captured ? 1 : 0;},
+    clientProgramOpenInstalledManagedCaptureHost(...args) {
+      assert.deepEqual(args, [managed.value, prepared, managed.request, [captureSource]]);
+      calls.push('original captured Host'); return host;
+    },
     clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
       assert.deepEqual(args, [managed.value, prepared, managed.request, 'registry', 'values', 'fragment', 'ordered', ['provider']]);
       calls.push('original Host'); return host;
@@ -987,8 +996,11 @@ function sourceFreePreparationFixture({readFailure} = {}) {
     budget: {readRetainedBytes: 41n, readExecutionBytes: 42n, modelRetainedBytes: 43n, modelExecutionBytes: 44n},
     publicationCapacity: () => publication};
   managed.model = model;
-  const make = () => sourceFreePreparation(moon, control, prepared, plan, selected, model);
+  const acquired = !captured ? undefined : {captured: capturedInput, ledger: sourceLedger, managedRun: managed.value};
+  if (captured) model.sourceLedger = sourceLedger;
+  const make = () => sourceFreePreparation(moon, control, prepared, plan, selected, model, acquired);
   return {make, model, managed, selected, scope, read, host, publication, component, calls,
+    acquired,
     finish: () => {finished = true;}};
 }
 
@@ -1010,6 +1022,21 @@ test('configured source-free Model uses its original Run and defers its one read
   f.finish(); assert.equal(await original.retire(), true); assert.equal(await original.retire(), true);
   assert.deepEqual(f.calls, ['original Host', 'original read', 'settle', 'finish', 'finish']);
   assert.throws(admitted.publicationCapacity, /InvalidInstalledRequestModelPreparation/);
+});
+
+test('configured acquired Model consumes its same captured input and original Run ledger without a replacement read', async () => {
+  const f = sourceFreePreparationFixture({captured: true}), original = f.make();
+  original.retain();
+  assert.throws(() => original.openSourceFreeHost(), /InvalidInstalledRequestModelPreparation/);
+  assert.throws(() => original.openCapturedHost([{...f.acquired.captured}]), /InstalledComposedInferHostUnavailable/);
+  assert.equal(original.openCapturedHost([f.acquired.captured]), f.host);
+  assert.throws(() => original.openCapturedHost([f.acquired.captured]), /InstalledComposedInferHostUnavailable/);
+  assert.equal(original.prepareRead().read, f.read);
+  assert.deepEqual(f.calls, ['original captured Host', 'original read']);
+  assert.equal(await original.retire(), false); f.finish(); assert.equal(await original.retire(), true);
+  const changed = sourceFreePreparationFixture({captured: true}), held = changed.make();
+  changed.acquired.ledger = {};
+  assert.throws(held.retain, /InvalidInstalledRequestModelPreparation/);
 });
 
 test('configured source-free Model keeps a refused original read and rejects a substituted managed Run', async () => {

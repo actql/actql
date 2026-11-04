@@ -5013,6 +5013,15 @@ input prefix through its retained composed component; an absent component factor
 refuses before any legacy constructor. The read snapshot follows prefix Ledger
 mutations; it cannot refresh an older snapshot or create another Scope.
 
+A plain configured Model with one original acquired Source can also use the
+existing generic captured Model Plan. Its Node bridge forwards the retained
+typed Limits to that same Request constructor; it does not require or invent a
+Node physical response layout. The module keeps the selected Source declaration,
+provider capacity and composed input component. Execution borrows the adopted
+Run's same captured input and Ledger through that retained component, and rejects
+copied captures, a foreign Ledger, a spent Scope or a second host entry. This
+route does not admit serialized Models without their actual physical declaration.
+
 Source preparation consumes the adopted Plan's existing acquisition. Content
 borrows that same Run's Ledger and passes the same retained Row capture to the
 acquired prefix entry. Its private capture accessor checks the original receiver,

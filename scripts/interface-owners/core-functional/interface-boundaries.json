@@ -5153,7 +5153,8 @@
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule"
+            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan"
           ],
           "exports": [],
           "attributes": {
@@ -11020,6 +11021,21 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
           "parameters": [
             "parent",
@@ -14675,7 +14691,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "297e547f159f22ec8a5f28a9c8fbb4f29ed4bb18990aaa640accd0d3dd00be58"
+      "sha256": "f92aab6dfbc1cc3ee2f1bcccb6bfb694fc23dd4c6acc23e2028e68a8d21b6b08"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -18607,7 +18623,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "e57f4a05ae5bc0c3f4d2fd36d1ca827d9651ffceb5bf9f9c5e6a099d35cc777a",
+      "sha256": "1895119780215ff37832f5bec9d203ca5f78472158f848e213cc1f6de58d9157",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -18956,13 +18972,28 @@
             "prepared",
             "plan",
             "selected",
-            "model"
+            "model",
+            "acquired"
           ],
           "async": false
         },
         {
           "name": "sourceFreeModelPreparation/current/current",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -19491,14 +19522,16 @@
             "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
             "sourceFreeModelsPreparation/init:retain/init:retain",
             "sourceFreeModelsPreparation/init:retire/init:retire",
-            "sourceFreeModelsPreparation/originals/originals"
+            "sourceFreeModelsPreparation/originals/originals",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model)"
+                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model, acquired)"
               },
               {
                 "path": "docs/design/infer-physical-observation.md",
@@ -51181,7 +51214,8 @@
             "client_program_prepare_request_models_source_free_plan",
             "client_program_request_model_direct_source_coordinates",
             "client_request_models_plan_projection",
-            "client_program_prepare_request_model_component_capture_module"
+            "client_program_prepare_request_model_component_capture_module",
+            "client_program_prepare_request_model_capture_plan"
           ],
           "exports": [],
           "attributes": {
@@ -51699,6 +51733,10 @@
           "declaration": "client_program_installed_node_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap_retained_bytes : Int64 , bootstrap_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_model_capture_plan",
+          "declaration": "client_program_prepare_request_model_capture_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_model_component_capture_module",
           "declaration": "client_program_prepare_request_model_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
         },
@@ -51763,7 +51801,7 @@
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "5018096b3d94638d7e9f2d7c89471790516efefa9c3a38fe1d0bab7cb3e779af"
+      "sha256": "6552a66e18264ad72764f12c34e047d4fd56fc459f50ac3c262fca527a7d26e4"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",

@@ -13,14 +13,15 @@ import {createInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalCurrentStateCodec,
   selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
 
-// Borrow the existing Request's source-free Model Plan and Scope. This is the
+// Borrow the existing Request's Model Plan and Scope. This is the
 // same installed Run; configured providers keep their current/claim/stop owner.
-function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model) {
+function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model, acquired) {
   const group = model?.group;
   const managed = model?.managed, scope = model?.scope, component = model?.component;
   const original = managed?.value, request = managed?.request, graph = selected.graph,
     compiled = plan.compiled, definition = plan.runDefinition, budget = model?.budget,
     publication = model?.publicationCapacity;
+  const sourceLedger = acquired?.ledger, captured = acquired?.captured;
   const current = () => {
     if (model === null || typeof model !== 'object' || model.closed || model.scopeFinished ||
         model.prepared !== prepared || model.selection !== selected || model.graph !== graph || selected.graph !== graph ||
@@ -35,7 +36,10 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
         group !== undefined && (!Array.isArray(group.components) || !group.components.includes(model) ||
           group.closed || group.scopeFinished) || original === undefined ||
         managed.value !== original || managed.request !== request ||
-        managed.runtime !== moon || managed.prepared !== prepared) {
+        managed.runtime !== moon || managed.prepared !== prepared ||
+        acquired !== undefined && (moon.clientProgramAcquisitionCount(prepared) !== 1 ||
+          managed.value !== acquired.managedRun || acquired.ledger !== sourceLedger ||
+          model.sourceLedger !== sourceLedger || acquired.captured !== captured)) {
       throw new TypeError('InvalidInstalledRequestModelPreparation');
     }
   };
@@ -65,6 +69,17 @@ function sourceFreeModelPreparation(moon, control, prepared, plan, selected, mod
       return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
         original, prepared, request, registry, values, fragment, ordered, providers));
     },
+    ...(acquired === undefined ? {} : {openCapturedHost(captures) {
+      current();
+      if (!model.taken || model.hostAttempted || !Array.isArray(captures) ||
+          captures.length !== 1 || captures[0] !== captured ||
+          typeof moon.clientProgramOpenInstalledManagedCaptureHost !== 'function') {
+        throw new TypeError('InstalledComposedInferHostUnavailable');
+      }
+      model.hostAttempted = true;
+      return checked(moon.clientProgramOpenInstalledManagedCaptureHost(original,
+        prepared, request, captures.map(value => value.capture.source())));
+    }}),
     prepareRead() {
       current();
       if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;
@@ -177,18 +192,19 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
         originalPreparation: original});
     }
-    const sourceFreeModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
+    const configuredModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
       selected.occurrence !== undefined && selected.components === undefined &&
-      selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) === 0;
-    if (selected.localMock || sourceFreeModel) {
+      selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) <= 1;
+    if (selected.localMock || configuredModel) {
       const sourceFree = moon.clientProgramAcquisitionCount(preparedProgram) === 0;
-      if (sourceFreeModel) {
-        if (originalPreparation !== undefined || acquiredInfer !== undefined ||
+      if (configuredModel) {
+        if (originalPreparation !== undefined ||
+            (sourceFree ? acquiredInfer !== undefined : acquiredInfer?.captured === undefined || preparationHolder === undefined) ||
             typeof prepareOriginalModelRun !== 'function') {
           throw new TypeError('InvalidInstalledRequestModelPreparation');
         }
         originalPreparation = sourceFreeModelPreparation(moon, control, preparedProgram, plan, selected,
-          prepareOriginalModelRun(preparedProgram, plan, selected));
+          prepareOriginalModelRun(preparedProgram, plan, selected), acquiredInfer);
       } else if (sourceFree && originalPreparation === undefined &&
           typeof prepareOriginalMockRun === 'function') {
         originalPreparation = prepareOriginalMockRun(preparedProgram, plan);
@@ -196,7 +212,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       if (originalPreparation?.control !== control || originalPreparation.compiled !== plan.compiled ||
           originalPreparation.runDefinition !== plan.runDefinition ||
           (sourceFree ? acquiredInfer !== undefined || typeof originalPreparation.openSourceFreeHost !== 'function'
-            : acquiredInfer?.sources?.length !== 2)) {
+            : configuredModel ? acquiredInfer?.captured === undefined : acquiredInfer?.sources?.length !== 2)) {
         throw new TypeError('InvalidInstalledMockModelPreparation');
       }
       if (!sourceFree) {
@@ -821,8 +837,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
       return original.prepareAcquiredLedger(capacities, registry, values, fragment, ordered);
     }
-    if (selected?.graph !== plan.inferGraph || !complete && (selected.originalReadInstallation === undefined ||
-        selected.occurrence === undefined) || selected.serializationGraph !== undefined ||
+    if (selected?.graph !== plan.inferGraph || !complete && selected.occurrence === undefined || selected.serializationGraph !== undefined ||
         !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(preparedProgram) ||
         capacities.length < 1 || capacities.length > 2 ||
         typeof prepareOriginalModelRun !== 'function' ||

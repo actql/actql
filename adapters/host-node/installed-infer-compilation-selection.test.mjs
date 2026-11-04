@@ -91,12 +91,12 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
   };
   walk(tree);
   const declarations = nodes.filter(node => node.type === 'VariableDeclaration');
+  const deferred = declarations.find(node => node.declarations[0]?.id?.name === 'deferredModelInput');
   const segment = declarations.find(node => node.declarations[0]?.id?.name === 'segments' &&
-    source.slice(node.start, node.end).includes('serializationGraph !== undefined'));
+    node.start > deferred.end && source.slice(node.start, node.end).includes('serializationGraph !== undefined'));
   const suffix = declarations.find(node => node.start > segment.start &&
     node.declarations[0]?.id?.name === 'computeSuffix');
   assert(segment); assert(suffix);
-  const deferred = declarations.find(node => node.declarations[0]?.id?.name === 'deferredModelInput');
   const acquisitionDeclaration = declarations.filter(node => node.declarations[0]?.id?.name === 'acquisitionCount' &&
     node.end <= deferred.start).sort((a, b) => b.start - a.start)[0];
   assert(acquisitionDeclaration);
@@ -115,7 +115,7 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
     clientProgramPrepareComposedInferComputeSuffix(...args) {
       assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('checked suffix'); return suffixValue;
     }};
-  const ports = {preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
+  const ports = {effectful: false, preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
     preparedProgram: prepared, occurrence, retain, serializationGraph, effectGraph: undefined, step: 2,
     restoredInfer: restored ? {graph: {}} : undefined,
     prepareSubmit: {kindOf: () => 'effect_free'}, moon, registry: {}, values: {}, fragment: {}, ordered: {},
@@ -126,13 +126,15 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
 }
 
 test('managed acquired Node Model defers input segments to its same Request module before any standalone constructor', () => {
-  const f = inputSelectionFixture();
-  assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
-  assert.deepEqual(f.calls, []);
+  for (const physical of [false, true]) {
+    const f = inputSelectionFixture({physical});
+    assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
+    assert.deepEqual(f.calls, []);
+  }
 });
 
 test('existing sourcefree legacy and serialized Model segment selection keep their actual original ports', () => {
-  for (const options of [{acquisitions: 0}, {managed: false}, {physical: false}]) {
+  for (const options of [{acquisitions: 0}, {managed: false}]) {
     const f = inputSelectionFixture(options);
     assert.equal(f.select.segments.prefix, f.prefix); assert.equal(f.select.computeSuffix, f.suffix);
     assert.deepEqual(f.calls, ['segments']);
@@ -170,7 +172,7 @@ test('checked Pure Mock group does not lower its input before the same Request i
     source.slice(node.start, node.end).includes('effectful ? moon.clientProgramPrepareEffectInferSegments'));
   assert(segments);
   const defer = nodes.find(node => node.declarations[0]?.id?.name === 'deferredGroup');
-  const body = (defer === undefined ? '' : source.slice(defer.start, defer.end)) + source.slice(segments.start, segments.end) + ';return segments;';
+  const body = 'const serializationGraph=undefined;' + (defer === undefined ? '' : source.slice(defer.start, defer.end)) + source.slice(segments.start, segments.end) + ';return segments;';
   const select = Function('effectful', 'preparation', 'retain', 'moon', 'preparedProgram', 'occurrence',
     'registry', 'values', 'fragment', 'ordered', 'checked', body);
   let calls = 0; const original = {}, prepared = {}, occurrence = {},

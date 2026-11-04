@@ -11,7 +11,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {inspect} from 'node:util';
-import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionInput, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -654,11 +654,29 @@ for (const [variant, boundary, typedCause] of [
   ['media-invalid', 'model_dependencies', 'invalid_body'],
   ['media-substituted', 'model_dependencies', 'identity_mismatch'],
   ['unsupported-payload', 'model_provider', 'unsupported_prompt'],
+  ['validator-throw', 'model_provider', undefined],
 ]) {
   test(`public INFER checks dependency bodies and selected provider before accepting a Run: ${variant}`,
     async t => {
       const {installation, taskCid} = await installedDependencyConfiguration(variant);
       const observations = [];
+      const validatorFailure = Object.assign(new Error('Original prompt validator failure'),
+        {code: 'FixtureValidatorFailure'});
+      const externalValidation = boundary !== 'model_dependencies';
+      const authorization = diagnosticAuthorization((name, detail) => {
+        if (name === 'infer_preparation_rejected') observations.push(detail);
+      });
+      if (externalValidation) {
+        // This distinct fixture also observes the original uncertain submission;
+        // explicitly authorize its read instead of relying on write permission.
+        const entry = (entry_id, operation) => ({entry_id, outcome: 'allow',
+          principal: {any_of: [userInfo().username]}, connection: {all: true},
+          resource: {any_of: ['run']}, operation: {any_of: [operation]}, exclusions: []});
+        authorization.accountConfiguration = canonicalJson({
+          version: 'actql-execution-account-config/0.1', account_id: 'model-validation',
+          entries: [entry('read-original', 'read'), entry('run', 'write')],
+        });
+      }
       let validations = 0, calls = 0;
       const {client, root, physicalStarts} = await installedHost(t, {
         modelInstallation: installation,
@@ -669,28 +687,46 @@ for (const [variant, boundary, typedCause] of [
             validations++;
             assert.equal(actualTask, taskCid);
             assert.equal(selector, 'fixture-risk-model');
+            if (variant === 'validator-throw') throw validatorFailure;
             const payload = JSON.parse(wire);
             return payload !== null &&
               Object.keys(payload).sort().join(',') === 'format,instructions' &&
               payload.format === 'fixture-risk/0.1' &&
               payload.instructions === 'Classify the text.';
           }}],
-        authorization: diagnosticAuthorization((name, detail) => {
-          if (name === 'infer_preparation_rejected') observations.push(detail);
-        }),
+        authorization,
       });
-      await assert.rejects(client.start(oneRowInfer(),
-        {submissionRef: client.newSubmission({nonce: `dependencies-${variant}`})}),
-        error => assertPreparationRefusal(error, boundary === 'model_dependencies'
-          ? 'not_accepted' : 'preparation_failed', 'ClientProgramUnsupported'));
+      const submissionRef = client.newSubmission({nonce: `dependencies-${variant}`});
+      await assert.rejects(client.start(oneRowInfer(), {submissionRef}), error => {
+        if (!externalValidation) {
+          return assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported');
+        }
+        // Once this external callback has run, its return or throw cannot
+        // attest that no work occurred. Keep the public uncertainty distinct
+        // from the exact private typed rejection and this fixture's counters.
+        assert.equal(error.code, 'SubmissionUnknown');
+        assert.equal(getSubmissionOutcome(error), undefined);
+        assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+        return true;
+      });
+      if (externalValidation) {
+        const original = await client.lookupSubmission(submissionRef);
+        assert.equal(original.kind, 'unresolvable');
+        assert.deepEqual(original.submissionRef, submissionRef);
+        assert.equal(original.problem.code, 'submission_history_unresolvable');
+      }
       assert.equal(observations.length, 1);
       assert.equal(observations[0].boundary, boundary);
       assert.equal(observations[0].typedCause, typedCause);
       if (variant === 'valid') {
         assert.equal(observations[0].code, 'InstalledInferDispatchNotConnected');
       }
+      if (variant === 'validator-throw') {
+        assert.equal(observations[0].code, validatorFailure.code);
+        assert.strictEqual(observations[0].cause, validatorFailure);
+      }
       assert.equal(validations,
-        ['valid', 'unsupported-payload'].includes(variant) ? 1 : 0);
+        externalValidation ? 1 : 0);
       assert.equal(calls, 0);
       assertNoAcceptedRun(root, physicalStarts);
     });

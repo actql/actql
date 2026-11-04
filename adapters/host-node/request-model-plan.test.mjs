@@ -66,6 +66,12 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       assert.equal(physical, false, 'The Node installation must select its actual layout-bound Plan');
       calls.push('bind-source-free'); return plan;
     },
+    prepareCheckedClientRequestModelCapturePlan(...args) {
+      assert.equal(this, control);
+      assert.deepEqual(args, [parent, input, module, request, model.compiled, model.runDefinition, occurrence, graph, bounds]);
+      assert.equal(physical, false);
+      calls.push('bind-generic-captured'); return plan;
+    },
     bindCheckedClientMockModelCapturePlan(...args) {
       assert.deepEqual(args, [module, model.compiled, model.runDefinition, occurrence, graph, bounds]);
       calls.push('bind-captured'); return plan;
@@ -315,6 +321,17 @@ test('Request acquired Node Model retains original provider and prefix before sa
   assert.equal(f.run.modelSourceSelection.transferBytes, 512n);
 });
 
+test('Request acquired generic Model binds the same original provider module without a Node response declaration', () => {
+  const f = fixture({count: 1});
+  assert.equal(f.construct(), f.plan);
+  assert.equal(f.run.preparedSequences, f.module);
+  assert.equal(f.model.originalReadInstallation, undefined);
+  assert.deepEqual(f.calls, ['bounds', 'original provider selection', 'backed component module',
+    'component provider', 'bind-generic-captured']);
+  assert.equal(f.model.budget.readRetainedBytes, 13n);
+  assert.equal(f.model.budget.modelRetainedBytes, 15n);
+});
+
 test('Request acquired Node Model refuses absent original provider and keeps partials through original current failure', () => {
   const missing = fixture({count: 1, physical: true, serialized: true, missingProvider: true});
   assert.throws(missing.construct, {code: 'InstalledModelSourcePreparationUnavailable'});
@@ -498,21 +515,25 @@ test('plural Model module forwards the same compiler definition and indexed nati
 });
 
 
-test('plural Model Plan forwards the same complete selected bounds and private compiler original', () => {
+for (const [method, port, plural] of [
+  ['prepareCheckedClientRequestModelsSourceFreePlan', 'clientProgramPrepareRequestModelsSourceFreePlan', true],
+  ['prepareCheckedClientRequestModelCapturePlan', 'clientProgramPrepareRequestModelCapturePlan', false],
+]) test(`${plural ? 'plural' : 'single captured'} Model Plan forwards the same complete selected bounds and private compiler original`, () => {
   const parsed = parse(runtimeSource, {ecmaVersion: 'latest', sourceType: 'module'});
   let selectedMethod;
   const visit = node => {
     if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && node.method && node.key.name === 'prepareCheckedClientRequestModelsSourceFreePlan') selectedMethod = node;
+    if (node.type === 'Property' && node.method && node.key.name === method) selectedMethod = node;
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
     }
   };
   visit(parsed); assert(selectedMethod);
   const parent={}, input={}, original={}, request={}, compiled=Object.freeze({kind:'infer'}), definition={}, rawCompiled={}, rawDefinition={};
-  const occurrences=Object.freeze([{},{}]), graphs=Object.freeze([{},{}]), bounds=Object.freeze([{},{}]), plan={};
+  const occurrences=plural ? Object.freeze([{},{}]) : {}, graphs=plural ? Object.freeze([{},{}]) : {},
+    bounds=plural ? Object.freeze([{},{}]) : {}, plan={};
   let calls=0;
-  const moon={clientProgramPrepareRequestModelsSourceFreePlan(...args) {
+  const moon={[port](...args) {
     assert.equal(this, moon); calls++;
     assert.deepEqual(args,[parent,input,original,request,rawCompiled,rawDefinition,occurrences,graphs,bounds]);
     return plan;
@@ -520,8 +541,8 @@ test('plural Model Plan forwards the same complete selected bounds and private c
   const object=Function('moon','compiledRunTokens','token','checked',
     'return ({'+runtimeSource.slice(selectedMethod.start,selectedMethod.end)+'});')(moon,new WeakMap([[compiled,rawCompiled]]),
       value=>{assert.equal(value,definition);return rawDefinition;},value=>value);
-  assert.equal(object.prepareCheckedClientRequestModelsSourceFreePlan(parent,input,original,request,compiled,definition,occurrences,graphs,bounds),plan);
-  assert.throws(()=>object.prepareCheckedClientRequestModelsSourceFreePlan(parent,input,original,request,{...compiled},definition,occurrences,graphs,bounds),/Foreign Client compiled Infer preparation/);
+  assert.equal(object[method](parent,input,original,request,compiled,definition,occurrences,graphs,bounds),plan);
+  assert.throws(()=>object[method](parent,input,original,request,{...compiled},definition,occurrences,graphs,bounds),/Foreign Client compiled Infer preparation/);
   assert.equal(calls,1);
 });
 

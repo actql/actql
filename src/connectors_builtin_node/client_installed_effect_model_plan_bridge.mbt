@@ -82,6 +82,44 @@ pub fn client_program_prepare_request_model_source_free_plan(
 }
 
 ///|
+/// Bind the existing generic captured Model Plan to its original Request and
+/// already selected bounds. This adds no physical Node response declaration.
+#export_name("clientProgramPrepareRequestModelCapturePlan")
+pub fn client_program_prepare_request_model_capture_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  selected : @infer_host.Limits,
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_model_capture_plan(
+    parent,
+    input,
+    original,
+    request,
+    compiled,
+    definition,
+    occurrence,
+    graph,
+    selected.model.ledger,
+    selected.mapping.logical.max_live_value_bytes,
+    selected.identity.wire.max_bytes.to_int64(),
+    selected.input.rows.operation_entries,
+    selected.input.rows.retained_entries,
+    selected.input.rows.metadata_entries,
+  )
+}
+
+///|
 /// Keep the original checked bounds' non-byte dimensions. The installed Node
 /// declaration must cover those SAME Model extents; it cannot shrink them.
 /// The fixed Request/Plan/Scope owns admission, never these numeric inputs.

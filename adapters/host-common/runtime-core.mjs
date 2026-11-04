@@ -3679,6 +3679,17 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
         token(definition), occurrence, graph, selected]));
     },
+    prepareCheckedClientRequestModelCapturePlan(parent, input, original, request, compiled, definition,
+      occurrence, graph, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelCapturePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrence, graph, selected]));
+    },
     prepareCheckedClientRequestNodeModelSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrence, graph, selected, installation) {
       const value = compiledRunTokens.get(compiled);
