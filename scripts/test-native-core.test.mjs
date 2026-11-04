@@ -618,7 +618,7 @@ test('Native Core selects the admitted Darwin arm64 runner without dropping targ
   // The runner keeps both the focused prerequisite and the complete Native
   // campaign. The existing harness selects the original platform libraries.
   assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -p platform_native\/trusted_clock/u);
-  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn --release --strip -j/u);
+  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn --release --strip -j 2 --no-parallelize/u);
   assert.doesNotMatch(coreStep.run, /ACTQL_TEST_NATIVE_SQLITE_LIBRARY/u);
 });
 
@@ -1017,7 +1017,7 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
     if(target==='native'){
       assert.deepEqual(calls,[
         ['scripts/test-native-core.mjs','--deny-warn','-p','platform_native/trusted_clock'],
-        ['scripts/test-native-core.mjs','--deny-warn','--release','--strip','-j','1','--verbose'],
+        ['scripts/test-native-core.mjs','--deny-warn','--release','--strip','-j','2','--no-parallelize','--verbose'],
       ]);
       assert.deepEqual(records.map(record=>record.native),['1','0']);
       const failed=spawnSync('bash',['-eo','pipefail','-c',command],{

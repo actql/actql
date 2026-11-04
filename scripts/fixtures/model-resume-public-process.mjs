@@ -361,7 +361,8 @@ const execute = async () => { try {
           document: JSON.stringify(program), requestId: 'historical-public-model-resume', authorization,
           sourceProfile: JSON.parse(readFileSync(sourceProfilePath, 'utf8')),
           runtimeRootUrl: new URL(runtime.root), mode: transport === 'https' ? 'remote' : 'local',
-          modelEnvironmentWire: modelInstallation.environmentWire});
+          modelEnvironmentWire: modelInstallation.environmentWire,
+          hostCapacityPolicy: base.host_policy_profile.capacity});
         save('historical-source.json', original);
         await open();
       }

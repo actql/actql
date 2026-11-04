@@ -31,6 +31,7 @@ const dataCid = value => hash(wire(value));
 // independently authored below from this exact source meaning.
 export async function writeSyntheticHistoricalHeldQuery({directory, document,
   requestId, authorization, sourceProfile, runtimeRootUrl, now = Date.now(), mode = 'remote', runHeld, effectEnvironmentWire, modelEnvironmentWire,
+  hostCapacityPolicy,
   expressionContractUrl = new URL('spec/contracts/actql-expressions.json', runtimeRootUrl)}) {
   const program = JSON.parse(document);
   const model = modelEnvironmentWire !== undefined;
@@ -78,7 +79,13 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
   const contextCid = cid({host: 'actql-local-host', principal: principalId, account_id: account.account_id});
   // This existing Host identity uses its original ordered JSON preimage, not
   // sorted artifact encoding or a realpath rewrite of the selected root.
-  const authorityScopeCid = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root, principalId}));
+  // Its effective policy also includes the existing graph-construction
+  // defaults already authored for this fixture's environment below.
+  const effectiveHostCapacityPolicy = hostCapacityPolicy === undefined ? undefined : {
+    max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+    max_graph_construction_nodes: 1000, ...hostCapacityPolicy};
+  const authorityScopeCid = hash(JSON.stringify({version: 'actql-local-owner-scope/0.1', root, principalId,
+    ...(effectiveHostCapacityPolicy === undefined ? {} : {hostCapacityPolicyCid: cid(effectiveHostCapacityPolicy)})}));
   const logicalRequestScopeCid = cid({authority_scope_cid: authorityScopeCid,
     caller_request_id: requestId, version: 'actql-logical-request/0.1'});
   let programDefinitionCid;
@@ -251,6 +258,10 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
   environmentBody.host_policy_profile.capacity = {max_graph_construction_edges: 1000,
     max_graph_construction_input_rows: 1000, max_graph_construction_nodes: 1000,
     ...environmentBody.host_policy_profile.capacity};
+  if (hostCapacityPolicy !== undefined) {
+    assert.deepEqual(environmentBody.host_policy_profile.capacity, effectiveHostCapacityPolicy,
+      'The authored historical scope uses the SAME explicit installed Host policy');
+  }
   const binding = {authorization_context_cid: cid({principal: principalId,
     account_id: account.account_id, configuration_cid: configurationCid, source_configuration_cid: sourceConfigurationCid}),
   environment_binding_cid: cid({version: 'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
@@ -267,7 +278,7 @@ export async function writeSyntheticHistoricalHeldQuery({directory, document,
     {enableForeignKeyConstraints: true});
   try {
     assert.equal(database.prepare("SELECT value FROM journal_metadata WHERE key = 'schema_version'").get().value,
-      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1');
+      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1;model-current-cut-invalidation=1');
     for (const table of ['runs', 'resolutions', 'resume_intents', 'resume_admissions', 'preparations', 'checkpoints']) {
       assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);
     }
