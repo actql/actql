@@ -579,7 +579,7 @@ test('bound original Effect validation rejects a foreign Prepared despite equal 
 
 // The existing embedded Host closure is extracted unchanged. Journal, codec
 // and current/resource services are explicit ports, not ordinary admission.
-function installedCaptureOriginalFixture({marked = true, live = true, bound = false} = {}) {
+function installedCaptureOriginalFixture({marked = true, live = true, bound = false, stop = true} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let entry;
@@ -598,14 +598,16 @@ function installedCaptureOriginalFixture({marked = true, live = true, bound = fa
     ...(marked ? {updateTargetRunOriginal: original} : {})};
   const saved = {runDefinition, runAdmissionEvidence: evidence};
   const restored = {materials: {}, allowed};
-  const moon = {clientSubmittedIntentRequestsCommitStop: () => true,
+  const moon = {clientSubmittedIntentRequestsCommitStop: () => stop,
     strategyRunEvidenceJson: value => value,
-    clientProgramAllowedEffectRunPrepared: () => preparedEvidence,
-    clientProgramAllowedEffectRunAuthorization: () => authorizationEvidence,
+    clientProgramAllowedEffectRunPrepared: value => value === allowed ? preparedEvidence : undefined,
+    clientProgramAllowedEffectRunAuthorization: value => value === allowed ? authorizationEvidence : undefined,
+    strategyPublicationContractIdentity: value => value === definition ? runDefinition.identity : undefined,
     clientRequestRelation: (left, right) => left === requestIdentity && right === requestIdentity ? 1 : 0};
   const intent = {intent: {}, assertCurrent() {calls.push('intent-current');}};
   const prepared = {}, definition = {};
-  if (managed !== undefined) {managed.prepared = prepared; Object.assign(managed.definitionOriginal, {allowed, definition});}
+  if (managed !== undefined) {managed.prepared = prepared; Object.assign(managed.definitionOriginal,
+    {prepared, identity: requestIdentity, allowed, definition});}
   const boundOriginal = {prepared, compilation, allowed, definition, runDefinition, identity: requestIdentity,
     materials: restored.materials, originalSubmittedIntent: intent};
   const ports = {moon, control: {}, namespaceId: 'scope', authorityScopeCid: 'authority', principalId: 'principal',
@@ -648,6 +650,25 @@ test('independent cold capture original keeps its explicit wire-only qualificati
   const f = installedCaptureOriginalFixture({live: false});
   assert.strictEqual(f.recover().allowed, f.restored.allowed);
   assert.deepEqual(f.calls, ['target-original', 'intent-current']);
+});
+
+test('ordinary hot Effect recovery borrows its same admitted tuple without a second material decoder', () => {
+  const f = installedCaptureOriginalFixture({marked: false, stop: false});
+  const result = f.recover();
+  assert.strictEqual(result.allowed, f.managed.definitionOriginal.allowed);
+  assert.strictEqual(result.prepared, f.managed.prepared);
+  assert.strictEqual(result.compilation, f.managed.definitionOriginal.compilation);
+  assert.strictEqual(result.definition, f.managed.definitionOriginal.definition);
+  assert.deepEqual(f.calls, ['intent-current']);
+});
+
+test('ordinary hot Effect recovery refuses foreign original fields before Store recovery', () => {
+  for (const field of ['prepared', 'identity', 'allowed', 'definition']) {
+    const f = installedCaptureOriginalFixture({marked: false, stop: false});
+    f.managed.definitionOriginal[field] = {};
+    assert.throws(f.recover, {code: 'EffectRecoveryOriginalSelectionUnavailable'});
+    assert.deepEqual(f.calls, []);
+  }
 });
 
 function retainedRequestSourceMember(path, name, kind = 'Property') {

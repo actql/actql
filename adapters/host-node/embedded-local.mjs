@@ -3860,6 +3860,23 @@ async function openInstalledHost(originalInstallation, preparation) {
         const original = saved.runAdmissionEvidence?.updateTargetRunOriginal;
         let restored = original === undefined ? {} : updateTargetOriginals.restoreRun(
           original, saved.runDefinition, requestIdentity, originalCompilation);
+        if (original === undefined && managed?.definitionOriginal !== undefined) {
+          // The live Request already owns these admitted materials. Ordinary
+          // STORE recovery needs the same allowed compilation too, even when
+          // its submitted intent did not request commit-stop signing.
+          const current = managed.definitionOriginal;
+          if (current.prepared !== managed.prepared || current.compilation !== originalCompilation ||
+              current.allowed === undefined || current.definition === undefined ||
+              moon.clientRequestRelation(current.identity, requestIdentity) !== 1 ||
+              moon.strategyPublicationContractIdentity(current.definition) !== saved.runDefinition.identity ||
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(current.allowed)) !==
+                saved.runAdmissionEvidence.prepared ||
+              moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(current.allowed)) !==
+                saved.runAdmissionEvidence.authorization) {
+            throw clientOperationError('EffectRecoveryOriginalSelectionUnavailable');
+          }
+          restored = current;
+        }
         const originalSubmittedIntent = journal.originalSubmittedIntent(requestIdentity,
           {namespaceId}, moon, control);
         if (originalSubmittedIntent !== undefined &&
@@ -3878,8 +3895,8 @@ async function openInstalledHost(originalInstallation, preparation) {
                 saved.runAdmissionEvidence.authorization) {
             throw new Error('EffectRecoveryOriginalSelectionUnavailable');
           }
-          originalSubmittedIntent.assertCurrent();
         }
+        originalSubmittedIntent?.assertCurrent();
         return Object.freeze({...restored, originalSubmittedIntent});
       },
       authorizeEvidenceRead: binding => hostConnection({principalId,
