@@ -11,7 +11,12 @@ import {canonicalJson} from './local-account-config.mjs';
 test('public retained membership preserves duplicate Text matches and NULL',
   {timeout: 60_000}, async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-membership-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    let client;
+    t.after(async () => {
+      await client?.close();
+      // Keep Store custody if the real owner cannot finish close.
+      await rm(directory, {recursive: true, force: true});
+    });
     const keys = generateKeyPairSync('ed25519');
     let advances = 0;
     let completions = 0;
@@ -73,8 +78,7 @@ test('public retained membership preserves duplicate Text matches and NULL',
       }};
     const configuration = {mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}};
-    const client = await connectEmbeddedLocal(configuration);
-    t.after(() => client.close());
+    client = await connectEmbeddedLocal(configuration);
     const source = JSON.stringify(program);
     const options = {format: 'json', submissionRef: client.newSubmission({nonce: 'public-membership'}),
       parameters: {items: [text, text]}};
