@@ -28,8 +28,9 @@ import {installNodeClientRunAttach} from './client-run-attach.mjs';
 import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
-import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
-import {completeCapturedEffectRun, recoverAdmittedEffectRun,
+import {fundedClientPreparation, openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
+import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
+import {createNodeHostEntry, completeCapturedEffectRun, recoverAdmittedEffectRun,
   runCapturedEffectComputation,
   runCapturedInternalStrategy,
   runCapturedStrategy,
@@ -49,6 +50,7 @@ import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
   './local-values-plan.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {validRunState} from '../../packages/client-wire/index.mjs';
+import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {openCapturedDuckDBSource, prepareCapturedDuckDBSource} from
   './captured-duckdb-source.mjs';
 import {fixtureSourceAccess, accountEntry, FIXTURE_CONTEXT, fixtureAuthorization} from './authorization-fixture.mjs';
@@ -232,6 +234,13 @@ async function checkedFixture() {
 
 test('checked acquired source and downstream task emit their input ports',
   async t => {
+    const [queryContract, evidenceContract, twoReceiptContract] =
+      await Promise.all([
+        'actql-query-acquisition.json',
+        'actql-query-process-evidence.json',
+        'actql-query-two-receipt.json',
+      ].map(name => readFile(new URL(`../../spec/contracts/${name}`,
+        import.meta.url), 'utf8')));
     const source = await readFile(new URL(
       '../../src/query_integration/query_amount_catalog_wbtest.mbt',
       import.meta.url), 'utf8');
@@ -258,7 +267,8 @@ test('checked acquired source and downstream task emit their input ports',
     }];
     environmentBody.connector_capabilities = [{...sourceSelector,
       capability_contract_cids: [
-        'sha256:db7ce19477afd82a8488a9f64fd75697c850eaaccdc738995483cc138a06361a'],
+        machineCid(JSON.parse(evidenceContract)),
+        machineCid(JSON.parse(twoReceiptContract))],
     }];
     delete environmentBody.evidence_bundle_cid;
     environmentBody.evidence_bundle_cid = machineCid(environmentBody);
@@ -274,11 +284,25 @@ test('checked acquired source and downstream task emit their input ports',
         '../connectors/duckdb/node/examples/parameters.json', import.meta.url),
       'utf8'),
     ]);
-    const outcome = moon.clientProgramPrepareEffectFreeWithParameters(
-      document, 'json', environment, parameters);
-    const prepared = moon.clientProgramPreparationReady(outcome);
-    assert.ok(prepared,
-      String(moon.clientProgramPreparationIssueCode(outcome)));
+    const preparation = await openFundedClientPreparation({moon, environment});
+    const preparationRequest = {kind: 'aql', input: {text: document, format: 'json'},
+      parameters: JSON.parse(parameters)};
+    let prepared, captureRun, captureRequestIdentity;
+    t.after(async () => {
+      if (captureRun !== undefined) {
+        try {checked(moon.clientProgramInstalledManagedRunRetire(captureRun.value));}
+        catch (cause) {
+          if (moon.clientProgramInstalledPreparationPayloadSevered(
+            captureRun.value, captureRequestIdentity) !== true) throw cause;
+        }
+        preparation.retireOriginal(prepared);
+        preparation.manager.severPreparation(prepared, captureRun.original);
+        checked(moon.clientProgramInstalledManagedRunRetire(captureRun.value));
+        preparation.manager.retireSeveredPreparation(captureRun.original);
+      } else if (prepared !== undefined) preparation.retireOriginal(prepared);
+      await preparation.close();
+    });
+    prepared = await preparation.prepare(preparationRequest);
     const acquisition = checked(
       moon.clientProgramPrepareQueryAcquisition(prepared, 0, 0));
     assert.equal(moon.clientProgramQueryAcquisitionSourceIndex(acquisition),
@@ -296,10 +320,7 @@ test('checked acquired source and downstream task emit their input ports',
         import.meta.url), 'utf8'),
     ]);
     const aoa = JSON.parse(contracts);
-    const registry = checked(moon.clientPrepareInstalledSequenceContracts(
-      registryWire, JSON.stringify(aoa.execution_contracts['REL.values']),
-      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    const registry = preparation.installedContracts;
     const requirement = checked(
       moon.clientProgramPrepareLocalQueryRequirement(prepared, 0, 0,
         registry, JSON.stringify(aoa.execution_contracts['REL.values']),
@@ -313,16 +334,11 @@ test('checked acquired source and downstream task emit their input ports',
     assert.equal(
       moon.clientProgramQueryRequirementSourceContractCid(requirement),
       'sha256:ffa240d28d8b7253cd0f9750544576ab92aac05eee6ee95626210b41978e5eb3');
-    const [queryContract, evidenceContract, twoReceiptContract] =
-      await Promise.all([
-        'actql-query-acquisition.json',
-        'actql-query-process-evidence.json',
-        'actql-query-two-receipt.json',
-      ].map(name => readFile(new URL(`../../spec/contracts/${name}`,
-        import.meta.url), 'utf8')));
-    const nativeSetup = checked(moon.clientProgramPrepareDuckDBAcquisition(
+    const nativeOutcome = moon.clientProgramPrepareDuckDBAcquisition(
       requirement, 'main', 'records', queryContract, evidenceContract,
-      twoReceiptContract));
+      twoReceiptContract);
+    assert.equal(nativeOutcome.$tag, 1, inspect(nativeOutcome, {depth: 12}));
+    const nativeSetup = checked(nativeOutcome);
     await mkdir(scratch, {recursive: true});
     const directory = await mkdtemp(join(scratch.pathname,
       'checked-source-'));
@@ -348,6 +364,7 @@ test('checked acquired source and downstream task emit their input ports',
         ordered: JSON.stringify(aoa.execution_contracts[
           'REL.derive.ordered']), database: path,
         sourceAccess,
+        acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
         schema: 'main', table: 'records', transportLimits: {
           maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
           maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
@@ -448,6 +465,20 @@ test('checked acquired source and downstream task emit their input ports',
       assert.equal(sourceChecks, 1);
       assert.equal(handedOff.outcome, 'stopped');
       assert.equal(localHostOpens, 0);
+      // The original Request adopts its actual publication Plan before the
+      // successful physical capture, independently of the preceding fault controls.
+      captureRequestIdentity = moon.clientProgramRequestIdentity(prepared,
+        cid('a'), 'acquired-result-request', cid('b'));
+      assert.ok(captureRequestIdentity);
+      captureRun = adoptCapturedPublicationFixture({moon, preparation, prepared,
+        request: preparationRequest, identity: captureRequestIdentity,
+        acquisition: nativeSetup, limits: sourceOptions.transportLimits,
+        installedContracts: registry, contracts: [registryWire,
+          sourceOptions.values, sourceOptions.fragment, sourceOptions.ordered]});
+      assert.ok(captureRun);
+      const publicationPreparation = preparation.manager.publicationPreparation(prepared);
+      assert.strictEqual(publicationPreparation, captureRun.value);
+      const compilationOriginal = preparation.manager.compilationOriginal(prepared);
       const opened = await openCapturedDuckDBSource({...sourceOptions,
         preparedSource});
       const capturedSource = opened.capture.source();
@@ -552,9 +583,21 @@ test('checked acquired source and downstream task emit their input ports',
           completeness: 'complete',
           orderingEvidence: {stable: false, keys: []},
         }));
-        const control = runtimeCore(moon).publicationControl;
+        let invocationOriginals;
+        const observedMoon = Object.freeze({...moon,
+          clientProgramIssueCapturedPublicationInvocation(...args) {
+            assert.equal(invocationOriginals, undefined);
+            invocationOriginals = Object.freeze(args);
+            return moon.clientProgramIssueCapturedPublicationInvocation(...args);
+          },
+        });
+        const control = runtimeCore(observedMoon).publicationControl;
+        const entry = createNodeHostEntry(() => Promise.resolve(observedMoon),
+          installStrategyContributions);
         const authorityScopeCid = cid('a');
         const dataPolicyCid = opened.checkedSource.sourceDataPolicyCid;
+        const publicationDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(prepared);
+        assert.equal(typeof publicationDataPolicyCid, 'string');
         const sourceEvidenceWire = await opened.issueSourceEvidence({
           authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid});
         const {source_evidence_cid: sourceEvidenceCid,
@@ -580,20 +623,26 @@ test('checked acquired source and downstream task emit their input ports',
           effectiveDataPolicyCid: dataPolicyCid,
         }), {code: 'MoonBitHostFailure'});
         const admitted = acquiredTaskRunAdmission({moon, control,
+          publicationPreparation, compilationOriginal, requestIdentity: captureRequestIdentity,
           preparedProgram: prepared, document, format: 'json',
           parameters: JSON.parse(parameters),
           environmentWire: canonicalText(environmentBody),
           environmentCid: environmentBody.evidence_bundle_cid, authorityScopeCid,
           namespaceId: 'local', now: () => '2026-09-26T00:00:02.000Z'});
         const storeAuthorityCid = cid('7');
-        const plan = acquiredTaskPublicationPlan({moon, control,
+        let plan;
+        try { plan = acquiredTaskPublicationPlan({moon, control,
           acquired: admitted, preparedProgram: prepared, captured: opened,
           sourceEvidence: control.admitRunEvidence('source_evidence', sourceEvidenceWire, publicationLimits), authorityScopeCid,
-          effectiveDataPolicyCid: dataPolicyCid,
+          effectiveDataPolicyCid: publicationDataPolicyCid,
           captureStartedAt: '2026-09-26T00:00:00.000Z',
           captureCompletedAt: '2026-09-26T00:00:01.000Z',
           namespaceId: 'local', requestId: 'acquired-result-request',
-          storeAuthorityCid, now: () => '2026-09-26T00:00:02.000Z'});
+          storeAuthorityCid, now: () => '2026-09-26T00:00:02.000Z'}); }
+        catch (cause) {
+          throw Object.assign(new Error(`${cause.message}: ${inspect(cause.cause, {depth: 8})}`,
+            {cause}), {code: cause.code});
+        }
         assert.equal(plan.results.length, 2);
         for (const changed of [
           {...sourceEvidenceBody, input_logical_cid: cid('9')},
@@ -601,15 +650,14 @@ test('checked acquired source and downstream task emit their input ports',
         ]) {
           const wire = control.sealRunEvidence('source_evidence',
             JSON.stringify(changed), publicationLimits).wire;
-          assert.throws(() => acquiredTaskPublicationPlan({moon,
-            control, acquired: admitted, preparedProgram: prepared,
-            captured: opened, sourceEvidence: control.admitRunEvidence('source_evidence', wire, publicationLimits),
-            authorityScopeCid, effectiveDataPolicyCid: dataPolicyCid,
-            captureStartedAt: '2026-09-26T00:00:00.000Z',
-            captureCompletedAt: '2026-09-26T00:00:01.000Z',
-            namespaceId: 'local', requestId: 'acquired-result-request',
-            storeAuthorityCid,
-            now: () => '2026-09-26T00:00:02.000Z'}));
+          // The actual parent invocation is single-use. Exercise the existing
+          // full wire validator with its same observed compiler/capture inputs,
+          // rather than mistaking a spent-parent refusal for evidence checking.
+          const args = invocationOriginals;
+          assert.throws(() => checked(moon.clientProgramIssueCompiledMultiTaskInvocation(
+            args[2], args[3], args[4], args[5], args[6], [wire],
+            [moon.strategyRunEvidenceJson(opened.logicalInput)], ...args.slice(10))),
+          {code: 'MoonBitHostFailure'});
         }
         const store = await openLocalPublicationStore({
           directory: join(directory, 'publication'), storeAuthorityCid,
@@ -621,7 +669,7 @@ test('checked acquired source and downstream task emit their input ports',
         let published;
         try {
           let retainedExecution;
-          published = await runPublishedCapturedStrategy(opened.setup,
+          published = await entry.runPublishedCapturedStrategy(opened.setup,
             {store, plan}, {}, undefined, undefined, execution => {
               assert.equal(published, undefined);
               retainedExecution = execution;
