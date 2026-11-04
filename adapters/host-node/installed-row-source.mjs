@@ -2932,6 +2932,17 @@ export async function createInstalledRowSource({moon, declaration, commands,
       },
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
     ordinaryRecoveryBinding,
+    retirePreparedSource(prepared) {
+      const owner = preparations.get(prepared);
+      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      // Started reads have already transferred to their original RowRun's
+      // close. This cut only returns the SAME still-unentered preparation;
+      // a later sibling's refusal must not strand it until installation close.
+      if (preparingSourceReads.has(owner.originalRead)) {
+        checked(moon.clientProgramInstalledSourceReadRetire(owner.originalRead));
+        preparingSourceReads.delete(owner.originalRead);
+      }
+    },
     retainedCapture(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');

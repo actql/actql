@@ -5,6 +5,9 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
+import {contentCid} from './local-account-config.mjs';
+import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
+import {validInstallationBinding} from './ordinary-source-binding.mjs';
 
 test('managed Source Plan selection captures the original declaration method and receiver', () => {
   const selection = Object.freeze({declaration: {}, provider: {}, transferBytes: 1n, executionBytes: 2n});
@@ -180,16 +183,18 @@ test('managed Source view preserves original physical and plural method receiver
     close() {assert.strictEqual(this, source); return close;},
     retainedCapture(value) {assert.strictEqual(this, source); assert.strictEqual(value, child); return capture;},
     admitsSource(value) {assert.strictEqual(this, source); return value === 'original';},
+    retirePreparedSource(value) {assert.strictEqual(this, source); assert.strictEqual(value, child); return child;},
   };
   const profile = {sources: [source], close() {assert.strictEqual(this, profile); return close;},
     admitsSource(value) {assert.strictEqual(this, profile); return value === 'plural';}};
   const view = bindInstalledManagedSources(profile, () => assert.fail('Method forwarding does not issue a parent'));
-  for (const name of ['open', 'close', 'retainedCapture', 'admitsSource']) source[name] = () => assert.fail('Replaced child method');
+  for (const name of ['open', 'close', 'retainedCapture', 'admitsSource', 'retirePreparedSource']) source[name] = () => assert.fail('Replaced child method');
   profile.close = profile.admitsSource = () => assert.fail('Replaced plural method');
   assert.strictEqual(view.sources[0].open(child), child);
   assert.strictEqual(view.sources[0].close(), close);
   assert.strictEqual(view.sources[0].retainedCapture(child), capture);
   assert.equal(view.sources[0].admitsSource('original'), true);
+  assert.strictEqual(view.sources[0].retirePreparedSource(child), child);
   assert.strictEqual(view.close(), close);
   assert.equal(view.admitsSource('plural'), true);
 });
@@ -217,9 +222,10 @@ test('DuckDB quotes its actual pending capture and physical transport without se
     clientProgramInstalledPendingDuckDBCaptureCapacity(value) {assert.strictEqual(value, pending); calls.push('typed-capacity'); return capacity;},
   };
   const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
-    'computePhysicalCapacity', 'importMetaUrl',
+    'computePhysicalCapacity', 'importMetaUrl', 'contentCid', 'duckDBPhysicalTarget',
     text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return createInstalledDuckDBSource;')(
-    async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-duckdb-source.mjs', import.meta.url).href);
+    async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-duckdb-source.mjs', import.meta.url).href,
+    contentCid, duckDBPhysicalTarget);
   const adapter = await create(profile, moon, {root: '/unused', principalId: 'original'});
   const result = adapter.managedCaptureCapacity(requirement), physical = computePhysicalCapacity(profile.transportLimits);
   assert.deepEqual(result, {capacity, transferBytes: physical.transferBytes, executionBytes: physical.executionBytes});
@@ -229,6 +235,43 @@ test('DuckDB quotes its actual pending capture and physical transport without se
   adapter.close();
   assert.deepEqual(calls, ['pending','typed-capacity','authorization-close']);
   assert.throws(() => adapter.managedCaptureCapacity(requirement), /InstalledSourceReaderNotCurrent/);
+});
+
+
+test('DuckDB bound recovery keeps the original preparation and selected installation', async () => {
+  const text = readFileSync(new URL('./installed-duckdb-source.mjs', import.meta.url), 'utf8');
+  const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
+  const node = syntax.body.find(node => node.declaration?.id?.name === 'createInstalledDuckDBSource').declaration;
+  const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
+  const view = `sha256:${'a'.repeat(64)}`, authorization = {close() {return true;}};
+  const profile = {database: '/never-opened.duckdb', schema: 'main', table: 'records',
+    sourceRef: 'connector://fixture/records#v', sourceAccess: {authorization},
+    environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture',
+      source_views: [{contract_cid: view}]}]})};
+  const installation = Object.freeze({registration: 'builtin_source', revision: 'builtin_source/0.1'});
+  let next;
+  const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
+    'contentCid', 'duckDBPhysicalTarget', 'validInstallationBinding', 'prepareCapturedDuckDBSource',
+    'importMetaUrl', text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') +
+      ';return createInstalledDuckDBSource;')(async () => {}, readFile, value => value,
+    contentCid, duckDBPhysicalTarget, validInstallationBinding, async () => next,
+    new URL('./installed-duckdb-source.mjs', import.meta.url).href);
+  const adapter = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
+  next = Object.freeze({physicalBinding: duckDBPhysicalTarget(profile),
+    checkedSource: Object.freeze({sourceRef: profile.sourceRef, sourceViewContractCid: view})});
+  const prepared = await adapter.prepare({}), binding = adapter.ordinaryRecoveryBinding(prepared);
+  assert.equal(validInstallationBinding(binding), true);
+  assert.equal(binding.connectorId, 'fixture');
+  assert.equal(binding.connectorRegistration, installation.registration);
+  assert.equal(binding.connectorRevision, installation.revision);
+  assert.equal(binding.bindingCid, adapter.connectorBindings[0].bindingCid);
+  assert.equal(adapter.ordinaryRecoveryBinding(prepared), binding);
+  assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}), /InstalledSourcePreparationMismatch/);
+  const other = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
+  assert.throws(() => other.ordinaryRecoveryBinding(prepared), /InstalledSourcePreparationMismatch/);
+  adapter.close();
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared), /InstalledSourceReaderNotCurrent/);
+  other.close();
 });
 
 function hostManagedSources(onCheck = () => {}, inputField = 'preparedProgram') {

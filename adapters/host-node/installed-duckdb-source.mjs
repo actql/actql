@@ -9,6 +9,7 @@ import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
+import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 import {assertInstalledSourceConstruction, retainInstalledSourceConstruction, closeInstalledSourceConstruction,
@@ -101,7 +102,7 @@ export async function installDuckDBSourceProfile(profile, {root, principalId, ru
 
 // The known builtin constructor, selected only by the bound Host factory.
 // Its Query/native-acquisition behavior remains the original implementation.
-export async function createInstalledDuckDBSource(profile, moon, {root, principalId, sourceInitialization, environment}) {
+export async function createInstalledDuckDBSource(profile, moon, {root, principalId, sourceInitialization, environment, installation}) {
   if (sourceInitialization !== undefined) {
     assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
     if (profile.environmentWire !== environment.wire) throw new TypeError('ForeignInstalledSourceConstruction');
@@ -123,18 +124,29 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
   if (sourceInitialization !== undefined) assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
-  const catalogIds = (environment?.body ?? JSON.parse(profile.environmentWire)).connector_catalogs
-    .map(catalog => catalog.connector_id);
+  const catalogs = (environment?.body ?? JSON.parse(profile.environmentWire)).connector_catalogs;
+  const catalogIds = catalogs.map(catalog => catalog.connector_id);
+  const physicalBinding = duckDBPhysicalTarget(profile);
+  const bindingCid = contentCid({version: 'actql-installed-duckdb-source-binding/0.1',
+    root, principalId, physicalBinding, sourceRef: profile.sourceRef});
+  const preparations = new WeakMap();
   const adapter = Object.freeze({
     realizationKey: 'duckdb-acquired',
+    connectorRegistration: installation?.registration,
+    connectorRevision: installation?.revision,
     supportsRetainedRelationOutput: true,
     environmentWire: profile.environmentWire,
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
-      Object.freeze({connectorId, bindingCid: contentCid({
-        version: 'actql-installed-duckdb-source-binding/0.1',
-        root, principalId, physicalBinding: duckDBPhysicalTarget(profile),
-        sourceRef: profile.sourceRef,
-      })}))),
+      Object.freeze({connectorId, bindingCid}))),
+    ordinaryRecoveryBinding(prepared) {
+      current();
+      const original = preparations.get(prepared);
+      if (original === undefined || prepared.physicalBinding !== original.physicalBinding ||
+          prepared.checkedSource.sourceRef !== profile.sourceRef) {
+        throw new TypeError('InstalledSourcePreparationMismatch');
+      }
+      return original.binding;
+    },
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => !closing && sourceRef === profile.sourceRef,
@@ -171,14 +183,26 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
         executionBytes: physical.executionBytes,
       });
     },
-    prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
+    prepare: async ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, requireImmediateReadAuthorization,
       queryTimePreparation, requestIdentity}) => {
       current();
-      return prepareCapturedDuckDBSource({...common,
+      const prepared = await prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
       queryTimePreparation, requestIdentity,
       sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
+      current();
+      const matches = catalogs.filter(value => value.source_views.some(view =>
+        view.contract_cid === prepared.checkedSource.sourceViewContractCid));
+      const catalog = matches.length === 1 ? matches[0] : undefined;
+      const binding = Object.freeze({connectorId: catalog?.connector_id,
+        connectorRegistration: installation?.registration,
+        connectorRevision: installation?.revision, bindingCid});
+      if (sourceInitialization !== undefined && !validInstallationBinding(binding)) {
+        throw new TypeError('InstalledSourcePreparationMismatch');
+      }
+      preparations.set(prepared, Object.freeze({physicalBinding: prepared.physicalBinding, binding}));
+      return prepared;
     },
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger,

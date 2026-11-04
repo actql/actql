@@ -1405,6 +1405,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
         const adapter = await createInstalledDuckDBSource(profile, original.moon, {
           root: original.root, principalId: original.principalId,
           sourceInitialization: context, environment: prepared.environment,
+          installation: scope.installation,
         });
         owned.adapter = adapter;
         current();
