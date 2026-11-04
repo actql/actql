@@ -20,7 +20,9 @@ import {openInstalledRemoteHttpHost} from
   '../../../host-node/embedded-local.mjs';
 import {publishInstalledSourceProfile} from
   '../../../host-node/installed-source.mjs';
-import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {canonicalJson, contentCid} from '../../../host-node/local-account-config.mjs';
+import {selectInstalledLocalMaterializationEnvironment} from
+  '../../../host-node/installed-host-policy.mjs';
 import {openHttpsExchangeFixture} from
   '../../../site-node/https-exchange-fixture.mjs';
 import {graphqlRoute, issueReads} from './github-graphql.fixture.mjs';
@@ -173,6 +175,13 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
     } finally { connection.closeSync(); instance.closeSync(); }
     const environment = JSON.parse(await readFile(join(repository,
       'adapters/host-node/fixtures/two-source/left.environment.json'), 'utf8'));
+    // Publish Source facts under the SAME selected Host policy. The standalone
+    // two-source checker fixture has its own policy and cannot replace it.
+    const baseEnvironment = selectInstalledLocalMaterializationEnvironment(commonMoon,
+      (await readFile(join(repository, 'spec/local-check-environment.json'), 'utf8')).trimEnd());
+    environment.host_policy_profile = JSON.parse(baseEnvironment).host_policy_profile;
+    delete environment.evidence_bundle_cid;
+    environment.evidence_bundle_cid = contentCid(environment);
     const view = environment.source_views[0];
     await writeFile(mixedProfilePath, canonicalJson({
       version: 'actql-installed-duckdb-source/0.1', database,
