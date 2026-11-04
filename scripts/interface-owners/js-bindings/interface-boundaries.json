@@ -37379,7 +37379,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "fa788584e7e1c6fe70a2c4ac116cfbd3f344790b5ef6661f5a3777de33a9d89d",
+      "sha256": "3bc0e68899d4006a59f2e0a72b5734198fa77110f9919b5a2a0074df84189b34",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

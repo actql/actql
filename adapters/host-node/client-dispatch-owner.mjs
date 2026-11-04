@@ -965,6 +965,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           await step('acquisition_started', {ref: accepted.ref, task: source.occurrence.task,
             selection: preparedSource.selection,
             resourceUsage: resourceUsage(ledger)});
+          entry.abort.signal.throwIfAborted();
           entry.physicalWorkMayHaveStarted = true;
           const acquisition = acquisitionEndHandoff();
           const measured = observation?.canMeasure('source') ? performance.now() : undefined;
