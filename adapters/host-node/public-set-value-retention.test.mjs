@@ -44,7 +44,12 @@ function retainedSetAuthorization(accountId, hooks) {
   return {
     accountConfiguration: canonicalJson({
       version: 'actql-execution-account-config/0.1', account_id: accountId,
-      entries: [{entry_id: 'write', outcome: 'allow', principal: {all: true},
+      entries: [{entry_id: 'control-result-read', outcome: 'allow',
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/consumed_a', 'result/consumed_b', 'result/published', 'run']},
+        operation: {any_of: ['read']}, exclusions: []},
+      {entry_id: 'write', outcome: 'allow', principal: {all: true},
         connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}],
     }),
@@ -60,7 +65,6 @@ function retainedSetAuthorization(accountId, hooks) {
 test('public retained Set compares nested values before scalar publication',
   {timeout: 60_000}, async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-set-values-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     let advances = 0;
     let completions = 0;
     let outputRepresentations;
@@ -79,7 +83,10 @@ test('public retained Set compares nested values before scalar publication',
     });
     const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    t.after(() => client.close());
+    t.after(async () => {
+      await client.close();
+      await rm(directory, {recursive: true, force: true});
+    });
     for (const [operation, duplicates, expected] of [
       ['except', 'all', [
         {item: b, position: 0}, {item: null, position: 1},
