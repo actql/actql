@@ -84,6 +84,7 @@ fn client_local_sequence_capacity(
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = client_local_default_row_profile(),
   retained_output? : Bool = true,
+  runtime_admission? : Bool = false,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   client_local_sequence_capacity_original(
     sequences,
@@ -92,6 +93,7 @@ fn client_local_sequence_capacity(
     retained_inputs~,
     max_rows~,
     retained_output~,
+    runtime_admission~,
   ).map(value => {
     (value.limits, value.provider_retained, value.provider_execution)
   })
@@ -107,10 +109,14 @@ fn client_local_sequence_capacity_original(
   retained_output? : Bool = true,
   include_simultaneous? : Bool = false,
   simultaneous_graph? : @strategy.CheckedDAG? = None,
+  runtime_admission? : Bool = false,
 ) -> ClientLocalSequenceCapacity? {
   if task_count < 1 || sequences.length() > task_count {
     return None
   }
+  let runtime_inventory = runtime_admission &&
+    !include_simultaneous &&
+    retained_inputs is Some(_)
   let plan = capacity_plan.unwrap_or_else(() => {
     client_local_capacity_plan(sequences, max_rows)
   })
@@ -169,11 +175,15 @@ fn client_local_sequence_capacity_original(
         ),
       )
     }
-    if retained < 0L ||
-      retained > client_local_retained_byte_ceiling() - total_retained_bytes {
+    if retained < 0L || retained > client_local_retained_byte_ceiling() {
       return None
     }
-    total_retained_bytes += retained
+    if !runtime_inventory {
+      if retained > client_local_retained_byte_ceiling() - total_retained_bytes {
+        return None
+      }
+      total_retained_bytes += retained
+    }
     if retained > retained_bytes {
       retained_bytes = retained
     }
@@ -196,7 +206,23 @@ fn client_local_sequence_capacity_original(
     }
     guard @local.local_import_retention_capacity(import_limits)
       is Some(import_bytes) &&
-      export_capacity is Some(export_bytes) &&
+      export_capacity is Some(export_bytes) else {
+      return None
+    }
+    // A whole-Run maximum is an optional estimate, not a reservation or an
+    // execution prerequisite. The Source-free consumer admits each actual
+    // provider/import/output on this SAME finite Ledger before construction.
+    // Callers requiring a simultaneous envelope retain the strict inventory.
+    let inventory = if runtime_inventory {
+      let mut ports = 0L
+      for count in inputs {
+        if count < 0 {
+          return None
+        }
+        ports += count.to_int64()
+      }
+      Some((client_local_retained_byte_ceiling(), ports))
+    } else {
       client_local_store_inventory(
         inputs,
         retained_bytes + plan.metadata_retained_bytes,
@@ -204,9 +230,8 @@ fn client_local_sequence_capacity_original(
         export_bytes,
         client_local_retained_byte_ceiling(),
       )
-      is Some((retained, ports)) else {
-      return None
     }
+    guard inventory is Some((retained, ports)) else { return None }
     input_import_bytes = import_bytes
     output_export_bytes = export_bytes
     total_retained_bytes = retained

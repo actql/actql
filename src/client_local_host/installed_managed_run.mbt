@@ -422,6 +422,7 @@ fn source_free_installed_managed_preparation_owned(
       capacity_plan=Some(capacity_plan),
       retained_inputs=Some(inputs),
       max_rows~,
+      runtime_admission=true,
     )
     is Some((limits, provider_retained_bytes, provider_execution_bytes)) else {
     return Err(Unsupported)

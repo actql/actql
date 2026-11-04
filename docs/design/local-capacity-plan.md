@@ -12,6 +12,15 @@ internals. This is not a general promise that arbitrary arrays are immutable.
 A plan is an optimization proof and configuration, never execution permission,
 physical supply, a Ledger, or a replacement for original admission evidence.
 
+For a Source-free managed Run, summing the maximum provider, import and export
+for every future task is an optional whole-Run estimate. It does not reject
+execution merely because that sum exceeds the finite Host retained-byte policy.
+The original Run Ledger keeps that same finite policy; each actual task and its
+live inputs, metadata and output must reserve their simultaneous demand before
+construction. Failed admission stops that original Run and retains its cleanup
+responsibilities. Consumers requiring a simultaneous envelope still require
+that envelope; this does not turn its absence into an admission witness.
+
 ## Separate units
 
 Value-node and text demand come from the original checked schema/occurrence

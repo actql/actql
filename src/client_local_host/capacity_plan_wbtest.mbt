@@ -261,7 +261,10 @@ test "capacity plan quote funds metadata and narrows only scalar wire" {
         false,
       ).to_option()
       is Some(_)
-    assert_eq(accepted, retained <= 536870912L)
+    // The estimate can exceed the finite policy without rejecting a small
+    // actual execution. Per-task construction and live holdings still need
+    // their original reservations from that policy at runtime.
+    assert_true(accepted)
     println(
       "CAPACITY_PLAN_QUOTE name=\{name} rows=\{plan.execution.rows.max_rows} nodes=\{plan.values.max_nodes} tasks=\{tasks} ports=\{ports} provider=\{provider} import=\{import_bytes} export=\{export_bytes} metadata=\{plan.metadata_retained_bytes} retained=\{retained} accepted=\{accepted}",
     )

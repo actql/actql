@@ -31897,7 +31897,7 @@
     },
     {
       "module": "src/client_local_host/captured_ledger.mbt",
-      "sha256": "44f47528e7409bf460b6cd44ab98384a0f5e549edd5555064adefb7c00a67a79",
+      "sha256": "5188053ebf48a204b563882b1e9535eead84b9d4d3163fd65c1606a7b2d04c30",
       "exports": [],
       "operations": [
         {
@@ -35600,7 +35600,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "3f235bdbe7a093a2eaf22567550dc411947d97fdc20ec9662ec7df7609ce971c"
+      "sha256": "a68472acccbfb8a2baaef515ea1ab4d99ca9b36bf03129d2684614423d928be7"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
