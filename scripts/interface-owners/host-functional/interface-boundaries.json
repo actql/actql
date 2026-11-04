@@ -132949,7 +132949,7 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "4a652255a171bff8c5a70166e72dbb0e3a97586a831ca4dd1fe67f91d4b9658e",
+      "sha256": "88d2fb6301f9767ad1a76804c6870e90304837bf996ac76342bd8a043a67e364",
       "exports": [
         "bindInstalledEnvironmentConstruction",
         "composeInstalledInventoryEnvironment",
@@ -133277,6 +133277,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
                 "anchor": "test('failed asynchronous successor preserves prefix and Source borrow until its actual settle'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('ordinary Environment composition preserves its real pending metadata-load parent'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('inventory retirement tracking still refuses a real pending metadata-load parent'"
               }
             ]
           }

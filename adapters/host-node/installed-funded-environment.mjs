@@ -177,7 +177,9 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
     const effect = effectInput === sourceInput ? source : input(effectInput);
     const baseRecord = borrow(base), sourceRecord = source === undefined ? undefined : borrow(source),
       effectRecord = effect === undefined ? undefined : borrow(effect);
-    const finish = owner.begin();
+    // Ordinary construction may run inside the same pending metadata load.
+    // Only a retiring inventory prefix requires a quiescent range capture.
+    const finish = accept === undefined ? undefined : owner.begin();
     const composed = js(() => installedEnvironmentCompositionConstructionGeometry(base.body, source?.body, effect?.body), () =>
       composeAdmittedCheckEnvironmentOriginals(base, source, effect, (wire, evidenceCid, body) => {
         sealComposedBody(body);
@@ -186,9 +188,9 @@ function composeEnvironment(services, moon, baseInput, sourceInput, effectInput,
       }));
     const result = originals.has(composed) ? composed :
       admit(composed.wire, composed.evidenceCid, composed.body, composed.counts);
-    const release = finish();
     const record = borrow(result);
     if (accept !== undefined) {
+      const release = finish();
       if (typeof accept !== 'function') fail('ForeignInstalledEnvironmentOwner');
       const accepted = accept(result);
       if (typeof accepted !== 'boolean') fail('InvalidInstalledEnvironmentAcceptance');

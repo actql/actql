@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
-import {createInstalledHostServices, retireInstalledSourceInitialization}
+import {createInstalledHostServices, retireInstalledSourceInitialization, withInstalledSourceLoading}
   from './installed-host-services.mjs';
 import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
+import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 
 assert.ok(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME, 'Select the matching generated Environment bridge');
 const native = await import(pathToFileURL(process.env.ACTQL_TEST_ENVIRONMENT_RUNTIME));
@@ -216,4 +217,31 @@ test('one-sided manifest borrowing retains the actual earlier prefix envelope', 
   assert.equal(final.body.connector_manifest, prefix.body.connector_manifest);
   assert.equal(releasedSlots(f), before);
   f.close();
+});
+
+test('ordinary Environment composition preserves its real pending metadata-load parent', async () => {
+  const parent = createInstalledLoaderParent({root: '/component/environment-loading', moon: native});
+  parent.open();
+  try {
+    const result = await withInstalledSourceLoading(parent.services, async () => {
+      const original = composeInstalledSourceEnvironment(parent.services, native, baseWire, undefined, document('loaded'));
+      assert.ok(original.admitted);
+      assert.equal(retireInstalledSourceInitialization(parent.services), false,
+        'the same active metadata load still prevents parent retirement');
+      return original;
+    });
+    assert.ok(Object.isFrozen(result));
+  } finally {await parent.close();}
+});
+
+test('inventory retirement tracking still refuses a real pending metadata-load parent', async () => {
+  const parent = createInstalledLoaderParent({root: '/component/inventory-loading', moon: native});
+  parent.open();
+  try {
+    await assert.rejects(withInstalledSourceLoading(parent.services, async () => {
+      assert.equal(retireInstalledSourceInitialization(parent.services), false);
+      return composeInstalledInventoryEnvironment(parent.services, native, baseWire, undefined,
+        document('loaded'), () => true);
+    }), {code: 'ForeignInstalledSourceInitialization'});
+  } finally {await parent.close();}
 });
