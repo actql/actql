@@ -1914,6 +1914,16 @@ fn run_control(
         next_start_ms = @env.now() + max_backoff_ms.to_uint64()
       } else {
         ignore(queue.remove(current.original.attempt))
+        // Preserve the private observation only after the original status,
+        // Channel, scoped process and current slot have confirmed retirement.
+        // This DATA is not a Run outcome or task/Store capacity release.
+        report("holder-settled", [
+          ("attempt", current.original.attempt),
+          (
+            "request_cid",
+            @remote.dispatch_request_identity(current.original.request),
+          ),
+        ])
       }
       false
     })
