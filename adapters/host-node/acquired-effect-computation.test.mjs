@@ -10,7 +10,7 @@ import {openAcquiredEffectComputation as openEffectComputation} from './acquired
 // These failure fixtures stop before the compiled runtime. Their nominal
 // Plan, Request and Ledger ports do not issue real funding or provider custody.
 const openAcquiredEffectComputation = options => {
-  const {sourceRefs = ['selected'], ...original} = options;
+  const {sourceRefs = ['selected'], rowSourceTasks = [], ...original} = options;
   const prepared = original.acquired.prepared;
   const request = original.acquired.requestIdentity ?? {};
   const managedRun = original.managedRun ?? {}, plan = {}, ledger = {};
@@ -36,7 +36,17 @@ const openAcquiredEffectComputation = options => {
     },
     clientProgramSelectedSourceInputKind: () => 'query',
     clientProgramSelectedSourceInputRef: value => value,
-    clientProgramInstalledEffectManagedPlanSource() {assert.fail('Adapter selection must not demand a Row-only capture');},
+    clientProgramInstalledEffectManagedDuckDBCapture(parent, value, identity, task) {
+      assert.equal(this, moon); sameOriginal(parent, value, identity);
+      assert(Number.isSafeInteger(task) && task >= 0 && task < sourceRefs.length);
+      assert.equal(rowSourceTasks.includes(task), false, 'Native getter cannot substitute for a Row capture');
+      return {$tag: 1, _0: {_0: sourceRefs[task], _1: sourceBudget.capacity}};
+    },
+    clientProgramInstalledEffectManagedPlanSource(originalPlan, task) {
+      assert.equal(this, moon); assert.equal(originalPlan, plan);
+      assert.equal(rowSourceTasks.includes(task), true, 'Native adapter selection must not demand a Row-only capture');
+      return {$tag: 1, _0: {_0: {}, _1: sourceRefs[task], _2: {}, _3: sourceBudget.capacity}};
+    },
     clientProgramInstalledEffectManagedRunPrepareLedger(parent, value, identity, capacities, transfer, execution,
       registry, values, fragment, ordered) {
       assert.equal(this, moon); sameOriginal(parent, value, identity);
@@ -55,7 +65,7 @@ const openAcquiredEffectComputation = options => {
       enumerable: true, writable: true, configurable: true});
   }
   const sourceProfile = original.sourceProfile?.sources === undefined
-    ? {admitsSource: ref => ref === 'selected', ...original.sourceProfile}
+    ? {realizationKey: 'duckdb-acquired', admitsSource: ref => ref === 'selected', ...original.sourceProfile}
     : original.sourceProfile;
   for (const adapter of sourceProfile.sources ?? [sourceProfile]) {
     if (typeof adapter.ledgerCapacity !== 'function') Object.defineProperty(adapter, 'ledgerCapacity', {value(value) {
@@ -500,6 +510,9 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
     await assert.rejects(openAcquiredEffectComputation({
       moon: {clientProgramEffectAcquisitionCount: () => 2},
       sourceRefs: ['first', 'second'],
+      // This negative retains a valid typed Row capture but rejects its
+      // unsupported Host realization before any adapter preparation or I/O.
+      rowSourceTasks: fault === 'unsupported-realization' ? [1] : [],
       acquired: {prepared: {}}, sourceProfile: {sources: [first, unused, second]},
       retainComputationOwner(value) { custody = value; },
     }), {message: fault === 'duplicate-owner' ? 'DuplicateEffectSourceOwner'
@@ -754,4 +767,54 @@ test('acquired Effect publication reuses transferred Source evidence and admits 
   }};
   const values = new Function('sources', 'control', 'limits', 'return (' + text.slice(node.start, node.end) + ');')(sources, control, limits);
   assert.strictEqual(values[0], original); assert.strictEqual(values[1], legacy); assert.deepEqual(calls, ['legacy']);
+});
+
+function restoredModelSourceEvidenceFixture({infer = {}, refusal} = {}) {
+  const node = inferSourceNodes.find(value => value.type === 'IfStatement' &&
+    inferSourceText.slice(value.test.start, value.test.end) === 'admission?.retained !== undefined');
+  assert(node);
+  // Read the current branch, including its original continue, in one loop.
+  const currentText = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const tree = parse(currentText, {ecmaVersion: 'latest', sourceType: 'module'});
+  let currentBranch;
+  (function visit(value) {
+    if (!value || typeof value !== 'object') return;
+    if (value.type === 'IfStatement' && currentText.slice(value.test.start, value.test.end) ===
+        'admission?.retained !== undefined') currentBranch = value;
+    for (const child of Object.values(value)) if (Array.isArray(child)) child.forEach(visit);
+    else if (child && typeof child === 'object') visit(child);
+  })(tree);
+  assert(currentBranch);
+  const original = {}, captured = {}, record = {}, source = {};
+  const restored = {captured, sourceEvidenceWire: 'same-authenticated-source-evidence'};
+  const calls = [], captures = [], evidence = [], limits = Object.freeze({maxWireBytes: 1000000});
+  const ports = {infer, admission: {retained: record}, source, ledger: {}, captures, evidence,
+    localContractLimits: limits, current() {calls.push('current');},
+    sourceContinuation: {restore(actual, retained) {
+      assert.strictEqual(actual, source); assert.strictEqual(retained, record);
+      calls.push('restore'); return restored;
+    }}, acquired: {control: {admitRunEvidence(name, wire, bound) {
+      assert.equal(name, 'source_evidence'); assert.equal(wire, restored.sourceEvidenceWire);
+      assert.strictEqual(bound, limits); assert.strictEqual(captures[0], captured);
+      calls.push('admit-original'); if (refusal) throw refusal; return original;
+    }}}};
+  const invoke = Function(...Object.keys(ports), 'for (const once of [0]) ' +
+    currentText.slice(currentBranch.start, currentBranch.end));
+  return {invoke: () => invoke(...Object.values(ports)), captures, captured, evidence, original, restored, calls};
+}
+
+test('restored Model Source admits its same sealed wire into the current nominal evidence owner', () => {
+  const f = restoredModelSourceEvidenceFixture(); f.invoke();
+  assert.strictEqual(f.evidence[0].sourceEvidence, f.original);
+  assert.strictEqual(f.evidence[0].captured, f.captured);
+  assert.equal(f.evidence[0].sourceEvidenceWire, f.restored.sourceEvidenceWire);
+  assert.deepEqual(f.calls, ['restore', 'current', 'admit-original', 'current']);
+});
+
+test('restored Model Source evidence refusal retains the original capture for cleanup', () => {
+  const refusal = Object.freeze(new Error('original sealed evidence refused'));
+  const f = restoredModelSourceEvidenceFixture({refusal});
+  assert.throws(f.invoke, error => error === refusal);
+  assert.deepEqual(f.captures, [f.captured]); assert.deepEqual(f.evidence, []);
+  assert.deepEqual(f.calls, ['restore', 'current', 'admit-original']);
 });

@@ -157,7 +157,7 @@ export function installedEnvironmentCompositionConstructionGeometry(
     }
   }
   if (frozenSourceBody === undefined || frozenEffectBody === undefined) {
-    return stage({nodes: 2n, text: 0n, wire: 0n}, workspace,
+    return stage({nodes: 2n + 40n, text: 0n, wire: 0n}, workspace,
       {merged: false, nativeAdmissionIncluded: false});
   }
   // Keep every member as an upper bound: equal-body coalescing never reduces
@@ -178,7 +178,9 @@ export function installedEnvironmentCompositionConstructionGeometry(
   workspace.nodes += 4n; // Three original references and their temporary array.
   return stage({// New merged census (record +14 fields), pre-admission candidate (record
     // +4 fields), and original index (record +4 fields +entry) coexist.
-    nodes: base.nodes + 3n * members + manifestNodes + 48n + 26n,
+    // Scoped range/finish/release closures, six range/phase scalars, original
+    // retirement fields and up to nine input/three provider rollback slots.
+    nodes: base.nodes + 3n * members + manifestNodes + 48n + 26n + 40n,
     text: 2n * (envelope.output + 71n), wire: 0n}, workspace,
     {merged: true, members, mergedWireUnits: envelope.output, nativeAdmissionIncluded: false});
 }

@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {createInstalledHostServices, retireInstalledSourceInitialization}
   from './installed-host-services.mjs';
-import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 
@@ -25,13 +25,22 @@ function document(name) {
 // these tests establish ordering/identity, not actual Root/Ledger admission.
 function fixture() {
   const input = {}, unit = {}, capacity = {}, initial = {}, events = [];
-  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true};
+  const state = {reads: 0, from: 0, retire: 0, refuse: false, cause: undefined, current: true, retireReady: true, reconciled: [], zero: new Set(), delay: undefined};
   const moon = {...native};
   for (const name of ['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
     'AbortUncontinuedSourceMaterial', 'BeginInstalledSourceIo', 'ChargeInstalledSourceIo',
     'MarkInstalledSourceIoTransferUncertain', 'FinishInstalledSourceIoAfterCleanup']) moon['clientProgram' + name] = () => ok();
   Object.assign(moon, {
+    clientProgramInstalledSourceConstructionCapacity(...values) {
+      const result = native.clientProgramInstalledSourceConstructionCapacity(...values);
+      if (values.every(value => value === 0n)) state.zero.add(result._0);
+      return result;
+    },
+    clientProgramReconcileInstalledSourceConstruction(value, original, quote) {
+      assert.equal(value, capacity); assert.equal(original, input);
+      state.reconciled.push([...quote.providers]); return ok();
+    },
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial);return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit);assert.equal(original, input);return ok(capacity);},
     clientProgramComposeInstalledSourceConstructionCapacity: (original, providers) => ok({original, providers}),
@@ -44,7 +53,8 @@ function fixture() {
     },
     clientProgramReadCheckEnvironmentWire(wire, cid) {
       assert.equal(events.at(-1), 'reserve');state.reads++;events.push('read');
-      return native.clientProgramReadCheckEnvironmentWire(wire, cid);
+      const value = native.clientProgramReadCheckEnvironmentWire(wire, cid);
+      return state.delay?.(value) ?? value;
     },
     clientProgramCheckEnvironmentFromWire(value, ...flags) {
       assert.equal(events.at(-1), 'reserve');state.from++;events.push('from');
@@ -52,8 +62,9 @@ function fixture() {
     },
   });
   const services = createInstalledHostServices({root: '/component/environment', principalId: 'component', moon,
-    initialPreparation: initial, assertCurrent() {if (!state.current) throw new Error('OriginalLost');}});
+    initialPreparation: initial, assertCurrent() {state.onCurrent?.();if (!state.current) throw new Error('OriginalLost');}});
   return {moon, services, state, events, compose: (...inputs) => composeInstalledSourceEnvironment(services, moon, ...inputs),
+    inventory: (previous, member, accept = () => false) => composeInstalledInventoryEnvironment(services, moon, baseWire, previous, member, accept),
     close: () => retireInstalledSourceInitialization(services)};
 }
 
@@ -128,4 +139,81 @@ test('installed aggregate composition requires original services before any load
     {code: 'ForeignInstalledHostServices'});
   assert.equal(reads, 1);
   assert.equal(loads, 0);
+});
+
+const releasedSlots = f => f.state.reconciled.at(-1).filter(value => f.state.zero.has(value)).length;
+test('inventory replacement releases only its prior shallow prefix and keeps member originals', () => {
+  const f = fixture();
+  const member = f.inventory(undefined, document('member'));
+  const prefix = f.inventory(member, document('second'));
+  const before = releasedSlots(f);
+  const final = f.inventory(prefix, document('third'), () => true);
+  assert.equal(releasedSlots(f) - before, 3); // JS merge, wire read, native Environment.
+  assert.throws(() => f.inventory(prefix, document('fourth')), {code: 'ForeignInstalledEnvironmentOriginal'});
+  // This failed call latches the same owner; the earlier completed output
+  // still contains the same member leaves, without a second parse or refund.
+  assert.equal(final.body.connector_catalogs.find(value => value.connector_id === 'member'), member.body.connector_catalogs[0]);
+  assert.equal(releasedSlots(f) - before, 3);
+  f.close();
+});
+
+test('escaped and normally borrowed inventory prefixes retain their original custody', () => {
+  for (const escaped of [false, true]) {
+    const f = fixture(), member = f.inventory(undefined, document('member'));
+    const prefix = f.inventory(member, document('second'), () => escaped);
+    if (!escaped) assert.equal(f.compose(baseWire, prefix), prefix);
+    const before = releasedSlots(f);
+    f.inventory(prefix, document('third'), () => true);
+    assert.equal(releasedSlots(f), before);
+    f.close();
+  }
+});
+
+test('failed acceptance and lost currentness keep the previous inventory prefix funded', () => {
+  for (const loss of [false, true]) {
+    const f = fixture(), member = f.inventory(undefined, document('member'));
+    const prefix = f.inventory(member, document('second'));
+    const before = releasedSlots(f), original = new Error('OriginalAcceptanceRefusal');
+    assert.throws(() => f.inventory(prefix, document('third'), () => {
+      if (loss) {f.state.current = false; return false;}
+      throw original;
+    }), loss ? /OriginalLost/ : value => value === original);
+    assert.equal(releasedSlots(f), before);
+    f.state.current = true;f.close();
+  }
+});
+
+test('failed asynchronous successor preserves prefix and Source borrow until its actual settle', async () => {
+  const f = fixture(), member = f.inventory(undefined, document('member'));
+  const prefix = f.inventory(member, document('second'));
+  const before = releasedSlots(f);
+  let settle;
+  f.state.delay = value => f.state.reads === 6 ? new Promise(resolve => {settle = () => resolve(value);}) : value;
+  assert.throws(() => f.inventory(prefix, document('third')), {code: 'InstalledSourceConstructorNotSynchronous'});
+  assert.equal(releasedSlots(f), before);
+  assert.equal(f.close(), false);
+  settle(); await Promise.resolve(); await Promise.resolve();
+  assert.equal(f.close(), true);
+});
+
+test('Environment owner refuses reentry even during its first nominal reader lookup', () => {
+  const f = fixture(); let reentries = 0;
+  f.state.onCurrent = () => {
+    f.state.onCurrent = undefined;
+    assert.throws(() => f.compose(baseWire), {code: 'InstalledEnvironmentConstructionReentry'});
+    reentries++;
+  };
+  f.compose(baseWire);
+  assert.equal(reentries, 1);
+  f.close();
+});
+
+test('one-sided manifest borrowing retains the actual earlier prefix envelope', () => {
+  const f = fixture(), member = f.inventory(undefined, document('member'));
+  const prefix = f.inventory(member, document('second'));
+  const before = releasedSlots(f);
+  const final = f.inventory(prefix, baseWire, () => true);
+  assert.equal(final.body.connector_manifest, prefix.body.connector_manifest);
+  assert.equal(releasedSlots(f), before);
+  f.close();
 });

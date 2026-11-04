@@ -295,24 +295,36 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
           model.compiled, definition, model.graph);
       }}),
   };
+  const prepareRead = () => {
+    current();
+    if (Object.hasOwn(run, 'modelReadFailure')) throw run.modelReadFailure;
+    if (run.modelPreparationRetired || !run.modelPreparationTaken || run.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
+    run.modelReadAttempted = true;
+    try {
+      run.modelRead = physical === undefined
+        ? control.prepareCheckedClientInferOriginalRead(model.compiled, definition, model.graph, scope, fields)
+        : control.prepareCheckedClientInferNodeReadLayout(
+          model.compiled, definition, model.graph, scope, physical.nodeInstallation);
+      return Object.freeze({...fields, read: run.modelRead});
+    } catch (cause) {run.modelReadFailure = cause; throw cause;}
+  };
   const view = Object.freeze({...fields,
     retain() {
       current();
       if (run.modelPreparationRetired || run.modelPreparationTaken || run.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
       run.modelPreparationTaken = true;
     },
-    prepareRead() {
+    prepareRead,
+    restoreRead(input) {
       current();
-      if (Object.hasOwn(run, 'modelReadFailure')) throw run.modelReadFailure;
-      if (run.modelPreparationRetired || !run.modelPreparationTaken || run.modelReadAttempted) fail('ForeignInstalledEffectModelScope');
-      run.modelReadAttempted = true;
-      try {
-        run.modelRead = physical === undefined
-          ? control.prepareCheckedClientInferOriginalRead(model.compiled, definition, model.graph, scope, fields)
-          : control.prepareCheckedClientInferNodeReadLayout(
-            model.compiled, definition, model.graph, scope, physical.nodeInstallation);
-        return Object.freeze({...fields, read: run.modelRead});
-      } catch (cause) {run.modelReadFailure = cause; throw cause;}
+      // This selects the saved-input constructor, not fresh input permission.
+      // Core admits the nominal saved scope against this same Run/occurrence
+      // before entering the one original consumer or allocating saved input.
+      if (input?.savedScope === undefined ||
+          typeof control.startCheckedClientOriginalRestoredComposedInferExecution !== 'function') {
+        fail('InstalledEffectModelRuntimeUnavailable');
+      }
+      return prepareRead();
     },
     retire() {
       current();

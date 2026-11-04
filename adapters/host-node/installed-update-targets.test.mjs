@@ -15,7 +15,7 @@ import {composeInstalledCheckEnvironment} from './installed-check-environment.mj
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding, validateInstalledUpdateOwnerSelections} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
@@ -348,9 +348,9 @@ test('actual JSON UPDATE preparation retains the installed selection in its orig
     const environment = admitted(installed.environmentWire);
     const publication = sourceAliasPublication(moon, environment, [], [],
       {updateTargets: installed.queryUpdateTargets});
-    const prepare = installNodeClientProgramPreparation({moon, environment,
+    const prepare = await fundedClientPreparation(t, {moon, environment,
       allowEffects: true, sourcePublication: publication});
-    const prepared = prepare({kind: 'program', parameters: null, input: {
+    const prepared = await prepare({kind: 'program', parameters: null, input: {
       version: 'actql/0.1', id: 'json-update-original', stages: [{id: 'apply', inputs: {},
         steps: [{values: {schema: {id: {type: 'string', nullable: false},
           name: {type: 'string', nullable: false}}, rows: [{id: 'original-id', name: 'Ada'}]},
@@ -395,7 +395,7 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
     const environment = admitted(installed.environmentWire);
     const publication = sourceAliasPublication(moon, environment, [], [],
       {updateTargets: installed.queryUpdateTargets});
-    const prepare = installNodeClientProgramPreparation({moon, environment,
+    const prepare = await fundedClientPreparation(t, {moon, environment,
       allowEffects: true, sourcePublication: publication});
     const document = structuredClone(program);
     document.stages[0].steps[0].values.schema.text.nullable = false;
@@ -412,7 +412,7 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
     document.results = {updates: {from: {stage: 'main', result: 'rows'}}};
     // Match public startSource(..., {format: 'json'}), not the separate
     // object-Program convenience route. Both must reach the same Effect Owner.
-    const prepared = prepare({kind: 'aql', parameters: null,
+    const prepared = await prepare({kind: 'aql', parameters: null,
       input: {text: JSON.stringify(document), format: 'json'}});
     assert.equal(prepare.kindOf(prepared), 'effectful');
     const occurrence = moon.clientProgramEffectInferOccurrence(prepared);

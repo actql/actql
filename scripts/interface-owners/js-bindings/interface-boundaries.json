@@ -18954,7 +18954,8 @@
             "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
             "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
             "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
-            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution"
+            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
+            "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution"
           ],
           "exports": [],
           "attributes": {
@@ -18966,6 +18967,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -18980,6 +18989,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -18990,6 +19007,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -19004,6 +19029,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -19014,6 +19047,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -19028,6 +19069,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -19038,6 +19087,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -19052,6 +19109,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -19062,6 +19127,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -19080,6 +19153,26 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
               }
             ]
           }
@@ -28518,6 +28611,27 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "prefix",
+            "provider",
+            "snapshot",
+            "custodyAvailable",
+            "savedScope",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "referenceIssuer"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
           "parameters": [
             "compiled",
@@ -30959,7 +31073,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a9a616a8a7e33dfaeb4281a87ebcc6b215fe5c9b47d40181549d757d002b496f"
+      "sha256": "297e547f159f22ec8a5f28a9c8fbb4f29ed4bb18990aaa640accd0d3dd00be58"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -31585,7 +31699,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2c696447e94caffc250ec8eceae14e9f8dc300db2a47ceb39d3cf617c82c010a",
+      "sha256": "159397704850e990f871a494f419eca438ce1075351a2c30881c154c22729b70",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -64361,7 +64475,8 @@
             "openNodeComposedInferProvider/provider/provider#3",
             "openNodeComposedInferProvider/provider/provider#4",
             "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
-            "openNodeComposedInferProvider/recordFailure/recordFailure"
+            "openNodeComposedInferProvider/recordFailure/recordFailure",
+            "openNodeComposedInferProvider/selectRead/selectRead"
           ],
           "exports": [
             "openNodeComposedInferProvider"
@@ -64383,6 +64498,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -64405,6 +64528,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -64427,6 +64558,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -64449,6 +64588,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -64467,6 +64614,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -64485,6 +64640,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -64503,6 +64666,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -64525,6 +64696,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -64543,6 +64722,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -64585,6 +64772,26 @@
               {
                 "path": "adapters/host-node/composed-infer-provider.test.mjs",
                 "anchor": "a generated Model provider selects its purpose before binding the same late Content generation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
               }
             ]
           }
@@ -64700,7 +64907,8 @@
             "openNodeInferOperation/runtimeCurrent/runtimeCurrent",
             "openNodeInferOperation/stop",
             "openNodeInferOperation/stop/stop",
-            "openNodeInferOperation/operation/operation/owners/owners"
+            "openNodeInferOperation/operation/operation/owners/owners",
+            "openNodeInferOperation/openNodeInferOperation#7"
           ],
           "exports": [
             "openNodeInferOperation"
@@ -64726,6 +64934,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -64748,6 +64964,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -64770,6 +64994,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -64796,6 +65028,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -64818,6 +65058,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -64844,6 +65092,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -64866,6 +65122,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -64888,6 +65152,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -64910,6 +65182,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -64956,6 +65236,26 @@
               {
                 "path": "adapters/host-node/infer-restored-attachment.test.mjs",
                 "anchor": "test('saved attachment admission reaches the same private Core restore call without another issuer'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
               }
             ]
           }
@@ -66364,6 +66664,14 @@
           "async": false
         },
         {
+          "name": "openNodeComposedInferProvider/selectRead/selectRead",
+          "parameters": [
+            "preparation",
+            "restored"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation",
           "parameters": [
             "moon",
@@ -66392,6 +66700,7 @@
             "retainOperation",
             "ioNotification",
             "originalPreparation",
+            "restoredPreparation",
             "rawCaptureBinder",
             "serializedInput",
             "restoredReferenceIssuer",
@@ -66477,6 +66786,11 @@
         },
         {
           "name": "openNodeInferOperation/openNodeInferOperation#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/openNodeInferOperation#7",
           "parameters": [],
           "async": false
         },
@@ -67312,7 +67626,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fa444c9f9c55bb0a76076a9db33574fbfcaffaf29e4d607b2910a3e3c247c756"
+      "sha256": "0eab54ae242743d04483e34b99d93ff3afc4e36abe96a6107d3b93576161616e"
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",

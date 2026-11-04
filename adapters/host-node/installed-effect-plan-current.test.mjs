@@ -22,6 +22,7 @@ function fixture(withModel = false) {
     clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationControlsRetain() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {return ok();},
+    clientProgramInstalledManagedRunQuiesce(value) {assert.equal(value, parent); return ok();},
     clientProgramNodeEffectManagedPlanCleanup() {return ok();},
     clientProgramInstalledEffectManagedOperationPlan(value, p, r) {
       assert.equal(this, runtime); assert.equal(arguments.length, 3);

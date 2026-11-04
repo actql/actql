@@ -27,7 +27,7 @@ export function createInstalledLoaderParent({root, principalId = 'operator', moo
       assert.equal(closed, false);
       try {
         const adapter = await factory(path, {...options, installationServices: services});
-        sources.add(adapter);
+        if (adapter !== undefined) sources.add(adapter);
         return adapter;
       } catch (failure) {
         failures.add(failure);

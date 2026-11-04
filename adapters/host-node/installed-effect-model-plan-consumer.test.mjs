@@ -488,3 +488,47 @@ test('Model Effect quiescence rejects changed original and preserves thrown unde
     {code: 'ForeignInstalledEffectModelScope'});
   assert.equal(changed.calls.includes('finish-scope'), false);
 });
+
+
+function coldEffectReadFixture({failure} = {}) {
+  const f = fixture(), read = {}, savedScope = {};
+  f.options.facts = Object.freeze({...f.options.facts, runDefinition: f.model.definition});
+  f.options.selection = Object.freeze({prepareManagedPlan(facts, inputs) {
+    assert.strictEqual(facts, f.options.facts); assert.strictEqual(inputs.modelDemand, f.demand); return f.plan;
+  }});
+  f.runtime.clientProgramInstalledEffectModelReadWindow = () => [23n, 29n];
+  let reads = 0, current = true;
+  f.options.publicationControl = {
+    startCheckedClientOriginalRestoredComposedInferExecution() { assert.fail('selection does not start input'); },
+    prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope) {
+      same([compiled, definition, graph, scope], [f.model.compiled, f.model.definition, f.model.graph, f.scope]);
+      reads++; if (failure) throw failure; return read;
+    },
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  const view = installedEffectModelPreparation(run, () => ({}), () => {if (!current) throw new Error('OriginalCurrentLost');});
+  view.retain();
+  return {f, run, view, read, savedScope, reads: () => reads, revoke() { current = false; }};
+}
+
+test('Effect Model cold read shares the same original parent scope and one-shot read with fresh preparation', () => {
+  const f = coldEffectReadFixture();
+  assert.throws(() => f.view.restoreRead({}), {code: 'InstalledEffectModelRuntimeUnavailable'});
+  assert.equal(f.reads(), 0);
+  const view = f.view.restoreRead({savedScope: f.savedScope});
+  assert.strictEqual(view.read, f.read); assert.strictEqual(view.scope, f.f.scope);
+  assert.strictEqual(f.run.value, f.f.parent); assert.strictEqual(f.run.modelRead, f.read);
+  assert.throws(() => f.view.prepareRead(), {code: 'ForeignInstalledEffectModelScope'});
+  assert.throws(() => f.view.restoreRead({savedScope: f.savedScope}), {code: 'ForeignInstalledEffectModelScope'});
+  assert.equal(f.reads(), 1);
+});
+
+test('Effect Model cold read retains exact failed issuance and refuses lost original current without a replacement', () => {
+  const failure = new Error('OriginalReadCleanupPending'), f = coldEffectReadFixture({failure});
+  for (let i = 0; i < 2; i++) assert.throws(() => f.view.restoreRead({savedScope: f.savedScope}), error => error === failure);
+  assert.strictEqual(f.run.modelReadFailure, failure); assert.equal(f.reads(), 1);
+  const other = coldEffectReadFixture(); other.revoke();
+  assert.throws(() => other.view.restoreRead({savedScope: other.savedScope}), /OriginalCurrentLost/u);
+  assert.equal(other.reads(), 0);
+});

@@ -205,18 +205,11 @@ test('retiring one public Environment consumer cuts its aliases without invalida
   assert.equal(calls.at(-1).args[3], retained.preparedEnvironment);
 });
 
-test('public Environment program factory shares publication facts without caching parameter-bound Programs', () => {
-  const {moon, calls} = ownerDouble();
-  let ordinal = 0;
+test('public Environment program factory shares publication facts without caching parameter-bound Programs', async () => {
+  const {moon, calls} = ownerDouble(); let ordinal = 0;
   Object.assign(moon, {
-    clientProgramPrepareEffectFreeWithParameters: () => ({category: 'effect_not_supported', issue: 'effect'}),
-    clientProgramPreparationReady: outcome => outcome.ready,
-    clientProgramPreparationIssue: outcome => outcome.issue,
-    clientProgramPreparationIssueCode: outcome => outcome.category,
-    clientProgramPrepareEffectComputationWithParameters: () => {throw new Error('Legacy Effect path selected');},
-    clientProgramEffectPreparationReady: outcome => outcome.ready,
-    clientProgramEffectPreparationIssue: outcome => outcome.issue,
-    clientProgramEffectPreparationIssueCode: outcome => outcome.category,
+    clientProgramPrepareEffectFreeWithParameters() {assert.fail('Request wrapper must not compile again');},
+    clientProgramPrepareEffectComputationWithParameters() {assert.fail('No legacy Effect fallback');},
     clientProgramPrepareSourceComputationInPublicEnvironment: (...args) => {
       calls.push({kind: 'source', args}); return {pure: {ready: Object.freeze({ordinal: ++ordinal})}};
     },
@@ -225,15 +218,15 @@ test('public Environment program factory shares publication facts without cachin
     },
   });
   const original = sourceAliasPublication(moon, environment);
-  const prepare = installNodeClientProgramPreparation({moon, environment,
-    sourcePublication: original, allowEffects: true});
+  const published = installNodePublicSourcePreparation({moon, environment,
+    publication: original, allowEffects: true});
   const request = {kind: 'aql', input: {text: 'SELECT @id AS id', format: 'sql',
     parameterDeclarations: {id: {type: 'number'}}}, parameters: {id: 1}};
-  const first = prepare(request);
-  const second = prepare({...request, parameters: {id: 2}});
-  assert.notEqual(first, second);
-  assert.equal(prepare.originalInputs(first).parameters, '{"id":1}');
-  assert.equal(prepare.originalInputs(second).parameters, '{"id":2}');
+  const secondRequest = {...request, parameters: {id: 2}};
+  const firstOriginal = published.prepare({document: request.input.text, format: 'sql',
+    declarations: '{"id":{"type":"number"}}', supplied: '{"id":1}'}).outcome.ready;
+  const secondOriginal = published.prepare({document: request.input.text, format: 'sql',
+    declarations: '{"id":{"type":"number"}}', supplied: '{"id":2}'}).outcome.ready;
   const effectDocument = {
     version: 'actql/0.1', id: 'json-update-original', stages: [{id: 'apply', inputs: {},
       steps: [{values: {schema: {id: {type: 'string', nullable: false},
@@ -242,29 +235,57 @@ test('public Environment program factory shares publication facts without cachin
       effects: {save: {update: {target: 'connector://crm/account', mapping: 'mapping:crm.account.0.v1',
         from: {result: 'rows'}, id: 'id', set: {Name: {field: 'name'}}}}}}],
     results: {updates: {from: {stage: 'apply', result: 'rows'}}}};
-  const effect = prepare({kind: 'program', parameters: null, input: effectDocument});
-  assert.equal(prepare.kindOf(effect), 'effectful');
+  const effectRequest = {kind: 'program', parameters: null, input: effectDocument};
+  const effectOriginal = published.prepareEffect({document: JSON.stringify(effectDocument), format: 'json'}).ready;
+  // Explicit already-funded originals isolate the current Request wrapper.
+  // This port neither parses input nor copies the former compiler recipe.
+  const funded = new WeakMap([
+    [request, {kind: 'effect_free', prepared: firstOriginal,
+      originalInputs: {environment, parameters: '{"id":1}'}}],
+    [secondRequest, {kind: 'effect_free', prepared: secondOriginal,
+      originalInputs: {environment, parameters: '{"id":2}'}}],
+    [effectRequest, {kind: 'effectful', prepared: effectOriginal, originalInputs: {environment}}],
+  ]);
+  const requests = [];
+  const prepare = installNodeClientProgramPreparation({moon, environment, allowEffects: true,
+    async getFundedPreparation(selected, owner) {
+      assert.strictEqual(owner, environment); assert(funded.has(selected)); requests.push(selected);
+      return funded.get(selected);
+    }});
+  const first = await prepare(request), second = await prepare(secondRequest);
+  assert.strictEqual(first, firstOriginal); assert.strictEqual(second, secondOriginal);
+  assert.notStrictEqual(first, second);
+  assert.equal(prepare.originalInputs(first).parameters, '{"id":1}');
+  assert.equal(prepare.originalInputs(second).parameters, '{"id":2}');
+  const effect = await prepare(effectRequest);
+  assert.strictEqual(effect, effectOriginal); assert.equal(prepare.kindOf(effect), 'effectful');
+  assert.deepEqual(requests, [request, secondRequest, effectRequest]);
   assert.equal(calls.filter(call => call.kind === 'admit').length, 1);
   assert.equal(calls.filter(call => call.kind.startsWith('legacy-')).length, 0);
   const entries = calls.filter(call => ['source', 'effect'].includes(call.kind));
   assert.equal(entries.length, 3);
   assert(entries.every(call => call.args[3] === entries[0].args[3]));
-  const legacy = installNodeClientProgramPreparation({moon: {...moon,
-    clientProgramPrepareEffectComputationWithParameters: () => ({ready: Object.freeze({legacy: true})})},
-  environment, allowEffects: true});
-  const absent = legacy({kind: 'program', parameters: null, input: effectDocument});
-  assert.equal(legacy.kindOf(absent), 'effectful');
+  assert.deepEqual(entries.slice(0, 2).map(call => call.args[5]), ['{"id":1}', '{"id":2}']);
+  const absentRequest = {kind: 'program', parameters: null, input: effectDocument};
+  const absentOriginal = Object.freeze({absent: true}); let absentRequests = 0;
+  const withoutPublication = installNodeClientProgramPreparation({moon, environment, allowEffects: true,
+    async getFundedPreparation(selected, owner) {
+      assert.strictEqual(selected, absentRequest); assert.strictEqual(owner, environment); absentRequests++;
+      return {kind: 'effectful', prepared: absentOriginal, originalInputs: {environment}};
+    }});
+  assert.strictEqual(await withoutPublication(absentRequest), absentOriginal);
+  assert.equal(withoutPublication.kindOf(absentOriginal), 'effectful');
   assert.equal(calls.filter(call => call.kind === 'admit').length, 1,
-    'Legacy absent publication does not acquire a public Environment');
-  const beforeRetirement = calls.length;
-  prepare.retireReferences();
-  prepare.retireReferences();
-  assert.throws(() => prepare(request), {code: 'ClientProgramPreparationFailure'});
-  assert.throws(() => prepare({kind: 'program', parameters: null, input: effectDocument}),
-    {code: 'ClientProgramPreparationFailure'});
-  assert.equal(calls.length, beforeRetirement, 'Closed consumers cannot rebuild their released Environment');
-  assert.equal(legacy.kindOf(legacy({kind: 'program', parameters: null, input: effectDocument})), 'effectful');
-  legacy.retireReferences();
-  assert.throws(() => legacy({kind: 'program', parameters: null, input: effectDocument}),
-    {code: 'ClientProgramPreparationFailure'});
+    'The Request wrapper cannot invent a public Environment for an absent publication');
+  const beforeRetirement = calls.length, beforeRequests = requests.length;
+  prepare.retireReferences(); prepare.retireReferences();
+  await assert.rejects(prepare(request), {code: 'ClientProgramPreparationFailure'});
+  await assert.rejects(prepare(effectRequest), {code: 'ClientProgramPreparationFailure'});
+  assert.equal(calls.length, beforeRetirement); assert.equal(requests.length, beforeRequests,
+    'Closed consumers cannot re-enter the released Request port');
+  assert.strictEqual(await withoutPublication(absentRequest), absentOriginal);
+  assert.equal(absentRequests, 2);
+  withoutPublication.retireReferences();
+  await assert.rejects(withoutPublication(absentRequest), {code: 'ClientProgramPreparationFailure'});
+  assert.equal(absentRequests, 2);
 });

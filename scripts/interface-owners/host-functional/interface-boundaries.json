@@ -63795,7 +63795,7 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7b99ef448fc74e25077a935aaba68be6c0378c0e2356d3b5b71f032939e7f233",
+      "sha256": "d93b5daee22d91e72e666b888278fab9ad6fa0b524fc9492a4bddd6ed6d8e6ef",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -63820,6 +63820,11 @@
             "load"
           ],
           "async": true
+        },
+        {
+          "name": "composeInstalledEffects/combinedOriginal/combinedOriginal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "composeInstalledEffects/composeInstalledEffects",
@@ -64063,6 +64068,7 @@
           "operations": [
             "cid/cid",
             "composeInstalledEffects",
+            "composeInstalledEffects/combinedOriginal/combinedOriginal",
             "composeInstalledEffects/composeInstalledEffects",
             "composeInstalledEffects/composeInstalledEffects#2",
             "composeInstalledEffects/queryUpdateTargets/queryUpdateTargets",
@@ -75718,7 +75724,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8398cba5072fe371ab519c597940da60f19734b90a8408b6641b0d2f2715526a",
+      "sha256": "84f1236f127c95aadd012ebc631a892bf560a0875890df5a47132d2b403a2ab1",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -75925,6 +75931,11 @@
           "async": true
         },
         {
+          "name": "loadInstalledSources/combinedOriginal/combinedOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "loadInstalledSources/loadInstalledSources",
           "parameters": [],
           "async": false
@@ -76091,6 +76102,7 @@
             "loadInstalledSource",
             "loadInstalledSources",
             "loadInstalledSources/close/close",
+            "loadInstalledSources/combinedOriginal/combinedOriginal",
             "loadInstalledSources/loadInstalledSources",
             "loadInstalledSources/loadInstalledSources#2",
             "loadInstalledSources/loadInstalledSources#3",
@@ -76891,17 +76903,17 @@
         "./installed-check-environment.mjs",
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
+        "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-source-limits.mjs",
         "./local-account-config.mjs",
+        "./source-alias-construction.mjs",
         "./source-alias-publication.mjs",
+        "./source-alias-request.mjs",
         "./source-profile-json.mjs",
         "node:crypto",
-        "node:path",
-        "./installed-funded-environment.mjs",
-        "./source-alias-construction.mjs",
-        "./source-alias-request.mjs"
+        "node:path"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [
@@ -110161,7 +110173,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "8ca4bdc773dda45927f69ec06a082f0bd48cd3e4a0c47967c852fdeb174589fc",
+      "sha256": "31aab7b88af609592badd36d50c85d3dd9a731c52e361fcad4b748b82eef09c8",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
@@ -125924,7 +125936,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "b7d5c9f86683aaefb319e128ac7f94de428f1fdebaab65180c9c202ff6f58dba",
+      "sha256": "96884e66a514a08d83b2cf970d85549cea80498b30fb222549b50e7ce2464d22",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -126013,8 +126025,15 @@
           "async": false
         },
         {
-          "name": "installedEffectModelPreparation/view/init:prepareRead/init:prepareRead",
+          "name": "installedEffectModelPreparation/prepareRead/prepareRead",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/view/init:restoreRead/init:restoreRead",
+          "parameters": [
+            "input"
+          ],
           "async": false
         },
         {
@@ -126165,7 +126184,6 @@
             "installedEffectModelPreparation",
             "installedEffectModelPreparation/current/current",
             "installedEffectModelPreparation/installedEffectModelPreparation",
-            "installedEffectModelPreparation/view/init:prepareRead/init:prepareRead",
             "installedEffectModelPreparation/view/init:retain/init:retain",
             "installedEffectModelPreparation/view/init:retire/init:retire",
             "prepareInstalledEffectManagedPlanRun",
@@ -126178,7 +126196,9 @@
             "prepareInstalledEffectManagedPlanRun/same/same/same",
             "readInstalledEffectManagedPlanRun",
             "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
-            "finishInstalledEffectModelScope/original/original"
+            "finishInstalledEffectModelScope/original/original",
+            "installedEffectModelPreparation/prepareRead/prepareRead",
+            "installedEffectModelPreparation/view/init:restoreRead/init:restoreRead"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -126203,6 +126223,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -126217,6 +126245,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -126231,6 +126267,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -126249,6 +126293,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -126267,6 +126319,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -126289,6 +126349,14 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -126303,6 +126371,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -126321,6 +126397,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -126335,6 +126419,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -126361,6 +126453,30 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Effect Model cold read retains exact failed issuance and refuses lost original current without a replacement'"
               }
             ]
           }
@@ -126775,7 +126891,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "9c1efec4ca3a1e7c8038823a30a39647426f4092fd691f86c5ab4d7a8467188f",
+      "sha256": "baf0016ff12636f2ccadd40b892642fe341d72227293f815777210df365962ce",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -127582,6 +127698,21 @@
           "parameters": [
             "services"
           ],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/installedSourceConfigurationReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+          "parameters": [],
           "async": false
         },
         {
@@ -128666,6 +128797,9 @@
             "finishInstalledSourceInitialization",
             "freezeSourceProjection",
             "installedSourceConfigurationReader",
+            "installedSourceConfigurationReader/installedSourceConfigurationReader",
+            "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
+            "installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader/installedSourceConfigurationReader",
             "installedSourceConfigurationReader/read",
             "installedSourceConfigurationReader/read/beforeDecode/beforeDecode",
             "installedSourceConfigurationReader/read/read",
@@ -128958,6 +129092,14 @@
               {
                 "path": "adapters/host-node/installed-source-bounds.test.mjs",
                 "anchor": "test('funded Source Alias profile preserves real string demand and refuses its constructor before allocation'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('failed acceptance and lost currentness keep the previous inventory prefix funded'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('failed asynchronous successor preserves prefix and Source borrow until its actual settle'"
               }
             ]
           }
@@ -132807,25 +132949,37 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "b211ede85c50559d23d0bc271bdb8a06fceb1e5a72825c23d50d023a59669b71",
+      "sha256": "4a652255a171bff8c5a70166e72dbb0e3a97586a831ca4dd1fe67f91d4b9658e",
       "exports": [
+        "bindInstalledEnvironmentConstruction",
+        "composeInstalledInventoryEnvironment",
         "composeInstalledSourceEnvironment",
         "releaseRetiredInstalledEnvironmentComposition"
       ],
       "operations": [
         {
-          "name": "composeInstalledSourceEnvironment",
+          "name": "bindInstalledEnvironmentConstruction",
+          "parameters": [
+            "services",
+            "reader",
+            "begin"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeEnvironment",
           "parameters": [
             "services",
             "moon",
             "baseInput",
             "sourceInput",
-            "effectInput"
+            "effectInput",
+            "accept"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/admit/admit",
+          "name": "composeEnvironment/admit/admit",
           "parameters": [
             "wire",
             "evidenceCid",
@@ -132835,39 +132989,39 @@
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/admit/admit/admit",
+          "name": "composeEnvironment/admit/admit/admit",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/admit/admit/admit#2",
+          "name": "composeEnvironment/admit/admit/admit#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/admit/admit/raw/raw",
+          "name": "composeEnvironment/admit/admit/raw/raw",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/admit/admit/raw/raw#2",
+          "name": "composeEnvironment/admit/admit/raw/raw#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/borrow/borrow",
+          "name": "composeEnvironment/borrow/borrow",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/composed/composed",
+          "name": "composeEnvironment/composed/composed",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/composed/composed/composed",
+          "name": "composeEnvironment/composed/composed/composed",
           "parameters": [
             "wire",
             "evidenceCid",
@@ -132876,12 +133030,12 @@
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/composed/composed#2",
+          "name": "composeEnvironment/composed/composed#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/construct/construct",
+          "name": "composeEnvironment/construct/construct",
           "parameters": [
             "capacity",
             "project"
@@ -132889,39 +133043,39 @@
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/current/current",
+          "name": "composeEnvironment/current/current",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/input/input",
+          "name": "composeEnvironment/input/input",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/input/input/parsed/parsed",
+          "name": "composeEnvironment/input/input/parsed/parsed",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/input/input/parsed/parsed#2",
+          "name": "composeEnvironment/input/input/parsed/parsed#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/input/input/verified/verified",
+          "name": "composeEnvironment/input/input/verified/verified",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/input/input/verified/verified#2",
+          "name": "composeEnvironment/input/input/verified/verified#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/js/js",
+          "name": "composeEnvironment/js/js",
           "parameters": [
             "geometry",
             "project"
@@ -132929,8 +133083,31 @@
           "async": false
         },
         {
-          "name": "composeInstalledSourceEnvironment/js/js/js",
+          "name": "composeEnvironment/js/js/js",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "composeInstalledInventoryEnvironment",
+          "parameters": [
+            "services",
+            "moon",
+            "baseInput",
+            "sourceInput",
+            "effectInput",
+            "accept"
+          ],
+          "async": false
+        },
+        {
+          "name": "composeInstalledSourceEnvironment",
+          "parameters": [
+            "services",
+            "moon",
+            "baseInput",
+            "sourceInput",
+            "effectInput"
+          ],
           "async": false
         },
         {
@@ -132998,25 +133175,28 @@
         {
           "operations": [
             "<module>",
+            "bindInstalledEnvironmentConstruction",
+            "composeEnvironment",
+            "composeEnvironment/admit/admit",
+            "composeEnvironment/admit/admit/admit",
+            "composeEnvironment/admit/admit/admit#2",
+            "composeEnvironment/admit/admit/raw/raw",
+            "composeEnvironment/admit/admit/raw/raw#2",
+            "composeEnvironment/borrow/borrow",
+            "composeEnvironment/composed/composed",
+            "composeEnvironment/composed/composed#2",
+            "composeEnvironment/composed/composed/composed",
+            "composeEnvironment/construct/construct",
+            "composeEnvironment/current/current",
+            "composeEnvironment/input/input",
+            "composeEnvironment/input/input/parsed/parsed",
+            "composeEnvironment/input/input/parsed/parsed#2",
+            "composeEnvironment/input/input/verified/verified",
+            "composeEnvironment/input/input/verified/verified#2",
+            "composeEnvironment/js/js",
+            "composeEnvironment/js/js/js",
+            "composeInstalledInventoryEnvironment",
             "composeInstalledSourceEnvironment",
-            "composeInstalledSourceEnvironment/admit/admit",
-            "composeInstalledSourceEnvironment/admit/admit/admit",
-            "composeInstalledSourceEnvironment/admit/admit/admit#2",
-            "composeInstalledSourceEnvironment/admit/admit/raw/raw",
-            "composeInstalledSourceEnvironment/admit/admit/raw/raw#2",
-            "composeInstalledSourceEnvironment/borrow/borrow",
-            "composeInstalledSourceEnvironment/composed/composed",
-            "composeInstalledSourceEnvironment/composed/composed/composed",
-            "composeInstalledSourceEnvironment/composed/composed#2",
-            "composeInstalledSourceEnvironment/construct/construct",
-            "composeInstalledSourceEnvironment/current/current",
-            "composeInstalledSourceEnvironment/input/input",
-            "composeInstalledSourceEnvironment/input/input/parsed/parsed",
-            "composeInstalledSourceEnvironment/input/input/parsed/parsed#2",
-            "composeInstalledSourceEnvironment/input/input/verified/verified",
-            "composeInstalledSourceEnvironment/input/input/verified/verified#2",
-            "composeInstalledSourceEnvironment/js/js",
-            "composeInstalledSourceEnvironment/js/js/js",
             "fail/fail",
             "freezeDocument",
             "freezeDocument/visit",
@@ -133025,6 +133205,8 @@
             "sealComposedBody"
           ],
           "exports": [
+            "bindInstalledEnvironmentConstruction",
+            "composeInstalledInventoryEnvironment",
             "composeInstalledSourceEnvironment",
             "releaseRetiredInstalledEnvironmentComposition"
           ],
@@ -133087,6 +133269,14 @@
               {
                 "path": "adapters/host-node/installed-funded-environment.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('failed acceptance and lost currentness keep the previous inventory prefix funded'"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.actual.test.mjs",
+                "anchor": "test('failed asynchronous successor preserves prefix and Source borrow until its actual settle'"
               }
             ]
           }
@@ -133095,7 +133285,7 @@
     },
     {
       "module": "adapters/host-node/installed-check-environment-construction.mjs",
-      "sha256": "a2c6aa1a1505c8c3a03dc223a1c9cba8f0b54720fc37dc8c43ff72e46e0596cd",
+      "sha256": "22382a17cc59219be30ad718402ad4018aa1a107c9bd16d9b877dcf3c9b05d1c",
       "exports": [
         "installedEnvironmentCompositionConstructionGeometry",
         "installedEnvironmentDocumentConstructionGeometry",
@@ -133960,8 +134150,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5166,
-    "exports": 1169,
+    "operations": 5181,
+    "exports": 1172,
     "explicitContractGroups": 542
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

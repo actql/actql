@@ -11,9 +11,9 @@ import {freezeInput} from '../../packages/sdk/internal/private-source-preparatio
 // Only the installation identity/current port is supplied by this fixture;
 // no shaped preparation, standalone Root or fallback compiler is admitted.
 export async function fundedClientPreparation(t, {moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, retainedRelationOutput = false}) {
+  valuesMaxRows, retainedRelationOutput = false, sourcePublication}) {
   const fixture = await openFundedClientPreparation({moon, environment, allowEffects, http,
-    valuesMaxRows, retainedRelationOutput});
+    valuesMaxRows, retainedRelationOutput, sourcePublication});
   t.after(fixture.close);
   return http ? Object.freeze({prepare: fixture.prepare, prepareRequest: fixture.prepareRequest,
     prepareSubmit: fixture.prepareSubmit, submission: fixture.submission}) : fixture.prepare;
@@ -22,7 +22,7 @@ export async function fundedClientPreparation(t, {moon, environment, allowEffect
 // Process fixtures have their own finally block, not a Node TestContext.
 // Both entrances use this SAME owner and its original teardown below.
 export async function openFundedClientPreparation({moon, environment, allowEffects = false, http = false,
-  valuesMaxRows, sequenceContracts, retainedRelationOutput = false}) {
+  valuesMaxRows, sequenceContracts, retainedRelationOutput = false, sourcePublication}) {
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidFixtureRetainedOutputProfile');
   }
@@ -32,7 +32,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
   }
   const suppliedContracts = sequenceContracts === undefined ? undefined :
     {values: sequenceContracts.values, fragment: sequenceContracts.fragment, ordered: sequenceContracts.ordered};
-  const publication = {environmentCid: moon.clientProgramCheckingEnvironmentCid(environment), aliases: []};
+  const publication = sourcePublication ?? {environmentCid: moon.clientProgramCheckingEnvironmentCid(environment), aliases: []};
   const preparedEnvironment = moon.clientProgramPreparePublicSourceEnvironment(environment, JSON.stringify(publication));
   assert.ok(preparedEnvironment);
   const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
