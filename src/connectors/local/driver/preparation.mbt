@@ -138,6 +138,53 @@ pub fn prepare_local_dispatch_plan(
 }
 
 ///|
+// The same frozen policy quote for future inputs and actual missing copies.
+// Borrowed cell-access reads keep their existing holding; no importer exists.
+fn local_dispatch_copy_capacity(
+  base : @execution.ExecutionCapacity,
+  metadata_bytes : Int64,
+  imported : Int64,
+  exported : Int64,
+  wire_bytes : Int64,
+  copies : Int,
+  alongside : Bool,
+) -> @strategy.PhysicalEnvelope? {
+  if copies < 0 ||
+    metadata_bytes < 0L ||
+    imported < 0L ||
+    exported < 0L ||
+    wire_bytes < 0L {
+    return None
+  }
+  guard @execution.execution_capacity_inventory(
+      [
+        { unit: QuotedBytes, count: base.retained_bytes, copies: 1, },
+        { unit: QuotedBytes, count: metadata_bytes, copies: 1, },
+        { unit: QuotedBytes, count: imported, copies, },
+        { unit: QuotedBytes, count: exported, copies: 1, },
+      ],
+      [{ unit: QuotedBytes, count: base.execution_bytes, copies: 1, }],
+      if alongside {
+        RetainedAlongsideExecution
+      } else {
+        SeparateDimensions
+      },
+    )
+    is Some(capacity) &&
+    @execution.execution_capacity_inventory_bytes([
+      { unit: QuotedBytes, count: wire_bytes, copies, },
+    ])
+    is Some(transfer_bytes) else {
+    return None
+  }
+  Some({
+    transfer_bytes,
+    retained_bytes: capacity.retained_bytes,
+    execution_bytes: capacity.execution_bytes,
+  })
+}
+
+///|
 fn local_dispatch_preparation_policies(
   original : LocalDispatchPreparation,
   inputs : (@local.LocalImportLimits, Int64?)?,
@@ -166,33 +213,15 @@ fn local_dispatch_preparation_policies(
       } else {
         0
       }
-      guard @execution.execution_capacity_inventory(
-          [
-            { unit: QuotedBytes, count: base.retained_bytes, copies: 1, },
-            { unit: QuotedBytes, count: metadata_bytes, copies: 1, },
-            { unit: QuotedBytes, count: imported, copies: ports, },
-            { unit: QuotedBytes, count: exported, copies: 1, },
-          ],
-          [{ unit: QuotedBytes, count: base.execution_bytes, copies: 1, }],
-          if inputs is Some(_) || output is Some(_) {
-            RetainedAlongsideExecution
-          } else {
-            SeparateDimensions
-          },
-        )
-        is Some(capacity) else {
-        return None
-      }
-      let wire_bytes = inputs
-        .map(value => value.0.wire.max_bytes.to_int64())
-        .unwrap_or(0L)
-      @execution.execution_capacity_inventory_bytes([
-        { unit: QuotedBytes, count: wire_bytes, copies: ports, },
-      ]).map(transfer_bytes => {
-        transfer_bytes,
-        retained_bytes: capacity.retained_bytes,
-        execution_bytes: capacity.execution_bytes,
-      })
+      local_dispatch_copy_capacity(
+        base,
+        metadata_bytes,
+        imported,
+        exported,
+        inputs.map(value => value.0.wire.max_bytes.to_int64()).unwrap_or(0L),
+        ports,
+        inputs is Some(_) || output is Some(_),
+      )
     },
   )
   let retained : Array[@execution.ExecutionCapacityItem] = []

@@ -130,6 +130,78 @@ fn local_effective_import_limits(
 }
 
 ///|
+// Refine only an already-ready captured input of this exact Run. Future tasks
+// retain the frozen conservative quote. The existing DAG owns each admitted
+// read and its current/cleanup fence; observation does not grant execution.
+fn local_dispatch_ready_input_capacity(
+  installed : LocalDispatchModule,
+  task : Int,
+) -> Result[@strategy.PhysicalEnvelope, LocalDispatchIssue] {
+  guard local_dispatch_preparation_task_capacity(installed.preparation, task)
+    is Some(planned) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  if installed.import_policy is None ||
+    @strategy.next_captured_task(installed.run) != Some(task) {
+    return Ok(planned)
+  }
+  guard installed.import_policy is Some((imports, _)) &&
+    installed.import_metadata is Some(metadata) &&
+    installed.preparation.input_counts.get(local_task_slot(installed, task))
+    is Some(total) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  let first = @strategy.captured_compute_first_task(installed.run)
+  let mut missing = total
+  for
+    index, producer in @strategy.captured_next_managed_producers(installed.run) {
+    if producer >= 0 && producer < first {
+      let read = match
+        @strategy.captured_task_input(
+          installed.run,
+          task,
+          @local.local_module_execution_limits(installed.implementation).rows.metadata_entries,
+          metadata.name_bytes,
+          input_index=index,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Execution(issue))
+      }
+      if @execution.producer_read_has_cell_access(read) {
+        if missing <= 0 {
+          return Err(Configuration(InvalidLimits))
+        }
+        missing -= 1
+      }
+    }
+  }
+  if missing == total {
+    return Ok(planned)
+  }
+  guard installed.preparation.capacities.get(local_task_slot(installed, task))
+    is Some(Some(base)) &&
+    @local.local_import_retention_capacity(imports) is Some(imported) &&
+    (match installed.output_policy {
+      None => Some(0L)
+      Some((limits, _)) => @local.local_export_retention_capacity(limits)
+    })
+    is Some(exported) &&
+    local_dispatch_copy_capacity(
+      base,
+      metadata.retained_bytes,
+      imported,
+      exported,
+      imports.wire.max_bytes.to_int64(),
+      missing,
+      true,
+    )
+    is Some(capacity) else {
+    return Err(Configuration(InvalidLimits))
+  }
+  Ok(capacity)
+}
+
+///|
 /// The connector owns its work inventory and capacity formula. Common planning
 /// only collects the resulting owned offer and composes its declared work.
 pub fn estimate_local_dispatch_offer(
@@ -145,9 +217,9 @@ pub fn estimate_local_dispatch_offer(
     @strategy.graph_data_count(installed.preparation.graph) > max_work {
     return Err(Configuration(InvalidLimits))
   }
-  guard local_dispatch_preparation_task_capacity(installed.preparation, task)
-    is Some(capacity) else {
-    return Err(Configuration(InvalidLimits))
+  let capacity = match local_dispatch_ready_input_capacity(installed, task) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let offers = lines.copy()
   let mut slots = local_dispatch_work_slots()

@@ -2946,3 +2946,292 @@ test "two captured Model Request keeps original Direct inventory and all scopes 
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
+
+///|
+// Real Request/Model Scope, two accounted captures and original dispatch Plan.
+// The provider is an explicit nonexecuting component; no permission or IO ACK.
+test "captured reusable inputs retain one owner and fund only missing import copies" {
+  let f = request_serialized_model_fixture(two_captures=true, serialized=false)
+  let starts = Ref(0)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap(), f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L, 4096L],
+    [2048L, 2048L],
+    f.contracts,
+    false,
+    1,
+    _ => [],
+    component_factory=Some((capacity, _, _) => {
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        starts.val += 1
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_true(@resources.preparation_body_borrow_value(f.holder) is Some(_))
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let reads = Array::makei(2, index => {
+    begin_installed_managed_capture_read(run, index).unwrap()
+  })
+  let ledger = request_capture_ledger_fixture(run, original).unwrap()
+  assert_true(physical_equal(ledger, f.parent.ledger))
+  let sources = []
+  for index in 0..<2 {
+    let rows = start_installed_source_read_rows(
+      reads[index],
+      original.captures[index].acquisition.unwrap(),
+      "same-original-two-inputs",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(rows, 2048, 2, 2).unwrap()
+    let wire = @utf8.encode("[{\"id\":3,\"amount\":7}]")
+    let charged = @row_source_host.charge_row_run_page(rows, wire).unwrap()
+    assert_eq(
+      @row_source_host.accept_charged_row_run_page(rows, charged, wire).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(rows).unwrap()
+    @row_source_host.begin_row_capture(rows).unwrap()
+    let mut completed = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(rows, 256).unwrap().0 {
+        completed = true
+        break
+      }
+    }
+    assert_true(completed)
+    sources.push(
+      @row_source_host.row_capture_source(
+        @row_source_host.capture_row_run(rows).unwrap(),
+      ).unwrap(),
+    )
+  }
+  let task = @strategy.graph_captured_prefix(original.graph)
+  let planned = @local_driver.local_dispatch_preparation_task_capacity(
+    original.configuration.dispatch,
+    task,
+  ).unwrap()
+  let usage = @resources.ledger_usage(ledger)
+  let available = @resources.ledger_admission_limits(ledger).execution_bytes -
+    usage.reserved_execution_bytes
+  assert_true(available >= planned.execution_bytes)
+  // Preserve the unchanged full Ledger. A real reservation leaves one byte
+  // less than the future-input quote, while these original reads need no copy.
+  let other = @resources.reserve_capacity(
+    ledger,
+    0L,
+    available - planned.execution_bytes + 1L,
+  ).unwrap()
+  let (host, dag, _) = open_installed_managed_capture_host(
+    run,
+    f.prepared,
+    f.request,
+    sources,
+  ).unwrap()
+  assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+  for index in 0..<2 {
+    let read = @strategy.captured_task_input(
+      dag,
+      task,
+      10000,
+      10000,
+      input_index=index,
+    ).unwrap()
+    assert_true(@execution.producer_read_has_cell_access(read))
+    assert_true(
+      physical_equal(
+        read,
+        @strategy.captured_task_input(
+          dag,
+          task,
+          10000,
+          10000,
+          input_index=index,
+        ).unwrap(),
+      ),
+    )
+  }
+  assert_eq(@strategy.strategy_report_count(dag), 1)
+  assert_true(@strategy.strategy_report_at(dag, 0).unwrap().rejection is None)
+  let installed = @builtin.configured_local_module(
+    @builtin.configured_host_modules(host),
+  ).unwrap()
+  let setup : @local_driver.LocalManagedDispatchConfiguration[Int] = @local_driver.prepare_local_managed_dispatch_with_outputs(
+      installed,
+      [
+        @local_driver.local_managed_captured_relation_input(),
+        @local_driver.local_managed_captured_relation_input(),
+      ],
+      @execution.process_managed_obligations(
+        @strategy.graph_task_owner(original.graph, task).unwrap(),
+      ),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
+  let (_, execution) = @local_driver.local_managed_dispatch_site_capacity(setup).unwrap()
+  assert_true(execution < planned.execution_bytes)
+  assert_eq(starts.val, 0)
+  assert_eq(@resources.ledger_usage(ledger).attempts, usage.attempts)
+  @resources.settle_capacity(ledger, other).unwrap()
+  ignore(reject_client_local_run(dag))
+  for read in reads {
+    retire_installed_source_read(read).unwrap()
+  }
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "captured unavailable originals receive no missing-copy credit or provider start" {
+  let f = request_serialized_model_fixture(two_captures=true, serialized=false)
+  let starts = Ref(0)
+  let original = prepare_request_model_capture_module(
+    f.parent,
+    f.input,
+    f.request,
+    f.compiled,
+    f.definition,
+    f.compilation,
+    [f.declaration.unwrap(), f.declaration.unwrap()],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L, 4096L],
+    [2048L, 2048L],
+    f.contracts,
+    false,
+    1,
+    _ => [],
+    component_factory=Some((capacity, _, _) => {
+      @local.managed_provider(_ => true, _ => Some(capacity), (_, _, _, _, _) => {
+        starts.val += 1
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  let plan = prepare_installed_mock_model_capture_plan_binding(
+    original,
+    f.compiled,
+    f.definition,
+    f.occurrence,
+    f.graph,
+    effect_model_plan_limits,
+    500L,
+    700L,
+    20,
+    20,
+    20,
+  ).unwrap()
+  let scope = prepare_request_model_read_scope(f.parent, f.input, plan).unwrap()
+  complete_request_model_preparation(f.parent, f.input, plan).unwrap()
+  assert_true(@resources.preparation_body_borrow_value(f.holder) is Some(_))
+  let run = begin_request_model_managed_run(f.parent, f.request, scope).unwrap()
+  let reads = Array::makei(2, index => {
+    begin_installed_managed_capture_read(run, index).unwrap()
+  })
+  let ledger = request_capture_ledger_fixture(run, original).unwrap()
+  assert_true(physical_equal(ledger, f.parent.ledger))
+  let sources = []
+  for index in 0..<2 {
+    let rows = start_installed_source_read_rows(
+      reads[index],
+      original.captures[index].acquisition.unwrap(),
+      "same-original-two-inputs",
+      _ => true,
+      4096L,
+      2048L,
+    ).unwrap()
+    @row_source_host.begin_row_run(rows, 2048, 2, 2).unwrap()
+    let wire = @utf8.encode("[{\"id\":3,\"amount\":7}]")
+    let charged = @row_source_host.charge_row_run_page(rows, wire).unwrap()
+    assert_eq(
+      @row_source_host.accept_charged_row_run_page(rows, charged, wire).unwrap(),
+      1,
+    )
+    @row_source_host.finish_row_run(rows).unwrap()
+    @row_source_host.begin_row_capture(rows).unwrap()
+    let mut completed = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(rows, 256).unwrap().0 {
+        completed = true
+        break
+      }
+    }
+    assert_true(completed)
+    sources.push(
+      @row_source_host.row_capture_source(
+        @row_source_host.capture_row_run(rows).unwrap(),
+      ).unwrap(),
+    )
+  }
+  let task = @strategy.graph_captured_prefix(original.graph)
+  let planned = @local_driver.local_dispatch_preparation_task_capacity(
+    original.configuration.dispatch,
+    task,
+  ).unwrap()
+  retire_installed_source_read(reads[0]).unwrap()
+  assert_false(@query.captured_source_available(sources[0]))
+  assert_true(
+    open_installed_managed_capture_host(run, f.prepared, f.request, sources)
+    is Err(_),
+  )
+  assert_true(run.source_free_captured is None)
+  assert_eq(
+    @local_driver.local_dispatch_preparation_task_capacity(
+      original.configuration.dispatch,
+      task,
+    ),
+    Some(planned),
+  )
+  assert_eq(starts.val, 0)
+  retire_installed_source_read(reads[1]).unwrap()
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      f.compiled,
+      f.definition,
+      f.graph,
+      true,
+    ).unwrap(),
+  )
+  @resources.return_preparation_body_borrow(f.holder).unwrap() |> ignore
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}

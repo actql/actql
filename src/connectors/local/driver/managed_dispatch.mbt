@@ -564,13 +564,18 @@ pub fn[T] prepare_local_managed_dispatch_with_outputs(
     @local.local_import_retention_capacity(imports) is Some(per_input) else {
     return Err(Configuration(InvalidLimits))
   }
-  // Native supplied reads are already admitted by their original Source.
-  // They do not construct the wire importer below, so use the same import
-  // occurrence count as the retained dispatch Plan's producer-edge inventory.
+  // Match the actual binding pass below. Supplied reads and already accessible
+  // ordinary captures borrow their original storage; only missing copies and
+  // managed producer bridges allocate an importer on this same task.
   let mut count = 0L
   for input in relation_inputs {
-    if !(input is SuppliedRelationInput(_)) {
-      count += 1L
+    match input {
+      OrdinaryRelationInput(read) =>
+        if !@execution.producer_read_has_cell_access(read) {
+          count += 1L
+        }
+      ManagedRelationInput(_) => count += 1L
+      SuppliedRelationInput(_) => ()
     }
   }
   if per_input > 0L && count > 9223372036854775807L / per_input {
