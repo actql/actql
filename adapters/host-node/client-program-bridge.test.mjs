@@ -5047,9 +5047,13 @@ test('owned update Plan matches approved rows and rejects altered intent',
       const invocationContract = control.admit('run_invocation',
         moon.strategyPublicationContractJson(invocation),
         publicationLimits);
-      const sourceSet = await preparePinnedEffectSourceSet({
+      // One declared Result, two self probes, one pair probe, then one
+      // Manifest-to-payload match. These are fixture work units, not pins.
+      assert.equal(moon.clientProgramEffectLocalResultCount(inputs), 1);
+      const groupingWork = 5;
+      const sourceOptions = {
         moon, checkedOwner: prepared, execution, inputs,
-        maxMembers: 2, maxGroupingWork: 3,
+        maxMembers: 2, maxGroupingWork: groupingWork,
         limits: moon.clientProgramEffectInputExportLimits(
           ...effectInputExportArgs(outputLimits)),
         store, maxBytes: outputLimits.maxWireBytes, control,
@@ -5057,7 +5061,10 @@ test('owned update Plan matches approved rows and rejects altered intent',
         sourceBindingCid: cid('c'),
         contractLimits: publicationLimits,
         localEvidenceContext,
-      });
+      };
+      await assert.rejects(preparePinnedEffectSourceSet({...sourceOptions,
+        maxGroupingWork: 3}), {message: 'EffectSourceGroupingLimit'});
+      const sourceSet = await preparePinnedEffectSourceSet(sourceOptions);
       sourcePayloads.push(...sourceSet.payloads);
       assert.notEqual(sourcePayloads[0].summary.artifact.identity,
         storedResults.artifacts[0].identity);
@@ -6038,7 +6045,9 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           },
         });
         const options = {moon, checkedOwner: prepared, execution, inputs,
-          maxMembers: 2, maxGroupingWork: privateTableInput ? 5 : 3,
+          // The one-Result fixture needs five work units; distinct Results
+          // need eight, including all three Manifest-to-payload matches.
+          maxMembers: 2, maxGroupingWork: distinctResults ? 8 : 5,
           limits: moon.clientProgramEffectInputExportLimits(
             ...effectInputExportArgs(outputLimits)),
           store, maxBytes: 100000, control: issuerControl,
@@ -6079,6 +6088,14 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           await assert.rejects(preparePinnedEffectSourceSet({...options,
             maxGroupingWork: 0}), {message: 'EffectSourceGroupingLimit'});
           assert.equal(writers, 0);
+          if (!privateTableInput) {
+            const results = moon.clientProgramEffectLocalResultCount(inputs);
+            assert.equal(results, distinctResults ? 2 : 1);
+            // One short of inventory plus the three pre-export probes.
+            await assert.rejects(preparePinnedEffectSourceSet({...options,
+              maxGroupingWork: results + 2}), {message: 'EffectSourceGroupingLimit'});
+            assert.equal(writers, 0, 'Incomplete grouping stops before the first Store writer');
+          }
           sources = await preparePinnedEffectSourceSet(options);
           assert.equal(sources.payloads.length, distinctResults ? 2 : 1);
           assert.equal(issuedArguments.length, distinctResults ? 2 : 1);
