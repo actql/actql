@@ -67,7 +67,7 @@ async function fixture(t, transport, item, cancel) {
   const hostCapacityPolicy = base.host_policy_profile.capacity;
   environment.host_policy_profile = base.host_policy_profile;
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
+    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d');
   environment.connector_capabilities[0].capability_contract_cids.sort();
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
@@ -126,17 +126,21 @@ async function fixture(t, transport, item, cancel) {
       }
     }};
   const hostDirectory = join(directory, 'host');
-  let client, host, server;
+  let client, host, server, previousCertificates;
   t.after(async () => {
     release.resolve();
-    await client?.close();
-    if (server) {
-      server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+    try {
+      await client?.close();
+      if (server) {
+        server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
+      }
+      await host?.close();
+    } finally {
+      DuckDBConnection.prototype.extractStatements = extract;
+      DuckDBExtractedStatements.prototype.prepare = prepare;
+      DuckDBPreparedStatement.prototype.stream = stream;
+      if (previousCertificates !== undefined) setDefaultCACertificates(previousCertificates);
     }
-    await host?.close();
-    DuckDBConnection.prototype.extractStatements = extract;
-    DuckDBExtractedStatements.prototype.prepare = prepare;
-    DuckDBPreparedStatement.prototype.stream = stream;
     // Keep owned evidence, including failed attempts, for fixed-SHA review.
   });
   if (transport === 'local') {
@@ -147,7 +151,8 @@ async function fixture(t, transport, item, cancel) {
       '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1', '-subj', '/CN=localhost',
       '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: directory, stdio: 'ignore'});
     const cert = await readFile(join(directory, 'remote.crt'));
-    setDefaultCACertificates([...getCACertificates('default'), cert.toString('utf8')]);
+    previousCertificates = getCACertificates('default');
+    setDefaultCACertificates([...previousCertificates, cert.toString('utf8')]);
     host = await openInstalledRemoteHttpHost({directory: hostDirectory,
       sourceProfilePath, authorization, hostCapacityPolicy,
       authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
@@ -158,7 +163,14 @@ async function fixture(t, transport, item, cancel) {
   }
   return {client, directory, barrier, release,
     counts: () => ({sessions, sourceReads, advances}),
-    cleaned: () => readdir(join(hostDirectory, 'carrier-snapshots'))};
+    cleaned: async () => {
+      try { return await readdir(join(hostDirectory, 'carrier-snapshots')); }
+      catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        // Cancellation can stop before this temporary directory is created.
+        return [];
+      }
+    }};
 }
 
 for (const transport of ['local', 'https']) {
