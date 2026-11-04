@@ -160,6 +160,8 @@ options(
     "preparation_publication_snapshot_wbtest.mbt": [ "js" ],
     "preparation_publication_start_custody_wbtest.mbt": [ "js" ],
     "preparation_publication_validation_custody_wbtest.mbt": [ "js" ],
+    "installed_direct_occurrences_js_wbtest.mbt": [ "js" ],
+    "installed_effect_content_model_js_wbtest.mbt": [ "js" ],
     "installed_effect_operation_parent_js_wbtest.mbt": [ "js" ],
     "installed_effect_provider_plan_js_wbtest.mbt": [ "js" ],
     "installed_capture_parent_js_wbtest.mbt": [ "js" ],

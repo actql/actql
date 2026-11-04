@@ -460,12 +460,13 @@ test "Model construction input preserves grown Program backing and funds its act
   let before = calls.val
   let model = borrow_request_model_plan_input(parent, input).unwrap()
   assert_eq(calls.val, before + 1)
-  // Independent record inventory: header16 + ten references80 + three words24.
-  // The references include the retained optional Content prefix and Limits.
+  // Independent record inventory: header16 + eleven references88 + three words24.
+  // Prepared, Request, compiled Run, definition, Graph, selected Model partitions,
+  // occurrence, Source-free/Captured alternatives, Content prefix and Limits.
   // No Model Plan, compilation, Scope, provider or IO is constructed here.
   assert_eq(
     @resources.preparation_capacity_working_extents(capacity, input),
-    Ok((r + 129L + 120L, e + 257L + 120L)),
+    Ok((r + 129L + 128L, e + 257L + 128L)),
   )
   assert_true(parent.phase == ModelPlanReserved)
   assert_true(parent.program_model is None)
@@ -502,7 +503,8 @@ test "Model construction input foreign and one-byte-short refusal preserves the 
   let program = borrow_request_program_plan_input(parent, input).unwrap()
   let capacity = parent.program_capacity.unwrap()
   let (_, e) = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
-  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 111L
+  // This same record needs128 bytes; preserve exactly one byte of deficit.
+  let r = @resources.ledger_limits(parent.ledger).retained_bytes - 127L
   @resources.reserve_working_preparation_phase(capacity, input, r, e).unwrap()
   let charged = request_preparation_accounting(parent)
   let observed = calls.val

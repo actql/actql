@@ -331,24 +331,24 @@ test "Request lowered SQL keeps its original checker compiler Plan and Run throu
 }
 
 ///|
-test "source-free SQL capacity is refused before module completion on its original Request" {
+test "source-free SQL keeps loose runtime maxima and refuses actual task allocation on its original Request" {
   // Same installed standard numeric profile selected by the public Node Host.
   let (environment, publication) = request_query_publication_fixture(
     numeric_profile_cid=Some(
       "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
     ),
   )
-  // Component fixture with an explicit empty provider port, not public runtime
-  // acceptance. Keep the original policy and exact original Plan comparison.
-  // Bounded leaf constructors reduce the quote: use longer same-form inputs
-  // for the independent over-budget controls, not a language branch limit.
+  // Explicit empty provider port for these Core arithmetic tasks, not public
+  // runtime acceptance. Full Plan maxima remain independently checked DATA;
+  // actual task allocations keep this unchanged original finite policy.
   for
-    (aggregate, count, fits) in [
-      (false, 4, true),
-      (false, 9, false),
-      (true, 2, true),
-      (true, 6, false),
-      (true, 8, false),
+    (aggregate, count, upper_fits, exhaust) in [
+      (false, 4, true, false),
+      (false, 9, false, false),
+      (true, 2, true, false),
+      (true, 6, false, false),
+      (true, 8, false, false),
+      (false, 4, true, true),
     ] {
     let branches = []
     for i in 0..<count {
@@ -406,7 +406,7 @@ test "source-free SQL capacity is refused before module completion on its origin
       @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
     continue_request_program_preparation(parent, input).unwrap() |> ignore
-    let result = prepare_request_program_module_body(
+    prepare_request_program_module_body(
       parent,
       input,
       request_program_module_contracts(),
@@ -414,50 +414,84 @@ test "source-free SQL capacity is refused before module completion on its origin
       compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
       retained_output=true,
       provider_factory=_ => [],
-    )
+    ).unwrap()
     let plan = parent.program_source_free.unwrap()
     let available = preparation_initial_limits(parent.initial, input).unwrap()
-    println(
-      "SQL_PLAN_CAPACITY aggregate=\{aggregate} branches=\{count} retained=\{plan.limits.retained_bytes} execution=\{plan.limits.execution_bytes} available=\{available.execution_bytes}",
-    )
+    let ledger = parent.ledger
     assert_true(plan.limits.retained_bytes <= available.retained_bytes)
-    if fits {
-      result.unwrap()
-      assert_true(plan.limits.execution_bytes <= available.execution_bytes)
-      assert_true(parent.phase == ProgramBodyReady)
-    } else {
-      guard result is Err(CapacityExceeded(facts)) else {
-        fail("the exact original over-budget Plan must have a typed refusal")
-      }
-      assert_eq(facts.phase, "source_free_plan")
-      assert_eq(facts.dimension, "execution")
-      assert_eq(facts.required_retention, plan.limits.retained_bytes)
-      assert_eq(facts.required_execution, plan.limits.execution_bytes)
-      assert_eq(facts.available_retention, available.retained_bytes)
-      assert_eq(facts.available_execution, available.execution_bytes)
-      assert_true(facts.required_execution > facts.available_execution)
-      assert_false(parent.phase == ProgramBodyReady)
-      assert_true(plan.compilation is None)
-      let request = @publication_host.prepare_source_free_client_request_identity(
+    assert_eq(
+      plan.limits.execution_bytes <= available.execution_bytes,
+      upper_fits,
+    )
+    assert_true(parent.phase == ProgramBodyReady)
+    assert_true(plan.compilation is Some(_))
+    let request = @publication_host.prepare_source_free_client_request_identity(
+      prepared,
+      "sha256:" + "c".repeat(64),
+      "capacity-original-task",
+    ).unwrap()
+    let run = begin_request_program_managed_run(parent, request).unwrap()
+    assert_true(
+      physical_equal(require_installed_managed_run(run).unwrap(), ledger),
+    )
+    let setup = open_installed_managed_source_free_host(
+        run,
         prepared,
-        "sha256:" + "c".repeat(64),
-        "capacity-refused-original",
-      ).unwrap()
-      assert_true(
-        begin_request_program_managed_run(parent, request)
-        is Err(ForeignOriginal),
+        request,
+        plan.installed_contracts,
+        plan.values_body,
+        plan.fragment_body,
+        plan.ordered_body,
+        true,
       )
+      .unwrap()
+      .unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let block = if exhaust {
+      Some(
+        @resources.reserve_capacity(
+          ledger,
+          0L,
+          available.execution_bytes - before.reserved_execution_bytes,
+        ).unwrap(),
+      )
+    } else {
+      None
     }
-    abort_request_preparation_after_cleanup(parent).unwrap()
-    assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
-    assert_eq(
-      @resources.ledger_usage(parent.ledger).reserved_retention_bytes,
-      0L,
+    let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+      true
+    })
+    if exhaust {
+      guard execution is Err(failure) else {
+        fail(
+          "actual task allocation must refuse exhausted execution before Start",
+        )
+      }
+      assert_true(failure.issue is Driver(Execution(Physical(ExecutionLimit))))
+      assert_true(retry_local_values_execution_failure_cleanup(failure))
+      assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+      assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+      @resources.settle_capacity(ledger, block.unwrap()).unwrap()
+    } else {
+      let completed = execution.unwrap()
+      let expected = if aggregate {
+        ["{\"v\":" + (count * (count + 1) / 2).to_string() + "}"]
+      } else {
+        Array::makei(count, index => "{\"x\":" + (index + 1).to_string() + "}")
+      }
+      assert_eq(completed.rows().unwrap(), expected)
+      assert_true(completed.close())
+    }
+    let attempts = @resources.ledger_usage(ledger).attempts
+    assert_true(
+      abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
     )
-    assert_eq(
-      @resources.ledger_usage(parent.ledger).reserved_execution_bytes,
-      0L,
-    )
+    retire_installed_managed_run(run).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).attempts, attempts)
+    assert_eq(@resources.ledger_limits(ledger), available)
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
   }
 }
 
