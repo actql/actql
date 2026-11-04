@@ -228,7 +228,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     if (typeof prepareRequestModel !== 'function') fail('InstalledMockModelOperationalAdmissionUnavailable');
     if (records.size === 4096) fail('InstalledMockRunLimit');
     const model = {control, compiled: plan.compiled, runDefinition: plan.runDefinition,
-      graph: selection.graph, occurrence: selection.occurrence, queryTimePreparation: plan.queryTimePreparation,
+      graph: selection.graph, occurrence: selection.occurrence, selection, component: undefined,
+      queryTimePreparation: plan.queryTimePreparation,
       scope: undefined, publicationCapacity, releaseAliases() {
         if (this !== model) fail('ForeignInstalledModelPreparation');
         if (record.aliasesReleased) return;
@@ -261,7 +262,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       if (model.closed || typeof model.publicationCapacity !== 'function') fail('HostResultPublicationUnavailable');
       return model.publicationCapacity();
     };
-    return Object.freeze({control: model.control, compiled: model.compiled,
+    return Object.freeze({control: model.control, compiled: model.compiled, selection: model.selection,
+      component: model.component,
       runDefinition: model.runDefinition, scope: model.scope, publicationCapacity,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
@@ -304,6 +306,16 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
           run.value, prepared, run.request, registry, values, fragment, ordered, providers));
       },
+      ...(moon.clientProgramAcquisitionCount(prepared) === 0 ? {} : {openCapturedHost(captures) {
+        sameRun(prepared);
+        if (!run.requestOwned || run.effectful || run.retired || model.closed || !model.taken ||
+            model.hostAttempted || !Array.isArray(captures) || captures.length !== 2 ||
+            moon.clientProgramAcquisitionCount(prepared) !== captures.length ||
+            typeof model.component?.bindOriginal !== 'function') fail('InstalledComposedInferHostUnavailable');
+        model.hostAttempted = true;
+        return checked(moon.clientProgramOpenInstalledManagedCaptureHost(run.value, prepared, run.request,
+          captures.map(value => value.capture.source())));
+      }}),
       prepareRead() {
         // The Scope predates all Sources. Its descriptor/read snapshots the
         // same Ledger only when Local hands the actual prefix inputs to the

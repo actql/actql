@@ -208,6 +208,64 @@ pub fn client_program_prepare_request_model_capture_module(
 }
 
 ///|
+/// The same Request Model capture module, with its component bound before the
+/// retained Plan is configured. The optional suffix remains inside Core.
+#export_name("clientProgramPrepareRequestModelComponentCaptureModule")
+pub fn client_program_prepare_request_model_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count() + 1,
+    installed_client_family_providers,
+    query_time~,
+    component_factory=Some((capacity, prefix, suffix) => {
+      construct(capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPrepareRequestModelGraph")
 pub fn client_program_prepare_request_model_graph(
   parent : @client_local_host.ClientRequestPreparation[

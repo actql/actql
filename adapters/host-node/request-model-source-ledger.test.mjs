@@ -27,8 +27,12 @@ function mockLedgerFixture({retireDuringBorrow = false} = {}) {
   const checked = result => {assert.equal(result.$tag, 1); return result._0;};
   const capacities = [{managedRun: native, capacity: {}, transferBytes: 31n, executionBytes: 41n},
     {managedRun: native, capacity: {}, transferBytes: 51n, executionBytes: 61n}];
-  const registry = {}, values = {}, fragment = {}, ordered = {};
+  const registry = {}, values = {}, fragment = {}, ordered = {}, setup = {}, sources = [{}, {}];
   const moon = {clientProgramAcquisitionCount: () => 2,
+    clientProgramOpenInstalledManagedCaptureHost(parent, p, r, actualSources) {
+      assert.strictEqual(parent, native); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
+      assert.deepEqual(actualSources, sources); calls.push('same Plan Host'); return {$tag: 1, _0: setup};
+    },
     clientProgramInstalledManagedRunPrepareLedger(...args) {
       calls.push('original Ledger');
       assert.deepEqual(args, [native, prepared, request, capacities.map(v => v.capacity),
@@ -39,7 +43,7 @@ function mockLedgerFixture({retireDuringBorrow = false} = {}) {
   const ports = {current() {}, records, sameRun, fail, checked, moon,
     prepareRequestModel(p, r, model) {
       assert.strictEqual(p, prepared); assert.strictEqual(r, request); calls.push('adopt Model');
-      model.scope = scope; model.budget = {};
+      model.scope = scope; model.budget = {}; model.component = {bindOriginal() {}};
       return {original, value: native};
     }};
   const extract = name => {
@@ -52,6 +56,8 @@ function mockLedgerFixture({retireDuringBorrow = false} = {}) {
       assert.strictEqual(p, prepared); assert.strictEqual(actual, plan); return preparation(p, actual);
     }});
   return {prepared, request, native, plan, selected, control, capacities, ledger, calls, records,
+    setup, captures: sources.map(value => ({capture: {source: () => value}})),
+    view: () => preparation(prepared, plan),
     adopt: () => adopt(prepared, request, control, plan, selected, () => {}),
     borrow: (sourceCapacities = capacities) => run.prepareAcquiredLedger({preparedProgram: prepared, plan, sourceCapacities})};
 }
@@ -63,6 +69,16 @@ test('Mock Model dispatch uses the same adopted parent and one original two-Sour
   assert.strictEqual(f.records.get(f.prepared).model.sourceLedger, f.ledger);
   assert.throws(() => f.borrow(), /InstalledModelSourceLedgerAlreadyBorrowed/);
   assert.deepEqual(f.calls, ['adopt Model', 'original Ledger']);
+});
+
+test('Mock captured Model opens only its retained Plan after the original Scope is retained', () => {
+  const f = mockLedgerFixture(); f.adopt(); const view = f.view();
+  assert.throws(() => view.openCapturedHost(f.captures), /InstalledComposedInferHostUnavailable/);
+  view.retain();
+  assert.throws(() => view.openCapturedHost(f.captures.slice(0, 1)), /InstalledComposedInferHostUnavailable/);
+  assert.strictEqual(view.openCapturedHost(f.captures), f.setup);
+  assert.throws(() => view.openCapturedHost(f.captures), /InstalledComposedInferHostUnavailable/);
+  assert.deepEqual(f.calls, ['adopt Model', 'same Plan Host']);
 });
 
 test('Mock Model Ledger refuses a foreign Source and retains post-callback retirement without reborrowing', () => {

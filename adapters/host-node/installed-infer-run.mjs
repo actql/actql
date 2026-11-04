@@ -199,6 +199,14 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             : acquiredInfer?.sources?.length !== 2)) {
         throw new TypeError('InvalidInstalledMockModelPreparation');
       }
+      if (!sourceFree) {
+        if (preparationHolder === undefined || originalPreparation.selection !== selected ||
+            typeof originalPreparation.component?.bindOriginal !== 'function' ||
+            typeof originalPreparation.openCapturedHost !== 'function') {
+          throw new TypeError('InvalidInstalledMockModelPreparation');
+        }
+        originalPreparation = Object.freeze({...originalPreparation, preparationHolder});
+      }
       return runInstalledComposedInfers({moon, control, preparedProgram, plan,
         selected: {components: [selected]}, store, principalId, signal, retainExecution,
         acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
