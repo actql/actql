@@ -67,14 +67,19 @@ const accountConfiguration = connection => canonicalJson({
     principal: {all: true}, connection: {any_of: [connection]},
     resource: {any_of: ['issues']}, operation: {any_of: ['read']}}]});
 
-// The Source Account above still authorizes provider reads only. Public Run
-// observation and these named Results use their separate explicit Host read.
+// The Source Account above still authorizes provider reads only. Host Run
+// creation and public Run/Result observations have independent finite grants.
 const hostReadEntry = {entry_id:'host-original-observations',outcome:'allow',exclusions:[],
   principal:{all:true},connection:{any_of:['actql-remote-host']},
   resource:{any_of:['run',...['issues','audit','grouped','windowed','consumed','consumed_a','consumed_b','joined']
     .map(name=>'result/'+name)].sort()},operation:{any_of:['read']}};
+const hostRunEntry = {entry_id:'host-run-acceptance',outcome:'allow',exclusions:[],
+  principal:{all:true},connection:{any_of:['actql-remote-host']},
+  resource:{any_of:['installed-multi-acquired','row-source-acquired']},
+  operation:{any_of:['write']}};
 const sourceHostAuthorization = {accountConfiguration:canonicalJson({
-  version:'actql-execution-account-config/0.1',account_id:'github-source-host',entries:[hostReadEntry]})};
+  version:'actql-execution-account-config/0.1',account_id:'github-source-host',
+  entries:[hostReadEntry,hostRunEntry]})};
 
 const program = JSON.stringify({version: 'actql/0.1', id: 'github-read',
   stages: [{id: 'acquire',
@@ -195,10 +200,7 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
   const hostAuthorization = hostKeys === undefined ? undefined : {
     accountConfiguration: canonicalJson({
       version: 'actql-execution-account-config/0.1',
-      account_id: 'github-retained-host', entries: [hostReadEntry, {entry_id: 'query',
-        outcome: 'allow', principal: {all: true}, connection: {all: true},
-        resource: {all: true}, operation: {any_of: ['write']},
-        exclusions: []}]}),
+      account_id: 'github-retained-host', entries: [hostReadEntry, hostRunEntry]}),
     hostKey: {keyId: 'host', privateKey: hostKeys.privateKey.export({
       type: 'pkcs8', format: 'pem'})},
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer',
