@@ -8608,6 +8608,30 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "let final_accounting = installed_managed_run_accounting(run).unwrap()"
+              },
+              {
+                "path": "adapters/host-node/client-check.test.mjs",
+                "anchor": "installed scoped authoring checks and supplementation execute only on explicit start"
               }
             ]
           }
@@ -8907,6 +8931,30 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "test('open borrows the one installed AoA projection through the same sequence original'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('final managed accounting retains every original scalar after actual retirement and cuts Core aliases'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('pending final Core retirement keeps the same live usage and resamples only its successful retry'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('failed manager retirement retains original custody and publishes final DATA only after the same retry'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('final accounting cannot retain a foreign object or extra alias from a malformed runtime port'"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_native_computation_js_wbtest.mbt",
+                "anchor": "let final_accounting = installed_managed_run_accounting(run).unwrap()"
+              },
+              {
+                "path": "adapters/host-node/client-check.test.mjs",
+                "anchor": "installed scoped authoring checks and supplementation execute only on explicit start"
               }
             ]
           }
@@ -22118,6 +22166,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/effect-preparation-result.mjs",
+        "../host-common/ledger-contract.generated.mjs",
         "../host-common/observation.mjs",
         "../host-common/run-state-access.mjs",
         "../host-common/run-state-observation.mjs",
@@ -22223,7 +22272,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "a168219f5447a5e2b9d9ec0618be7240178ae4a294000a912b3021b3397428ce"
+      "sha256": "65cffc7bdead52a8c9f44a2caf89116731018fb3b76c4109190f2a3c8a83e690"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
