@@ -223,7 +223,9 @@ test('installed ModelTask reaches normal public preparation but cannot bypass mi
         })});
     await assert.rejects(client.start(oneRowInfer(),
       {submissionRef: client.newSubmission({nonce: 'infer-installed'})}),
-      error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+      // The original empty execution inventory refuses before the Journal
+      // retains a preparing intent; the existing service law is not_accepted.
+      error => assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported'));
     assert.equal(observations.length, 1);
     assert.equal(observations[0].boundary, 'model_execution');
     assert.equal(observations[0].code,

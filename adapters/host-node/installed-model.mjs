@@ -6,6 +6,20 @@ import {composeInstalledCheckEnvironment} from './installed-check-environment.mj
 import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation, retainInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
+import {types as nodeTypes} from 'node:util';
+
+const modelExecutionAbsences = new WeakMap();
+const originalArrayIterator = Array.prototype[Symbol.iterator];
+const originalArrayFind = Array.prototype.find;
+
+// Consume this reader's exact synchronous absence once. A copied exception,
+// another Prepared/installation/occurrence or a callback throw is no proof.
+export function consumeInstalledModelExecutionAbsence(error, prepared, installation, occurrence) {
+  const original = modelExecutionAbsences.get(error);
+  modelExecutionAbsences.delete(error);
+  return original !== undefined && original.prepared === prepared &&
+    original.installation === installation && original.occurrence === occurrence;
+}
 
 // These are aliases in the existing installation, not another Provider
 // registry. A candidate supplies configuration DATA only; the physical entry
@@ -548,6 +562,12 @@ export function readInstalledModelExecution(moon, prepared, installation, occurr
     const step = occurrence === undefined ? moon.clientProgramSelectedInferStep(prepared)
       : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
     if (step === undefined) return undefined;
+    if (original.emptyOriginal === true) {
+      const error = Object.assign(new Error('InstalledInferModelExecutionUnavailable'),
+        {code: 'InstalledInferModelExecutionUnavailable'});
+      modelExecutionAbsences.set(error, {prepared, installation, occurrence});
+      throw error;
+    }
     const taskCid = occurrence === undefined ? moon.clientProgramInferModelTaskCid(prepared, step)
       : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
     const entry = original.executions.find(item => item.modelTaskCid === taskCid);
@@ -601,6 +621,18 @@ function originalModelMaterialArrays(installation) {
       !Array.isArray(executions.value) || !Array.isArray(bodies.value) ||
       !Object.isFrozen(executions.value) || !Object.isFrozen(bodies.value)) {
     throw new TypeError('InstalledModelMaterialOriginalUnavailable');
+  }
+  // Only ordinary immutable empty DATA can establish absence without running
+  // an iterator, element getter, replacement find or the funded read callback.
+  // Other accepted originals keep their existing reader and Unknown behavior.
+  if (!nodeTypes.isProxy(installation) &&
+      [executions.value, bodies.value].every(entries => !nodeTypes.isProxy(entries) &&
+        Object.getPrototypeOf(entries) === Array.prototype && entries.length === 0 &&
+        Object.getOwnPropertyDescriptor(entries, Symbol.iterator) === undefined &&
+        Object.getOwnPropertyDescriptor(entries, 'find') === undefined) &&
+      Object.getOwnPropertyDescriptor(Array.prototype, Symbol.iterator)?.value === originalArrayIterator &&
+      Object.getOwnPropertyDescriptor(Array.prototype, 'find')?.value === originalArrayFind) {
+    return {executions: executions.value, bodies: bodies.value, emptyOriginal: true};
   }
   const ownString = (entry, key) => {
     if (entry === null || typeof entry !== 'object' || !Object.isFrozen(entry)) {

@@ -4,13 +4,65 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {configuration} from '../../scripts/fixtures/installed-infer-fixture.mjs';
 import {readInstalledModelExecution, readInstalledModelDependencies,
-  admitInstalledModelProviderBinding} from './installed-model.mjs';
+  admitInstalledModelProviderBinding, consumeInstalledModelExecutionAbsence} from './installed-model.mjs';
 
 // Actual exported readers with explicit native/current reservation ports.
 // The sentinel ends before a Core issuer, Provider, Account or physical IO.
 const frozen = (executions, bodies) => Object.freeze({environmentWire: '{}',
   executionContracts: Object.freeze(executions.map(Object.freeze)),
   dependencyBodies: Object.freeze(bodies.map(Object.freeze))});
+
+test('empty original Model execution absence belongs to the same tuple and one consumption', () => {
+  const prepared = {}, installation = frozen([], []), occurrence = {};
+  const moon = {clientProgramInferOccurrenceCoordinates(value) {
+    assert.equal(value, occurrence); return {_2: 0};
+  }, clientProgramInferOccurrenceModelTaskCid() {assert.fail('No Task lookup for an empty inventory');}};
+  const absent = () => {
+    try {readInstalledModelExecution(moon, prepared, installation, occurrence,
+      () => assert.fail('No funded reader runs for absent immutable DATA'));}
+    catch (error) {assert.equal(error.code, 'InstalledInferModelExecutionUnavailable'); return error;}
+    assert.fail('The original empty inventory must refuse');
+  };
+  const error = absent();
+  assert.equal(consumeInstalledModelExecutionAbsence({...error}, prepared, installation, occurrence), false);
+  assert.equal(consumeInstalledModelExecutionAbsence(error, prepared, installation, occurrence), true);
+  assert.equal(consumeInstalledModelExecutionAbsence(error, prepared, installation, occurrence), false);
+  for (const tuple of [[{}, installation, occurrence], [prepared, frozen([], []), occurrence],
+    [prepared, installation, {}]]) {
+    const foreign = absent();
+    assert.equal(consumeInstalledModelExecutionAbsence(foreign, ...tuple), false);
+    assert.equal(consumeInstalledModelExecutionAbsence(foreign, prepared, installation, occurrence), false);
+  }
+});
+
+test('Model execution absence does not promote custom metadata or callback errors to no-work proof', () => {
+  const prepared = {}, occurrence = {}, callbackFailure = Object.assign(new Error('callback'),
+    {code: 'InstalledInferModelExecutionUnavailable'});
+  const moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
+    clientProgramInferOccurrenceModelTaskCid: () => 'task'};
+  const cases = [
+    frozen([{modelTaskCid: 'other', cid: 'execution', bodyWire: '{}'}], []),
+    Object.freeze({environmentWire: '{}', executionContracts: Object.freeze(new Proxy([], {})),
+      dependencyBodies: Object.freeze([])}),
+    Object.freeze({environmentWire: '{}', executionContracts: Object.freeze(Object.defineProperty([], 'find',
+      {value() {throw callbackFailure;}})), dependencyBodies: Object.freeze([])}),
+    Object.freeze({environmentWire: '{}', executionContracts: Object.freeze(Object.defineProperty([], Symbol.iterator,
+      {value() {throw callbackFailure;}})), dependencyBodies: Object.freeze([])}),
+  ];
+  for (const installation of cases) {
+    let failure;
+    try {readInstalledModelExecution(moon, prepared, installation, occurrence,
+      () => assert.fail('No selected execution body'));}
+    catch (error) {failure = error;}
+    assert(failure);
+    assert.equal(consumeInstalledModelExecutionAbsence(failure, prepared, installation, occurrence), false);
+  }
+  assert.equal(consumeInstalledModelExecutionAbsence(callbackFailure, prepared, frozen([], []), occurrence), false);
+  const installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
+  assert.throws(() => readInstalledModelExecution(moon, prepared, installation, occurrence,
+    () => {throw callbackFailure;}), error => error === callbackFailure);
+  assert.equal(consumeInstalledModelExecutionAbsence(callbackFailure, prepared, installation, occurrence), false);
+});
 
 const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
 const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructRequestDomain('),
@@ -143,7 +195,7 @@ test('Effect Model actual Mock and physical binding callbacks retain only the sa
     assert.equal(f.nativeCalls(), 1);
     if (index === 0) {
       f.moon.clientProgramInstalledComposedInferPlanGraph = () => assert.fail('unbacked Mock Graph issuer');
-      assert.equal(f.select(mockGraph, {occurrence: {}, execution: {}}), f.graph);
+      assert.equal(f.select(mockGraph, {occurrence: {}, execution: {}, serializationGraph: undefined}), f.graph);
       assert.deepEqual(f.events.at(-1), ['graph']);
     }
   }

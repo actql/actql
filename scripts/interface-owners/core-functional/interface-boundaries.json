@@ -20600,13 +20600,14 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "e7f1da946186279ddcbb81dd4718647ee0d975b40b4216b6cf874f37af655077",
+      "sha256": "604a3e78446c7c918e2f3ae06c23383dae7f403c4e4181491d151f0fd2b09cf7",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
         "assertInstalledModelDefaultsAdoption",
         "assertInstalledModelDefaultsPreparation",
+        "consumeInstalledModelExecutionAbsence",
         "installModelProviders",
         "installedModelEnvironment",
         "prepareInstalledModelProviderDefaults",
@@ -20664,6 +20665,16 @@
           "name": "checkInstallation/checkInstallation",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "consumeInstalledModelExecutionAbsence",
+          "parameters": [
+            "error",
+            "prepared",
+            "installation",
+            "occurrence"
           ],
           "async": false
         },
@@ -20790,6 +20801,13 @@
           "name": "originalModelMaterialArrays",
           "parameters": [
             "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalModelMaterialArrays/originalModelMaterialArrays",
+          "parameters": [
+            "entries"
           ],
           "async": false
         },
@@ -21067,7 +21085,9 @@
             "retainModelQuantityCapacity/retainModelQuantityCapacity/retainModelQuantityCapacity",
             "retainModelQuantityCapacity/retainModelQuantityCapacity#2",
             "retainProviderBindingOriginals",
-            "retainProviderBindingOriginals/retainProviderBindingOriginals"
+            "retainProviderBindingOriginals/retainProviderBindingOriginals",
+            "consumeInstalledModelExecutionAbsence",
+            "originalModelMaterialArrays/originalModelMaterialArrays"
           ],
           "exports": [
             "admitInstalledModelProvider",
@@ -21075,7 +21095,8 @@
             "installModelProviders",
             "installedModelEnvironment",
             "readInstalledModelDependencies",
-            "readInstalledModelExecution"
+            "readInstalledModelExecution",
+            "consumeInstalledModelExecutionAbsence"
           ],
           "attributes": {
             "responsibility": [
@@ -21718,7 +21739,8 @@
         "../host-common/runtime-result.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-selection.mjs",
-        "./installed-check-environment.mjs"
+        "./installed-check-environment.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
