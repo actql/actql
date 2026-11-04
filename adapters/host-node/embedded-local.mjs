@@ -7495,32 +7495,32 @@ async function openPreparedInstalledHost(options, initialEntry) {
           parent, input, originalGraph, contracts));
     },
     prepareManagedModelMaterials(runtime, prepared, count, wireAt, containers) {
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelMaterials !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
       }
-      (computeManaged === undefined ? assertSourceManagedInstallationCurrent
-        : assertManagedComputeInstallationCurrent)(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.prepareModelMaterials(prepared,
         originalSourceManagedHostRequest(originals, prepared), count, wireAt, containers);
     },
     prepareManagedModelBinding(runtime, prepared, providerId, installation, contract, configuration) {
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelBinding !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
       }
-      (computeManaged === undefined ? assertSourceManagedInstallationCurrent
-        : assertManagedComputeInstallationCurrent)(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.prepareModelBinding(prepared,
         originalSourceManagedHostRequest(originals, prepared), providerId, installation, contract, configuration);
     },
     prepareManagedModelGraph(runtime, prepared, occurrence, execution, serializationGraph) {
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelGraph !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
       }
-      (computeManaged === undefined ? assertSourceManagedInstallationCurrent
-        : assertManagedComputeInstallationCurrent)(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       const control = runtimeCore(runtime).publicationControl;
       return manager.prepareModelGraph(prepared,
         originalSourceManagedHostRequest(originals, prepared), occurrence, execution, serializationGraph,
@@ -7530,12 +7530,12 @@ async function openPreparedInstalledHost(options, initialEntry) {
               selected, originalExecution, contracts));
     },
     prepareManagedModelCompilation(runtime, prepared, graph) {
-      const manager = computeManaged ?? sourceManaged;
+      const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareModelCompilation !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
       }
-      (computeManaged === undefined ? assertSourceManagedInstallationCurrent
-        : assertManagedComputeInstallationCurrent)(manager, originals);
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.prepareModelCompilation(prepared,
         originalSourceManagedHostRequest(originals, prepared), graph);
     },

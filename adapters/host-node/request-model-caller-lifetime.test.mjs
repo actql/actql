@@ -1431,3 +1431,59 @@ test('complete Model group forwards one original installed quantity scope before
     }
   }
 });
+
+// A cold Host can have both installations after a prior ordinary operation.
+// Model consumers must use the same manager selected by requestPreparation /
+// fundedPreparation, never another manager merely because it also exists.
+test('Model consumers retain the original funded Request manager when both installations exist', () => {
+  const names = ['prepareManagedModelMaterials', 'prepareManagedModelBinding',
+    'prepareManagedModelGraph', 'prepareManagedModelCompilation'];
+  const methods = new Map();
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.method && names.includes(node.key.name)) {
+      assert(!methods.has(node.key.name)); methods.set(node.key.name, node);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(methods.size, names.length);
+  const moon = {}, prepared = {}, request = {}, originals = {};
+  const selected = {}, currentFailure = new Error('original manager is no longer current');
+  const implementations = names.map(name => hostSource.slice(methods.get(name).start, methods.get(name).end));
+  for (const sourcePresent of [true, false]) {
+    const calls = [];
+    const source = {}, compute = {};
+    const original = sourcePresent ? source : compute;
+    for (const method of ['prepareModelMaterials', 'prepareModelBinding',
+      'prepareModelGraph', 'prepareModelCompilation']) {
+      original[method] = (actual, parent) => {
+        assert.strictEqual(actual, prepared); assert.strictEqual(parent, request);
+        calls.push(method); return selected;
+      };
+      if (sourcePresent) compute[method] = () => assert.fail('Foreign manager cannot borrow this Request');
+    }
+    let refuseCurrent = false;
+    const current = value => {
+      assert.strictEqual(value, original);
+      if (refuseCurrent) throw currentFailure;
+    };
+    const host = Function('moon', 'sourceManaged', 'computeManaged', 'originals',
+      'clientOperationError', 'assertSourceManagedInstallationCurrent',
+      'assertManagedComputeInstallationCurrent', 'originalSourceManagedHostRequest', 'runtimeCore',
+      'return ({' + implementations.join(',') + '});')(
+      moon, sourcePresent ? source : undefined, compute, originals,
+      code => Object.assign(new Error(code), {code}), current, current,
+      (actual, value) => {assert.strictEqual(actual, originals); assert.strictEqual(value, prepared); return request;},
+      () => ({publicationControl: {}}));
+    for (const name of names) assert.strictEqual(host[name](moon, prepared), selected);
+    assert.equal(calls.length, names.length);
+    refuseCurrent = true;
+    for (const name of names) assert.throws(() => host[name](moon, prepared), error => error === currentFailure);
+    for (const name of names) assert.throws(() => host[name]({}, prepared), {code: 'NodeManagedRunCompilationUnavailable'});
+    assert.equal(calls.length, names.length, 'No foreign fallback or construction after the original current failure');
+  }
+});
