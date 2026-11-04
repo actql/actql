@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -73,6 +73,7 @@ test('Native Core C launcher preserves compiler arguments, original environment 
     'console.log(JSON.stringify({args:process.argv.slice(2),allocator:process.env.MOONBIT_ALLOCATOR,' +
     'current:process.env.ACTQL_FIXTURE_CURRENT}));process.exit(7);\n');
   chmodSync(compiler, 0o700);
+  writeFileSync(join(tools, 'ar'), '#!' + process.execPath + '\nprocess.exit(7);\n', {mode: 0o700});
   const env = {...process.env, PATH: tools + delimiter + process.env.PATH,
     MOONBIT_ALLOCATOR: 'mimalloc', ACTQL_FIXTURE_CURRENT: 'same-original'};
   delete env.MOON_CC;
@@ -91,4 +92,42 @@ test('Native Core C launcher preserves compiler arguments, original environment 
   }
   assert.equal(readFileSync(compiler, 'utf8').includes('process.exit(7)'), true);
   assert.deepEqual(nativeCoreCCompiler(root, scratch, {...env, MOON_CC: compiler}), {});
+});
+
+
+test('Native Core compiler retains the logical compiler companion without realpath or PATH fallback', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-core-ar-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const selected = join(root, 'selected tools'), original = join(root, 'real compiler'),
+    unrelated = join(root, 'other tools'), scratch = join(root, 'scratch'), missing = join(root, 'missing');
+  for (const directory of [selected, original, unrelated, scratch, missing]) mkdirSync(directory);
+  const compiler = join(original, 'compiler');
+  writeFileSync(compiler, '#!' + process.execPath + '\nthrow new Error("archive routing must not invoke cc");\n', {mode: 0o700});
+  symlinkSync(compiler, join(selected, 'cc'));
+  for (const [path, tool] of [[join(selected, 'archiver'), 'selected companion'],
+    [join(original, 'ar'), 'realpath decoy'], [join(unrelated, 'ar'), 'PATH decoy']]) {
+    writeFileSync(path, '#!' + process.execPath + '\n' +
+      'console.log(JSON.stringify({tool:' + JSON.stringify(tool) + ',args:process.argv.slice(2)}));\n' +
+      'if(process.argv.includes("--fail")){process.stderr.write("original archive refusal\\n");process.exit(7);}',
+    {mode: 0o700});
+  }
+  symlinkSync(join(selected, 'archiver'), join(selected, 'ar'));
+  const env = {...process.env, PATH: [selected, unrelated, process.env.PATH].join(delimiter)};
+  delete env.MOON_CC;
+  const profile = nativeCoreCCompiler(root, scratch, env), directory = profile.PATH.split(delimiter)[0];
+  assert.equal(lstatSync(join(directory, 'ar')).isSymbolicLink(), true);
+  assert.equal(realpathSync(join(directory, 'ar')), realpathSync(join(selected, 'ar')));
+  for (const args of [['rcs', 'original archive.a', 'same object.o'], ['--fail', 'original archive.a']]) {
+    const result = spawnSync(join(directory, 'ar'), args, {env: {...env, ...profile},
+      encoding: 'utf8', timeout: 5000});
+    assert.ifError(result.error);assert.equal(result.signal, null);
+    assert.equal(result.status, args.includes('--fail') ? 7 : 0);
+    assert.deepEqual(JSON.parse(result.stdout), {tool: 'selected companion', args});
+    assert.equal(result.stderr, args.includes('--fail') ? 'original archive refusal\n' : '');
+  }
+  rmSync(join(selected, 'ar'));
+  assert.throws(() => nativeCoreCCompiler(root, missing, env), error =>
+    error.code === 'ENOENT' && error.path === join(selected, 'ar'));
+  assert.equal(existsSync(join(missing, 'test-c-compiler')), false);
+  assert.deepEqual(nativeCoreCCompiler(root, missing, {...env, MOON_CC: compiler}), {});
 });
