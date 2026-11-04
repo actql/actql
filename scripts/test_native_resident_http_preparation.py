@@ -7,6 +7,7 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+import urllib.error
 from unittest.mock import patch
 
 SPEC=importlib.util.spec_from_file_location('http_preparation',Path(__file__).with_name('prepare-native-resident-http-component.py'))
@@ -15,6 +16,40 @@ SPEC.loader.exec_module(P)
 
 
 class SignedInputs(unittest.TestCase):
+    def test_release_key_uses_exact_source_or_original_without_network(self):
+        key=json.loads((P.ROOT/'scripts/native-http-component-source.json').read_text())['upstream']['releaseKey']
+        source=P.ROOT/key['sourcePath']
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'downloaded-key'
+            with patch.object(P.urllib.request,'urlopen',side_effect=urllib.error.URLError('Network is unreachable')) as network:
+                for original in (None,source):
+                    with self.subTest(explicit=original is not None):
+                        self.assertEqual(P.acquire_release_key(key,destination,original,1),source)
+                network.assert_not_called()
+            self.assertFalse(destination.exists())
+
+    def test_bad_source_key_refuses_without_keyserver_fallback(self):
+        key=json.loads((P.ROOT/'scripts/native-http-component-source.json').read_text())['upstream']['releaseKey']
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw);source=root/key['sourcePath'];source.parent.mkdir(parents=True)
+            source.write_bytes(b'x'*key['bytes'])
+            with patch.object(P,'ROOT',root),patch.object(P.urllib.request,'urlopen',side_effect=AssertionError('network fallback')) as network:
+                with self.assertRaisesRegex(ValueError,'original HTTP preparation input differs'):
+                    P.acquire_release_key(key,root/'output',None,1)
+                source.unlink()
+                with self.assertRaises((OSError,ValueError)):
+                    P.acquire_release_key(key,root/'output',None,1)
+                network.assert_not_called()
+            self.assertFalse((root/'output').exists())
+
+    def test_unavailable_download_does_not_publish_unverified_input(self):
+        with tempfile.TemporaryDirectory() as raw:
+            destination=Path(raw)/'download'
+            with patch.object(P.urllib.request,'urlopen',side_effect=urllib.error.URLError('Network is unreachable')):
+                with self.assertRaises(urllib.error.URLError):
+                    P.acquire('https://unused',{'bytes':1,'sha256':'0'*64},destination,None,1)
+            self.assertFalse(destination.exists())
+
     def test_original_metadata_roundtrips_as_exact_decimal_strings(self):
         with tempfile.TemporaryDirectory() as raw:
             path=Path(raw)/'original';path.write_bytes(b'original');current=path.stat()

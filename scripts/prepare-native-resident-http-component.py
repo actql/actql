@@ -38,6 +38,15 @@ def acquire(url: str, expected: dict, destination: Path, original: Path | None,
     return destination
 
 
+def acquire_release_key(key: dict, destination: Path, original: Path | None,
+                        seconds: int) -> Path:
+    # Public key packets are immutable Source input, not keyserver authority.
+    # Both the checked-in default and an explicit original retain the same pin.
+    selected = ROOT / key['sourcePath'] if original is None else original
+    return acquire(key['url'], {name: key[name] for name in ('bytes', 'sha256')},
+                   destination, selected, seconds)
+
+
 def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
             perl: Path, gpg: Path, gpgv: Path, destination: Path, seconds: int, *,
             curl_archive: Path | None = None, curl_signature: Path | None = None,
@@ -61,8 +70,7 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
     curl_archive = acquire(upstream['url'], upstream['archive'], destination / 'curl.tar.xz', curl_archive, remaining())
     curl_signature = acquire(upstream['url'] + '.asc', upstream['signature'], destination / 'curl.tar.xz.asc', curl_signature, remaining())
     key = upstream['releaseKey']
-    release_key = acquire(key['url'], {name: key[name] for name in ('bytes', 'sha256')},
-                          destination / 'release-key.asc', release_key, remaining())
+    release_key = acquire_release_key(key, destination / 'release-key.asc', release_key, remaining())
     tls_archive = acquire(tls_recipe['url'], tls_recipe['archive'], destination / 'openssl.tar.gz', tls_archive, remaining())
     selected = [Path(__file__).resolve(), recipe_path, gpg, release_key, curl_archive, curl_signature, tls_archive]
     inputs = [HTTP.NATIVE.original(path) for path in selected]
