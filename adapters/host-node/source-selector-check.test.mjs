@@ -30,9 +30,12 @@ after(async () => {setDefaultCACertificates(certificates); await rm(tls, {recurs
 const principal = userInfo().username;
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const keys = generateKeyPairSync('ed25519');
-const account = (outcome = 'allow', namespace = 'registrations') => canonicalJson({
+const account = (outcome = 'allow', namespace = 'registrations', submissionRead = false) => canonicalJson({
   version: 'actql-execution-account-config/0.1', account_id: 'selector-disclosure',
-  entries: [{entry_id: 'selector-absence', outcome, principal: {any_of: [principal]},
+  entries: [...(submissionRead ? [{entry_id: 'read-original-submission', outcome: 'allow',
+    principal: {any_of: [principal]}, connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []}] : []),
+    {entry_id: 'selector-absence', outcome, principal: {any_of: [principal]},
     connection: {any_of: ['actql-source-namespace']}, resource: {any_of: [namespace]},
     operation: {any_of: ['inspect_absence']}, exclusions: []}]});
 const protectedSource = [{boundary: 'source_resolution', reason: 'unresolved_protected'}];
@@ -49,7 +52,8 @@ const absentReason = (result, selector, pointer = '/stages/0/inputs/rows/view', 
     revision: sdk.getCheckInput(result, 'program').revision, pointer}});
 
 async function fixture(t, entrance, {registered = false, namespace = 'registrations',
-  grant = 'allow', grantNamespace = namespace, unstable = false, accountFile, omitNamespace = false} = {}) {
+  grant = 'allow', grantNamespace = namespace, unstable = false, accountFile, omitNamespace = false,
+  submissionRead = false} = {}) {
   const root = await mkdtemp(new URL(`${entrance}-`, scratch).pathname);
   const counts = {sourcePages: 0, physicalTarget: 0, credentials: 0, model: 0, effect: 0, resume: 0, dispatch: 0};
   let sourceProfilePath, connectorTable, client, host, server;
@@ -95,7 +99,7 @@ async function fixture(t, entrance, {registered = false, namespace = 'registrati
     effectInstallation: {environmentWire: baseWire,
       execute() {counts.effect++; assert.fail('Check must not execute Effect');},
       resume() {counts.resume++; assert.fail('Check must not resume Effect');}},
-    authorization: {...(accountFile ? {accountConfig: accountFile} : {accountConfiguration: account(grant, grantNamespace)}),
+    authorization: {...(accountFile ? {accountConfig: accountFile} : {accountConfiguration: account(grant, grantNamespace, submissionRead)}),
       hostKey: {keyId: 'selector-host', privateKey: keys.privateKey.export({format: 'pem', type: 'pkcs8'})},
       reviewers: [{keyId: 'selector-reviewer', reviewerId: 'selector-reviewer', principalId: principal,
         publicKey: keys.publicKey.export({format: 'pem', type: 'spki'})}]},
@@ -128,7 +132,9 @@ async function fixture(t, entrance, {registered = false, namespace = 'registrati
 
 for (const entrance of ['local', 'https']) {
   test(`${entrance}: original Program refusal exposes passive selector diagnostics without Run admission`, async t => {
-    const f = await fixture(t, entrance), input = program();
+    // Same-intent lookup needs its own Host read permission; this grants no
+    // Source read, Model call, physical start or Run acceptance.
+    const f = await fixture(t, entrance, {submissionRead: true}), input = program();
     let rejection;
     try {await f.client.start(input);} catch (error) {rejection = error;}
     assert.equal(rejection?.code, 'SubmissionNotAccepted');
