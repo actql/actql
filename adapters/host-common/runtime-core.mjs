@@ -3606,6 +3606,19 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declarations, query, evidence,
         transport, scratch, contracts, retainedOutput, queryTime]));
     },
+    prepareCheckedClientRequestModelComponentCaptureModule(parent, input, request, compiled, definition, compilation,
+      declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelComponentCaptureModule;
+      if (typeof prepare !== 'function' || typeof construct !== 'function') {
+        throw new TypeError('Request Model component constructor unavailable');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation,
+        declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct]));
+    },
     prepareCheckedClientRequestModelProviderCaptureModule(parent, input, request, compiled, definition, compilation,
       declaration, provider, query, evidence, transport, scratch, contracts, retainedOutput, queryTime) {
       const value = compiledRunTokens.get(compiled);

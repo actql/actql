@@ -898,8 +898,9 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
-    if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function' ||
-        typeof model.control.prepareCheckedClientRequestModelCaptureModule !== 'function') {
+    if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
+        typeof moon.clientProgramPrepareRequestModelComponentCaptureModule !== 'function' ||
+        typeof model.control.prepareCheckedClientRequestModelComponentCaptureModule !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
     const query = readInitialControlInstallationAsset(initialControl, originals,
@@ -909,10 +910,25 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // Same fixed Mock document limits as its real original reader. These
     // supply demand to Core; no row, Source observation or ACK is fabricated.
     const documentBytes = Object.freeze([1048576n, 1048576n]);
-    run.preparedSequences = model.control.prepareCheckedClientRequestModelCaptureModule(
+    run.preparedSequences = model.control.prepareCheckedClientRequestModelComponentCaptureModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
       sources.map(value => value.declaration), query, evidence,
-      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation);
+      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
+      (_capacity, prefix, bindSuffix) => {
+        current();
+        if (model.component !== undefined || typeof bindSuffix !== 'function') {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        const component = openNodeComposedInferProvider({moon, selected: model.selection,
+          inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
+        if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
+            originals.installation.computeRuns?.get(run.prepared) !== run) {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        model.component = component;
+        current();
+        return component.provider;
+      });
     current();
     run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
       model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
@@ -4433,7 +4449,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (selectedModel?.localMock) {
       const early = earlyMockInferPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
-      sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
+      managedSourceRun = sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
         control, early.plan, selectedModel,
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
     } else if (selectedModel !== undefined) {

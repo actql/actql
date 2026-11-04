@@ -11,6 +11,7 @@ const runtimeSource = readFileSync(new URL('../host-common/runtime-core.mjs', im
 const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
   prepareCheckedClientRequestModelCaptureModule: 'clientProgramPrepareRequestModelCaptureModule',
+  prepareCheckedClientRequestModelComponentCaptureModule: 'clientProgramPrepareRequestModelComponentCaptureModule',
   prepareCheckedClientRequestModelProviderCaptureModule: 'clientProgramPrepareRequestModelProviderCaptureModule',
   prepareCheckedClientRequestModelProviderComponentCaptureModule: 'clientProgramPrepareRequestModelProviderComponentCaptureModule',
 });
@@ -37,7 +38,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   // This fixture owns the existing Mock module path. Real configured
   // source-free components have separate deferred-provider caller controls.
   const calls = [], model = {graph, occurrence, compiled, runDefinition: definition, scope: undefined, component: undefined,
-    selection: Object.freeze({localMock: true})};
+    selection: Object.freeze({localMock: true, graph, occurrence})};
   const run = {prepared, request, model, queryTimePreparation: timed ? q : undefined};
   const serializationGraph = {}, prefix = {}, prefixLimits = {}, workspace = {};
   if (serialized) {
@@ -140,12 +141,15 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
       if (serialized) assert.equal(run.serialization, prefix, 'Retain original prefix before module constructor');
       calls.push('source-free-module'); if (expire) current = false; return ok(module);
     },
-    clientProgramPrepareRequestModelCaptureModule(...args) {
-      assert.deepEqual(args, [parent, input, request, rawCompiled, rawDefinition, compilation,
+    clientProgramPrepareRequestModelComponentCaptureModule(...args) {
+      assert.deepEqual(args.slice(0, 14), [parent, input, request, rawCompiled, rawDefinition, compilation,
         declarations, 'query', 'evidence', [1048576n, 1048576n], [1048576n, 1048576n],
         admission, true, timed ? q : undefined]);
+      assert.equal(args.length, 15);
       assert.equal(args[9], args[10], 'Reuse the original fixed document bound vector');
       calls.push('captured-module'); if (refuseCapture) throw refuseCapture;
+      assert.strictEqual(args[14]({}, inputPrefix, suffixBinder), componentProvider);
+      assert.strictEqual(model.component.provider, componentProvider);
       if (expire) current = false; return ok(module);
     },
   };
@@ -156,6 +160,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   if (missingModule) {
     delete moon.clientProgramPrepareRequestModelSourceFreeModule;
     delete moon.clientProgramPrepareRequestModelCaptureModule;
+    delete moon.clientProgramPrepareRequestModelComponentCaptureModule;
     delete moon.clientProgramPrepareRequestModelProviderCaptureModule;
   }
   if (missingComponent) delete moon.clientProgramPrepareRequestModelProviderComponentCaptureModule;
@@ -215,7 +220,7 @@ test('Request Model constructs both actual query acquisitions only inside same R
   for (const timed of [false, true]) {
     const f = fixture({count: 2, timed}); assert.equal(f.construct(), f.plan);
     assert.equal(f.run.modelAcquisitions, undefined);
-    assert.deepEqual(f.calls, ['bounds', 'captured-module', 'bind-captured']);
+    assert.deepEqual(f.calls, ['bounds', 'captured-module', 'component provider', 'bind-captured']);
   }
 });
 
@@ -226,6 +231,28 @@ test('Request Model keeps original native refusal and retained module output for
   assert.deepEqual(f.calls, ['bounds', 'captured-module']);
   const g = fixture({expire: true}); assert.throws(g.construct, error => error === g.primary);
   assert.equal(g.run.preparedSequences, g.module); assert(!g.calls.includes('bind-source-free'));
+});
+
+test('Request two-Source Mock retains its same deferred component when the current callback refuses', () => {
+  const f = fixture({count: 2, expireComponent: true, facadeBindings: true});
+  assert.throws(f.construct, error => error === f.primary);
+  assert(f.model.component);
+  assert.strictEqual(f.run.preparedSequences, undefined);
+  assert.strictEqual(f.run.modelPlan, undefined);
+  assert.deepEqual(f.calls, ['bounds', 'captured-module', 'component provider']);
+});
+
+test('Request two-Source component facade forwards originals and rejects copied compiler or Definition', () => {
+  const f = fixture({count: 2, timed: true, facadeBindings: true});
+  assert.strictEqual(f.construct(), f.plan);
+  const method = f.control.prepareCheckedClientRequestModelComponentCaptureModule;
+  const before = f.calls.length;
+  const invoke = (compiled, definition) => method(f.parent, f.input, f.request, compiled,
+    definition, f.compilation, [], 'query', 'evidence', [], [], {}, true, undefined, () => {});
+  assert.throws(() => invoke({...f.model.compiled}, f.model.runDefinition), /Foreign Client compiled Infer preparation/);
+  assert.throws(() => invoke(f.model.compiled, {...f.model.runDefinition}), /Foreign publication contract/);
+  assert.equal(f.calls.length, before);
+  assert.deepEqual(f.calls, ['bounds', 'captured-module', 'component provider', 'bind-captured']);
 });
 
 test('Request Model refuses absent Request module ports before any legacy constructor can run', () => {

@@ -199,6 +199,14 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             : acquiredInfer?.sources?.length !== 2)) {
         throw new TypeError('InvalidInstalledMockModelPreparation');
       }
+      if (!sourceFree) {
+        if (preparationHolder === undefined || originalPreparation.selection !== selected ||
+            typeof originalPreparation.component?.bindOriginal !== 'function' ||
+            typeof originalPreparation.openCapturedHost !== 'function') {
+          throw new TypeError('InvalidInstalledMockModelPreparation');
+        }
+        originalPreparation = Object.freeze({...originalPreparation, preparationHolder});
+      }
       return runInstalledComposedInfers({moon, control, preparedProgram, plan,
         selected: {components: [selected]}, store, principalId, signal, retainExecution,
         acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
@@ -802,6 +810,17 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const selected = selections.get(preparedProgram);
     const complete = Array.isArray(selected?.components);
     const capacities = sourceCapacities ?? [sourceCapacity];
+    if (selected?.localMock) {
+      if (selected.graph !== plan.inferGraph || typeof prepareOriginalMockRun !== 'function') {
+        throw new TypeError('InstalledModelSourcePreparationUnavailable');
+      }
+      const original = prepareOriginalMockRun(preparedProgram, plan);
+      if (original?.control !== control || original.compiled !== plan.compiled ||
+          original.runDefinition !== plan.runDefinition || typeof original.prepareAcquiredLedger !== 'function') {
+        throw new TypeError('InvalidInstalledMockModelPreparation');
+      }
+      return original.prepareAcquiredLedger(capacities, registry, values, fragment, ordered);
+    }
     if (selected?.graph !== plan.inferGraph || !complete && (selected.originalReadInstallation === undefined ||
         selected.occurrence === undefined) || selected.serializationGraph !== undefined ||
         !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(preparedProgram) ||
