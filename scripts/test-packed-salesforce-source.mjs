@@ -468,15 +468,17 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     await writeFile(join(root, name), await readFile(join(repository,
       'scripts/fixtures', name)));
   }
-  await writeFile(join(root, 'base-environment.json'), await readFile(
-    join(repository, 'spec/local-check-environment.json')));
+  const hostBaseEnvironmentWire = await readFile(
+    join(repository, 'spec/local-check-environment.json'), 'utf8');
+  const hostBaseEnvironment = JSON.parse(hostBaseEnvironmentWire);
+  await writeFile(join(root, 'base-environment.json'), hostBaseEnvironmentWire);
   if (composed) {
     const fixture = await loadTwoSourceFixtures(join(repository,
       'adapters/host-node/fixtures/two-source'));
     fixture.rows = {...databaseRows, equal_content: databaseRows.left};
     for (const name of ['left', 'right']) {
       fixture.environments[name] = await publicFixtureEnvironment(
-        fixture.environments[name]);
+        fixture.environments[name], hostBaseEnvironment.host_policy_profile);
     }
     const duckdb = createRequire(join(root,
       'node_modules/@actql/local-node/package.json'))('@duckdb/node-api');
@@ -519,7 +521,8 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
       const paired = await loadTwoSourceFixtures(join(repository,
         'adapters/host-node/fixtures/two-source'));
       for (const name of ['left', 'right']) {
-        paired.environments[name] = await publicFixtureEnvironment(paired.environments[name]);
+        paired.environments[name] = await publicFixtureEnvironment(
+          paired.environments[name], hostBaseEnvironment.host_policy_profile);
       }
       const sources = await installTwoSourceFixtures({root: join(root,
         'optional-effect-sources'), fixture: paired, duckdb});

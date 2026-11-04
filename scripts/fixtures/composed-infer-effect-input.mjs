@@ -128,7 +128,7 @@ export function registerCompositionModel(moon, taskCid, record, {cleanup = () =>
 
 // These databases contain only this fixture's authored public rows. Reissue
 // the declaration graph as a unit; do not relabel a captured provider result.
-export async function publicFixtureEnvironment(original) {
+export async function publicFixtureEnvironment(original, hostPolicyProfile) {
   const {cid} = await import('./installed-infer-fixture.mjs');
   const environment = structuredClone(original);
   const policy = environment.contract_registry.find(item =>
@@ -161,6 +161,12 @@ export async function publicFixtureEnvironment(original) {
     snapshot.source_view_contract_cid = view.contract_cid;
     snapshot.source_data_policy_cid = policy.cid;
     snapshot.data_classification = 'public';
+  }
+  // A newly authored publication uses its installing Host's complete policy.
+  // Keep this before the evidence CID and provider installation; never rewrite
+  // an admitted publication or infer a policy from its sample rows.
+  if (hostPolicyProfile !== undefined) {
+    environment.host_policy_profile = structuredClone(hostPolicyProfile);
   }
   delete environment.evidence_bundle_cid;
   environment.evidence_bundle_cid = cid(environment);

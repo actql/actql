@@ -15,7 +15,8 @@ import './table-ctas-result-controls.test.mjs';
 import {parse} from 'yaml';
 import {parse as parseJavaScript} from 'acorn';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
-import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from
+import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate,
+  publicFixtureEnvironment} from
   './fixtures/composed-infer-effect-input.mjs';
 import {configuration as inferConfiguration, canonical as inferCanonical, cid as inferCid} from
   './fixtures/installed-infer-fixture.mjs';
@@ -232,6 +233,59 @@ test('packed INFER metadata uses the same installed Local policy without reident
   await assert.rejects(produce('/app','/repo',async()=>wire,join,
     {...moon,clientLocalResourcePolicyRowCeiling(){throw originalFailure;}},
     selectInstalledLocalMaterializationEnvironment), error=>error===originalFailure);
+});
+
+test('packed composition Source publications retain the authored Host policy before installation', async () => {
+  const baseWire = readFileSync(new URL('../spec/local-check-environment.json', import.meta.url), 'utf8').trimEnd();
+  const base = JSON.parse(baseWire);
+  // Explicit admission port: this checks the actual JS policy-composition
+  // boundary and fixture identities, not native semantic or physical backing.
+  const moon = {clientProgramCheckEnvironment(wire, evidenceCid) {
+    const {evidence_bundle_cid: actual, ...body} = JSON.parse(wire);
+    assert.equal(actual, evidenceCid);
+    assert.equal(actual, contentCid(body));
+    return {};
+  }};
+  for (const name of ['left', 'right']) {
+    const original = JSON.parse(readFileSync(new URL(
+      `../adapters/host-node/fixtures/two-source/${name}.environment.json`, import.meta.url), 'utf8'));
+    const before = structuredClone(original);
+    const unbound = await publicFixtureEnvironment(original);
+    assert.throws(() => composeInstalledCheckEnvironment(moon, baseWire, canonicalText(unbound)),
+      error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+    const selected = await publicFixtureEnvironment(original, base.host_policy_profile);
+    assert.deepEqual(selected.host_policy_profile, base.host_policy_profile);
+    assert.notStrictEqual(selected.host_policy_profile, base.host_policy_profile);
+    for (const key of Object.keys(unbound).filter(key =>
+      !['host_policy_profile', 'evidence_bundle_cid'].includes(key))) {
+      assert.deepEqual(selected[key], unbound[key], key);
+    }
+    assert.deepEqual(original, before);
+    const composed = composeInstalledCheckEnvironment(moon, baseWire, canonicalText(selected));
+    assert.deepEqual(JSON.parse(composed).host_policy_profile, base.host_policy_profile);
+    const changed = structuredClone(selected);
+    changed.host_policy_profile.capacity.max_effect_items++;
+    delete changed.evidence_bundle_cid;
+    changed.evidence_bundle_cid = contentCid(changed);
+    assert.throws(() => composeInstalledCheckEnvironment(moon, baseWire, canonicalText(changed)),
+      error => error.code === 'InstalledCheckEnvironmentConflict' && error.cause === 'EnvironmentBase');
+  }
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
+  const calls = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'publicFixtureEnvironment') calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  })(tree);
+  assert.equal(calls.length, 2);
+  for (const call of calls) {
+    assert.equal(script.slice(call.arguments[1].start, call.arguments[1].end),
+      'hostBaseEnvironment.host_policy_profile');
+  }
 });
 
 test('public check Source fixture keeps original declarations under the actual Local policy', async () => {
