@@ -420,7 +420,19 @@ fn open_site_environment(
   let loaded_component_cid = match
     @process_image.current_executable_cid(max_bytes, 1048576) {
     Ok(value) => value
-    Err(_) => stop("resident Site executable identity failed")
+    Err(issue) => {
+      // This reader returns only its own fixed diagnostic or strerror text,
+      // never the configured path, runtime document or credential material.
+      let reason = match issue {
+        InvalidLimit => "InvalidLimit"
+        Open(message) => "Open(" + message + ")"
+        Read(message) => "Read(" + message + ")"
+        Close(message) => "Close(" + message + ")"
+        CapacityExceeded => "CapacityExceeded"
+        EmptyImage => "EmptyImage"
+      }
+      stop("resident Site executable identity failed: " + reason)
+    }
   }
   if loaded_component_cid != component_cid {
     report("setup-failed", [("reason", "executable-identity-mismatch")])
