@@ -6,6 +6,7 @@ import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry a
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {sourceAliasIdentityRow} from './source-alias-request.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {sourceJsonWireGeometry} from './installed-source-construction-geometry.mjs';
 
 const alias = request => ({name: 'records', sourceRef: 'connector://local/records#view',
   sourceViewContractCid: 'sha256:' + '1'.repeat(64), schemaContractCid: 'sha256:' + '2'.repeat(64), request});
@@ -38,6 +39,44 @@ test('profile snapshot and serializer families grow with actual original DATA', 
   assert.ok(long.text > small.text);
   assert.ok(many.nodes > small.nodes);
   assert.equal(small.wire, 0n, 'profile parse/snapshot does not hash or own UTF8 bytes');
+});
+
+test('profile payload demand omits only outer RFC JSON whitespace while the full wire stays distinct', () => {
+  const string = JSON.stringify(' \t\n\r\\"日本語😀 ');
+  const compact = '{"s":' + string + ',"n":-1.25e+3,"a":[true,null]}';
+  const spaced = ' \t\r\n{\n "s" \t: ' + string + ' ,\n "n" : -1.25e+3 , "a": [true , null]\n}\r\n';
+  assert.deepEqual(JSON.parse(spaced), JSON.parse(compact));
+  assert.deepEqual(profileGeometry(spaced), profileGeometry(compact));
+  const full = sourceJsonWireGeometry(spaced);
+  assert.equal(full.units, BigInt(spaced.length));
+  assert(full.weighted > sourceJsonWireGeometry(compact).weighted, 'default Environment demand still includes its full wire');
+  const inside = JSON.stringify({s: ' '.repeat(4096)});
+  assert.equal(profileGeometry(inside).bounds.input.units, BigInt(inside.length));
+  assert(profileGeometry(inside).text > profileGeometry('{"s":""}').text);
+  assert.equal(sourceJsonWireGeometry('\u00a0{}', true).units, 3n, 'non-RFC whitespace is not discarded');
+  assert.throws(() => JSON.parse('\u00a0{}'), SyntaxError);
+});
+
+test('profile payload demand retains escapes numbers nested JSON and malformed-prefix allocation', () => {
+  const hidden = {nested: [null, false, {text: '[]{}:,\\" \t\n日本語😀'}]};
+  const samples = [JSON.stringify({body: JSON.stringify(hidden)}),
+    '[0,-1.7976931348623157e+308,5e-324,9007199254740991]',
+    '{"body":"\\u005bnull\\u002c{\\u0022x\\u0022:[1,2]}\\u005d"}'];
+  const count = value => 1n + (value !== null && typeof value === 'object'
+    ? Object.values(value).reduce((total, child) => total + count(child), 0n) : 0n);
+  for (const wire of samples) {
+    const value = JSON.parse(wire), quote = profileGeometry(wire);
+    assert.equal(quote.bounds.input.units, BigInt(wire.length));
+    assert(quote.bounds.input.nodes >= count(value));
+    if (value.body) assert(quote.bounds.input.nodes >= count(JSON.parse(value.body)));
+    assert(quote.bounds.aliasWireUnits >= BigInt(JSON.stringify(value).length));
+  }
+  for (const wire of ['', ' \t[\n', ' { "x": \r', ' [null,\n', '"unterminated \t\n', '"\\u005']) {
+    assert.throws(() => JSON.parse(wire), SyntaxError);
+    const quote = profileGeometry(wire);
+    assert(quote.bounds.input.nodes >= 1n);
+    assert(quote.retained.nodes > 0n && quote.workspace.nodes > 0n, 'geometry never admits a malformed document');
+  }
 });
 
 test('immutable identity DATA scan refuses hooks and mutable descendants before a quote', () => {

@@ -93838,7 +93838,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d03e4199cb71faddace2ada33c63a322202780cd1adc7124ea206f40d9d11dd3",
+      "sha256": "b0b594b39dca2da4ed150d222341dee93a4296240ca495c72e426bac4b386768",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -94841,6 +94841,10 @@
               {
                 "path": "adapters/host-node/rest-source-initial-material.test.mjs",
                 "anchor": "REST factory forwards the same managed CA bytes to its original Site service"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source text decoder keeps the original failed close pending until the same FD acknowledges'"
               }
             ]
           }
@@ -126600,7 +126604,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "79f8745bb955142eacbb03c1dc8136be95d480e68bae566659a8b6fe90a3b6eb",
+      "sha256": "9c1efec4ca3a1e7c8038823a30a39647426f4092fd691f86c5ab4d7a8467188f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128779,6 +128783,10 @@
               {
                 "path": "adapters/host-node/installed-source-bounds.test.mjs",
                 "anchor": "test('funded Source text decoder keeps the original failed close pending until the same FD acknowledges'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source Alias profile preserves real string demand and refuses its constructor before allocation'"
               }
             ]
           }
@@ -132466,7 +132474,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
-      "sha256": "221dc3a691ddb628fa28ee3398902dc6d29c1ba53e54ed52923c3bf2b663a830",
+      "sha256": "056d594f70d7f6076a1c75ed75b3e27ea8b082837656df2c74de56ff34343c05",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Host constructor input geometry; quantities confer no admission or lifecycle authority",
@@ -132523,7 +132531,8 @@
         {
           "name": "sourceJsonWireGeometry",
           "parameters": [
-            "wire"
+            "wire",
+            "payloadOnly"
           ],
           "async": false
         }
@@ -132611,6 +132620,14 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "Bound connector construction"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.test.mjs",
+                "anchor": "test('profile payload demand omits only outer RFC JSON whitespace while the full wire stays distinct'"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.test.mjs",
+                "anchor": "test('profile payload demand retains escapes numbers nested JSON and malformed-prefix allocation'"
               }
             ]
           }
@@ -133087,7 +133104,7 @@
     },
     {
       "module": "adapters/host-node/source-alias-construction.mjs",
-      "sha256": "59c7e4ced512297d2266c9df6a19789e2c8f318107307ee7838452d709023083",
+      "sha256": "caa3c3cd90c6b76bb0673ad0c652798af79a66dd6a5974bed0f908bae6443e3c",
       "exports": [
         "captureSourceAliasConstruction",
         "sourceAliasBorrowedGeometry",
@@ -133304,6 +133321,14 @@
               {
                 "path": "adapters/host-node/source-alias-construction.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.test.mjs",
+                "anchor": "test('profile payload demand omits only outer RFC JSON whitespace while the full wire stays distinct'"
+              },
+              {
+                "path": "adapters/host-node/source-alias-construction.test.mjs",
+                "anchor": "test('profile payload demand retains escapes numbers nested JSON and malformed-prefix allocation'"
               }
             ]
           }

@@ -123,31 +123,40 @@ async function readConfigurationBody(original, maxBytes, project, beforeDecode) 
     let bytes = 0;
     let used = 0;
     let buffer = Buffer.allocUnsafe(Math.min(chunkBytes, maxBytes + 1));
-    for (;;) {
-      // One lookahead byte distinguishes exact-limit EOF from an oversized
-      // file, including one that grows after it is opened. Never readFile.
-      const {bytesRead} = await original.read(buffer, used,
-        buffer.length - used, null);
-      if (bytesRead === 0) {
-        chunks.push(buffer.subarray(0, used));
-        // The fixed initializer reserves the complete received native decode
-        // before concatenation/text/JSON construction. The old absent port
-        // keeps this reader's exact buffering and parsing semantics.
-        if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
-          throw new TypeError('InvalidInstalledConfigurationConstruction');
+    let joined;
+    try {
+      for (;;) {
+        // One lookahead byte distinguishes exact-limit EOF from an oversized
+        // file, including one that grows after it is opened. Never readFile.
+        const {bytesRead} = await original.read(buffer, used,
+          buffer.length - used, null);
+        if (bytesRead === 0) {
+          chunks.push(buffer.subarray(0, used));
+          // The fixed initializer reserves the complete received native decode
+          // before concatenation/text/JSON construction. The old absent port
+          // keeps this reader's exact buffering and parsing semantics.
+          if (beforeDecode !== undefined && beforeDecode(bytes) !== undefined) {
+            throw new TypeError('InvalidInstalledConfigurationConstruction');
+          }
+          joined = Buffer.concat(chunks, bytes);
+          return project(joined);
         }
-        return project(Buffer.concat(chunks, bytes));
+        bytes += bytesRead;
+        used += bytesRead;
+        if (bytes > maxBytes) {
+          throw new TypeError('InvalidInstalledSourceProfile');
+        }
+        if (used === buffer.length) {
+          chunks.push(buffer);
+          buffer = Buffer.allocUnsafe(Math.min(chunkBytes, maxBytes - bytes + 1));
+          used = 0;
+        }
       }
-      bytes += bytesRead;
-      used += bytesRead;
-      if (bytes > maxBytes) {
-        throw new TypeError('InvalidInstalledSourceProfile');
-      }
-      if (used === buffer.length) {
-        chunks.push(buffer);
-        buffer = Buffer.allocUnsafe(Math.min(chunkBytes, maxBytes - bytes + 1));
-        used = 0;
-      }
+    } finally {
+      // Cut these logical transient aliases before original FD cleanup/current
+      // callbacks. Only its actual close ACK permits the caller's E/R fold.
+      joined = buffer = undefined;
+      chunks.length = 0;
     }
 }
 

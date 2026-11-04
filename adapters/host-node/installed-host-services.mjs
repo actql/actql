@@ -337,8 +337,9 @@ export function installedSourceConfigurationReader(services) {
           // received bodies plus the last chunk. Later parse/snapshot/identity
           // constructors reserve their own geometry before allocation.
           const text = strictUtf8 ? decoded : 3n * decoded;
-          reserveSource(original, material, 0n, text,
-            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+          reserveSource(original, material, 0n, 0n,
+            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace,
+            {nodes: 0n, text, wire: decoded});
         }
       };
       const value = await (json ? readSourceProfileJson
@@ -347,7 +348,9 @@ export function installedSourceConfigurationReader(services) {
       // The original file has actually closed before retaining/reconciling.
       material.inputs.push(value);
       material.nodes += json ? 4n * decoded : 0n;
-      material.text += json ? 12n * decoded : strictUtf8 ? decoded : 3n * decoded;
+      // This SAME String is retained before reconciling its actual decoded
+      // bytes. A failed/pending close never reaches this successful-return cut.
+      material.text += json ? 12n * decoded : BigInt(Buffer.byteLength(value, 'utf8'));
       // Text inputs can have an actual CA Buffer retained alongside the text.
       material.wire += json ? 0n : decoded;
       material.workspaces.delete(workspace);
