@@ -805,6 +805,8 @@ test('mixed GitHub and DuckDB captures feed a retained Events window', async t =
 
 test('retained two-source Events failure keeps cleanup for retry', async t => {
   let failClose = true;
+  let failedCloseAttempts = 0;
+  const closeFailure = new Error('FixtureEventsInputCloseFailed');
   let reachedClose;
   const firstClose = new Promise(resolve => { reachedClose = resolve; });
   const observations = [];
@@ -814,7 +816,7 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
     faultInjection(name, detail) {
       if (name === 'acquisition_cleanup_started' && detail.task === 0) {
         reachedClose();
-        if (failClose) throw new Error('FixtureEventsInputCloseFailed');
+        if (failClose) { failedCloseAttempts++; throw closeFailure; }
       }
     }});
   await setup.publish();
@@ -833,10 +835,11 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
   await assert.rejects(host.close(), error => {
     assert.equal(error.code, 'ClientDispatchCleanupPending');
     assert.ok(error.failures?.some(failure =>
-      failure.cleanup?.errors?.some(cause =>
-        cause.message === 'FixtureEventsInputCloseFailed')));
+      failure.cleanup?.message === 'ClientSourceCleanupPending'));
+    assert.ok(error.failures.every(failure => failure.cleanup?.errors === undefined));
     return true;
   });
+  assert.ok(failedCloseAttempts >= 2);
   const pending = observations.filter(([name, detail]) =>
     name === 'acquisition_cleanup_started' && detail.task === 0);
   assert.ok(pending.length >= 2);
