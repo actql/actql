@@ -110161,7 +110161,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "8ca4bdc773dda45927f69ec06a082f0bd48cd3e4a0c47967c852fdeb174589fc",
+      "sha256": "31aab7b88af609592badd36d50c85d3dd9a731c52e361fcad4b748b82eef09c8",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",

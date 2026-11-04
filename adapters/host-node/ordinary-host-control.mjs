@@ -21,7 +21,9 @@ function copyOwnValues(value) {
     const property = Object.getOwnPropertyDescriptor(value, name);
     // Documented trusted getters are evaluated once, before any await. Keep
     // unknown fields for the existing semantic validator; do not drop them.
-    const field = value[name];
+    const supplied = value[name];
+    const field = name === 'hostCapacityPolicy' ? snapshotHostCapacityPolicy(supplied)
+      : name === 'hostLookupExecutionPolicy' ? snapshotHostLookupExecutionPolicy(supplied) : supplied;
     Object.defineProperty(result, name, {value: ['consentRefs', 'runners', 'sourceProfilePaths', 'effectProfilePaths'].includes(name) &&
       Array.isArray(field) ? Object.freeze([...field]) : field, enumerable: property.enumerable,
       writable: false, configurable: false});
