@@ -62054,7 +62054,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "331a9b1a9ed230ee6a4460a306b9cb98959f01c2efdbc0fa4191de967d66cdc8"
+      "sha256": "568fdb172af0aca67fbd6c3e791b69ac43249a609a6d7d46490ec412a53b3fd5"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
