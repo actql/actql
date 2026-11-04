@@ -71766,7 +71766,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "7c8d8ef38e9c8fe9058d0b23007a3e5966ee3ddc7e2ee405ea835d3bf4c926ee",
+      "sha256": "476cdd3a3db4475a37afc93fac616bdc5bfb902f2b55f1052ffd7a3e6e583d41",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -72076,6 +72076,20 @@
           "parameters": [
             "prepared",
             "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -72789,7 +72803,9 @@
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
-            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3"
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
+            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost"
           ],
           "exports": [],
           "attributes": {
@@ -72819,6 +72835,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
               }
             ],
             "identity": [
@@ -72833,6 +72853,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
               }
             ],
             "ownership": [
@@ -72851,6 +72875,10 @@
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
                 "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
               }
             ],
             "synchronization": [
@@ -72915,6 +72943,14 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_installed_managed_run_prepare_ledger("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_module.mbt",
+                "anchor": "pub fn[I] prepare_request_model_capture_module("
               }
             ],
             "extension": [
@@ -72955,6 +72991,10 @@
               {
                 "path": "adapters/host-node/request-model-source-ledger.test.mjs",
                 "anchor": "test('Mock submit retains the actual returned parent for its existing dispatch comparison'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock captured Model opens only its retained Plan after the original Scope is retained'"
               }
             ]
           }
