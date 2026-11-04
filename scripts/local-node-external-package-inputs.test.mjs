@@ -5,6 +5,7 @@ import {dirname, isAbsolute, join, relative, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './local-node-declared-exports.test.mjs';
+import './external-installed-helper-types.test.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
