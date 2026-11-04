@@ -136,3 +136,24 @@ test('packed composition physical supplier retains its own read profile before E
   const physical = preflight.start();assert.equal(sends, 0);
   physical._1.send();assert.equal(sends, 1);
 });
+
+test('packed Model recovery diagnostics retain bounded labels without original custody or exception data', () => {
+  const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf("  if (name === 'model_resume_failed' || name === 'model_recovery_failed') {");
+  const end = source.indexOf("  if (optionalKind && name === 'acquisition_completed') {", start);
+  assert(start > 0 && end > start);
+  const observe = new Function('name', 'detail', 'resumeFailures', source.slice(start, end));
+  const failures = [];
+  const cause = {toJSON() {assert.fail('No original exception serialization');}};
+  observe('model_resume_failed', {code: 'InstalledHostPreparationChanged',
+    scopeCid: 'private', ref: {run: 'private'}, cause}, failures);
+  observe('model_recovery_failed', {code: 'sha256:' + 'a'.repeat(64), cause}, failures);
+  assert.deepEqual(failures, [{name: 'model_resume_failed', code: 'InstalledHostPreparationChanged'},
+    {name: 'model_recovery_failed'}]);
+  const getter = {get code() {assert.fail('No exception getter');}};
+  observe('model_resume_failed', getter, failures);
+  for (let index = 0; index < 30; index++) observe('model_recovery_failed', {code: 'OriginalRefusal'}, failures);
+  assert.equal(failures.length, 16);
+  assert.deepEqual(Object.keys(failures[0]).sort(), ['code', 'name']);
+  assert.equal(JSON.stringify(failures).includes('private'), false);
+});
