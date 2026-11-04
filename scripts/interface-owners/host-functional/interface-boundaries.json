@@ -62629,7 +62629,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e2234d1405ecb2041805de93f9e136ad112a402872b97d67cc98da16094aa030",
+      "sha256": "41f88cb9896554f76f21960354c021e30a989f9f1a297ebf074bc73a66d0b337",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [

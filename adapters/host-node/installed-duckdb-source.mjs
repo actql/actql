@@ -114,14 +114,14 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
   let closing = false, closed = false;
   const current = () => {if (closing) throw new TypeError('InstalledSourceReaderNotCurrent');};
   await loadDuckDBNativeRuntime();
-  const capacityContracts = await Promise.all([
+  const capacityContracts = Object.freeze(await Promise.all([
     'actql-query-acquisition.json', 'actql-query-process-evidence.json',
     'actql-query-two-receipt.json',
   ].map(name => {
     const path = new URL('../../spec/contracts/' + name, import.meta.url);
     return sourceInitialization === undefined ? readFile(path, 'utf8')
       : readInstalledSourceAcquisitionContract(sourceInitialization, path);
-  }));
+  })));
   if (sourceInitialization !== undefined) assertInstalledSourceConstruction(sourceInitialization, undefined, undefined, environment);
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
@@ -205,7 +205,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       }
       const prepared = await prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      queryTimePreparation, requestIdentity, originalCapture,
+      queryTimePreparation, requestIdentity, originalCapture, originalContracts: capacityContracts,
       sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
       current();
       const matches = catalogs.filter(value => value.source_views.some(view =>

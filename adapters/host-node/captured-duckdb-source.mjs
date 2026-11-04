@@ -59,7 +59,7 @@ function selectAcquisition(inputs) {
 // handle can only be consumed with the same checked Program and Host profile.
 export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
-  queryTimePreparation, requestIdentity, originalCapture,
+  queryTimePreparation, requestIdentity, originalCapture, originalContracts,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, acquisitionPlanning, requireImmediateReadAuthorization = false,
   occurrence = {stage: 0, input: 0, task: 0}}) {
@@ -105,7 +105,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   });
   const evidenceContext = checked(
     moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
-  const contracts = await Promise.all(contractFiles.map(name =>
+  const contracts = originalContracts ?? await Promise.all(contractFiles.map(name =>
     readFile(new URL(name, contractRoot), 'utf8')));
   // Mandatory physical limits are actual Host policy, independent of all
   // optional cost/quantity evidence. Validate them before any comparison.

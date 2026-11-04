@@ -32854,7 +32854,7 @@
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5798ffdddb8f14db9e428d594846cd45dfff8c8c0ed18214357bd96006d43286",
+      "sha256": "07bc1845cf8d3176d2bf94988e462478e6975dc838cae9d335d11a20fdc56bf1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -33002,6 +33002,7 @@
             "queryTimePreparation",
             "requestIdentity",
             "originalCapture",
+            "originalContracts",
             "registry",
             "values",
             "fragment",

@@ -251,7 +251,7 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
       source_views: [{contract_cid: view}]}]})};
   const installation = Object.freeze({registration: 'builtin_source', revision: 'builtin_source/0.1'});
   const parent = {}, preparedProgram = {}, request = {}, requirement = {}, capacity = {};
-  let next, getters = 0, forwardedCapture;
+  let next, getters = 0, forwardedCapture, forwardedContracts;
   const moon = {clientProgramInstalledManagedDuckDBCapture(run, program, identity, task) {
     assert.equal(this, moon); assert.equal(run, parent); assert.equal(program, preparedProgram);
     assert.equal(identity, request); assert.equal(task, 1); getters++; return {_0: requirement, _1: capacity};
@@ -261,7 +261,7 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
     'runtimeField', 'importMetaUrl', text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') +
       ';return createInstalledDuckDBSource;')(async () => {}, readFile, value => value,
     contentCid, duckDBPhysicalTarget, validInstallationBinding, async options => {
-      forwardedCapture = options.originalCapture; return next;
+      forwardedCapture = options.originalCapture; forwardedContracts = options.originalContracts; return next;
     }, runtimeField,
     new URL('./installed-duckdb-source.mjs', import.meta.url).href);
   const adapter = await create(profile, moon, {root: '/same-root', principalId: 'same-principal', installation});
@@ -275,11 +275,16 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
   assert.equal(binding.bindingCid, adapter.connectorBindings[0].bindingCid);
   assert.equal(adapter.ordinaryRecoveryBinding(prepared), binding);
   assert.equal(forwardedCapture, undefined);
+  const originalContracts = forwardedContracts;
+  assert.equal(Object.isFrozen(originalContracts), true);
+  assert.deepEqual(originalContracts.map(body => JSON.parse(body).version),
+    ['actql-query-acquisition-contract/0.1', 'actql-query-process-evidence-contract/0.1', 'actql-query-two-receipt-contract/0.1']);
   assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}), /InstalledSourcePreparationMismatch/);
   await adapter.prepare({preparedProgram, requestIdentity: request, managedRun: parent, occurrence: {task: 1}});
   assert.equal(getters, 1);
   assert.equal(forwardedCapture.requirement, requirement);
   assert.equal(forwardedCapture.capacity, capacity);
+  assert.equal(forwardedContracts, originalContracts);
   const other = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
   assert.throws(() => other.ordinaryRecoveryBinding(prepared), /InstalledSourcePreparationMismatch/);
   adapter.close();

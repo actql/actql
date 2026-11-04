@@ -334,6 +334,8 @@ check. It does not prepare a second Query or pending capacity envelope. The
 existing Native/Broad selector still checks Account/current and its actual
 selected configuration against those retained bounds before physical I/O.
 The pending and installed envelope entry points share one acceptance predicate.
+The Source also forwards its same three retained acquisition/evidence contract
+originals; Run preparation does not reopen and parse those installation files.
 
 The builtin DuckDB installation supplies its registered `builtin_source/0.1`
 identity. Its private preparation map binds the original prepared object,
