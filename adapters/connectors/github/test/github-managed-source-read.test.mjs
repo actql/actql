@@ -214,3 +214,71 @@ test('GitHub original decoder failure survives caller stop and its same close re
   assert.equal(f.events.filter(value=>value==='binding-close').length,1);
   assert.equal(f.reader.observe().cleanupConfirmed,true);
 });
+
+// Actual Source fixture callbacks with explicit transport/Host ports. These
+// counters establish caller duties only, not a physical cleanup acknowledgment.
+function sourceFixtureLifetimeCallbacks() {
+  const source = readFileSync(new URL('./github-standard-host.integration.test.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const closes = [], afters = [];
+  const walk = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'BlockStatement') {
+      const index = node.body.findIndex(statement => statement.type === 'VariableDeclaration' &&
+        statement.declarations.some(declaration => declaration.id.name === 'close' &&
+          source.slice(declaration.init?.start, declaration.init?.end).includes('await host.close()')));
+      if (index >= 0) {
+        const selected = node.body[index].declarations.find(declaration => declaration.id.name === 'close');
+        const controls = node.body.slice(0, index).filter(statement =>
+          statement.type === 'VariableDeclaration' && statement.kind === 'let');
+        closes.push(new Function('server', 'host', controls.map(statement =>
+          source.slice(statement.start, statement.end)).join('\n') +
+          '\nreturn (' + source.slice(selected.init.start, selected.init.end) + ');'));
+      }
+    }
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        node.callee.object.name === 't' && node.callee.property.name === 'after' &&
+        source.slice(node.arguments[0]?.start, node.arguments[0]?.end)
+          .includes('GitHub standard Host custody retained:')) {
+      afters.push(new Function('closers', 'root', 'process', 'console', 'rm',
+        'return (' + source.slice(node.arguments[0].start, node.arguments[0].end) + ');'));
+    }
+    for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
+    else if (child && typeof child === 'object') walk(child);
+  };
+  walk(tree);
+  assert.equal(closes.length, 1); assert.equal(afters.length, 1);
+  return {close: closes[0], after: afters[0]};
+}
+
+test('GitHub Source fixture retries the same pending Host close after transport closure', async () => {
+  for (const failure of [new Error('OriginalHostCleanupPending'), undefined]) {
+    let serverCloses = 0, hostCloses = 0;
+    const server = {closeAllConnections() {}, close(done) {serverCloses++; done();}};
+    const host = {async close() {if (++hostCloses === 1) throw failure;}};
+    const close = sourceFixtureLifetimeCallbacks().close(server, host);
+    let threw = false;
+    try {await close();} catch (error) {threw = true; assert.strictEqual(error, failure);}
+    assert.equal(threw, true);
+    assert.equal(serverCloses, 1); assert.equal(hostCloses, 1);
+    await close();
+    assert.equal(serverCloses, 1, 'an already closed transport is not a Host cleanup ACK');
+    assert.equal(hostCloses, 2, 'the same original Host close still owns its retry');
+    await close();
+    assert.equal(serverCloses, 1); assert.equal(hostCloses, 2);
+  }
+});
+
+test('GitHub Source fixture attempts every original closer and preserves failed cleanup evidence', async () => {
+  const events = [], first = new Error('OriginalClientCleanupPending');
+  const closers = [async () => {events.push('older');},
+    async () => {events.push('middle'); throw undefined;},
+    async () => {events.push('newer'); throw first;}];
+  const after = sourceFixtureLifetimeCallbacks().after(closers, 'original-fixture-root',
+    {env: {}}, {error() {}}, () => assert.fail('Unresolved originals and state must remain'));
+  let failure;
+  try {await after();} catch (error) {failure = error;}
+  assert.deepEqual(events, ['newer', 'middle', 'older']);
+  assert(failure instanceof AggregateError);
+  assert.deepEqual(failure.errors, [first, undefined]);
+});
