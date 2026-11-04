@@ -107,7 +107,14 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
   const root = await mkdtemp(join(scratch, 'host-'));
   const closers = [];
   t.after(async () => {
-    for (const close of closers.reverse()) await close();
+    const failures = [];
+    for (const close of closers.reverse()) {
+      try {await close();} catch (error) {failures.push(error);}
+    }
+    // One failed closer cannot skip the remaining original clients/servers.
+    // Keep every original failure and all state when cleanup is unresolved.
+    if (failures.length !== 0) throw new AggregateError(failures,
+      'GitHubSourceFixtureCleanupPending', {cause: failures[0]});
     if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
       console.error(`GitHub standard Host custody retained: ${root}`);
     } else await rm(root, {recursive: true, force: true});
@@ -219,13 +226,23 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    let closed = false;
-    const close = async () => {
-      if (closed) return;
-      closed = true;
-      server.closeAllConnections?.();
-      await new Promise(resolve => server.close(resolve));
-      await host.close();
+    let closed = false, serverClosed = false, closeFlight;
+    const close = () => {
+      if (closed) return Promise.resolve();
+      if (closeFlight !== undefined) return closeFlight;
+      // Retain one pending original close before invoking either owner. A
+      // transport close is separate from Host retirement, including retries.
+      closeFlight = Promise.resolve().then(async () => {
+        if (!serverClosed) {
+          server.closeAllConnections?.();
+          await new Promise((resolve, reject) => server.close(error =>
+            error ? reject(error) : resolve()));
+          serverClosed = true;
+        }
+        await host.close();
+        closed = true;
+      }).finally(() => {closeFlight = undefined;});
+      return closeFlight;
     };
     closers.push(close);
     const client = await connect({mode: 'remote',
