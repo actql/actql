@@ -25,6 +25,8 @@ async function fixture(t, {prepare, submit} = {}) {
   const intentAdmissions = new Map();
   const authenticatedEpochs = [];
   const childOperations = [];
+  const operationStack = [];
+  const originalInputs = new WeakMap();
   let submissions = 0;
   const journal = openClientRequestJournal(root, {submissionEpochTtlMs: 1000, submissionEpochNow: () => now});
   t.after(async () => {journal.close(); await rm(root, {recursive: true, force: true});});
@@ -53,13 +55,34 @@ async function fixture(t, {prepare, submit} = {}) {
     durability: 'durable', consentRefs: [], runners: []}, submissionRef: {epoch, nonce: 'original'},
   intentCid: moon.clientSubmittedIntentCid(intent),
   attemptRef: {operation: 'submit', attemptId: 'one-operation'}, ...body};
-  const serviceJournal = {...journal, retainSubmissionOperation(epoch, control, parentEpoch) {
-    if (parentEpoch !== undefined) childOperations.push({epoch, parentEpoch,
+  const serviceJournal = {...journal, retainSubmissionOperation(epoch, control, borrowedIntent) {
+    const parent = operationStack.at(-1);
+    if (parent !== undefined) childOperations.push({epoch, parentEpoch: parent.epoch, borrowedIntent,
       authenticationOffset: authenticatedEpochs.length});
-    return Reflect.apply(journal.retainSubmissionOperation, journal, [epoch, control, parentEpoch]);
+    const release = journal.retainSubmissionOperation(epoch, control, borrowedIntent);
+    const operation = {epoch};
+    operationStack.push(operation);
+    return () => {assert.strictEqual(operationStack.pop(), operation); release?.();};
   }};
   const service = installNodeClientSubmission({journal: serviceJournal, moon: runtime,
     authorizedScope: () => allowed ? fields : undefined,
+    // The fixed preparation consumer lends one nominal input to this operation.
+    // Journal admission itself deliberately has no inferred wire cache.
+    bindOwnedRequest(parent, derived) {
+      const original = originalInputs.get(parent);
+      if (original !== undefined) originalInputs.set(derived, original);
+    },
+    submittedIntentOriginal(value) {
+      if (!allowed) return undefined;
+      let original = originalInputs.get(value);
+      if (original === undefined) {
+        const wire = canonicalJson({kind: value.kind, input: value.input, parameters: value.parameters}, {dataKeys: true});
+        original = runtime.clientSubmittedIntent(wire, 1048576, 65536, 64);
+        assert.ok(original);
+        originalInputs.set(value, original);
+      }
+      return original;
+    },
     prepareSubmit: async value => {await prepare?.(value); now++; return {};},
     submit: async value => {
       submissions++;
@@ -157,9 +180,10 @@ test('one submit admits each unchanged intent wire once through preparation and 
 test('intent reuse ends with its original operation and never crosses controls or changed wire', async t => {
   const f = await fixture(t), epoch = f.request.submissionRef.epoch;
   const wire = canonicalJson({kind: f.request.kind, input: f.request.input, parameters: null}, {dataKeys: true});
-  const release = f.journal.retainSubmissionOperation(epoch, f.runtime);
+  const original = f.runtime.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  const release = f.journal.retainSubmissionOperation(epoch, f.runtime, original);
   try {
-    const original = f.journal.prepareSubmittedIntent(epoch, wire, f.runtime);
+    assert.strictEqual(f.journal.prepareSubmittedIntent(epoch, wire, f.runtime), original);
     assert.strictEqual(f.journal.prepareSubmittedIntent(epoch, moon.clientSubmittedIntentWire(original), f.runtime), original);
     const changed = f.journal.prepareSubmittedIntent(epoch, JSON.stringify({kind: f.request.kind,
       input: {...f.request.input, text: 'SELECT 2 AS value'}, parameters: null}), f.runtime);
@@ -177,9 +201,11 @@ test('intent reuse ends with its original operation and never crosses controls o
 test('retained row identity is checked even when its wire is already admitted in this operation', async t => {
   const f = await fixture(t);
   assert.equal((await f.service.submitAttempt(f.request)).outcome.kind, 'ready');
-  const epoch = f.request.submissionRef.epoch, release = f.journal.retainSubmissionOperation(epoch, f.runtime);
+  const epoch = f.request.submissionRef.epoch;
+  const wire = canonicalJson({kind: f.request.kind, input: f.request.input, parameters: null}, {dataKeys: true});
+  const original = f.runtime.clientSubmittedIntent(wire, 1048576, 65536, 64);
+  const release = f.journal.retainSubmissionOperation(epoch, f.runtime, original);
   try {
-    const wire = canonicalJson({kind: f.request.kind, input: f.request.input, parameters: null}, {dataKeys: true});
     f.journal.prepareSubmittedIntent(epoch, wire, f.runtime);
     const database = new DatabaseSync(join(f.root, 'client-requests.sqlite3'));
     try {database.prepare('UPDATE client_submitted_intents SET intent_cid = ?').run(cid('f'));}

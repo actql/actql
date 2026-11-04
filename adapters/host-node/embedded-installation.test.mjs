@@ -69,14 +69,27 @@ function retainedAuthorization(accountId, resultNames, observe) {
 test('installed HTTP status denies an unregistered Run with a public code',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-status-denied-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
     const principalId = userInfo().username;
-    const host = await openInstalledRemoteHttpHost({directory,
+    let host, server;
+    t.after(async () => {
+      // Retire the ingress before its Host and durable state, including on an
+      // assertion failure. A live keep-alive socket must not hold teardown.
+      try {
+        if (server) {
+          server.closeAllConnections();
+          await new Promise((resolve, reject) => server.close(error =>
+            error ? reject(error) : resolve()));
+        }
+      } finally {
+        try { if (host) await host.close(); }
+        finally { await rm(directory, {recursive: true, force: true}); }
+      }
+    });
+    host = await openInstalledRemoteHttpHost({directory,
+      authorization: retainedAuthorization('status-unregistered', []),
       authenticate: () => principalId});
-    t.after(async () => { await host.close(); });
-    const server = createServer(host.handler);
+    server = createServer(host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    t.after(() => new Promise(resolve => server.close(resolve)));
     const authorityScopeCid = `sha256:${createHash('sha256')
       .update(JSON.stringify({version: 'actql-local-owner-scope/0.1',
         root: directory, principalId})).digest('hex')}`;

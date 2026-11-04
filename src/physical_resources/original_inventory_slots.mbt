@@ -1,11 +1,30 @@
 ///|
+// Serial DATA crosses the existing Common/physical adapter module boundary.
+// Builtin Int.hash uses a module-local seed; an already populated Map cannot
+// change that hash when another module operates on the SAME inventory.
+// This nominal scalar retains Int's representation and adds no token/grant.
+priv struct OriginalTokenSerial(Int) derive(Eq)
+
+///|
+impl Hash for OriginalTokenSerial with fn hash(self) {
+  let OriginalTokenSerial(serial) = self
+  serial
+}
+
+///|
+impl Hash for OriginalTokenSerial with fn hash_combine(self, hasher) {
+  let OriginalTokenSerial(serial) = self
+  hasher.combine_int(serial)
+}
+
+///|
 // Same-Ledger serial DATA selects an original; it never authenticates one.
 // The builtin linked Map preserves live issuance order and unlinks by key.
 // Only the scalar ordinal view is rebuilt, once when an actual indexed reader
 // next needs it. No token array is shifted or searched during retirement.
 priv struct OriginalTokenSlots[T] {
-  mut values : Map[Int, T]
-  order : Array[Int]
+  mut values : Map[OriginalTokenSerial, T]
+  order : Array[OriginalTokenSerial]
   mut order_dirty : Bool
 }
 
@@ -54,7 +73,7 @@ fn[T] OriginalTokenSlots::push(
   value : T,
   serial : Int,
 ) -> Unit {
-  self.values[serial] = value
+  self.values[OriginalTokenSerial(serial)] = value
   self.order_dirty = true
 }
 
@@ -63,7 +82,7 @@ fn[T] OriginalTokenSlots::by_serial(
   self : OriginalTokenSlots[T],
   serial : Int,
 ) -> T? {
-  self.values.get(serial)
+  self.values.get(OriginalTokenSerial(serial))
 }
 
 ///|
@@ -73,11 +92,11 @@ fn[T] OriginalTokenSlots::remove_original(
   serial : Int,
   original : T,
 ) -> Bool {
-  guard self.values.get(serial) is Some(value) &&
-    physical_equal(value, original) else {
+  let key = OriginalTokenSerial(serial)
+  guard self.values.get(key) is Some(value) && physical_equal(value, original) else {
     return false
   }
-  self.values.remove(serial)
+  self.values.remove(key)
   self.order_dirty = true
   true
 }

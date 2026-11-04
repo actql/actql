@@ -131,6 +131,7 @@ fn open_native_physical(
       transfer,
       capacity.retained_bytes + file_bytes,
       execution + capacity.execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => raise Physical(issue)

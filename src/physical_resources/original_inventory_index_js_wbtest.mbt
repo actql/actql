@@ -81,3 +81,33 @@ test "original census forward and reverse retirement do not rescan or shift the 
     assert_eq(ledger_usage(ledger).attempts, 0)
   }
 }
+
+///|
+// Re-evaluate the ACTUAL compiled private hash, not a handwritten surrogate,
+// in two independent closures with different module seed bindings. No Ledger,
+// token, authority or physical object is constructed or remapped here.
+extern "js" fn original_serial_hash_cross_module_scalar(
+  key : OriginalTokenSerial,
+  hash : (OriginalTokenSerial) -> Int,
+  expected : Int,
+) -> Bool =
+  #|(key, hash, expected) => {
+  #|  if (typeof key !== 'number') return false;
+  #|  const source = Function.prototype.toString.call(hash);
+  #|  const first = new Function('seed', 'return (' + source + ')')(17);
+  #|  const second = new Function('seed', 'return (' + source + ')')(987654321);
+  #|  return first(key) === expected && second(key) === expected;
+  #|}
+
+///|
+test "original serial key keeps scalar backing and the same hash across module seed closures" {
+  for serial in [-2147483648, -2, -1, 0, 1, 2147483647] {
+    assert_true(
+      original_serial_hash_cross_module_scalar(
+        OriginalTokenSerial(serial),
+        Hash::hash,
+        serial,
+      ),
+    )
+  }
+}

@@ -31516,7 +31516,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "74ffa627e4e6446a83f7688a9bf638cb76200fa04e07e902a627599934e502da",
+      "sha256": "2c696447e94caffc250ec8eceae14e9f8dc300db2a47ceb39d3cf617c82c010a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -31756,41 +31756,6 @@
           "async": false
         },
         {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
           "parameters": [],
           "async": false
@@ -31815,13 +31780,6 @@
         {
           "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
           "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation#2",
-          "parameters": [
             "issuance",
             "modelEvidence"
           ],
@@ -31831,6 +31789,13 @@
           "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput",
           "parameters": [
             "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence",
+          "parameters": [
+            "value"
           ],
           "async": false
         }
@@ -31939,18 +31904,13 @@
             "openAcquiredEffectComputation/originalCurrent/originalCurrent/changed/changed",
             "openAcquiredEffectComputation/originalCurrent/originalCurrent/originalCurrent",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#3",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#4",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/admittedSources/admittedSources#5",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#2",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/context#3",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation",
             "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/context/init:retainOperation/init:retainOperation/init:retainOperation#2",
-            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput"
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/restoredInput/restoredInput",
+            "openAcquiredEffectComputation/prepareInferComponent/prepareInferComponent/sourceEvidence/sourceEvidence"
           ],
           "exports": [
             "openAcquiredEffectComputation"
@@ -32122,6 +32082,14 @@
               {
                 "path": "adapters/host-node/installed-content-family-custody.test.mjs",
                 "anchor": "actual acquired Effect custody receives the Content failure cleanup through its installed owner"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('acquired Model joins and publishes the same transferred evidence through the existing typed facade'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('acquired Model Source rechecks current after evidence preparation before transferring the original'"
               }
             ]
           }
@@ -62086,7 +62054,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "65cffc7bdead52a8c9f44a2caf89116731018fb3b76c4109190f2a3c8a83e690"
+      "sha256": "bc2b52c29d0d1ffeb8ab8262706dacc3d9f9d510624b47d5c411d3342c4ac1ec"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -93809,7 +93777,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a70db1ca042b2b707b4b7f278476d25fec508bcbd20a15e9836e04393c7aee88",
+      "sha256": "1ff653b26794e4a2d0cbf7db49c747c267228d88d7fce02df6cfa94418fe8fec",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [

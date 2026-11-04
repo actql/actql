@@ -75,9 +75,9 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const owners = new Set();
   for (let task = 0; task < count; task++) {
     let sourceRef;
-    if ((managedPlan === undefined || managedRun !== undefined) && requestIdentity !== undefined) {
-      // Selection reads original checked Requests. The Plan owns the Query
-      // requirement; the current native/row getter below verifies that original.
+    if (requestIdentity !== undefined) {
+      // Select the adapter from the original checked Request. Its current
+      // native/row getter below verifies the SAME retained Plan requirement.
       const selection = checked(moon.clientProgramSelectInstalledEffectSourceInput(
         preparedEffect, requestIdentity, task, 0));
       if (moon.clientProgramSelectedSourceInputKind(selection) !== 'query') {

@@ -53,6 +53,7 @@ pub fn broad_strategy_host_open(
       transfer,
       capacity.retained_bytes,
       execution + capacity.execution_bytes,
+      quantities=@resources.quantity_neutral_amounts(ledger),
     ) {
     Ok(value) => value
     Err(issue) => raise Physical(issue)

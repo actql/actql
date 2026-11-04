@@ -3269,3 +3269,18 @@ all physical task reservations. Row, text, Event-container, provider metadata,
 work and resource ceilings remain independent. The original Request funds the
 borrowed Carrier/schema control frame through the existing proof scratch quote
 before Plan construction; no schema is rebuilt and no second owner is issued.
+
+For a checked Effect with initially unknown rows, the completed original input
+inventory can already have grown this same control reservation. Cold Ledger
+restoration can also reach a decoder before that inventory exists. The initial
+zero-row control quote is not a ceiling on this next actual constructor.
+The existing capacity fold adds the decoder's complete retained construction
+bound to the selected control base and keeps Host input forests separately
+additive. It makes no alias assumption between those simultaneously live roles.
+The same finite parent must admit retained and execution growth atomically
+before the callback; overflow or a one-byte shortage leaves the same original
+reservation and active flags unchanged. Other original calls retain the active
+decoder peak. Only its synchronous completion returns that construction prefix;
+the original outer output allowance and accumulated peak/work history remain.
+No row count is invented, and no policy, admission, Ledger or budget domain is
+replaced.

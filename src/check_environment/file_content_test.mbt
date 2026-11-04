@@ -45,15 +45,37 @@ fn content_fixture_capacity() -> Json raise {
 
 ///|
 fn content_fixture_carriers(
-  profile? : Json = content_fixture_profile(),
-  request? : Json = content_fixture_request(),
-  response? : Json = content_fixture_response(),
-  correlation? : Json? = Some(content_fixture_correlation()),
-  capacity? : Json? = Some(content_fixture_capacity()),
+  profile? : Json,
+  request? : Json,
+  response? : Json,
+  correlation? : Json?,
+  capacity? : Json?,
   acquisition? : String = "fetch",
   authority? : String = "read_content",
   extension? : Bool = false,
 ) -> CarrierSchemas raise {
+  // Keep fallible fixture construction in the ordinary function body. The
+  // selected Native C backend mis-types early returns from default arguments.
+  let profile = match profile {
+    Some(value) => value
+    None => content_fixture_profile()
+  }
+  let request = match request {
+    Some(value) => value
+    None => content_fixture_request()
+  }
+  let response = match response {
+    Some(value) => value
+    None => content_fixture_response()
+  }
+  let correlation = match correlation {
+    Some(value) => value
+    None => Some(content_fixture_correlation())
+  }
+  let capacity = match capacity {
+    Some(value) => value
+    None => Some(content_fixture_capacity())
+  }
   let bodies = value_bodies("{\"type\":\"number\",\"nullable\":false}")
   bodies["request_schema"] = request
   bodies["carrier_schema"] = response

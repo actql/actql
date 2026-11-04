@@ -60,7 +60,9 @@ if (full || args.some(arg => arg.includes('platform_native/remote_journal'))) {
   }
 }
 // Prepare the original checkpoint/Reader/WAL fixtures with their unchanged
-// compiler settings. Only the final complete release test child uses O1 C.
+// compiler settings. Only the final complete release test child uses O0 C;
+// the same optimized Moon IR and every Native test remain selected. Re-running
+// the C optimizer over these large test units otherwise exhausts the CI budget.
 const testCompiler = full && args.lastIndexOf('--release') >
     Math.max(args.lastIndexOf('--debug'), args.lastIndexOf('-g'))
   ? nativeCoreCCompiler(root, namespace) : {};

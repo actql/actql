@@ -10,6 +10,7 @@ import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
+import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {retainUpdateTargetSelection, originalUpdateTargetSelectionsCid, updateTargetSelectionMatchesRun}
   from './update-target-original-shape.mjs';
 
@@ -161,6 +162,48 @@ test('Effect native Source inputs retain complete physical bounds and each origi
   assert.deepEqual(result.transferBytes, [19n, 37n]); assert.deepEqual(result.executionBytes, [23n, 109n]);
   assert.equal(result.declarations, undefined); assert.equal(result.providers, undefined);
   assert(Object.isFrozen(result)); assert(Object.isFrozen(result.inputs));
+});
+
+test('retained mixed Effect Sources select original Requests without a Row-only Plan getter', async () => {
+  const prepared = {}, request = {}, parent = {}, plan = {}, selections = [{}, {}], calls = [];
+  const refs = ['source:native', 'source:row'];
+  const sources = refs.map((ref, task) => ({
+    realizationKey: ['duckdb-acquired', 'row-source-acquired'][task],
+    admitsSource: actual => actual === ref,
+    managedCaptureCapacity() {}, ledgerCapacity() {return {};},
+    async prepare(facts) {
+      assert.strictEqual(this, sources[task]);
+      assert.strictEqual(facts.preparedEffect, prepared);
+      assert.strictEqual(facts.requestIdentity, request);
+      assert.strictEqual(facts.managedRun, parent);
+      assert.deepEqual(facts.occurrence, {stage: task, input: 0, task});
+      calls.push(`prepare-${task}`);
+      return selections[task];
+    }, open() {},
+  }));
+  const profile = bindInstalledManagedSources({sources}, actual => {
+    assert.strictEqual(actual, prepared); return parent;
+  });
+  const moon = {clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
+      assert.strictEqual(this, moon); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
+      assert.equal(input, 0); calls.push(`select-${task}`); return ok(selections[task]);
+    },
+    clientProgramSelectedSourceInputKind: () => 'query',
+    clientProgramSelectedSourceInputRef: selection => refs[selections.indexOf(selection)],
+    clientProgramInstalledEffectManagedPlanSource() {assert.fail('Native capture is not a Row capture');},
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('No second Query construction');},
+  };
+  const selected = selectAcquiredEffectSources({moon, preparedEffect: prepared,
+    requestIdentity: request, managedPlan: plan, sourceProfile: profile});
+  for (const {adapter, occurrence} of selected) {
+    assert.strictEqual(await adapter.prepare({preparedEffect: prepared, requestIdentity: request, occurrence}),
+      selections[occurrence.task]);
+  }
+  assert.deepEqual(calls, ['select-0', 'select-1', 'prepare-0', 'prepare-1']);
+  moon.clientProgramSelectedSourceInputKind = () => 'values';
+  assert.throws(() => selectAcquiredEffectSources({moon, preparedEffect: prepared,
+    requestIdentity: request, managedPlan: plan, sourceProfile: profile}), /UnsupportedEffectSourceRealization/);
 });
 
 test('Effect native Source selection refuses foreign or incomplete originals without row fallback', () => {
@@ -426,12 +469,13 @@ const recoveryRowNodes = [];
 (function walk(node) {
   if (!node || typeof node !== 'object') return;
   if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && node.id.name === 'physicalRoute') recoveryRowNodes.push(node);
+      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries'].includes(node.id.name)) recoveryRowNodes.push(node);
   for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
   else if (child && typeof child === 'object') walk(child);
 })(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
-const recoveryRouteNode = recoveryRowNodes.find(node => node.type === 'VariableDeclarator').init;
+const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
+const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
@@ -439,18 +483,53 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
   const events = [], child = {}, originalCurrent = {}, current = {}, entry = {request: {}}, member = {memberIndex: 0};
   const body = {invocation_cid: 'original-invocation', run_identity_cid: 'original-run',
     authoring_context: {authoring_context_cid: 'original-authoring'}, effects: [{capability_evidence_cid: 'original-capability', changes: [{}]}]};
-  const owner = {managedPlanRecipe: {credentialOperations: [{}]}, owned: {}};
+  const owner = {managedPlanRecipe: {credentialOperations: [{}],
+    captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1},
+    memberOperations: [{operation: 'capture'}, {operation: 'recovery-input'}]}, owned: {}};
   const run = {prepared, request, value, operationPlan, definitionOriginal: {definition}, closed: false, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args)};
+  const previewWire = JSON.stringify(body), token = {}, protocol = {retains: 0, constructions: 0, retired: false};
+  let constructing = false;
+  run.controlConstruction.parsePreview = (wire, retain) => {
+    assert.equal(wire, previewWire); assert.equal(retain, true); return body;
+  };
   let supplied, retained, stage, routeOptions, closed = false, allowClose = !pending;
   const ledger = {close() {events.push('ledger-close'); closed = true;},
     readClaimedResponse() {events.push('stored-read'); return {};},
     recoverClaimFacts() {return {members: [{claims: []}]};}};
   const moon = {clientRequestRelation: (left, right) => left === right ? 1 : 2,
-    strategyPublicationContractIdentity: original => original.identity}; run.runtime = moon;
+    strategyPublicationContractIdentity: original => original.identity,
+    clientProgramInstalledEffectManagedOperationPlan(parent, p, identity) {
+      assert.strictEqual(this, moon); assert.strictEqual(parent, value);
+      assert.strictEqual(p, prepared); assert.strictEqual(identity, request); return ok(operationPlan);
+    },
+    clientProgramInstalledEffectOperationConstructionRetain(parent, p, identity, plan, index, perRow, slot, row, operation) {
+      assert.strictEqual(this, moon); assert.strictEqual(parent, value); assert.strictEqual(p, prepared);
+      assert.strictEqual(identity, request); assert.strictEqual(plan, operationPlan);
+      assert.deepEqual([index, perRow, slot, row, operation], [0, false, 1, 0, 'recovery-input']);
+      assert.equal(protocol.retains++, 0, 'the original recovery constructor is retained once'); return ok(token);
+    },
+    clientProgramInstalledEffectOperationConstructionBegin(original) {
+      assert.strictEqual(this, moon); assert.strictEqual(original, token);
+      assert.equal(constructing, false); assert.equal(protocol.retired, false);
+      constructing = true; return ok();
+    },
+    clientProgramInstalledEffectOperationConstructionComplete(original) {
+      assert.strictEqual(this, moon); assert.strictEqual(original, token); assert(constructing);
+      assert.equal(protocol.constructions, 1); constructing = false; return ok();
+    },
+    clientProgramInstalledEffectOperationRetire(original, acknowledgement) {
+      assert.strictEqual(this, moon); assert.strictEqual(original, token); assert.equal(acknowledgement, true);
+      assert.equal(run.recoveredRequestInput.borrowers, 0);
+      assert.equal(run.recoveredRequestInput.result, undefined, 'body aliases retire before constructor backing');
+      protocol.retired = true; return ok(true);
+    }};
+  run.runtime = moon; run.readPlan = moon.clientProgramInstalledEffectManagedOperationPlan;
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const realRoute = new Function('ownerOf', 'fail', 'return (' +
-    recoveryRowSource.slice(recoveryRouteNode.start, recoveryRouteNode.end) + ');')(() => owner, fail);
-  const control = {effectComputationPreviewWire: () => JSON.stringify(body),
+  const ownerOf = original => {assert.strictEqual(original, member); return owner;};
+  const recipeOf = original => ownerOf(original).managedPlanRecipe;
+  const realRoute = new Function('ownerOf', 'recipeOf', 'fail', 'return (' +
+    recoveryRowSource.slice(recoveryRouteNode.start, recoveryRouteNode.end) + ');')(ownerOf, recipeOf, fail);
+  const control = {effectComputationPreviewWire: () => previewWire,
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};
   const limits = {preview: {}, key: {}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
@@ -460,7 +539,6 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     memberDispatch: () => 'original-dispatch', limits,
     effect: {recoveredPreviewKeys: () => [], admitPreviewIdentity: () => ({})},
     openLedger() {events.push('ledger-open'); return ledger;},
-    recoveredEntries: () => ({entries: [[entry]], currents: [current]}),
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
     physicalRoute(options) {routeOptions = options; return realRoute(options);},
     owners: [owner], scopes: () => [{}], canonicalJson: JSON.stringify, fail,
@@ -481,13 +559,29 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
       return prepareInstalledRowCaptureChild({children: options.requestChildren,
         create: () => original, assertCurrent: () => {}, signal: undefined});
     }};
+  const originalEntries = Object.freeze({entries: Object.freeze([Object.freeze([entry])]),
+    currents: Object.freeze([current])});
+  const entryPorts = {moon, recipeOf, ownerOf, fail, prepareInstalledEffectRequestChild,
+    sameValue: (left, right) => left === right,
+    recoveredEntries(facts) {
+      assert.equal(facts.previewWire, previewWire);
+      assert.strictEqual(facts.members[0], member);
+      if (managed) {assert.strictEqual(facts.body, body); assert(constructing);}
+      assert.equal(protocol.constructions++, 0, 'no duplicate recovery body construction');
+      return originalEntries;
+    },
+    validateRecoveredEntries(facts, entries) {
+      assert.strictEqual(facts.body, body); assert.strictEqual(entries, originalEntries.entries);
+    }};
+  ports.prepareRecoveredEntries = new Function(...Object.keys(entryPorts), 'return (' +
+    recoveryRowSource.slice(recoveryEntriesNode.start, recoveryEntriesNode.end) + ');')(...Object.values(entryPorts));
   const prepare = new Function(...Object.keys(ports), 'return ' +
     recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
   const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope: {},
     computation: {computation, preview, storedResults}}, continuation: {version: 'original-version',
     program_id: 'original-program', stage_id: 'original-stage', members: [{dispatch_request_cid: 'original-dispatch'}]},
     managedEffect: managed ? run : undefined, retainRecoveryOwner(value) {retained = value; if (closeDuringRetain) void value.cleanup();}};
-  return {facts, run, child, events, entry, current, ledger, get owner() {return retained;},
+  return {facts, run, child, events, entry, current, ledger, protocol, get owner() {return retained;},
     get options() {return supplied;}, get closed() {return closed;},
     begin() {stage = prepare(facts); return stage;},
     operate() {return routeOptions.physicalOperations({member, rowIndex: 0, phase: 'write', operation: 'original-write', assertCurrent() {}});},
@@ -496,11 +590,17 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
 
 test('recovered Effect physical route retains the same original operation child under its existing cleanup owner', async () => {
   const f = recoveredPhysicalFixture(); f.begin();
+  assert.equal(f.run.recoveredRequestInput.borrowers, 1);
   assert.strictEqual(await f.operate(), f.child);
   assert.equal(f.owner.cleanupPending(), true);
   assert.equal(f.closed, false);
   assert.equal(await f.owner.cleanup(), true);
   assert.equal(f.closed, true);
+  assert.equal(f.run.recoveredRequestInput.borrowers, 0);
+  assert.equal(f.protocol.retains, 1); assert.equal(f.protocol.constructions, 1);
+  assert.equal(f.protocol.retired, false, 'stage cleanup keeps the same hot request backing');
+  assert.equal(f.run.recoveredRequestInput.retire(), true);
+  assert.equal(f.protocol.retired, true);
   assert.deepEqual(f.events, ['ledger-open', 'operation', 'prepare', 'release', 'ledger-close']);
 });
 
@@ -529,7 +629,8 @@ test('recovered Effect failed child preparation preserves undefined and retains 
   const f = recoveredPhysicalFixture({failPrepare: true, prepareFailure: undefined, pending: true}); f.begin();
   let thrown = false;
   try {await f.operate();} catch (error) {thrown = true; assert.strictEqual(error, undefined);}
-  assert.equal(thrown, true); assert.equal(f.options.requestChildren.length, 1);
+  assert.equal(thrown, true); assert.equal(f.options.requestChildren.length, 2,
+    'the same cleanup bag retains one input borrow and the failed physical child');
   assert.equal(await f.owner.cleanup(), false); assert.equal(f.closed, false);
   f.allowClose(); assert.equal(await f.owner.cleanup(), true);
   assert.equal(f.events.filter(event => event === 'operation').length, 1);

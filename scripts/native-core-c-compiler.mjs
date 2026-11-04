@@ -1,4 +1,4 @@
-// Reduce C optimization only for generated release test executables. Moon's
+// Disable expensive C optimization only for generated release test executables. Moon's
 // release IR, runtime allocator, package linker overrides and FFI stay intact.
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
@@ -12,7 +12,7 @@ export function nativeCoreCArguments(repository, args) {
   if (isAbsolute(path) || !/^_build\/(?:[^/]+\/)*native\/release\/test\/.+\.(?:internal|whitebox|blackbox)_test\.c$/u.test(path)) return args;
   const optimization = args.filter(arg => /^-O(?:[0-3sgz]|fast)$/u.test(arg));
   if (optimization.length !== 1 || optimization[0] !== '-O2') return args;
-  return args.map(arg => arg === '-O2' ? '-O1' : arg);
+  return args.map(arg => arg === '-O2' ? '-O0' : arg);
 }
 
 export function nativeCoreCCompiler(repository, scratch, env = process.env) {

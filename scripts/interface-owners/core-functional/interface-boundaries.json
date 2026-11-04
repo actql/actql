@@ -33134,7 +33134,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "a6547ca04ee3db3badc9a71553a009a944a26af67fd29602d2f0cc44b799e9ed",
+      "sha256": "d4df65e6f54d6455b38d6070cd040735b07d0042a854b4e32300a1740b2f5a1d",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -62528,12 +62528,21 @@
         {
           "name": "[T]OriginalTokenSlots::shrink_to_fit",
           "declaration": "[ T ] OriginalTokenSlots : : shrink_to_fit ( self : OriginalTokenSlots [ T ] ) - > Unit"
+        },
+        {
+          "name": "hash",
+          "declaration": "hash ( self )"
+        },
+        {
+          "name": "hash_combine",
+          "declaration": "hash_combine ( self , hasher )"
         }
       ],
       "contracts": [
         {
           "operations": [
             "[T,U]OriginalTokenSlots::map",
+            "[T]original_token_slots",
             "[T]OriginalTokenSlots::all",
             "[T]OriginalTokenSlots::any",
             "[T]OriginalTokenSlots::by_serial",
@@ -62545,7 +62554,8 @@
             "[T]OriginalTokenSlots::remove_original",
             "[T]OriginalTokenSlots::reserve_capacity",
             "[T]OriginalTokenSlots::shrink_to_fit",
-            "[T]original_token_slots"
+            "hash",
+            "hash_combine"
           ],
           "exports": [],
           "attributes": {
@@ -62611,13 +62621,21 @@
               {
                 "path": "src/physical_resources/preparation_inventory_backing_nonjs_wbtest.mbt",
                 "anchor": "test \"exact scalar census backing and indexed originals"
+              },
+              {
+                "path": "src/physical_resources/original_inventory_index_wbtest.mbt",
+                "anchor": "test \"original serial keys have fixed full-range hashes and preserve distinct signed keys\""
+              },
+              {
+                "path": "src/physical_resources/original_inventory_index_js_wbtest.mbt",
+                "anchor": "test \"original serial key keeps scalar backing and the same hash across module seed closures\""
               }
             ]
           }
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "6d113066910b46d8b40c99e99b0e2db1c00dbaa40c54c9ca010e56dfb142c6d7"
+      "sha256": "ced126c2881555923386a5a38c063f5c0b772f7badc8a76433732f4498740000"
     },
     {
       "module": "src/physical_resources/preparation_capacity.mbt",

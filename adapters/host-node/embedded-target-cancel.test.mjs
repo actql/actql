@@ -111,6 +111,12 @@ esac
   const effectAccount = canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: 'target-cancel-effect-account', entries: [
+      // The authenticated owner observes its own Run; this grants no provider
+      // read or Effect authority and preserves the delegated target decisions.
+      {entry_id: 'control-result-read', outcome: 'allow', exclusions: [],
+        principal: {any_of: [userInfo().username]},
+        connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['run']}, operation: {any_of: ['read']}},
       {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [],
         principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},

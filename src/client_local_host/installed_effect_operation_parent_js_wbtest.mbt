@@ -478,7 +478,45 @@ test "planned Effect Compute executes retained sequence on the original managed 
 
 ///|
 test "unknown Effect capture grows its same control from completed original rows before child construction" {
-  let plan = effect_operation_source_plan_fixture()
+  unknown_effect_capture_controls(effect_operation_source_plan_fixture())
+}
+
+///|
+test "Ledger codec uses the same grown original unknown-row controls instead of the initial zero-row quote" {
+  let original = effect_operation_source_plan_fixture()
+  let before = original.operations[0]
+  let controls = standard_create_saved_control_capacity(1000000, 64, 4).unwrap()
+  let demand = prepare_installed_effect_operation_demand_with_controls(
+    original.prepared,
+    before.stage_index,
+    before.effect_id,
+    before.member_extents,
+    before.row_extents,
+    controls,
+  ).unwrap()
+  let plan = prepare_installed_effect_managed_plan(
+    original.prepared,
+    original.request,
+    original.declarations,
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    original.transport_bytes,
+    original.transport_execution_bytes,
+    original.installed_contracts,
+    original.values_body,
+    original.fragment_body,
+    original.ordered_body,
+    [demand],
+    provider_factory=_ => [],
+  ).unwrap()
+  unknown_effect_capture_controls(plan, check_codec=true)
+}
+
+///|
+fn unknown_effect_capture_controls(
+  plan : ClientInstalledEffectManagedPlan,
+  check_codec? : Bool = false,
+) -> Unit raise {
   assert_true(plan.closed_rows is None)
   // Existing fixed policy and explicit transport/current ports. This does not
   // establish normal Account/SDK/Journal funding or provider acceptance.
@@ -685,6 +723,50 @@ test "unknown Effect capture grows its same control from completed original rows
   assert_true(physical_equal(owner.effect_operation_controls.unwrap(), control))
   assert_true(physical_equal(control.reservation, token))
   assert_eq(control.captured_rows, Some(2))
+  if check_codec {
+    // The retained original two-row inventory has already grown this SAME
+    // reservation. No Host input forest or unrelated spare capacity backs it.
+    let original_reservation = control.reservation
+    begin_installed_effect_operation_control_construction(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+    ).unwrap()
+    let held = @resources.ledger_usage(ledger)
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+      None,
+      64,
+      4,
+    ).unwrap()
+    assert_true(physical_equal(control.reservation, original_reservation))
+    assert_eq(
+      @resources.ledger_usage(ledger).reserved_retention_bytes,
+      held.reserved_retention_bytes,
+    )
+    assert_eq(@resources.ledger_usage(ledger).attempts, held.attempts)
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      held.transferred_bytes,
+    )
+    complete_installed_effect_operation_ledger_codec(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+    ).unwrap()
+    assert_eq(@resources.ledger_usage(ledger), held)
+    complete_installed_effect_operation_control_construction(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+    ).unwrap()
+  }
   let grown = @resources.ledger_usage(ledger)
   assert_true(grown.reserved_retention_bytes > before.reserved_retention_bytes)
   assert_eq(grown.attempts, before.attempts)
