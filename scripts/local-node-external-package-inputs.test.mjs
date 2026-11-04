@@ -241,6 +241,8 @@ for (const role of ['read', 'effect']) {
       credentialPrivateKeyPath: '/fixture/key.pem', journalRoot: '/fixture/journal'});
     const calls = [], legacy = [];
     const prepared = Object.freeze({declaration, declared, environment});
+    const implementation = Object.freeze({capacity: {}, runAcquisitionLimits: {maxBindings: 2, maxSecretBytes: 4096}});
+    const reader = Object.freeze({original: 'reader'});
     const construction = Object.freeze({
       configurationReader: Object.freeze({
         async readOriginalText(url) {calls.push('original-text'); return readFileSync(url, 'utf8');},
@@ -259,13 +261,20 @@ for (const role of ['read', 'effect']) {
           Object.isFrozen(writes[0].sources) && writes[0].sources.every(Object.isFrozen));
         calls.push('mappings'); return Object.freeze({...prepared, mappings: Object.freeze([mapping])});
       },
+      sourceReaderImplementation() {calls.push('implementation'); return implementation;},
+      createSourceReader(options) {
+        assert.equal(options.implementation, implementation);
+        assert.equal(typeof options.preparePageReader, 'function');
+        calls.push('reader'); return reader;
+      },
       async openRowSite(options) {
         assert.equal(options.profile, specification);
         assert.equal(options.accountConfiguration, '{"original":"account"}');
         calls.push('site'); return Object.freeze({site, authorization});
       },
       async createRowSource(options) {
-        assert.equal(typeof options.readPages, 'function');
+        assert.equal(options.providerReader, reader);
+        assert.equal(Object.hasOwn(options, 'readPages'), false);
         for (const name of ['moon', 'declaration', 'declared', 'environmentWire', 'site', 'authorization']) {
           assert.equal(Object.hasOwn(options, name), false, name);
         }
@@ -306,7 +315,7 @@ for (const role of ['read', 'effect']) {
     assert.equal(result, adapter, 'Return only the same bound constructor original');
     assert.deepEqual(legacy, [], 'The installed loader supplies the construction owner');
     assert.deepEqual(calls, role === 'read'
-      ? ['original-site', 'original-text', 'declaration', 'site', 'source']
+      ? ['original-site', 'original-text', 'declaration', 'implementation', 'site', 'reader', 'source']
       : ['original-site', 'original-text', 'declaration', 'original-text', 'mappings', 'site', 'effect']);
   });
 }
@@ -393,3 +402,16 @@ test('external read fixture retains its bound managed reader and original page p
   assert.throws(() => pages.decodePage({accepted: true, statusCode: 200, body: bodies[0]}, {pageIndex: 0}),
     {code: 'InvalidExternalReadPage'});
 });
+
+for (const missing of ['sourceReaderImplementation', 'createSourceReader']) {
+  test(`external read fixture refuses missing ${missing} before acquiring its Site`, async () => {
+    const load = await externalFixtureLoader('read', {});
+    const construction = {prepareAuthoredDeclaration() {assert.fail('No declaration');},
+      openRowSite() {assert.fail('No Site');}, createRowSource() {assert.fail('No adapter');},
+      sourceReaderImplementation() {assert.fail('No implementation');},
+      createSourceReader() {assert.fail('No reader');},
+      configurationReader: {readOriginalText() {assert.fail('No text');}, readJson() {assert.fail('No configuration');}}};
+    delete construction[missing];
+    await assert.rejects(load({}, {construction}), {code: 'ExternalReadConstructionUnavailable'});
+  });
+}

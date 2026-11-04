@@ -43,6 +43,10 @@ Effect claims and recovery. `providerMoon` owns only the following pure ABI:
   admits only `next: 1` from the first page or `next: null`. Each page permits
   at most two rows, 4,096 bytes, 32 nodes and depth four. The common acquisition
   independently caps the run at two pages and four captured rows.
+  The bound constructor retains the standard managed page reader and its
+  implementation capacity before Source admission. Shared reader custody owns
+  Credential binding, current checks, byte charging and cleanup; the external
+  module supplies only synchronous request and page projections.
 - Effect: `externalEffectRequestJson(key, note)` constructs the exact bounded
   create body. `externalEffectObservationJson(status, bytes, key)` admits only
   a matching typed 201 success or the declared 400 refusal. All other replies
