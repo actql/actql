@@ -32,6 +32,8 @@ pub fn client_program_check_compiler_identity() -> String
 
 pub fn client_program_check_context_identity(@program_check.CheckEnvironment) -> String
 
+pub fn client_program_check_prepared_source_selector_range(@program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, Array[@program_check.CheckEnvironment]) -> ClientCheckSourceSelectorRange?
+
 pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
 
 pub fn client_program_check_program_with_format(String, String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
