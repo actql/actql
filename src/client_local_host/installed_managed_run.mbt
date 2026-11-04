@@ -187,6 +187,7 @@ fn installed_managed_owner_shape_supported(
   mock_model : Bool,
   model? : @publication_host.ClientInferPlanGraph? = None,
   model_occurrence? : @publication_host.ClientInferOccurrence? = None,
+  model_occurrences? : Array[@publication_host.ClientInferOccurrence]? = None,
   content? : ClientInstalledEffectContentPreparation? = None,
 ) -> Bool {
   let graph = installed_managed_owner_graph(owner)
@@ -197,12 +198,15 @@ fn installed_managed_owner_shape_supported(
     Some(selected) => Some(selected.occurrence)
     None => model_occurrence
   }
-  let boundary_count = match owner {
+  // Reuse the same immutable checked occurrence inventory for the count and
+  // ordered identity comparison; do not enumerate it again for the vector.
+  let original_occurrences = match owner {
     Pure(prepared) =>
-      @publication_host.prepared_client_composed_infer_occurrences(prepared).map(value => {
-          value.length()
-        },
-      )
+      @publication_host.prepared_client_composed_infer_occurrences(prepared)
+    Effect(_) => None
+  }
+  let boundary_count = match owner {
+    Pure(_) => original_occurrences.map(value => value.length())
     Effect(prepared) =>
       Some(
         if @publication_host.prepared_client_effect_infer_occurrence(prepared)
@@ -212,6 +216,28 @@ fn installed_managed_owner_shape_supported(
           0
         },
       )
+  }
+  let selected_count = match model_occurrences {
+    None => if mock_model { 1 } else { 0 }
+    Some(originals) => {
+      guard mock_model &&
+        owner is Pure(prepared) &&
+        originals.length() > 1 &&
+        original_occurrences is Some(expected) &&
+        expected.length() == originals.length() else {
+        return false
+      }
+      for index, original in originals {
+        if !@publication_host.client_infer_occurrence_matches(
+            original, prepared,
+          ) ||
+          @publication_host.client_infer_occurrence_coordinates(original) !=
+          @publication_host.client_infer_occurrence_coordinates(expected[index]) {
+          return false
+        }
+      }
+      originals.length()
+    }
   }
   let serialized = match owner {
     Pure(prepared) =>
@@ -233,7 +259,7 @@ fn installed_managed_owner_shape_supported(
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
   boundary_count is Some(count) &&
-  count == (if mock_model { 1 } else { 0 }) &&
+  count == selected_count &&
   (match model {
     None =>
       (

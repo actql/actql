@@ -1011,7 +1011,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const effectful = state?.compilationKind === 'effectful' && state.effectBorrowMethods !== undefined;
       if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
-          state.preparing || state.modelCompilation !== undefined || state.modelProviderBinding !== undefined) fail('ForeignInstalledSourceProducer');
+          state.preparing || state.modelCompilation !== undefined ||
+          state.modelProviderBinding !== undefined && (effectful || state.modelGraph === undefined)) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime;
       const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
         : moon.clientProgramPreparationBorrowRead;
@@ -1037,7 +1038,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const effectful = state?.compilationKind === 'effectful' && state.effectBorrowMethods !== undefined;
       if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
-          state.preparing || state.modelGraph !== undefined ||
+          state.preparing || state.modelCompilation !== undefined ||
+          effectful && state.modelGraph !== undefined ||
           state.contentGraph !== serializationGraph) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
       const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
@@ -1071,9 +1073,14 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined; // An explicitly separate purpose.
+      const multiple = Array.isArray(graph);
+      if (multiple && (types.isProxy(graph) || !Object.isFrozen(graph) || graph.length < 2)) {
+        fail('ForeignInstalledSourceProducer');
+      }
       if (state.prepared !== prepared || state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
-          state.preparing || state.modelGraph !== undefined && state.modelGraph !== graph) {
+          state.preparing || state.modelGraph !== undefined && state.modelGraph !== graph &&
+            (!multiple || state.modelGraph !== graph.at(-1))) {
         fail('ForeignInstalledSourceProducer');
       }
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
@@ -1081,7 +1088,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         fail('ForeignInstalledSourceProducer');
       }
       if (state.modelCompilation !== undefined) return state.modelCompilation;
-      const compile = moon.clientProgramPrepareRequestModelCompilation;
+      const compile = multiple ? moon.clientProgramPrepareRequestModelsCompilation
+        : moon.clientProgramPrepareRequestModelCompilation;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
       if (typeof compile !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
       state.modelGraph = graph;

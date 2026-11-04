@@ -814,8 +814,11 @@ fn[I] prepare_request_compilation_owned(
     | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
-    | Some(RequestModelGraph(_, _, _, _)) => return Err(Preparation(WrongPhase))
-    Some(RequestModelCompilation(_, _, _, _)) => ModelPlanReserved
+    | Some(RequestModelGraph(_, _, _, _))
+    | Some(RequestModelGraphs(_, _, _, _)) =>
+      return Err(Preparation(WrongPhase))
+    Some(RequestModelCompilation(_, _, _, _))
+    | Some(RequestModelsCompilation(_, _, _, _)) => ModelPlanReserved
     Some(RequestSerializationCompilation(_, _, _, _))
     | Some(RequestKeyedSerializationCompilation(_, _, _, _)) =>
       ContentPlanReserved
@@ -839,13 +842,18 @@ fn[I] prepare_request_compilation_owned(
               | Some(RequestModelRecovery(_, _))
               | Some(RequestSerializationGraph(_, _, _, _))
               | Some(RequestModelGraphConstruction(_, _, _, _))
-              | Some(RequestModelGraph(_, _, _, _)) =>
+              | Some(RequestModelGraph(_, _, _, _))
+              | Some(RequestModelGraphs(_, _, _, _)) =>
                 return Err(Preparation(WrongPhase))
               Some(RequestModelCompilation(_, _, _, graph)) =>
                 @publication_host.prepared_client_model_measurement_storage(
                   prepared,
                   [graph],
                   limits,
+                )
+              Some(RequestModelsCompilation(_, _, _, graphs)) =>
+                @publication_host.prepared_client_model_measurement_storage(
+                  prepared, graphs, limits,
                 )
               Some(RequestSerializationCompilation(_, _, _, component))
               | Some(RequestKeyedSerializationCompilation(_, _, _, component)) =>
@@ -891,12 +899,25 @@ fn[I] prepare_request_compilation_owned(
           | Some(RequestModelRecovery(_, _))
           | Some(RequestSerializationGraph(_, _, _, _))
           | Some(RequestModelGraphConstruction(_, _, _, _))
-          | Some(RequestModelGraph(_, _, _, _)) =>
+          | Some(RequestModelGraph(_, _, _, _))
+          | Some(RequestModelGraphs(_, _, _, _)) =>
             return Err(Preparation(WrongPhase))
           Some(RequestModelCompilation(_, _, _, graph)) =>
             @publication_host.measure_prepared_client_model_compilation_construction(
               prepared,
               [graph],
+              manifests,
+              sequence,
+              limits.max_facts,
+              limits.max_witnesses,
+              limits.max_wire_bytes,
+              limits.max_nodes,
+              limits.max_depth,
+            )
+          Some(RequestModelsCompilation(_, _, _, graphs)) =>
+            @publication_host.measure_prepared_client_model_compilation_construction(
+              prepared,
+              graphs,
               manifests,
               sequence,
               limits.max_facts,
@@ -981,11 +1002,27 @@ fn[I] prepare_request_compilation_owned(
     | Some(RequestModelRecovery(_, _))
     | Some(RequestSerializationGraph(_, _, _, _))
     | Some(RequestModelGraphConstruction(_, _, _, _))
-    | Some(RequestModelGraph(_, _, _, _)) => Err(Preparation(WrongPhase))
+    | Some(RequestModelGraph(_, _, _, _))
+    | Some(RequestModelGraphs(_, _, _, _)) => Err(Preparation(WrongPhase))
     Some(RequestModelCompilation(_, _, _, graph)) =>
       @publication_host.observe_prepared_client_multi_infer_plan_encoding(
         prepared,
         [graph],
+        manifests,
+        sequence,
+        limits.max_facts,
+        limits.max_witnesses,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        nodes_out=owner.program_artifact_plan_encoding_nodes,
+      )
+      .map(value => @publication_host.ClientRunCompilation::Tasks(value))
+      .map_err(issue => TaskCompilation(issue))
+    Some(RequestModelsCompilation(_, _, _, graphs)) =>
+      @publication_host.observe_prepared_client_multi_infer_plan_encoding(
+        prepared,
+        graphs,
         manifests,
         sequence,
         limits.max_facts,
@@ -1050,6 +1087,7 @@ fn[I] prepare_request_compilation_owned(
   if attempted is Ok(artifact) {
     owner.program_compilation = Some(artifact)
     if domain is Some(RequestModelCompilation(_, _, _, _)) ||
+      domain is Some(RequestModelsCompilation(_, _, _, _)) ||
       domain is Some(RequestSerializationCompilation(_, _, _, _)) ||
       domain is Some(RequestKeyedSerializationCompilation(_, _, _, _)) {
       // These actual callers issue their first compiled Run/Definition just

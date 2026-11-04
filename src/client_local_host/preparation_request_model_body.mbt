@@ -187,6 +187,97 @@ pub fn[I] prepare_request_model_compilation(
 }
 
 ///|
+/// Compile the complete ordered vector already constructed and retained on
+/// this SAME Request. Reuse the existing multi-INFER compiler, measurement,
+/// work token and TaskCompilation. The selected vector must contain every
+/// SAME retained graph in order; its wrapper supplies no new body authority.
+/// Callers do not rebuild graphs or supply another parent/compiled artifact.
+pub fn[I] prepare_request_models_compilation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  selected : Array[@publication_host.ClientInferPlanGraph],
+  contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    owner.program_compilation is None &&
+    owner.program_model is None &&
+    !owner.program_body_attempted &&
+    owner.program_artifact_work is None &&
+    owner.program_artifact_work_issue is None else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let graphs = match owner.program_domain_compilation_inputs {
+    Some(
+      RequestModelGraphs(old_manifests, old_limits, old_contracts, originals)
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        @publication_host.prepared_client_composed_infer_occurrences(prepared)
+        is Some(occurrences) &&
+        occurrences.length() > 1 &&
+        originals.length() == occurrences.length() &&
+        selected.length() == originals.length() else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      for index, graph in originals {
+        if !physical_equal(graph, selected[index]) ||
+          !physical_equal(graph.owner, prepared) ||
+          !@publication_host.client_infer_occurrence_matches_plan(
+            occurrences[index],
+            graph,
+          ) {
+          return Err(Preparation(ForeignOriginal))
+        }
+      }
+      originals
+    }
+    _ => return Err(Preparation(ForeignOriginal))
+  }
+  owner.program_domain_compilation_inputs = Some(
+    RequestModelsCompilation(manifests, compilation_limits, contracts, graphs),
+  )
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match
+        @publication_host.bind_prepared_client_compiler_contracts(
+          prepared,
+          contracts.original.value.ordered_contract,
+        ) {
+        Err(_) => return Err(Preparation(ForeignOriginal))
+        Ok(_) => ()
+      }
+      match
+        prepare_request_compilation_owned(
+          owner, input, prepared, manifests, compilation_limits,
+        ) {
+        Err(issue) => Err(issue)
+        Ok(@publication_host.Tasks(compilation)) => {
+          owner.phase = ModelPlanReserved
+          Ok(compilation)
+        }
+        _ => Err(Preparation(ForeignOriginal))
+      }
+    },
+    () => {
+      ignore(finish_request_program_artifact_work(owner))
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+    },
+  )
+}
+
+///|
 /// Bind the actual Model module and its optional Content prefix from this
 /// original Request. The Plan record was admitted by the existing input borrow;
 /// no caller-supplied prefix or equal compiler can replace its retained original.

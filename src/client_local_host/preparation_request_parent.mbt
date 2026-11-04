@@ -61,6 +61,21 @@ priv enum ClientRequestDomainCompilationInputs {
   // it. Reuse this same four-reference slot, then transfer it to that compiler.
   // Same resident four-reference slot while the backed Graph constructor
   // retains its original mappings/lowering through a failed issuer/current.
+  // The SAME resident compiler-input slot may retain the full ordered
+  // original graph vector. Its actual Array constructor is backed before
+  // allocation; no second compiler/parent or ownership cache is introduced.
+  RequestModelsCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Array[@publication_host.ClientInferPlanGraph]
+  )
+  RequestModelGraphs(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Array[@publication_host.ClientInferPlanGraph]
+  )
   RequestModelGraphConstruction(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,

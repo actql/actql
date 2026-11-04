@@ -54,10 +54,10 @@ function fixture({infers = [], serializations = [], acquisitions = 0, refusal,
   const producer = {receipt: input, request, kind: 'program', body: snapshot, preparation: state};
   const originals = {installation: {sequenceContractOriginal: {moon, admission: {}}}};
   const read = Function('current', 'producerForRequest', 'fail', 'originals', 'checked',
-    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal',
+    'checkedRequestProgramPreparation', 'requestPreparationAvailable', 'reportCapacityRefusal', 'types',
     `const closing=false,closed=false;const pendingRunRegistrations=new Set();${managerHelpers}return ({${method}});`)(() => {},
     actual => {assert.equal(actual, request); return producer;}, fail, originals, value => value,
-    (_moon, value) => value, () => true, () => {});
+    (_moon, value) => value, () => true, () => {}, types);
   return {state, calls, inventory, selected, prepared, moon, parent, input, request,
     read: () => read.fundedPreparation(request),
     compile: graph => read.prepareModelCompilation(prepared, request, graph),
@@ -408,4 +408,34 @@ test('Request synchronous constructor helper latches an original null or undefin
     }
     assert.equal(compiles, 1); assert.equal(constructs, 1);
   }
+});
+
+// Actual manager compiler method; explicit Core ports qualify original-array
+// forwarding and sticky cleanup, not native Graph/Scope/backing or normal ABI.
+test('multiple Model graphs compile once on the same Request with their original ordered inventory',async()=>{
+  const first={},last={},graphs=Object.freeze([first,last]),artifact={};
+  const f=fixture({infers:[{},{}]});await f.read();f.state.modelGraph=last;
+  f.moon.clientProgramRequestProgramModuleIssueCode=()=>undefined;
+  let calls=0;
+  f.moon.clientProgramPrepareRequestModelCompilation=()=>assert.fail('no single graph substitution');
+  f.moon.clientProgramPrepareRequestModelsCompilation=function(parent,input,originals,contracts){
+    assert.strictEqual(this,f.moon);assert.strictEqual(parent,f.parent);assert.strictEqual(input,f.input);
+    assert.strictEqual(originals,graphs);assert.ok(contracts);calls++;return artifact;
+  };
+  assert.strictEqual(f.compile(graphs),artifact);assert.strictEqual(f.compile(graphs),artifact);
+  assert.equal(calls,1);assert.strictEqual(f.state.modelGraph,graphs);
+  assert.throws(()=>f.compile(Object.freeze([first,last])),{code:'ForeignInstalledSourceProducer'});
+  assert.equal(calls,1);
+});
+
+test('multiple Model compiler refusal stays on the same parent without a replacement compilation',async()=>{
+  const graphs=Object.freeze([{},{}]),f=fixture({infers:[{},{}]});await f.read();
+  f.state.modelGraph=graphs[1];let calls=0,failed=false;
+  f.moon.clientProgramRequestProgramModuleIssueCode=()=>undefined;
+  f.moon.clientProgramPrepareRequestModelsCompilation=()=>{calls++;throw undefined;};
+  try{f.compile(graphs);}catch(actual){failed=true;assert.strictEqual(actual,undefined);}
+  assert.equal(failed,true);failed=false;
+  try{f.compile(graphs);}catch(actual){failed=true;assert.strictEqual(actual,undefined);}
+  assert.equal(failed,true);assert.equal(calls,1);assert.equal(f.state.preparationFailed,true);
+  assert.strictEqual(f.state.parent,f.parent);assert.strictEqual(f.state.holder,f.selected);
 });

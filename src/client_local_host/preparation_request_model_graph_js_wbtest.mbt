@@ -250,13 +250,16 @@ test "Effect Model Graph transfers its same component to Scope and clears only t
 // a Graph before the Request's new construction reservation.
 fn request_model_graph_inputs(
   prepared : @publication_host.PreparedClientProgram,
+  selected? : @publication_host.ClientInferOccurrence? = None,
 ) -> (
   @publication_host.ClientInferOccurrence,
   @environment.ModelExecutionContract,
 ) {
-  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
-    prepared,
-  ).unwrap()
+  let occurrence = match selected {
+    Some(original) => original
+    None =>
+      @publication_host.prepared_client_composed_infer_occurrence(prepared).unwrap()
+  }
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
   let execution = @publication_host.read_client_infer_occurrence_model_execution(
@@ -2241,4 +2244,80 @@ test "same Request acquired Model prefix keeps live provider backing until origi
   assert_false(stopped.val)
   stopped.val = true
   request_acquired_model_capture_close(f)
+}
+
+///|
+// Actual checked Program, native graph constructors and one Request compiler.
+// Synthetic component initial allowances are not an installed Host/provider
+// recipe or normal runtime/physical qualification.
+test "multiple Model graphs retain complete original order on one Request compiler" {
+  let document =
+    #|{"version":"actql/0.1","id":"request-two-models","stages":[{"id":"input","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(document),
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  guard parent.program_domain_compilation_inputs
+    is Some(RequestModelGraphs(_, _, _, originals)) else {
+    fail("complete Request-owned graph vector")
+  }
+  assert_eq(originals.length(), 2)
+  assert_true(physical_equal(originals[0], graphs[0]))
+  assert_true(physical_equal(originals[1], graphs[1]))
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(
+    prepare_request_models_compilation(
+      parent,
+      input,
+      [graphs[1], graphs[0]],
+      contracts,
+      manifests~,
+      compilation_limits=limits,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  let compiled = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  assert_eq(compiled.infers.length(), 2)
+  assert_true(physical_equal(compiled.infers[0], graphs[0]))
+  assert_true(physical_equal(compiled.infers[1], graphs[1]))
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  @resources.return_preparation_body_borrow(holder).unwrap()
+  assert_true(abort_request_preparation(parent).unwrap())
 }
