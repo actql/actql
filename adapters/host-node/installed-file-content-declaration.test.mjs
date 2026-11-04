@@ -14,7 +14,6 @@ import {inspect} from 'node:util';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as gcsMoon from '../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {acquiredTaskRunAdmission, acquiredTaskPublicationPlan,
@@ -186,7 +185,7 @@ function listingContentProgram({maximum = 3, emptySelector = false,
   joinCount = 1, filterFirst = false, capturePrefix = false, allFiles = false,
   captureFilter, postJoinFilter, lookupPolicy = {}, reverseSourceInputs = false,
   sourceFormat = 'json', serialize = false, modelTask, hostCapacityPolicy, classification,
-  authoredDocument} = {}) {
+  authoredDocument, publicUnknownSource = false} = {}) {
   const listing = {...fileListingDeclaration(moon, baseWire.trimEnd()).spec};
   const content = {...fixture().spec};
   if (classification !== undefined) {
@@ -205,7 +204,10 @@ function listingContentProgram({maximum = 3, emptySelector = false,
   assert.match(listingFacts.file_listing.listing_schema_contract_cid ?? '', /^sha256:[0-9a-f]{64}$/u);
   assert.match(contentFacts.file_content.content_schema_contract_cid ?? '', /^sha256:[0-9a-f]{64}$/u);
   listingFacts.file_listing.max_listing_items = maximum;
-  listing.facts_wire = canonical(listingFacts);
+  // This selected ordinary Source has the same carrier/Request schema, but
+  // no LIST_FILES capability or numeric row fact. Runtime reader budgets stay
+  // finite; they must not become a fabricated checked count.
+  listing.facts_wire = publicUnknownSource ? '{}' : canonical(listingFacts);
   content.facts_wire = canonical(contentFacts);
   const declaration = restore();
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
@@ -267,19 +269,19 @@ function listingContentProgram({maximum = 3, emptySelector = false,
     sourceRef: view.source_ref, sourceViewContractCid: view.view_cid,
     schemaContractCid: view.carrier_schema_cid,
   }));
-  const preparation = sourceFormat === 'json'
+  const preparation = publicUnknownSource ? undefined : sourceFormat === 'json'
     ? moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program), 'json', environment, undefined)
     : installNodePublicSourcePreparation({moon, environment,
       publication: sourceAliasPublication(moon, environment, queryAliases)}).prepare({
       document: authoredDocument ?? authoredListingJoin(sourceFormat, {allFiles}), format: sourceFormat,
     }).outcome;
-  if (expectReady) assert.ok(moon.clientProgramPreparationReady(preparation) !== undefined,
+  if (expectReady && !publicUnknownSource) assert.ok(moon.clientProgramPreparationReady(preparation) !== undefined,
     inspect(moon.clientProgramPreparationIssue(preparation),
       {depth: 9, maxArrayLength: 6, maxStringLength: 400}));
-  return {ready: moon.clientProgramPreparationReady(preparation) !== undefined,
-    issue: moon.clientProgramPreparationIssueCode(preparation),
+  return {ready: preparation === undefined ? undefined : moon.clientProgramPreparationReady(preparation) !== undefined,
+    issue: preparation === undefined ? undefined : moon.clientProgramPreparationIssueCode(preparation),
     preparation,
-    preparedProgram: moon.clientProgramPreparationReady(preparation),
+    preparedProgram: preparation === undefined ? undefined : moon.clientProgramPreparationReady(preparation),
     declaration, declared, program, environmentWire: env.wire};
 }
 
@@ -393,32 +395,33 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
   lookupPolicy = {}, observeSend = true, ledgerFor, reverseSourceInputs = false, deferCapture = false,
   authorizeRead = async () => ({action: 'dispatch'}), sourceAuthorization,
   sourceFormat = 'json', captureContent, runCaptureContent = false, contentValidator, serialize = false,
-  readOperation = 'read', issueReadGrant = () => ({}), modelTask, hostCapacityPolicy, classification} = {}) {
+  readOperation = 'read', issueReadGrant = () => ({}), modelTask, hostCapacityPolicy, classification,
+  publicUnknownSource = false} = {}) {
   // The user Program itself contains the capture filter/projection and JOIN.
   // It is prepared once; no alternate Direct Program or fake completion exists.
   const value = listingContentProgram({capturePrefix: true, emptySelector: empty,
     allFiles, captureFilter, postJoinFilter, lookupPolicy, reverseSourceInputs, sourceFormat, serialize, modelTask,
-    hostCapacityPolicy, classification});
+    hostCapacityPolicy, classification, publicUnknownSource});
   const items = listingItems ?? [item('d', 'invoice.pdf', listedVersion)];
-  const keyed = [0, 1].map(input => ({input, outcome:
+  const keyed = publicUnknownSource ? [] : [0, 1].map(input => ({input, outcome:
     moon.clientProgramPrepareKeyedAcquisition(value.preparedProgram, 0, input, 2)}))
     .filter(entry => entry.outcome.$tag === 1);
-  assert.equal(keyed.length, 1);
-  const acquisition = checked(keyed[0].outcome);
+  if (!publicUnknownSource) assert.equal(keyed.length, 1);
+  const acquisition = publicUnknownSource ? undefined : checked(keyed[0].outcome);
   const [registry, aoa, queryContract, evidenceContract] = await Promise.all([
     readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8').then(JSON.parse),
     readFile(new URL('../../spec/contracts/actql-query-acquisition.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-query-process-evidence.json', import.meta.url), 'utf8'),
   ]);
-  const requirementResult = moon.clientProgramPrepareLocalQueryRequirement(
+  const requirementResult = publicUnknownSource ? undefined : moon.clientProgramPrepareLocalQueryRequirement(
     value.preparedProgram, 0, 1 - keyed[0].input, registry,
     JSON.stringify(aoa.execution_contracts['REL.values']),
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
-  assert.equal(requirementResult.$tag, 1, inspect(requirementResult.$tag === 0
+  if (!publicUnknownSource) assert.equal(requirementResult.$tag, 1, inspect(requirementResult.$tag === 0
     ? requirementResult._0 : 'ready', {depth: 5, maxArrayLength: 5, maxStringLength: 200}));
-  const requirement = checked(requirementResult);
+  const requirement = publicUnknownSource ? undefined : checked(requirementResult);
   if (!stopCaptureAfterProgress) {
     const issuer = moon.clientProgramRowReferenceIssuer((kind, wire) =>
       kind === 'file' && items.some(row => wire === canonical(row.resource)),
@@ -450,11 +453,24 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
         assert.equal(target, 'files');
         requests++;
         assert.deepEqual(JSON.parse(requestWire), {glob: null, paths: allFiles ? null : ['invoice.pdf']});
+        if (publicUnknownSource) {
+          assert.equal(listing, undefined, 'ordinary Source cannot borrow a LIST_FILES ceiling');
+          const wire = JSON.stringify(items), body = Buffer.from(wire);
+          await options.consumePageWire(wire, {charge: chargePage(body)});
+          return;
+        }
         await listing.beginRequest(undefined);
         const body = Buffer.from(JSON.stringify({request_token: null, next_token: null,
           items}));
         await listing.consumePage(body, {charge: chargePage(body)});
       }});
+    // The public Host receives only declaration/driver originals. It alone
+    // checks and compiles this Program and supplies every later preparation.
+    if (publicUnknownSource) {
+      assert.equal(deferCapture, true);
+      assert.equal(value.preparation, undefined);
+      return {...value, adapter, listingRequests: () => requests};
+    }
     const joinContracts = {registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
       fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
@@ -1835,7 +1851,9 @@ for (const byteBacked of [false, true]) {
 for (const serializing of byteBacked && !retainedRelationOutput ? [false, true] : [false]) {
 for (const {empty, cancel} of serializing ? [{empty: false, cancel: false},
   {empty: true, cancel: false}, {empty: false, cancel: true}] : [{empty: false, cancel: false}]) {
-test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'managed'} ${serializing ? `SERIALIZE ${empty ? 'empty ' : cancel ? 'cancelled ' : ''}` : ''}${byteBacked ? 'byte-backed capture' : 'envelope fixture'} retains the complete keyed inventory and original JOIN custody`, async t => {
+for (const publicUnknownSource of entrance === 'Local' && !retainedRelationOutput && byteBacked && !serializing
+  ? [false, true] : [false]) {
+test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'managed'} ${serializing ? `SERIALIZE ${empty ? 'empty ' : cancel ? 'cancelled ' : ''}` : ''}${byteBacked ? 'byte-backed capture' : 'envelope fixture'} retains the complete keyed inventory and original JOIN custody${publicUnknownSource ? ' without numeric row facts' : ''}`, async t => {
   const formats = [
     {format: 'json', reverseSourceInputs: false},
     {format: 'json', reverseSourceInputs: true},
@@ -1844,7 +1862,7 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
   ];
   // Text JOIN must capture real Store-backed bytes, not only admit an opaque
   // envelope. Generated text SERIALIZE is a separate composed boundary below.
-  for (const {format, reverseSourceInputs} of serializing ? formats.slice(0, 1) : formats) {
+  for (const {format, reverseSourceInputs} of serializing || publicUnknownSource ? formats.slice(0, 1) : formats) {
     const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
       prefix: 'keyed-public-', label: `public keyed ${entrance} Client`});
     const account = canonical({version: 'actql-execution-account-config/0.1',
@@ -1945,7 +1963,7 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
     });
     let gets = 0, captureError;
     const value = await capturedListingForOriginalKeyedProgram({deferCapture: true,
-      reverseSourceInputs, sourceAuthorization, serialize: serializing,
+      reverseSourceInputs, sourceAuthorization, serialize: serializing, publicUnknownSource,
       ...(empty ? {allFiles: true, listingItems: []} : {}),
       ...(format === 'json' ? {} : {allFiles: true,
         listingItems: [item('d', 'invoice.pdf', 'v1'), item('f', 'skip.pdf', 'v2')]}),
@@ -1959,6 +1977,20 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
           await consumePage([{...JSON.parse(requestWire), content}], {charge});
         } catch (error) { captureError = error; throw error; }
       }});
+    if (publicUnknownSource) {
+      assert.equal(value.preparation, undefined, 'no fixture-only Program check or compile');
+      const declaration = value.declared.views.find(view => view.resource === 'files');
+      assert.ok(declaration);
+      const facts = value.declared.contracts.map(JSON.parse)
+        .filter(envelope => envelope.kind === 'carrier_facts').map(envelope => envelope.body);
+      assert.ok(facts.some(body => Object.keys(body).length === 0),
+        'the direct Source carries no numeric row-count fact');
+      assert.ok(facts.every(body => body.file_listing === undefined));
+      const right = facts.find(body => body.file_content !== undefined);
+      assert.equal(right.file_content.version_capability.required_nonnull, true);
+      assert.equal(right.lookup_capacity.max_rows_per_key, 1);
+      assert.equal(format, 'json');
+    }
     const profileVersion = 'actql-installed-content-fixture-source/0.1';
     const connectorTable = createInstalledConnectorTable([{name: 'fixture', registration: 'fixture',
       revision: 'fixture/0.1', source: {profileVersion, load: async () => ({
@@ -2078,6 +2110,13 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
     const state = await execution.wait({signal: timeout});
     assert.equal(state.status, cancel ? 'cancelled' : 'succeeded',
       inspect({state, events, captureError}, {depth: 8, maxArrayLength: 12}));
+    if (publicUnknownSource) {
+      // This reads the accepted Run's stored original map. It does not invoke
+      // client.plan(source), another Check, or another compiler preparation.
+      const plan = await execution.plan();
+      assert.deepEqual(plan.run_ref, execution.ref);
+      assert.match(plan.plan_view.compiled_plan_cid, /^sha256:[0-9a-f]{64}$/u);
+    }
     const resultName = format === 'json' ? 'r' : 'answer';
     const resultRows = cancel ? undefined : await execution.result(resultName).all();
     if (cancel) {
@@ -2155,6 +2194,7 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
     scratch.passed();
   }
 });
+}
 }
 }
 }
@@ -2619,6 +2659,7 @@ test('per-Run keyed capture refuses invalid or ambiguous custody before reservat
 for (const runCaptureContent of [false, true]) {
 for (const storedEncoding of ['identity', 'gzip']) {
 test(`GCS physical keyed read uses the original RowRun and real Store-backed Content custody (${runCaptureContent ? 'per-Run capture' : 'installed fixture capture'}, stored ${storedEncoding})`, async t => {
+  const gcsMoon = await import('../../_build/js/release/build/connectors/gcs/host_node/host_node.js');
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'gcs-rowrun-', label: 'GCS keyed RowRun and Store fixture'});
   const control = runtimeCore(moon).contentCaptureControl;
@@ -2776,6 +2817,7 @@ for (const missingKeyedPreparation of [false, true]) {
 test(missingKeyedPreparation
   ? 'original dispatch refuses absent captured Content read preparation before Source I/O'
   : 'original dispatch supplies Run-bound Content custody and preserves committed bytes after Source cleanup', async t => {
+  const gcsMoon = await import('../../_build/js/release/build/connectors/gcs/host_node/host_node.js');
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'run-keyed-content-', label: 'original dispatch Content capture fixture'});
   const core = runtimeCore(moon), control = core.publicationControl;
