@@ -806,7 +806,16 @@ pub fn begin_installed_effect_operation_input(
     })
     is Some(rows) &&
     resolve_installed_effect_capture_extent(input, rows) is Some(input) &&
-    installed_effect_capacity_within(extent.capacity, input.capacity) &&
+    // A deferred constructor holds retained backing, not its unused warm
+    // workspace estimate. Its actual cold input may need less scratch.
+    // Physical operations already hold their initial execution envelope.
+    (match backing {
+      @resources.NodeManagedRunOperationBacking::Construction(_) =>
+        @execution.execution_capacity_retained_bytes(extent.capacity) <=
+        @execution.execution_capacity_retained_bytes(input.capacity)
+      @resources.NodeManagedRunOperationBacking::Physical(_) =>
+        installed_effect_capacity_within(extent.capacity, input.capacity)
+    }) &&
     installed_effect_capacity_within(input.capacity, maximum.capacity) else {
     return Err(InsufficientCapacity)
   }

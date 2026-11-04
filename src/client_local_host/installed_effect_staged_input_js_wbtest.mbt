@@ -235,6 +235,96 @@ test "staged Effect input resolves the same two rows and grows one original cons
 }
 
 ///|
+test "cold recovered input grows the same deferred child below its unused warm workspace" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  // The two original rows make the warm template14R/26E. Cold recovery
+  // borrows its saved wire instead of regenerating it:20R/24E, not26E.
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(16L, 18L).unwrap(),
+    @execution.execution_capacity(2L, 3L).unwrap(),
+  ).unwrap()
+  assert_eq(child.execution_limit, 26L)
+  let limits = @resources.ledger_limits(ledger)
+  let before = @resources.ledger_usage(ledger)
+  let occupied = @resources.reserve_capacity(
+    ledger,
+    0L,
+    limits.execution_bytes - before.reserved_execution_bytes,
+  ).unwrap()
+  let full = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_input(child, input)
+    is Err(Ledger(@resources.ExecutionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), full)
+  assert_false(child.input_selected)
+  assert_false(child.started)
+  @resources.settle_capacity(ledger, occupied).unwrap()
+  begin_installed_effect_operation_input(child, input).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(
+    active.reserved_retention_bytes - before.reserved_retention_bytes,
+    6L,
+  )
+  assert_eq(
+    active.reserved_execution_bytes - before.reserved_execution_bytes,
+    10L,
+  )
+  assert_eq(child.execution_limit, 24L)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  // Only byte backing grew. The same child, spent coordinate and all other
+  // work/attempt/transfer/holding history remain with the original Ledger.
+  assert_eq(
+    {
+      ..active,
+      reserved_retention_bytes: before.reserved_retention_bytes,
+      reserved_execution_bytes: before.reserved_execution_bytes,
+      peak_retention_bytes: before.peak_retention_bytes,
+    },
+    before,
+  )
+  complete_installed_effect_operation_construction(child).unwrap()
+  let returned = @resources.ledger_usage(ledger)
+  assert_eq(returned.reserved_retention_bytes, active.reserved_retention_bytes)
+  assert_eq(
+    returned.reserved_execution_bytes,
+    active.reserved_execution_bytes - 4L,
+  )
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "cold input cannot replace a warm constructor whose original workspace is live" {
+  let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
+  let child = retain_installed_effect_operation_construction(
+    owner, prepared, request, plan, 0, false, 0, 0, "capture",
+  ).unwrap()
+  begin_installed_effect_operation_construction(child).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  let input = prepare_installed_effect_capture_extent(
+    "capture",
+    @execution.execution_capacity(16L, 18L).unwrap(),
+    @execution.execution_capacity(2L, 3L).unwrap(),
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, input) is Err(ForeignOriginal),
+  )
+  assert_eq(@resources.ledger_usage(ledger), active)
+  assert_true(retire_installed_effect_operation(child, false) is Ok(false))
+  assert_true(retire_installed_managed_run(owner) is Err(CleanupPending))
+  assert_true(retire_installed_effect_operation(child, true).unwrap())
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
 test "staged Effect input preserves the same physical attempt and rejects a foreign purpose or ceiling" {
   let (prepared, request, plan, owner, ledger) = staged_effect_input_fixture()
   let child = borrow_installed_effect_operation(
@@ -251,6 +341,19 @@ test "staged Effect input preserves the same physical attempt and rejects a fore
   )
   start_installed_effect_operation(child).unwrap()
   let before = @resources.ledger_usage(ledger)
+  // The physical operation's warm execution backing is already live. Cold
+  // input cannot use the deferred-constructor rule to shrink that envelope.
+  let smaller_live_workspace = prepare_installed_effect_operation_extent(
+    "send",
+    @execution.execution_capacity(5L, 7L).unwrap(),
+    7L,
+    true,
+  ).unwrap()
+  assert_true(
+    begin_installed_effect_operation_input(child, smaller_live_workspace)
+    is Err(InsufficientCapacity),
+  )
+  assert_eq(@resources.ledger_usage(ledger), before)
   let foreign = prepare_installed_effect_operation_extent(
     "other",
     @execution.execution_capacity(9L, 14L).unwrap(),
