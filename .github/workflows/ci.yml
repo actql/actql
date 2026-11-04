@@ -342,7 +342,9 @@ jobs:
             # Optimize the test IR before emitting the large full-Core C input.
             # Keep every test, strict warnings and the original generated-C
             # backend; production and the focused debug prerequisite are unchanged.
-            MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 1 --verbose
+            # Compile two independent C units concurrently, while keeping
+            # physical test execution serial under the original fixture roots.
+            MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then
