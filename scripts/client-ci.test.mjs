@@ -519,6 +519,15 @@ test('ordinary packed composition ships JSON and authored text with independent 
   }
   assert.deepEqual(compositionExpectations.sourceReadSessions, [2, 0, 0, 0]);
   assert.deepEqual(compositionExpectations.modelInputs, [100, 200]);
+  // INFER outcome=ok refines the value to the original non-null success
+  // contract (language.md INFER), including its required risk field.
+  const classify = compositionTemplate.stages.find(stage => stage.id === 'classify');
+  assert.ok(classify.steps.some(step => JSON.stringify(step.filter) ===
+    JSON.stringify({eq: [{field: 'outcome'}, {literal: 'ok'}]})));
+  for (const fields of [compositionExpectations.classifiedColumns, compositionExpectations.updateColumns]) {
+    assert.deepEqual(fields.find(field => field.name === 'risk').contract,
+      {type: 'string', nullable: false});
+  }
   assert.deepEqual(compositionExpectations.effectWriteCounts, [0, 0, 1, 1]);
   assert.deepEqual(compositionExpectations.restartBoundaries,
     ['capture-waiting', 'approval-committed']);
