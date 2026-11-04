@@ -216,7 +216,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     const selectedSources = selectAcquiredEffectSources({moon,
       preparedEffect: acquired.prepared, sourceProfile, registry, values, fragment, ordered,
       queryTimePreparation: acquired.queryTimePreparation, requestIdentity: acquired.requestIdentity,
-      managedPlan: operationPlan});
+      managedPlan: operationPlan, managedRun});
     const singleSourceAccess = sourceAccess ?? selectedSources[0]?.adapter.sourceAccess;
     if (infer !== undefined) {
       if (modelController === undefined) throw new Error('InstalledModelJournalRequired');

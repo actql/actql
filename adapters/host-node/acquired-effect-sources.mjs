@@ -66,7 +66,7 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
 }
 
 export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile,
-  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan}) {
+  registry, values, fragment, ordered, queryTimePreparation, requestIdentity, managedPlan, managedRun}) {
   const count = moon.clientProgramEffectAcquisitionCount(preparedEffect);
   if (![0, 1, 2].includes(count)) {
     throw new TypeError('UnsupportedEffectSourceCount');
@@ -75,9 +75,9 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
   const owners = new Set();
   for (let task = 0; task < count; task++) {
     let sourceRef;
-    if (managedPlan === undefined && requestIdentity !== undefined) {
-      // Preadmission reads the original checked Requests. The Plan, not this
-      // installation selection, later prepares the Query requirement once.
+    if ((managedPlan === undefined || managedRun !== undefined) && requestIdentity !== undefined) {
+      // Selection reads original checked Requests. The Plan owns the Query
+      // requirement; the current native/row getter below verifies that original.
       const selection = checked(moon.clientProgramSelectInstalledEffectSourceInput(
         preparedEffect, requestIdentity, task, 0));
       if (moon.clientProgramSelectedSourceInputKind(selection) !== 'query') {
@@ -95,6 +95,20 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
       sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
     }
     const adapter = installedSourceFor(sourceProfile, sourceRef);
+    if (managedPlan !== undefined && managedRun !== undefined) {
+      // Native captures have no RowDeclaration/RowAcquisition. Borrow the
+      // original nominal capture from this SAME current parent and Plan.
+      const plan = checked(moon.clientProgramInstalledEffectManagedOperationPlan(
+        managedRun, preparedEffect, requestIdentity));
+      if (plan !== managedPlan) throw new TypeError('ForeignInstalledEffectManagedRun');
+      const requirement = adapter.realizationKey === 'duckdb-acquired'
+        ? runtimeField(checked(moon.clientProgramInstalledEffectManagedDuckDBCapture(
+          managedRun, preparedEffect, requestIdentity, task)), 0)
+        : runtimeField(checked(moon.clientProgramInstalledEffectManagedPlanSource(managedPlan, task)), 1);
+      if (moon.clientProgramQueryRequirementSourceRef(requirement) !== sourceRef) {
+        throw new TypeError('ForeignInstalledEffectManagedRun');
+      }
+    }
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }

@@ -60,6 +60,70 @@ test('Effect preadmission selects the checked Source without preparing its Query
   assert.strictEqual(selected[0].adapter, adapter); assert.equal(selections, 1);
 });
 
+test('Effect managed native and row Sources borrow the same current Plan in either order', () => {
+  for (const keys of [['duckdb-acquired', 'row-source-acquired'], ['row-source-acquired', 'duckdb-acquired']]) {
+    const prepared = {}, request = {}, parent = {}, plan = {}, calls = [];
+    const requirements = [{ref: 'source-0'}, {ref: 'source-1'}];
+    const sources = keys.map((realizationKey, index) => ({realizationKey,
+      admitsSource: ref => ref === requirements[index].ref, prepare() {}, open() {}}));
+    const moon = {clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
+        assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
+        calls.push(`request-${task}`); return ok(task);
+      }, clientProgramSelectedSourceInputKind: () => 'query',
+      clientProgramSelectedSourceInputRef: task => requirements[task].ref,
+      clientProgramQueryRequirementSourceRef: requirement => requirement.ref,
+      clientProgramInstalledEffectManagedOperationPlan(run, p, r) {
+        assert.strictEqual(run, parent); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
+        calls.push('current-plan'); return ok(plan);
+      }, clientProgramInstalledEffectManagedDuckDBCapture(run, p, r, task) {
+        assert.strictEqual(run, parent); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
+        assert.equal(keys[task], 'duckdb-acquired'); calls.push(`native-${task}`);
+        return ok({_0: requirements[task], _1: {}});
+      }, clientProgramInstalledEffectManagedPlanSource(original, task) {
+        assert.strictEqual(original, plan); assert.equal(keys[task], 'row-source-acquired');
+        calls.push(`row-${task}`); return ok({_0: {}, _1: requirements[task], _2: {}, _3: {}});
+      }, clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('never reconstruct the admitted Query');},
+    };
+    const selected = selectAcquiredEffectSources({moon, preparedEffect: prepared, requestIdentity: request,
+      managedPlan: plan, managedRun: parent, sourceProfile: {sources}});
+    assert.strictEqual(selected[0].adapter, sources[0]); assert.strictEqual(selected[1].adapter, sources[1]);
+    assert.deepEqual(calls, keys.flatMap((key, task) => [`request-${task}`, 'current-plan',
+      `${key === 'duckdb-acquired' ? 'native' : 'row'}-${task}`]));
+  }
+});
+
+test('Effect managed native selection preserves original current and foreign refusals', () => {
+  const prepared = {}, request = {}, parent = {}, plan = {}, currentFailure = new Error('original-current-refusal');
+  const nativeFailure = new Error('original-native-refusal');
+  const adapter = {realizationKey: 'duckdb-acquired', admitsSource: ref => ref === 'source', prepare() {}, open() {}};
+  let current = plan, requirement = {ref: 'source'}, nativeCalls = 0, refuseNative = false;
+  const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramSelectInstalledEffectSourceInput: () => ok({}),
+    clientProgramSelectedSourceInputKind: () => 'query', clientProgramSelectedSourceInputRef: () => 'source',
+    clientProgramQueryRequirementSourceRef: value => value.ref,
+    clientProgramInstalledEffectManagedOperationPlan(run, p, r) {
+      assert.strictEqual(run, parent); assert.strictEqual(p, prepared); assert.strictEqual(r, request);
+      return current === currentFailure ? {$tag: 0, _0: currentFailure} : ok(current);
+    }, clientProgramInstalledEffectManagedDuckDBCapture(run, p, r, task) {
+      assert.strictEqual(run, parent); assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(task, 0);
+      nativeCalls++; return refuseNative ? {$tag: 0, _0: nativeFailure} : ok({_0: requirement, _1: {}});
+    }, clientProgramInstalledEffectManagedPlanSource() {assert.fail('a native capture has no row-backed substitute');},
+  };
+  const options = {moon, preparedEffect: prepared, requestIdentity: request,
+    managedPlan: plan, managedRun: parent, sourceProfile: adapter};
+  current = currentFailure;
+  assert.throws(() => selectAcquiredEffectSources(options), error => error.cause === currentFailure);
+  current = {};
+  assert.throws(() => selectAcquiredEffectSources(options), /ForeignInstalledEffectManagedRun/);
+  assert.equal(nativeCalls, 0, 'foreign/current refusal precedes native capture access');
+  current = plan; refuseNative = true;
+  assert.throws(() => selectAcquiredEffectSources(options), error => error.cause === nativeFailure);
+  refuseNative = false; requirement = {ref: 'foreign-source'};
+  assert.throws(() => selectAcquiredEffectSources(options), /ForeignInstalledEffectManagedRun/);
+  assert.equal(nativeCalls, 2);
+});
+
 test('Effect native Source inputs retain complete physical bounds and each original mixed occurrence', () => {
   const prepared = {}, request = {}, declaration = {}, provider = {}, rowInput = {}, nativeInput = {};
   const contracts = Object.freeze(['original-query', 'original-evidence', 'original-two-receipt']);
