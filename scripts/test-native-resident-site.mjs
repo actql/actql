@@ -2334,7 +2334,8 @@ try {
   assert.equal(JSON.parse(siteControl.requestJson(first)).run_definition_cid,
     runHost.privateRunDefinition(retainedDefinition).cid);
   assert.ok(site.lines.some(line => line.kind === 'accepted'));
-  assert.ok(site.lines.some(line => line.kind === 'holder-started'));
+  await waitFor(() => site.lines.some(line => line.kind === 'holder-started'),
+    'original holder start');
   await waitFor(() => site.lines.some(line => line.kind === 'executed'),
     'holder execution');
   // The Coordinator's query is answered from the durable journal.
