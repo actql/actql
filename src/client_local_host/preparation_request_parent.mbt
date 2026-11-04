@@ -61,6 +61,21 @@ priv enum ClientRequestDomainCompilationInputs {
   // it. Reuse this same four-reference slot, then transfer it to that compiler.
   // Same resident four-reference slot while the backed Graph constructor
   // retains its original mappings/lowering through a failed issuer/current.
+  // The SAME resident compiler-input slot may retain the full ordered
+  // original graph vector. Its actual Array constructor is backed before
+  // allocation; no second compiler/parent or ownership cache is introduced.
+  RequestModelsCompilation(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Array[@publication_host.ClientInferPlanGraph]
+  )
+  RequestModelGraphs(
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientPureCompilationLimits,
+    ClientInstalledSequenceContracts,
+    Array[@publication_host.ClientInferPlanGraph]
+  )
   RequestModelGraphConstruction(
     @publication_host.ClientCompilationManifests,
     @publication_host.ClientPureCompilationLimits,
@@ -163,6 +178,7 @@ struct ClientRequestPreparation[I] {
   mut program_compilation : @publication_host.ClientRunCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model_direct : @publication_host.ClientDirectAcquisitionOccurrences?
   mut program_model : ClientInstalledManagedModelPlan?
   mut program_content : ClientInstalledContentPreparation
   mut program_content_request : @publication_host.ClientRequestIdentity?
@@ -361,6 +377,7 @@ fn[I] begin_request_preparation_original(
     program_compilation: None,
     program_source_free: None,
     program_captured: None,
+    program_model_direct: None,
     program_model: None,
     program_content: NoContent,
     program_content_request: None,
@@ -677,6 +694,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_domain_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_model_direct = None
   owner.program_model = None
   owner.program_content = NoContent
   owner.program_content_request = None

@@ -131,7 +131,9 @@ pub fn[I] prepare_request_model_contract_materials(
     (
       owner.program_domain_compilation_inputs is None ||
       owner.program_domain_compilation_inputs
-      is Some(RequestModelGraph(_, _, _, _))
+      is Some(RequestModelGraph(_, _, _, _)) ||
+      owner.program_domain_compilation_inputs
+      is Some(RequestModelGraphs(_, _, _, _))
     ) &&
     owner.program_compilation is None &&
     !owner.program_body_attempted else {
@@ -145,6 +147,17 @@ pub fn[I] prepare_request_model_contract_materials(
   let material_profile = match prepared {
     Pure(original) =>
       if installed_managed_run_shape_supported(original, true) ||
+        (
+          @publication_host.prepared_client_composed_infer_occurrences(original)
+          is Some(occurrences) &&
+          occurrences.length() > 1 &&
+          installed_managed_owner_shape_supported(
+            Pure(original),
+            true,
+            model_occurrence=occurrences.get(0),
+            model_occurrences=Some(occurrences),
+          )
+        ) ||
         (
           @publication_host.prepared_client_composed_infer_occurrences(original)
           is Some([occurrence]) &&

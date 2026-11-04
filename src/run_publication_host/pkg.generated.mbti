@@ -236,6 +236,8 @@ pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_pu
 
 pub fn bind_client_model_read_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue]
 
+pub fn bind_client_model_read_scopes(ClientCompiledRun, @run_publication.PublicationContract, Array[ClientInferPlanGraph], @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, Array[Int64], Array[Int64]) -> Result[Array[ClientModelReadScope], ClientModelReadPreparationIssue]
+
 pub fn bind_client_query_evaluation_time(ClientQueryTimePreparation, PreparedClientProgram, ClientCompiledRun, @run_publication.PublicationContract, ClientRequestIdentity) -> Result[@run_publication.QueryEvaluationTime, ClientQueryTimeIssue]
 
 pub fn bind_client_query_time_sequence(PreparedClientProgram, Int, @execution_relation.GeneratedSequence, ClientQueryTimePreparation, ClientRequestIdentity, Int, Int) -> Result[@execution_relation.GeneratedSequence, ClientQueryTimeIssue]
@@ -903,6 +905,10 @@ pub fn client_model_read_scope_construction_inventory() -> @execution_relation.P
 pub fn client_model_read_scope_live(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
 
 pub fn client_model_read_scope_original_inventory(ClientModelReadScope, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Bool
+
+pub fn client_model_read_scopes_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?
+
+pub fn client_model_read_scopes_match_originals(Array[ClientModelReadScope], ClientCompiledRun, @run_publication.PublicationContract, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity) -> Bool
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
 

@@ -197,3 +197,22 @@ pub fn release_original_model_publication_capacity(
   }
   Ok(true)
 }
+
+///|
+/// A sibling original Model may share this publication funding only on the
+/// SAME physical parent Ledger. This observes existing original Scope/current
+/// and reservation identity; it exports no Ledger, grant or cleanup proof.
+pub fn original_model_publication_capacity_matches_parent(
+  value : OriginalModelPublicationCapacity,
+  execution : ModelExecution,
+  scope : @publication_host.ClientInferCallScope,
+) -> Bool {
+  guard value.owner is Some(original) && value.capacity is Some(_) else {
+    return false
+  }
+  // The enclosing aggregate checks this borrow's mutable/current fence once.
+  // All siblings then match that SAME Ledger with pure original identities;
+  // no extra owner callback is needed at the same synchronous boundary.
+  original_model_publication_owner_current(execution, scope) &&
+  physical_equal(original.state.ledger, execution.state.ledger)
+}

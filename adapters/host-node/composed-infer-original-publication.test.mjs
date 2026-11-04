@@ -18,18 +18,18 @@ const construct=compileFunction(`
   let {children,originalPreparation,modelController}=context;
   let released=false,pendingSetup,holding,publication,issuance,execution,restoredSource,sourceContinuation;
   let preflightCleanup=context.preflightCleanup;
-  let closeAttempted=false;
+  let closeAttempted=false,completeOriginal=context.completeOriginal===true,publicationOwner=context.publicationOwner;
   ${source.slice(cleanup.start,cleanup.end)}
   return {cleanup,pending:()=>!released};`,['context','checked']);
 const selectIssuance=compileFunction(`let issuance=originalIssuer,issuanceComplete=originalIssuer!==undefined;
   ${source.slice(issuance.start,issuance.end)}\nreturn issuance;`,
   ['children','originalPreparation','input','moon','calls','startCompleteInferObservation','checked','originalIssuer']);
 
-function fixture(count=1) {
+function fixture(count=1,{shared=false}={}) {
   const events=[],flags={aliases:false,release:false,issue:undefined,blockedAliases:new Set()};
   const children=Array.from({length:count},(_,index)=>{
-    let borrowed=true,closed=false;
-    const operation={publicationCapacityPending:()=>borrowed,
+    let borrowed=shared?index===count-1:true,closed=false;
+    const operation={physicalStopped:()=>true,publicationCapacityPending:()=>borrowed,
       releaseOriginalPublicationCapacity() {
         events.push(`release${index}`);
         if(flags.release)borrowed=false;
@@ -46,7 +46,7 @@ function fixture(count=1) {
       cleanupPending:()=>!closed};
     return {operation,capture:{custody:physical}};
   });
-  const owner=construct({children,modelController:{},originalPreparation:{async retire(){events.push('parent');return true;}}},checked);
+  const owner=construct({children,modelController:{},completeOriginal:shared,publicationOwner:shared?children.at(-1).operation:undefined,originalPreparation:{async retire(){events.push('parent');return true;}}},checked);
   return {owner,events,flags,children};
 }
 
@@ -126,4 +126,27 @@ test('composed Model retains the entry original partial preflight owner and does
   assert.equal(await owner.cleanup(), true);
   assert.deepEqual(events, ['original-retry', 'original-retry', 'Scope']);
   assert.equal(owner.pending(), false);
+});
+
+
+test('complete group retires every publication alias before releasing its single original borrow',async()=>{
+  const f=fixture(2,{shared:true});f.flags.aliases=true;f.flags.release=true;f.flags.blockedAliases.add(0);
+  assert.equal(await f.owner.cleanup(),false);
+  assert.deepEqual(f.events,['aliases0','aliases1']);
+  assert.equal(f.children[1].operation.publicationCapacityPending(),true);
+  assert.equal(f.owner.pending(),true);
+  f.flags.blockedAliases.clear();assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,['aliases0','aliases1','aliases0','aliases1','release1','close0','close1','parent']);
+  const before=f.events.slice();assert.equal(await f.owner.cleanup(),true);assert.deepEqual(f.events,before);
+});
+
+test('complete group keeps its single original borrow through a sibling alias retirement failure',async()=>{
+  const f=fixture(2,{shared:true}),primary=new Error('same sibling publication pending');
+  f.flags.issue=primary;
+  await assert.rejects(f.owner.cleanup(),error=>error===primary);
+  assert.equal(f.children[1].operation.publicationCapacityPending(),true);
+  assert.deepEqual(f.events,['aliases0']);
+  f.flags.issue=undefined;f.flags.aliases=true;f.flags.release=true;
+  assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,['aliases0','aliases0','aliases1','release1','close0','close1','parent']);
 });

@@ -111,7 +111,7 @@ import {prepareSourceManagedInstallation, assertSourceManagedInstallationCurrent
   prepareProjectSourceManagedInstallation}
   from './node-source-managed-installation.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
-import {openNodeComposedInferProvider} from './infer-operation.mjs';
+import {openNodeComposedInferProvider, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 import {bindInferOriginalReadRecipe} from './infer-original-installation.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -653,32 +653,108 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
   }
   const count = moon.clientProgramAcquisitionCount(run.prepared);
   if (count !== 0 && count !== 1 && count !== 2) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
-  // Retain the actual selected opaque Limits before the module/Plan frame.
-  // The nine fixed DATA fields are the existing consumer suffix, not the
-  // Model Ledger totals and not a repeat of the old fifteen-number quote.
-  model.selectedBounds = model.selection?.selectedBounds ??
-    checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
-  const limits = moon.clientProgramComposedInferRetainedLimits(model.selectedBounds);
-  if (!Array.isArray(limits) || limits.length !== 9 ||
-      limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
-      limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
-  const physical = model.originalReadInstallation;
-  if (physical !== undefined && (count === 2 ||
-      typeof model.control[count === 1 ? 'prepareCheckedClientRequestNodeModelCapturePlan'
-        : 'prepareCheckedClientRequestNodeModelSourceFreePlan'] !== 'function')) {
-    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  function retainBoundsAndBudget(model) {
+    // Retain the actual selected opaque Limits before the module/Plan frame.
+    // The nine fixed DATA fields are the existing consumer suffix, not the
+    // Model Ledger totals and not a repeat of the old fifteen-number quote.
+    model.selectedBounds = model.selection?.selectedBounds ??
+      checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
+    const limits = moon.clientProgramComposedInferRetainedLimits(model.selectedBounds);
+    if (!Array.isArray(limits) || limits.length !== 9 ||
+        limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
+        limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
+    const physical = model.originalReadInstallation;
+    if (physical !== undefined && (count === 2 ||
+        typeof model.control[count === 1 ? 'prepareCheckedClientRequestNodeModelCapturePlan'
+          : 'prepareCheckedClientRequestNodeModelSourceFreePlan'] !== 'function')) {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    // The installed Node read's declared complete envelope stays beside its
+    // actual Graph/Request originals. Native Plan validation preserves the
+    // checked non-byte dimensions and refuses insufficient physical extents.
+    model.budget = Object.freeze({bootstrapRetainedBytes: limits[0], bootstrapExecutionBytes: limits[1],
+      readRetainedBytes: physical === undefined ? limits[2] : physical.nodeInstallation.layout.retained_bytes,
+      readExecutionBytes: physical === undefined ? limits[3] : physical.nodeInstallation.layout.execution_bytes,
+      modelRetainedBytes: physical === undefined ? limits[4] : physical.modelRetainedBytes,
+      modelExecutionBytes: physical === undefined ? limits[5] : physical.modelExecutionBytes,
+      maxReservations: physical === undefined ? Number(limits[6]) : Math.max(Number(limits[6]), physical.bootstrap.maxReservations),
+      maxHoldings: physical === undefined ? Number(limits[7]) : Math.max(Number(limits[7]), physical.bootstrap.maxHoldings),
+      maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
   }
-  // The installed Node read's declared complete envelope stays beside its
-  // actual Graph/Request originals. Native Plan validation preserves the
-  // checked non-byte dimensions and refuses insufficient physical extents.
-  model.budget = Object.freeze({bootstrapRetainedBytes: limits[0], bootstrapExecutionBytes: limits[1],
-    readRetainedBytes: physical === undefined ? limits[2] : physical.nodeInstallation.layout.retained_bytes,
-    readExecutionBytes: physical === undefined ? limits[3] : physical.nodeInstallation.layout.execution_bytes,
-    modelRetainedBytes: physical === undefined ? limits[4] : physical.modelRetainedBytes,
-    modelExecutionBytes: physical === undefined ? limits[5] : physical.modelExecutionBytes,
-    maxReservations: physical === undefined ? Number(limits[6]) : Math.max(Number(limits[6]), physical.bootstrap.maxReservations),
-    maxHoldings: physical === undefined ? Number(limits[7]) : Math.max(Number(limits[7]), physical.bootstrap.maxHoldings),
-    maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
+  if (model.components !== undefined) {
+    const members = model.components, selected = model.selection?.components;
+    const moduleName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
+      : 'prepareCheckedClientRequestModelsProviderComponentCaptureModule';
+    const planName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreePlan'
+      : 'prepareCheckedClientRequestModelsCapturePlan';
+    if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
+        !Array.isArray(selected) || selected.length !== members.length || !Array.isArray(model.graph) ||
+        model.graph.length !== members.length || members.some((member, index) =>
+          member.group !== model || member.selection !== selected[index] || member.graph !== model.graph[index] ||
+          member.occurrence !== selected[index].occurrence || member.serializationGraph !== undefined ||
+          member.originalReadInstallation !== undefined || member.component !== undefined) ||
+        typeof model.control[moduleName] !== 'function' ||
+        typeof model.control[planName] !== 'function') {
+      throw clientOperationError('InstalledModelGroupPreparationUnavailable');
+    }
+    for (const member of members) retainBoundsAndBudget(member);
+    current();
+    let sourceArguments = [];
+    if (count > 0) {
+      if (run.sourceProfile !== originals.installation.managedSourceProfile ||
+          typeof moon.clientProgramRequestModelDirectSourceCoordinates !== 'function') {
+        throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+      }
+      const coordinates = checked(moon.clientProgramRequestModelDirectSourceCoordinates(parent, input));
+      if (!Array.isArray(coordinates) || coordinates.length !== count) throw clientOperationError('InstalledSourcePreparationMismatch');
+      const sources = [];
+      for (const coordinate of coordinates) {
+        const selected = checked(moon.clientProgramSelectInstalledSourceInput(run.prepared, run.request, coordinate[0], coordinate[1]));
+        if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+        const adapter = installedSourceFor(run.sourceProfile, moon.clientProgramSelectedSourceInputRef(selected));
+        if (typeof adapter?.managedEffectPlanSelection !== 'function') throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+        const source = adapter.managedEffectPlanSelection(); current();
+        if (source?.declaration === undefined || source.provider === undefined ||
+            typeof source.transferBytes !== 'bigint' || source.transferBytes < 0n ||
+            typeof source.executionBytes !== 'bigint' || source.executionBytes < 0n) {
+          throw clientOperationError('InstalledModelSourcePreparationUnavailable');
+        }
+        sources.push(source);
+      }
+      run.modelSourceSelections = Object.freeze(sources);
+      sourceArguments = [sources.map(source => source.declaration), sources.map(source => source.provider),
+        readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-acquisition.json'),
+        readInitialControlInstallationAsset(initialControl, originals, 'spec/contracts/actql-query-process-evidence.json'),
+        sources.map(source => source.transferBytes), sources.map(source => source.executionBytes)];
+    }
+    run.preparedSequences = Reflect.apply(model.control[moduleName], model.control, [
+      parent, input, run.request, model.compiled, model.runDefinition, compilation,
+      ...sourceArguments, installed.admission, true, run.queryTimePreparation, (index, _capacity, prefix, bindSuffix) => {
+        current();
+        const member = members[index];
+        if (member === undefined || member.component !== undefined || typeof bindSuffix !== 'function') {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        const component = openNodeComposedInferProvider({moon, selected: member.selection,
+          inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
+        if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
+            originals.installation.computeRuns?.get(run.prepared) !== run) {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        member.component = component;
+        current();
+        return component.provider;
+      }]);
+    current();
+    run.modelPlan = Reflect.apply(model.control[planName], model.control, [parent, input,
+      run.preparedSequences, run.request, model.compiled, model.runDefinition,
+      Object.freeze(members.map(member => member.occurrence)), model.graph,
+      Object.freeze(members.map(member => member.selectedBounds))]);
+    current();
+    return run.modelPlan;
+  }
+  retainBoundsAndBudget(model);
+  const physical = model.originalReadInstallation;
   current();
   if (count === 1) {
     const plain = model.serializationGraph === undefined;
@@ -3175,19 +3251,24 @@ async function openInstalledHost(originalInstallation, preparation) {
       (typeof moon.clientProgramSelectSingleKeyedAcquisition === 'function'
         ? checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) : undefined);
     const acquired = acquisitionCount > 0;
+    let modelCoordinates;
     if (acquired) {
       if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
       if (acquisitionCount > 2) {
         throw clientOperationError('ClientProgramUnsupported');
       }
       const requested = originalSourceFreeRequest(preparedProgram, requestId);
+      modelCoordinates = preparation?.managedModelSourceCoordinates(moon, preparedProgram);
+      if (modelCoordinates !== undefined && modelCoordinates.length !== acquisitionCount) {
+        throw clientOperationError('InstalledSourcePreparationMismatch');
+      }
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
-          const stage = runtimeOptionalField(coordinates, 0) ?? task;
-          const input = runtimeOptionalField(coordinates, 1) ?? 0;
+          const stage = modelCoordinates?.[task][0] ?? runtimeOptionalField(coordinates, 0) ?? task;
+          const input = modelCoordinates?.[task][1] ?? runtimeOptionalField(coordinates, 1) ?? 0;
           const selectDomain = preparation?.selectManagedDomainSourceInput;
           if (preparation !== undefined && typeof selectDomain !== 'function') {
             throw clientOperationError('NodeManagedRunRuntimeUnavailable');
@@ -3242,7 +3323,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (occurrences.length > 1) {
       const components = Object.freeze(occurrences.map(occurrence =>
         prepareInferSelection(preparedProgram, occurrence, false)));
-      inferSelections.set(preparedProgram, Object.freeze({components,
+      inferSelections.set(preparedProgram, Object.freeze({components, sourceCoordinates: modelCoordinates,
         graph: Object.freeze(components.map(component => component.graph)),
         egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
     // The single occurrence can still belong to a multi-task/multi-Source
@@ -3259,8 +3340,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful: false};
   };
-  const prepareAcquisition = async (preparedProgram, sourceAccess,
-    occurrence = {stage: 0, input: 0, task: 0}) => {
+  const modelSourceOccurrence = (prepared, index) => {
+    const coordinates = inferSelections.get(prepared)?.sourceCoordinates?.[index];
+    return coordinates === undefined ? undefined
+      : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
+  };
+  const prepareAcquisition = async (preparedProgram, sourceAccess, occurrence) => {
+    occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? {stage: 0, input: 0, task: 0};
     const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
     if (requestIdentity === undefined) throw clientOperationError('ClientProgramNeedsInputs');
     const selected = checked(moon.clientProgramSelectInstalledSourceInput(
@@ -3293,7 +3379,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const prepareAcquisitions = async preparedProgram => {
     const result = [];
     for (let task = 0; task < moon.clientProgramAcquisitionCount(preparedProgram); task++) {
-      const occurrence = Object.freeze({stage: task, input: 0, task});
+      const occurrence = modelSourceOccurrence(preparedProgram, task) ?? Object.freeze({stage: task, input: 0, task});
       const prepared = await prepareAcquisition(preparedProgram, undefined, occurrence);
       // A held read has no selection before approval. Once authorized, keep
       // either typed acquisition owner; shared ledger admission happens before
@@ -3533,12 +3619,17 @@ async function openInstalledHost(originalInstallation, preparation) {
   function prepareInstalledRequestModelRun(submission, requested, selection) {
     const prepared = submission.preparedProgram;
     const acquisitionCount = moon.clientProgramAcquisitionCount(prepared);
+    const group = selection.components !== undefined;
     if (preparation === undefined || typeof preparation.prepareManagedModelRun !== 'function' ||
         inferSelections.get(prepared) !== selection || selection.localMock ||
-        selection.originalReadInstallation === undefined &&
+        !group && selection.originalReadInstallation === undefined &&
           (acquisitionCount !== 0 || selection.serializationGraph !== undefined) ||
-        selection.occurrence === undefined ||
-        selection.components !== undefined || acquisitionCount > 1) {
+        (!group && selection.occurrence === undefined) ||
+        (group && (!Array.isArray(selection.components) || !Object.isFrozen(selection.components) ||
+          selection.components.length < 2 || !Array.isArray(selection.graph) ||
+          selection.graph.length !== selection.components.length ||
+          selection.components.some((member, index) => member.occurrence === undefined || member.graph !== selection.graph[index]))) ||
+        acquisitionCount > (group ? 2 : 1)) {
       throw clientOperationError('HostResultPublicationPurposeUnavailable');
     }
     let early = earlyMockInferPlans.get(prepared);
@@ -3567,6 +3658,15 @@ async function openInstalledHost(originalInstallation, preparation) {
             model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined) {
           throw clientOperationError('InstalledModelCleanupPending');
         }
+        if (group && (model.components.some(member => member.read !== undefined ||
+            member.scope !== undefined && member.scopeFinished !== true) ||
+            model.scopes !== undefined && model.scopeFinished !== true)) {
+          throw clientOperationError('InstalledModelCleanupPending');
+        }
+        if (group) for (const member of model.components) {
+          for (const key of Object.keys(member)) member[key] = undefined;
+          member.closed = true;
+        }
         // Called only after checked same-Run retirement, or original failed
         // Request cleanup. No physical child or Scope is released by this cut.
         for (const key of Object.keys(model)) model[key] = undefined;
@@ -3574,18 +3674,30 @@ async function openInstalledHost(originalInstallation, preparation) {
         early.prepared = early.requestId = early.requested = early.plan = early.managed = early.failure = undefined;
         early.aliasesReleased = true;
       }};
+    if (group) {
+      model.scopes = undefined;
+      model.components = Object.freeze(selection.components.map(member => ({prepared, control,
+        compiled: undefined, runDefinition: undefined, graph: member.graph, occurrence: member.occurrence,
+        serializationGraph: member.serializationGraph, originalReadInstallation: member.originalReadInstallation,
+        selection: member, group: model, scope: undefined, read: undefined, component: undefined,
+        publicationCapacity: model.publicationCapacity})));
+    }
     early.model = model;
     earlyMockInferPlans.set(prepared, early); // Retain before compiler/Definition/Plan can fail.
     try {
       early.plan = planFor(submission, undefined, requested, undefined, early);
       model.compiled = early.plan.compiled; model.runDefinition = early.plan.runDefinition;
       model.queryTimePreparation = early.plan.queryTimePreparation;
+      if (group) for (const member of model.components) {
+        member.compiled = model.compiled; member.runDefinition = model.runDefinition;
+      }
       if (model.serializationGraph !== undefined) {
         runContent.prepareModelRun({preparedProgram: prepared, plan: early.plan, request: requested, model});
         early.managed = model.contentPreparation?.managed;
       } else early.managed = preparation.prepareManagedModelRun(moon, prepared, requested, model);
       if (early.managed === undefined) throw clientOperationError('NodeManagedRunAdmissionUnavailable');
       model.managed = early.managed;
+      if (group) for (const member of model.components) member.managed = early.managed;
       return model;
     } catch (cause) {early.failure = cause; throw cause;}
     finally {early.selecting = false;}
@@ -6604,6 +6716,13 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return selected;
     },
     managesInstalledSources() {return record.managedSourceProfile !== undefined;},
+    managedModelSourceCoordinates(runtime, prepared) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.modelSourceCoordinates !== 'function') {
+        throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+      }
+      return manager.modelSourceCoordinates(prepared, originalSourceManagedHostRequest(originals, prepared));
+    },
     selectManagedDomainSourceInput(runtime, prepared, identity, stage, sourceIndex) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.selectDomainSourceInput !== 'function') {
@@ -6808,8 +6927,9 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const runs = record.computeRuns ??= new WeakMap(), liveRuns = record.computeLiveRuns ??= new Set();
       originalInstallation.computeRuns = runs;
-      const sourceProfile = model.originalReadInstallation === undefined
-        ? record.mockSourceProfile : record.managedSourceProfile;
+      const sourceProfile = model.components !== undefined
+        ? record.managedSourceProfile ?? record.mockSourceProfile
+        : model.originalReadInstallation === undefined ? record.mockSourceProfile : record.managedSourceProfile;
       const prior = runs.get(prepared);
       if (prior !== undefined) {
         if (Object.hasOwn(prior, 'failure')) throw prior.failure;
@@ -7007,10 +7127,14 @@ async function openPreparedInstalledHost(options, initialEntry) {
           const scope = model.scope, compiled = model.compiled,
             definition = model.runDefinition, graph = model.graph;
           const releaseAliases = run.releaseModelAliases, releaseSelection = run.releaseModelSelection;
-          if (model.taken || model.read !== undefined) throw clientOperationError('InstalledMockModelCleanupPending');
+          if (model.taken || model.read !== undefined || model.components?.some(member => member.taken || member.read !== undefined)) {
+            throw clientOperationError('InstalledMockModelCleanupPending');
+          }
           if (scope !== undefined && model.scopeFinished !== true) {
-            if (model.control.finishCheckedClientInferOriginalReadScope(compiled,
-              definition, graph, scope, true) !== true) {
+            const finished = model.components === undefined
+              ? model.control.finishCheckedClientInferOriginalReadScope(compiled, definition, graph, scope, true)
+              : finishNodeInferOriginalReadScopes(model);
+            if (finished !== true) {
               throw clientOperationError('InstalledMockModelCleanupPending');
             }
             if (model.scope !== scope || model.compiled !== compiled ||
@@ -7040,8 +7164,11 @@ async function openPreparedInstalledHost(options, initialEntry) {
         if (modelRetirement && modelOriginal?.selection !== undefined &&
             !modelOriginal.taken && modelOriginal.read === undefined &&
             modelOriginal.scope !== undefined && modelOriginal.scopeFinished !== true) {
-          if (modelOriginal.control.finishCheckedClientInferOriginalReadScope(modelOriginal.compiled,
-            modelOriginal.runDefinition, modelOriginal.graph, modelOriginal.scope, true) !== true) {
+          const finished = modelOriginal.components === undefined
+            ? modelOriginal.control.finishCheckedClientInferOriginalReadScope(modelOriginal.compiled,
+              modelOriginal.runDefinition, modelOriginal.graph, modelOriginal.scope, true)
+            : finishNodeInferOriginalReadScopes(modelOriginal);
+          if (finished !== true) {
             throw clientOperationError('InstalledModelCleanupPending');
           }
           modelOriginal.scopeFinished = true;

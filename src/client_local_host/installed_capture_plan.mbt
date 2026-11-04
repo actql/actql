@@ -84,6 +84,7 @@ fn prepare_installed_managed_capture_plan_owned(
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   model? : @publication_host.ClientInferPlanGraph? = None,
+  model_graphs? : Array[@publication_host.ClientInferPlanGraph]? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   let identity = @publication_host.prepared_client_identity(prepared)
   if identity.program_definition_cid !=
@@ -98,6 +99,7 @@ fn prepare_installed_managed_capture_plan_owned(
       Pure(prepared),
       model_purpose,
       model~,
+      model_graphs~,
     ) ||
     count < 1 ||
     captures.length() != count ||

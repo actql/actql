@@ -1062,6 +1062,8 @@ pub fn pivot_execution_supported_with_numeric(@lowering_relation.PreparedPivot) 
 
 pub fn predicate_expression_remaining(PredicateExpressionExecution) -> Int
 
+pub fn preparation_array_representation(Int64, Int64, Bool) -> PreparationRepresentationUnits?
+
 pub fn preparation_execution_capacity(PreparationExecutionInventory) -> ExecutionCapacity?
 
 pub fn preparation_representation_cost(PreparationRepresentationUnits) -> Int64?

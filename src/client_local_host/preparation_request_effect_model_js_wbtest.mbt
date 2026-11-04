@@ -14,12 +14,14 @@ fn expected_request_model_scope_controls(
     delegations,
   ).unwrap()
   // Independent field inventory: Model origin has five borrowed references;
-  // Scope has three. Neither copies Program/Graph/CID backing. Resource owns
-  // its census-slot shape; its existing projection supplies that delta.
+  // Scope has four references and four partition/lifecycle words. Its later
+  // read record adds one reference/two words, and Resource's resident claim
+  // group slot adds one reference. Neither copies Program/Graph/CID backing.
+  // Resource owns its census-slot shape and supplies only that slot delta.
   @execution.preparation_representation_cost({
     record_headers: 2L + selected.0 - initial.0,
-    reference_slots: 8L + selected.1 - initial.1,
-    scalar_words: selected.2 - initial.2,
+    reference_slots: 11L + selected.1 - initial.1,
+    scalar_words: 6L + selected.2 - initial.2,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }).unwrap()

@@ -297,6 +297,33 @@ pub fn client_program_prepare_request_model_compilation(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelsCompilation")
+pub fn client_program_prepare_request_models_compilation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 #export_name("clientProgramPreparedInstalledManagedModelRequirements")
 pub fn client_program_prepared_installed_managed_model_requirements(
   original : @client_local_host.ClientInstalledManagedModelPlan,
@@ -1892,4 +1919,63 @@ pub fn client_program_prepare_request_model_acquired_serialization_graph(
     compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
     model_occurrence=Some(occurrence),
   ).map_err(issue => Preparation(issue))
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelsReadScopes")
+pub fn client_program_prepare_request_models_read_scopes(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelsReadScopesWithQuantities")
+pub fn client_program_prepare_request_models_read_scopes_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestModelsPreparation")
+pub fn client_program_adopt_request_models_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scopes : Array[@publication_host.ClientModelReadScope],
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard scopes.get(0) is Some(first) else { return Err(ForeignOriginal) }
+  @client_local_host.begin_request_model_managed_run(
+    parent,
+    request,
+    first,
+    scopes=Some(scopes),
+  )
 }

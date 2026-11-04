@@ -250,13 +250,16 @@ test "Effect Model Graph transfers its same component to Scope and clears only t
 // a Graph before the Request's new construction reservation.
 fn request_model_graph_inputs(
   prepared : @publication_host.PreparedClientProgram,
+  selected? : @publication_host.ClientInferOccurrence? = None,
 ) -> (
   @publication_host.ClientInferOccurrence,
   @environment.ModelExecutionContract,
 ) {
-  let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
-    prepared,
-  ).unwrap()
+  let occurrence = match selected {
+    Some(original) => original
+    None =>
+      @publication_host.prepared_client_composed_infer_occurrence(prepared).unwrap()
+  }
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
   let execution = @publication_host.read_client_infer_occurrence_model_execution(
@@ -2241,4 +2244,567 @@ test "same Request acquired Model prefix keeps live provider backing until origi
   assert_false(stopped.val)
   stopped.val = true
   request_acquired_model_capture_close(f)
+}
+
+///|
+// Actual checked Program, native graph constructors and one Request compiler.
+// Synthetic component initial allowances are not an installed Host/provider
+// recipe or normal runtime/physical qualification.
+
+///|
+fn request_two_model_document() -> String {
+  (
+    #|{"version":"actql/0.1","id":"request-two-models","stages":[{"id":"input","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"items"}],"results":{"rows":{"from":"items","fields":["id","text"]}}},{"id":"first","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{"rows":{"result":{"stage":"input","result":"rows"}}},"steps":[{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  )
+}
+
+///|
+test "multiple Model graphs retain complete original order on one Request compiler" {
+  let document = request_two_model_document()
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(document),
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  guard parent.program_domain_compilation_inputs
+    is Some(RequestModelGraphs(_, _, _, originals)) else {
+    fail("complete Request-owned graph vector")
+  }
+  assert_eq(originals.length(), 2)
+  assert_true(physical_equal(originals[0], graphs[0]))
+  assert_true(physical_equal(originals[1], graphs[1]))
+  let capacity = parent.program_capacity.unwrap()
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(
+    prepare_request_models_compilation(
+      parent,
+      input,
+      [graphs[1], graphs[0]],
+      contracts,
+      manifests~,
+      compilation_limits=limits,
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(
+    @resources.preparation_capacity_working_extents(capacity, input).unwrap(),
+    before,
+  )
+  let compiled = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  assert_eq(compiled.infers.length(), 2)
+  assert_true(physical_equal(compiled.infers[0], graphs[0]))
+  assert_true(physical_equal(compiled.infers[1], graphs[1]))
+  assert_true(physical_equal(parent.program_capacity.unwrap(), capacity))
+  let compiled_run = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compiled,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled_run, "two-model-original-module", "same-original", "2026-10-31T00:00:00.000Z",
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-original-module",
+  ).unwrap()
+  let entries : Array[Int] = []
+  let backed = Ref(true)
+  let before_module = @resources.preparation_capacity_working_extents(
+    capacity, input,
+  ).unwrap()
+  let original_module_value = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled_run,
+    definition,
+    compiled,
+    contracts,
+    true,
+    0,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      let during = @resources.preparation_capacity_working_extents(
+        capacity, input,
+      ).unwrap()
+      backed.val = backed.val &&
+        during.0 > before_module.0 &&
+        during.1 > before_module.1
+      entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  assert_eq(entries, [0, 1])
+  assert_true(backed.val)
+  assert_true(
+    parent.program_source_free is Some(original_module) &&
+    physical_equal(original_module, original_module_value),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+// Actual shared Request/check/compiler/module/Plan/Scope/adoption/retirement.
+// The two physical providers remain explicit ports, not ordinary Model IO.
+
+///|
+priv struct RequestTwoModelPlanFixture {
+  parent : ClientRequestPreparation[Array[Int]]
+  input : Array[Int]
+  prepared : @publication_host.PreparedClientProgram
+  holder : @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientProgram,
+  ]
+  occurrences : Array[@publication_host.ClientInferOccurrence]
+  graphs : Array[@publication_host.ClientInferPlanGraph]
+  compiled : @publication_host.ClientCompiledRun
+  definition : @publication.PublicationContract
+  request : @publication_host.ClientRequestIdentity
+  selected_module : ClientInstalledManagedSourceFreePreparation
+  module_entries : Array[Int]
+}
+
+///|
+fn request_two_model_plan_fixture(
+  current? : () -> Bool = () => true,
+) -> RequestTwoModelPlanFixture raise {
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(request_two_model_document()),
+    model_copies=2,
+    current~,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  let compilation = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "two-model-aggregate", "original", "2026-11-04T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-aggregate",
+  ).unwrap()
+  let module_entries : Array[Int] = []
+  let selected_module = prepare_request_model_source_free_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    contracts,
+    true,
+    0,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      module_entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  {
+    parent,
+    input,
+    prepared,
+    holder,
+    occurrences,
+    graphs,
+    compiled,
+    definition,
+    request,
+    selected_module,
+    module_entries,
+  }
+}
+
+///|
+test "two Model Request adopts one module and all original scopes with one aggregate demand and child first retirement" {
+  let f = request_two_model_plan_fixture()
+  let {
+    parent,
+    input,
+    prepared: _,
+    holder,
+    occurrences,
+    graphs,
+    compiled,
+    definition,
+    request,
+    selected_module,
+    module_entries,
+  } = f
+  let ledger = parent.ledger
+  let before_plan = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  let plan = prepare_request_models_source_free_plan(
+    parent,
+    input,
+    selected_module,
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    [effect_model_plan_limits, effect_model_plan_limits],
+    [7L, 9L],
+    [5L, 6L],
+    40,
+    40,
+    40,
+    bootstrap=Some((31L, 37L)),
+  ).unwrap()
+  assert_eq(module_entries, [0, 1])
+  // One original module demand, two Model demands, total read partitions,
+  // and the independent same-parent bootstrap exactly once.
+  assert_eq(
+    plan.limits.planning_work,
+    selected_module.limits.planning_work + 34,
+  )
+  assert_eq(plan.limits.attempts, selected_module.limits.attempts + 8)
+  assert_eq(
+    plan.limits.retained_bytes,
+    selected_module.limits.retained_bytes + 2000L + 16L + 31L,
+  )
+  assert_eq(
+    plan.limits.execution_bytes,
+    selected_module.limits.execution_bytes + 4000L + 11L + 37L,
+  )
+  let after_plan = @resources.preparation_capacity_working_extents(
+    parent.program_capacity.unwrap(),
+    input,
+  ).unwrap()
+  assert_true(after_plan.0 > before_plan.0 && after_plan.1 > before_plan.1)
+  assert_true(physical_equal(parent.ledger, ledger))
+  assert_true(
+    prepare_request_model_read_scope(parent, input, plan)
+    is Err(ForeignOriginal),
+  )
+  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  assert_eq(scopes.length(), 2)
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  // Another group order cannot adopt the first Scope as a proxy for all.
+  assert_true(
+    begin_request_model_managed_run(
+      parent,
+      request,
+      scopes[0],
+      scopes=Some([scopes[1], scopes[0]]),
+    )
+    is Err(ForeignOriginal),
+  )
+  let run = begin_request_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), ledger))
+  let second = @publication_host.prepare_client_model_read(scopes[1], 9L, 6L).unwrap()
+  let first = @publication_host.prepare_client_model_read(scopes[0], 7L, 5L).unwrap()
+  @publication_host.settle_client_model_read(first, true).unwrap()
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scopes[0],
+      compiled,
+      definition,
+      graphs[0],
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    @publication_host.settle_client_model_read(second, false)
+    is Err(@publication_host.Resource(@resources.CleanupPending)),
+  )
+  @publication_host.settle_client_model_read(second, true).unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scopes[1],
+      compiled,
+      definition,
+      graphs[1],
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "two Model Plan current mutation refuses changed original read partition and preserves its failed construction for abort" {
+  let armed = Ref(false)
+  let retained = [7L, 9L]
+  let f = request_two_model_plan_fixture(current=() => {
+    if armed.val {
+      retained[0] = -1L
+    }
+    true
+  })
+  let capacity = f.parent.program_capacity.unwrap()
+  let ledger = f.parent.ledger
+  armed.val = true
+  assert_true(
+    prepare_request_models_source_free_plan(
+      f.parent,
+      f.input,
+      f.selected_module,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.occurrences,
+      f.graphs,
+      [effect_model_plan_limits, effect_model_plan_limits],
+      retained,
+      [5L, 6L],
+      40,
+      40,
+      40,
+    )
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    f.parent.phase == ProgramBodyFailed && f.parent.program_model is None,
+  )
+  assert_true(physical_equal(f.parent.program_capacity.unwrap(), capacity))
+  assert_true(@resources.ledger_usage(ledger).live_reservations > 0)
+  armed.val = false
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+// Same Request and actual two Source/Model compiler graph. Providers below
+// are explicit pure component ports; no physical read or normal ABI is claimed.
+test "two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan" {
+  let document =
+    #|{"version":"actql/0.1","id":"request-two-captured-models","stages":[{"id":"left","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"right","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id >= 0"},{"select":["id","amount"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","amount"]}}},{"id":"classify","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}},{"id":"classify-second","inputs":{"left":{"result":{"stage":"left","result":"rows"}},"right":{"result":{"stage":"right","result":"rows"}}},"steps":[{"from":"left","join":{"with":"right","kind":"inner","on":[{"left":"id","right":"id"}],"select":{"id":"left.id"}}},{"derive":{"text":{"literal":"hello"}}},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"classify","result":"rows"}},"second":{"from":{"stage":"classify-second","result":"rows"}}}}
+  let declaration = request_model_module_declaration()
+  let (parent, input, prepared) = request_model_input_fixture(
+    authored=Some(document),
+    declaration=Some(declaration),
+    model_copies=2,
+  )
+  let holder = borrow_request_model_plan_input(parent, input).unwrap()
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  let contracts = request_program_module_contracts()
+  let manifests = request_program_module_manifests()
+  let limits = @publication_host.client_standard_pure_compilation_limits()
+  let graphs : Array[@publication_host.ClientInferPlanGraph] = []
+  for occurrence in occurrences {
+    let (_, execution) = request_model_graph_inputs(
+      prepared,
+      selected=Some(occurrence),
+    )
+    graphs.push(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        contracts,
+        manifests~,
+        compilation_limits=limits,
+      ).unwrap(),
+    )
+  }
+  let compilation = prepare_request_models_compilation(
+    parent,
+    input,
+    graphs,
+    contracts,
+    manifests~,
+    compilation_limits=limits,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "two-model-captured", "original", "2026-11-04T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "two-model-captured",
+  ).unwrap()
+  let direct = request_model_direct_occurrences(parent, input).unwrap()
+  assert_eq(
+    @publication_host.client_direct_acquisition_occurrence_count(direct),
+    2,
+  )
+  let entries : Array[Int] = []
+  let selected = prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    [declaration, declaration],
+    original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
+    [4096L, 4096L],
+    [2048L, 2048L],
+    contracts,
+    true,
+    0,
+    _ => [],
+    components_factory=Some((index, extent, _, _) => {
+      entries.push(index)
+      @local.managed_provider(_ => false, _ => Some(extent), (_, _, _, _, _) => {
+        Err(@connector.ComputeUnsupported)
+      })
+    }),
+  ).unwrap()
+  assert_eq(entries, [0, 1])
+  assert_true(
+    selected.direct_occurrences is Some(original) &&
+    physical_equal(original, direct),
+  )
+  assert_true(
+    physical_equal(
+      request_model_direct_occurrences(parent, input).unwrap(),
+      direct,
+    ),
+  )
+  let plan = prepare_request_models_capture_plan(
+    parent,
+    input,
+    selected,
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    [effect_model_plan_limits, effect_model_plan_limits],
+    [7L, 9L],
+    [5L, 6L],
+    40,
+    40,
+    40,
+  ).unwrap()
+  assert_true(
+    plan.captured is Some(original) && physical_equal(original, selected),
+  )
+  assert_true(plan.source_free is None)
+  assert_eq(plan.limits.attempts, selected.limits.attempts + 8)
+  let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
+  complete_request_model_preparation(parent, input, plan).unwrap()
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  let run = begin_request_model_managed_run(
+    parent,
+    request,
+    scopes[0],
+    scopes=Some(scopes),
+  ).unwrap()
+  assert_true(physical_equal(run.ledger.unwrap(), parent.ledger))
+  for index, scope in scopes {
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      compiled,
+      definition,
+      graphs[index],
+      true,
+    ).unwrap()
+    |> ignore
+  }
+  for index, scope in scopes {
+    assert_true(
+      @publication_host.finish_client_model_read_scope(
+        scope,
+        compiled,
+        definition,
+        graphs[index],
+        true,
+      ).unwrap(),
+    )
+  }
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }

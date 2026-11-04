@@ -3551,6 +3551,32 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value,
         token(definition), compilation, contracts, retainedOutput, queryTime, construct]));
     },
+    prepareCheckedClientRequestModelsSourceFreeComponentModule(parent, input, request, compiled, definition,
+      compilation, contracts, retainedOutput, queryTime, construct) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelsSourceFreeComponentModule;
+      if (typeof prepare !== 'function' || typeof construct !== 'function') {
+        throw new TypeError('Request Model components constructor unavailable');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value,
+        token(definition), compilation, contracts, retainedOutput, queryTime, construct]));
+    },
+    prepareCheckedClientRequestModelsProviderComponentCaptureModule(parent, input, request, compiled, definition,
+      compilation, declarations, providers, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelsProviderComponentCaptureModule;
+      if (typeof prepare !== 'function' || typeof construct !== 'function') {
+        throw new TypeError('Request Model components constructor unavailable');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value,
+        token(definition), compilation, declarations, providers, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct]));
+    },
     prepareCheckedClientRequestModelCaptureModule(parent, input, request, compiled, definition, compilation,
       declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime) {
       const value = compiledRunTokens.get(compiled);
@@ -3586,6 +3612,28 @@ function publicationControl(moon) {
       // Same existing private originals, never the wire/identity facade.
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declaration, provider, query, evidence,
         transport, scratch, contracts, retainedOutput, queryTime, bindOriginal]));
+    },
+    prepareCheckedClientRequestModelsSourceFreePlan(parent, input, original, request, compiled, definition,
+      occurrences, graphs, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelsSourceFreePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrences, graphs, selected]));
+    },
+    prepareCheckedClientRequestModelsCapturePlan(parent, input, original, request, compiled, definition,
+      occurrences, graphs, selected) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelsCapturePlan;
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model Plan unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, original, request, value,
+        token(definition), occurrences, graphs, selected]));
     },
     prepareCheckedClientRequestModelSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrence, graph, selected) {

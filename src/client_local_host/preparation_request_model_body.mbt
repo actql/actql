@@ -187,6 +187,97 @@ pub fn[I] prepare_request_model_compilation(
 }
 
 ///|
+/// Compile the complete ordered vector already constructed and retained on
+/// this SAME Request. Reuse the existing multi-INFER compiler, measurement,
+/// work token and TaskCompilation. The selected vector must contain every
+/// SAME retained graph in order; its wrapper supplies no new body authority.
+/// Callers do not rebuild graphs or supply another parent/compiled artifact.
+pub fn[I] prepare_request_models_compilation(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  selected : Array[@publication_host.ClientInferPlanGraph],
+  contracts : ClientInstalledSequenceContracts,
+  manifests~ : @publication_host.ClientCompilationManifests,
+  compilation_limits~ : @publication_host.ClientPureCompilationLimits,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientRequestProgramPlanIssue,
+] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    owner.program_compilation is None &&
+    owner.program_model is None &&
+    !owner.program_body_attempted &&
+    owner.program_artifact_work is None &&
+    owner.program_artifact_work_issue is None else {
+    return Err(Preparation(ForeignOriginal))
+  }
+  let graphs = match owner.program_domain_compilation_inputs {
+    Some(
+      RequestModelGraphs(old_manifests, old_limits, old_contracts, originals)
+    ) => {
+      guard physical_equal(old_manifests, manifests) &&
+        old_limits == compilation_limits &&
+        physical_equal(old_contracts, contracts) &&
+        @publication_host.prepared_client_composed_infer_occurrences(prepared)
+        is Some(occurrences) &&
+        occurrences.length() > 1 &&
+        originals.length() == occurrences.length() &&
+        selected.length() == originals.length() else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      for index, graph in originals {
+        if !physical_equal(graph, selected[index]) ||
+          !physical_equal(graph.owner, prepared) ||
+          !@publication_host.client_infer_occurrence_matches_plan(
+            occurrences[index],
+            graph,
+          ) {
+          return Err(Preparation(ForeignOriginal))
+        }
+      }
+      originals
+    }
+    _ => return Err(Preparation(ForeignOriginal))
+  }
+  owner.program_domain_compilation_inputs = Some(
+    RequestModelsCompilation(manifests, compilation_limits, contracts, graphs),
+  )
+  owner.phase = Selecting
+  preparation_module_call(
+    () => {
+      match
+        @publication_host.bind_prepared_client_compiler_contracts(
+          prepared,
+          contracts.original.value.ordered_contract,
+        ) {
+        Err(_) => return Err(Preparation(ForeignOriginal))
+        Ok(_) => ()
+      }
+      match
+        prepare_request_compilation_owned(
+          owner, input, prepared, manifests, compilation_limits,
+        ) {
+        Err(issue) => Err(issue)
+        Ok(@publication_host.Tasks(compilation)) => {
+          owner.phase = ModelPlanReserved
+          Ok(compilation)
+        }
+        _ => Err(Preparation(ForeignOriginal))
+      }
+    },
+    () => {
+      ignore(finish_request_program_artifact_work(owner))
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+    },
+  )
+}
+
+///|
 /// Bind the actual Model module and its optional Content prefix from this
 /// original Request. The Plan record was admitted by the existing input borrow;
 /// no caller-supplied prefix or equal compiler can replace its retained original.
@@ -418,6 +509,47 @@ pub fn[I] prepare_request_model_read_scope(
   @publication_host.ClientModelReadScope,
   ClientInstalledManagedRunIssue,
 ] {
+  if plan.models is Some(_) {
+    return Err(ForeignOriginal)
+  }
+  prepare_request_model_read_scopes_owned(
+    owner, input, plan, quantity_limits, bind_request_single_model_read_scope,
+  )
+}
+
+///|
+// These module-level binding functions capture nothing. The generic driver
+// below performs the original quote/current/census handoff once; no retained
+// callback, wrapper, duplicated checker or second admission is introduced.
+fn bind_request_single_model_read_scope(
+  plan : ClientInstalledManagedModelPlan,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @publication_host.bind_client_model_read_scope(
+    plan.compiled,
+    plan.definition,
+    plan.graph,
+    ledger,
+    identity,
+  )
+}
+
+///|
+fn[I, T] prepare_request_model_read_scopes_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  plan : ClientInstalledManagedModelPlan,
+  quantity_limits : @resources.QuantityAmounts?,
+  bind : (
+    ClientInstalledManagedModelPlan,
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+  ) -> Result[T, @publication_host.ClientModelReadPreparationIssue],
+) -> Result[T, ClientInstalledManagedRunIssue] {
   // A mixed module carries the same already constructed prefix, not a
   // successful quote or a Model Scope standing in for Content retention.
   guard (match (plan.content_prefix, owner.program_content) {
@@ -451,7 +583,14 @@ pub fn[I] prepare_request_model_read_scope(
   guard (
       (
         owner.phase == ModelPlanReserved &&
-        owner.program_model is None &&
+        (
+          owner.program_model is None ||
+          (
+            plan.models is Some(_) &&
+            owner.program_model is Some(original_plan) &&
+            physical_equal(original_plan, plan)
+          )
+        ) &&
         owner.program_domain_quote is None
       ) ||
       (
@@ -490,6 +629,10 @@ pub fn[I] prepare_request_model_read_scope(
         plan.max_reservations,
         plan.max_holdings,
         plan.max_delegations,
+        model_count=match plan.models {
+          None => 1
+          Some(models) => models.length()
+        },
       ) {
       Err(issue) => return Err(issue)
       Ok(value) => value
@@ -506,31 +649,9 @@ pub fn[I] prepare_request_model_read_scope(
     quantity_limits {
     None => Ok(())
     Some(installed) => {
-      let execution = @publication_host.client_infer_plan_graph_execution_contract(
-        plan.graph,
-      )
-      let selected : @resources.QuantityAmounts = {
-        tokens: Int64::min(
-          installed.tokens,
-          @environment.model_execution_ceiling(
-            execution,
-            @environment.TotalTokenReservation,
-          ),
-        ),
-        cost_units: Int64::min(
-          installed.cost_units,
-          @environment.model_execution_ceiling(
-            execution,
-            @environment.TotalCostUnits,
-          ),
-        ),
-        duration_ms: Int64::min(
-          installed.duration_ms,
-          @environment.model_execution_ceiling(
-            execution,
-            @environment.TotalDurationMs,
-          ),
-        ),
+      let selected = match request_model_plan_quantity_limits(plan, installed) {
+        None => return Err(InsufficientCapacity)
+        Some(value) => value
       }
       if @resources.quantity_configuration_matches(owner.ledger, Some(selected)) {
         Ok(())
@@ -550,10 +671,8 @@ pub fn[I] prepare_request_model_read_scope(
       Ok(_) => Err(ForeignOriginal)
     }
   }
-  let result : Result[
-    @publication_host.ClientModelReadScope,
-    ClientInstalledManagedRunIssue,
-  ] = match quantities_ready {
+  let result : Result[T, ClientInstalledManagedRunIssue] = match
+    quantities_ready {
     Err(issue) => Err(issue)
     Ok(_) =>
       if owner.phase != Selecting {
@@ -592,13 +711,9 @@ pub fn[I] prepare_request_model_read_scope(
               ) {
               Err(issue) => Err(Preparation(issue))
               Ok(identity) =>
-                @publication_host.bind_client_model_read_scope(
-                  plan.compiled,
-                  plan.definition,
-                  plan.graph,
-                  owner.ledger,
-                  identity,
-                ).map_err(issue => ModelRead(issue))
+                bind(plan, owner.ledger, identity).map_err(issue => {
+                  ModelRead(issue)
+                })
             }
           }
         }
@@ -664,6 +779,7 @@ pub fn[I] begin_request_model_managed_run(
   owner : ClientRequestPreparation[I],
   request : @publication_host.ClientRequestIdentity,
   scope : @publication_host.ClientModelReadScope,
+  scopes? : Array[@publication_host.ClientModelReadScope]? = None,
 ) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
   guard owner.phase == ProgramBodyReady &&
     owner.input is Some(input) &&
@@ -679,17 +795,33 @@ pub fn[I] begin_request_model_managed_run(
     Err(issue) => return Err(Preparation(issue))
     Ok(value) => value
   }
-  if !@publication_host.client_model_read_scope_original_inventory(
-      scope,
-      owner.ledger,
-      identity,
-    ) ||
-    !@publication_host.client_model_read_scope_live(
-      scope,
-      plan.compiled,
-      plan.definition,
-      plan.graph,
-    ) {
+  let matching_scopes = match (plan.models, scopes) {
+    (None, None) =>
+      @publication_host.client_model_read_scope_original_inventory(
+        scope,
+        owner.ledger,
+        identity,
+      ) &&
+      @publication_host.client_model_read_scope_live(
+        scope,
+        plan.compiled,
+        plan.definition,
+        plan.graph,
+      )
+    (Some(models), Some(originals)) =>
+      originals.length() == models.length() &&
+      originals.length() > 1 &&
+      physical_equal(originals[0], scope) &&
+      @publication_host.client_model_read_scopes_match_originals(
+        originals,
+        plan.compiled,
+        plan.definition,
+        owner.ledger,
+        identity,
+      )
+    _ => false
+  }
+  if !matching_scopes {
     return Err(ForeignOriginal)
   }
   let content = owner.program_content
@@ -730,6 +862,7 @@ pub fn[I] begin_request_model_managed_run(
       owner.program_plan_quote = None
       owner.program_source_free = None
       owner.program_captured = None
+      owner.program_model_direct = None
       owner.program_model = None
       owner.program_compilation = None
       owner.program_domain_compilation_inputs = None

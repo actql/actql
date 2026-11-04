@@ -190,3 +190,24 @@ pub fn preparation_execution_capacity(
     RetainedAlongsideExecution,
   )
 }
+
+///|
+/// Existing logical Array representation, shared by constructor inventories.
+/// The returned units include wrapper/backing growth but no element payload.
+pub fn preparation_array_representation(
+  count : Int64,
+  items : Int64,
+  growing : Bool,
+) -> PreparationRepresentationUnits? {
+  guard @preparation_counts.preparation_array_slots(count, items, growing)
+    is Some((h, r, w)) else {
+    return None
+  }
+  Some({
+    record_headers: h,
+    reference_slots: r,
+    scalar_words: w,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  })
+}

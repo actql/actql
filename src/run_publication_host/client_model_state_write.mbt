@@ -12,6 +12,13 @@ pub fn prepare_client_model_read_state(
   execution_bytes : Int64,
   binding_work? : Int = 0,
 ) -> Result[ClientModelReadPreparation, @resources.OriginalStateWriteIssue] {
+  // The closed group has one shared descriptor/read. A singular state writer
+  // cannot claim that census for one member and strand the other children.
+  // Its existing singular path is unchanged; group persistence needs the
+  // same complete group holder rather than a per-member competing issuer.
+  if scope.group is Some(_) {
+    return Err(@resources.Original(@resources.SpentClaim))
+  }
   match
     @resources.prepare_original_state_write(
       scope.identity,
@@ -21,7 +28,14 @@ pub fn prepare_client_model_read_state(
       execution_bytes,
       binding_work~,
     ) {
-    Ok((claim, _)) => Ok({ origin: scope.origin, claim, })
+    Ok((claim, _)) =>
+      Ok({
+        origin: scope.origin,
+        claim,
+        consumer: None,
+        consumer_claimed: false,
+        retired: false,
+      })
     Err(issue) => Err(issue)
   }
 }

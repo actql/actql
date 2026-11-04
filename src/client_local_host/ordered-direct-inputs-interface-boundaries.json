@@ -4,9 +4,117 @@
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "db3813e80ed273c0ce6576403551bde41b3e23967f1fdbc8f103c39c79e5f6ee",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[P]check_installed_managed_run_admission",
+            "begin_installed_managed_run",
+            "begin_installed_managed_run_source_read",
+            "begin_installed_managed_run_source_read_at",
+            "begin_installed_managed_run_source_read_owned",
+            "begin_prepared_installed_managed_source_free_run",
+            "check_installed_managed_run",
+            "check_installed_managed_run_binding",
+            "check_installed_managed_run_original",
+            "configure_installed_source_free_preparation",
+            "installed_managed_capture_run_requirements",
+            "installed_managed_owner_graph",
+            "installed_managed_owner_shape_supported",
+            "installed_managed_publication_dag",
+            "installed_managed_publication_limits",
+            "installed_managed_run_accounting",
+            "installed_managed_run_accounting_values",
+            "installed_managed_run_compilation_original",
+            "installed_managed_run_invocation_original",
+            "installed_managed_run_owner",
+            "installed_managed_run_purpose_supported",
+            "installed_managed_run_requirements",
+            "installed_managed_run_requirements_owned",
+            "installed_managed_run_shape_supported",
+            "installed_mock_model_run_requirements",
+            "installed_source_free_preparation_matches",
+            "new_installed_managed_run",
+            "new_installed_managed_run_owned",
+            "open_installed_managed_source_free_host",
+            "open_installed_managed_source_free_host_original",
+            "prepare_installed_managed_acquisitions_owned",
+            "prepare_installed_managed_run_ledger",
+            "prepare_installed_managed_run_ledger_owned",
+            "prepare_installed_managed_source_free_with_contracts",
+            "prepared_installed_managed_publication_limits",
+            "prepared_installed_managed_source_free_requirements",
+            "require_installed_managed_run",
+            "retire_installed_managed_run",
+            "source_free_installed_managed_preparation_owned"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ],
       "exports": [],
       "operations": [
         {
@@ -154,6 +262,10 @@
           "declaration": "prepared_installed_managed_source_free_requirements ( value : ClientInstalledManagedSourceFreePreparation , ) - > Array [ Int64 ]"
         },
         {
+          "name": "quiesce_installed_managed_run",
+          "declaration": "quiesce_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "require_installed_managed_run",
           "declaration": "require_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
@@ -166,120 +278,12 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "[P]check_installed_managed_run_admission",
-            "begin_installed_managed_run",
-            "begin_installed_managed_run_source_read",
-            "begin_installed_managed_run_source_read_at",
-            "begin_installed_managed_run_source_read_owned",
-            "begin_prepared_installed_managed_source_free_run",
-            "check_installed_managed_run",
-            "check_installed_managed_run_binding",
-            "check_installed_managed_run_original",
-            "configure_installed_source_free_preparation",
-            "installed_managed_capture_run_requirements",
-            "installed_managed_owner_graph",
-            "installed_managed_owner_shape_supported",
-            "installed_managed_publication_dag",
-            "installed_managed_publication_limits",
-            "installed_managed_run_accounting",
-            "installed_managed_run_accounting_values",
-            "installed_managed_run_compilation_original",
-            "installed_managed_run_invocation_original",
-            "installed_managed_run_owner",
-            "installed_managed_run_purpose_supported",
-            "installed_managed_run_requirements",
-            "installed_managed_run_requirements_owned",
-            "installed_managed_run_shape_supported",
-            "installed_mock_model_run_requirements",
-            "installed_source_free_preparation_matches",
-            "new_installed_managed_run",
-            "new_installed_managed_run_owned",
-            "open_installed_managed_source_free_host",
-            "open_installed_managed_source_free_host_original",
-            "prepare_installed_managed_acquisitions_owned",
-            "prepare_installed_managed_run_ledger",
-            "prepare_installed_managed_run_ledger_owned",
-            "prepare_installed_managed_source_free_with_contracts",
-            "prepared_installed_managed_publication_limits",
-            "prepared_installed_managed_source_free_requirements",
-            "require_installed_managed_run",
-            "retire_installed_managed_run",
-            "source_free_installed_managed_preparation_owned"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Responsibility:"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Inputs and outputs:"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Identity:"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Ownership:"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Synchronization:"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Failure:"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Cancellation:"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Resources:"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Extension:"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/ordered-direct-inputs-interface.md",
-                "anchor": "- Verification:"
-              }
-            ]
-          }
-        }
-      ]
+      "sha256": "a439eec178e3144ad4cb1e3b490c2a6f3c3482b49a9f18ad9ee9f248cec837ea"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "95d11b5fbec46f0a24dc7a4a8ed8b5a2f987799943b82445c85bd22131dc787f",
+      "sha256": "56fa75aa7b12d61a84b97674b27f421797c98ace2de38134b595eec494c09727",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -755,7 +759,7 @@
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a8af1c16c20eb77549da59431230c921bd6e2b1cc010d93cae638f1ee94931ec",
+      "sha256": "bf878d28b837d69ee64ac15e695b13e4fe3cc4dd3c30e407924add9f4863d212",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1275,7 +1279,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "759198df49b7d30226ea25ec52c1c7825e7ca1385785b63c884beff0011952f8",
+      "sha256": "3e602b717ca6b4bef07e23b47d23681fe2c2e2f7861e3198b95812dc9e7db034",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1580,7 +1584,7 @@
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "5742018e5551bee149546901444fd7e68745155c5f171541e25685e56c7a3c9b",
+      "sha256": "390831c169a2f6b1db1b7b3801a78a9905724f343777ac3818c2900e681b2d95",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1590,12 +1594,24 @@
           "declaration": "[ I ] begin_request_model_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , captures : Int , installed_providers : Int , query_time : @ publication_host . ClientQueryTimePreparation ? , provider_captures ? : Int"
         },
         {
+          "name": "[I]construct_request_model_input",
+          "declaration": "[ I ] construct_request_model_input ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , graph : @ publication_host . ClientInferPlanGraph , contracts : ClientInstalledSequenceContracts , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ ( @ execution . GeneratedSequence , @ execution . GeneratedSequence ? ) , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]prepare_request_model_capture_module",
           "declaration": "[ I ] prepare_request_model_capture_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
         },
         {
           "name": "[I]prepare_request_model_source_free_module",
           "declaration": "[ I ] prepare_request_model_source_free_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "[I]request_model_direct_occurrences",
+          "declaration": "[ I ] request_model_direct_occurrences ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]request_model_direct_occurrences_owned",
+          "declaration": "[ I ] request_model_direct_occurrences_owned ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepared_request_model_input_prefix",
@@ -1608,6 +1624,10 @@
         {
           "name": "request_model_module_container_bytes",
           "declaration": "request_model_module_container_bytes ( tasks : Int , captures : Int , installed_providers : Int , provider_captures ? : Int"
+        },
+        {
+          "name": "request_model_provider_count",
+          "declaration": "request_model_provider_count ( families : Int , models : Int ) - > Int ?"
         }
       ],
       "contracts": [
@@ -1615,11 +1635,15 @@
           "operations": [
             "<module>",
             "[I]begin_request_model_module",
+            "[I]construct_request_model_input",
             "[I]prepare_request_model_capture_module",
             "[I]prepare_request_model_source_free_module",
+            "[I]request_model_direct_occurrences",
+            "[I]request_model_direct_occurrences_owned",
             "prepared_request_model_input_prefix",
             "prepared_request_model_input_suffix",
-            "request_model_module_container_bytes"
+            "request_model_module_container_bytes",
+            "request_model_provider_count"
           ],
           "exports": [],
           "attributes": {
@@ -1627,54 +1651,90 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [

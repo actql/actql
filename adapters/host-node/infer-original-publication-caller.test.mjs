@@ -296,3 +296,54 @@ test('complete legacy observation preserves its explicit metadata Ledger and iss
   assert.strictEqual(startCompleteInferObservation({moon,operations:[operation],ledger,...limits}),issued);
   assert.equal(calls,1);assert.equal(operation.cleanup(),true);
 });
+
+// Actual original-operation adapter with explicit Core ports: aggregate
+// identity/current/Plan/Ledger validation remains the typed Core obligation.
+test('complete multi original observation forwards original ordered owners to one existing borrow',()=>{
+  const first=ordinaryFixture(),second=ordinaryFixture();
+  const a=openNodeInferOperation(first.options),b=openNodeInferOperation(second.options);
+  b.reserveOriginalPublicationCapacity();
+  let calls=0;
+  second.options.moon.clientProgramStartCompleteOriginalInferObservationIssuance=(owners,capacity,n,bytes,work,generations)=>{
+    assert.equal(owners.length,2);assert.notStrictEqual(owners[0],owners[1]);
+    assert.ok(capacity);assert.deepEqual([n,bytes,work],[2,4096,4]);
+    assert.deepEqual(generations,[]);calls++;return {$tag:1,_0:second.issued};
+  };
+  assert.strictEqual(startCompleteInferObservation({moon:first.options.moon,operations:[a,b],
+    maxSlots:2,maxWireBytes:4096,maxWork:4}),second.issued);
+  assert.equal(calls,1);
+  assert.equal(a.releaseOriginalPublicationCapacity(),true);
+  assert.equal(b.releaseOriginalPublicationCapacity(),true);
+  assert.equal(a.cleanup(),true);assert.equal(b.cleanup(),true);
+});
+
+test('multi original observation preserves original issuer refusal and never falls back',()=>{
+  const first=ordinaryFixture(),second=ordinaryFixture(),issue={kind:'same-parent-refused'};
+  const a=openNodeInferOperation(first.options),b=openNodeInferOperation(second.options);
+  a.reserveOriginalPublicationCapacity();
+  let calls=0;
+  first.options.moon.clientProgramStartCompleteOriginalInferObservationIssuance=()=>{calls++;return {$tag:0,_0:issue};};
+  assert.throws(()=>startCompleteInferObservation({moon:first.options.moon,operations:[a,b],...limits}),
+    error=>error.cause===issue);
+  assert.equal(calls,1);assert.equal(a.publicationCapacityPending(),true);
+  assert.equal(b.publicationCapacityPending(),false);
+  assert.throws(()=>startCompleteInferObservation({moon:first.options.moon,operations:[a,a],...limits}),
+    /InferOriginalPublicationCapacityUnavailable/);
+  assert.equal(calls,1,'duplicate cannot invoke the typed constructor');
+  a.releaseOriginalPublicationCapacity();b.releaseOriginalPublicationCapacity();
+  assert.equal(a.cleanup(),true);assert.equal(b.cleanup(),true);
+});
+
+
+test('complete original observation refuses two publication funders before invoking any typed issuer',()=>{
+  const first=ordinaryFixture(),second=ordinaryFixture();
+  const a=openNodeInferOperation(first.options),b=openNodeInferOperation(second.options);
+  a.reserveOriginalPublicationCapacity();b.reserveOriginalPublicationCapacity();
+  first.options.moon.clientProgramStartCompleteOriginalInferObservationIssuance=()=>assert.fail('Two funders do not choose a first issuer');
+  second.options.moon.clientProgramStartCompleteOriginalInferObservationIssuance=()=>assert.fail('Two funders do not choose a second issuer');
+  assert.throws(()=>startCompleteInferObservation({moon:first.options.moon,operations:[a,b],...limits}),
+    /InferOriginalPublicationCapacityUnavailable/);
+  assert.equal(a.publicationCapacityPending(),true);assert.equal(b.publicationCapacityPending(),true);
+  a.releaseOriginalPublicationCapacity();b.releaseOriginalPublicationCapacity();
+  assert.equal(a.cleanup(),true);assert.equal(b.cleanup(),true);
+});

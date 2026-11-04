@@ -111372,1054 +111372,6 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "exports": [
-        "assertOrdinarySourcePreparationCurrent",
-        "prepareOrdinaryProjectSourceManagedInstallation",
-        "prepareOrdinarySourceManagedInstallation"
-      ],
-      "operations": [
-        {
-          "name": "assertOrdinarySourcePreparationCurrent",
-          "parameters": [
-            "view",
-            "originals",
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "fileIdentity/fileIdentity",
-          "parameters": [
-            "stat"
-          ],
-          "async": false
-        },
-        {
-          "name": "immutablePolicySubject",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "pending/pending",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation",
-          "parameters": [
-            "originals",
-            "callbacks",
-            "source",
-            "project"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer",
-          "parameters": [
-            "kind",
-            "openParent"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/captureReader",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/captureSourceMaterialMethod",
-          "parameters": [
-            "record",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/closeChild",
-          "parameters": [
-            "child"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/constructRequestDomain",
-          "parameters": [
-            "state",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation",
-          "parameters": [
-            "record",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
-          "parameters": [
-            "resolve",
-            "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/originalTimedInvocation",
-          "parameters": [
-            "state",
-            "producer",
-            "prepared",
-            "construct",
-            "contracts"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/originalTimedInvocation/assertOriginal/assertOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun",
-          "parameters": [
-            "prepared",
-            "purpose",
-            "model",
-            "content"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
-          "parameters": [
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/publicationRunFor",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes",
-          "parameters": [
-            "run",
-            "child"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
-          "parameters": [
-            "original"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
-          "parameters": [
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
-          "parameters": [
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/registerRequestRun",
-          "parameters": [
-            "run",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
-          "parameters": [
-            "producer"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/reserveModelRecovery",
-          "parameters": [
-            "producer",
-            "state",
-            "count",
-            "wireAt",
-            "containers"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/retainedRunCurrent",
-          "parameters": [
-            "run"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/retainSourceInitializationMaterial",
-          "parameters": [
-            "producer"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/returnSourceInitializationMaterial",
-          "parameters": [
-            "producer"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/runFor",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/status/status",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "constructPlan",
-            "constructInvocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
-          "parameters": [
-            "prepared",
-            "identity",
-            "contentPlan",
-            "serialization"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "operationPlan",
-            "retainedRun"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "operationPlan"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
-          "parameters": [
-            "prepared",
-            "identity",
-            "modelPlan",
-            "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "constructInvocation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
-          "parameters": [
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
-          "parameters": [
-            "format",
-            "text",
-            "parameters",
-            "options",
-            "originalConnection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-          "parameters": [
-            "kind",
-            "input",
-            "options",
-            "originalConnection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-          "parameters": [
-            "state",
-            "receipt",
-            "assertCurrent",
-            "childrenPending"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
-          "parameters": [
-            "receipt",
-            "body",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
-          "parameters": [
-            "receipt",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
-          "parameters": [
-            "prepared",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
-          "parameters": [
-            "receipt",
-            "value",
-            "snapshot"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
-          "parameters": [
-            "units",
-            "document",
-            "values"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
-          "parameters": [
-            "receipt",
-            "terminal"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
-          "parameters": [
-            "request",
-            "environment",
-            "originalVerifier",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertPreparingOriginal/assertPreparingOriginal",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
-          "parameters": [
-            "method"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
-          "parameters": [
-            "name",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
-          "parameters": [
-            "receipt",
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
-          "parameters": [
-            "request",
-            "failure",
-            "visit"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/assertSame/assertSame",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
-          "parameters": [
-            "metadata"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
-          "parameters": [
-            "prepared",
-            "request",
-            "graph",
-            "compileOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
-          "parameters": [
-            "prepared",
-            "request",
-            "constructOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "graph",
-            "constructPlan",
-            "compileOriginal",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
-          "parameters": [
-            "prepared",
-            "declaration",
-            "originalRun",
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
-          "parameters": [
-            "prepared",
-            "request",
-            "providerId",
-            "installation",
-            "contract",
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
-          "parameters": [
-            "prepared",
-            "request",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
-          "parameters": [
-            "prepared",
-            "request",
-            "occurrence",
-            "execution",
-            "serializationGraph",
-            "constructSerialized"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
-          "parameters": [
-            "prepared",
-            "request",
-            "count",
-            "wireAt",
-            "containerCount"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "model",
-            "constructPlan"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
-          "parameters": [
-            "prepared",
-            "declaration",
-            "originalRun",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "constructPlan",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
-          "parameters": [
-            "receipt",
-            "body",
-            "publication"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
-          "parameters": [
-            "request",
-            "original",
-            "definition",
-            "identity",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainContentPreparation/init:retainContentPreparation",
-          "parameters": [
-            "prepared",
-            "request",
-            "contentPreparation"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
-          "parameters": [
-            "request",
-            "identity",
-            "definition",
-            "assertRecoveryCurrent",
-            "childrenPending"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
-          "parameters": [
-            "state",
-            "original",
-            "assertCurrent",
-            "ownChildrenPending"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
-          "parameters": [
-            "request",
-            "intent",
-            "captured",
-            "materialWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt",
-          "parameters": [
-            "state",
-            "original",
-            "assertCurrent",
-            "childrenPending"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
-          "parameters": [
-            "prepared",
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
-          "parameters": [
-            "prepared",
-            "request",
-            "identity",
-            "stage",
-            "sourceIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
-          "parameters": [
-            "prepared",
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryProjectSourceManagedInstallation",
-          "parameters": [
-            "originals",
-            "callbacks"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinarySourceManagedInstallation",
-          "parameters": [
-            "originals",
-            "callbacks",
-            "source"
-          ],
-          "async": true
-        }
-      ],
-      "imports": [
-        "../../packages/sdk/host-port.mjs",
-        "../../packages/sdk/internal/private-source-preparation.mjs",
-        "../host-common/compiler-binding.generated.mjs",
-        "../host-common/diagnostic-observer.mjs",
-        "../host-common/runtime-result.mjs",
-        "../local-node/request-preparation-adapter.mjs",
-        "./client-program-preparation.mjs",
-        "./ordinary-node-resource-runtime.cjs",
-        "./source-profile-json.mjs",
-        "@actql/client-wire",
-        "node:fs/promises",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
@@ -113946,6 +112898,9 @@
             "prepareOrdinaryManagedInstallation/constructRequestDomain",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
@@ -113979,6 +112934,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -114005,6 +112964,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -114027,6 +112990,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -114049,6 +113016,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -114071,6 +113042,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -114093,6 +113068,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -114115,6 +113094,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -114137,6 +113120,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -114159,6 +113146,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -114827,6 +113818,9 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#3",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
           ],
@@ -114848,6 +113842,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -114866,6 +113864,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -114884,6 +113886,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -114902,6 +113908,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -114920,6 +113930,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -114938,6 +113952,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -114956,6 +113974,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -114974,6 +113996,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -114992,6 +114018,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -116343,7 +115373,1099 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d77b166ad874251afc4338b6517d55d64f3baf75092188fd5a1317382d6dab57"
+      "exports": [
+        "assertOrdinarySourcePreparationCurrent",
+        "prepareOrdinaryProjectSourceManagedInstallation",
+        "prepareOrdinarySourceManagedInstallation"
+      ],
+      "operations": [
+        {
+          "name": "assertOrdinarySourcePreparationCurrent",
+          "parameters": [
+            "view",
+            "originals",
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "fileIdentity/fileIdentity",
+          "parameters": [
+            "stat"
+          ],
+          "async": false
+        },
+        {
+          "name": "immutablePolicySubject",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "pending/pending",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks",
+            "source",
+            "project"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer",
+          "parameters": [
+            "kind",
+            "openParent"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/captureReader",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/captureSourceMaterialMethod",
+          "parameters": [
+            "record",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/closeChild",
+          "parameters": [
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/constructRequestDomain",
+          "parameters": [
+            "state",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation",
+          "parameters": [
+            "record",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/originalTimedInvocation",
+          "parameters": [
+            "state",
+            "producer",
+            "prepared",
+            "construct",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/originalTimedInvocation/assertOriginal/assertOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun",
+          "parameters": [
+            "prepared",
+            "purpose",
+            "model",
+            "content"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/producerForRequest/producerForRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/publicationRunFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes",
+          "parameters": [
+            "run",
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/registerRequestRun",
+          "parameters": [
+            "run",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/releaseFinishedProducer/releaseFinishedProducer",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/reserveModelRecovery",
+          "parameters": [
+            "producer",
+            "state",
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retainedRunCurrent",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retainSourceInitializationMaterial",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/returnSourceInitializationMaterial",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/runFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructPlan",
+            "constructInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation",
+          "parameters": [
+            "prepared",
+            "identity",
+            "contentPlan",
+            "serialization"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectModelPreparation/init:adoptEffectModelPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "operationPlan",
+            "retainedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "operationPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
+          "parameters": [
+            "prepared",
+            "identity",
+            "modelPlan",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#3",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructInvocation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
+          "parameters": [
+            "format",
+            "text",
+            "parameters",
+            "options",
+            "originalConnection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options",
+            "originalConnection"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
+          "parameters": [
+            "receipt",
+            "body",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "value",
+            "snapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:captureSourceSnapshot/init:captureSourceSnapshot/captured/captured",
+          "parameters": [
+            "units",
+            "document",
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:close/init:close/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:compilationOriginal/init:compilationOriginal",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:finishSourceProducer/init:finishSourceProducer",
+          "parameters": [
+            "receipt",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "request",
+            "environment",
+            "originalVerifier",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/assertPreparingOriginal/assertPreparingOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#2",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/policyMethods/policyMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:intentCid/init:intentCid",
+          "parameters": [
+            "receipt",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [
+            "coordinate"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
+          "parameters": [
+            "request",
+            "failure",
+            "visit"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/assertSame/assertSame",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph",
+            "compileOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentCompilation/init:prepareContentCompilation/init:prepareContentCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [
+            "prepared",
+            "request",
+            "constructOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "graph",
+            "constructPlan",
+            "compileOriginal",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedContentRun/init:prepareKeyedContentRun/init:prepareKeyedContentRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
+          "parameters": [
+            "prepared",
+            "declaration",
+            "originalRun",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [
+            "prepared",
+            "request",
+            "providerId",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
+          "parameters": [
+            "prepared",
+            "request",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
+          "parameters": [
+            "prepared",
+            "request",
+            "occurrence",
+            "execution",
+            "serializationGraph",
+            "constructSerialized"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [
+            "prepared",
+            "request",
+            "count",
+            "wireAt",
+            "containerCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "model",
+            "constructPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelRun/init:prepareModelRun/init:prepareModelRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead",
+          "parameters": [
+            "prepared",
+            "declaration",
+            "originalRun",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/declared/declared",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "constructPlan",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareSerializationRun/init:prepareSerializationRun/init:prepareSerializationRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publicationPreparation/init:publicationPreparation",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:publishSourceSnapshot/init:publishSourceSnapshot",
+          "parameters": [
+            "receipt",
+            "body",
+            "publication"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
+          "parameters": [
+            "request",
+            "original",
+            "definition",
+            "identity",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainContentPreparation/init:retainContentPreparation",
+          "parameters": [
+            "prepared",
+            "request",
+            "contentPreparation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
+          "parameters": [
+            "request",
+            "identity",
+            "definition",
+            "assertRecoveryCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
+          "parameters": [
+            "state",
+            "original",
+            "assertCurrent",
+            "ownChildrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
+          "parameters": [
+            "request",
+            "intent",
+            "captured",
+            "materialWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt",
+          "parameters": [
+            "state",
+            "original",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireRun/init:retireRun/init:retireRun",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [
+            "prepared",
+            "request",
+            "identity",
+            "stage",
+            "sourceIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
+          "parameters": [
+            "prepared",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:submittedIntentOriginal/init:submittedIntentOriginal",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryProjectSourceManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinarySourceManagedInstallation",
+          "parameters": [
+            "originals",
+            "callbacks",
+            "source"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../../packages/sdk/internal/private-source-preparation.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/request-preparation-adapter.mjs",
+        "./client-program-preparation.mjs",
+        "./ordinary-node-resource-runtime.cjs",
+        "./source-profile-json.mjs",
+        "@actql/client-wire",
+        "node:fs/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "c29a9bb5de89986ddbe54ddac5a56d7fd972b13a68d6ae54d0e21f4a75a032d0"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -120798,7 +120920,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "47abbe2cdd6d21f009870f70e701cd19fb67a20c7c066f8e8e41025f0e8cab44",
+      "sha256": "cf409a43d962b918afc50e5911619610091844fcedd6e0504198f522b21df8d2",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",
@@ -133608,9 +133730,9 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5136,
+    "operations": 5166,
     "exports": 1169,
-    "explicitContractGroups": 540
+    "explicitContractGroups": 542
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

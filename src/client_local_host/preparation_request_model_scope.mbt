@@ -9,6 +9,7 @@ fn[I, P] request_model_scope_construction_quote(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  model_count? : Int = 1,
 ) -> Result[(Int64, Int64), ClientInstalledManagedRunIssue] {
   let selected = match
     @resources.preparation_inventory_initial_control_slots(
@@ -20,7 +21,25 @@ fn[I, P] request_model_scope_construction_quote(
     Some(value) => value
   }
   let initial = request_preparation_inventory_slots
-  let scope = @publication_host.client_model_read_scope_construction_inventory()
+  let scope = if model_count == 1 {
+    @publication_host.client_model_read_scope_construction_inventory()
+  } else {
+    guard @publication_host.client_model_read_scopes_construction_inventory(
+        model_count,
+      )
+      is Some(group) &&
+      @execution.preparation_array_representation(
+        2L,
+        2L * model_count.to_int64(),
+        true,
+      )
+      is Some(partitions) &&
+      @execution.compose_preparation_representation([group, partitions])
+      is Some(units) else {
+      return Err(InsufficientCapacity)
+    }
+    units
+  }
   let bytes = match
     @execution.preparation_representation_cost({
       record_headers: scope.record_headers + selected.0 - initial.0,

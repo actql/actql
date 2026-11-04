@@ -35,6 +35,42 @@ export function retireNodeInferOriginalRead({control, compiled, runDefinition, g
   }
   control.settleCheckedClientInferOriginalReadPreparation(compiled, runDefinition, graph, read, true);
 }
+// Finish the native closed group only after all actual read children retired.
+// This is a shared caller continuation, not a cleanup ACK or another owner.
+export function finishNodeInferOriginalReadScopes(model) {
+  const members = model?.components, scopes = model?.scopes, graph = model?.graph,
+    control = model?.control, compiled = model?.compiled, definition = model?.runDefinition;
+  const finish = control?.finishCheckedClientInferOriginalReadScope;
+  const current = () => {
+    if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
+        !Array.isArray(scopes) || !Object.isFrozen(scopes) || scopes.length !== members.length ||
+        !Array.isArray(graph) || !Object.isFrozen(graph) || graph.length !== members.length ||
+        typeof finish !== 'function' || control.finishCheckedClientInferOriginalReadScope !== finish ||
+        model.components !== members || model.scopes !== scopes || model.graph !== graph ||
+        model.control !== control || model.compiled !== compiled || model.runDefinition !== definition ||
+        model.scope !== scopes[0] || model.closed || model.scopeFinished ||
+        members.some((member, index) => member.group !== model || member.control !== control ||
+          member.compiled !== compiled || member.runDefinition !== definition || member.graph !== graph[index] ||
+          member.scope !== scopes[index] || member.read !== undefined || member.closed || member.scopeFinished)) {
+      throw new TypeError('InvalidInstalledRequestModelPreparation');
+    }
+  };
+  current();
+  // The last actual Scope can close the group. Earlier pending members must not
+  // prevent reaching it. A second closed observation is callback-free in Core.
+  for (let index = 0; index < members.length; index++) {
+    Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    current();
+  }
+  for (let index = 0; index < members.length; index++) {
+    const closed = Reflect.apply(finish, control, [compiled, definition, graph[index], scopes[index], true]);
+    current();
+    if (closed !== true) return false;
+  }
+  for (const member of members) {member.scopeFinished = true; member.closed = true;}
+  model.scopeFinished = true;
+  return true;
+}
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
 // Model/Scope/Ledger graph alive after actual operation cleanup.
@@ -95,12 +131,16 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
     return value;
   });
   if (operations.some(operation => originalOperations.has(operation))) {
-    if (operations.length !== 1 || ledger !== undefined || content !== undefined) {
+    if (ledger !== undefined || content !== undefined ||
+        operations.some(operation => !originalOperations.has(operation))) {
       throw new TypeError('InferOriginalPublicationCapacityUnavailable');
     }
     // The actual operation retains its original opaque publication borrow.
     // A Source Ledger or a matching caller object cannot select that issuer.
-    return operations[0].startObservation({maxSlots, maxWireBytes, maxWork});
+    const funding = operations.filter(operation => operation.publicationCapacityPending());
+    if (funding.length !== 1) throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+    return funding[0].startObservation({maxSlots, maxWireBytes, maxWork,
+      ...(operations.length === 1 ? {} : {operations})});
   }
   if (content !== undefined) {
     return content.control.startCheckedClientContentInferObservation(content.compiled,
@@ -1044,10 +1084,25 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (released) originalPublicationCapacity = undefined;
       return released;
     },
-    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => {
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork, operations}) => {
       if (originalConsumer !== undefined) {
         if (ledger !== undefined || originalPublicationCapacity === undefined) {
           throw new Error('InferOriginalPublicationCapacityUnavailable');
+        }
+        if (operations !== undefined) {
+          if (!Array.isArray(operations) || operations.length < 2 || !operations.includes(operation) ||
+              operations.some(owner => !originalOperations.has(owner) || !activeOperations.has(owner)) ||
+              new Set(operations).size !== operations.length ||
+              typeof moon.clientProgramStartCompleteOriginalInferObservationIssuance !== 'function') {
+            throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+          }
+          // Core checks every original Run/Plan/current and the SAME parent
+          // Ledger against this existing borrow before constructing metadata.
+          // No operation's opaque Ledger or capacity is exposed to the caller.
+          return checked(moon.clientProgramStartCompleteOriginalInferObservationIssuance(
+            operations.map(owner => activeOperations.get(owner)), originalPublicationCapacity,
+            maxSlots, maxWireBytes, maxWork,
+            serializedInput === undefined ? [] : [serializedInput.generation]));
         }
         return checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
           originalPublicationCapacity, maxSlots, maxWireBytes, maxWork,

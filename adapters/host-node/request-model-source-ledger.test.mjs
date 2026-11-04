@@ -54,18 +54,21 @@ test('plain Request Model dispatch borrows its same adopted Source Ledger before
 });
 
 
-function modelLedgerFixture({retire = false, throwOriginal = false, cause} = {}) {
+function modelLedgerFixture({retire = false, throwOriginal = false, cause, multiple = false} = {}) {
   const prepared = {}, compiled = {}, definition = {}, graph = {}, native = {}, request = {}, ledger = {},
     registry = {}, values = {}, fragment = {}, ordered = {}, capacity = {}, calls = [];
   const plan = {compiled, runDefinition: definition, inferGraph: graph};
-  const selected = {graph, occurrence: {}, originalReadInstallation: {}};
+  const selected = multiple ? {graph, components: Object.freeze([{}, {}])} : {graph, occurrence: {}, originalReadInstallation: {}};
   const managed = {value: native, request, closed: false};
   const model = {graph, compiled, runDefinition: definition, selection: selected, managed, component: {}, scope: {}};
+  if (multiple) model.components = Object.freeze(selected.components.map(() => ({component: {}, scope: {}})));
   const sourceCapacity = {managedRun: native, capacity, transferBytes: 512n, executionBytes: 256n};
-  const moon = {clientProgramAcquisitionCount: () => 1,
+  const sourceCapacities = multiple ? [sourceCapacity, {managedRun: native, capacity: {}, transferBytes: 31n, executionBytes: 41n}] : [sourceCapacity];
+  const moon = {clientProgramAcquisitionCount: () => sourceCapacities.length,
     clientProgramInstalledManagedRunPrepareLedger(...actual) {
       calls.push('original Ledger');
-      assert.deepEqual(actual, [native, prepared, request, [capacity], [512n], [256n], registry, values, fragment, ordered]);
+      assert.deepEqual(actual, [native, prepared, request, sourceCapacities.map(value => value.capacity),
+        sourceCapacities.map(value => value.transferBytes), sourceCapacities.map(value => value.executionBytes), registry, values, fragment, ordered]);
       if (retire) managed.closed = true;
       if (throwOriginal) throw cause;
       return {$tag: 1, _0: ledger};
@@ -77,8 +80,9 @@ function modelLedgerFixture({retire = false, throwOriginal = false, cause} = {})
       assert.strictEqual(p, prepared); assert.strictEqual(actualPlan, plan); assert.strictEqual(actualSelected, selected);
       return model;
     }});
-  return {model, sourceCapacity, ledger, calls,
-    borrow: actual => run.prepareAcquiredLedger({preparedProgram: prepared, plan, sourceCapacity: actual ?? sourceCapacity})};
+  return {model, sourceCapacity, sourceCapacities, ledger, calls,
+    borrow: actual => run.prepareAcquiredLedger({preparedProgram: prepared, plan,
+      ...(multiple ? {sourceCapacities: actual ?? sourceCapacities} : {sourceCapacity: actual ?? sourceCapacity})})};
 }
 
 test('actual installed Model Source getter borrows the same adopted Ledger once without a second Root', () => {
@@ -183,4 +187,92 @@ test('actual composed driver retains the known first nullable component failure 
       {unresolved: () => false});} catch (actual) {caught = true; assert.strictEqual(actual, cause);}
     assert.equal(caught, true);
   }
+});
+
+
+test('complete Model Source getter borrows all original captures from the same adopted Ledger once', () => {
+  const f = modelLedgerFixture({multiple: true});
+  assert.equal(f.borrow(), f.ledger); assert.equal(f.model.sourceLedger, f.ledger);
+  assert.throws(f.borrow, /InstalledModelSourceLedgerAlreadyBorrowed/);
+  assert.deepEqual(f.calls, ['original Ledger']);
+  const foreign = modelLedgerFixture({multiple: true});
+  assert.throws(() => foreign.borrow([foreign.sourceCapacities[0], {...foreign.sourceCapacities[1], managedRun: {}}]),
+    /InvalidInstalledRequestModelPreparation/);
+  assert.deepEqual(foreign.calls, []);
+});
+
+test('complete Model Source getter retains same-parent current loss and sticky original failure without another borrow', () => {
+  const changed = modelLedgerFixture({multiple: true, retire: true});
+  assert.throws(changed.borrow, /InvalidInstalledRequestModelPreparation/);
+  assert.equal(changed.model.sourceLedger, undefined); assert.deepEqual(changed.calls, ['original Ledger']);
+  const f = modelLedgerFixture({multiple: true, throwOriginal: true, cause: undefined});
+  for (let index = 0; index < 2; index++) {
+    let caught = false;
+    try {f.borrow();} catch (cause) {assert.equal(cause, undefined); caught = true;}
+    assert(caught);
+  }
+  assert.deepEqual(f.calls, ['original Ledger']);
+});
+
+
+test('actual complete Model Source preparation carries checked nonzero Stage and input coordinates into every original adapter', async () => {
+  const host = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(host, {ecmaVersion: 'latest', sourceType: 'module'}), found = new Map();
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && ['modelSourceOccurrence', 'prepareAcquisitions'].includes(node.id?.name)) {
+      assert(!found.has(node.id.name)); found.set(node.id.name, node.init);
+    }
+    for (const child of Object.values(node)) {if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);}
+  };
+  visit(ast); assert.equal(found.size, 2);
+  const prepared = {}, coordinates = Object.freeze([Object.freeze([4, 1, 0]), Object.freeze([6, 2, 1])]),
+    selected = new WeakMap([[prepared, {sourceCoordinates: coordinates}]]), calls = [], sources = [{checkedSource: {sourceRef: 'first'}}, {checkedSource: {sourceRef: 'second'}}], adapters = [{sourceAccess: {}}, {sourceAccess: {}}];
+  const node = found.get('modelSourceOccurrence');
+  const occurrence = Function('inferSelections', 'return '+host.slice(node.start, node.end))(selected);
+  const ports = {moon: {clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return 2;}}, modelSourceOccurrence: occurrence,
+    prepareAcquisition(p, access, original) {
+      assert.equal(p, prepared); assert.equal(access, undefined);
+      assert.deepEqual(original, {stage: coordinates[original.task][0], input: coordinates[original.task][1], task: original.task});
+      assert(Object.isFrozen(original)); calls.push(original); return sources[original.task];
+    }, installedSourceFor(_profile, ref) {return adapters[ref === 'first' ? 0 : 1];}, sourceProfile: {},
+    capturedDuckDBConfiguration() {assert.fail('No reconstruction of unchanged query selection');},
+    clientOperationError: code => Object.assign(new Error(code), {code})};
+  const construct = found.get('prepareAcquisitions');
+  const prepare = Function(...Object.keys(ports), 'return '+host.slice(construct.start, construct.end))(...Object.values(ports));
+  const result = await prepare(prepared);
+  assert.equal(result.length, 2); assert(Object.isFrozen(result));
+  result.forEach((value, index) => {assert.equal(value.prepared, sources[index]); assert.equal(value.adapter, adapters[index]); assert.equal(value.occurrence, calls[index]);});
+});
+
+test('actual complete Model dispatcher retains its original Run before borrowing both Source slots and never selects a legacy Ledger', () => {
+  let selected;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && source.slice(node.test.start, node.test.end).startsWith('capacities.some(')) {
+      assert(!selected); selected = node;
+    }
+    for (const child of Object.values(node)) {if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);}
+  };
+  visit(ast); assert(selected);
+  const managed = {}, prepared = {}, request = {}, plan = {}, ledger = {}, entry = {},
+    capacities = [{managedRun: managed, capacity: {}}, {managedRun: managed, capacity: {}}], calls = [], held = {managedRun: managed, plan};
+  const ports = {capacities, managedRun: managed, held, preparedProgram: prepared, requested: request,
+    registry: {}, values: {}, fragment: {}, ordered: {}, entry, preparationLease: {}, inferring: true,
+    moon: {clientProgramInstalledManagedRunPrepareLedger() {assert.fail('Use the original Model getter with its sticky custody');},
+      clientProgramPrepareMultiCapturedLocalInstalledLedger() {assert.fail('No legacy Model Ledger');}},
+    checked: value => value,
+    retainDispatchPreparationHost(e, _moon, value, p, r, owned) {
+      assert.equal(e, entry); assert.equal(value, managed); assert.equal(p, prepared); assert.equal(r, request);
+      assert.equal(owned, true); calls.push('same parent borrow');
+    }, runInfer: {prepareAcquiredLedger(args) {
+      assert.deepEqual(args, {preparedProgram: prepared, plan, sourceCapacities: capacities});
+      calls.push('both original Source slots'); return ledger;
+    }}};
+  const run = Function(...Object.keys(ports), 'let ledger;'+source.slice(selected.start, selected.end)+';return ledger;');
+  assert.equal(run(...Object.values(ports)), ledger); assert.equal(entry.borrowedSources, true);
+  assert.deepEqual(calls, ['same parent borrow', 'both original Source slots']);
+  capacities[1].managedRun = {};
+  assert.throws(() => run(...Object.values(ports)), /InstalledMultiSourceOriginalRunUnavailable/);
+  assert.deepEqual(calls, ['same parent borrow', 'both original Source slots']);
 });

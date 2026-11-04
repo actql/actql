@@ -274,3 +274,242 @@ test "original observation handed off read stop refuses new issuance without blo
   assert_true(release_original_infer_publication_capacity(capacity).unwrap())
   assert_true(cleanup(active).unwrap())
 }
+
+///|
+test "complete original observation refuses duplicate and foreign parent before metadata mutation" {
+  let (active, ledger, _) = original_observation_test_start()
+  let (foreign, foreign_ledger, _) = original_observation_test_start()
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_true(fixture_finish(foreign) is Complete(_, ..))
+  let capacity = reserve_original_infer_publication_capacity(active, 65664L, 7L).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let foreign_before = @resources.ledger_usage(foreign_ledger)
+  for owners in [[], [active, active], [active, foreign]] {
+    assert_true(
+      start_complete_original_observation_issuance(
+        owners,
+        capacity,
+        issuance_limits(),
+      )
+      is Err(Model(@model.OutputIdentity)),
+    )
+    assert_eq(@resources.ledger_usage(ledger), before)
+    assert_eq(@resources.ledger_usage(foreign_ledger), foreign_before)
+  }
+  assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(foreign).unwrap())
+}
+
+///|
+// Real checked two-Model Program, Task compiler, original Scope group and
+// native Model executions. Provider/Account and finite Resource allowances are
+// explicit component ports, not normal installed IO/backing or public Saved.
+test "complete original observation keeps compiler order when the second Model owns the one publication borrow" {
+  let source =
+    #|{"version":"actql/0.1","id":"two-original-publications","stages":[{"id":"first","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"first"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}},{"id":"second","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"second"}]},"as":"seed"},{"assert_rows":{"unique_by":["id"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"assessment"}],"results":{"rows":{"from":"assessment","fields":["id","outcome","value"]}}}],"results":{"first":{"from":{"stage":"first","result":"rows"}},"second":{"from":{"stage":"second","result":"rows"}}}}
+  let prepared = fixture_prepared(source~)
+  let occurrences = @publication_host.prepared_client_composed_infer_occurrences(
+    prepared,
+  ).unwrap()
+  assert_eq(occurrences.length(), 2)
+  let plans = occurrences.map(occurrence => {
+    // Reuse the existing independent execution-contract fixture. The normal
+    // installed graph issuer excludes per-component Result roots; the ONE
+    // multi compiler below owns this Program's complete named Result roots.
+    let contract = @publication_host.client_infer_plan_graph_execution_contract(
+      call_identity_plan(prepared, occurrence=Some(occurrence)),
+    )
+    @publication_host.issue_installed_client_composed_infer_plan_graph(
+      occurrence,
+      contract,
+      @publication_host.client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+  })
+  let manifests = @publication_host.admit_client_compilation_manifests(
+    @environment.compiler_grammar_manifest_wire(),
+    @environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  ).unwrap()
+  let compilation = @publication_host.issue_prepared_client_multi_infer_compilation(
+    prepared,
+    plans,
+    manifests,
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+  ).unwrap()
+  let compiled = @publication_host.issue_client_task_compiled_run(
+    prepared,
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let compiled = @publication_host.with_client_infer_result_policy(
+    compiled,
+    invocation_fixture_policy_cid(),
+    "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "two-original-models", "same-original", "2026-11-04T00:00:00.000Z",
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let limits = standard_limits()
+  let pair = @resources.add_ledger_limits(
+    limits.model.ledger,
+    limits.model.ledger,
+  ).unwrap()
+  let ledger = @resources.create_ledger({
+    ..pair,
+    retained_bytes: pair.retained_bytes + 1000017L,
+    execution_bytes: pair.execution_bytes + 1000012L,
+  }).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = @resources.begin_original_ledger_inventory(
+    ledger, bootstrap, 64, 64, 0,
+  ).unwrap()
+  let scopes = @publication_host.bind_client_model_read_scopes(
+    compiled,
+    definition,
+    plans,
+    ledger,
+    identity,
+    [7L, 7L],
+    [5L, 5L],
+  ).unwrap()
+  let reads = [
+    @publication_host.prepare_client_model_read(scopes[0], 7L, 5L).unwrap(),
+    @publication_host.prepare_client_model_read(scopes[1], 7L, 5L).unwrap(),
+  ]
+  let owners : Array[Execution?] = [None, None]
+  let calls = [Ref(0), Ref(0)]
+  for index in [1, 0] {
+    let provider = original_funded_start_provider(calls[index])
+    let occurrence = occurrences[index]
+    let prefix = @input.prepare_client_composed_infer_prefix(
+      prepared,
+      occurrence,
+      infer_fixture_installed_contracts(),
+      infer_fixture_values,
+    ).unwrap()
+    let consumer = @publication_host.claim_client_model_read_preparation(
+      reads[index],
+      compiled,
+      definition,
+      plans[index],
+      7L,
+      5L,
+    ).unwrap()
+    let active = start_original_composed(
+      occurrence,
+      plans[index],
+      prefix,
+      [],
+      provider,
+      limits,
+      compiled,
+      definition,
+      consumer,
+      7L,
+      5L,
+      // Same independently selected startup sub-window as the existing
+      // original-observation fixture, not the TOTAL per-Model ledger ceiling.
+      // Actual attempt/publication reservations still spend that unchanged
+      // total ceiling beside this startup; neither is removed or relaxed.
+      100L,
+      5L,
+    ).unwrap()
+    // Multi-Model dispatch selects the existing original per-occurrence
+    // BoundModelInvocationScope. The singular no-scope getter must refuse;
+    // it cannot choose a first Plan or grant another member its authority.
+    let account = Ref(evidence_account(@authorization.Allow))
+    let (active, prepared_calls, admission, prefix_work) = entry_gate_fixture(
+      calls[index],
+      account,
+      Ref("2026-11-04T00:00:00.000Z"),
+      Ref(Some(egress_fixture_observation())),
+      start_original=Some(() => active),
+      slots=1,
+    )
+    bind_model_dispatch(active, prepared_calls, admission, entry => {
+      @model.acknowledge_model_call_entry(entry, prepared_calls).unwrap()
+      |> ignore
+      true
+    }).unwrap()
+    let after = fixture_finish(active, initial_work=prefix_work)
+    match after {
+      Complete(_, ..) => ()
+      Settling(_, work~) => {
+        assert_true(
+          @model.acknowledge_model_call_settlement(
+            call_settlement(active).unwrap(),
+          ),
+        )
+        assert_true(
+          fixture_finish(active, initial_work=work) is Complete(_, ..),
+        )
+      }
+      _ =>
+        abort(
+          "actual original Model must complete or retain its original settlement",
+        )
+    }
+    owners[index] = Some(active)
+  }
+  assert_eq(calls[0].val + calls[1].val, 2)
+  let ordered = [owners[0].unwrap(), owners[1].unwrap()]
+  // Independent declared metadata window: 16*4096 +2*128 +1*256 =66048.
+  let publication = reserve_original_infer_publication_capacity(
+    ordered[1],
+    66048L,
+    7L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let issued = start_complete_original_observation_issuance(
+    ordered,
+    publication,
+    issuance_limits(),
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), before)
+  issuance_finish(issued)
+  let (observation, _) = observation_issuance_value(issued).unwrap()
+  assert_eq(@publication.model_observation_slot_count(observation), Some(2))
+  assert_true(cleanup_observation_issuance(issued).unwrap())
+  assert_true(release_original_infer_publication_capacity(publication).unwrap())
+  for index in 0..<2 {
+    assert_true(cleanup(ordered[index]).unwrap())
+    @publication_host.settle_client_model_read(reads[index], true).unwrap()
+  }
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      scopes[0],
+      compiled,
+      definition,
+      plans[0],
+      true,
+    ).unwrap(),
+  )
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scopes[1],
+      compiled,
+      definition,
+      plans[1],
+      true,
+    ).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 2)
+}

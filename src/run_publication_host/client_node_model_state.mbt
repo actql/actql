@@ -34,6 +34,9 @@ pub fn prepare_client_node_model_read_state(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientNodeModelStateWriter, ClientNodeModelStateIssue] {
+  if scope.group is Some(_) {
+    return Err(State(@resources.Original(@resources.SpentClaim)))
+  }
   // A retired bootstrap cannot fund even the subsequent layout-validation
   // workspace. This guard is non-consuming; the actual prepare repeats it.
   match @resources.check_original_state_write_preparation(scope.identity) {
