@@ -58,6 +58,11 @@ const configuration = (connection, commit = 'delegate', rangeCommand = false) =>
     entry('read', 'allow', connection, 'rows', 'read'),
     ...(rangeCommand ? [entry('range-read', 'allow', connection, 'range_target', 'read'),
       entry('range-effect', commit, connection, 'range_target', 'effect')] : []),
+    // Status and Named Result inspection have their own Account tuples;
+    // the business Source read and Run acceptance write grant neither.
+    {entry_id: 'host-read', outcome: 'allow', exclusions: [],
+      principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+      resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}},
     {entry_id: 'run', outcome: 'allow', exclusions: [], principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}},
   ].sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0)});
