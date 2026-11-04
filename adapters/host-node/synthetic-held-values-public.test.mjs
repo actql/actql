@@ -49,7 +49,11 @@ async function fixture(t, {seed = true} = {}) {
   const open = async () => client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     durability: 'durable', installation: {directory, authorization}});
   t.after(async () => {await close(); await rm(directory, {recursive: true, force: true});});
-  await open(); await close();
+  await open();
+  // Activate the lazy, empty Journal through its public read before seeding
+  // the independently authored historical-format original.
+  assert.deepEqual((await client.checkpoints()).items, []);
+  await close();
   const original = seed ? await writeSyntheticHistoricalHeldValues({directory, document,
     requestId: 'original-synthetic-values', authorization, runtimeRootUrl}) : undefined;
   const signer = {keyId: 'reviewer-key', reviewerId: 'reviewer',
