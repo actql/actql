@@ -83,15 +83,20 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
 test('current Local Host review binds the original carrier and Source builder union with existing JS selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
   const entry = currentPackageConfigurations[path];
-  assert.equal(entry.revision, '227cb49fc1a4e42776e33ec1efcdbb55ccb9260c');
-  assert.equal(entry.digest, 'ad1be1bec19e3026ec8336fa4757e8edb0ffcfc8f70c92be281d043310a4b608');
+  assert.equal(entry.revision, '583969bb5b1a668528eed5db954c2b47e6c0dad6');
+  assert.equal(entry.digest, 'ad14b60b64580f0ef6daff2aa7abee2de24af7a71bd254365ef32a18580264a0');
   const selectedTree = gitTree(root, entry.revision);
   const body = selectedTree.read(path).toString();
   assert.equal(hash(body), entry.digest);
   execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
   const jsOnly = ['installed_direct_occurrences_js_wbtest.mbt',
-    'installed_effect_content_model_js_wbtest.mbt']
+    'installed_effect_content_model_js_wbtest.mbt',
+    'installed_keyed_capture_parent_js_wbtest.mbt']
     .map(name => `    "${name}": [ "js" ],\n`);
+  const priorJsUnion = gitTree(root, '227cb49fc1a4e42776e33ec1efcdbb55ccb9260c').read(path).toString();
+  assert.equal(hash(priorJsUnion), 'ad1be1bec19e3026ec8336fa4757e8edb0ffcfc8f70c92be281d043310a4b608');
+  assert.equal(body.replace(jsOnly[2], ''), priorJsUnion,
+    'only the original managed keyed caller selector extends the prior JS union');
   let importUnion = body;
   for (const selector of jsOnly) {
     assert.equal(body.split(selector).length, 2);
@@ -99,7 +104,7 @@ test('current Local Host review binds the original carrier and Source builder un
   }
   const originalUnion = gitTree(root, 'caa8884bce17bac780ac657265bde7c23e9af61b').read(path).toString();
   assert.equal(hash(originalUnion), '8daab7851344bbffaf55267e4becbcea039d45deb6f889604f15f005bf3093a9');
-  assert.equal(importUnion, originalUnion, 'only the two actual JS fixture selectors changed');
+  assert.equal(importUnion, originalUnion, 'only the three actual JS fixture selectors changed');
   const prior = gitTree(root, 'e9b3409db9a89b230b1c5a1598f2221d6e80388e').read(path).toString();
   assert.equal(hash(prior), '42f83fa2f1ad053fa7b456e3ff58216827ae1ef8321e10b16cfe6ac79c3d7d5d');
   const dependency = '  "actql/actql/carrier_contract" @carrier,\n';
@@ -130,9 +135,10 @@ test('current Local Host review binds the original carrier and Source builder un
   assert(selected.paths.includes('src/program_source_builder/moon.pkg'));
   assert(selected.paths.includes('src/client_local_host/installed_kintone_whole_source_js_wbtest.mbt'));
   assert(selected.paths.includes('src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt'));
-  for (const name of ['installed_direct_occurrences_js_wbtest.mbt', 'installed_effect_content_model_js_wbtest.mbt'])
+  for (const name of ['installed_direct_occurrences_js_wbtest.mbt', 'installed_effect_content_model_js_wbtest.mbt',
+    'installed_keyed_capture_parent_js_wbtest.mbt'])
     assert(selected.paths.includes('src/client_local_host/' + name));
-  for (const changed of [prior, publicParent, carrierParent, originalUnion,
+  for (const changed of [prior, publicParent, carrierParent, originalUnion, priorJsUnion,
     body.replace(selector, selector.replace('"js"', '"native"')),
     ...jsOnly.map(value => body.replace(value, value.replace('"js"', '"native"')))]) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
