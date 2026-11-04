@@ -21,14 +21,25 @@ export function publicationOriginalFixture(moon, prepared, retainedOutput = fals
 // Its original Run supplies both compilation and publication; the immutable
 // Plan alone is neither an admitted Run nor a substitute publication owner.
 export function adoptCapturedPublicationFixture({moon, preparation, prepared,
-  request, identity, acquisition, limits, installedContracts, contracts: bodies}) {
-  const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(
-    moon.clientProgramCapturedNativeConfiguration(acquisition));
-  assert.ok(capacity);
-  const physical = computePhysicalCapacity(limits);
+  request, identity, acquisition, limits, captures, installedContracts, contracts: bodies}) {
+  const originals = captures ?? [{acquisition, limits}];
+  assert.ok(Array.isArray(originals) && originals.length >= 1 && originals.length <= 2);
+  assert.ok(captures === undefined || acquisition === undefined && limits === undefined);
+  const capacities = originals.map(original => {
+    const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(
+      moon.clientProgramCapturedNativeConfiguration(original.acquisition));
+    assert.ok(capacity);
+    return capacity;
+  });
+  const physical = originals.map(original => computePhysicalCapacity(original.limits));
   const [, values, fragment, ordered] = bodies;
-  return preparation.manager.adoptCapturePreparation(prepared, request, identity,
+  const run = preparation.manager.adoptCapturePreparation(prepared, request, identity,
     () => checked(moon.clientProgramInstalledManagedCapturePlanPrepare(
-      prepared, identity, [capacity], [physical.transferBytes], [physical.executionBytes],
+      prepared, identity, capacities, physical.map(value => value.transferBytes),
+      physical.map(value => value.executionBytes),
       installedContracts, values, fragment, ordered, true, undefined)));
+  // The plural fixture must pass these SAME opaque capacities to its Ledger,
+  // rather than issuing equal-shaped replacements after Plan adoption.
+  return captures === undefined ? run : Object.freeze({run,
+    capacities: Object.freeze(capacities), physical: Object.freeze(physical)});
 }

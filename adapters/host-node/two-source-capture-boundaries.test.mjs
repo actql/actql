@@ -54,7 +54,7 @@ test('plural source configuration is bounded, copied and exclusive', () => {
 
 for (const equalContent of [false, true]) {
   test(`two live captures bind every tuple member (${equalContent ? 'equal' : 'distinct'} content)`, async t => {
-    const f = await twoSourceCaptureFixture(t, {equalContent});
+    const f = await twoSourceCaptureFixture(t, {equalContent, fundedPublication: true});
     const {moon} = f;
     const counters = observeDuckDBCalls(t);
     const pair = await f.capturePair();
