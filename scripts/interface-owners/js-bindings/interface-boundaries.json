@@ -68621,7 +68621,7 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e33fcb7ce767d345a212d0cfbf49f2d94b5a2a7f956c17aeafce02f2bf90b383",
+      "sha256": "0c0616401e6da14829ca29fb58f7c3a1dfcff7ce00c0555899754156055c6f89",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
