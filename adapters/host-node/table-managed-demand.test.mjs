@@ -119,4 +119,3 @@ for (const empty of [false, true]) {
         assert.throws(() => overflowing.prepareManagedPlan(facts, inputs), {code: 'MoonBitHostFailure'});
       });
 }
-
