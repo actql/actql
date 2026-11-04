@@ -258,6 +258,15 @@ async function installation(t, {faults = [], retainedRelationOutput = false,
 }
 
 const listings = api => issueReads(api);
+const carrierSnapshots = async root => {
+  try {return await readdir(join(root, 'state', 'carrier-snapshots'));}
+  catch (error) {
+    // A failure before the first retained output creates no directory. Other
+    // filesystem failures remain failures; an absent directory is not a stop ACK.
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+};
 const assertAcquisitionReleased = observations => {
   const finished = observations.filter(([name]) =>
     name === 'dispatch_cleanup_completed');
@@ -347,8 +356,7 @@ test('installed row source retains public output across Host reopen',
         {task: 2, representation: 'retained-file'}]);
     const reads = listings(setup.api).length;
     assert.equal(reads, 2);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const resent = await client.startSource(JSON.stringify(document), {format: 'json',
       submissionRef});
     assert.deepEqual(resent.ref, run.ref);
@@ -445,8 +453,7 @@ test('retained acquired rows feed numeric group slots and two consumers',
       [{total: null, mean: null}]);
     const reads = listings(setup.api).length;
     await close();
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const reopened = await setup.open();
     const attached = await reopened.client.attach(run.ref);
     assert.deepEqual(await attached.result('grouped').all(), [
@@ -543,8 +550,7 @@ test('retained row source admits its exact row ceiling and refuses one more',
     await assert.rejects(excess.result('issues').all(),
       {code: 'ResultAccessDenied'});
     assert.equal(listings(setup.api).length, beforeExtra + 2);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const resent = await client.startSource(program, {format: 'json',
       submissionRef});
     assert.deepEqual(resent.ref, excess.ref);
@@ -680,8 +686,7 @@ test('two installed row sources retain a joined public Named Result',
     assertAcquisitionReleased(observations);
     assert.deepEqual(listings(setup.api).map(request => request.variables.id),
       ['R_hello', 'R_hello', 'R_copy']);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const resent = await client.startSource(JSON.stringify(document), {format: 'json',
       submissionRef});
     assert.deepEqual(resent.ref, run.ref);
@@ -834,8 +839,7 @@ test('retained two-source Events failure keeps cleanup for retry', async t => {
   assert.equal(observations.filter(([name]) =>
     name === 'acquisition_started').length, 2);
   assertAcquisitionReleased(observations);
-  assert.deepEqual(await readdir(join(setup.root, 'state',
-    'carrier-snapshots')), []);
+  assert.deepEqual(await carrierSnapshots(setup.root), []);
   const reopened = await setup.open();
   const attached = await reopened.client.attach(run.ref);
   const state = await attached.status();
@@ -940,8 +944,7 @@ test('a failed second row source preserves first-input cleanup without publicati
     assert.equal(observations.filter(([name]) => name === 'acquisition_completed').length, 1);
     assert.equal(observations.filter(([name]) => name === 'acquisition_cleanup_completed').length, 1);
     assertAcquisitionReleased(observations);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const reads = listings(setup.api).length;
     assert.equal(reads, 3);
     const resent = await client.startSource(document, {format: 'json',
@@ -1119,8 +1122,7 @@ test('two-source Join cancellation waits for Compute stop before input cleanup',
     assert.equal(observations.filter(([name]) =>
       name === 'acquisition_cleanup_completed').length, 2);
     assertAcquisitionReleased(observations);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const resent = await client.startSource(document, {format: 'json',
       submissionRef});
     assert.deepEqual(resent.ref, run.ref);
@@ -1163,8 +1165,7 @@ async function verifyLostRetainedStoreAcknowledgement(t, phase, event) {
   assert.equal(observations.filter(([name]) =>
     name === 'acquisition_cleanup_completed').length, 2);
   assertAcquisitionReleased(observations);
-  assert.deepEqual(await readdir(join(setup.root, 'state',
-    'carrier-snapshots')), []);
+  assert.deepEqual(await carrierSnapshots(setup.root), []);
   const reads = listings(setup.api).length;
   const resent = await client.startSource(document, {format: 'json',
     submissionRef});
@@ -1203,8 +1204,7 @@ test('retained row source does not publish after a later page fails',
     assert.equal(state.result_available, false);
     assert.equal(state.result_availability.issues.state, 'unavailable');
     assert.equal(listings(setup.api).length, 2);
-    assert.deepEqual(await readdir(join(setup.root, 'state',
-      'carrier-snapshots')), []);
+    assert.deepEqual(await carrierSnapshots(setup.root), []);
     const resent = await client.startSource(program, {format: 'json',
       submissionRef});
     assert.deepEqual(resent.ref, run.ref);
@@ -1218,7 +1218,13 @@ test('a renamed repository binding is refused until it is published again',
     await writeFile(setup.sitePath, JSON.stringify({...setup.site,
       repo: 'hello-renamed'}));
     const seen = setup.api.seen().length;
-    await assert.rejects(setup.open(), {code: 'GitHubRepositoryBindingChanged'});
+    await assert.rejects(setup.open(), error => {
+      assert.equal(error.code, 'InstalledHostInitializationFailed');
+      assert.equal(error.primaryFailure?.code, 'GitHubRepositoryBindingChanged');
+      assert.strictEqual(error.cause, error.primaryFailure);
+      assert.equal(error.cleanupHandle.status().pending, false);
+      return true;
+    });
     assert.equal(setup.api.seen().length, seen);
   });
 
