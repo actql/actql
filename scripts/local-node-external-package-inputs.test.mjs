@@ -322,3 +322,74 @@ for (const role of ['read', 'effect']) {
       ? 'ExternalReadConstructionUnavailable' : 'ExternalEffectConstructionUnavailable'});
   });
 }
+
+test('external read fixture retains its bound managed reader and original page protocol', async () => {
+  const declared = Object.freeze({catalog_cid: 'sha256:' + 'a'.repeat(64)});
+  const specification = Object.freeze({resourceOrigin: 'https://external-read.fixture.invalid',
+    namespaceId: 'fixture', environment: 'fixture', siteKey: 'fixture', siteGeneration: 1,
+    credentialAuthorityId: 'fixture', credentialKeyId: 'fixture',
+    credentialPrivateKeyPath: '/fixture/key.pem', journalRoot: '/fixture/journal'});
+  const authorization = Object.freeze({context: {contextCid: 'sha256:' + 'b'.repeat(64)}});
+  const implementation = Object.freeze({capacity: {},
+    runAcquisitionLimits: Object.freeze({maxBindings: 2, maxSecretBytes: 4096})});
+  const reader = Object.freeze({original: 'managed-reader'}), adapter = Object.freeze({original: 'adapter'});
+  const calls = [], bodies = [Buffer.from('first-original'), Buffer.from('second-original')];
+  let preparePageReader;
+  const construction = {
+    configurationReader: {async readJson() {return specification;}, async readOriginalText() {return '{}';}},
+    prepareAuthoredDeclaration() {return {declared};},
+    sourceReaderImplementation(options) {
+      assert.equal(options.columnCount, 2);
+      assert.equal(options.limits.maxResponseBytes, 4096);
+      assert.equal(options.limits.maxTotalResponseBytes, 8192);
+      assert.equal(options.limits.maxPages, 2);
+      assert.equal(options.limits.maxRows, 2);
+      assert.equal(options.limits.maxTotalRows, 4);
+      calls.push('implementation'); return implementation;
+    },
+    async openRowSite(options) {
+      assert.equal(options.runAcquisitionLimits, implementation.runAcquisitionLimits);
+      calls.push('site'); return {site: {}, authorization};
+    },
+    createSourceReader(options) {
+      assert.equal(options.implementation, implementation);
+      assert.equal(options.operation, 'external_read:records:read');
+      preparePageReader = options.preparePageReader;
+      calls.push('reader'); return reader;
+    },
+    async createRowSource(options) {
+      assert.equal(options.providerReader, reader);
+      assert.equal(Object.hasOwn(options, 'readPages'), false);
+      calls.push('source'); return adapter;
+    },
+  };
+  const load = await externalFixtureLoader('read', {});
+  const projections = [];
+  const providerMoon = {
+    externalReadRequestJson(page) {return JSON.stringify({path: `/records?page=${page}`});},
+    externalReadPageJson(body, page) {
+      assert.equal(body, bodies[page]); projections.push(page);
+      return JSON.stringify({rows: [{id: page === 0 ? 'first' : 'second', amount: page + 1}],
+        next: page === 0 ? 1 : null});
+    },
+  };
+  assert.equal(await load({version: 'actql-installed-external-read-source/0.1', connectorId: 'fixture',
+    accountConfigurationWire: '{}', siteProfilePath: '/fixture/site.json'},
+  {construction, providerMoon, installation: {responseHeaders: []}}), adapter);
+  assert.deepEqual(calls, ['implementation', 'site', 'reader', 'source']);
+  const pages = preparePageReader({resource: 'records', columns: ['id', 'amount']});
+  for (const pageIndex of [0, 1]) {
+    assert.deepEqual(pages.fetchPage({pageIndex}), {method: 'GET', target: `/records?page=${pageIndex}`});
+    assert.deepEqual(pages.decodePage({accepted: true, statusCode: 200, body: bodies[pageIndex]}, {pageIndex}),
+      {rows: [{id: pageIndex === 0 ? 'first' : 'second', amount: pageIndex + 1}], done: pageIndex === 1});
+  }
+  assert.deepEqual(projections, [0, 1]);
+  assert.throws(() => preparePageReader({resource: 'foreign'}), {code: 'UndeclaredExternalReadResource'});
+  assert.throws(() => pages.decodePage({accepted: false, statusCode: 503, body: bodies[0]}, {pageIndex: 0}),
+    {code: 'ExternalReadProviderRejected'});
+  providerMoon.externalReadRequestJson = () => JSON.stringify({refused: 'InvalidExternalReadPage'});
+  assert.throws(() => pages.fetchPage({pageIndex: 2}), {code: 'InvalidExternalReadPage'});
+  providerMoon.externalReadPageJson = () => JSON.stringify({refused: 'InvalidExternalReadPage'});
+  assert.throws(() => pages.decodePage({accepted: true, statusCode: 200, body: bodies[0]}, {pageIndex: 0}),
+    {code: 'InvalidExternalReadPage'});
+});
