@@ -3309,7 +3309,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (occurrences.length > 1) {
       const components = Object.freeze(occurrences.map(occurrence =>
         prepareInferSelection(preparedProgram, occurrence, false)));
-      inferSelections.set(preparedProgram, Object.freeze({components, sourceCoordinates: modelCoordinates,
+      // Retain only one SAME installed declaration. Equal amounts from
+      // different registrations do not establish one original quantity scope.
+      let quantityCapacity = components[0].quantityCapacity;
+      for (const component of components) {
+        if (component.quantityCapacity !== quantityCapacity) {
+          quantityCapacity = undefined;
+          break;
+        }
+      }
+      inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
         graph: Object.freeze(components.map(component => component.graph)),
         egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
     // The single occurrence can still belong to a multi-task/multi-Source

@@ -1359,3 +1359,52 @@ test('complete Host Model retains the actual installed Source profile instead of
   assert.notEqual(run.sourceProfile, f.record.mockSourceProfile);
   const finish = f.retire(); finish(); assert.equal(run.closed, true);
 });
+
+
+test('complete Model group forwards one original installed quantity scope before all Scope and Run binding', () => {
+  const begin = managerSource.indexOf('    adoptModelPreparation(');
+  const end = managerSource.indexOf('    modelSourceCoordinates(', begin);
+  assert(begin > 0 && end > begin);
+  const method = managerSource.slice(begin, end).trim().replace(/,$/u, '');
+  for (const missingRoot of [false, true]) {
+    const parent = {}, input = {}, prepared = {}, request = {}, identity = {}, plan = {}, active = {}, holder = {};
+    const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: 66n, costUnits: 0n, durationMs: 1000n})});
+    const selections = Object.freeze([0, 1].map(() => Object.freeze({graph: {}, quantityCapacity})));
+    const graph = Object.freeze(selections.map(value => value.graph)), scopes = [{}, {}], events = [];
+    const model = {graph, scope: undefined, scopes: undefined,
+      selection: Object.freeze({components: selections, quantityCapacity: missingRoot ? undefined : quantityCapacity})};
+    model.components = Object.freeze(selections.map(selection => ({group: model, selection, graph: selection.graph, scope: undefined})));
+    const ok = value => ({$tag: 1, _0: value});
+    const moon = {
+      clientProgramPreparationBorrowRead(value) {assert.equal(value, holder); return prepared;},
+      clientProgramPrepareRequestModelsReadScopesWithQuantities(...args) {
+        assert.equal(missingRoot, false);
+        assert.deepEqual(args, [parent, input, plan, 66n, 0n, 1000n]);
+        events.push('same quantities before scopes'); return ok(scopes);
+      },
+      clientProgramCompleteRequestModelPreparation(...args) {
+        assert.deepEqual(args, [parent, input, plan]); assert.equal(model.scopes, scopes);
+        assert(Object.isFrozen(scopes)); assert(model.components.every((member, index) => member.scope === scopes[index]));
+        events.push('complete'); return ok(undefined);
+      },
+      clientProgramAdoptRequestModelsPreparation(...args) {
+        assert.deepEqual(args, [parent, identity, scopes]); events.push('adopt'); return ok(active);
+      },
+    };
+    const state = {parent, prepared, compilationFamily: 'model', modelCompilation: {}, modelGraph: graph,
+      holder, context: {runtime: moon}, original: {}};
+    const producer = {preparation: state, receipt: input};
+    const object = Function('current', 'callbacks', 'originals', 'producerForRequest', 'types', 'fail', 'registerRequestRun', 'checked',
+      `return ({${method}});`)(() => {}, {request: () => request}, {}, () => producer,
+      {isProxy: () => false}, code => {throw new Error(code);}, (run, construct) => {run.value = construct();},
+      value => {assert.equal(value.$tag, 1); return value._0;});
+    if (missingRoot) {
+      assert.throws(() => object.adoptModelPreparation(prepared, identity, plan, model), /InstalledModelQuantityCapacityUnavailable/u);
+      assert.deepEqual(events, []); assert.equal(model.scope, undefined);
+    } else {
+      const run = object.adoptModelPreparation(prepared, identity, plan, model);
+      assert.equal(run.model, model); assert.equal(run.value, active); assert.equal(model.scope, scopes[0]);
+      assert.deepEqual(events, ['same quantities before scopes', 'complete', 'adopt']);
+    }
+  }
+});
