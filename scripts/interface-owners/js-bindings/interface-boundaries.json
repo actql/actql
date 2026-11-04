@@ -21944,7 +21944,8 @@
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
-            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan"
+            "publicationControl/init:prepareCheckedClientRequestModelCapturePlan/init:prepareCheckedClientRequestModelCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule"
           ],
           "exports": [],
           "attributes": {
@@ -27455,6 +27456,30 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule/init:prepareCheckedClientRequestModelDuckDBComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "sourceRef",
+            "schema",
+            "table",
+            "query",
+            "evidence",
+            "receipts",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "bindOriginal"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
           "parameters": [
             "parent",
@@ -31089,7 +31114,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f92aab6dfbc1cc3ee2f1bcccb6bfb694fc23dd4c6acc23e2028e68a8d21b6b08"
+      "sha256": "323a5d886eafc5fc78e4829902987a2644b96f743b943e6de87867ee882828a9"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -57632,7 +57657,9 @@
             "prepareRequestMockModelPlan/retainBoundsAndBudget",
             "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget",
             "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget#2",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12"
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#13",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#14"
           ],
           "exports": [],
           "attributes": {
@@ -61730,6 +61757,13 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
           "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#11",
+          "parameters": [
             "_capacity",
             "prefix",
             "bindSuffix"
@@ -61737,14 +61771,23 @@
           "async": false
         },
         {
-          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#11",
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
+          "parameters": [
+            "_capacity",
+            "prefix",
+            "bindSuffix"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#13",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#14",
           "parameters": [
             "_capacity",
             "prefix",
@@ -61807,9 +61850,7 @@
         {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
           "parameters": [
-            "_capacity",
-            "prefix",
-            "bindSuffix"
+            "value"
           ],
           "async": false
         },
@@ -62295,7 +62336,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "d9013738089fcbc11306195643a9b264dc17fab7a19c9f5591f13f68efbd01fb"
+      "sha256": "1cccc38fea00b9acc2bc559f28f13e9c2ef241f0dbca88bc76184d5f45154bfc"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

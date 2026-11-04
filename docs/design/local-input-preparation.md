@@ -5022,6 +5022,14 @@ Run's same captured input and Ledger through that retained component, and reject
 copied captures, a foreign Ledger, a spent Scope or a second host entry. This
 route does not admit serialized Models without their actual physical declaration.
 
+For the existing native DuckDB Source, that same single-capture module instead
+retains its original Source reference, schema, table and three acquisition
+protocols. The Request backs the third protocol's live material before its one
+Query/native-capacity constructor. It retains the actual pending native capture
+in the same Plan; a Row declaration, Row provider or second acquisition cannot
+stand in for it. Source execution borrows that exact capture through the existing
+managed DuckDB accessor, and keeps the original Model component and Scope.
+
 Source preparation consumes the adopted Plan's existing acquisition. Content
 borrows that same Run's Ledger and passes the same retained Row capture to the
 acquired prefix entry. Its private capture accessor checks the original receiver,

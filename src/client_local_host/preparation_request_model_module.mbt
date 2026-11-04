@@ -509,6 +509,10 @@ pub fn[I] prepare_request_model_capture_module(
   ],
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
   providers? : Array[@execution.ExecutionCapacity?]? = None,
+  native_source_ref? : String? = None,
+  native_database_schema? : String? = None,
+  native_table? : String? = None,
+  native_receipt_body? : String? = None,
   component_factory? : ((
     @execution.ExecutionCapacity,
     @execution.GeneratedSequence,
@@ -521,7 +525,28 @@ pub fn[I] prepare_request_model_capture_module(
     @execution.GeneratedSequence?,
   ) -> @local.ManagedProvider)? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
-  let count = declarations.length()
+  let native = native_source_ref is Some(_)
+  let count = if native { 1 } else { declarations.length() }
+  if (
+      native &&
+      (
+        !declarations.is_empty() ||
+        providers is Some(_) ||
+        native_database_schema is None ||
+        native_table is None ||
+        native_receipt_body is None
+      )
+    ) ||
+    (
+      !native &&
+      (
+        native_database_schema is Some(_) ||
+        native_table is Some(_) ||
+        native_receipt_body is Some(_)
+      )
+    ) {
+    return Err(Installed(Unsupported))
+  }
   if (count != 1 && count != 2) ||
     transport_bytes.length() != count ||
     transport_execution_bytes.length() != count ||
@@ -571,8 +596,10 @@ pub fn[I] prepare_request_model_capture_module(
         Err(issue) => return Err(issue)
         Ok(value) => value
       }
-      guard request_model_material_body_bytes(2, index => {
-          if index % 2 == 0 {
+      guard request_model_material_body_bytes(if native { 3 } else { 2 }, index => {
+          if index == 2 {
+            native_receipt_body.unwrap()
+          } else if index == 0 {
             query_contract_body
           } else {
             evidence_contract_body
@@ -688,12 +715,16 @@ pub fn[I] prepare_request_model_capture_module(
       // are backed before the first parse/Query call on this SAME Request.
       // Every acquisition borrows these SAME admitted protocol originals. Do
       // not parse/check the identical installation bodies for a second Source.
-      let protocols = match
-        @row_source_host.admit_row_acquisition_contracts(
-          query_contract_body, evidence_contract_body,
-        ) {
-        Err(issue) => return Err(ModelSource(issue))
-        Ok(value) => value
+      let protocols = if native {
+        None
+      } else {
+        match
+          @row_source_host.admit_row_acquisition_contracts(
+            query_contract_body, evidence_contract_body,
+          ) {
+          Err(issue) => return Err(ModelSource(issue))
+          Ok(value) => Some(value)
+        }
       }
       let direct = match request_model_direct_occurrences_owned(owner, input) {
         Ok(value) => value
@@ -740,6 +771,27 @@ pub fn[I] prepare_request_model_capture_module(
           Err(issue) => return Err(ModelQuery(issue))
           Ok(value) => value
         }
+        if native_source_ref is Some(source_ref) {
+          if @planning.query_requirement_source(requirement).0 != source_ref {
+            return Err(Installed(ForeignOriginal))
+          }
+          // The same checked Query feeds its original native pending budget;
+          // no RowDeclaration, RowAcquisition or provider is manufactured.
+          let pending = match
+            prepare_client_duckdb_capture_capacity(
+              requirement,
+              native_database_schema.unwrap(),
+              native_table.unwrap(),
+              query_contract_body,
+              evidence_contract_body,
+              native_receipt_body.unwrap(),
+            ) {
+            Err(_) => return Err(Installed(Unsupported))
+            Ok(value) => value
+          }
+          captures.push(installed_pending_duckdb_capture_capacity(pending))
+          continue
+        }
         let source = match
           @row_source_host.prepare_row_source(requirement, declarations[index]) {
           Err(issue) => return Err(ModelSource(@row_source_host.Source(issue)))
@@ -749,7 +801,7 @@ pub fn[I] prepare_request_model_capture_module(
           @row_source_host.prepare_declared_row_acquisition_with_contracts(
             source,
             declarations[index].connector_registration,
-            protocols,
+            protocols.unwrap(),
           ) {
           Err(issue) => return Err(ModelSource(issue))
           Ok(value) => value
