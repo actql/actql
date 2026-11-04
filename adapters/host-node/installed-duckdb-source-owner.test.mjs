@@ -88,6 +88,7 @@ async function publishedFixture(change = () => {}, reserve = () => {}) {
   source.evidence_bundle_cid = contentCid(source);
   const baseWire = canonicalJson(base), sourceWire = canonicalJson(source);
   const initial = {}, input = {}, unit = {}, capacity = {}, installation = Object.freeze({}), events = [], live = new Set();
+  const rawEnvironments = new WeakSet();
   const ok = value => ({$tag: 1, _0: value});
   const moon = Object.fromEntries(['ReconcileInstalledSourceConstruction', 'CompleteInstalledSourceMaterial',
     'BorrowInstalledSourceMaterial', 'BorrowedInstalledSourceEnvironment', 'ReturnInstalledSourceMaterial',
@@ -100,6 +101,10 @@ async function publishedFixture(change = () => {}, reserve = () => {}) {
     clientProgramTakeHostInitializationSourceCapacity(value) {assert.equal(value, initial); return ok({_0: input, _1: unit});},
     clientProgramContinueInstalledSourceMaterial(value, original) {assert.equal(value, unit); assert.equal(original, input); return ok(capacity);},
     clientProgramInstalledSourceConstructionCapacity: (...values) => ok({values}),
+    clientProgramComposeInstalledSourceConstructionCapacity(base, providers) {
+      assert.strictEqual(this, moon); assert(providers.length > 0);
+      events.push('compose'); return ok({base, providers: providers.slice()});
+    },
     clientProgramReserveInstalledSourceConstruction(value, original) {
       assert.equal(value, capacity); assert.equal(original, input); events.push('reserve'); reserve(events); return ok();
     },
@@ -108,7 +113,24 @@ async function publishedFixture(change = () => {}, reserve = () => {}) {
     clientProgramRetireInstalledSourceMaterial(value, original) {
       assert.equal(value, capacity); assert.equal(original, input); assert.equal(live.size, 0); events.push('retire'); return ok(true);
     },
-    clientProgramCheckEnvironment(wire) {events.push('check'); assert([baseWire, sourceWire].includes(wire)); return {wire};},
+    clientProgramCheckEnvironmentWireConstructionCapacity(...census) {
+      assert.equal(census.length, 14); assert(census.every(value => Number.isSafeInteger(value) && value >= 0));
+      return Object.freeze({census});
+    },
+    clientProgramReadCheckEnvironmentWire(wire, evidenceCid) {
+      assert(events.includes('reserve')); assert([baseWire, sourceWire].includes(wire));
+      const {evidence_bundle_cid: original, ...body} = JSON.parse(wire);
+      assert.equal(evidenceCid, original); assert.equal(evidenceCid, contentCid(body));
+      const raw = Object.freeze({wire, evidenceCid}); rawEnvironments.add(raw); return raw;
+    },
+    clientProgramCheckEnvironmentFromWireConstructionCapacity(raw) {
+      assert(rawEnvironments.has(raw)); return Object.freeze({raw});
+    },
+    clientProgramCheckEnvironmentFromWire(raw, ...flags) {
+      assert(rawEnvironments.has(raw)); assert.deepEqual(flags, [false, false, true, false, false, false, false]);
+      events.push('check'); return Object.freeze({raw});
+    },
+    clientProgramCheckEnvironment() {assert.fail('the original native Environment is not rechecked through a legacy path');},
   });
   const services = createInstalledHostServices({root: '/UNOPENED/builtin-owner', principalId: 'fixture',
     moon, initialPreparation: initial, assertCurrent() {}});
@@ -156,6 +178,7 @@ test('builtin native constructor keeps original Environment contracts and pendin
     sourceInitialization: context, environment});
   finishInstalledSourceInitialization(context, adapter);
   assert.equal(nativeLoads, 1);
+  assert(f.events.includes('compose'), 'the original common native Environment capacity stays in its construction quote');
   assert.equal(f.events.filter(event => event === 'check').length, 2, 'same Environment is not reissued');
   // Each small protocol file has its original FD lease, stat, body read and EOF read.
   assert.equal(f.events.filter(event => event === 'io-finish').length, 12);
@@ -166,6 +189,7 @@ test('builtin native constructor keeps original Environment contracts and pendin
   assert.equal(closes, 1);
   assert.equal(adapter.admitsSource(profile.sourceRef), false);
   assert.throws(() => adapter.managedCaptureCapacity({}), /InstalledSourceReaderNotCurrent/);
+  assert.throws(() => adapter.managedEffectPlanSelection(), /InstalledSourceReaderNotCurrent/);
   canClose = true; adapter.close(); adapter.close();
   assert.equal(closes, 2);
   assert.equal(retireInstalledSourceInitialization(f.services), true);
@@ -237,8 +261,11 @@ for (const [kind, change, code] of [
 for (const kind of ['backing-refusal', 'original-Account']) {
   test('builtin bound Source reserves original construction before ' + kind, async () => {
     const stop = new Error('same original ' + kind);
-    const f = await publishedFixture(undefined, events => {
-      if (kind === 'backing-refusal' && events.filter(event => event === 'reserve').length === 2) throw stop;
+    let constructing = false, constructorReservations = 0;
+    const f = await publishedFixture(undefined, () => {
+      if (!constructing) return;
+      constructorReservations++;
+      if (kind === 'backing-refusal') throw stop;
     });
     let admits = 0;
     for (const name of ['Admit', 'Missing', 'AccountJson', 'Evaluate', 'EvaluationJson',
@@ -247,7 +274,7 @@ for (const kind of ['backing-refusal', 'original-Account']) {
     }
     f.moon.executionAuthorizationAdmit = wire => {
       assert.equal(wire, '{"originalAccount":true}'); admits++;
-      assert.equal(f.events.filter(event => event === 'reserve').length, 2);
+      assert.equal(constructorReservations, 1, 'the original DuckDB constructor is backed before Account admission');
       throw stop;
     };
     const context = beginInstalledPublishedSourceInitialization(f.services, f.installation,
@@ -258,7 +285,12 @@ for (const kind of ['backing-refusal', 'original-Account']) {
       accountConfigurationWire: '{"originalAccount":true}',
       acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']}});
     const bound = bindInstalledSourceConstruction(f.services, context, profile);
+    // Environment parse/model constructors already own their separate
+    // reservations. Select this actual constructor phase, not their ordinal.
+    constructing = true;
     await assert.rejects(bound.createDuckDBSource(), cause => cause === stop);
+    assert.equal(constructorReservations, 1);
+    constructing = false;
     assert.equal(admits, kind === 'backing-refusal' ? 0 : 1);
     await assert.rejects(bound.createDuckDBSource(), {code: 'InstalledSourceConstructionUnavailable'});
     const failure = await retainBoundInstalledSourceFailure(context, stop);

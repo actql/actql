@@ -685,9 +685,15 @@ if (composed) {
     const model = await modelConfiguration(JSON.parse(readFileSync(
       'base-environment.json', 'utf8')));
     installation.modelInstallation = model.installation;
+    const installedCore = await import(new URL(
+      './node_modules/@actql/local-node/adapters/host-common/runtime-core.mjs', import.meta.url));
+    const runtimeSource = readFileSync(new URL(
+      './node_modules/@actql/local-node/adapters/host-node/infer-operation.mjs', import.meta.url));
     installation.registerModelProviders = moon => registerCompositionModel(
       moon, model.taskCid, score => appendFileSync('model-calls.jsonl',
-        JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased});
+        JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased,
+          installation: model.installation, runtimeSource,
+          publicationControl: installedCore.runtimeCore(moon).publicationControl});
   }
 }
 let remoteHost;

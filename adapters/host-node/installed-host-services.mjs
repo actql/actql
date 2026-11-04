@@ -325,12 +325,21 @@ export function installedSourceConfigurationReader(services) {
         2n * BigInt(maxBytes) + BigInt(installedConfigurationChunkBytes), workspace);
       const beforeDecode = bytes => {
         decoded = BigInt(bytes);
-        // Native parsed input, checked profile/split projections and original
-        // identity preimages can coexist. Four input-proportional native
-        // views conservatively cover those representations. Invalid UTF8 may
-        // expand to three UTF8 bytes per original byte; escaping is separate.
-        reserveSource(original, material, json ? 4n * decoded : 0n,
-          12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+        if (json) {
+          // Native parsed input, checked profile/split projections and original
+          // identity preimages can coexist. Keep their complete JSON envelope.
+          reserveSource(original, material, 4n * decoded,
+            12n * decoded, 8n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+        } else {
+          // This constructor returns one String. Lossy decoding may replace
+          // each invalid byte with three UTF8 bytes; strict decoding cannot.
+          // Original chunks and their concatenation overlap by at most two
+          // received bodies plus the last chunk. Later parse/snapshot/identity
+          // constructors reserve their own geometry before allocation.
+          const text = strictUtf8 ? decoded : 3n * decoded;
+          reserveSource(original, material, 0n, text,
+            2n * decoded + BigInt(installedConfigurationChunkBytes), workspace);
+        }
       };
       const value = await (json ? readSourceProfileJson
         : strictUtf8 ? readBoundedConfigurationUtf8 : readBoundedConfigurationText)(path,
@@ -338,7 +347,7 @@ export function installedSourceConfigurationReader(services) {
       // The original file has actually closed before retaining/reconciling.
       material.inputs.push(value);
       material.nodes += json ? 4n * decoded : 0n;
-      material.text += 12n * decoded;
+      material.text += json ? 12n * decoded : strictUtf8 ? decoded : 3n * decoded;
       // Text inputs can have an actual CA Buffer retained alongside the text.
       material.wire += json ? 0n : decoded;
       material.workspaces.delete(workspace);

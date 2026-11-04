@@ -39,7 +39,11 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
   let server;
   const authorization = label => ({
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-      account_id: 'workspace-fixture', entries: [{entry_id: 'values-write', outcome: 'allow',
+      account_id: 'workspace-fixture', entries: [
+        {entry_id: 'host-read', outcome: 'allow', principal: {any_of: [principal]},
+          connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/answer', 'run']},
+          operation: {any_of: ['read']}, exclusions: []},
+        {entry_id: 'values-write', outcome: 'allow',
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: {any_of: ['write']}, exclusions: []}]}),
     reviewers: [{keyId: 'fixture-reviewer', reviewerId: 'fixture-reviewer', principalId: principal,

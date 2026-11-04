@@ -3,6 +3,8 @@
 import assert from 'node:assert/strict';
 import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {canonical, cid} from './installed-infer-fixture.mjs';
 
 const fixture = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
 export const compositionTemplate = fixture('./composed-infer-effect.program.template.json');
@@ -96,14 +98,90 @@ export async function modelConfiguration(baseEnvironment) {
   })};
 }
 
-export function registerCompositionModel(moon, taskCid, record, {cleanup = () => true} = {}) {
+export function registerCompositionModel(moon, taskCid, record, {
+  cleanup = () => true, installation, runtimeSource, publicationControl,
+} = {}) {
+  assert(Object.isFrozen(installation), 'Original composition Model installation required');
+  assert(runtimeSource instanceof Uint8Array && runtimeSource.byteLength > 0,
+    'Original installed Model caller Source required');
+  const task = JSON.parse(installation.environmentWire).model_task_contracts
+    .find(task => task.contract_cid === taskCid);
+  assert(task, 'Same composition Model Task required');
+  const bindingOriginals = providerBindingOriginals('models/composition', {
+    selector: 'composition-risk-model', revision: 'independent-composition-provider-1'});
+  const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const supplierArtifactCid = digest(readFileSync(new URL(import.meta.url)));
+  const runtimeArtifactCid = digest(runtimeSource);
+  // This is the SAME deterministic physical supplier, not the nominal Mock
+  // path. Its response profile names its actual non-SDK implementation and
+  // original binding; profile admission never authorizes a Model call.
+  const profileBody = {
+    version: 'actql-model-response-profile/0.1',
+    adapter: {builder_id: 'fixture/composition-risk', builder_revision: '1',
+      codec_id: 'fixture/composition-risk', codec_revision: '1',
+      build_artifact_cid: supplierArtifactCid, port_abi: 'model-physical-port/1', sdk: null},
+    operation: {endpoint: JSON.parse(bindingOriginals.configuration.wire).endpoint,
+      method: 'POST', streaming: false},
+    task: {contract_cid: taskCid, kind: task.task_kind,
+      input_schema_cid: task.input_schema_cid, output_schema_cid: task.output_schema_cid},
+    completion: {validator_id: 'fixture/composition-risk', validator_revision: '1',
+      validator_artifact_cid: supplierArtifactCid, basis: 'generation_finish',
+      transport_eof: true, endpoint_envelope: true, output_contract: true},
+    probability: null,
+    observations: ['provider_request_id', 'provider_reported_model_id', 'finish_reason',
+      'input_tokens', 'output_tokens', 'provider_metadata'],
+    // Same finite response/decoder envelope as the existing non-SDK fixture;
+    // the request remains the original 1000-byte physical preflight ceiling.
+    limits: {request_bytes: 1000, response_bytes: 2048, chunk_bytes: 512, chunks: 16,
+      header_bytes: 256, metadata_bytes: 128, metadata_nodes: 16, metadata_depth: 4,
+      parse_nodes: 256, parse_depth: 16, parse_work: 8192,
+      adapter_holding_bytes: 4096, adapter_workspace_bytes: 2048,
+      active_slots: task.max_items, unsettled_slots: task.max_items},
+    controls: {model_requests: 1, retry: false, fallback: false, hedging: false,
+      tools: false, repair: false, cache: false, media_fetch: false,
+      workflow_restore: false, sdk_telemetry: false, redirect: false},
+  };
+  const profile = publicationControl.readInstalledModelResponseProfile(
+    canonical({...profileBody, self_cid: cid(profileBody)}), cid(profileBody),
+    {maxWireBytes: 16384, maxNodes: 1000, maxDepth: 30, maxMembers: 1000, maxWork: 100000});
+  const node = {...profileBody.adapter, sdk: undefined,
+    endpoint: profileBody.operation.endpoint, http_method: profileBody.operation.method,
+    streaming: false, validator_id: profileBody.completion.validator_id,
+    validator_revision: profileBody.completion.validator_revision,
+    validator_artifact_cid: supplierArtifactCid, completion_basis: profileBody.completion.basis};
+  delete node.port_abi;
+  // Reuse the existing generatedContentModelProviders fixture's conservative
+  // Node control/representation envelope. Retain every declared Task row,
+  // UTF-8/UTF-16/copy overlap, failed decoder values and response metadata.
+  // Native Graph/Model amounts are ADDED by bindInferOriginalReadRecipe;
+  // none of these declarations is a resource grant or cleanup receipt.
+  const controls = 14464n, rows = BigInt(task.max_items), limits = profileBody.limits;
+  const buffers = BigInt(limits.request_bytes + limits.response_bytes + limits.chunk_bytes +
+    limits.header_bytes + limits.metadata_bytes);
+  const read = rows * (controls + 4n * buffers + 256n * BigInt(limits.parse_nodes + limits.metadata_nodes));
+  const layoutArtifactCid = cid({profile: cid(profileBody), preparedRows: task.max_items,
+    fixedControls: String(controls), nodeRetained: String(read), nodeExecution: String(read)});
+  const originalReadRecipe = {
+    bootstrap: {bootstrapRetainedBytes: controls, bootstrapExecutionBytes: controls,
+      maxReservations: 12, maxHoldings: 8, maxDelegations: 4},
+    modelRetainedBytes: controls, modelExecutionBytes: controls,
+    currentStateCodec: {quantum: 64, comparisonWork: 26, decode: {maxWork: 100000,
+      parse: {max_input_bytes: 65536, max_nodes: 8192, max_depth: 64},
+      tree: {max_nodes: 8192, max_depth: 64, max_string_bytes: 65536, max_total_string_bytes: 65536}}},
+    storeBootstrap: {maxWireBytes: 65536, maxDirectoryEntries: 128},
+    metadataAcquisition: {metadata: {maxWireBytes: 65536, maxLedgerEntries: 16},
+      directory: {maxWireBytes: 65536, maxDirectoryEntries: 128}, retainedBytes: read, workspaceBytes: read},
+    publicationCapacity: {retainedBytes: read, workspaceBytes: read},
+    nodeInstallation: {layout: {response_profile: profile,
+      runtime_artifact_cid: runtimeArtifactCid, layout_artifact_cid: layoutArtifactCid,
+      prepared_rows: rows, retained_bytes: read, execution_bytes: read},
+    installation: node, runtimeArtifactCid, layoutArtifactCid, probability: undefined},
+  };
   const checked = value => {
     if (value?.$tag !== 1) throw new Error('CompositionModelAdmissionFailed');
     return value._0;
   };
-  return [{providerId: 'models/composition',
-    bindingOriginals: providerBindingOriginals('models/composition', {
-      selector: 'composition-risk-model', revision: 'independent-composition-provider-1'}),
+  return [{providerId: 'models/composition', originalReadRecipe, bindingOriginals,
     invoke() { throw new Error('UnpreparedCompositionModelCall'); },
     validatePrompt(actual, selector, wire) {
       return actual === taskCid && selector === 'composition-risk-model' &&

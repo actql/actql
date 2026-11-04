@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
-import {createRequire} from 'node:module';
+import {createRequire, syncBuiltinESMExports} from 'node:module';
+import fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {installedSourceIdentity, loadInstalledSource,
   publishInstalledSourceProfile} from './installed-source.mjs';
+import {installedRuntimeBundleCid, installedConfigurationChunkBytes} from './source-profile-json.mjs';
+import {installedSourceFixtureLifetime} from './fixtures/installed-source-initialization.mjs';
+import {retireInstalledSourceInitialization} from './installed-host-services.mjs';
 
 const byteLimit = 8 * 1024 * 1024;
 const canonical = value => Array.isArray(value)
@@ -76,6 +80,93 @@ function observeProvider(t) {
   return () => calls;
 }
 
+async function fundedConfiguration(t) {
+  // Register actual Source/parent retirement before directory removal.
+  const lifetime = installedSourceFixtureLifetime(t), root = await directory(t);
+  const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
+  const common = await import(runtimeUrl.href), quotes = [];
+  const moon = Object.freeze({...common, clientProgramInstalledSourceConstructionCapacity(...counts) {
+    assert.strictEqual(this, moon); quotes.push(counts);
+    return Reflect.apply(common.clientProgramInstalledSourceConstructionCapacity, common, counts);
+  }});
+  const opened = lifetime.open({root, moon, installation: Object.freeze({}),
+    runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl)});
+  return {path: join(root, 'configuration'), reader: opened.configurationReader,
+    services: opened.installationServices, quotes};
+}
+
+test('funded Source text decoder retains one String and exact file limit refusals', async t => {
+  const f = await fundedConfiguration(t), bytes = Buffer.from([0xff, 0xc0, 0x00, 0x61]);
+  await writeFile(f.path, bytes);
+  const text = await f.reader.readText(f.path, {maxBytes: bytes.length});
+  assert.equal(text, bytes.toString('utf8'));
+  const decoded = BigInt(bytes.length), textBound = 3n * decoded;
+  assert(BigInt(Buffer.byteLength(text)) <= textBound, 'replacement UTF8 belongs to the one decoded String');
+  assert(f.quotes.some(q => q[0] === 0n && q[1] === textBound && q[3] === 0n &&
+    q[4] === textBound && q[5] === 2n * decoded + BigInt(installedConfigurationChunkBytes)));
+  assert.equal(f.quotes.at(-1)[1], textBound);
+  await assert.rejects(f.reader.readText(f.path, {maxBytes: bytes.length - 1}), /InvalidInstalledSourceProfile/);
+  // A refused bound does not grant a new read or change the original reader.
+  assert.equal(await f.reader.readText(f.path, {maxBytes: bytes.length}), text);
+});
+
+test('funded Source strict UTF8 and JSON retain their distinct original decode envelopes', async t => {
+  const f = await fundedConfiguration(t), text = '\ufeff日本語😀', bytes = Buffer.from(text);
+  await writeFile(f.path, bytes);
+  assert.equal(await f.reader.readUtf8(f.path, {maxBytes: bytes.length}), text);
+  const decoded = BigInt(bytes.length);
+  assert(f.quotes.some(q => q[1] === decoded && q[4] === decoded &&
+    q[5] === 2n * decoded + BigInt(installedConfigurationChunkBytes)));
+  await writeFile(f.path, Buffer.from([0xff]));
+  await assert.rejects(f.reader.readUtf8(f.path, {maxBytes: 1}), {code: 'ERR_ENCODING_INVALID_ENCODED_DATA'});
+  const body = JSON.stringify({value: '日本語😀'}), size = BigInt(Buffer.byteLength(body));
+  await writeFile(f.path, body);
+  assert.deepEqual(await f.reader.readJson(f.path), {value: '日本語😀'});
+  assert(f.quotes.some(q => q[3] === 4n * size && q[4] === 12n * size &&
+    q[5] === 8n * size + BigInt(installedConfigurationChunkBytes)), 'full JSON envelope is unchanged');
+  await writeFile(f.path, '{"unfinished":');
+  await assert.rejects(f.reader.readJson(f.path), SyntaxError);
+});
+
+test('funded Source text decoder keeps the original failed close pending until the same FD acknowledges', async t => {
+  const f = await fundedConfiguration(t);
+  await writeFile(f.path, 'original');
+  const originalOpen = fs.open;
+  let allowClose = false, opens = 0, closes = 0, failure;
+  fs.open = async (path, ...args) => {
+    const handle = await originalOpen(path, ...args);
+    if (path !== f.path) return handle;
+    opens++;
+    return {read: (...values) => handle.read(...values), async close() {
+      closes++;
+      if (!allowClose) return false;
+      await handle.close();
+    }};
+  };
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(f.reader.readText(f.path, {maxBytes: 8}), error => {
+      failure = error;
+      assert.equal(error.cleanupHandle.status().pending, true);
+      return true;
+    });
+    assert.equal(opens, 1); assert.equal(closes, 1);
+    const primary = failure.cleanupHandle.primaryFailure;
+    assert.equal(primary.message, 'InstalledSourceProfileCleanupPending');
+    assert.equal(retireInstalledSourceInitialization(f.services), false);
+    allowClose = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(opens, 1); assert.equal(closes, 2);
+    assert.strictEqual(failure.cleanupHandle.primaryFailure, primary);
+    assert.equal(retireInstalledSourceInitialization(f.services), true);
+  } finally {
+    allowClose = true;
+    if (failure !== undefined) await failure.cleanupHandle.retry();
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
+  }
+});
+
 test('installed Source profile preserves identity and loading below and at 8 MiB', async t => {
   const root = await directory(t);
   const path = join(root, 'profile.json');
@@ -114,13 +205,18 @@ test('installed Source identity bounds each published metadata file', async t =>
   const expected = identity([{...input, accountConfigurationWire: {account_id: 'a'}},
     site, publication]);
   assert.equal(await installedSourceIdentity(path), expected);
-  for (const [metadataPath, value] of [[siteProfilePath, site], [publicationPath, publication]]) {
-    await writePadded(metadataPath, value, byteLimit);
+  // Site configuration keeps the common 8 MiB bound; a saved Salesforce
+  // generation has its own 16,000,000-byte published-format bound.
+  for (const [metadataPath, value, limit, error] of [
+    [siteProfilePath, site, byteLimit, 'InvalidInstalledSourceProfile'],
+    [publicationPath, publication, 16_000_000, 'InvalidSalesforcePublication'],
+  ]) {
+    await writePadded(metadataPath, value, limit);
     assert.equal(await installedSourceIdentity(path), expected);
-    await writePadded(metadataPath, value, byteLimit + 1);
-    await assert.rejects(installedSourceIdentity(path), {message: 'InvalidInstalledSourceProfile'});
+    await writePadded(metadataPath, value, limit + 1);
+    await assert.rejects(installedSourceIdentity(path), {message: error});
     await writeHuge(metadataPath);
-    await assert.rejects(installedSourceIdentity(path), {message: 'InvalidInstalledSourceProfile'});
+    await assert.rejects(installedSourceIdentity(path), {message: error});
     await writeFile(metadataPath, JSON.stringify(value));
     assert.equal(await installedSourceIdentity(path), expected);
   }

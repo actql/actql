@@ -44,11 +44,12 @@ test('untrusted physical ingress is refused before auth despite spoofed local he
   const address = Server.prototype.address;
   let observedBind;
   Server.prototype.address = function() {return this === server ? observedBind : address.call(this);};
-  let authentication = 0, authorization = 0, workspace = 0;
+  let authentication = 0, authorization = 0, workspace = 0, preparation = 0;
   const handler = createClientHttpHandler({loopbackHttp: true,
     authenticate() {authentication++; return 'owner';},
     authorizeConnection() {authorization++; return true;},
     workspaceForPrincipal() {workspace++; return 'workspace';},
+    prepareRequest() {preparation++; assert.fail('No Request preparation before physical admission');},
   });
   try {
     // Synthetic facts only: this test never binds a public/wildcard listener.
@@ -76,7 +77,7 @@ test('untrusted physical ingress is refused before auth despite spoofed local he
       assert.equal(status, 403);
       assert.deepEqual(body, {code: 'ClientConnectionDenied'});
     }
-    assert.deepEqual({authentication, authorization, workspace},
-      {authentication: 0, authorization: 0, workspace: 0});
+    assert.deepEqual({authentication, authorization, workspace, preparation},
+      {authentication: 0, authorization: 0, workspace: 0, preparation: 0});
   } finally {Server.prototype.address = address;}
 });

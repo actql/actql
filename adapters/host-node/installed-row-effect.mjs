@@ -2932,6 +2932,29 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }));
   };
 
+  // Repeatable checked DATA comparison, never a request constructor or send
+  // admission. Hot observation must recheck the actual current Ledger claims
+  // against the SAME still-backed requests and approved original Preview.
+  const validateRecoveredEntries = ({members, body, recorded}, entries) => {
+    if (!Array.isArray(entries) || entries.length !== members.length) fail('InstalledEffectContinuationMismatch');
+    members.forEach((member, index) => {
+      const changes = body.effects[index].changes, claims = recorded.members[index]?.claims ?? [];
+      const rows = entries[index], sourceIndexes = orderedSourceIndexes(body.effects[index]);
+      const claimBySource = new Map(sourceIndexes.map((sourceIndex, dispatchIndex) =>
+        [sourceIndex, claims[dispatchIndex]]));
+      if (!Array.isArray(rows) || rows.length !== changes.length || claims.length !== changes.length) {
+        fail('InstalledEffectContinuationMismatch');
+      }
+      rows.forEach((entry, row) => {
+        if (entry.requestCid !== claimBySource.get(row)?.canonicalRequestCid ||
+            !sameEffectValue(member.kind, entry.value, approvedValue(member.kind, changes[row])) ||
+            (targeted(member.kind) && !sameValue(entry.target, changes[row].target_row_identity))) {
+          fail('ForeignInstalledRowEffectRequest');
+        }
+      });
+    });
+  };
+
   // Each recovered row's request, rebuilt from its approved Preview row (a
   // create) or from the provider's retained data (an update), and held to
   // exactly the request its durable claim names, the value the Preview
@@ -2975,15 +2998,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     }
     const entries = members.map((member, index) => {
       const {owned} = ownerOf(member);
-      const claims = recorded.members[index]?.claims ?? [];
-      const effectMember = body.effects[index];
-      const changes = effectMember.changes;
-      const sourceIndexes = orderedSourceIndexes(effectMember);
-      const claimBySource = new Map(sourceIndexes.map((sourceIndex, dispatchIndex) =>
-        [sourceIndex, claims[dispatchIndex]]));
-      if (claims.length !== changes.length) {
-        fail('InstalledEffectContinuationMismatch');
-      }
+      const changes = body.effects[index].changes;
       const rows = !usesRecovery[index]
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
@@ -2994,21 +3009,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         })
         : (requests[index] ?? []).map(request =>
           entryOf(member, request, owned.requestCid(request)));
-      if (rows.length !== changes.length) {
-        fail('InstalledEffectContinuationMismatch');
-      }
-      rows.forEach((entry, row) => {
-        if (entry.requestCid !== claimBySource.get(row)?.canonicalRequestCid ||
-            !sameEffectValue(member.kind, entry.value, approvedValue(member.kind, changes[row])) ||
-            (targeted(member.kind) && !sameValue(entry.target,
-              changes[row].target_row_identity))) {
-          fail('ForeignInstalledRowEffectRequest');
-        }
-      });
       return Object.freeze(rows);
     });
-    return {entries: Object.freeze(entries),
-      currents: Object.freeze(currents)};
+    validateRecoveredEntries({members, body, recorded}, entries);
+    return {entries: Object.freeze(entries), currents: Object.freeze(currents)};
   };
 
   // Every original member's native recovery constructor is backed BEFORE
@@ -3020,43 +3024,106 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     assertCurrent, signal, ...facts}) => {
     if (managedEffect === undefined) return recoveredEntries(facts);
     if (managedEffect.runtime !== moon || managedEffect.closed) fail('ForeignInstalledEffectManagedRun');
-    const calls = [];
-    const members = facts.members;
-    for (const [index, member] of members.entries()) {
-      const recipe = recipeOf(member), selected = recipe?.recoveryConstruction;
-      const operation = selected === undefined ? undefined : recipe.memberOperations[selected.operationIndex]?.operation;
-      if (operation === undefined || selected.operationIndex === recipe.captureConstruction?.operationIndex) {
-        fail('InstalledEffectRecoveryConstructionUnavailable');
-      }
-      let original;
-      retainInstalledRowCaptureChild({children: requestChildren, assertCurrent, signal,
-        create() {
-          original = prepareInstalledEffectRequestChild({run: managedEffect,
+    const controlConstruction = managedEffect.controlConstruction;
+    if (typeof controlConstruction !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
+    let input = managedEffect.recoveredRequestInput;
+    if (input === undefined) {
+      // This input remains on the SAME Plan's original constructor backing.
+      // The transient recovery stage borrows it; closing that stage is not
+      // retirement of a still-needed hot-reconciliation request body.
+      input = controlConstruction(undefined, () => ({
+        body: facts.body, previewWire: facts.previewWire, members: facts.members,
+        connectorRecovery: facts.durable.connectorRecovery, result: undefined,
+        children: [], borrowers: 0, retiring: false, draining: false, failed: false, failure: undefined,
+        retire() {
+          if (this.borrowers !== 0 || this.draining) return false;
+          this.draining = true;
+          try {
+            this.retiring = true;
+            this.result = this.body = this.members = this.connectorRecovery = undefined;
+            for (const child of this.children) {
+              if (child.status().pending && child.release() !== true) return false;
+            }
+            this.children.length = 0;
+            this.failure = undefined;
+            return true;
+          } finally {this.draining = false;}
+        },
+      }), []);
+      managedEffect.recoveredRequestInput = input;
+      try {
+        const calls = [], members = facts.members;
+        for (const [index, member] of members.entries()) {
+          const recipe = recipeOf(member), selected = recipe?.recoveryConstruction;
+          const operation = selected === undefined ? undefined : recipe.memberOperations[selected.operationIndex]?.operation;
+          if (operation === undefined || selected.operationIndex === recipe.captureConstruction?.operationIndex) {
+            fail('InstalledEffectRecoveryConstructionUnavailable');
+          }
+          const original = prepareInstalledEffectRequestChild({run: managedEffect,
             memberIndex: member.memberIndex, perRow: false, rowIndex: 0,
             operationIndex: selected.operationIndex, operation,
             ...(selected.inputExtent === undefined ? {} : {inputExtent: () =>
               selected.inputExtent(facts.previewWire, facts.durable.connectorRecovery)}),
             construct: () => index + 1 === members.length ? recoveredEntries(facts) : calls[index + 1](),
-            requestsRetired: retireRequestAliases});
-          return original;
-        }});
-      // This is our known frozen native constructor, never a provider method
-      // or async child. Retention precedes even its cheap original fence.
-      const prepare = original.prepare;
-      original.checkOriginal();
-      calls.push(() => Reflect.apply(prepare, original, []));
+            requestsRetired: () => input.retiring && input.borrowers === 0 && input.result === undefined});
+          // The raw selected constructor is synchronous. Retain before any
+          // subsequent fence/failure; only final control retirement releases it.
+          input.children.push(original);
+          original.checkOriginal();
+          const prepare = original.prepare;
+          calls.push(() => Reflect.apply(prepare, original, []));
+        }
+        signal?.throwIfAborted();assertCurrent?.();
+        input.result = calls[0]();
+        signal?.throwIfAborted();assertCurrent?.();
+      } catch (cause) {input.failed = true;input.failure = cause;throw cause;}
+    } else {
+      if (input.retiring) fail('InstalledEffectRecoveryInputRetired');
+      if (input.failed) throw input.failure;
+      if (input.result === undefined) fail('InstalledEffectRecoveryInputPending');
+      // Actual admitted Preview and original installed member owners remain
+      // mandatory. A matching request CID, copied graph or new installation
+      // cannot substitute for the original input or its physical backing.
+      controlConstruction(undefined, () => {
+        if (input.body !== facts.body || input.previewWire !== facts.previewWire ||
+            input.members.length !== facts.members.length ||
+            !sameValue(input.connectorRecovery, facts.durable.connectorRecovery) ||
+            input.members.some((member, index) => ownerOf(member) !== ownerOf(facts.members[index]) ||
+              member.kind !== facts.members[index].kind || member.memberIndex !== facts.members[index].memberIndex ||
+              member.effectId !== facts.members[index].effectId || member.mapping !== facts.members[index].mapping ||
+              member.command !== facts.members[index].command)) fail('ForeignInstalledRowEffectRequest');
+        for (const child of input.children) {
+          if (child.status().pending !== true) fail('InstalledEffectRecoveryInputRetired');
+          child.checkOriginal();
+        }
+        facts.members.forEach((member, index) => {
+          for (const entry of input.result.entries[index]) {
+            if (entry.requestCid !== ownerOf(member).owned.requestCid(entry.request)) {
+              fail('ForeignInstalledRowEffectRequest');
+            }
+          }
+        });
+        validateRecoveredEntries(facts, input.result.entries);
+      }, []);
     }
     signal?.throwIfAborted();assertCurrent?.();
-    const result = calls[0]();
-    signal?.throwIfAborted();assertCurrent?.();
-    return result;
+    if (input.borrowers !== 0) fail('InstalledEffectRecoveryInputBorrowed');
+    let returned = false, borrowed = input, retireAliases = retireRequestAliases;
+    const release = () => {
+      if (returned) return;
+      if (retireAliases() !== true) return false;
+      returned = true;
+      borrowed.borrowers--;
+      borrowed = retireAliases = undefined;
+    };
+    // Keep the original borrow in the existing stage cleanup bag before its
+    // value escapes. Only its actual alias/route retirement returns the borrow.
+    input.borrowers++;
+    requestChildren.push({prepared: Object.freeze({release, retry: release,
+      status: () => Object.freeze({pending: !returned})})});
+    return input.result;
   };
 
-  // Continue a recovered capture: the exact saved Preview, requests rebuilt
-  // and held to their claims and approved rows, and the Ledger's durable
-  // claims. The installation must still be the one the Preview was authored
-  // against: a changed Mapping, binding, runtime or capability is refused
-  // before any provider I/O.
   function prepareRecovered(facts) {
     const {moon: runMoon, control, store, recovered, continuation, signal,
       retainRecoveryOwner, targetReads, managedEffect} = facts ?? {};
@@ -3090,7 +3157,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {computation, preview, storedResults} = durable;
     const previewWire = control.effectComputationPreviewWire(preview);
     const body = managedEffect === undefined ? JSON.parse(previewWire)
-      : managedEffect.controlConstruction.parsePreview(previewWire);
+      : managedEffect.controlConstruction.parsePreview(previewWire, true);
     const members = recoveredMembers(body, provider, selected);
     bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);

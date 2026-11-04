@@ -1264,7 +1264,10 @@ test "unknown Effect input funds fixed member work without reserving future poli
       plan.operation_control_capacity,
     ) <
     @execution.execution_capacity_retained_bytes(
-      installed_effect_operation_control_capacity(plan.held_children).unwrap(),
+      installed_effect_operation_control_capacity(
+        plan.held_children,
+        recovery_members=plan.operations.length(),
+      ).unwrap(),
     ),
   )
 }

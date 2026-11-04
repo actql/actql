@@ -15,28 +15,52 @@ export function selectAcquiredEffectPlanInputs({moon, preparedEffect, requestIde
   if (count === 0) return undefined;
   const select = moon.clientProgramSelectInstalledEffectSourceInput;
   if (typeof select !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
-  const declarations = [], providers = [], transferBytes = [], executionBytes = [];
+  const originals = [], declarations = [], providers = [], transferBytes = [], executionBytes = [];
   for (let task = 0; task < count; task++) {
     const selected = checked(Reflect.apply(select, moon, [preparedEffect, requestIdentity, task, 0]));
     if (moon.clientProgramSelectedSourceInputKind(selected) !== 'query') {
       throw new TypeError('UnsupportedEffectSourceRealization');
     }
-    const adapter = installedSourceFor(sourceProfile, moon.clientProgramSelectedSourceInputRef(selected));
+    const sourceRef = moon.clientProgramSelectedSourceInputRef(selected);
+    const adapter = installedSourceFor(sourceProfile, sourceRef);
     const prepare = Object.getOwnPropertyDescriptor(adapter, 'managedEffectPlanSelection')?.value;
     if (typeof prepare !== 'function') throw new TypeError('InstalledEffectPlanInputsUnavailable');
     const original = Reflect.apply(prepare, adapter, []);
-    if (original?.declaration === undefined || typeof original.transferBytes !== 'bigint' ||
+    const native = original?.nativeSource;
+    if ((original?.declaration === undefined) === (native === undefined) ||
+        typeof original.transferBytes !== 'bigint' ||
         typeof original.executionBytes !== 'bigint' || original.transferBytes < 0n || original.executionBytes < 0n) {
       throw new TypeError('InstalledSourceCapacityUnavailable');
     }
+    if (native !== undefined && (native === null || !Object.isFrozen(native) ||
+        native.sourceRef !== sourceRef || ![native.sourceRef, native.schema, native.table].every(
+          value => typeof value === 'string' && value.length > 0) ||
+        !Array.isArray(native.contracts) || !Object.isFrozen(native.contracts) || native.contracts.length !== 3 ||
+        native.contracts.some(value => typeof value !== 'string' || value.length === 0) ||
+        original.provider !== undefined)) throw new TypeError('InstalledSourceCapacityUnavailable');
+    originals.push(original);
     declarations.push(original.declaration); providers.push(original.provider);
     transferBytes.push(original.transferBytes); executionBytes.push(original.executionBytes);
   }
-  if (providers.some(value => value === undefined) && providers.some(value => value !== undefined)) {
+  let inputs;
+  if (originals.some(value => value.nativeSource !== undefined)) {
+    // Nominal inert Source inputs preserve the original occurrence order.
+    // Only the SAME Core Plan later prepares each Query/capture once.
+    inputs = originals.map(original => {
+      const native = original.nativeSource;
+      const construct = native === undefined ? moon.clientProgramInstalledEffectRowSourceInputPrepare
+        : moon.clientProgramInstalledEffectDuckDBSourceInputPrepare;
+      if (typeof construct !== 'function') throw new TypeError('InstalledEffectPlanRuntimeUnavailable');
+      return checked(Reflect.apply(construct, moon, native === undefined
+        ? [original.declaration, original.provider]
+        : [native.sourceRef, native.schema, native.table, ...native.contracts]));
+    });
+  } else if (providers.some(value => value === undefined) && providers.some(value => value !== undefined)) {
     throw new TypeError('InstalledSourceCapacityUnavailable');
   }
-  return Object.freeze({declarations: Object.freeze(declarations),
-    ...(providers[0] === undefined ? {} : {providers: Object.freeze(providers)}),
+  return Object.freeze({...(inputs === undefined ? {declarations: Object.freeze(declarations),
+    ...(providers[0] === undefined ? {} : {providers: Object.freeze(providers)})}
+    : {inputs: Object.freeze(inputs)}),
     queryContract, evidenceContract, transferBytes: Object.freeze(transferBytes),
     executionBytes: Object.freeze(executionBytes)});
 }

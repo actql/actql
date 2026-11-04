@@ -211,6 +211,49 @@ for (const sourceKind of ['source-free', 'base Source', 'provider Source']) {
   });
 }
 
+for (const model of [false, true]) for (const content of [false, true]) {
+  test(`Effect native Plan forwards original Source inputs with Model=${model} Content=${content}`, () => {
+    const prepared = {}, identity = {}, queryTime = {}, source = {}, installedContracts = {}, demand = {}, plan = {};
+    const modelDemand = model ? {} : undefined, components = model ? Object.freeze([{}]) : undefined;
+    const contentPreparation = content ? {} : undefined;
+    const sources = Object.freeze({inputs: Object.freeze([source]), queryContract: 'original-query',
+      evidenceContract: 'original-evidence', transferBytes: Object.freeze([37n]), executionBytes: Object.freeze([109n])});
+    const facts = {prepared, identity, queryTimePreparation: queryTime};
+    const inputs = {sourceInputs: sources, installedContracts, values: 'values', fragment: 'fragment', ordered: 'ordered',
+      ...(model ? {modelDemand, modelComponents: components} : {}), ...(content ? {contentPreparation} : {})};
+    const extent = {}, recipe = captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze([]),
+      rowOperations: Object.freeze([Object.freeze({operation: 'write', extent})])}), 1);
+    let demands = 0, plans = 0;
+    const moon = {clientProgramEffectAcquisitionCount: () => 1,
+      clientProgramInstalledEffectOperationDemandPrepare(p, stage, effectId, memberExtents, rowExtents) {
+        assert.strictEqual(p, prepared); assert.deepEqual([stage, effectId, memberExtents, rowExtents], [2, 'write', [], [extent]]);
+        demands++; return {$tag: 1, _0: demand};
+      },
+      clientProgramInstalledEffectManagedSourcePlanPrepare(...actual) {
+        assert.strictEqual(this, moon); plans++;
+        const expected = [prepared, identity, sources.inputs, sources.queryContract, sources.evidenceContract,
+          sources.transferBytes, sources.executionBytes, installedContracts, 'values', 'fragment', 'ordered',
+          [demand], queryTime, modelDemand, components ?? [], contentPreparation];
+        assert.equal(actual.length, expected.length);
+        actual.forEach((value, index) => index === 11 || index === 14 && !model
+          ? assert.deepEqual(value, expected[index]) : assert.strictEqual(value, expected[index]));
+        return {$tag: 1, _0: plan};
+      },
+      clientProgramInstalledEffectManagedPlanPrepare() {assert.fail('no row-only fallback for a native input');},
+    };
+    assert.strictEqual(prepareInstalledEffectManagedPlan({moon, facts, inputs,
+      unit: {stageIndex: 2}, members: [{effectId: 'write'}], recipeFor: () => recipe}), plan);
+    assert.deepEqual([demands, plans], [1, 1]);
+    for (const change of [{inputs: Object.freeze([])}, {declarations: Object.freeze([{}])}, {providers: Object.freeze([{}])}]) {
+      assert.throws(() => prepareInstalledEffectManagedPlan({moon, facts,
+        inputs: {...inputs, sourceInputs: Object.freeze({...sources, ...change})},
+        unit: {stageIndex: 2}, members: [{effectId: 'write'}], recipeFor: () => recipe}),
+      {code: 'InstalledEffectPlanInputsUnavailable'});
+    }
+    assert.deepEqual([demands, plans], [1, 1], 'invalid Source originals refuse before any operation constructor');
+  });
+}
+
 // Explicit Core ports count calls only. This refusal case does not fabricate a
 // successful native Plan, a Request parent, a source acquisition or capacity.
 test('unavailable original Source or Model inputs refuse before constructing Effect demands', () => {
@@ -898,6 +941,116 @@ test('Host Preview parse failure keeps the same active prefix and rejects a fore
   assert.throws(() => foreign.work.parsePreview('{}'), {code: 'ForeignInstalledEffectManagedRun'});
 });
 
+function retainedPreviewFixture() {
+  let parses = 0, begins = 0, currentReads = 0, currentFailure, afterCurrent;
+  const spent = new Error('original Preview constructor already selected');
+  const parse = JSON.parse;
+  let f;
+  try {
+    JSON.parse = function (...args) {parses++; return Reflect.apply(parse, this, args);};
+    f = controlWorkFixture({
+      clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+      clientProgramInstalledEffectManagedOperationPlan(parent, prepared, request) {
+        assert.strictEqual(this, f.runtime);
+        assert.deepEqual([parent, prepared, request], [f.run.value, f.run.prepared, f.run.request]);
+        currentReads++;
+        if (currentFailure) throw currentFailure;
+        const original = f.run.operationPlan;
+        afterCurrent?.();
+        return {$tag: 1, _0: original};
+      },
+      clientProgramInstalledEffectOperationControlInputBegin() {
+        if (begins++) throw spent;
+        return {$tag: 1, _0: undefined};
+      },
+    });
+  } finally {JSON.parse = parse;}
+  return {...f, spent, counts: () => ({parses, begins, currentReads}),
+    refuseCurrent: error => {currentFailure = error;}, onCurrent: callback => {afterCurrent = callback;}};
+}
+
+test('hot Preview recovery borrows the same forest through the original current Plan without another constructor', () => {
+  const f = retainedPreviewFixture(), wire = '{"rows":[{"id":"original"}]}';
+  const body = f.work.parsePreview(wire);
+  f.onCurrent(() => {
+    assert.equal(f.work.retire(), false, 'the original current callback cannot cut the borrowed forest');
+    assert.throws(() => f.work.parsePreview(wire, true), {code: 'InstalledEffectControlConstructionPending'});
+  });
+  assert.strictEqual(f.work.parsePreview(wire, true), body);
+  assert.strictEqual(f.work.parsePreview(wire, true), body);
+  assert.deepEqual(f.counts(), {parses: 1, begins: 1, currentReads: 2});
+  assert.deepEqual(f.events, ['complete']);
+  f.run.selecting = true;
+  assert.equal(f.work.retire(), false);
+  assert.throws(() => f.work.parsePreview(wire, true), {code: 'InstalledEffectControlConstructionPending'});
+  f.run.selecting = false;
+  assert.strictEqual(f.work.parsePreview(wire, true), body);
+  assert.equal(f.work.retire(), true);
+  assert.throws(() => f.work.parsePreview(wire, true), {code: 'InstalledEffectControlConstructionRetired'});
+});
+
+test('cold Preview recovery enters its first constructor while strict repeated parsing remains refused', () => {
+  const f = retainedPreviewFixture(), wire = '{"cold":true}';
+  const body = f.work.parsePreview(wire, true);
+  assert.deepEqual(body, {cold: true});
+  assert.deepEqual(f.counts(), {parses: 1, begins: 1, currentReads: 0});
+  assert.strictEqual(f.work.parsePreview(wire, true), body);
+  assert.throws(() => f.work.parsePreview(wire), error => error === f.spent);
+  assert.throws(() => f.work.parsePreview(wire, true), error => error === f.spent);
+  assert.deepEqual(f.counts(), {parses: 1, begins: 2, currentReads: 1});
+});
+
+test('Preview original borrow refuses foreign wire, stale current and reentrant record replacement', () => {
+  const wire = '{"same":true}', f = retainedPreviewFixture();
+  f.work.parsePreview(wire);
+  assert.throws(() => f.work.parsePreview('{"different":true}', true), {code: 'ForeignInstalledEffectManagedRun'});
+  const current = new Error('OriginalPreviewCurrentRefused');
+  f.refuseCurrent(current);
+  assert.throws(() => f.work.parsePreview(wire, true), error => error === current);
+  const changed = retainedPreviewFixture(); changed.work.parsePreview(wire);
+  changed.onCurrent(() => {changed.run.operationPlan = {};});
+  assert.throws(() => changed.work.parsePreview(wire, true), {code: 'ForeignInstalledEffectManagedRun'});
+  assert.deepEqual(changed.counts(), {parses: 1, begins: 1, currentReads: 1});
+  f.run.prepared = {};
+  assert.throws(() => f.work.parsePreview(wire, true), {code: 'ForeignInstalledEffectManagedRun'});
+  assert.deepEqual(f.counts(), {parses: 1, begins: 1, currentReads: 1});
+});
+
+test('Preview original borrow preserves failed parser prefix and original thrown undefined', () => {
+  const f = retainedPreviewFixture(); let primary;
+  assert.throws(() => f.work.parsePreview('{', true), error => {primary = error; return error instanceof SyntaxError;});
+  assert.throws(() => f.work.parsePreview('{}', true), error => error === primary);
+  assert.deepEqual(f.counts(), {parses: 1, begins: 1, currentReads: 0});
+  let calls = 0;
+  const missing = controlWorkFixture({clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin() {calls++; throw undefined;}});
+  for (let index = 0; index < 2; index++) {
+    let caught = false;
+    try {missing.work.parsePreview('{}', true);} catch (error) {caught = true; assert.strictEqual(error, undefined);}
+    assert.equal(caught, true);
+  }
+  assert.equal(calls, 1);
+});
+
+test('Preview original borrow retains an invalid current task until its real settlement', async () => {
+  let finish;
+  const task = new Promise(resolve => {finish = resolve;});
+  const f = controlWorkFixture({clientProgramInstalledEffectManagedPlanHasHostInput: () => true,
+    clientProgramInstalledEffectOperationControlInputBegin: () => ({$tag: 1, _0: undefined}),
+    clientProgramInstalledEffectManagedOperationPlan: () => task});
+  f.work.parsePreview('{}');
+  let primary;
+  assert.throws(() => f.work.parsePreview('{}', true), error => {
+    primary = error;return error.code === 'InvalidInstalledEffectControlConstruction';
+  });
+  assert.equal(f.run.selecting, true);
+  assert.equal(f.work.retire(), false);
+  assert.throws(() => f.work.parsePreview('{}', true), error => error === primary);
+  finish(); await new Promise(setImmediate);
+  assert.equal(f.run.selecting, false);
+  assert.equal(f.work.retire(), true);
+});
+
 test('control construction retains same thrown undefined and performs no completion or later callback', () => {
   const f=controlWorkFixture();let calls=0;
   assert.throws(()=>f.work({},()=>{calls++;throw undefined;},[]),cause=>cause===undefined);
@@ -1308,4 +1461,13 @@ test('capture and recovery constructors keep distinct original member slots and 
   const changed = Object.freeze({...original, get recoveryConstruction() {calls++; return {};}});
   assert.throws(() => captureInstalledEffectPlanRecipe(changed, 2), {code: 'InvalidInstalledEffectPlanRecipe'});
   assert.equal(calls, 0);
+});
+
+test('control retirement waits for the same recovered request body and its actual pending child ACK', () => {
+  const f=controlWorkFixture();let pending=true,calls=0;
+  const recovery=f.run.recoveredRequestInput={retire(){calls++;return !pending;}};
+  assert.equal(f.work.retire(),false);assert.strictEqual(f.run.recoveredRequestInput,recovery);
+  pending=false;assert.equal(f.work.retire(),true);assert.equal(f.run.recoveredRequestInput,undefined);
+  assert.equal(f.work.retire(),true);assert.equal(calls,2);
+  assert.throws(()=>f.work(undefined,()=>{},[]),{code:'InstalledEffectControlConstructionRetired'});
 });

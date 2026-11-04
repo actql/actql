@@ -374,11 +374,16 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   // inputs cannot select a zero-Source or ordinary-purpose replacement.
   const count = moon.clientProgramEffectAcquisitionCount(facts.prepared);
   const sources = inputs.sourceInputs;
+  const nativeInputs = sources?.inputs;
   if (!Number.isSafeInteger(count) || count < 0 ||
       count !== 0 && sources === undefined || sources !== undefined &&
       (sources === null || typeof sources !== 'object' || !Object.isFrozen(sources) ||
-       !['declarations', 'transferBytes', 'executionBytes'].every(name =>
+       !['transferBytes', 'executionBytes'].every(name =>
          Array.isArray(sources[name]) && Object.isFrozen(sources[name]) && sources[name].length === count) ||
+       (nativeInputs === undefined
+         ? !Array.isArray(sources.declarations) || !Object.isFrozen(sources.declarations) || sources.declarations.length !== count
+         : !Array.isArray(nativeInputs) || !Object.isFrozen(nativeInputs) || nativeInputs.length !== count ||
+           sources.declarations !== undefined || sources.providers !== undefined) ||
        sources.providers !== undefined && (!Array.isArray(sources.providers) ||
          !Object.isFrozen(sources.providers) || sources.providers.length !== count) ||
        typeof sources.queryContract !== 'string' || typeof sources.evidenceContract !== 'string' ||
@@ -403,6 +408,14 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   });
   const model = inputs.modelDemand !== undefined, providers = sources?.providers;
   const content = inputs.contentPreparation;
+  if (nativeInputs !== undefined) {
+    const construct = moon.clientProgramInstalledEffectManagedSourcePlanPrepare;
+    if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
+    return checked(Reflect.apply(construct, moon, [facts.prepared, facts.identity, nativeInputs,
+      sources.queryContract, sources.evidenceContract, sources.transferBytes, sources.executionBytes,
+      inputs.installedContracts, inputs.values, inputs.fragment, inputs.ordered, demands,
+      facts.queryTimePreparation, inputs.modelDemand, inputs.modelComponents ?? [], content]));
+  }
   const construct = content !== undefined && model ? moon.clientProgramInstalledEffectContentModelManagedPlanPrepare
     : content !== undefined ? moon.clientProgramInstalledEffectContentManagedPlanPrepare : model ? providers === undefined
     ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
@@ -834,6 +847,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
   let working = false, codecWorking = false, failed = false, retired = false, primary, pending, work;
+  let previewInputWire, previewInput;
   const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
     run.prepared === prepared && run.request === request && run.operationPlan === plan &&
     run.readPlan === readPlan && run.controlConstruction === work;
@@ -946,13 +960,33 @@ export function prepareInstalledEffectControlConstruction(run) {
       throw cause;
     } finally { codecWorking = false; }
   };
-  const parsePreview = wire => {
+  const parsePreview = (wire, borrowOriginal = false) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     originalRecord();
-    if (typeof wire !== 'string' || typeof hasHostInput !== 'function') {
+    if (typeof wire !== 'string' || typeof borrowOriginal !== 'boolean' || typeof hasHostInput !== 'function') {
       fail('InstalledEffectControlRuntimeUnavailable');
+    }
+    // Hot recovery borrows the SAME funded forest. A cold owner has no such
+    // original and must enter its first one-use constructor below.
+    if (borrowOriginal && previewInputWire !== undefined) {
+      if (wire !== previewInputWire) fail('ForeignInstalledEffectManagedRun');
+      working = true;
+      run.selecting = true;
+      try {
+        const current = Reflect.apply(readPlan, runtime, [parent, prepared, request]);
+        retainInvalid(current);
+        if (checked(current) !== plan) fail('ForeignInstalledEffectManagedRun');
+        originalRecord();
+        return previewInput;
+      } catch (cause) {
+        if (pending !== undefined) {failed = true; primary = cause;}
+        throw cause;
+      } finally {
+        working = false;
+        if (pending === undefined) run.selecting = false;
+      }
     }
     // Other installed recipes retain their unchanged fixed parser envelope.
     // Only the typed opted-in Plan can refine this existing control token.
@@ -963,7 +997,10 @@ export function prepareInstalledEffectControlConstruction(run) {
       return Reflect.apply(parseJson, jsonReceiver, [wire]);
     }
     if (typeof beginInput !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
-    return invoke(jsonReceiver, parseJson, [wire], wire);
+    const parsed = invoke(jsonReceiver, parseJson, [wire], wire);
+    previewInputWire = wire;
+    previewInput = parsed;
+    return parsed;
   };
   const retainInputs = inputs => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
@@ -990,9 +1027,20 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (retired) return true;
     if (!sameRecord() || run.retireControlConstruction !== retire) fail('ForeignInstalledEffectManagedRun');
     if (working || pending !== undefined || run.selecting) return false;
+    // Recovered requests remain on their original member constructor tokens
+    // while any hot observation can borrow them. A stage close is not their
+    // final retirement. Drop aliases and retire those SAME children before
+    // returning this control/parent backing; pending cleanup stays pending.
+    const recovery = run.recoveredRequestInput;
+    if (recovery !== undefined) {
+      if (recovery.retire() !== true) return false;
+      if (run.recoveredRequestInput !== recovery || !sameRecord()) fail('ForeignInstalledEffectManagedRun');
+      run.recoveredRequestInput = undefined;
+    }
     // Actual complete dispatch retirement calls this before returning its
     // Core control backing. A retained Error may itself keep a heavy prefix.
     primary = undefined;
+    previewInputWire = previewInput = undefined;
     retired = true;
     return true;
   };

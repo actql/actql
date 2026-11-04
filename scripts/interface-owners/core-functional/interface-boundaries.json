@@ -33134,7 +33134,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "d0e26149e9519aac0451f34196a1d1f5867e441da2edde6a6ba51f4a27cca7ae",
+      "sha256": "a6547ca04ee3db3badc9a71553a009a944a26af67fd29602d2f0cc44b799e9ed",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -33223,7 +33223,7 @@
         },
         {
           "name": "installed_effect_operation_control_capacity",
-          "declaration": "installed_effect_operation_control_capacity ( children : Int , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "installed_effect_operation_control_capacity ( children : Int , recovery_members ? : Int"
         },
         {
           "name": "installed_effect_operation_reservation_issue",
@@ -33290,7 +33290,6 @@
             "borrow_installed_effect_operation",
             "borrow_installed_effect_operation_original",
             "charge_installed_effect_operation",
-            "installed_effect_operation_control_capacity",
             "mark_installed_effect_operation_transfer_uncertain",
             "require_installed_effect_operation",
             "retire_installed_effect_operation",
@@ -33666,12 +33665,88 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installed_effect_operation_control_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Responsibility: the existing managed Effect and installed Row Effect retain"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Inputs and outputs: the admitted original Preview and saved provider recovery"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Identity: hot reuse requires the same Preview forest and wire, installed member"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Ownership: original member constructor tokens keep the request bodies backed."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Synchronization: one stage borrows this input at a time. Observation never"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Failure: partial construction retains its exact primary and original children;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Cancellation: neither cancellation nor Unknown permits resend, inferred stop,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Resources: the existing control tariff includes the fixed holder and borrow"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/short-command-input-capture.md",
+                "anchor": "- Extension: this is the existing provider-neutral input lifetime, without a"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-effect-create-occurrence.test.mjs",
+                "anchor": "test('hot reconciliation borrows the same still-backed recovery requests without spending another constructor'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "test('control retirement waits for the same recovered request body and its actual pending child ACK'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_borrow_js_wbtest.mbt",
+                "anchor": "test \"recovered input control vector follows actual members independently of future row operations\""
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "de57dfc1d75ad3e22be2b702a7a526073a2eee75a51adfaa55a00fa536af46bd",
+      "sha256": "4e669dce3c1b3a53072ea189cab2deac887771673967e81e621110f437f02829",
       "exports": [],
       "operations": [
         {

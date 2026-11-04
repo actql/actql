@@ -60,6 +60,72 @@ test('Effect preadmission selects the checked Source without preparing its Query
   assert.strictEqual(selected[0].adapter, adapter); assert.equal(selections, 1);
 });
 
+test('Effect native Source inputs retain complete physical bounds and each original mixed occurrence', () => {
+  const prepared = {}, request = {}, declaration = {}, provider = {}, rowInput = {}, nativeInput = {};
+  const contracts = Object.freeze(['original-query', 'original-evidence', 'original-two-receipt']);
+  const native = Object.freeze({sourceRef: 'source:native', schema: 'main', table: 'records', contracts});
+  const originals = [Object.freeze({nativeSource: native, transferBytes: 37n, executionBytes: 109n}),
+    Object.freeze({declaration, provider, transferBytes: 19n, executionBytes: 23n})];
+  const calls = [];
+  const sources = originals.map((original, index) => Object.freeze({
+    admitsSource: ref => ref === ['source:native', 'source:row'][index],
+    managedEffectPlanSelection() {assert.strictEqual(this, sources[index]); return original;},
+  }));
+  const moon = {
+    clientProgramEffectAcquisitionCount: () => 2,
+    clientProgramSelectInstalledEffectSourceInput(p, r, task, input) {
+      assert.strictEqual(p, prepared); assert.strictEqual(r, request); assert.equal(input, 0);
+      calls.push(`select-${task}`); return ok(task);
+    },
+    clientProgramSelectedSourceInputKind: () => 'query',
+    clientProgramSelectedSourceInputRef: task => ['source:row', 'source:native'][task],
+    clientProgramInstalledEffectRowSourceInputPrepare(d, p) {
+      assert.strictEqual(this, moon); assert.strictEqual(d, declaration); assert.strictEqual(p, provider);
+      calls.push('row-input'); return ok(rowInput);
+    },
+    clientProgramInstalledEffectDuckDBSourceInputPrepare(ref, schema, table, ...bodies) {
+      assert.strictEqual(this, moon); assert.deepEqual([ref, schema, table], [native.sourceRef, native.schema, native.table]);
+      assert.deepEqual(bodies, contracts); calls.push('native-input'); return ok(nativeInput);
+    },
+    clientProgramEffectPrepareLocalQueryRequirement() {assert.fail('the same Plan constructs each Query once');},
+    clientProgramPrepareDuckDBCaptureCapacity() {assert.fail('selecting inputs constructs no capture');},
+  };
+  const result = selectAcquiredEffectPlanInputs({moon, preparedEffect: prepared, requestIdentity: request,
+    sourceProfile: {sources}, queryContract: 'row-query', evidenceContract: 'row-evidence'});
+  assert.deepEqual(calls, ['select-0', 'select-1', 'row-input', 'native-input']);
+  assert.strictEqual(result.inputs[0], rowInput); assert.strictEqual(result.inputs[1], nativeInput);
+  assert.deepEqual(result.transferBytes, [19n, 37n]); assert.deepEqual(result.executionBytes, [23n, 109n]);
+  assert.equal(result.declarations, undefined); assert.equal(result.providers, undefined);
+  assert(Object.isFrozen(result)); assert(Object.isFrozen(result.inputs));
+});
+
+test('Effect native Source selection refuses foreign or incomplete originals without row fallback', () => {
+  const contracts = Object.freeze(['query', 'evidence', 'two-receipt']);
+  const native = Object.freeze({sourceRef: 'source:native', schema: 'main', table: 'records', contracts});
+  let original = Object.freeze({nativeSource: native, transferBytes: 31n, executionBytes: 71n}), constructs = 0;
+  const source = {admitsSource: ref => ref === 'source:native', managedEffectPlanSelection: () => original};
+  const moon = {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramSelectInstalledEffectSourceInput: () => ok({}), clientProgramSelectedSourceInputKind: () => 'query',
+    clientProgramSelectedSourceInputRef: () => 'source:native',
+    clientProgramInstalledEffectDuckDBSourceInputPrepare() {constructs++; throw refusal;},
+    clientProgramInstalledEffectRowSourceInputPrepare() {assert.fail('no row declaration substitute');}};
+  const options = {moon, preparedEffect: {}, requestIdentity: {}, sourceProfile: source};
+  const refusal = new Error('original-native-input-refusal');
+  assert.throws(() => selectAcquiredEffectPlanInputs(options), error => error === refusal);
+  for (const change of [
+    {nativeSource: Object.freeze({...native, sourceRef: 'source:foreign'})},
+    {nativeSource: Object.freeze({...native, contracts: Object.freeze(contracts.slice(0, 2))})},
+    {nativeSource: {...native}}, {declaration: {}}, {provider: {}}, {executionBytes: -1n},
+  ]) {
+    original = Object.freeze({nativeSource: native, transferBytes: 31n, executionBytes: 71n, ...change});
+    assert.throws(() => selectAcquiredEffectPlanInputs(options), /InstalledSourceCapacityUnavailable/);
+  }
+  assert.equal(constructs, 1);
+  original = Object.freeze({nativeSource: native, transferBytes: 31n, executionBytes: 71n});
+  delete moon.clientProgramInstalledEffectDuckDBSourceInputPrepare;
+  assert.throws(() => selectAcquiredEffectPlanInputs(options), /InstalledEffectPlanRuntimeUnavailable/);
+});
+
 function fixture() {
   const prepared = {}, request = {}, plan = {}, parent = {}, original = {};
   const facts = Object.freeze({prepared, identity: request, compilation: {}, allowed: {}, definition: {},

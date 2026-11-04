@@ -275,7 +275,18 @@ test('DuckDB quotes its actual pending capture and physical transport without se
     async () => {}, readFile, value => value, computePhysicalCapacity, new URL('./installed-duckdb-source.mjs', import.meta.url).href,
     contentCid, duckDBPhysicalTarget);
   const adapter = await create(profile, moon, {root: '/unused', principalId: 'original'});
+  const selection = adapter.managedEffectPlanSelection();
+  const native = selection.nativeSource;
+  assert.deepEqual([native.sourceRef, native.schema, native.table],
+    [profile.sourceRef, profile.schema, profile.table]);
+  assert(Object.isFrozen(selection)); assert(Object.isFrozen(native)); assert(Object.isFrozen(native.contracts));
+  assert.deepEqual(native.contracts.map(body => JSON.parse(body).version),
+    ['actql-query-acquisition-contract/0.1', 'actql-query-process-evidence-contract/0.1', 'actql-query-two-receipt-contract/0.1']);
+  assert.equal(Object.hasOwn(selection, 'declaration'), false);
+  assert.equal(Object.hasOwn(selection, 'provider'), false);
+  assert.deepEqual(calls, [], 'selecting inert native inputs prepares no Query or capture');
   const result = adapter.managedCaptureCapacity(requirement), physical = computePhysicalCapacity(profile.transportLimits);
+  assert.deepEqual([selection.transferBytes, selection.executionBytes], [physical.transferBytes, physical.executionBytes]);
   assert.deepEqual(result, {capacity, transferBytes: physical.transferBytes, executionBytes: physical.executionBytes});
   assert.deepEqual(calls, ['pending', 'typed-capacity']);
   assert.throws(() => adapter.managedCaptureCapacity({}), /InstalledSourceProgramMismatch/);
@@ -283,6 +294,7 @@ test('DuckDB quotes its actual pending capture and physical transport without se
   adapter.close();
   assert.deepEqual(calls, ['pending','typed-capacity','authorization-close']);
   assert.throws(() => adapter.managedCaptureCapacity(requirement), /InstalledSourceReaderNotCurrent/);
+  assert.throws(() => adapter.managedEffectPlanSelection(), /InstalledSourceReaderNotCurrent/);
 });
 
 
@@ -297,18 +309,23 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
     environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture',
       source_views: [{contract_cid: view}]}]})};
   const installation = Object.freeze({registration: 'builtin_source', revision: 'builtin_source/0.1'});
-  const parent = {}, preparedProgram = {}, request = {}, requirement = {}, capacity = {};
-  let next, getters = 0, forwardedCapture, forwardedContracts;
+  const parent = {}, preparedProgram = {}, preparedEffect = {}, request = {}, requirement = {}, capacity = {};
+  let next, getters = 0, effectGetters = 0, prepares = 0, originalIssue, forwardedCapture, forwardedContracts;
   const moon = {clientProgramInstalledManagedDuckDBCapture(run, program, identity, task) {
     assert.equal(this, moon); assert.equal(run, parent); assert.equal(program, preparedProgram);
     assert.equal(identity, request); assert.equal(task, 1); getters++; return {_0: requirement, _1: capacity};
+  }, clientProgramInstalledEffectManagedDuckDBCapture(run, program, identity, task) {
+    assert.equal(this, moon); assert.equal(run, parent); assert.equal(program, preparedEffect);
+    assert.equal(identity, request); assert.equal(task, 1); effectGetters++;
+    if (originalIssue !== undefined) throw originalIssue;
+    return {_0: requirement, _1: capacity};
   }};
   const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
     'contentCid', 'duckDBPhysicalTarget', 'validInstallationBinding', 'prepareCapturedDuckDBSource',
     'runtimeField', 'importMetaUrl', text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') +
       ';return createInstalledDuckDBSource;')(async () => {}, readFile, value => value,
     contentCid, duckDBPhysicalTarget, validInstallationBinding, async options => {
-      forwardedCapture = options.originalCapture; forwardedContracts = options.originalContracts; return next;
+      prepares++; forwardedCapture = options.originalCapture; forwardedContracts = options.originalContracts; return next;
     }, runtimeField,
     new URL('./installed-duckdb-source.mjs', import.meta.url).href);
   const adapter = await create(profile, moon, {root: '/same-root', principalId: 'same-principal', installation});
@@ -332,7 +349,22 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
   assert.equal(forwardedCapture.requirement, requirement);
   assert.equal(forwardedCapture.capacity, capacity);
   assert.equal(forwardedContracts, originalContracts);
+  await adapter.prepare({preparedEffect, requestIdentity: request, managedRun: parent, occurrence: {task: 1}});
+  assert.equal(effectGetters, 1); assert.equal(getters, 1);
+  assert.equal(forwardedCapture.requirement, requirement);
+  assert.equal(forwardedCapture.capacity, capacity);
+  assert.equal(forwardedContracts, originalContracts);
+  assert.equal(prepares, 3);
+  originalIssue = new TypeError('ForeignOriginal');
+  await assert.rejects(adapter.prepare({preparedEffect, requestIdentity: request,
+    managedRun: parent, occurrence: {task: 1}}), error => error === originalIssue);
+  assert.equal(prepares, 3, 'refused original never falls back to a fresh Query or physical preparation');
+  await assert.rejects(adapter.prepare({preparedProgram, preparedEffect, requestIdentity: request,
+    managedRun: parent, occurrence: {task: 1}}), /InstalledSourcePreparationMismatch/);
   const other = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
+  await assert.rejects(other.prepare({preparedEffect, requestIdentity: request,
+    managedRun: parent, occurrence: {task: 1}}), /InstalledSourcePreparationMismatch/);
+  assert.equal(prepares, 3);
   assert.throws(() => other.ordinaryRecoveryBinding(prepared), /InstalledSourcePreparationMismatch/);
   adapter.close();
   assert.throws(() => adapter.ordinaryRecoveryBinding(prepared), /InstalledSourceReaderNotCurrent/);

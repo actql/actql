@@ -17405,7 +17405,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e6babc13949a617e6a46957a0e30528a08bff4f25ab1a67d536250328620fa18",
+      "sha256": "255d08625cf84bc13c2be6da22153ecaad6e8f52f5c178e5761f1f95668dab02",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -17521,6 +17521,34 @@
           "async": false
         },
         {
+          "name": "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#4",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "selectAcquiredEffectSources",
           "parameters": [
             "moon",
@@ -17548,7 +17576,11 @@
             "selectAcquiredEffectPlanInputs",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs",
             "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#2",
-            "selectAcquiredEffectSources"
+            "selectAcquiredEffectSources",
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#3",
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#4",
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#5",
+            "selectAcquiredEffectPlanInputs/selectAcquiredEffectPlanInputs#6"
           ],
           "exports": [
             "prepareInstalledAcquiredEffectLedger",
@@ -17690,6 +17722,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('Effect native Source selection refuses foreign or incomplete originals without row fallback'"
               }
             ]
           }
@@ -62776,7 +62812,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cd57ee2e9dc6b96fa020eefac3db7873b05e071896754318c5ca51940cc6cc21",
+      "sha256": "07603f9e73e9f5868375b644071f54f7bac36f09ccd34a58ed138f1f49f61a04",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -62910,6 +62946,11 @@
           "parameters": [
             "requirement"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+          "parameters": [],
           "async": false
         },
         {
@@ -63444,7 +63485,8 @@
         {
           "operations": [
             "createInstalledDuckDBSource/adapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
-            "createInstalledDuckDBSource/capacityContracts/capacityContracts"
+            "createInstalledDuckDBSource/capacityContracts/capacityContracts",
+            "createInstalledDuckDBSource/adapter/init:managedEffectPlanSelection/init:managedEffectPlanSelection"
           ],
           "exports": [],
           "attributes": {
@@ -63506,6 +63548,10 @@
               {
                 "path": "docs/design/local-capacity-plan.md",
                 "anchor": "Plural installations forward the same parent through every selected capacity;"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('DuckDB quotes its actual pending capture and physical transport without selecting or reading it'"
               }
             ]
           }
@@ -75547,7 +75593,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "01a5508911bdf310f75b8e7afb79d7b3795d3bba2cc327163daa1eeae93efee4",
+      "sha256": "8398cba5072fe371ab519c597940da60f19734b90a8408b6641b0d2f2715526a",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -75607,7 +75653,8 @@
             "principalId",
             "moon",
             "construction",
-            "sourceInitialization"
+            "sourceInitialization",
+            "installation"
           ],
           "async": true
         },
@@ -76165,6 +76212,10 @@
               {
                 "path": "adapters/host-node/source-alias-construction.md",
                 "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/host-node/embedded-installation.test.mjs",
+                "anchor": "test(`installed connector identity preserves physical ${field} UTF-8 bytes`"
               }
             ]
           }
@@ -126595,7 +126646,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "6362c43b1c2dda6370794ae9d77e7948453b18936631d23bd70322f3302a68c9",
+      "sha256": "79f8745bb955142eacbb03c1dc8136be95d480e68bae566659a8b6fe90a3b6eb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -128762,6 +128813,18 @@
               {
                 "path": "adapters/host-node/installed-authored-command.test.mjs",
                 "anchor": "test('authored Command refuses changed identity foreign connector duplicate command and getter inputs'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source text decoder retains one String and exact file limit refusals'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source strict UTF8 and JSON retain their distinct original decode envelopes'"
+              },
+              {
+                "path": "adapters/host-node/installed-source-bounds.test.mjs",
+                "anchor": "test('funded Source text decoder keeps the original failed close pending until the same FD acknowledges'"
               }
             ]
           }
