@@ -1124,7 +1124,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1161,8 +1161,10 @@ jobs:
           openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
           sudo apt-get update
           sudo apt-get install --yes "$openssl_development" "$openssl_runtime" gnupg gpgv
+      # 4 sequential producers retain 900s each plus 30s caller allowance.
+      # The enclosing window also retains metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
-        timeout-minutes: 15
+        timeout-minutes: 65
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
@@ -1331,7 +1333,7 @@ jobs:
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
     # Preserve the complete campaign plus selected source/component preparation.
-    timeout-minutes: 60
+    timeout-minutes: 110
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1367,8 +1369,10 @@ jobs:
           fi
           command -v gpg
           command -v gpgv
+      # 4 sequential producers retain 900s each plus 30s caller allowance.
+      # The enclosing window also retains metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
-        timeout-minutes: 15
+        timeout-minutes: 65
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
@@ -1426,7 +1430,7 @@ jobs:
     needs: [select-targets, preflight]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1463,8 +1467,10 @@ jobs:
           openssl_runtime="$(node -p 'const p=require("./packages/python-local-runtime/native/crypto-component/source.json").source_targets["x86_64-unknown-linux-gnu"].license.package; p.name+"="+p.version')"
           sudo apt-get update
           sudo apt-get install --yes "$openssl_development" "$openssl_runtime"
+      # 2 sequential producers retain 900s each plus 30s caller allowance.
+      # The enclosing window also retains metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
-        timeout-minutes: 15
+        timeout-minutes: 35
         run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries bundle --seconds 900
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
