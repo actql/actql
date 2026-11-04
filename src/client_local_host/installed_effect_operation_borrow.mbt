@@ -1135,11 +1135,8 @@ fn resize_installed_effect_operation_control_construction(
             Err(issue) => return Err(issue)
           }
       }
-      guard installed_json_effect_response_construction_capacity(
-          @execution.execution_capacity(0L, 0L).unwrap(),
-          bytes,
-          nodes,
-          depth,
+      guard installed_effect_contract_response_construction_capacity(
+          bytes, nodes, depth,
         )
         is Some(codec) &&
         @execution.execution_capacity_retained_bytes(codec) <=

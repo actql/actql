@@ -87,6 +87,41 @@ fn standard_create_sequence_pair_capacity(
 }
 
 ///|
+// Original saved-control Receipt family. Both the quote and its nested codec
+// keep this SAME retained floor; a canonical-only codec must not subtract a
+// smaller tree from a reservation that still contains these four families.
+fn standard_create_saved_receipt_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  @execution.execution_capacity_inventory(
+    [
+      // Four complete returned/overlapping value families above. This
+      // intentionally also retains their private construction alternatives.
+      { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 4, },
+      // Three existing decoded-text envelopes cover12 UTF16 text domains:
+      // Ledger wire/fields, candidate wire/text, typed wire/text, expected
+      // body/text/wire, and three old/new returned-text alternatives. Input
+      // aliases are conservatively included, never used as extra grants.
+      { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
+      { unit: QuotedBytes, count: 4096L, copies: 1, },
+    ],
+    [
+      // Current Source/index/schema/canonical/writer and failed prefixes.
+      // Completed sibling codecs return before the next begins. Preserve
+      // the full conservative phase on refusal, not a successful-body cut.
+      { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 6, },
+      { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
+      // Encode/parse, canonical text emission and digest input alternatives
+      // remain separate from retained result text and received body copies.
+      { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 6, },
+    ],
+    RetainedAlongsideExecution,
+  )
+}
+
+///|
 // Existing saved-control family, including the retained Receipt's actual
 // data-key outcome path, not only the smaller logical Ledger entry. Both use
 // the same synchronous original controlConstruction frame. The normalizing
@@ -100,37 +135,11 @@ fn standard_create_saved_control_capacity(
   depth : Int,
   defer_ledger_codec? : Bool = false,
 ) -> @execution.ExecutionCapacity? {
-  guard installed_json_effect_response_construction_capacity(
-      @execution.execution_capacity(0L, 0L).unwrap(),
-      bytes,
-      nodes,
-      depth,
+  guard installed_effect_contract_response_construction_capacity(
+      bytes, nodes, depth,
     )
     is Some(ledger) &&
-    @execution.execution_capacity_inventory(
-      [
-        // Four complete returned/overlapping value families above. This
-        // intentionally also retains their private construction alternatives.
-        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 4, },
-        // Three existing decoded-text envelopes cover12 UTF16 text domains:
-        // Ledger wire/fields, candidate wire/text, typed wire/text, expected
-        // body/text/wire, and three old/new returned-text alternatives. Input
-        // aliases are conservatively included, never used as extra grants.
-        { unit: DecodedTextBytes, count: bytes.to_int64(), copies: 3, },
-        { unit: QuotedBytes, count: 4096L, copies: 1, },
-      ],
-      [
-        // Current Source/index/schema/canonical/writer and failed prefixes.
-        // Completed sibling codecs return before the next begins. Preserve
-        // the full conservative phase on refusal, not a successful-body cut.
-        { unit: ValueNodeSlots, count: nodes.to_int64(), copies: 6, },
-        { unit: CursorRootSlots, count: depth.to_int64(), copies: 2, },
-        // Encode/parse, canonical text emission and digest input alternatives
-        // remain separate from retained result text and received body copies.
-        { unit: CanonicalWireBytes, count: bytes.to_int64(), copies: 6, },
-      ],
-      RetainedAlongsideExecution,
-    )
+    standard_create_saved_receipt_capacity(bytes, nodes, depth)
     is Some(receipts) else {
     return None
   }

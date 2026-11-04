@@ -112,6 +112,57 @@ pub fn installed_json_effect_response_construction_capacity(
 }
 
 ///|
+// The closed Ledger/PublicationContract codecs return canonical values and
+// their bounded wire/identity fields, never Source Nodes or decoder Cursors.
+// Their successful canonical wire bounds the complete returned text, including
+// normalized keys. Keep a whole span-free tree, another complete wire and the
+// Ledger/contract carriers. The public response constructor above also serves
+// Cursor consumers and must keep its original larger retained inventory.
+// Only this closed contract caller can move the remaining parser/index/key
+// families to workspace. The complete old execution/refusal peak is unchanged.
+fn installed_effect_contract_response_construction_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+) -> @execution.ExecutionCapacity? {
+  guard installed_json_effect_response_construction_capacity(
+      @execution.execution_capacity(0L, 0L).unwrap(),
+      bytes,
+      nodes,
+      depth,
+    )
+    is Some(peak) &&
+    @source.json_tree_retained_construction_extent(
+      nodes,
+      nodes - 1,
+      nodes,
+      0,
+      bytes.to_int64(),
+      keep_spans=false,
+    )
+    is Some(tree) &&
+    @execution.preparation_representation_cost({
+      record_headers: tree.record_headers + 3L,
+      reference_slots: tree.reference_slots + 24L,
+      scalar_words: tree.scalar_words + 8L,
+      owned_utf16_units: tree.owned_utf16_units + bytes.to_int64(),
+      owned_wire_bytes: 0L,
+    })
+    is Some(retained) &&
+    standard_create_saved_receipt_capacity(bytes, nodes, depth) is Some(family) else {
+    return None
+  }
+  // The original control frame also retains the Receipt/Ledger siblings.
+  // Keep its unchanged family floor when deriving nested E-R scratch; treating
+  // only this codec's canonical tree as the whole returned family would charge
+  // that already retained overlap a second time on every nested entry.
+  @execution.execution_capacity(
+    Int64::max(retained, @execution.execution_capacity_retained_bytes(family)),
+    @execution.execution_capacity_execution_bytes(peak),
+  )
+}
+
+///|
 // Project only a proven span-free Host JSON/semantic capture result. The
 // complete old parser/index/key peak stays on failure and construction. Some
 // capture callers also retain semantic wire/String projections; preserve the

@@ -3218,3 +3218,16 @@ A throw, invalid asynchronous result, changed original or pending nested codec
 retains the failed prefix; neither outer completion nor Promise settlement
 acknowledges physical cleanup. Repeated Ledger wires do not consume or replace
 the separate one-use Host Preview input binding.
+
+Saved Effect contract codecs return bounded canonical values, canonical wire,
+identity and scalar usage fields. Their private Source parser, decoder index,
+ancestry and key-admission structures do not escape those synchronous calls.
+The contract-only quote moves those private roles from retained storage to
+workspace while preserving the complete original construction and failure
+peak. It keeps the existing four-Receipt family floor when the nested codec
+derives its scratch, so already retained sibling outputs are not charged a
+second time. The same original control reservation completes that scratch;
+no physical release or cancellation acknowledgment follows from its return.
+The general response constructor remains unchanged for callers that retain a
+Source Cursor. Native provider output, Grant, received/saved buffers and every
+other live child remain separately additive; no policy ceiling changes.

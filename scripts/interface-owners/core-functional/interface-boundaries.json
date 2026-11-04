@@ -32338,7 +32338,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "d2fd438585da2064f3b18c0a27bdafa674068ee9278c768d8ec57f0d8a6a5ad7",
+      "sha256": "e3538d034ef2cc0c5619d3f4909bf99857cc4dc06e4fadc46729ba382fb70d11",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -33222,13 +33222,17 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "86ea4f1eed2688ce071e4fce06dab39c5d78bae5fbbe0279378aeda614364ec3",
+      "sha256": "88c4bf4adce59ecc627d863750e67fe9db664bf23634958de4d625b29d59f0c5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
       "referenceQualification": "Source and stated native constructor components only; not complete normal recipe, authority, runtime ABI or physical acceptance",
       "exports": [],
       "operations": [
+        {
+          "name": "installed_effect_contract_response_construction_capacity",
+          "declaration": "installed_effect_contract_response_construction_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "installed_host_json_retained_roles",
           "declaration": "installed_host_json_retained_roles ( peak : @ execution . PreparationRepresentationUnits , bytes : Int , nodes : Int , keep_full_text ~ : Bool , ) - > ( @ execution . PreparationRepresentationUnits , @ execution . PreparationRepresentationUnits , ) ?"
@@ -33410,6 +33414,91 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Request-owned execution preparation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_effect_contract_response_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_request_construction.mbt",
+                "anchor": "The selected standard Effect constructor consumes the SAME native provider"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Bounds"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Form correspondence compares every immutable original field path in place."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "original spelling and request correlation. Missing/foreign originals, invalid"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous constructor metadata only; it opens no read/write operation or cleanup child and never acknowledges cancellation."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Those constructor quantities remain separate from original request/response"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Effect contract codecs return bounded canonical values, canonical wire,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native Kintone CREATE constructor inventories retain the original Mapping and"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_kintone_create_plan_js_wbtest.mbt",
+                "anchor": "test \"same Request CREATE Plan backs separate native Form and acknowledgement constructors before projection\""
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native constructor tests with an explicit initial carrier demonstrate only"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"standard JSON constructor adapter rejects malformed and overflowing opaque profiles\""
               }
             ]
           }
@@ -35084,7 +35173,7 @@
     },
     {
       "module": "src/client_local_host/installed_standard_create_recipe.mbt",
-      "sha256": "db798dd2bf7aca2a2fb40a8d572e6d4fcb460a596f778f39d7c733d945f17256",
+      "sha256": "653b9ab15e649d502bd7a0fa0725df33d4a1be77ee45315baf65605cf5eaac40",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -35126,6 +35215,10 @@
         {
           "name": "standard_create_saved_control_capacity",
           "declaration": "standard_create_saved_control_capacity ( bytes : Int , nodes : Int , depth : Int , defer_ledger_codec ? : Bool"
+        },
+        {
+          "name": "standard_create_saved_receipt_capacity",
+          "declaration": "standard_create_saved_receipt_capacity ( bytes : Int , nodes : Int , depth : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "standard_create_secret_capacity",
@@ -35419,6 +35512,75 @@
               {
                 "path": "src/client_local_host/installed_effect_host_preview_input_js_wbtest.mbt",
                 "anchor": "test \"Host Preview grows same original control before parse and keeps its returned forest across later children\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "standard_create_saved_receipt_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_standard_create_recipe.mbt",
+                "anchor": "The actual standard implementation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "Synchronous immutable implementation DATA only; no cancellation, physical ACK, permission, Run admission or cleanup owner is issued."
+            },
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Saved Effect contract codecs return bounded canonical values, canonical wire,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An installed standard implementation can supply its original native constructor"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_response_buffer_wbtest.mbt",
+                "anchor": "test \"automatic standard recipe retains original body header secret and stored response constructor domains\""
               }
             ]
           }
