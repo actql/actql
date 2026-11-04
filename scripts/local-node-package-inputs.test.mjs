@@ -180,7 +180,8 @@ test('published adapter closure retains concrete Local helpers and their same pr
   const graph = adapterModuleGraph(repository, inputs.adapterEntries);
   const copyInputs = await localNodeAdapterSourceInputs({root: repository, inputs});
   for (const name of ['request-preparation-adapter', 'installed-project-mock',
-    'installed-project-mock-answers', 'installed-mock-row-effect', 'mock-churn-risk-catalogue']) {
+    'installed-project-mock-answers', 'installed-mock-row-effect',
+    'declared-project-catalog', 'declared-file-installation']) {
     const path = `adapters/local-node/${name}.mjs`;
     assert.ok(graph.includes(path), name);
     const copied = copyInputs.filter(entry => entry.path === path);
@@ -188,6 +189,11 @@ test('published adapter closure retains concrete Local helpers and their same pr
     assert.equal(copied[0].source, join(repository, path));
     assert.ok(!graph.includes(`adapters/host-node/${name}.mjs`), name);
   }
+  // Installation reads the selected project's admitted catalog through the
+  // nominal declared-file inventory; the example DATA is not a runtime input.
+  const example = 'adapters/local-node/mock-churn-risk-catalogue.mjs';
+  assert.ok(!graph.includes(example));
+  assert.ok(!copyInputs.some(entry => entry.path === example));
   assert.equal(graph.filter(path => path.endsWith('/ordinary-node-resource-runtime.cjs')).length, 1);
   assert.ok(graph.includes('adapters/host-node/ordinary-node-resource-runtime.cjs'));
 });
