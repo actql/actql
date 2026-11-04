@@ -2920,7 +2920,8 @@ async function openInstalledHost(originalInstallation, preparation) {
               : moon.clientProgramSerializationOccurrences)(preparedProgram).length !== 0) {
           throw clientOperationError('InstalledMockModelOriginalCompositionUnavailable');
         }
-        const segments = checked((effectful ? moon.clientProgramPrepareEffectInferSegments
+        const deferredGroup = !effectful && preparation !== undefined && !retain;
+        const segments = deferredGroup ? undefined : checked((effectful ? moon.clientProgramPrepareEffectInferSegments
           : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
           occurrence, registry, values, fragment, ordered));
         const graph = preparation !== undefined
@@ -2935,7 +2936,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             moon, preparedProgram, providerId, installation, contract, configuration) : undefined);
         const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep,
           occurrence, graph, computePrefix: effectful ? runtimeField(segments, 0) : runtimeOptionalField(segments, 0),
-          computeSuffix: effectful ? runtimeOptionalField(segments, 1) : runtimeField(segments, 1),
+          computeSuffix: deferredGroup ? undefined : effectful ? runtimeOptionalField(segments, 1) : runtimeField(segments, 1),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           account, observeAccount, providerBinding,
           currentProvider() {mockModels.originalsForRuntime(moon); return true;}});
@@ -2996,7 +2997,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const deferredModelInput = restoredInfer === undefined && preparation !== undefined &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
-          (acquisitionCount === 1 &&
+          (!retain || acquisitionCount === 1 &&
             (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) ||
             acquisitionCount === 0 && physical.originalReadInstallation === undefined &&
               physical.originalReadRecipe === undefined);

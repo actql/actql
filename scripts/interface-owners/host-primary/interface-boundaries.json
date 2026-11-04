@@ -22131,7 +22131,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "53be8f8d690cb1c0228207db2ae50d6d31ca5a83b5c5422d9371dddfe4d4f033"
+      "sha256": "12e882e09d3f6f2b35068503aff809ec1e5ee787f0c6466ba49fa278c2e955d8"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
