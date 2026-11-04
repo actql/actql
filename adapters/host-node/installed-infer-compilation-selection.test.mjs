@@ -80,7 +80,7 @@ test('Host Model admission forwards the same original Request artifact into its 
 // Actual physical selection statements, explicit immutable occurrence/runtime
 // ports. No Common ABI, parent funding, provider IO or normal Host is supplied.
 function inputSelectionFixture({acquisitions = 1, managed = true, physical = true, serialized = false,
-  restored = false} = {}) {
+  restored = false, retain = true} = {}) {
   const nodes = [];
   const walk = node => {
     if (!node || typeof node !== 'object') return;
@@ -116,7 +116,7 @@ function inputSelectionFixture({acquisitions = 1, managed = true, physical = tru
       assert.equal(args[0], prepared); assert.equal(args[1], occurrence); calls.push('checked suffix'); return suffixValue;
     }};
   const ports = {preparation: managed ? {} : undefined, physical: physical ? {originalReadInstallation: {}} : {},
-    preparedProgram: prepared, occurrence, serializationGraph, effectGraph: undefined, step: 2,
+    preparedProgram: prepared, occurrence, retain, serializationGraph, effectGraph: undefined, step: 2,
     restoredInfer: restored ? {graph: {}} : undefined,
     prepareSubmit: {kindOf: () => 'effect_free'}, moon, registry: {}, values: {}, fragment: {}, ordered: {},
     checked: value => value, runtimeField: (value, index) => index === 1 ? value.suffix : value.prefix,
@@ -147,4 +147,39 @@ test('restored Model selects its original checked Result suffix without preparin
   assert.equal(f.select.segments, undefined);
   assert.equal(f.select.computeSuffix, f.suffix);
   assert.deepEqual(f.calls, ['checked suffix']);
+});
+
+
+test('checked Pure group defers every captured generic input and suffix to the one original module', () => {
+  for (const acquisitions of [1, 2]) for (const physical of [false, true]) {
+    const f = inputSelectionFixture({acquisitions, physical, retain: false});
+    assert.deepEqual(f.select, {segments: undefined, computeSuffix: undefined});
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+test('checked Pure Mock group does not lower its input before the same Request indexed module', () => {
+  const nodes = [];
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration') nodes.push(node);
+    for (const child of Object.values(node)) {if (Array.isArray(child)) child.forEach(visit); else if (child && typeof child === 'object') visit(child);}
+  };
+  visit(tree);
+  const segments = nodes.find(node => node.declarations[0]?.id?.name === 'segments' &&
+    source.slice(node.start, node.end).includes('effectful ? moon.clientProgramPrepareEffectInferSegments'));
+  assert(segments);
+  const defer = nodes.find(node => node.declarations[0]?.id?.name === 'deferredGroup');
+  const body = (defer === undefined ? '' : source.slice(defer.start, defer.end)) + source.slice(segments.start, segments.end) + ';return segments;';
+  const select = Function('effectful', 'preparation', 'retain', 'moon', 'preparedProgram', 'occurrence',
+    'registry', 'values', 'fragment', 'ordered', 'checked', body);
+  let calls = 0; const original = {}, prepared = {}, occurrence = {},
+    moon = {clientProgramPrepareComposedInferSegments(p, o) {assert.equal(p, prepared); assert.equal(o, occurrence); calls++; return original;},
+      clientProgramPrepareEffectInferSegments(p, o) {assert.equal(p, prepared); assert.equal(o, occurrence); calls++; return original;}};
+  assert.equal(select(false, {}, false, moon, prepared, occurrence, {}, {}, {}, {}, value => value), undefined);
+  assert.equal(calls, 0);
+  for (const [effectful, preparation, retain] of [[false, {}, true], [true, {}, false], [false, undefined, false]]) {
+    assert.equal(select(effectful, preparation, retain, moon, prepared, occurrence, {}, {}, {}, {}, value => value), original);
+  }
+  assert.equal(calls, 3, 'singular, Effect and independently owned legacy selection remain unchanged');
 });

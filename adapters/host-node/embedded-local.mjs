@@ -2929,7 +2929,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             prepareSerializationGraph: preparation === undefined ? undefined :
               (options, intermediate) => preparation.prepareManagedContentGraph(
                 moon, preparedProgram, options, intermediate, effectful ? occurrence : undefined)}, true);
-        const segments = serializationGraph !== undefined ? undefined : checked(
+        const deferredGroup = !effectful && preparation !== undefined && !retain;
+        const segments = serializationGraph !== undefined || deferredGroup ? undefined : checked(
           (effectful ? moon.clientProgramPrepareEffectInferSegments
             : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
           occurrence, registry, values, fragment, ordered));
@@ -3010,7 +3011,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const deferredModelInput = restoredInfer === undefined && preparation !== undefined &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
-          (acquisitionCount === 1 &&
+          (!retain || acquisitionCount === 1 &&
             (physical.originalReadInstallation !== undefined || physical.originalReadRecipe !== undefined) ||
             acquisitionCount === 0 && physical.originalReadInstallation === undefined &&
               physical.originalReadRecipe === undefined);
@@ -3323,7 +3324,16 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (occurrences.length > 1) {
       const components = Object.freeze(occurrences.map(occurrence =>
         prepareInferSelection(preparedProgram, occurrence, false)));
-      inferSelections.set(preparedProgram, Object.freeze({components, sourceCoordinates: modelCoordinates,
+      // Retain only one SAME installed declaration. Equal amounts from
+      // different registrations do not establish one original quantity scope.
+      let quantityCapacity = components[0].quantityCapacity;
+      for (const component of components) {
+        if (component.quantityCapacity !== quantityCapacity) {
+          quantityCapacity = undefined;
+          break;
+        }
+      }
+      inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
         graph: Object.freeze(components.map(component => component.graph)),
         egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
     // The single occurrence can still belong to a multi-task/multi-Source
