@@ -1,3 +1,7 @@
+import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {sourceAliasIdentityRow} from './source-alias-request.mjs';
+import {captureSourceAliasConstruction, sourceAliasProfileConstructionGeometry,
+  sourceAliasIdentityConstructionGeometry, sourceAliasCollectionConstructionGeometry} from './source-alias-construction.mjs';
 // The standard Host's installed source binding, selected by the Host
 // profile's version from the installed connector table. Each installation
 // adapter keeps its own physical I/O, grants and cleanup; the Host's Run,
@@ -34,16 +38,17 @@ import {createHash, randomUUID} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
-import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
+import {verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure}
   from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
-import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders} from './source-profile-json.mjs';
-import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader,
+import {readSourceProfileJson, installedRuntimeBundleCid, captureConfigurationReaders,
+  installedConfigurationByteLimit} from './source-profile-json.mjs';
+import {retainInstalledHostServiceInstallation, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
   beginInstalledSourceInitialization, beginInstalledPublishedSourceInitialization, finishInstalledSourceInitialization,
   bindInstalledSourceConstruction, retainBoundInstalledSourceFailure,
-  reserveInstalledSourceEnvironment, reserveInstalledSourceRuntimeIdentity,
+  reserveInstalledSourceRuntimeIdentity,
   withInstalledSourceLoading} from './installed-host-services.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile, checkInstalledDuckDBSourceProfile, createInstalledDuckDBSource} from
@@ -186,19 +191,56 @@ async function providerRuntime(entry, runtimeUrl, readRuntimeIdentity = installe
 // A connected embedded Host keeps one installed source for its lifetime.
 // Compare its full published generation and Site binding on later connects,
 // without reading a credential value or probing the provider.
-export async function installedSourceIdentity(path, {connectorTable, configurationReader} = {}) {
+export async function installedSourceIdentity(path, {connectorTable, configurationReader, moon} = {}) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  const read = captureConfigurationReaders(configurationReader, undefined,
-    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');}).readJson;
-  const profile = await read(path);
-  const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
+  const construct = captureSourceAliasConstruction(configurationReader, moon);
+  const readers = captureConfigurationReaders(configurationReader, undefined,
+    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
+  return identityFromAliasProfile(await readAliasProfile(path, readers, construct, configurationReader),
+    {connectorTable, configurationReader}, readers.readJson, construct);
+}
+
+async function identityFromAliasProfile({profile, providerProfile, queryAliases},
+  {connectorTable, configurationReader}, read, construct, optional = false) {
   // Omission and an explicitly empty alias publication have the same meaning.
   if (queryAliases.length === 0) delete profile.queryAliases;
-  const {entry, module} = await selectInstallation(profile, connectorTable);
-  const parts = await module.identityParts(profile, providerProfile, read, entry, {configurationReader});
-  return sourceIdentityFromParts(parts, queryAliases);
+  let parts;
+  try {
+    const {entry, module} = await selectInstallation(profile, connectorTable);
+    parts = await module.identityParts(profile, providerProfile, read, entry, {configurationReader});
+  } catch (cause) {
+    if (!optional || cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
+    return undefined;
+  }
+  // A funding refusal is not optional missing metadata. Keep the unchanged
+  // cause outside the namespace observation's recoverable metadata catch.
+  return constructAliasIdentity(construct, parts, queryAliases);
+}
+
+// The retained original wire selects the complete parse/snapshot demand before
+// either constructor runs. No mutable parsed request crosses a quote callback.
+async function readAliasProfile(path, readers, construct, configurationReader) {
+  const snapshot = profile => {
+    const split = splitSourceAliasProfile(profile);
+    // Identity providers borrow the same immutable request DATA. The parsed
+    // caller tree is never left as an unfrozen alias behind a quote callback.
+    if (Object.hasOwn(profile, 'queryAliases')) profile.queryAliases = split.queryAliases;
+    return Object.freeze({profile, ...split});
+  };
+  // Standalone diagnostics retain their historical read/parse/close ordering.
+  // They have no installed material to fund and cannot impersonate its reader.
+  if (configurationReader === undefined) return snapshot(await readers.readJson(path));
+  const wire = await readers.readText(path, {maxBytes: installedConfigurationByteLimit});
+  return construct(sourceAliasProfileConstructionGeometry(wire), () => snapshot(JSON.parse(wire)));
+}
+
+function constructAliasIdentity(construct, parts, aliases) {
+  if (aliases.length === 0) return sourceIdentityFromParts(parts, aliases);
+  return construct(sourceAliasIdentityConstructionGeometry(aliases), () => Object.freeze({
+    identity: sourceIdentityFromParts(parts, aliases),
+  })).identity;
 }
 
 function sourceIdentityFromParts(parts, queryAliases) {
@@ -217,8 +259,7 @@ function sourceIdentityFromParts(parts, queryAliases) {
     // exact spelling outside the configuration canonicalizer's NFC domain.
     // Fixed member order avoids treating JSON object key order as a change.
     const exact = JSON.stringify(['actql-installed-query-alias-generation/0.1',
-      queryAliases.map(entry => [entry.name, entry.sourceRef,
-        entry.sourceViewContractCid, entry.schemaContractCid])]);
+      queryAliases.map(sourceAliasIdentityRow)]);
     hash.update(String(Buffer.byteLength(exact)));
     hash.update('\0');
     hash.update(exact);
@@ -307,22 +348,27 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
   // identity metadata reads, not merely the selected provider's load call.
   const configurationReader = installationServices === undefined ? undefined
     : installedSourceConfigurationReader(installationServices);
-  const read = captureConfigurationReaders(configurationReader, undefined,
-    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');}).readJson;
-  const profile = await readProfile(path, read);
-  const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
+  const construct = captureSourceAliasConstruction(configurationReader, moon);
+  const readers = captureConfigurationReaders(configurationReader, undefined,
+    () => {throw new TypeError('InstalledConfigurationReaderUnavailable');});
+  const read = readers.readJson;
+  const {profile, providerProfile, queryAliases} = await readProfile(path,
+    selected => readAliasProfile(selected, readers, construct, configurationReader));
   const {entry, module} = await selectInstallation(profile, connectorTable);
   const checked = module.check(providerProfile);
-  let publicationRevision;
+  let identityParts, publicationRevision;
   try {
     // Metadata reads only: no provider request or credential resolution.
     const identityProfile = {...profile};
     if (queryAliases.length === 0) delete identityProfile.queryAliases;
-    publicationRevision = sourceIdentityFromParts(await module.identityParts(
-      identityProfile, providerProfile, read, entry, {configurationReader}), queryAliases);
+    identityParts = await module.identityParts(
+      identityProfile, providerProfile, read, entry, {configurationReader});
   } catch (cause) {
     if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
     // Usable positive installation metadata alone cannot prove completeness.
+  }
+  if (identityParts !== undefined) {
+    publicationRevision = constructAliasIdentity(construct, identityParts, queryAliases);
   }
   const readRuntimeIdentity = installationServices === undefined ? undefined
     : reserveInstalledSourceRuntimeIdentity(installationServices);
@@ -344,10 +390,19 @@ async function loadInstalledSourceMember(path, {root, principalId, moon,
     const source = Object.freeze({...adapter, queryAliases});
     if (publicationRevision !== undefined) {
       let current;
-      try { current = await installedSourceIdentity(path, {connectorTable, configurationReader}); }
-      catch (cause) {
-        if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
-        // Missing metadata leaves the namespace observation unresolved.
+      if (configurationReader === undefined) {
+        // Preserve the standalone diagnostic's historical optional reread.
+        try { current = await installedSourceIdentity(path, {connectorTable, moon}); }
+        catch (cause) {
+          if (cause?.cleanupHandle !== undefined || cause?.cleanupPending === true) throw cause;
+        }
+      } else {
+        // Managed profile construction is funded before optional identity
+        // metadata observation. Its quote/parse/snapshot/hash refusal must
+        // propagate unchanged, including an undefined or null thrown cause.
+        const currentProfile = await readAliasProfile(path, readers, construct, configurationReader);
+        current = await identityFromAliasProfile(currentProfile,
+          {connectorTable, configurationReader}, read, construct, true);
       }
       if (current === publicationRevision) {
         sourcePublications.set(source, Object.freeze({path,
@@ -435,10 +490,17 @@ function validPluralSourcePaths(paths) {
 }
 
 export async function loadInstalledSources(paths, options) {
+  // Capture the options once: later callbacks cannot switch the admitted
+  // service/runtime or revive a missing-services diagnostic path.
+  options = Object.freeze({...options});
+  installedSourceEnvironmentConstructionReader(options?.installationServices, options?.moon);
   if (paths.length < 2) return loadInstalledSource(paths[0], options);
   if (!validPluralSourcePaths(paths)) {
     throw new TypeError('InvalidInstalledSourceProfiles');
   }
+  const configurationReader = options.installationServices === undefined ? undefined
+    : installedSourceConfigurationReader(options.installationServices);
+  const construct = captureSourceAliasConstruction(configurationReader, options.moon);
   const sources = [];
   const closed = new Set();
   const close = async () => {
@@ -465,16 +527,16 @@ export async function loadInstalledSources(paths, options) {
         throw new TypeError('InvalidInstalledSourceReadAccesses');
       }
     }
-    let environmentWire;
+    let environmentWire, environmentOriginal;
     const bindings = new Map();
     for (const source of sources) {
-      if (options.installationServices !== undefined) reserveInstalledSourceEnvironment(
-        options.installationServices, options.baseEnvironmentWire, environmentWire, source.environmentWire);
-      const combined = composeInstalledCheckEnvironment(options.moon,
-        options.baseEnvironmentWire, environmentWire, source.environmentWire);
+      const combinedOriginal = composeInstalledSourceEnvironment(options.installationServices, options.moon,
+          options.baseEnvironmentWire, environmentOriginal, source.environmentOriginal ?? source.environmentWire);
+      const combined = combinedOriginal.wire;
       verifyInstalledConnectorBindings(environmentWire === undefined ? undefined
         : {environmentWire, connectorBindings: [...bindings.values()]}, source);
       environmentWire = combined;
+      environmentOriginal = combinedOriginal;
       // Validate a member's own duplicates before coalescing matching physical
       // bindings across members. Preserve the original declaration order.
       for (const binding of source.connectorBindings ?? []) {
@@ -483,15 +545,20 @@ export async function loadInstalledSources(paths, options) {
         }
       }
     }
-    const {queryAliases} = splitSourceAliasProfile({queryAliases:
-      sources.flatMap(source => source.queryAliases ?? [])});
-    if (new Set(queryAliases.map(alias => alias.name)).size !== queryAliases.length) {
-      throw new TypeError('InvalidPublicSourcePublication');
-    }
+    Object.freeze(sources);
+    const {queryAliases} = construct(sourceAliasCollectionConstructionGeometry(sources), () => {
+      // Every row/request is the original immutable profile snapshot. This
+      // stage owns only the aggregate list and duplicate-name collections.
+      const queryAliases = Object.freeze(sources.flatMap(source => source.queryAliases));
+      if (new Set(queryAliases.map(alias => alias.name)).size !== queryAliases.length) {
+        throw new TypeError('InvalidPublicSourcePublication');
+      }
+      return Object.freeze({queryAliases});
+    });
     return Object.freeze({
       realizationKey: sources.every(source =>
         source.realizationKey === 'duckdb-acquired')
-        ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire,
+        ? 'duckdb-acquired' : 'installed-multi-acquired', environmentWire, environmentOriginal,
       sources: Object.freeze(sources),
       connectorBindings: Object.freeze([...bindings.values()]),
       queryAliases,

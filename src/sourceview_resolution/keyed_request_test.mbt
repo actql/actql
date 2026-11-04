@@ -272,6 +272,7 @@ fn check_keyed_row_request_instance(
   }
   let wire = keyed_row_request_wire(row, 10000, 1000, 30).unwrap()
   assert_eq(@json.parse(wire), Json::object(expected))
+  check_keyed_request_wire_cursor(row, wire)
   check_keyed_row_response_instance(row, numeric_key)
   // A completed cursor has transferred its fields. A later cancel/advance must
   // neither mutate the handed-off request nor create another completion.

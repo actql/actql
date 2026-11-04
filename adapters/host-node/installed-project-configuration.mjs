@@ -22,6 +22,16 @@ export function installedProjectOriginalsForRuntime(project, moon) {
   return originalForRuntime(retained, moon);
 }
 
+// Task locators are relative to the selected registry, never the project root.
+// This shared interpretation performs no I/O and preserves the caller's existing
+// locator/containment policy. Only a live issued project supplies the base.
+export function resolveInstalledProjectTaskPath(project, moon, file) {
+  installedProjectOriginalsForRuntime(project, moon);
+  if (typeof project.registryPath !== 'string' || !project.registryPath ||
+      typeof file !== 'string' || !file) fail('InvalidInstalledProjectTaskSelection');
+  return resolve(dirname(project.registryPath), file);
+}
+
 // Managed original-reference retirement only, after the existing Host's child
 // cleanup or for an unadopted preparation. It does not acknowledge any file,
 // body, Store, startup envelope, escaped alias, garbage collection or capacity.

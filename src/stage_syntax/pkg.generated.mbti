@@ -3,6 +3,7 @@ package "actql/actql/stage_syntax"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/decode_shape",
   "actql/actql/encode_core",
   "actql/actql/program_source_builder",
   "actql/actql/source_span",
@@ -16,6 +17,8 @@ pub fn[T] admit_captured_program_input(T, @source_value.JsonDataReader[T], Limit
 pub fn admit_generated_prefix(@program_source_builder.Source, Limits) -> Result[Prefix, SyntaxError]
 
 pub fn admit_generated_source(@program_source_builder.Source, Limits) -> Result[Program, SyntaxError]
+
+pub fn admitted_source_emission_construction_extent(Int) -> @decode_shape.CollectionConstructionExtent?
 
 pub fn advance_program_json_input_preflight(ProgramJsonInput, Int) -> Result[@source_value.JsonSourcePreflightPoll, @source_value.JsonSourcePreflightIssue]
 

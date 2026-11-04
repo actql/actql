@@ -1804,9 +1804,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     if (source) {
       await callbacks.prepare(originals, view);
       bundle = callbacks.read(originals);
-      if (!Array.isArray(bundle.sources) || (project
-        ? bundle.sources.length < 1 || bundle.sources.length > 128
-        : bundle.sources.length !== 2)) fail('InstalledSourcePreparationMismatch');
+      if (!Array.isArray(bundle.sources) || bundle.sources.length < 1 ||
+          bundle.sources.length > 128) fail('InstalledSourcePreparationMismatch');
     }
     current(); return view;
   } catch (cause) {

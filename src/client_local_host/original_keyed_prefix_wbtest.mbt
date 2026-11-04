@@ -14,7 +14,9 @@ priv struct OriginalKeyedPrefixFixture {
 }
 
 ///|
-fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
+fn original_keyed_prefix_fixture(
+  borrowed_inputs? : Bool = false,
+) -> OriginalKeyedPrefixFixture raise {
   let source_contracts = prepare_installed_sequence_contracts(
     source_query_original_registry,
     source_query_original_values,
@@ -74,6 +76,29 @@ fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
   )
   // Existing selected provider allowances and bootstrap lifetime fixture only;
   // these are not normal-profile physical coefficients or a public grant.
+  let extra = if borrowed_inputs {
+    let units = @row_source_host.row_captured_inputs_construction_inventory(1).unwrap()
+    let capacity = @execution.preparation_execution_capacity({
+      retained: units,
+      workspace: {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      },
+      retained_nodes: 0L,
+      workspace_nodes: 0L,
+      retained_bytes: 0L,
+      workspace_bytes: 0L,
+    }).unwrap()
+    (
+      @execution.execution_capacity_retained_bytes(capacity),
+      @execution.execution_capacity_execution_bytes(capacity),
+    )
+  } else {
+    (0L, 0L)
+  }
   let ledger = @resources.create_ledger({
     planning_work: 3,
     attempts: 2,
@@ -83,15 +108,21 @@ fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
       acquisition,
     ) +
     @execution.execution_capacity_retained_bytes(capacity) +
-    3L,
+    3L +
+    extra.0,
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
       acquisition,
     ) +
     4096L +
     @execution.execution_capacity_execution_bytes(capacity) +
-    2L,
+    2L +
+    extra.1,
   }).unwrap()
-  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let bootstrap = @resources.reserve_capacity(
+    ledger,
+    3L + extra.0,
+    2L + extra.1,
+  ).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
     compiled, definition, plan, ledger, bootstrap, 2, 1, 0,
   ).unwrap()
@@ -398,5 +429,83 @@ test "original keyed left prefix refuses workspace one above remaining retention
   assert_eq(before.attempts, 1)
   assert_eq(before.holdings, 1)
   assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
+  original_keyed_prefix_close(value)
+}
+
+///|
+test "borrowed original capture inventory keeps failed prefix cleanup identities" {
+  let value = original_keyed_prefix_fixture(borrowed_inputs=true)
+  let supplied = [value.capture]
+  let inventory = @row_source_host.retain_row_captured_inputs(
+    supplied,
+    value.ledger,
+    2,
+  ).unwrap()
+  assert_eq(@row_source_host.row_captured_inputs_count(inventory), 1)
+  assert_true(
+    physical_equal(
+      @row_source_host.row_captured_input_at(inventory, 0).unwrap(),
+      value.capture,
+    ),
+  )
+  assert_true(@row_source_host.row_captured_input_at(inventory, 1) is None)
+  supplied.clear()
+  assert_true(
+    @row_source_host.row_captures_original_prefix_available(
+      inventory,
+      value.ledger,
+    ),
+  )
+  assert_true(
+    @row_source_host.retain_row_captured_inputs(
+      [value.capture, value.capture],
+      value.ledger,
+      4,
+    )
+    is None,
+  )
+  assert_true(
+    @row_source_host.retain_row_captured_inputs(
+      [value.capture],
+      value.ledger,
+      1,
+    )
+    is None,
+  )
+  let prefix = original_keyed_prefix_start(value).unwrap()
+  assert_true(
+    @row_source_host.row_captures_original_prefix_available(
+      inventory,
+      value.ledger,
+      prefix=Some(prefix.reservation),
+    ),
+  )
+  @row_source_host.close_accounted_row_run(value.direct).unwrap()
+  assert_false(
+    @row_source_host.row_captures_original_prefix_available(
+      inventory,
+      value.ledger,
+      prefix=Some(prefix.reservation),
+    ),
+  )
+  // Row has retired its holding. The borrowed tuple still checks the SAME
+  // recorded originals; cancellation must not strand prefix cleanup.
+  assert_true(
+    @row_source_host.row_captures_original_keyed_prefix_dependents_retired(
+      inventory,
+      value.ledger,
+      prefix.reservation,
+    ),
+  )
+  assert_true(cancel_client_serialization_prefix(prefix))
+  let mut retired = false
+  for _ in 0..<10000 {
+    if cleanup_client_serialization_prefix(prefix).unwrap() {
+      retired = true
+      break
+    }
+    advance_client_serialization_prefix(prefix, 1).unwrap() |> ignore
+  }
+  assert_true(retired)
   original_keyed_prefix_close(value)
 }

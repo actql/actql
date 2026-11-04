@@ -26,6 +26,7 @@ class ProjectLocations:
     lock: str | None
     state_dir: str
     profile: str | None
+    mock_catalog: str | None
     mock_data: str | None
     mock_answers: tuple[tuple[str, str], ...]
 
@@ -81,9 +82,9 @@ class OriginalLocalProjectConfiguration:
                 raise ValueError('Changed original project metadata bytes')
             value = _object(raw, 65536)
             if set(value) != {'connectors', 'model_tasks', 'lock', 'state_dir',
-                              'profile', 'mock_data', 'mock_answers'}:
+                              'profile', 'mock_catalog', 'mock_data', 'mock_answers'}:
                 raise ValueError('Invalid original project metadata fields')
-            for name in ('connectors', 'model_tasks', 'lock', 'profile', 'mock_data'):
+            for name in ('connectors', 'model_tasks', 'lock', 'profile', 'mock_catalog', 'mock_data'):
                 if value[name] is not None and type(value[name]) is not str:
                     raise ValueError('Invalid original project locator')
             answers = value['mock_answers']
@@ -94,7 +95,8 @@ class OriginalLocalProjectConfiguration:
             # Core already chose the profile. Python neither filters Mock
             # inputs nor infers identifiers, registrations or authority.
             self._locations = ProjectLocations(value['connectors'], value['model_tasks'],
-                value['lock'], value['state_dir'], value['profile'], value['mock_data'],
+                value['lock'], value['state_dir'], value['profile'],
+                value['mock_catalog'], value['mock_data'],
                 tuple((item[0], item[1]) for item in answers))
             return self._locations
 

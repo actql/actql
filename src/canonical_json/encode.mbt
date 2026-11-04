@@ -2,6 +2,7 @@
 /// Typed projection only: values already own normalized text and sorted keys.
 /// Writing into a caller-owned bounded writer also charges the enclosing output.
 priv enum EmitFrame {
+  EmitRetired
   Visit(CanonicalValue)
   TextNext(@encode.StringEmitCursor)
   KeyNext(@encode.OrderedKeyEmitCursor)
@@ -28,12 +29,13 @@ pub fn start_emit(
 
 ///|
 pub fn cancel_emit(cursor : CanonicalEmit) -> Unit {
-  for frame in cursor.pending {
+  for index, frame in cursor.pending {
     match frame {
       TextNext(text) => @encode.cancel_string_value(text)
       KeyNext(key) => @encode.cancel_ordered_key(key)
       _ => ()
     }
+    cursor.pending[index] = EmitRetired
   }
   cursor.pending.clear()
 }
@@ -46,11 +48,22 @@ pub fn emit_pending_frames(cursor : CanonicalEmit) -> Int {
 }
 
 ///|
+/// Actual retained native/JS array backing, not current pending occupancy.
+/// Retired slots are payload-free; completed child owners are not hidden here.
+pub fn emit_storage_frames(cursor : CanonicalEmit) -> Int {
+  cursor.pending.capacity()
+}
+
+///|
 pub fn advance_emit(cursor : CanonicalEmit) -> Bool raise @encode.EncodeFailure {
   let pending = cursor.pending
   let output = cursor.output
-  guard pending.pop() is Some(frame) else { return true }
+  guard pending.last() is Some(frame) else { return true }
+  // Remove native stale payload ownership without scanning unused capacity.
+  pending[pending.length() - 1] = EmitRetired
+  pending.truncate(pending.length() - 1)
   match frame {
+    EmitRetired => raise @encode.InvalidStructure
     Visit(current) =>
       match current {
         Null => @encode.null_value(output)

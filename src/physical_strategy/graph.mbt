@@ -590,7 +590,26 @@ fn prepare_checked_dag_owned(
     for index in 0..<source_checks {
       let check = @checked.source_execution_at(program, index).unwrap()
       let subject = @checked.source_execution_subject(check)
-      if subject.stage < 0 || subject.stage >= captured_prefix {
+      if subject.stage < 0 || subject.stage >= count {
+        return Err(UnsupportedIncoming(subject.stage))
+      }
+      // Downstream keyed lookup consumes an actual computed left relation;
+      // it is not another independent captured input. Keep its original
+      // checked request and leave its operation/data edges to graph binding.
+      if subject.stage >= captured_prefix {
+        guard subject.request is @acquisition.Keyed(mode, request) &&
+          physical_equal(subject.owner, @checked.source_identity(program)) &&
+          @context.program_identity_stage_requests(subject.owner, subject.stage)
+          is Some(requests) &&
+          @acquisition.pipeline_request_at(requests, subject.input)
+          is Some(@acquisition.Keyed(original_mode, original_request)) &&
+          physical_equal(mode, original_mode) &&
+          physical_equal(request, original_request) else {
+          return Err(UnsupportedIncoming(subject.stage))
+        }
+        continue
+      }
+      guard subject.request is @acquisition.Direct(_, _) else {
         return Err(UnsupportedIncoming(subject.stage))
       }
       match @checked.source_execution_kind(check) {

@@ -137,6 +137,7 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     connectorRevision: installation?.revision,
     supportsRetainedRelationOutput: true,
     environmentWire: profile.environmentWire,
+    ...(sourceInitialization === undefined ? {} : {environmentOriginal: environment}),
     connectorBindings: Object.freeze(catalogIds.map(connectorId =>
       Object.freeze({connectorId, bindingCid}))),
     ordinaryRecoveryBinding(prepared) {

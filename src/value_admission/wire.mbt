@@ -1,5 +1,6 @@
 ///|
 priv enum WireFrame {
+  WireRetired
   Read(Value)
   TextNext(@encode.StringEmitCursor)
   KeyNext(@encode.OrderedKeyEmitCursor)
@@ -195,13 +196,14 @@ pub fn start_wire_emit(
 ///|
 /// Drop pending frames; the writer stays owned by the caller.
 pub fn cancel_wire_emit(cursor : WireEmitCursor) -> Unit {
-  for frame in cursor.pending {
+  for index, frame in cursor.pending {
     match frame {
       TextNext(text) => @encode.cancel_string_value(text)
       KeyNext(key) => @encode.cancel_ordered_key(key)
       ReferenceNext(reference) => @identity.cancel_emit(reference)
       _ => ()
     }
+    cursor.pending[index] = WireRetired
   }
   cursor.pending.clear()
   cursor.reference_frames = 0
@@ -233,8 +235,13 @@ pub fn advance_wire_emit(
 ) -> Bool raise @encode.EncodeFailure {
   let pending = cursor.pending
   let output = cursor.output
-  guard pending.pop() is Some(frame) else { return true }
+  guard pending.last() is Some(frame) else { return true }
+  // Pop alone keeps native backing references alive. The original current
+  // frame stays in this local while its vacated slot becomes payload-free.
+  pending[pending.length() - 1] = WireRetired
+  pending.truncate(pending.length() - 1)
   match frame {
+    WireRetired => raise @encode.InvalidStructure
     Read(value) =>
       match value {
         Null => @encode.null_value(output)
@@ -320,7 +327,8 @@ pub fn advance_wire_emit(
       // The enclosing cleanup can then close the exact pending child once.
       pending.push(ReferenceNext(reference))
       if @identity.advance_emit(reference) {
-        pending.pop() |> ignore
+        pending[pending.length() - 1] = WireRetired
+        pending.truncate(pending.length() - 1)
         cursor.reference_frames = 0
       } else {
         cursor.reference_frames = @identity.emit_pending_frames(reference)

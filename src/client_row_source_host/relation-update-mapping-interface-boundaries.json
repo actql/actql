@@ -1,0 +1,90 @@
+{
+  "qualification": "Reviewed original Mapping continuation source correspondence only; not installed current authority, funding or mutation acceptance",
+  "declarations": [
+    {
+      "module": "src/client_row_source_host/relation_update_mapping.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "fd4e04a916d7325a297cd658203130ffa572112cd2fb6bd363d0c73bffb35735",
+      "role": "common-semantics",
+      "owner": "Existing Common original Relation Mapping and installed SourceInitialization continuation owners",
+      "exports": [],
+      "operations": [
+        {
+          "name": "prepare_row_update_mapping",
+          "declaration": "prepare_row_update_mapping ( declaration : RowDeclaration , writes_json : String , resource : String , sources : Array [ RowMappingSource ] , ) - > Result [ RowMapping , RowMappingIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "prepare_row_update_mapping"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/relation-update-mapping-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 import {open} from 'node:fs/promises';
-import {dirname, extname, resolve} from 'node:path';
+import {extname, resolve} from 'node:path';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
-import {installedProjectOriginalsForRuntime} from '../host-node/installed-project-configuration.mjs';
+import {installedProjectOriginalsForRuntime, resolveInstalledProjectTaskPath} from '../host-node/installed-project-configuration.mjs';
 import {readBoundedConfigurationUtf8} from '../host-node/source-profile-json.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -86,7 +86,7 @@ export async function loadInstalledProjectMockAnswers(moon,project,profile,
         }
       }
       if(typeof taskFile!=='string'||!taskFile)fail('InstalledMockAnswerTaskUnavailable');
-      const taskPath=resolve(dirname(project.registryPath),taskFile);
+      const taskPath=resolveInstalledProjectTaskPath(project,moon,taskFile);
       const answerPath=resolve(project.directory,locator.file);
       const taskFormat=format(taskPath),answerFormat=format(answerPath);
       const taskWire=await readBoundedConfigurationUtf8(taskPath,{maxBytes:bounds.maxBytes,openFile});

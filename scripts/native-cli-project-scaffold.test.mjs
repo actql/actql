@@ -13,15 +13,15 @@ const scratch = async t => {
 };
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 
-test('the Quickstart template prepares seven inputs and leaves state creation to the installation Owner', async t => {
+test('the Quickstart template prepares eight inputs and leaves state creation to the installation Owner', async t => {
   const root = await scratch(t), project = join(root, 'churn-risk');
   const result = scaffoldProject(project, 'churn-risk-mock');
-  assert.equal(result.files.length, 7);
+  assert.equal(result.files.length, 8);
   assert.deepEqual([...result.files].sort(), ['actql.config.json', 'churn-risk.aql', 'connectors.json',
-    'mock/churn-risk.v1.answers.yaml', 'mock/data.json', 'model-tasks.json', 'model-tasks/churn-risk.v1.yaml']);
+    'mock/catalog.json', 'mock/churn-risk.v1.answers.yaml', 'mock/data.json', 'model-tasks.json', 'model-tasks/churn-risk.v1.yaml']);
   assert.deepEqual(await json(result.configuration), {
     version: 'actql-config/0.1', connectors: './connectors.json', model_tasks: './model-tasks.json',
-    state_dir: './.actql', profile: 'mock', mock: {data: './mock/data.json',
+    state_dir: './.actql', profile: 'mock', mock: {catalog: './mock/catalog.json', data: './mock/data.json',
       answers: {'model-task:churn-risk.v1': './mock/churn-risk.v1.answers.yaml'}},
   });
   await assert.rejects(stat(result.stateDirectory), {code: 'ENOENT'});
@@ -115,13 +115,13 @@ test('invalid paths fail without creating a project and returned template files 
 test('root README deal-review template prepares its exact Program and typed Task without initializing state', async t => {
   const root = await scratch(t), result = scaffoldProject(join(root, 'deal-review'), 'deal-review-mock');
   assert.deepEqual([...result.files].sort(), ['actql.config.json', 'connectors.json', 'deal-review.aql',
-    'mock/data.json', 'mock/deal-review.v1.answers.yaml', 'model-tasks.json', 'model-tasks/deal-review.v1.yaml']);
+    'mock/catalog.json', 'mock/data.json', 'mock/deal-review.v1.answers.yaml', 'model-tasks.json', 'model-tasks/deal-review.v1.yaml']);
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
   assert.equal(await readFile(join(result.directory, 'deal-review.aql'), 'utf8'),
     readme.match(/```sql\n([\s\S]*?)```/u)[1]);
   assert.deepEqual(await json(result.configuration), {version: 'actql-config/0.1',
     connectors: './connectors.json', model_tasks: './model-tasks.json', state_dir: './.actql',
-    profile: 'deal-review-mock', mock: {data: './mock/data.json',
+    profile: 'mock', mock: {catalog: './mock/catalog.json', data: './mock/data.json',
       answers: {'model-task:deal-review.v1': './mock/deal-review.v1.answers.yaml'}}});
   assert.deepEqual((await json(join(result.directory, 'connectors.json'))).connections,
     {salesforce: {connector: 'salesforce'}, drive: {connector: 'drive'}});
@@ -167,4 +167,74 @@ test('deal-review Mock DATA contains only original Opportunity rows and UTF8 Dri
   assert.match(answers, /^task: model-task:deal-review\.v1\n/u);
   assert.match(answers, /"006Acme": \{changed: true, stage: Negotiation, next_step: "Send revised pricing by Friday"\}/u);
   assert.match(answers, /"006Globex": \{changed: true, stage: "Closed Lost", next_step: "Revisit next fiscal year"\}/u);
+});
+
+
+test('mock template catalogs declare existing typed rows keys aliases and write permissions', () => {
+  for (const [template, resource, alias, writable] of [
+    ['churn-risk-mock', 'Account', 'salesforce.accounts', ['Churn_Risk__c', 'Risk_Reason__c']],
+    ['deal-review-mock', 'Opportunity', 'salesforce.opportunities', ['StageName', 'NextStep']],
+  ]) {
+    const files = projectTemplateFiles(template);
+    const configuration = JSON.parse(files['actql.config.json']);
+    const catalog = JSON.parse(files['mock/catalog.json']);
+    const data = JSON.parse(files['mock/data.json']);
+    assert.equal(configuration.profile, 'mock');
+    assert.equal(configuration.mock.catalog, './mock/catalog.json');
+    const declared = catalog.connections.salesforce;
+    assert.deepEqual(declared.query_aliases, [{name: alias, resource}]);
+    assert.deepEqual(declared.views[0].facts, {relation_keys: {candidate_keys: [['id']]}});
+    assert.deepEqual(declared.views[0].schema.id, {type: 'string', nullable: false});
+    assert.deepEqual(declared.data, [{resource, items_path: ['salesforce', resource, 'rows'],
+      key_path: ['salesforce', resource, 'key'], primary_identity: 'id'}]);
+    assert.deepEqual(declared.writes, [{resource, primary_identity: 'id', writable_fields: writable,
+      permission: 'salesforce:record:update', observe_permission: 'salesforce:record:observe',
+      approval: 'required', aliases: [`salesforce.${resource}`]}]);
+    assert.deepEqual(data.salesforce[resource].key, ['id']);
+    assert.doesNotMatch(files['mock/catalog.json'], /sha256:|schema_wire|schema_cid|scenario|template/u);
+  }
+  const catalog = JSON.parse(projectTemplateFiles('churn-risk-mock')['mock/catalog.json']);
+  assert.deepEqual(catalog.connections.snowflake.views[0].schema.active_users,
+    {type: 'int64', nullable: false});
+  assert.deepEqual(catalog.connections.snowflake.views[0].facts,
+    {relation_keys: {candidate_keys: [['account_id']]}});
+  assert.equal(Object.hasOwn(catalog.connections.snowflake, 'writes'), false);
+});
+
+test('deal-review catalog separates physical UTF8 files from logical keyed Content views', () => {
+  const catalog = JSON.parse(projectTemplateFiles('deal-review-mock')['mock/catalog.json']);
+  const drive = catalog.connections.drive;
+  const [listing, contents] = drive.views;
+  assert.deepEqual(Object.keys(listing.schema).sort(),
+    ['media_type', 'modified_at', 'name', 'path', 'resource', 'size_bytes', 'version']);
+  assert.deepEqual(listing.acquisition, {kind: 'scan', authority: 'read_metadata'});
+  assert.deepEqual(listing.schema.resource, {type: 'resource_ref', resource_kind: 'file', nullable: false});
+  assert.deepEqual(Object.keys(contents.schema).sort(), ['content', 'resource', 'version']);
+  assert.deepEqual(contents.schema.content, {type: 'content_ref', media_type: 'text/plain', nullable: false});
+  assert.deepEqual(contents.request_schema, {type: 'object', nullable: false,
+    additional_properties: false, fields: {
+      resource: {type: 'resource_ref', resource_kind: 'file', nullable: false},
+      version: {type: 'string', nullable: false},
+    }});
+  assert.deepEqual(contents.acquisition, {kind: 'fetch', authority: 'read_content', correlation: {
+    request_fields: ['resource', 'version'], response_fields: ['resource', 'version'],
+    identity: ['resource', 'version'], cardinality: 'one',
+  }});
+  for (const view of drive.views) {
+    assert.equal(Object.hasOwn(view, 'facts'), false, 'the installed owner binds file profile identities');
+    assert.equal(Object.hasOwn(view, 'resource_identity'), false);
+  }
+  assert.deepEqual(drive.query_aliases, [{name: 'drive.files', resource: 'files',
+    request: {paths: null, glob: null}},
+    {name: 'drive.contents', resource: 'contents'}]);
+  assert.deepEqual(drive.file_bindings, [{listing_resource: 'files', content_resource: 'contents',
+    data_resource: 'files', identity_field: 'id', name_field: 'name', version_field: 'version',
+    media_type_field: 'media_type', content_utf8_field: 'content_utf8'}]);
+  assert.equal(drive.data.length, 1);
+  assert.deepEqual(drive.data[0], {resource: 'files', items_path: ['drive', 'files', 'rows'],
+    key_path: ['drive', 'files', 'key'], primary_identity: 'id', schema: {
+      id: {type: 'string', nullable: false}, name: {type: 'string', nullable: false},
+      version: {type: 'string', nullable: false}, media_type: {type: 'string', nullable: false},
+      content_utf8: {type: 'string', nullable: false},
+    }});
 });

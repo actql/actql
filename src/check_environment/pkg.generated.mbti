@@ -302,6 +302,10 @@ pub fn emit_model_provider_handling(ModelProviderHandling, @encode_core.Writer) 
 
 pub fn emit_model_provider_handling_original(ModelProviderHandling, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn empty_model_tasks_construction_extent(WireEnvironment) -> RegistryConstructionExtent?
+
+pub fn empty_model_tasks_retained_extent(WireEnvironment) -> RegistryConstructionExtent?
+
 pub fn expression_contract_body(String) -> ExpressionContractBody?
 
 pub fn expression_contract_body_cid(ExpressionContractBody) -> String
@@ -926,6 +930,8 @@ pub fn source_view_shape_at(SourceViewShapes, Int) -> Member?
 
 pub fn source_view_shape_usage(SourceViewShapes) -> (Int, Int)
 
+pub fn source_view_shape_validation_construction_extent(Int, Int, Int, Int) -> @decode_shape.CollectionConstructionExtent?
+
 pub fn source_view_shape_values(SourceViewShapes) -> ProtocolValueContracts
 
 pub fn stage_semantic_contract_cid(StageSemanticContract) -> String
@@ -957,6 +963,10 @@ pub fn usage(WireEnvironment) -> (Int, Int, Int)
 pub fn validate_decision_answers(DecisionContract, @decode_core.Cursor, DecisionProbabilityProfile, Int) -> Result[Int, DecisionIssue]
 
 pub fn value_contract_policies(ProtocolValueContracts) -> SourceDataPolicies
+
+pub fn wire_admission_construction_extent(WireAdmissionConstructionGeometry) -> RegistryConstructionExtent?
+
+pub fn wire_admission_retained_extent(WireAdmissionConstructionGeometry) -> RegistryConstructionExtent?
 
 pub fn wire_hash_construction_extent(Int) -> RegistryConstructionExtent?
 
@@ -1969,6 +1979,23 @@ pub(all) struct ValueContractLimits {
   max_envelopes : Int
   contracts : @value_contract.Limits
 }
+
+pub(all) struct WireAdmissionConstructionGeometry {
+  bytes : Int
+  nodes : Int
+  depth : Int
+  fields : Int
+  objects : Int
+  arrays : Int
+  root_fields : Int
+  max_fields : Int
+  key_utf16_units : Int
+  max_key_utf16_units : Int
+  members : Int
+  snapshots : Int
+  catalogs : Int
+  manifest_entries : Int
+} derive(Eq, @debug.Debug)
 
 type WireEnvironment
 

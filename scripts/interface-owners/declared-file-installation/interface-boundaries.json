@@ -1,0 +1,543 @@
+{
+  "qualification": "Reviewed nominal installation, original-context ownership and constructor/cleanup correspondence with explicit Common resource ports; not production native-quantity, integrated execution or cross-target acceptance",
+  "declarations": [
+    {
+      "module": "adapters/local-node/declared-file-installation.mjs",
+      "sha256": "d4f9434565a7ff97ae7d766d25b43dcab40a356d7d1f42233a62be7c2bd40504",
+      "exports": [
+        "assertDeclaredFileInstallationInventory",
+        "createDeclaredFileInstallationInventory"
+      ],
+      "operations": [
+        {
+          "name": "assertDeclaredFileInstallationInventory",
+          "parameters": [
+            "inventory",
+            "moon",
+            "projectOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkProfile",
+          "parameters": [
+            "profile",
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory",
+          "parameters": [
+            "moon",
+            "project",
+            "services",
+            "baseEnvironmentWire",
+            "runtimeUrl",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/createDeclaredFileInstallationInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/failRecord",
+          "parameters": [
+            "record",
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/failRecord/failRecord",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin",
+          "parameters": [
+            "connectionOriginal",
+            "index",
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/init:begin",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
+          "parameters": [
+            "sourceMember"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/member",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/memberCurrent/memberCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare",
+          "parameters": [
+            "method",
+            "retainPrepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare/prepare",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/previous/previous",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail/init:fail",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:prepareMetadataInput/init:prepareMetadataInput",
+          "parameters": [
+            "projection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createDeclaredFileInstallationInventory/inventory/init:readMetadataUtf8/init:readMetadataUtf8",
+          "parameters": [
+            "path",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectModule/effectModule",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectModule/effectModule#2",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectModule/effectModule#3",
+          "parameters": [
+            "profile",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceModule/sourceModule",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceModule/sourceModule#2",
+          "parameters": [
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceModule/sourceModule#3",
+          "parameters": [
+            "profile",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "table/table",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "table/table#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-node/installed-connectors.mjs",
+        "../host-node/installed-host-services.mjs",
+        "../host-node/installed-project-configuration.mjs",
+        "../host-node/installed-row-effect.mjs",
+        "../host-node/installed-row-source.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "responsibilityFacet": "primary",
+      "owner": "Existing installed Host Source initialization material and registered Row Source/Effect constructors; this inventory admits and retains their original connection-scoped contexts",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "assertDeclaredFileInstallationInventory",
+            "checkProfile",
+            "createDeclaredFileInstallationInventory",
+            "createDeclaredFileInstallationInventory/createDeclaredFileInstallationInventory",
+            "createDeclaredFileInstallationInventory/current/current",
+            "createDeclaredFileInstallationInventory/failRecord",
+            "createDeclaredFileInstallationInventory/failRecord/failRecord",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#2",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#3",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin#4",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/init:begin",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#2",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#3",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:load/init:load/init:load#4",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/init:prepareBorrowedDeclaration/init:prepareBorrowedDeclaration",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/member/member",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/memberCurrent/memberCurrent",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/init:begin/init:begin/prepare/prepare/prepare",
+            "createDeclaredFileInstallationInventory/inventory/init:begin/init:begin/previous/previous",
+            "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail",
+            "createDeclaredFileInstallationInventory/inventory/init:fail/init:fail/init:fail",
+            "createDeclaredFileInstallationInventory/inventory/init:prepareMetadataInput/init:prepareMetadataInput",
+            "createDeclaredFileInstallationInventory/inventory/init:readMetadataUtf8/init:readMetadataUtf8",
+            "effectModule/effectModule",
+            "effectModule/effectModule#2",
+            "effectModule/effectModule#3",
+            "fail/fail",
+            "sourceModule/sourceModule",
+            "sourceModule/sourceModule#2",
+            "sourceModule/sourceModule#3",
+            "table/table",
+            "table/table#2",
+            "text/text"
+          ],
+          "exports": [
+            "assertDeclaredFileInstallationInventory",
+            "createDeclaredFileInstallationInventory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "const table = createInstalledConnectorTable([{"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "export function createDeclaredFileInstallationInventory"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "prepareNativeDeclaration: prepare('prepareNativeDeclaration')"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "prepareNativeInput: prepare('prepareNativeInput', false)"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "prepareMetadataInput(projection) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "connectorId: connection, providerNamespace"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "const source = members.get(sourceMember);"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "source.original !== original || source.material !== material"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "record.context = context;"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "record.adapter = adapter;"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "retainBoundInstalledSourceFailure(record.context, cause, record.adapter)"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "if (retainPrepared) record.prepared = result;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "record.loadFlight = Promise.resolve().then(async () => {"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "flights.add(record.loadFlight);"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "await Promise.allSettled([...flights]);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "throw await failRecord(record, cause);"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "finishInstalledSourceInitialization(record.context, record.adapter, failure, true);"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "if (record.finished || record.failed) fail('DeclaredFileInstallationClosed');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "retiring = true;"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component retirement joins an actual Effect constructor before retiring its original material'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "const read = reserveInstalledSourceRuntimeIdentity(services);"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "const context = beginInstalledSourceInitialization(services, entry,"
+              },
+              {
+                "path": "adapters/host-node/installed-host-services.mjs",
+                "anchor": "prepareBorrowedDeclaration(sourceContext) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.mjs",
+                "anchor": "const registration = 'declared_file', revision = 'declared_file/0.1';"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/local-node/declared-file-installation.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component generic inventory installs real Row source and Effect from the same prepared declaration'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component configured provider does not replace either connection namespace'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component borrowed declaration refuses copied and foreign original contexts before another native constructor'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "for (const phase of ['native', 'borrow', 'mapping'])"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component pure failure remains original and prevents a second projection'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component source factory refuses detached prepared originals and retains prior metadata cleanup'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component startup reservation failure does not create a native declaration or replacement initial parent'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component preparation current failure closes all original contexts without rereading or reconstructing'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component retirement joins an actual Effect constructor before retiring its original material'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog stages actual connection members before constructors and exports each declaration once'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "test('component catalog Entry quantity refusal precedes its first JavaScript parse'"
+              },
+              {
+                "path": "adapters/local-node/declared-file-installation.test.mjs",
+                "anchor": "for (const thrown of [undefined, null]) test("
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

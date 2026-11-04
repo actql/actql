@@ -73,12 +73,12 @@ export async function readBoundedConfigurationText(path, {maxBytes, openFile = o
 // Project originals must not replace malformed bytes with U+FFFD before the
 // Common reader sees them. Keep a genuine BOM as text as well: its admission
 // belongs to that reader, not to an implicit TextDecoder normalization.
-export async function readBoundedConfigurationUtf8(path, {maxBytes, openFile = open, io} = {}) {
+export async function readBoundedConfigurationUtf8(path, {maxBytes, openFile = open, beforeDecode, io} = {}) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
     throw new TypeError('InvalidInstalledSourceProfileByteLimit');
   }
   return readConfiguration(path, maxBytes, openFile, bytes =>
-    new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes), undefined, io);
+    new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes), beforeDecode, io);
 }
 
 async function readConfiguration(path, maxBytes, openFile, project, beforeDecode, io) {

@@ -15,11 +15,11 @@ import test_local_product as product_fixture
 
 
 CONFIG = ('{"version":"actql-config/0.1","state_dir":"./configured-state",'
-          '"profile":"production","mock":{"data":"./raw.json",'
+          '"profile":"production","mock":{"catalog":"./catalog.json","data":"./raw.json",'
           '"answers":{"task:z":"./answer.yaml"}}}\r\n')
 LOCATIONS = ('{"connectors":null,"model_tasks":null,"lock":null,'
              '"state_dir":"./configured-state","profile":"mock",'
-             '"mock_data":"./raw.json","mock_answers":[["task:z","./answer.yaml"]]}')
+             '"mock_catalog":"./catalog.json","mock_data":"./raw.json","mock_answers":[["task:z","./answer.yaml"]]}')
 
 
 class LocalProjectHostTests(unittest.TestCase):
@@ -51,6 +51,7 @@ class LocalProjectHostTests(unittest.TestCase):
 
     def project(self, root):
         (root / 'actql.config.json').write_bytes(CONFIG.encode())
+        (root / 'catalog.json').write_bytes(b'{"connections":{}}\n')
         (root / 'raw.json').write_bytes(b'{"records":["exact\\r\\n"]}')
         (root / 'answer.yaml').write_bytes(b'original: answer\r\n')
 
@@ -69,9 +70,11 @@ class LocalProjectHostTests(unittest.TestCase):
                 self.assertIs(host._project_configuration._core, core)
                 self.assertIs(host._project_files._core, core)
                 self.assertEqual([role for role, _, _ in host._project_members],
-                                 ['mock_data', 'mock_answer'])
-                self.assertEqual(host._project_files.original_bytes(host._project_members[1][2]),
+                                 ['mock_catalog', 'mock_data', 'mock_answer'])
+                self.assertEqual(host._project_files.original_bytes(host._project_members[2][2]),
                                  b'original: answer\r\n')
+                self.assertEqual(host._project_files.original_bytes(host._project_members[0][2]),
+                                 b'{"connections":{}}\n')
                 before = len(calls)
                 with self.assertRaisesRegex(ValueError, 'project execution environment'):
                     host._original_check_environment()
@@ -127,7 +130,7 @@ class LocalProjectHostTests(unittest.TestCase):
     def test_repeated_selected_path_retains_same_original_file_not_second_read(self):
         locations = ('{"connectors":null,"model_tasks":null,"lock":null,'
             '"state_dir":"./configured-state","profile":"mock",'
-            '"mock_data":"./raw.json","mock_answers":[["task:z","./raw.json"]]}')
+            '"mock_catalog":"./raw.json","mock_data":"./raw.json","mock_answers":[["task:z","./raw.json"]]}')
         with TemporaryDirectory(prefix='actql-project-alias-') as temporary:
             root = Path(temporary)
             self.project(root)
@@ -137,6 +140,7 @@ class LocalProjectHostTests(unittest.TestCase):
                 _project_directory=root, _project_profile='mock')
             try:
                 self.assertIs(host._project_members[0][2], host._project_members[1][2])
+                self.assertIs(host._project_members[0][2], host._project_members[2][2])
                 self.assertEqual(len(host._project_files._files), 2)
             finally:
                 self.assertTrue(host.close())

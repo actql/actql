@@ -99,6 +99,7 @@ pub fn prepare_installed_mock_model_capture_plan(
   provider_factory~ : (@execution.ExecutionCapacity) -> Array[
     @local.ManagedProvider,
   ],
+  direct_occurrences? : @publication_host.ClientDirectAcquisitionOccurrences? = None,
   query_time? : @publication_host.ClientQueryTimePreparation? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue] {
   if !installed_mock_model_compilation_matches(prepared, compilation) {
@@ -120,6 +121,7 @@ pub fn prepare_installed_mock_model_capture_plan(
       provider_factory~,
       query_time~,
       model=Some(compilation.infers[0]),
+      direct_occurrences~,
     ) {
     Err(issue) => return Err(issue)
     Ok(value) => value

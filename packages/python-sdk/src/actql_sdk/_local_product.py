@@ -906,7 +906,9 @@ class InstalledLocalHost:
         locators: list[tuple[str, str | None, str | None]] = [
             ('connectors', None, locations.connectors),
             ('model_tasks', None, locations.model_tasks),
-            ('lock', None, locations.lock), ('mock_data', None, locations.mock_data)]
+            ('lock', None, locations.lock),
+            ('mock_catalog', None, locations.mock_catalog),
+            ('mock_data', None, locations.mock_data)]
         locators.extend(('mock_answer', task, path) for task, path in locations.mock_answers)
         for role, task, locator in locators:
             if locator is None:

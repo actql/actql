@@ -51397,7 +51397,7 @@
           ]
         }
       ],
-      "sha256": "453e51bbc67e7c4a17bd17599a16325794b01a173d6dbace569b09971af68c5c",
+      "sha256": "a1153a248a20e73cc0d308c8434216656480907c1c0f98136f36a83cccf68588",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -77216,7 +77216,7 @@
     },
     {
       "module": "src/client_host_wasm/project_configuration.mbt",
-      "sha256": "0c547f59e8f26a6f25f990a0b998a7bdc30ad71a52e2b919bb0c473cc3e42a10",
+      "sha256": "b164d116ff11fb2a5c30fbae6ff8f1caede0104af808c9fe903d0d7889a3fb28",
       "exports": [],
       "operations": [
         {
@@ -77312,7 +77312,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_project.py",
-      "sha256": "c6d2efa8c10038e6bae75a42fe5cbe7ce4f95328b50b4cacbc3a2353da447d33",
+      "sha256": "8c2c3232fde8d5cae3c7dede870cb199adabff51641eb6e45571029d9957ecbf",
       "exports": [
         "LocalCore",
         "NoReturn",

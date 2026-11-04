@@ -31584,7 +31584,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "7987a43d0d0c55a250ea9fa81cd5d9d5b7e5b74069db294f71d479b9fd7e836e",
+      "sha256": "95d11b5fbec46f0a24dc7a4a8ed8b5a2f987799943b82445c85bd22131dc787f",
       "exports": [],
       "operations": [
         {
@@ -32919,7 +32919,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "9302371a8b194f3ee8f952a3f2fcd3d73b7c3d23ccc7f75f0548a438efae2e86",
+      "sha256": "536f997362683b07703ae733dc01ad91194981f8839e6f7ea602439635da9b08",
       "exports": [],
       "operations": [
         {
@@ -33835,7 +33835,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "c5a72f4f19aed10be9a1b3088cd389440d2482296c76d1db9a9a59f9777a2583",
+      "sha256": "dce90520994f229653c04fc9706f6046f811416060fcc9708df6f34cad2fb177",
       "exports": [],
       "operations": [
         {
@@ -33849,6 +33849,14 @@
         {
           "name": "begin_installed_managed_run_source_read",
           "declaration": "begin_installed_managed_run_source_read ( value : ClientInstalledManagedRun , occurrence : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_managed_run_source_read_at",
+          "declaration": "begin_installed_managed_run_source_read_at ( value : ClientInstalledManagedRun , stage : Int , input : Int , task : Int , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "begin_installed_managed_run_source_read_owned",
+          "declaration": "begin_installed_managed_run_source_read_owned ( value : ClientInstalledManagedRun , occurrence : Int , expected : ( Int , Int , Int ) ? , ) - > Result [ ClientInstalledSourceRead , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "begin_prepared_installed_managed_source_free_run",
@@ -33952,7 +33960,7 @@
         },
         {
           "name": "prepare_installed_managed_acquisitions_owned",
-          "declaration": "prepare_installed_managed_acquisitions_owned ( owner : ClientLocalSequenceOwner , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , query_time ? : ( @ publication_host . ClientQueryTimePreparation , @ publication_host . ClientRequestIdentity , ) ?"
+          "declaration": "prepare_installed_managed_acquisitions_owned ( owner : ClientLocalSequenceOwner , declarations : Array [ @ row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , direct_occurrences ? : @ publication_host . ClientDirectAcquisitionOccurrences ?"
         },
         {
           "name": "prepare_installed_managed_run_ledger",
@@ -34285,7 +34293,7 @@
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
-      "sha256": "99f0eb161f9c73925fe0b2f7585b287e85953633dc34b6f85e9249f1c5e36c30",
+      "sha256": "a8af1c16c20eb77549da59431230c921bd6e2b1cc010d93cae638f1ee94931ec",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -34301,7 +34309,7 @@
         },
         {
           "name": "prepare_installed_mock_model_capture_plan",
-          "declaration": "prepare_installed_mock_model_capture_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientTaskCompilation , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+          "declaration": "prepare_installed_mock_model_capture_plan ( prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compilation : @ publication_host . ClientTaskCompilation , captures : Array [ ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , retained_output ~ : Bool , provider_factory ~ : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , direct_occurrences ? : @ publication_host . ClientDirectAcquisitionOccurrences ?"
         },
         {
           "name": "prepare_installed_mock_model_capture_plan_binding",
@@ -34712,7 +34720,7 @@
     {
       "module": "src/client_local_host/installed_source_read.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0a81c666e949bfab796429104a2ed4480ad25c43d8ac4ff5ba4dbc7a4c72d8d8",
+      "sha256": "83ec77509f18947b55e2d91d8f19009223e823552ddf356c633ed745da8eafea",
       "exports": [],
       "operations": [
         {
@@ -35711,7 +35719,7 @@
     },
     {
       "module": "src/client_local_host/installed_whole_source_plan.mbt",
-      "sha256": "f057bc9691065ebf6d5428144f7e37e07a5d4188455fa5105b1ddc4848653741",
+      "sha256": "024675bbf64577c9b66944d00c05fbf88650c293ace18afd05476415d1fb8bd7",
       "exports": [],
       "operations": [
         {
@@ -36436,7 +36444,7 @@
           }
         }
       ],
-      "sha256": "eec4a9704a6f84b7c7ae576cb6b16163b7e5050c9d7fd1e9c1638053e626bfbb",
+      "sha256": "4a9401dea03b31ce24120c5556bcf0ffadce12f24cd6ccfb17f5497d044e66b5",
       "exports": [],
       "operations": [
         {
@@ -39509,7 +39517,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "325546e1feabd6facfb4d892d22306b61b94af9a1355e5a1648b6b8bc71ee4f6",
+      "sha256": "2bc1e470befa3549efecae5f61c77a544435263b2882f43a025c068035a4f04e",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -40335,7 +40343,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "3411fff8f86582b2c4bc7fb885798dc0d59ca0d6e06c4fec24f9ab1525fbe752",
+      "sha256": "5742018e5551bee149546901444fd7e68745155c5f171541e25685e56c7a3c9b",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -41300,7 +41308,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "ee55fd1cc5df68b30ceed1b89e9537a09611a9b035efd2f1c1e335000953cfab",
+      "sha256": "86b10a33011ba5d1e159a7f6d249d16914bef5624ff2e0594156b0daf808b730",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -42993,7 +43001,7 @@
           }
         }
       ],
-      "sha256": "716ed3c1a99473275d4177c66f590d21b39ac5821c9bf1a2aaf3d33b3522e05e",
+      "sha256": "759198df49b7d30226ea25ec52c1c7825e7ca1385785b63c884beff0011952f8",
       "exports": [],
       "operations": [
         {
@@ -43077,7 +43085,7 @@
     {
       "module": "src/client_local_host/preparation_request_query_lowering.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "b229f96b42d7baa5fce1d4775862165bf303cedc4a36dc37133b3cbbcc8a02e2",
+      "sha256": "3a86144878298b87b826935e07702547a404cef60404953b178625815f064c4a",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -43091,8 +43099,12 @@
           "declaration": "[ I ] prepared_request_query_lowering ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ ( @ frontend . Lowered , @ checked . PreparedSourceCatalog , @ frontend . DiagnosticSource , ) , ClientRequestQueryLoweringIssue , ]"
         },
         {
+          "name": "request_query_literal_copy_bytes",
+          "declaration": "request_query_literal_copy_bytes ( geometry : ( Int , Int64 ) , occurrences : Int , ) - > Int64 ?"
+        },
+        {
           "name": "request_query_lowering_data_bytes",
-          "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , ) - > Int64 ?"
+          "declaration": "request_query_lowering_data_bytes ( query : ClientRequestQuerySyntax , declarations : String ? , catalog : @ checked . PreparedSourceCatalog , request_copy : ( Int , Int64 ) , ) - > Int64 ?"
         }
       ],
       "contracts": [
@@ -43113,6 +43125,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
@@ -43123,6 +43139,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
               }
             ],
             "identity": [
@@ -43133,6 +43153,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
@@ -43143,6 +43167,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
               }
             ],
             "synchronization": [
@@ -43153,6 +43181,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
@@ -43163,6 +43195,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
@@ -43173,6 +43209,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
@@ -43183,6 +43223,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
@@ -43193,6 +43237,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
@@ -43207,6 +43255,78 @@
               {
                 "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
                 "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "request_query_literal_copy_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -44191,7 +44311,7 @@
     },
     {
       "module": "src/client_local_host/serialization_capacity.mbt",
-      "sha256": "a6b0d375dfc12b22de21af79ab92ff177ee30b89083cbee644c15cd303f8603f",
+      "sha256": "ab5ece7d6b2e989279dc95caefade747934d0174cded8b1cf4f6b77901e9b899",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -46592,7 +46712,7 @@
     },
     {
       "module": "src/client_source_publication/prepared_environment.mbt",
-      "sha256": "e72e6091626d74e579ab6be1ea428fb3364fbe84d360f08327a72db9f8dbe998",
+      "sha256": "1b40ef9ae3f9c75e6900b19d6dfaac883f9cd343079d8aa2ab6312f15e78451f",
       "exports": [],
       "operations": [
         {
@@ -46642,6 +46762,10 @@
         {
           "name": "prepared_published_query_environment_publication_matches",
           "declaration": "prepared_published_query_environment_publication_matches ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , publication : String , ) - > Bool"
+        },
+        {
+          "name": "prepared_published_request_copy_geometry",
+          "declaration": "prepared_published_request_copy_geometry ( prepared : PreparedPublishedQueryEnvironment , environment : @ program_check . CheckEnvironment , ) - > Result [ ( Int , Int64 ) , PreparedPublicationIssue ]"
         },
         {
           "name": "prepared_published_required_catalog",
@@ -46696,54 +46820,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
@@ -46762,6 +46922,78 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepared_published_request_copy_geometry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -46770,7 +47002,7 @@
     },
     {
       "module": "src/client_source_publication/publication.mbt",
-      "sha256": "188536423c529464e97d67a0aa814595343e345bba7eeb90eefce46b9b7f4421",
+      "sha256": "f77ce7682f5fc250cece19ba81b59c96f2da77916439a59de2b56d1dfb43afaa",
       "exports": [],
       "operations": [
         {
@@ -46806,6 +47038,10 @@
           "declaration": "client_source_declarations ( declarations : String ? , ) - > @ parameter_binding . Declarations ? raise PublicationStop"
         },
         {
+          "name": "emit_source_publication_input",
+          "declaration": "emit_source_publication_input ( writer : @ encode . Writer , connector : String , resource : String , view : String , request : @ decode . Cursor ? , ) - > Unit raise @ encode . EncodeFailure"
+        },
+        {
           "name": "read_publication_data",
           "declaration": "read_publication_data ( wire : String , ) - > Result [ @ decode . Cursor , PublicationIssue ]"
         },
@@ -46830,12 +47066,20 @@
           "declaration": "source_publication_field ( value : @ decode . Cursor , name : String , ) - > @ decode . Cursor raise PublicationStop"
         },
         {
+          "name": "source_publication_input",
+          "declaration": "source_publication_input ( connector : String , resource : String , view : String , request : @ decode . Cursor ? , max_bytes ? : Int"
+        },
+        {
           "name": "source_publication_input_limits",
           "declaration": "source_publication_input_limits ( ) - > ( @ source . ParseLimits , @ decode . Limits , )"
         },
         {
           "name": "source_publication_members",
           "declaration": "source_publication_members ( environment : @ check_environment . WireEnvironment , section : @ check_environment . Section , key : String , ) - > Map [ String , @ decode . Cursor ] raise PublicationStop"
+        },
+        {
+          "name": "source_publication_request",
+          "declaration": "source_publication_request ( entry : @ decode . Cursor , ) - > @ decode . Cursor ? raise PublicationStop"
         },
         {
           "name": "source_publication_text",
@@ -46874,54 +47118,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
               }
             ],
             "verification": [
@@ -46940,6 +47220,80 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Normal SQL and AQL Request continuation"
+              },
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "emit_source_publication_input",
+            "source_publication_input",
+            "source_publication_request"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_source_publication/request-data-interface.md",
+                "anchor": "- Verification:"
               }
             ]
           }
@@ -53242,7 +53596,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "8caff253d72e25808721d1e44cacd4ebb503ed5d76164175acf447362d095526",
+      "sha256": "e54cc89a8e7958d888d5d8af24f1ef7e84fc0d833629e31f804290670d724f4e",
       "exports": [],
       "operations": [
         {
@@ -55078,6 +55432,10 @@
           "declaration": "client_program_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , ) - > String"
         },
         {
+          "name": "client_program_row_source_prepare_update_mapping",
+          "declaration": "client_program_row_source_prepare_update_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , ) - > String"
+        },
+        {
           "name": "client_program_row_source_request_wire",
           "declaration": "client_program_row_source_request_wire ( acquisition : @ client_row_source_host . RowAcquisition , ) - > Result [ String , @ client_row_source_host . RowHostIssue ]"
         },
@@ -55320,6 +55678,10 @@
         {
           "name": "client_program_with_values_row_limit",
           "declaration": "client_program_with_values_row_limit ( prepared : @ publication_host . PreparedClientProgram , max_rows : Int , ) - > @ publication_host . PreparedClientProgram ?"
+        },
+        {
+          "name": "client_row_source_prepare_mapping",
+          "declaration": "client_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , update : Bool , ) - > String"
         },
         {
           "name": "client_run_control_observation",
@@ -56479,7 +56841,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_serialization_bridge.mbt",
-      "sha256": "b0376c87399ecd4537c65b1271eeb4c47dc98a7ea471d718696ba3e3520b575d",
+      "sha256": "0027379407b84ac3f45d122be841f58a552432c779a92931eb6248a0ba5159ec",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -59255,7 +59617,7 @@
     },
     {
       "module": "src/lowering_relation/row_capacity.mbt",
-      "sha256": "61f6c4942102406f1b7fe0b12c6827ad71c34781e15b79f470f6713b72f732b7",
+      "sha256": "dea78bb14feb6272530cffdbc6e93b0bd05075a5d8fd2bf2300a0a5594a5800e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -60948,7 +61310,7 @@
           }
         }
       ],
-      "sha256": "dc54275f9e9d5e04f6556134d64bc98dd532fb655f39f8229b2a7f061e96b28b",
+      "sha256": "03ba9ade4e089e10b49256a510678b3711e1f6c1f6df080efbe442bb503f485b",
       "exports": [],
       "operations": [
         {
@@ -61072,7 +61434,7 @@
     {
       "module": "src/physical_resources/preparation_capacity_continuation.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0ea8b42c9697b036763eda26d1df16938b78570c9e93865b10d75f5440412e71",
+      "sha256": "58354eaf6d3bef53cf7538808bc54ac1350fbd88878326a89d23472fb797c685",
       "role": "common-semantics",
       "owner": "Existing physical_resources preparation state machine",
       "exports": [],
@@ -61157,7 +61519,7 @@
     {
       "module": "src/physical_resources/preparation_construction_input.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c35aded3f6a9d455359d3b14a8eafec37d69c763b06e1c57f062523c82669534",
+      "sha256": "83949bce7bc834f6d76e5480f65d6b1c9fb4e9b8f6608d5d3f0d6a75f13eeb47",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
@@ -61456,7 +61818,7 @@
     {
       "module": "src/physical_resources/preparation_publication_phase.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0cfef712979c91746e13650a40e58ac5fb3cf6591876103d825c9324ef52f227",
+      "sha256": "df7f3dacd30e45bd7468ab98a86f7b69c232fbd5ee879b1ba93825c1b7fbeaab",
       "role": "common-semantics",
       "owner": "Existing Resource preparation and original body-borrow owner",
       "exports": [],
@@ -63588,7 +63950,7 @@
     },
     {
       "module": "src/run_publication_host/client_compilation_graph_body.mbt",
-      "sha256": "37c9a9580895b14289dcfaf7e7ab8e4126e8de3aab96ed704c8265f348566e12",
+      "sha256": "06577fe7dfadf52f89ba2597dd30b2f5cd8bb11dbf3c0a789cdfe9c4be045a9c",
       "exports": [],
       "operations": [
         {
@@ -64898,7 +65260,6 @@
             "admit_prepared_client_run_publication",
             "admit_prepared_client_values_aoa_identity",
             "client_full_sequence_limits_match",
-            "client_program_acquisition_prefix",
             "client_task_output_step",
             "client_task_output_target",
             "client_task_pipeline_emission",
@@ -65283,9 +65644,77 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_acquisition_prefix"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Resources:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_strategy/two-direct-keyed-graph-interface.md",
+                "anchor": "- Verification:"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "79d97fe96f597888da9e54a77b2e2ed97109e229f4f68c79655c1f82934d4e25",
+      "sha256": "a05b24076212ed97007f84d1c17ff67418e92860673ba5c192cf3869673feb1d",
       "exports": [],
       "operations": [
         {
@@ -65576,7 +66005,7 @@
     },
     {
       "module": "src/run_publication_host/client_pure_compilation_construction.mbt",
-      "sha256": "cf2382bd27315655635615d9a6638aac97e7890f19ec0edf7b2a3b5ef9397638",
+      "sha256": "47afd86e20b91053826fc94296827f40b7c05c224a79de2f819739a8f04d2092",
       "exports": [],
       "operations": [
         {
@@ -66054,7 +66483,7 @@
     },
     {
       "module": "src/run_publication_host/client_result_graph_construction.mbt",
-      "sha256": "1d0c08faa876032f9b4127b4863a7a5cdb842085f781f155db71489bf84db8e6",
+      "sha256": "23c82e26d0a5593781b72c98d82601a8436d7904dde9354417d9632d20b89314",
       "exports": [],
       "operations": [
         {

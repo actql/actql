@@ -151,6 +151,9 @@ const hostAst = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})
 const compositionBlocks = [], finalBlocks = [];
 const call = (statement, name) => statement.type === 'ExpressionStatement' &&
   statement.expression.type === 'CallExpression' && statement.expression.callee.name === name;
+const compositionCheck = statement => statement.type === 'VariableDeclaration' &&
+  statement.declarations.some(value => value.id.name === 'composedEnvironment' &&
+    value.init?.callee?.name === 'composeInstalledSourceEnvironment');
 const finalCheck = statement => statement.type === 'ExpressionStatement' &&
   statement.expression.type === 'AssignmentExpression' && statement.expression.left.name === 'environment' &&
   statement.expression.right.type === 'CallExpression' &&
@@ -158,7 +161,7 @@ const finalCheck = statement => statement.type === 'ExpressionStatement' &&
 function hostBlocks(node) {
   if (node === null || typeof node !== 'object') return;
   if (node.type === 'BlockStatement') {
-    if (node.body.some(statement => call(statement, 'reserveInstalledSourceEnvironment'))) compositionBlocks.push(node);
+    if (node.body.some(compositionCheck)) compositionBlocks.push(node);
     if (node.body.some(finalCheck)) finalBlocks.push(node);
   }
   for (const value of Object.values(node)) {
@@ -169,7 +172,7 @@ function hostBlocks(node) {
 hostBlocks(hostAst);
 assert.equal(compositionBlocks.length, 1); assert.equal(finalBlocks.length, 1);
 const compositionBlock = compositionBlocks[0], finalBlock = finalBlocks[0];
-const compositionStart = compositionBlock.body.find(statement => call(statement, 'reserveInstalledSourceEnvironment'));
+const compositionStart = compositionBlock.body.find(compositionCheck);
 const compositionEnd = compositionBlock.body.find(statement => call(statement, 'verifyInstalledConnectorBindings'));
 const finalStart = finalBlock.body[0];
 const finalEnd = finalBlock.body.find(finalCheck);
@@ -225,7 +228,12 @@ function hostHandoff(options = {}) {
   const assertCurrent = () => phaseCalls.push('current');
   const context = {
     moon,
-    composeInstalledCheckEnvironmentOriginal: environmentOwner.composeInstalledCheckEnvironmentOriginal,
+    // Explicit funded-constructor port for this lexical handoff fixture;
+    // generated reservation ordering is covered by the actual bridge tests.
+    composeInstalledSourceEnvironment(_services, runtime, base, source, effect) {
+      phaseCalls.push('reserve');
+      return environmentOwner.composeInstalledCheckEnvironmentOriginal(runtime, base, source, effect);
+    },
     baseEnvironmentWire: selectedWire, sourceProfile: undefined, effectInstallation: undefined,
     installedEffect: undefined, installationServices: {}, project: options.taskWire ? {} : undefined,
     initialProjectTasks: options.mockTask ? taskView : undefined, mockModels, initialModelInstallation: undefined,
