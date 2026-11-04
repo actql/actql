@@ -6,7 +6,6 @@ pub enum SourceRowsIssue {
   Stage(Int, @sourceviews.KeyedRowsIssue)
   InvalidVisit(Int, Int)
   InvalidClaim(Int, Int)
-  MissingPositiveBound(Int, Int, @decode.Cursor)
   Target(Int, Int, @step_bounds.TargetRowsIssue)
   SourceInput(Int, Int, @step_bounds.SourceInputRowsIssue)
 }

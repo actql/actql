@@ -16562,6 +16562,16 @@
           "async": false
         },
         {
+          "name": "contentCaptureControl/init:growWorkspace/init:growWorkspace",
+          "parameters": [
+            "ledger",
+            "reservation",
+            "maxBytes",
+            "inventoryCount"
+          ],
+          "async": false
+        },
+        {
           "name": "contentCaptureControl/init:holdingCid/init:holdingCid",
           "parameters": [
             "candidate"
@@ -24302,6 +24312,7 @@
             "contentCaptureControl/args/args/args#2",
             "contentCaptureControl/init:candidate/init:candidate",
             "contentCaptureControl/init:candidateForRun/init:candidateForRun",
+            "contentCaptureControl/init:growWorkspace/init:growWorkspace",
             "contentCaptureControl/init:holdingCid/init:holdingCid",
             "contentCaptureControl/init:inspect/init:inspect",
             "contentCaptureControl/init:issue/init:issue",
@@ -24427,6 +24438,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/sourceview-resolution.md",
+                "anchor": "## Runtime keyed storage"
               }
             ],
             "extension": [
@@ -30540,7 +30555,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "87bf84cf76083ba49ccbdeb3c522d26f082e255b9d628ae0fba1f40f849acec6"
+      "sha256": "74dad8a19e401a2762c26d31f496e5bb3925469b00c5968f74bd4127f6020d21"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -66938,7 +66953,7 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
+      "sha256": "157c140866c1d1d45286317a2476ed6f90ef40328ad5ebaa414ae87417e5c04a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -67047,6 +67062,13 @@
         {
           "name": "installRunKeyedContentCapture/cleanup/cleanup/cleanup#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/ensureInventoryCapacity/ensureInventoryCapacity",
+          "parameters": [
+            "count"
+          ],
           "async": false
         },
         {
@@ -67230,6 +67252,7 @@
             "installRunKeyedContentCapture/cleanup/cleanup/cleanup#2",
             "installRunKeyedContentCapture/cleanup/cleanup/cleanup/cleanup",
             "installRunKeyedContentCapture/cleanup/cleanup/cleanup/cleanup#2",
+            "installRunKeyedContentCapture/ensureInventoryCapacity/ensureInventoryCapacity",
             "installRunKeyedContentCapture/installRunKeyedContentCapture",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#2",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#3",
@@ -67369,6 +67392,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
+              },
+              {
+                "path": "docs/design/sourceview-resolution.md",
+                "anchor": "## Runtime keyed storage"
               }
             ],
             "extension": [
@@ -67401,6 +67428,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
+              },
+              {
+                "path": "adapters/host-node/keyed-content-workspace-growth.test.mjs",
+                "anchor": "captured inventory grows before a candidate constructor"
               }
             ]
           }

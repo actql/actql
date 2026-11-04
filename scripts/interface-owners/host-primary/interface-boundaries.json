@@ -20095,7 +20095,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
+      "sha256": "157c140866c1d1d45286317a2476ed6f90ef40328ad5ebaa414ae87417e5c04a",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -20202,6 +20202,13 @@
         {
           "name": "installRunKeyedContentCapture/cleanup/cleanup/cleanup#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/ensureInventoryCapacity/ensureInventoryCapacity",
+          "parameters": [
+            "count"
+          ],
           "async": false
         },
         {
@@ -20388,6 +20395,7 @@
             "installRunKeyedContentCapture/cleanup/cleanup/cleanup#2",
             "installRunKeyedContentCapture/cleanup/cleanup/cleanup/cleanup",
             "installRunKeyedContentCapture/cleanup/cleanup/cleanup/cleanup#2",
+            "installRunKeyedContentCapture/ensureInventoryCapacity/ensureInventoryCapacity",
             "installRunKeyedContentCapture/installRunKeyedContentCapture",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#2",
             "installRunKeyedContentCapture/installRunKeyedContentCapture#3",
@@ -20511,6 +20519,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
+              },
+              {
+                "path": "docs/design/sourceview-resolution.md",
+                "anchor": "## Runtime keyed storage"
               }
             ],
             "extension": [
@@ -20539,6 +20551,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "The existing physical Source inventory may retain the exact confirmed Store"
+              },
+              {
+                "path": "adapters/host-node/keyed-content-workspace-growth.test.mjs",
+                "anchor": "captured inventory grows before a candidate constructor"
               }
             ]
           }

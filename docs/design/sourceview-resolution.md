@@ -547,3 +547,21 @@ ones, so omission is not confused with a scanned request having no Binding use.
 Each lookup returns the owned request inventory; stage/input indices are local
 coordinates, not persistent identities. This is a missing-admission inventory,
 not a Host validator or a replacement for the issuer/authorization boundary.
+
+## Runtime keyed storage
+
+Optional lookup counts remain estimates, including when their aggregate maximum
+exceeds the Run budget. The completed original left read supplies the actual
+assembly length. Its row containers and the next processing workspace are
+admitted before construction; each retained canonical key and row-pointer array
+grows that same reservation. Immutable response cells keep their original child
+holdings rather than becoming a second unaccounted payload copy.
+
+The installing Host selects the finite Run policy independently of this initial
+demand. Later requests and retained responses spend the same attempts, transfer,
+time and byte allowances. A small initial quote does not shrink the Run policy,
+and a large optional estimate does not reserve every possible key at startup.
+Captured Content likewise starts with an empty inventory and grows its original
+workspace before adding or restoring actual entries. Cleanup retains failed
+children and their original debit; it never refunds cumulative work or declares
+an unconfirmed physical stop complete.

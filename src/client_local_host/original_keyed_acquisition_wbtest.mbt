@@ -277,6 +277,12 @@ fn original_keyed_run_fixture(
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
     .unwrap()
     .unwrap()
+  if unknown_left_rows {
+    let (rows, keys, _, _) = @publication_host.client_keyed_lookup_capacity(
+      keyed, 4096, 100000,
+    ).unwrap()
+    assert_true(rows is None && keys is None)
+  }
   let (_, direct, _) = @publication_host.client_keyed_direct_acquisition_coordinates(
     keyed,
   ).unwrap()

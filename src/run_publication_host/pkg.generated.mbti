@@ -739,7 +739,7 @@ pub fn client_keyed_left_read_rows(ClientKeyedLeftRead) -> Int?
 
 pub fn client_keyed_lookup_acquisition(ClientKeyedLookupInput) -> ClientKeyedAcquisition
 
-pub fn client_keyed_lookup_capacity(ClientKeyedAcquisition, Int, Int) -> (Int64, Int64, Int64, Int64)?
+pub fn client_keyed_lookup_capacity(ClientKeyedAcquisition, Int, Int) -> (Int64?, Int64?, Int64, Int64)?
 
 pub fn client_keyed_lookup_dag_matches(ClientKeyedLookupInput, @physical_strategy_host.CapturedDAG) -> Bool
 

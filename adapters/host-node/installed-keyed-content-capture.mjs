@@ -24,11 +24,9 @@ export function installRunKeyedContentCapture({moon, publications, control,
     throw new TypeError('InstalledKeyedContentSourceUnavailable');
   }
   const source = runtimeField(facts, 0);
-  const counts = moon.clientProgramKeyedLookupCapacity(acquisition, maxBytes, maxWork);
-  const inventoryCount = counts === undefined ? undefined : Number(runtimeField(counts, 1));
-  if (!Number.isSafeInteger(inventoryCount) || inventoryCount < 0 || inventoryCount > 2147483647) {
-    throw new TypeError('InvalidInstalledContentInventoryCapacity');
-  }
+  // No Source cardinality is needed to create an empty retained inventory.
+  // Each actual addition grows the SAME workspace before constructing it.
+  let inventoryCount = 0, inventoryGrowing = false;
   const limits = Object.freeze({maxBytes, maxNodes: 256, maxDepth: 32, maxTextUnits: maxBytes});
   const live = () => !cleaned && cleanupFlight === undefined && signal?.aborted !== true &&
     inputAvailable() === true &&
@@ -38,6 +36,22 @@ export function installRunKeyedContentCapture({moon, publications, control,
   let inventoryReady = true, inventoryFlight;
   const inventory = new Map();
   const contentReaders = new Set();
+  const ensureInventoryCapacity = count => {
+    if (!Number.isSafeInteger(count) || count < 0 || count > 2147483647 || inventoryGrowing) {
+      throw new TypeError('InvalidInstalledContentInventoryCapacity');
+    }
+    if (count <= inventoryCount) return;
+    if (!live() || reservation === undefined) throw new Error('InstalledContentAuthorityUnavailable');
+    const original = reservation;
+    inventoryGrowing = true;
+    try {
+      control.growWorkspace(ledger, original, maxBytes, count);
+      // A successful debit remains owned even if its current callback began
+      // cleanup. Never expose a new inventory entry after that state change.
+      inventoryCount = count;
+      if (reservation !== original || !live()) throw new Error('InstalledContentAuthorityUnavailable');
+    } finally { inventoryGrowing = false; }
+  };
   const checkInventoryRoom = wire => {
     if (!inventory.has(wire) && inventory.size >= inventoryCount) {
       throw new TypeError('InstalledContentInventoryLimit');
@@ -104,7 +118,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
     return inventoryReady && original !== undefined && live() &&
       (media === undefined || media === original.mediaType) ? original.value : undefined;
   });
-  const selectionCurrent = () => inventoryReady && !cleaned && cleanupFlight === undefined &&
+  const selectionCurrent = () => inventoryReady && !inventoryGrowing && !cleaned && cleanupFlight === undefined &&
     flight === undefined && inventoryFlight === undefined;
   // Select an already issued original, not a reference reconstructed from wire
   // or a caller-provided matching predicate. Nonmatching references short-circuit
@@ -144,7 +158,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       name: 'content-issuer', storeAuthorityCid, authorityScopeCid}),
     capture_authority_cid: captureAuthorityCid});
   const capture = options => {
-    if (!inventoryReady || cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
+    if (!inventoryReady || inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
         options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function') {
       throw new TypeError('InstalledKeyedContentCaptureMismatch');
     }
@@ -156,6 +170,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
       last = undefined;
+      ensureInventoryCapacity(inventory.size + 1);
       const binding = bindingFor(options.readSubjectCid);
       const candidate = control.candidateForRun(plan.compiled, plan.runDefinition,
         acquisition, options.request, binding,
@@ -195,7 +210,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
   // This operation borrows the same frame/reservation and Store: it cannot send
   // a provider request, synthesize completion, renew expiry or retire bytes.
   const recover = (options, ownedInventory = false) => {
-    if (cleaned || cleanupFlight !== undefined || flight !== undefined ||
+    if (inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined ||
         inventoryFlight !== undefined && !ownedInventory ||
         options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function' ||
         typeof options.referenceWire !== 'string' || typeof options.captureAuthorityCid !== 'string') {
@@ -209,6 +224,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       if (!await releaseCurrent()) throw new Error('CapturedContentCleanupPending');
       last = undefined;
+      ensureInventoryCapacity(inventory.size + (inventory.has(options.referenceWire) ? 0 : 1));
       const candidate = control.recoveryCandidateForRun(plan.compiled, plan.runDefinition,
         acquisition, options.referenceWire, bindingFor(options.captureAuthorityCid), limits);
       const description = control.inspect(candidate);
@@ -232,12 +248,21 @@ export function installRunKeyedContentCapture({moon, publications, control,
     const original = options.inventory;
     const closed = (item, keys) => item !== null && typeof item === 'object' &&
       !Array.isArray(item) && Object.keys(item).sort().join(',') === keys;
-    if (cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
+    if (inventoryGrowing || cleaned || cleanupFlight !== undefined || flight !== undefined || inventoryFlight !== undefined ||
         options.keyedAcquisition !== acquisition || typeof options.verifyRead !== 'function' ||
         !closed(original, 'entries,runDefinitionCid,version') ||
         original.version !== 'actql-installed-captured-content-inventory/0.1' ||
         original.runDefinitionCid !== plan.runDefinition.identity ||
-        !Array.isArray(original.entries) || original.entries.length > inventoryCount) {
+        !Array.isArray(original.entries) || original.entries.length > 2147483647) {
+      throw new TypeError('InstalledKeyedContentInventoryMismatch');
+    }
+    // The authenticated original inventory supplies its actual entry count;
+    // fund its copy and duplicate index before either collection is built.
+    const entriesOriginal = original.entries, count = entriesOriginal.length;
+    ensureInventoryCapacity(count);
+    if (original.entries !== entriesOriginal || entriesOriginal.length !== count ||
+        original.version !== 'actql-installed-captured-content-inventory/0.1' ||
+        original.runDefinitionCid !== plan.runDefinition.identity) {
       throw new TypeError('InstalledKeyedContentInventoryMismatch');
     }
     const seen = new Set();

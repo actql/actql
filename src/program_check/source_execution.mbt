@@ -53,8 +53,8 @@ fn keyed_execution_producer_matches(
       ),
       membership,
     ) {
-    (Some(@sourceviews.CheckedEstimate(rows)), Some(member)) =>
-      physical_equal(rows, @capacity.target_membership_rows(member))
+    (Some(@sourceviews.CheckedEstimate(rows)), Some(membership)) =>
+      physical_equal(rows, @capacity.target_membership_rows(membership))
     (Some(@sourceviews.RuntimeAdmission(original)), None) =>
       physical_equal(original, join)
     _ => false

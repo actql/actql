@@ -35,7 +35,19 @@ pub fn prepare_keyed_captured_local_installed_ledger(
     serialization~,
     infer~,
     captured_content~,
-  ).bind(limits => @resources.create_ledger(limits).to_option())
+  ).bind(required => {
+    // Standalone entry keeps its existing one Ledger. The ordinary managed
+    // entry borrows its original Run instead. Neither derives a Run budget
+    // from an optional estimate or limits future growth to this first quote.
+    guard client_local_preparation_initial_limits(
+        client_local_resource_policy(),
+      )
+      is Some(budget) &&
+      installed_effect_limits_fit(required, budget) else {
+      return None
+    }
+    @resources.create_ledger(budget).to_option()
+  })
 }
 
 ///|
@@ -79,9 +91,8 @@ fn keyed_captured_local_installed_limits(
 }
 
 ///|
-// One calculation returns the original checked coordinates and request bound
-// along with limits. Retaining those completed facts avoids another graph/
-// lookup-capacity derivation in the installed keyed Content constructor.
+// Retain the checked coordinates, finite Host request budget and first-unit
+// demand. The optional cardinality is never a Run budget or a request permit.
 fn keyed_captured_local_installed_requirements(
   prepared : @publication_host.PreparedClientProgram,
   direct : ClientInstalledCaptureCapacity,
@@ -135,7 +146,9 @@ fn keyed_captured_local_installed_requirements(
     @planning.query_requirement_cid(requirement) ==
     @planning.query_requirement_cid(direct.requirement) &&
     @publication_host.client_keyed_lookup_capacity(keyed, max_bytes, max_work)
-    is Some((_, key_runs, lookup_retained, lookup_execution)) else {
+    is Some((_, _, lookup_retained, lookup_execution)) &&
+    client_local_preparation_initial_limits(client_local_resource_policy())
+    is Some(budget) else {
     return None
   }
   let graph = @publication_host.prepared_client_graph(prepared)
@@ -145,8 +158,6 @@ fn keyed_captured_local_installed_requirements(
     keyed_task <
     (if serialization is Some(_) || infer is Some(_) { 0 } else { 1 }) ||
     keyed_task >= count ||
-    key_runs >
-    (2147483647 - count - (if captured_content { 2 } else { 1 })).to_int64() ||
     transport_bytes.length() != 2 ||
     transport_execution_bytes.length() != 2 {
     return None
@@ -258,7 +269,7 @@ fn keyed_captured_local_installed_requirements(
   if captured_content {
     guard @publication_host.client_captured_content_workspace_capacity(
         max_bytes,
-        inventory_count=key_runs.to_int(),
+        inventory_count=0,
       )
       is Some((capture_retained, capture_execution)) &&
       capture_retained <= 9223372036854775807L - retained &&
@@ -276,10 +287,11 @@ fn keyed_captured_local_installed_requirements(
     transport_execution_bytes[0],
     transport_execution_bytes[1],
   ]
-  // Keep all completed per-key holdings. Execution workspaces can overlap
-  // assembly; the conservative sum is not an allocator/RSS guarantee.
-  for index, bytes in retained_parts {
-    let multiplier = if index == 2 { key_runs } else { 1L }
+  // Start one actual processing unit. Completed per-key holdings are retained
+  // under the same Run and next children admit their own bytes/attempts. No
+  // whole-key maximum is charged before any Source rows have been obtained.
+  for bytes in retained_parts {
+    let multiplier = 1L
     if bytes < 0L ||
       (
         multiplier > 0L &&
@@ -295,8 +307,8 @@ fn keyed_captured_local_installed_requirements(
     }
     executing += bytes
   }
-  for index, bytes in transport_bytes {
-    let multiplier = if index == 1 { key_runs } else { 1L }
+  for bytes in transport_bytes {
+    let multiplier = 1L
     if bytes < 0L ||
       (
         multiplier > 0L &&
@@ -310,17 +322,15 @@ fn keyed_captured_local_installed_requirements(
     (
       {
         planning_work: limits.planning_work,
-        attempts: count +
-        key_runs.to_int() +
-        (if captured_content { 2 } else { 1 }),
-        holdings: count + key_runs.to_int() + 1,
+        attempts: count + 1 + (if captured_content { 2 } else { 1 }),
+        holdings: count + 2,
         transfer_bytes: transfer,
         retained_bytes: retained,
         execution_bytes: executing,
       },
       stage,
       input,
-      key_runs,
+      budget.attempts.to_int64(),
     ),
   )
 }

@@ -9,7 +9,9 @@ struct ClientKeyedLookupInput {
   reservation : @resources.Reservation
   max_bytes : Int
   max_work : Int
-  retained_bytes : Int64
+  mut retained_bytes : Int64
+  execution_bytes : Int64
+  mut growing : Bool
   rows : Int
   mut input : @execution.AdmittedInput?
   mut known : Array[(String, @execution.SuppliedRelationRead?)]
@@ -40,42 +42,42 @@ fn keyed_lookup_layout_capacity(
   if rows < 0L || rows > 2147483647L || max_bytes < 1 || max_work < 1 {
     return None
   }
-  let base = max_bytes.to_int64() * 8L + rows * 64L + 4096L
-  let per_key = max_bytes.to_int64() * 2L
-  if rows > (9223372036854775807L - base) / per_key {
-    return None
-  }
+  // Only the actual input's row containers live beyond each copy. Immutable
+  // response payloads remain under their original RowRun holdings; request,
+  // decode and identity buffers belong to the one execution workspace.
   Some(
     (
-      base + rows * per_key,
+      rows * 64L + 4096L,
       max_work.to_int64() * 32L + max_bytes.to_int64() * 8L + 4096L,
     ),
   )
 }
 
 ///|
-/// Declaration-derived ceilings before the Direct Source is opened. Repeated
-/// left rows still occupy assembly slots; the request bound does not collapse
-/// input occurrences into distinct logical dependencies.
+/// Initial lookup machinery before the Direct Source is opened. Optional
+/// estimates retain their own meaning; no rows or keys are invented for the
+/// initial empty assembly, and no whole-key response allowance is reserved.
 pub fn client_keyed_lookup_capacity(
   acquisition : ClientKeyedAcquisition,
   max_bytes : Int,
   max_work : Int,
-) -> (Int64, Int64, Int64, Int64)? {
-  guard @acquisition.lookup_bounds_at(
-      acquisition.binding.bounds,
-      acquisition.binding.index,
-    )
-    is Some(counts) &&
-    counts.distinct_keys >= 0L &&
-    counts.distinct_keys <= counts.input_rows &&
-    keyed_lookup_layout_capacity(counts.input_rows, max_bytes, max_work)
+) -> (Int64?, Int64?, Int64, Int64)? {
+  guard keyed_lookup_layout_capacity(0L, max_bytes, max_work)
     is Some((retained, execution)) else {
     return None
   }
-  // Requests includes page/network ceilings. Physical RowRun holdings are
-  // per complete key, while all left occurrences remain in the assembly.
-  Some((counts.input_rows, counts.distinct_keys, retained, execution))
+  let counts = @acquisition.lookup_bounds_at(
+    acquisition.binding.bounds,
+    acquisition.binding.index,
+  )
+  Some(
+    (
+      counts.map(v => v.input_rows),
+      counts.map(v => v.distinct_keys),
+      retained,
+      execution,
+    ),
+  )
 }
 
 ///|
@@ -167,6 +169,8 @@ fn start_client_keyed_lookup_input_owned(
     max_bytes,
     max_work,
     retained_bytes,
+    execution_bytes,
+    growing: false,
     rows,
     input: Some(input),
     known: [],
@@ -435,7 +439,8 @@ pub fn begin_client_keyed_lookup_response(
     Err(issue) => return Err(issue)
   }
   let acquisition = state.left.acquisition
-  if !request.io_complete ||
+  if state.growing ||
+    !request.io_complete ||
     request.attempts == 0L ||
     !@execution.supplied_relation_read_matches_input(
       read,
@@ -446,6 +451,47 @@ pub fn begin_client_keyed_lookup_response(
     return Err(Assembly("unverified_response"))
   }
   guard state.input is Some(input) else { return Err(Assembly("closed_input")) }
+  let columns = @schema.field_count(
+    @execution.supplied_relation_read_schema(read),
+  )
+  // Fund the two row/presence pointer arrays and their growth overlap. Cells
+  // borrow immutable admitted payloads; they do not copy the child value tree.
+  let extra = columns.to_int64() * 32L + wire.length().to_int64() * 2L
+  if extra > 9223372036854775807L - state.retained_bytes {
+    return Err(Assembly("capacity_overflow"))
+  }
+  state.growing = true
+  defer {
+    state.growing = false
+  }
+  let grown = @resources.grow_execution_reservation_capacity(
+    state.ledger,
+    state.reservation,
+    state.retained_bytes + extra,
+    state.execution_bytes,
+  )
+  state.growing = false
+  match grown {
+    Err(issue) => {
+      keyed_lookup_fail(state.left, Physical(issue)) |> ignore
+      return Err(Physical(issue))
+    }
+    Ok(_) => state.retained_bytes += extra
+  }
+  // The original current callback can stop the assembly or its input. Retain
+  // a completed debit on failure, but never publish a row after that change.
+  if state.closed ||
+    state.copying is Some(_) ||
+    state.completed is Some(_) ||
+    state.left.lookup_issue is Some(_) ||
+    !@execution.producer_read_available(state.left.read) ||
+    !@execution.supplied_relation_read_available(read) ||
+    !(state.input is Some(original) && physical_equal(original, input)) ||
+    !(state.selected_request is Some(original) &&
+    physical_equal(original, request)) ||
+    state.selected_key != Some(wire) {
+    return keyed_lookup_fail(state.left, Assembly("unavailable_response"))
+  }
   let cursor = match
     @execution.start_admitted_presence_input_row(input, state.max_work, column => {
       @execution.supplied_relation_read_presence_cell(read, 0, column)

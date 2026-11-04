@@ -213,13 +213,10 @@ test "split keyed Content quote sums retained Sources and prefix without another
   let count = @strategy.graph_task_count(
     @publication_host.prepared_client_graph(value.prepared),
   )
-  let (_, keys, _, _) = @publication_host.client_keyed_lookup_capacity(
-    value.keyed,
-    4096,
-    1000000,
-  ).unwrap()
-  assert_eq(baseline.attempts, count + keys.to_int() + 2)
-  assert_eq(baseline.holdings, count + keys.to_int() + 1)
+  // Only the first child is quoted. A static key bound is neither the
+  // cumulative Run allowance nor a demand to reserve every possible child.
+  assert_eq(baseline.attempts, count + 3)
+  assert_eq(baseline.holdings, count + 2)
   assert_true(quote(-1L, 9L) is None)
   assert_true(quote(7L, -1L) is None)
   assert_true(quote(9223372036854775807L, 9L) is None)
