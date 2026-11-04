@@ -96,15 +96,18 @@ function assertSnapshot(actual, task, rows) {
 test('public binding rows retain absent NULL and long Text through Store and two consumers',
   {timeout: 120_000}, async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-binding-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    let client;
+    t.after(async () => {
+      await client?.close();
+      await rm(directory, {recursive: true, force: true});
+    });
     let computed;
     const auth = authorization((name, detail) => {
       if (name === 'computed') computed = detail;
     });
     const open = () => connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization: auth}});
-    let client = await open();
-    t.after(() => client.close());
+    client = await open();
     const document = bindingProgram();
     const expected = expectedBindingRows(document);
     const wire = canonicalJson(document);
@@ -140,11 +143,14 @@ for (const task of [5, 6]) {
   test(`public binding task ${task} cancels after positive progress without partial publication`,
     {timeout: 120_000}, async t => {
       const directory = await mkdtemp(join(tmpdir(), 'actql-public-binding-cancel-'));
-      t.after(() => rm(directory, {recursive: true, force: true}));
-      let reached, release;
+      let client, reached, release;
+      t.after(async () => {
+        release?.();
+        await client?.close();
+        await rm(directory, {recursive: true, force: true});
+      });
       const advanced = new Promise(resolve => { reached = resolve; });
       const paused = new Promise(resolve => { release = resolve; });
-      t.after(() => release());
       let held = false, computed = 0, advances = 0;
       const auth = authorization(name => { if (name === 'computed') computed++; },
         (name, detail) => {
@@ -156,9 +162,8 @@ for (const task of [5, 6]) {
             return paused;
           }
         });
-      const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
         installation: {directory, retainedRelationOutput: true, authorization: auth}});
-      t.after(() => client.close());
       const wire = canonicalJson(bindingProgram());
       const requestId = `binding-cancel-${task}`;
       const submissionRef = client.newSubmission({nonce: requestId});
