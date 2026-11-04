@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
-import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
+import {isEffectPreparationRefusal, refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 
-function fixture({completeFailure} = {}) {
+function fixture(options = {}) {
+  const {completeFailure} = options;
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [];
   let active = false;
   const runtime = {
@@ -16,7 +17,7 @@ function fixture({completeFailure} = {}) {
     clientProgramInstalledEffectOperationControlConstructionComplete(...args) {
       assert.deepEqual(args, [parent, prepared, request, plan]);
       assert.equal(active, true); events.push('complete');
-      if (completeFailure) throw completeFailure;
+      if (Object.hasOwn(options, 'completeFailure')) throw completeFailure;
       active = false;
       return {$tag: 1};
     },
@@ -60,25 +61,49 @@ for (const kind of ['transport', 'lookalike', 'resource']) {
 test('semantic refusal cannot complete a frame after its original current record changes', () => {
   const f = fixture();
   const original = refusedEffectPreparation(new Error('ObservedTargetRefusal'));
-  assert.throws(() => f.control(undefined, () => {f.run.request = {}; throw original;}, []),
-    {code: 'ForeignInstalledEffectManagedRun'});
+  let pending;
+  assert.throws(() => f.control(undefined, () => {f.run.request = {}; throw original;}, []), error => {
+    pending = error;
+    assert(error instanceof AggregateError);
+    assert.equal(error.cause, original);
+    assert.equal(error.primaryFailure, original);
+    assert.equal(error.code, 'InstalledEffectControlConstructionPending');
+    assert.equal(error.errors[0], original);
+    assert.equal(error.errors[1].code, 'ForeignInstalledEffectManagedRun');
+    assert.equal(error.cleanupPending, true);
+    assert.equal(isEffectPreparationRefusal(error), false);
+    return true;
+  });
   assert.deepEqual(f.events, ['begin']);
   assert.equal(f.active(), true);
   assert.throws(() => f.control(undefined, () => assert.fail('No callback after current loss'), []),
-    {code: 'ForeignInstalledEffectManagedRun'});
+    error => error === pending);
 });
 
-test('semantic refusal preserves an unconfirmed original completion as a poisoned pending frame', () => {
-  const completionFailure = new Error('OriginalCompletionUnknown');
+for (const completionFailure of [new Error('OriginalCompletionUnknown'), undefined]) {
+test(`semantic refusal retains both original and completion failure, including undefined=${completionFailure === undefined}`, () => {
   const f = fixture({completeFailure: completionFailure});
   const original = refusedEffectPreparation(new Error('ObservedTargetRefusal'));
-  assert.throws(() => f.control(undefined, () => {throw original;}, []),
-    error => error === completionFailure);
+  let pending;
+  assert.throws(() => f.control(undefined, () => {throw original;}, []), error => {
+    pending = error;
+    assert(error instanceof AggregateError);
+    assert.equal(error.cause, original);
+    assert.equal(error.primaryFailure, original);
+    assert.equal(error.code, 'InstalledEffectControlConstructionPending');
+    assert.equal(error.errors.length, 2);
+    assert.equal(error.errors[0], original);
+    assert.equal(error.errors[1], completionFailure);
+    assert.equal(error.cleanupPending, true);
+    assert.equal(isEffectPreparationRefusal(error), false);
+    return true;
+  });
   assert.deepEqual(f.events, ['begin', 'complete']);
   assert.equal(f.active(), true);
   assert.throws(() => f.control(undefined, () => assert.fail('No callback after completion failure'), []),
-    error => error === completionFailure);
+    error => error === pending);
 });
+}
 
 test('a marked then getter failure after the callback returned cannot impersonate its semantic result', () => {
   const f = fixture();

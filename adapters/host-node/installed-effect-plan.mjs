@@ -823,8 +823,15 @@ export function prepareInstalledEffectControlConstruction(run) {
           checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
           originalRecord();
         } catch (completionFailure) {
-          failed = true; primary = completionFailure;
-          throw completionFailure;
+          // Scratch retirement is a separate result. Preserve even a thrown
+          // undefined alongside the original refusal; the aggregate is NOT
+          // marked as a completed semantic result and keeps this frame failed.
+          failed = true;
+          primary = Object.assign(new AggregateError([cause, completionFailure],
+            'InstalledEffectControlConstructionPending', {cause}),
+          {code: 'InstalledEffectControlConstructionPending',
+            primaryFailure: cause, cleanupPending: true});
+          throw primary;
         }
         throw cause;
       }
