@@ -1419,3 +1419,12 @@ test('capture and recovery constructors keep distinct original member slots and 
   assert.throws(() => captureInstalledEffectPlanRecipe(changed, 2), {code: 'InvalidInstalledEffectPlanRecipe'});
   assert.equal(calls, 0);
 });
+
+test('control retirement waits for the same recovered request body and its actual pending child ACK', () => {
+  const f=controlWorkFixture();let pending=true,calls=0;
+  const recovery=f.run.recoveredRequestInput={retire(){calls++;return !pending;}};
+  assert.equal(f.work.retire(),false);assert.strictEqual(f.run.recoveredRequestInput,recovery);
+  pending=false;assert.equal(f.work.retire(),true);assert.equal(f.run.recoveredRequestInput,undefined);
+  assert.equal(f.work.retire(),true);assert.equal(calls,2);
+  assert.throws(()=>f.work(undefined,()=>{},[]),{code:'InstalledEffectControlConstructionRetired'});
+});

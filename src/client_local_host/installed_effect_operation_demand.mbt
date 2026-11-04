@@ -1087,7 +1087,10 @@ pub fn prepare_installed_effect_managed_plan(
     return Err(Unsupported)
   }
   let operation_control_capacity = match
-    installed_effect_operation_control_capacity(held_children.to_int()) {
+    installed_effect_operation_control_capacity(
+      held_children.to_int(),
+      recovery_members=selected_operations.length(),
+    ) {
     Some(value) => value
     None => return Err(Unsupported)
   }

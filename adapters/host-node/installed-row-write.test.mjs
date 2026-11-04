@@ -650,6 +650,7 @@ test('standard cold recovery uses saved original requests without calling the pr
     const sameEffectValue = ${selected('sameEffectValue')};
     const entryOf = ${selected('entryOf')};
     const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
+    const validateRecoveredEntries = ${selected('validateRecoveredEntries')};
     return ${selected('recoveredEntries')};`)(...Object.values(ports));
   // If the standard driver supplies the existing capture codec, retain its
   // original output; a legacy driver has no such saved request material.
