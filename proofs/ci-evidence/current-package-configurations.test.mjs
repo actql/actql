@@ -10,6 +10,7 @@ import {currentConfigurationReviewRevision, currentPackageConfigurations,
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const tree = gitTree(root, currentConfigurationReviewRevision);
+const currentTree = gitTree(root, execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim());
 const toolchainDigest = packageConfigurationReview.toolchainDigest;
 const report = JSON.parse(readFileSync(new URL('../../docs/reviews/2026-10-25-session-current-configuration-review.json', import.meta.url)));
 const request = (path, digest) => ({path, digest, target: 'js', toolchainDigest});
@@ -82,25 +83,36 @@ test('exact nested C fixtures stay bound inert inputs; changed or additional mem
 test('current Local Host review binds the original carrier and Source builder union with existing JS selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
   const entry = currentPackageConfigurations[path];
-  assert.equal(entry.revision, 'caa8884bce17bac780ac657265bde7c23e9af61b');
-  assert.equal(entry.digest, '8daab7851344bbffaf55267e4becbcea039d45deb6f889604f15f005bf3093a9');
+  assert.equal(entry.revision, '227cb49fc1a4e42776e33ec1efcdbb55ccb9260c');
+  assert.equal(entry.digest, 'ad1be1bec19e3026ec8336fa4757e8edb0ffcfc8f70c92be281d043310a4b608');
   const selectedTree = gitTree(root, entry.revision);
   const body = selectedTree.read(path).toString();
   assert.equal(hash(body), entry.digest);
   execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
+  const jsOnly = ['installed_direct_occurrences_js_wbtest.mbt',
+    'installed_effect_content_model_js_wbtest.mbt']
+    .map(name => `    "${name}": [ "js" ],\n`);
+  let importUnion = body;
+  for (const selector of jsOnly) {
+    assert.equal(body.split(selector).length, 2);
+    importUnion = importUnion.replace(selector, '');
+  }
+  const originalUnion = gitTree(root, 'caa8884bce17bac780ac657265bde7c23e9af61b').read(path).toString();
+  assert.equal(hash(originalUnion), '8daab7851344bbffaf55267e4becbcea039d45deb6f889604f15f005bf3093a9');
+  assert.equal(importUnion, originalUnion, 'only the two actual JS fixture selectors changed');
   const prior = gitTree(root, 'e9b3409db9a89b230b1c5a1598f2221d6e80388e').read(path).toString();
   assert.equal(hash(prior), '42f83fa2f1ad053fa7b456e3ff58216827ae1ef8321e10b16cfe6ac79c3d7d5d');
   const dependency = '  "actql/actql/carrier_contract" @carrier,\n';
   const sourceBuilder = '  "actql/actql/program_source_builder" @source_builder,\n';
   assert.equal(body.split(dependency).length, 2);
   assert.equal(body.split(sourceBuilder).length, 2);
-  assert.equal(body.replace(dependency, '').replace(sourceBuilder, ''), prior);
+  assert.equal(importUnion.replace(dependency, '').replace(sourceBuilder, ''), prior);
   const publicParent = gitTree(root, '8c95f244e92e1e7bd2f3876445ed08dbac17fc07').read(path).toString();
   assert.equal(hash(publicParent), '40b9424ff3f16803b7287bdbf94265b04567bb6cc457aec5568bd711a74e8e37');
-  assert.equal(body.replace(dependency, ''), publicParent);
+  assert.equal(importUnion.replace(dependency, ''), publicParent);
   const carrierParent = gitTree(root, '6b3099abb66ad19db08558ff077b508a743a0431').read(path).toString();
   assert.equal(hash(carrierParent), 'd912a60c2dc285826993b93adc3528cb74d7240a9df21de264b07fecc3c72564');
-  assert.equal(body.replace(sourceBuilder, ''), carrierParent);
+  assert.equal(importUnion.replace(sourceBuilder, ''), carrierParent);
   const selector = '    "preparation_request_model_recovery_js_wbtest.mbt": [ "js" ],\n';
   assert.equal(body.split(selector).length, 2);
   assert.deepEqual(packageImports(body).imports,
@@ -109,7 +121,8 @@ test('current Local Host review binds the original carrier and Source builder un
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
-  const selected = packageSourceInputs({tree: selectedTree, packages: ['src/client_local_host'], target: 'js'});
+  assert.equal(currentTree.read(path).toString(), body);
+  const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes('src/relation_typing/moon.pkg'));
   assert(selected.paths.includes('src/effect_application/moon.pkg'));
@@ -117,7 +130,11 @@ test('current Local Host review binds the original carrier and Source builder un
   assert(selected.paths.includes('src/program_source_builder/moon.pkg'));
   assert(selected.paths.includes('src/client_local_host/installed_kintone_whole_source_js_wbtest.mbt'));
   assert(selected.paths.includes('src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt'));
-  for (const changed of [prior, publicParent, carrierParent, body.replace(selector, selector.replace('"js"', '"native"'))]) {
+  for (const name of ['installed_direct_occurrences_js_wbtest.mbt', 'installed_effect_content_model_js_wbtest.mbt'])
+    assert(selected.paths.includes('src/client_local_host/' + name));
+  for (const changed of [prior, publicParent, carrierParent, originalUnion,
+    body.replace(selector, selector.replace('"js"', '"native"')),
+    ...jsOnly.map(value => body.replace(value, value.replace('"js"', '"native"')))]) {
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
     const altered = {...selectedTree, read: member => member === path ? Buffer.from(changed) : selectedTree.read(member)};
     assert(packageSourceInputs({tree: altered, packages: ['src/client_local_host'], target: 'js'})
@@ -186,18 +203,24 @@ test('single current map binds exact per-entry reviews and full literal import c
 // This is a finite configuration-input review, not a compiler or VM witness.
 test('current physical Resource review binds platform VM selectors and refuses stale or changed input', () => {
   const path = 'src/physical_resources/moon.pkg';
-  const revision = '3484e0f43d8eee0013bb5fb8fba03e7fc873377f';
+  const revision = 'bf198225499436c26be2f7d763582b0efaeeae2b';
   const reviewed = gitTree(root, revision);
   const bytes = reviewed.read(path), body = bytes.toString();
-  const digest = '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb';
+  const digest = '508d45513dd76478ece212cd3e9a2da45aa93f2e100d99c44076a31afa46be23';
   assert.equal(hash(bytes), digest);
   execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: root});
+  const arithmetic = '  "actql/actql/capacity_arithmetic" @preparation_counts,\n';
+  assert.equal(body.split(arithmetic).length, 2);
+  const selectorOnly = body.replace(arithmetic, '');
+  assert.equal(hash(selectorOnly), '23447fecf75b00a7f5f5828d0dd27c9711a4386d34d3e3320ae805950b4ccfeb');
+  assert.equal(selectorOnly, gitTree(root, '3484e0f43d8eee0013bb5fb8fba03e7fc873377f').read(path).toString());
   const prior = gitTree(root, '523ada3259bf9e8147f746727fbfd56065036fd5').read(path);
   const selectors = '    "platform_vm_capacity_wasm.mbt": [ "wasm" ],\n' +
     '    "platform_vm_capacity_unsupported.mbt": [ "not", "wasm" ],\n';
   assert.equal(body.split(selectors).length, 2);
-  assert.equal(body.replace(selectors, ''), prior.toString());
-  assert.deepEqual(packageImports(body).imports, packageImports(prior.toString()).imports);
+  assert.equal(selectorOnly.replace(selectors, ''), prior.toString());
+  assert.deepEqual(packageImports(body).imports,
+    [...packageImports(prior.toString()).imports, 'actql/actql/capacity_arithmetic'].sort());
   assert.deepEqual(currentPackageConfigurationReviewFor(request(path, digest)), {
     revision, target: 'js', toolchainDigest,
     moonRevision: packageConfigurationReview.moonRevision,
@@ -212,7 +235,7 @@ test('current physical Resource review binds platform VM selectors and refuses s
     assert(selected.paths.includes(input), 'Target clauses never hide original source membership');
     assert.equal(head.entries.get(input).mode, '100644');
   }
-  for (const changed of [prior.toString(), body + '\noptions(pre_build: {command: "unreviewed"})\n',
+  for (const changed of [prior.toString(), selectorOnly, body + '\noptions(pre_build: {command: "unreviewed"})\n',
     body.replace('"platform_vm_capacity_wasm.mbt": [ "wasm" ]',
       '"platform_vm_capacity_wasm.mbt": [ "native" ]')]) {
     assert.notEqual(changed, body);
