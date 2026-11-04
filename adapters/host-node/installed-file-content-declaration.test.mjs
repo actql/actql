@@ -470,6 +470,7 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
     if (publicUnknownSource) {
       assert.equal(deferCapture, true);
       assert.equal(value.preparation, undefined);
+      const sourceReads = new WeakMap(), liveSourceReads = new Set();
       const {moon: _moon, declaration: _declaration, declared: _declared,
         environmentWire: _environmentWire, connectorId: _connectorId,
         connectorRegistration: _registration, connectorRevision: _revision,
@@ -477,17 +478,49 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
       return {...value, listingRequests: () => requests,
         async load({construction}) {
           assert.ok(construction);
-          construction.prepareDeclaration(value.viewsWire, value.declared.catalog_cid);
+          const original = construction.prepareDeclaration(value.viewsWire, value.declared.catalog_cid);
           await construction.openSpecializedSite({accountConfiguration: sourceAccountConfiguration,
             authorizationConstructor: options => installRowSourceAuthorization({
               ...options, connectorRegistration: 'fixture'}),
             siteConstructor: (_argument, {authorization}) => Object.freeze({
               connection: 'fixture:files', issueReadGrant,
               close() {
+                assert.equal(liveSourceReads.size, 0, 'all original fixture page callbacks have retired');
                 if (authorization.close() !== true) throw new Error('FixtureSourceAuthorizationCleanupPending');
               },
             })});
-          return construction.createRowSource(readerOptions);
+          return construction.createRowSource({...readerOptions,
+            prepareSourceRead({checkedOwner, effectful, declaration, managedRun, originalRead}) {
+              assert.equal(effectful, false);
+              assert.ok(checkedOwner && managedRun && originalRead);
+              assert.strictEqual(declaration, original.declaration);
+              assert.equal(sourceReads.has(originalRead), false);
+              // The Host supplies its already-admitted original read. This
+              // fixture retains it; it issues no parent, capacity or grant.
+              const read = {running: false, entered: false, closed: false};
+              sourceReads.set(originalRead, read);
+              liveSourceReads.add(read);
+              return originalRead;
+            },
+            closeSourceRead(originalRead) {
+              const read = sourceReads.get(originalRead);
+              assert.ok(read);
+              if (read.running) return Object.freeze({pending: true});
+              read.closed = true;
+              liveSourceReads.delete(read);
+              // The in-process page callback has returned and owns no FD,
+              // worker or transport. Core still retires its own typed read.
+              return Object.freeze({pending: false});
+            },
+            async readPages(options) {
+              if (options.resource !== 'files') return readerOptions.readPages(options);
+              const read = sourceReads.get(options.rowRun.originalRead);
+              assert.ok(read && !read.closed && !read.entered);
+              read.entered = read.running = true;
+              try {return await readerOptions.readPages(options);}
+              finally {read.running = false;}
+            },
+          });
         }};
     }
     const adapter = await createInstalledRowSource(adapterOptions);
