@@ -10,7 +10,7 @@ import {openAcquiredEffectComputation as openEffectComputation} from './acquired
 // These failure fixtures stop before the compiled runtime. Their nominal
 // Plan, Request and Ledger ports do not issue real funding or provider custody.
 const openAcquiredEffectComputation = options => {
-  const {sourceRefs = ['selected'], ...original} = options;
+  const {sourceRefs = ['selected'], rowSourceTasks = [], ...original} = options;
   const prepared = original.acquired.prepared;
   const request = original.acquired.requestIdentity ?? {};
   const managedRun = original.managedRun ?? {}, plan = {}, ledger = {};
@@ -36,7 +36,17 @@ const openAcquiredEffectComputation = options => {
     },
     clientProgramSelectedSourceInputKind: () => 'query',
     clientProgramSelectedSourceInputRef: value => value,
-    clientProgramInstalledEffectManagedPlanSource() {assert.fail('Adapter selection must not demand a Row-only capture');},
+    clientProgramInstalledEffectManagedDuckDBCapture(parent, value, identity, task) {
+      assert.equal(this, moon); sameOriginal(parent, value, identity);
+      assert(Number.isSafeInteger(task) && task >= 0 && task < sourceRefs.length);
+      assert.equal(rowSourceTasks.includes(task), false, 'Native getter cannot substitute for a Row capture');
+      return {$tag: 1, _0: {_0: sourceRefs[task], _1: sourceBudget.capacity}};
+    },
+    clientProgramInstalledEffectManagedPlanSource(originalPlan, task) {
+      assert.equal(this, moon); assert.equal(originalPlan, plan);
+      assert.equal(rowSourceTasks.includes(task), true, 'Native adapter selection must not demand a Row-only capture');
+      return {$tag: 1, _0: {_0: {}, _1: sourceRefs[task], _2: {}, _3: sourceBudget.capacity}};
+    },
     clientProgramInstalledEffectManagedRunPrepareLedger(parent, value, identity, capacities, transfer, execution,
       registry, values, fragment, ordered) {
       assert.equal(this, moon); sameOriginal(parent, value, identity);
@@ -55,7 +65,7 @@ const openAcquiredEffectComputation = options => {
       enumerable: true, writable: true, configurable: true});
   }
   const sourceProfile = original.sourceProfile?.sources === undefined
-    ? {admitsSource: ref => ref === 'selected', ...original.sourceProfile}
+    ? {realizationKey: 'duckdb-acquired', admitsSource: ref => ref === 'selected', ...original.sourceProfile}
     : original.sourceProfile;
   for (const adapter of sourceProfile.sources ?? [sourceProfile]) {
     if (typeof adapter.ledgerCapacity !== 'function') Object.defineProperty(adapter, 'ledgerCapacity', {value(value) {
@@ -500,6 +510,9 @@ for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-ow
     await assert.rejects(openAcquiredEffectComputation({
       moon: {clientProgramEffectAcquisitionCount: () => 2},
       sourceRefs: ['first', 'second'],
+      // This negative retains a valid typed Row capture but rejects its
+      // unsupported Host realization before any adapter preparation or I/O.
+      rowSourceTasks: fault === 'unsupported-realization' ? [1] : [],
       acquired: {prepared: {}}, sourceProfile: {sources: [first, unused, second]},
       retainComputationOwner(value) { custody = value; },
     }), {message: fault === 'duplicate-owner' ? 'DuplicateEffectSourceOwner'
