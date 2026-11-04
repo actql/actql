@@ -282,3 +282,19 @@ test('GitHub Source fixture attempts every original closer and preserves failed 
   assert(failure instanceof AggregateError);
   assert.deepEqual(failure.errors, [first, undefined]);
 });
+
+test('GitHub Source fixture shares its pending original close instead of returning an early ACK', async () => {
+  let hostCloses = 0, finish;
+  const host = {close() {hostCloses++; return new Promise(resolve => {finish = resolve;});}};
+  const server = {closeAllConnections() {}, close(done) {done();}};
+  const close = sourceFixtureLifetimeCallbacks().close(server, host);
+  const first = close(), second = close();
+  assert.strictEqual(second, first);
+  let settled = false;
+  second.then(() => {settled = true;});
+  for (let index = 0; index < 4; index++) await Promise.resolve();
+  assert.equal(hostCloses, 1); assert.equal(settled, false);
+  finish();
+  await first;
+  assert.equal(settled, true);
+});
