@@ -323,3 +323,29 @@ no current callback; the following original read constructor retains its own
 pre-call admission, current fence, partial-child retention and cleanup duties.
 Neither the variant nor release of a read alias acknowledges physical stop or
 parent retirement.
+
+
+## Mixed installed capture originals
+
+A mixed Row/DuckDB prefix retains each occurrence's capacity in the SAME
+checked Request Plan. The DuckDB preparation borrows its original requirement
+and opaque installed capacity from that Plan after the original Run's current
+check. It does not prepare a second Query or pending capacity envelope. The
+existing Native/Broad selector still checks Account/current and its actual
+selected configuration against those retained bounds before physical I/O.
+The pending and installed envelope entry points share one acceptance predicate.
+
+The builtin DuckDB installation supplies its registered `builtin_source/0.1`
+identity. Its private preparation map binds the original prepared object,
+exact physical target and selected catalogue view to that installation's
+binding CID. A copied or foreign preparation, retired installation or partial
+bound inventory cannot become ordinary Saved custody.
+
+The dispatch owner retains each original preparation's retirement method before
+opening the first input. Completed captures retire through their original close
+first. Only after pending physical cleanup has settled does that same owner
+return still-unentered Row preparations, so an early sibling failure cannot
+strand a later original read until global installation close. Unknown physical
+work still blocks this cut. No read, retry, replacement Ledger or cleanup ACK is
+created by returning an unentered preparation. Per-capture cleanup and complete
+Run/preparation retirement remain different observation boundaries.

@@ -27918,7 +27918,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -28081,7 +28081,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -28713,7 +28713,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/public-store-source-preparation.test.mjs",
@@ -62629,7 +62629,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "615941c020d72583a51e9f5cc999b199e359d21314e1cf7150b75084662d27e6",
+      "sha256": "e2234d1405ecb2041805de93f9e136ad112a402872b97d67cc98da16094aa030",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -62676,7 +62676,8 @@
             "root",
             "principalId",
             "sourceInitialization",
-            "environment"
+            "environment",
+            "installation"
           ],
           "async": true
         },
@@ -62684,6 +62685,20 @@
           "name": "createInstalledDuckDBSource/adapter/adapter",
           "parameters": [
             "connectorId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/adapter/matches/matches",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/adapter/matches/matches/matches",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -62707,9 +62722,10 @@
             "occurrence",
             "requireImmediateReadAuthorization",
             "queryTimePreparation",
-            "requestIdentity"
+            "requestIdentity",
+            "managedRun"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "createInstalledDuckDBSource/adapter/adapter#4",
@@ -62746,6 +62762,13 @@
           "name": "createInstalledDuckDBSource/adapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
           "parameters": [
             "requirement"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -63112,8 +63135,11 @@
             "createInstalledDuckDBSource/adapter/adapter#2",
             "createInstalledDuckDBSource/adapter/adapter#3",
             "createInstalledDuckDBSource/adapter/adapter#4",
+            "createInstalledDuckDBSource/adapter/adapter/matches/matches",
+            "createInstalledDuckDBSource/adapter/adapter/matches/matches/matches",
             "createInstalledDuckDBSource/adapter/init:close/init:close",
             "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
+            "createInstalledDuckDBSource/adapter/init:ordinaryRecoveryBinding/init:ordinaryRecoveryBinding",
             "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
             "createInstalledDuckDBSource/catalogIds/catalogIds"
           ],
@@ -63131,6 +63157,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "inputsOutputs": [
@@ -63159,6 +63189,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "ownership": [
@@ -63173,6 +63207,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "synchronization": [
@@ -63229,6 +63267,10 @@
               {
                 "path": "docs/design/resident-source-acquisition.md",
                 "anchor": "# Resident Source acquisition"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "extension": [
@@ -63253,6 +63295,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('DuckDB bound recovery keeps the original preparation and selected installation'"
               }
             ]
           }
@@ -63333,12 +63379,14 @@
         "../connectors/duckdb/node/native-runtime.mjs",
         "../connectors/duckdb/node/physical-capacity.mjs",
         "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "./authorization.mjs",
         "./captured-duckdb-source.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-host-services.mjs",
         "./local-account-config.mjs",
+        "./ordinary-source-binding.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path",
@@ -74476,7 +74524,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "66ee2d44e7f93e0b18d7579e00a087e3a861a991a901ec8ca7310ff75dd080c6",
+      "sha256": "de090316976818d651222469d28fd96950cc8787f1cdecfee390bd6460d51ed0",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -75389,15 +75437,6 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../_build/js/release/build/connectors/calendar/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/gcs/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/github/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/gmail/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/hubspot/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/notion/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/salesforce/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/sheets/host_node/host_node.js",
-        "../../_build/js/release/build/connectors/slack/host_node/host_node.js",
         "../connectors-builtin/installations.generated.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-check-environment.mjs",
@@ -75413,7 +75452,9 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": []
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ]
     },
     {
       "module": "adapters/host-node/installed-table-source.mjs",
@@ -120903,7 +120944,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "647040fd21fc4e7222b383664388c6b8ea1ea71c13bc82f0573bae3b78d5305a",
+      "sha256": "859931c81713677201930265f4dfc7e1e7389655f828c035094e954198e23748",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -122070,7 +122111,7 @@
       "sha256": "165562802b61bbfe5b4b8f9eafdbb4f84a437724eec0a7e82d67700421ac5a87",
       "responsibilityFacet": "primary",
       "role": "physical-io",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "createInstalledCredentialSourceReader",
         "installedJsonSourceReaderLimitNames",
@@ -123211,7 +123252,7 @@
       "sha256": "400e99ff69ed9ac0c765c37691d7b7cca2f447d7692f698563b58249154914b1",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "finishInstalledEffectModelScope",
         "installedEffectModelPreparation",
@@ -124010,10 +124051,10 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "1447473d2203e9c722ee438f95c2436ff1f7613a573d5bbb9e4ba731e08d8707",
+      "sha256": "9035ff0a5e348021a2e8807ebcb3032a1adc735f9feb50ec5032d6d2c9b075e8",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
-      "owner": "C \u2014 existing standard Host Source/Effect service originals",
+      "owner": "C — existing standard Host Source/Effect service originals",
       "exports": [
         "assertInstalledSourceConstruction",
         "beginInstalledPublishedSourceInitialization",

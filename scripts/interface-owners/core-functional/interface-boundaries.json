@@ -31790,7 +31790,8 @@
         {
           "operations": [
             "<module>",
-            "begin_installed_managed_capture_source_read"
+            "begin_installed_managed_capture_source_read",
+            "installed_managed_duckdb_capture"
           ],
           "exports": [],
           "attributes": {
@@ -31798,6 +31799,10 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
                 "anchor": "/// Borrow the original Row acquisition retained by this Pure Plan. The"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "inputsOutputs": [
@@ -31814,12 +31819,20 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
                 "anchor": "physical_equal(original_capacity, capacity) else {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
                 "anchor": "// read on the original Run before any following refusal can escape."
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "synchronization": [
@@ -31852,6 +31865,10 @@
               {
                 "path": "src/client_local_host/installed_capture_plan.mbt",
                 "anchor": "pub fn begin_installed_managed_capture_read("
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "extension": [
@@ -31876,6 +31893,10 @@
               {
                 "path": "src/client_local_host/installed_capture_original_row_js_wbtest.mbt",
                 "anchor": "test \"original base Row read keeps its partial child when current replaces the Plan capacity\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"DuckDB capture borrows the same Request Plan requirement and envelope once\""
               }
             ]
           }
@@ -32013,7 +32034,7 @@
           }
         }
       ],
-      "sha256": "f7752438ebef8a9cc92c21849c49aa0d2f0991b659f0daf870cf459938eaba13",
+      "sha256": "05645fce44ea8c260714631f339f2bdd29d768916ad57807b6215caee0478c00",
       "exports": [],
       "operations": [
         {
@@ -32023,6 +32044,10 @@
         {
           "name": "begin_installed_managed_capture_source_read",
           "declaration": "begin_installed_managed_capture_source_read ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( ClientInstalledSourceRead , @ planning . QueryRequirement , @ row_source_host . RowAcquisition , ClientInstalledCaptureCapacity , ) , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "installed_managed_duckdb_capture",
+          "declaration": "installed_managed_duckdb_capture ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ ( @ planning . QueryRequirement , ClientInstalledCaptureCapacity ) , ClientInstalledManagedRunIssue , ]"
         }
       ]
     },
@@ -48673,12 +48698,16 @@
     {
       "module": "src/connectors_builtin_node/client_installed_capture_source_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "a14fd34ebe40e9fa15729c0e3d8b70ef29063501da3e4aa78f4876375c8ca687",
+      "sha256": "ca7cdb7cea4ce4a04291461cb12f89b45a189f7e67b0b6b11d0d72550c0edcc1",
       "exports": [],
       "operations": [
         {
           "name": "client_program_installed_managed_capture_source_read",
           "declaration": "client_program_installed_managed_capture_source_read ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , declaration : @ client_row_source_host . RowDeclaration , occurrence : Int , ) - > Result [ ( @ client_local_host . ClientInstalledSourceRead , @ planning . QueryRequirement , @ client_row_source_host . RowAcquisition , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_duckdb_capture",
+          "declaration": "client_program_installed_managed_duckdb_capture ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , occurrence : Int , ) - > Result [ ( @ planning . QueryRequirement , @ client_local_host . ClientInstalledCaptureCapacity , ) , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_request_capture_module_body",
@@ -48691,7 +48720,8 @@
         {
           "operations": [
             "<module>",
-            "client_program_installed_managed_capture_source_read"
+            "client_program_installed_managed_capture_source_read",
+            "client_program_installed_managed_duckdb_capture"
           ],
           "exports": [],
           "attributes": {
@@ -48699,6 +48729,10 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
                 "anchor": "/// Borrow the original Row acquisition retained by this Pure Plan. The"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "inputsOutputs": [
@@ -48719,12 +48753,20 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
                 "anchor": "physical_equal(original_capacity, capacity) else {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "ownership": [
               {
                 "path": "src/client_local_host/installed_capture_provider_source.mbt",
                 "anchor": "// read on the original Run before any following refusal can escape."
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "synchronization": [
@@ -48757,6 +48799,10 @@
               {
                 "path": "src/client_local_host/installed_capture_plan.mbt",
                 "anchor": "pub fn begin_installed_managed_capture_read("
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "extension": [
@@ -48773,6 +48819,10 @@
               {
                 "path": "src/client_local_host/installed_capture_provider_source_js_wbtest.mbt",
                 "anchor": "test \"Pure provider tuple refuses foreign original request declaration and occurrence before binding\""
+              },
+              {
+                "path": "src/client_local_host/installed_capture_parent_js_wbtest.mbt",
+                "anchor": "test \"DuckDB capture borrows the same Request Plan requirement and envelope once\""
               }
             ]
           }

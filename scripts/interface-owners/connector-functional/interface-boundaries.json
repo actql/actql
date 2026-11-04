@@ -13020,7 +13020,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "1a7589a968861c7b95b72ea5a5d6b029de800b4847bf11c900a5f3aa8431e835",
+      "sha256": "cad250a7f65b1b227af14f3e8da004e63f0bcb05d80f4c4a53d6719a38b17bea",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -13770,6 +13770,13 @@
         },
         {
           "name": "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
           "parameters": [
             "prepared"
           ],
@@ -15855,6 +15862,7 @@
             "createInstalledRowSource/sourceBody/init:ledgerCapacity/init:ledgerCapacity",
             "createInstalledRowSource/sourceBody/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
             "createInstalledRowSource/sourceBody/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/sourceBody/init:retirePreparedSource/init:retirePreparedSource",
             "createInstalledRowSource/sourceBody/sourceBody",
             "openRowSourceCredentialCustody/readChildCredential",
             "openRowSourceCredentialCustody/retainRunBinding/acquisition/init:close/init:close",
@@ -15882,6 +15890,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "inputsOutputs": [
@@ -15902,6 +15914,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "ownership": [
@@ -15912,6 +15928,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "synchronization": [
@@ -15952,6 +15972,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "### Typed standard REST pages"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "extension": [
@@ -16012,6 +16036,10 @@
               {
                 "path": "adapters/host-node/installed-credential-source-reader.test.mjs",
                 "anchor": "test('shared reader typed page stop retains the pending original consumption until it settles'"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
+                "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
               }
             ]
           }

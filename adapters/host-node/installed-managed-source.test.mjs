@@ -8,6 +8,7 @@ import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capaci
 import {contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 test('managed Source Plan selection captures the original declaration method and receiver', () => {
   const selection = Object.freeze({declaration: {}, provider: {}, transferBytes: 1n, executionBytes: 2n});
@@ -249,14 +250,21 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
     environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture',
       source_views: [{contract_cid: view}]}]})};
   const installation = Object.freeze({registration: 'builtin_source', revision: 'builtin_source/0.1'});
-  let next;
+  const parent = {}, preparedProgram = {}, request = {}, requirement = {}, capacity = {};
+  let next, getters = 0, forwardedCapture;
+  const moon = {clientProgramInstalledManagedDuckDBCapture(run, program, identity, task) {
+    assert.equal(this, moon); assert.equal(run, parent); assert.equal(program, preparedProgram);
+    assert.equal(identity, request); assert.equal(task, 1); getters++; return {_0: requirement, _1: capacity};
+  }};
   const create = await new AsyncFunction('loadDuckDBNativeRuntime', 'readFile', 'checked',
     'contentCid', 'duckDBPhysicalTarget', 'validInstallationBinding', 'prepareCapturedDuckDBSource',
-    'importMetaUrl', text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') +
+    'runtimeField', 'importMetaUrl', text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') +
       ';return createInstalledDuckDBSource;')(async () => {}, readFile, value => value,
-    contentCid, duckDBPhysicalTarget, validInstallationBinding, async () => next,
+    contentCid, duckDBPhysicalTarget, validInstallationBinding, async options => {
+      forwardedCapture = options.originalCapture; return next;
+    }, runtimeField,
     new URL('./installed-duckdb-source.mjs', import.meta.url).href);
-  const adapter = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
+  const adapter = await create(profile, moon, {root: '/same-root', principalId: 'same-principal', installation});
   next = Object.freeze({physicalBinding: duckDBPhysicalTarget(profile),
     checkedSource: Object.freeze({sourceRef: profile.sourceRef, sourceViewContractCid: view})});
   const prepared = await adapter.prepare({}), binding = adapter.ordinaryRecoveryBinding(prepared);
@@ -266,7 +274,12 @@ test('DuckDB bound recovery keeps the original preparation and selected installa
   assert.equal(binding.connectorRevision, installation.revision);
   assert.equal(binding.bindingCid, adapter.connectorBindings[0].bindingCid);
   assert.equal(adapter.ordinaryRecoveryBinding(prepared), binding);
+  assert.equal(forwardedCapture, undefined);
   assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}), /InstalledSourcePreparationMismatch/);
+  await adapter.prepare({preparedProgram, requestIdentity: request, managedRun: parent, occurrence: {task: 1}});
+  assert.equal(getters, 1);
+  assert.equal(forwardedCapture.requirement, requirement);
+  assert.equal(forwardedCapture.capacity, capacity);
   const other = await create(profile, {}, {root: '/same-root', principalId: 'same-principal', installation});
   assert.throws(() => other.ordinaryRecoveryBinding(prepared), /InstalledSourcePreparationMismatch/);
   adapter.close();

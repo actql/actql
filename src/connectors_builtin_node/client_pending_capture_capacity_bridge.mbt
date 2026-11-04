@@ -70,3 +70,14 @@ pub fn client_program_prepare_multi_captured_local_capacity_ledger(
     values_body, fragment_body, ordered_body,
   )
 }
+
+///|
+#export_name("clientProgramInstalledDuckDBCaptureCapacityAccepts")
+pub fn client_program_installed_duckdb_capture_capacity_accepts(
+  capacity : @client_local_host.ClientInstalledCaptureCapacity,
+  selected : @duckdb_host.CaptureConfiguration,
+) -> Bool {
+  @client_local_host.installed_duckdb_capture_capacity_accepts(
+    capacity, selected,
+  )
+}

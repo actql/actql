@@ -59,7 +59,7 @@ function selectAcquisition(inputs) {
 // handle can only be consumed with the same checked Program and Host profile.
 export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
-  queryTimePreparation, requestIdentity,
+  queryTimePreparation, requestIdentity, originalCapture,
   registry, values, fragment, ordered, database, schema, table,
   sourceAccess, transportLimits, acquisitionPlanning, requireImmediateReadAuthorization = false,
   occurrence = {stage: 0, input: 0, task: 0}}) {
@@ -79,7 +79,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   // as a substitute for the Program's source declaration.
   const effectful = preparedEffect !== undefined;
   const checkedOwner = preparedEffect ?? preparedProgram;
-  const {requirement} = prepareOriginalSourceQuery({moon,
+  const {requirement} = originalCapture ?? prepareOriginalSourceQuery({moon,
     preparedProgram, preparedEffect, stage: occurrence.stage, input: occurrence.input,
     registry, values, fragment, ordered, queryTimePreparation, requestIdentity});
   const sourceFacts = checked(
@@ -117,9 +117,9 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   // A bounded capacity envelope is preparation, not a selected acquisition
   // or a read grant. It lets the existing pair ledger retain a completed
   // first input while the second input still awaits its own authorization.
-  const capacityEnvelope = typeof moon.clientProgramPrepareDuckDBCaptureCapacity === 'function'
+  const capacityEnvelope = originalCapture?.capacity ?? (typeof moon.clientProgramPrepareDuckDBCaptureCapacity === 'function'
     ? checked(moon.clientProgramPrepareDuckDBCaptureCapacity(requirement,
-      schema, table, ...contracts)) : undefined;
+      schema, table, ...contracts)) : undefined);
   let acquisition, broad = false, selection;
   const decision = await currentReadDecision(database, sourceAccess);
   if (decision.action === 'dispatch') {
@@ -150,6 +150,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     values, fragment, ordered, database, schema, table, sourceAccess,
     requirement, evidenceContext, acquisition, broad, selection, selectionInputs,
     transportLimits: admittedLimits, acquisitionPlanning, capacityEnvelope,
+    installedCapacity: originalCapture !== undefined,
     occurrence: prepared.occurrence}));
   return prepared;
 }
@@ -213,7 +214,10 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       const selected = authorizedSelection ?? owner;
       const configuration = (selected.broad ? moon.clientProgramCapturedBroadConfiguration
         : moon.clientProgramCapturedNativeConfiguration)(selected.acquisition);
-      if (!moon.clientProgramDuckDBCaptureCapacityAccepts(owner.capacityEnvelope, configuration)) {
+      const accepts = owner.installedCapacity ? moon.clientProgramInstalledDuckDBCaptureCapacityAccepts
+        : moon.clientProgramDuckDBCaptureCapacityAccepts;
+      if (typeof accepts !== 'function' ||
+          Reflect.apply(accepts, moon, [owner.capacityEnvelope, configuration]) !== true) {
         throw new Error('InstalledSourceCapacityEnvelopeMismatch');
       }
     }

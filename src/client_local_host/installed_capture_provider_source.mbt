@@ -75,6 +75,41 @@ pub fn begin_installed_managed_capture_source_read(
 }
 
 ///|
+/// Borrow the SAME pending DuckDB capture retained by the checked Plan.
+/// No Row read token, new query, capacity quote or read permission is issued.
+pub fn installed_managed_duckdb_capture(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  occurrence : Int,
+) -> Result[
+  (@planning.QueryRequirement, ClientInstalledCaptureCapacity),
+  ClientInstalledManagedRunIssue,
+] {
+  match require_installed_managed_run(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match check_installed_managed_run_binding(owner, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard owner.preparation is Some(PureManaged(_, original)) &&
+    physical_equal(original, prepared) &&
+    physical_equal(owner.request, request) &&
+    owner.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, request) &&
+    plan.captures.get(occurrence) is Some(capacity) &&
+    !capacity.original_input &&
+    capacity.acquisition is None &&
+    capacity.provider is None else {
+    return Err(ForeignOriginal)
+  }
+  Ok((capacity.requirement, capacity))
+}
+
+///|
 /// The selected Content Plan already owns this original Direct acquisition
 /// and capacity. Keep the existing Source read slot/current/retirement owner;
 /// no new query, source declaration or quote is produced here.

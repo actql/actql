@@ -52,3 +52,22 @@ pub fn client_program_prepare_request_capture_module_body(
     invocation~,
   ).map_err(issue => Preparation(issue))
 }
+
+///|
+#export_name("clientProgramInstalledManagedDuckDBCapture")
+pub fn client_program_installed_managed_duckdb_capture(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  occurrence : Int,
+) -> Result[
+  (
+    @planning.QueryRequirement,
+    @client_local_host.ClientInstalledCaptureCapacity,
+  ),
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_duckdb_capture(
+    owner, prepared, request, occurrence,
+  )
+}

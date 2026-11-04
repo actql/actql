@@ -404,6 +404,8 @@ pub fn installed_described_effect_recipe_capacities(Array[(@execution_relation.E
 
 pub fn installed_duckdb_capture_capacity(@host.CaptureConfiguration) -> ClientInstalledCaptureCapacity?
 
+pub fn installed_duckdb_capture_capacity_accepts(ClientInstalledCaptureCapacity, @host.CaptureConfiguration) -> Bool
+
 pub fn installed_effect_content_provider(ClientInstalledEffectContentPreparation) -> @local.ManagedProvider
 
 pub fn installed_effect_control_wire_bound(Int, Int) -> Result[Int, ClientInstalledManagedRunIssue]
@@ -459,6 +461,8 @@ pub fn installed_managed_acquisition_result_publication(ClientInstalledManagedRu
 pub fn installed_managed_capture_plan(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedCapturePlan, ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_capture_run_requirements(@run_publication_host.PreparedClientProgram, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
+
+pub fn installed_managed_duckdb_capture(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int) -> Result[(@query_planning.QueryRequirement, ClientInstalledCaptureCapacity), ClientInstalledManagedRunIssue]
 
 pub fn installed_managed_keyed_content_requirements(ClientInstalledManagedKeyedPreparation) -> Array[Int64]
 

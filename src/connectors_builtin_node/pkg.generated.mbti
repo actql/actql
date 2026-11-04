@@ -1548,6 +1548,8 @@ pub fn client_program_installed_described_effect_recipe_capacities(Array[(@execu
 
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_duckdb_capture_capacity_accepts(@client_local_host.ClientInstalledCaptureCapacity, @actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Bool
+
 pub fn client_program_installed_effect_capture_extent_prepare(String, @execution_relation.ExecutionCapacity, @execution_relation.ExecutionCapacity) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_effect_capture_recipe_extent_prepare(String, Array[@execution_relation.ExecutionCapacity]) -> Result[@client_local_host.ClientInstalledEffectOperationExtent, @client_local_host.ClientInstalledManagedRunIssue]
@@ -1695,6 +1697,8 @@ pub fn client_program_installed_managed_capture_plan_prepare(@run_publication_ho
 pub fn client_program_installed_managed_capture_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], @client_local_host.ClientInstalledSequenceContracts, String, String?, String?) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_capture_source_read(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @client_row_source_host.RowDeclaration, Int) -> Result[(@client_local_host.ClientInstalledSourceRead, @query_planning.QueryRequirement, @client_row_source_host.RowAcquisition, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_installed_managed_duckdb_capture(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Int) -> Result[(@query_planning.QueryRequirement, @client_local_host.ClientInstalledCaptureCapacity), @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_keyed_content_check_preparation(@client_local_host.ClientInstalledManagedKeyedPreparation, @run_publication_host.PreparedClientProgram) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue]
 

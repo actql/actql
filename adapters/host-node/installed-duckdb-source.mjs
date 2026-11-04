@@ -7,6 +7,7 @@ import {createNodeAuthorizationGate} from './authorization.mjs';
 import {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
@@ -165,14 +166,18 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     },
     retainedCapture(prepared) {
       current();
+      const original = preparations.get(prepared);
+      if (original === undefined) throw new TypeError('InstalledSourcePreparationMismatch');
       return Object.freeze({requirement: capturedDuckDBRequirement(prepared),
-        capacity: moon.clientProgramInstalledPendingDuckDBCaptureCapacity(
+        capacity: original.captureCapacity ?? moon.clientProgramInstalledPendingDuckDBCaptureCapacity(
           capturedDuckDBPendingCapacity(prepared))});
     },
     ledgerCapacity(prepared) {
       current();
       const physical = capturedDuckDBPhysicalCapacity(prepared);
-      const capacity = moon.clientProgramInstalledDuckDBCaptureCapacity(
+      const original = preparations.get(prepared);
+      if (original === undefined) throw new TypeError('InstalledSourcePreparationMismatch');
+      const capacity = original.captureCapacity ?? moon.clientProgramInstalledDuckDBCaptureCapacity(
         capturedDuckDBConfiguration(prepared));
       if (capacity === undefined) {
         throw new TypeError('InstalledSourceCapacityUnavailable');
@@ -185,11 +190,22 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     },
     prepare: async ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, requireImmediateReadAuthorization,
-      queryTimePreparation, requestIdentity}) => {
+      queryTimePreparation, requestIdentity, managedRun}) => {
       current();
+      let originalCapture;
+      if (managedRun !== undefined) {
+        if (preparedEffect !== undefined || typeof moon.clientProgramInstalledManagedDuckDBCapture !== 'function') {
+          throw new TypeError('InstalledSourcePreparationMismatch');
+        }
+        const original = checked(moon.clientProgramInstalledManagedDuckDBCapture(
+          managedRun, preparedProgram, requestIdentity, occurrence.task));
+        current();
+        originalCapture = Object.freeze({requirement: runtimeField(original, 0),
+          capacity: runtimeField(original, 1)});
+      }
       const prepared = await prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      queryTimePreparation, requestIdentity,
+      queryTimePreparation, requestIdentity, originalCapture,
       sourceAccess, occurrence, requireImmediateReadAuthorization, transportLimits: profile.transportLimits});
       current();
       const matches = catalogs.filter(value => value.source_views.some(view =>
@@ -201,7 +217,8 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       if (sourceInitialization !== undefined && !validInstallationBinding(binding)) {
         throw new TypeError('InstalledSourcePreparationMismatch');
       }
-      preparations.set(prepared, Object.freeze({physicalBinding: prepared.physicalBinding, binding}));
+      preparations.set(prepared, Object.freeze({physicalBinding: prepared.physicalBinding, binding,
+        captureCapacity: originalCapture?.capacity}));
       return prepared;
     },
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,

@@ -1468,7 +1468,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "4de0c786a6224f74858d8686dbdc055cb2895d1836818db23b1d9912552677d7",
+      "sha256": "5798ffdddb8f14db9e428d594846cd45dfff8c8c0ed18214357bd96006d43286",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -1613,6 +1613,7 @@
             "preparedEffect",
             "queryTimePreparation",
             "requestIdentity",
+            "originalCapture",
             "registry",
             "values",
             "fragment",
@@ -2207,14 +2208,14 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#10",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -2227,7 +2228,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#12",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -2237,9 +2240,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#14",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -2265,6 +2266,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#18",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#19",
           "parameters": [
             "task"
           ],
@@ -2322,7 +2330,7 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#9",
           "parameters": [
-            "source"
+            "value"
           ],
           "async": false
         },
@@ -2506,6 +2514,8 @@
             "installNodeClientDispatchOwner/start/start",
             "installNodeClientDispatchOwner/start/start/physical/physical",
             "installNodeClientDispatchOwner/start/start/start",
+            "installNodeClientDispatchOwner/start/start/start#2",
+            "installNodeClientDispatchOwner/start/start/start#3",
             "installNodeClientDispatchOwner/start/start/start/capacities/capacities",
             "installNodeClientDispatchOwner/start/start/start/init:close/init:close",
             "installNodeClientDispatchOwner/start/start/start/init:retainExecution/init:retainExecution",
@@ -2522,6 +2532,7 @@
             "installNodeClientDispatchOwner/start/start/start/start#14",
             "installNodeClientDispatchOwner/start/start/start/start#15",
             "installNodeClientDispatchOwner/start/start/start/start#16",
+            "installNodeClientDispatchOwner/start/start/start/start#19",
             "installNodeClientDispatchOwner/start/start/start/start#2",
             "installNodeClientDispatchOwner/start/start/start/start#3",
             "installNodeClientDispatchOwner/start/start/start/start#4",
@@ -2530,19 +2541,17 @@
             "installNodeClientDispatchOwner/start/start/start/start#7",
             "installNodeClientDispatchOwner/start/start/start/start#8",
             "installNodeClientDispatchOwner/start/start/start/start#9",
-            "installNodeClientDispatchOwner/start/start/start#2",
-            "installNodeClientDispatchOwner/start/start/start#3",
             "installNodeClientDispatchOwner/step/step",
             "installNodeClientDispatchOwner/track/track",
             "installNodeClientDispatchOwner/track/track/track",
-            "installNodeClientDispatchOwner/track/track/track/init:acquireSource/init:acquireSource",
-            "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
-            "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
-            "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "installNodeClientDispatchOwner/track/track/track#2",
             "installNodeClientDispatchOwner/track/track/track#3",
             "installNodeClientDispatchOwner/track/track/track#4",
             "installNodeClientDispatchOwner/track/track/track#5",
+            "installNodeClientDispatchOwner/track/track/track/init:acquireSource/init:acquireSource",
+            "installNodeClientDispatchOwner/track/track/track/init:beginPhysicalWork/init:beginPhysicalWork",
+            "installNodeClientDispatchOwner/track/track/track/init:observePreEffectFailure/init:observePreEffectFailure",
+            "installNodeClientDispatchOwner/track/track/track/init:retainExecution/init:retainExecution",
             "observeNodeRestoredModelStop",
             "observeNodeRunStop",
             "recordNodeRunPhysicalStop"
@@ -2571,6 +2580,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "inputsOutputs": [
@@ -2635,6 +2648,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "ownership": [
@@ -2657,6 +2674,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "synchronization": [
@@ -2741,6 +2762,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
               }
             ],
             "extension": [
@@ -2821,6 +2846,10 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
                 "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
+                "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
               }
             ]
           }
@@ -3761,7 +3790,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "a3dec30f61c50cee83059079822193abdc1a315d00481eebedecbf039a63f210",
+      "sha256": "c005be03d0afe2493b99ae9ca1fdea6f339c3a569dda9f6839ebdb0e0444976b",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
