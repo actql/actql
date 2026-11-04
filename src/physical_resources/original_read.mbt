@@ -353,6 +353,9 @@ fn[T] original_tokens_match(
 // The completion is recorded by Resource on the SAME token; its separately
 // retained output must still belong to the original inventory and be live.
 // Pending scratch is not acknowledged or released by this observation.
+// Non-Model producers on a quantity-configured Ledger reserve the canonical
+// neutral amount. Resource completion clears that zero reservation; recognize
+// only this recorded neutral transition, never nonzero or uncertain quantities.
 fn original_completed_output_matches(
   ledger : Ledger,
   token : Reservation,
@@ -362,7 +365,10 @@ fn original_completed_output_matches(
     token.serial == before.serial &&
     before.open &&
     before.completed_output is None &&
-    before.quantities is None &&
+    (
+      before.quantities is None ||
+      before.quantities == no_model_quantity_amounts
+    ) &&
     before.uncertain_quantities is None &&
     token.completed_output is Some((holding, bytes, scratch)) &&
     scratch >= 0L &&
