@@ -119,10 +119,12 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
     // Capture cleanup before any constructor. A partial begin remains attached
     // to this same record and can never acquire another admission on retry.
     run.retire = runtime.clientProgramInstalledManagedRunRetire;
+    run.quiesce = runtime.clientProgramInstalledManagedRunQuiesce;
     run.readPlan = runtime.clientProgramInstalledEffectManagedOperationPlan;
     run.beginOperations = runtime.clientProgramInstalledEffectOperationControlsRetain;
     const beginOperations = run.beginOperations;
-    if (![run.retire, run.readPlan, run.beginOperations].every(value => typeof value === 'function')) {
+    if (![run.retire, run.readPlan, run.beginOperations, ...(model === undefined ? [] : [run.quiesce])]
+        .every(value => typeof value === 'function')) {
       fail('NodeManagedRunRuntimeUnavailable');
     }
     if (model === undefined) {
@@ -216,8 +218,31 @@ export function finishInstalledEffectModelScope(run, originalRunCleanupComplete,
   if (run.modelScopeFinishing) fail('InstalledEffectModelScopeCleanupPending');
   const sameScope = run.modelScope, sameParent = run.value, sameModel = run.model;
   const sameControl = run.publicationControl, sameDefinition = run.modelRunDefinition, sameFinish = run.finishModelScope;
+  const sameRuntime = run.runtime, sameQuiesce = run.quiesce, sameRequest = run.request,
+    sameOriginal = run.original, sameConstruction = run.controlConstruction, sameRetire = run.retireControlConstruction;
+  const original = () => {
+    if (run.modelScope !== sameScope || run.value !== sameParent || run.model !== sameModel ||
+        run.publicationControl !== sameControl || run.modelRunDefinition !== sameDefinition || run.finishModelScope !== sameFinish ||
+        run.runtime !== sameRuntime || run.quiesce !== sameQuiesce || run.request !== sameRequest ||
+        run.original !== sameOriginal || run.controlConstruction !== sameConstruction || run.retireControlConstruction !== sameRetire) {
+      fail('ForeignInstalledEffectModelScope');
+    }
+  };
   run.modelScopeFinishing = true;
   try {
+    if (originalRunCleanupComplete === true && sameParent !== undefined) {
+      // The actual constructor must stop before its SAME Core control backing
+      // can settle. Scope census quiescence cannot acknowledge either child.
+      if (sameConstruction !== undefined) {
+        if (typeof sameRetire !== 'function') fail('InstalledEffectControlConstructionCleanupPending');
+        const stopped = Reflect.apply(sameRetire, sameConstruction, []);
+        original();
+        if (stopped !== true) fail('InstalledEffectControlConstructionCleanupPending');
+      }
+      if (typeof sameQuiesce !== 'function') fail('InstalledEffectModelRuntimeUnavailable');
+      checked(Reflect.apply(sameQuiesce, sameRuntime, [sameParent]));
+      original();
+    }
     const finished = run.modelRuntimeView !== undefined
       ? originalRunCleanupComplete === true && run.modelSelection.finishTrustedRuntimeScope(
         sameScope, run.modelRuntimeView, sameModel.compiled, sameDefinition, sameModel.graph)
@@ -225,10 +250,7 @@ export function finishInstalledEffectModelScope(run, originalRunCleanupComplete,
       [sameScope, sameModel.compiled, sameModel.definition, sameModel.graph, originalRunCleanupComplete]))
       : Reflect.apply(run.finishModelScope, run.publicationControl,
         [sameModel.compiled, run.modelRunDefinition, sameModel.graph, sameScope, originalRunCleanupComplete]);
-    if (run.modelScope !== sameScope || run.value !== sameParent || run.model !== sameModel ||
-        run.publicationControl !== sameControl || run.modelRunDefinition !== sameDefinition || run.finishModelScope !== sameFinish) {
-      fail('ForeignInstalledEffectModelScope');
-    }
+    original();
     if (finished !== true) fail('InstalledEffectModelScopeCleanupPending');
     run.modelScopeFinished = true;
   } finally {run.modelScopeFinishing = false;}

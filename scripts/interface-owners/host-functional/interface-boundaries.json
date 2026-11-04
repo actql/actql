@@ -125606,7 +125606,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "04aaa32d4d47657d791bb0603e9346fda20d85cca634916503ea5fa5bca8a49b",
+      "sha256": "af19253eb9f2b3479cca32d76f2606b662fd34056c51734d76c1a7e71eb2a95e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -125661,6 +125661,11 @@
             "originalRunCleanupComplete",
             "checked"
           ],
+          "async": false
+        },
+        {
+          "name": "finishInstalledEffectModelScope/original/original",
+          "parameters": [],
           "async": false
         },
         {
@@ -125853,7 +125858,8 @@
             "prepareInstalledEffectManagedPlanRun/same/same",
             "prepareInstalledEffectManagedPlanRun/same/same/same",
             "readInstalledEffectManagedPlanRun",
-            "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent"
+            "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
+            "finishInstalledEffectModelScope/original/original"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -125874,6 +125880,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "inputsOutputs": [
@@ -125916,6 +125926,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "synchronization": [
@@ -125930,6 +125944,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "failure": [
@@ -125944,6 +125962,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Model Effect quiesces only original stopped control before Scope and keeps pending primary for retry'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope'"
               }
             ],
             "cancellation": [
@@ -125972,6 +125998,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "extension": [
@@ -126004,6 +126034,14 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Model Effect quiesces only original stopped control before Scope and keeps pending primary for retry'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope'"
               }
             ]
           }

@@ -181,24 +181,56 @@ test "admission for an equal-quote different Effect plan cannot begin this plan"
 }
 
 ///|
-test "one-short admitted envelope refuses the same Effect plan and retains its original cleanup" {
+test "one-short actual Effect operation refuses before allocation and retains its original cleanup" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   for field in [1, 3, 4, 5] {
     let quote = prepared_installed_effect_managed_requirements(plan)
-    quote[field] -= 1L
-    let (input, initial, _, capacity) = effect_preparation_test_capacity(
+    // First member: one physical attempt, 17 transfer bytes, 100 retained
+    // bytes and 200 execution bytes. Fixed controls/body coexist separately.
+    quote[field] = match field {
+      1 => 0L
+      3 => 16L
+      4 =>
+        10L +
+        @execution.execution_capacity_retained_bytes(
+          plan.operation_control_capacity,
+        ) +
+        100L -
+        1L
+      _ => plan.operation_control_idle_execution + 200L - 1L
+    }
+    let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
       plan, quote,
     )
-    assert_true(
-      begin_preparation_owned_installed_effect_managed_run(
-        initial, input, capacity, prepared, request, plan,
-      )
-      is Err(InsufficientCapacity),
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    ).unwrap()
+    retain_installed_effect_operation_controls_before_construction(
+      owner, prepared, request, plan,
+    ).unwrap()
+    |> ignore
+    let before = @resources.ledger_usage(ledger)
+    let refused = borrow_installed_effect_operation(
+      owner, prepared, request, plan, 0, false, 0, 0, "operation",
     )
-    assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
-    @resources.cleanup_node_preparation_admission(initial).unwrap()
-    @resources.cleanup_node_preparation_admission(initial).unwrap()
+    match field {
+      1 => assert_true(refused is Err(Ledger(AttemptLimit)))
+      3 => assert_true(refused is Err(Ledger(TransferLimit)))
+      4 => assert_true(refused is Err(Ledger(RetentionLimit)))
+      _ => assert_true(refused is Err(Ledger(ExecutionLimit)))
+    }
+    assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+    assert_eq(
+      @resources.ledger_usage(ledger).transferred_bytes,
+      before.transferred_bytes,
+    )
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+    assert_eq(
+      @resources.cleanup_node_preparation_admission(initial),
+      Err(@resources.AlreadyConsumed),
+    )
   }
 }
 
@@ -385,14 +417,22 @@ test "planned Effect Compute executes retained sequence on the original managed 
   })
   assert_eq(factories.val, 1)
   let bound = effect_parent_bound_run(prepared)
+  // The selected original has one actual row. A theoretical whole-Run
+  // maximum is not a startup allocation; retain a genuinely smaller policy.
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[0] -= 1L
+  // The preparation fixture adds its existing ten-byte input carrier.
+  quote[5] -= 11L
   let (input, initial, _, capacity) = effect_parent_test_preparation(
-    plan,
-    prepared_installed_effect_managed_requirements(plan),
+    plan, quote,
   )
   let owner = begin_preparation_owned_installed_effect_managed_run(
     initial, input, capacity, prepared, request, plan,
   ).unwrap()
   let ledger = require_installed_managed_run(owner).unwrap()
+  assert_false(
+    installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)),
+  )
   let (host, captured, sequences) = open_installed_effect_managed_host(
       owner,
       bound,
@@ -443,6 +483,9 @@ test "unknown Effect capture grows its same control from completed original rows
   // Existing fixed policy and explicit transport/current ports. This does not
   // establish normal Account/SDK/Journal funding or provider acceptance.
   let quote = prepared_installed_effect_managed_requirements(plan)
+  // Known and unknown inputs share this same grow-before-use route. The
+  // actual two rows below need less work than the theoretical whole-Run max.
+  quote[0] -= 1L
   quote[1] += 2L
   quote[3] += 14L
   // The existing preparation fixture adds its original ten-byte carrier.
@@ -608,6 +651,30 @@ test "unknown Effect capture grows its same control from completed original rows
     is Err(ForeignOriginal),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
+  // Actual input metadata is still retained by these same producer pins.
+  // Exhaust remaining retention before growing the original control token;
+  // refusal cannot publish row inventory or release any source/output owner.
+  let limits = @resources.ledger_limits(ledger)
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    limits.retained_bytes - before.held_bytes - before.reserved_retention_bytes,
+    0L,
+  ).unwrap()
+  let blocked = @resources.ledger_usage(ledger)
+  assert_true(
+    retain_installed_effect_captured_input_inventory(
+      owner,
+      plan.prepared,
+      plan.request,
+      plan,
+      inputs,
+    )
+    is Err(Ledger(RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), blocked)
+  assert_true(control.captured_rows is None)
+  assert_true(physical_equal(control.reservation, token))
+  @resources.settle_capacity(ledger, blocker).unwrap()
   retain_installed_effect_captured_input_inventory(
     owner,
     plan.prepared,
@@ -1144,23 +1211,44 @@ test "staged Effect plan refuses foreign original input plan and request before 
 }
 
 ///|
-test "staged Effect plan one-short final limits and insufficient live borrower slots keep initial cleanup" {
+test "staged Effect control one-short allocation and insufficient live borrower slots keep original cleanup" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
   for field in [4, 5] {
     let quote = prepared_installed_effect_managed_requirements(plan)
-    quote[field] -= 1L
+    quote[field] = if field == 4 {
+      10L +
+      @execution.execution_capacity_retained_bytes(
+        plan.operation_control_capacity,
+      ) -
+      1L
+    } else {
+      @execution.execution_capacity_execution_bytes(
+        plan.operation_control_capacity,
+      ) -
+      1L
+    }
     let (input, initial, ledger, capacity) = effect_preparation_test_capacity(
       plan, quote,
     )
-    assert_true(
-      begin_preparation_owned_installed_effect_managed_run(
-        initial, input, capacity, prepared, request, plan,
-      )
-      is Err(InsufficientCapacity),
+    let owner = begin_preparation_owned_installed_effect_managed_run(
+      initial, input, capacity, prepared, request, plan,
+    ).unwrap()
+    let before = @resources.ledger_usage(ledger)
+    let refused = begin_installed_effect_operation_controls(
+      owner, prepared, request, plan,
     )
-    assert_true(@resources.retire_preparation_capacity(capacity).unwrap())
-    @resources.cleanup_node_preparation_admission(initial).unwrap()
+    if field == 4 {
+      assert_true(refused is Err(Ledger(RetentionLimit)))
+    } else {
+      assert_true(refused is Err(Ledger(ExecutionLimit)))
+    }
+    assert_eq(@resources.ledger_usage(ledger), before)
+    retire_installed_managed_run(owner).unwrap()
+    assert_eq(
+      @resources.cleanup_node_preparation_admission(initial),
+      Err(@resources.AlreadyConsumed),
+    )
     assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   }
   let quote = prepared_installed_effect_managed_requirements(plan)

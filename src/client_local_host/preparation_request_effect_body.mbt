@@ -229,7 +229,7 @@ pub fn[I] prepare_request_effect_model_read_scope(
     return Err(ForeignOriginal)
   }
   guard plan.model is Some(selected) else { return Err(Unsupported) }
-  match check_preparation_owned_effect_limits(owner.initial, input, plan) {
+  match check_preparation_owned_effect_limits(owner.initial, input, capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

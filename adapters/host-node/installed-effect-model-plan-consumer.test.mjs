@@ -72,6 +72,9 @@ function fixture() {
     clientProgramInstalledEffectOperationControlConstructionComplete() {return {$tag:1,_0:undefined};},
     clientProgramInstalledEffectOperationControlsRetain() {return ok(plan);},
     clientProgramInstalledManagedRunRetire() {calls.push('retire-parent'); return ok();},
+    clientProgramInstalledManagedRunQuiesce(value) {
+      assert.equal(this, runtime); assert.strictEqual(value, parent); return ok();
+    },
     clientProgramNodeEffectManagedPlanCleanup(a) {assert.equal(a, admission); calls.push('cleanup-admission'); return ok();},
     clientProgramFinishInferOriginalReadScope(s, compiled, definition, graph, complete) {
       assert.equal(this, runtime); same([s, compiled, definition, graph],
@@ -429,4 +432,59 @@ test('physical Model Content Effect keeps its original Node layout and trusted S
   complete = true; finishInstalledEffectModelScope(run, true, checked);
   finishInstalledEffectModelScope(run, true, checked);
   assert.deepEqual([issued, bound, reads, finished], [1, 1, 1, 2]);
+});
+
+
+test('Model Effect quiesces only original stopped control before Scope and keeps pending primary for retry', () => {
+  const f = fixture(), pending = Object.assign(new Error('physical child pending'), {code: 'CleanupPending'});
+  let controlStopped = false, childStopped = false, quiesces = 0, controlStops = 0;
+  f.runtime.clientProgramInstalledManagedRunQuiesce = function(value) {
+    assert.strictEqual(this, f.runtime); assert.strictEqual(value, f.parent);
+    quiesces++; assert.equal(controlStopped, true);
+    return childStopped ? ok() : {$tag: 0, _0: pending};
+  };
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options), originalControl = run.controlConstruction;
+  // The constructor's actual pending result must precede Core quiescence.
+  run.retireControlConstruction = function() {
+    assert.strictEqual(this, originalControl); controlStops++;
+    assert.throws(() => finishInstalledEffectModelScope(run, true, checked),
+      {code: 'InstalledEffectModelScopeCleanupPending'});
+    return controlStopped;
+  };
+  assert.throws(() => finishInstalledEffectModelScope(run, false, checked),
+    {code: 'InstalledEffectModelScopeCleanupPending'});
+  assert.equal(controlStops, 0); assert.equal(quiesces, 0);
+  assert.throws(() => finishInstalledEffectModelScope(run, true, checked),
+    {code: 'InstalledEffectControlConstructionCleanupPending'});
+  assert.equal(quiesces, 0); assert.equal(run.modelScopeFinished, undefined);
+  controlStopped = true;
+  assert.throws(() => finishInstalledEffectModelScope(run, true, checked), error => error === pending);
+  assert.equal(quiesces, 1); assert.equal(run.modelScopeFinished, undefined);
+  childStopped = true; f.settle();
+  finishInstalledEffectModelScope(run, true, checked);
+  const calls = [controlStops, quiesces];
+  finishInstalledEffectModelScope(run, true, checked);
+  assert.deepEqual([controlStops, quiesces], calls);
+  assert.equal(run.modelScopeFinished, true);
+  assert.equal(f.calls.filter(value => value === 'retire-parent').length, 0);
+});
+
+test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope', () => {
+  const f = fixture();
+  f.runtime.clientProgramInstalledManagedRunQuiesce = () => {throw undefined;};
+  prepareInstalledEffectManagedPlanRun(f.options);
+  const run = readInstalledEffectManagedPlanRun(f.options);
+  let threw = false;
+  try {finishInstalledEffectModelScope(run, true, checked);} catch (cause) {threw = true; assert.equal(cause, undefined);}
+  assert.equal(threw, true); assert.equal(run.modelScopeFinished, undefined);
+  assert.equal(f.calls.includes('finish-scope'), false);
+  const changed = fixture();
+  changed.runtime.clientProgramInstalledManagedRunQuiesce = () => {
+    changed.runs.get(changed.prepared).request = {}; return ok();
+  };
+  prepareInstalledEffectManagedPlanRun(changed.options);
+  assert.throws(() => finishInstalledEffectModelScope(changed.runs.get(changed.prepared), true, checked),
+    {code: 'ForeignInstalledEffectModelScope'});
+  assert.equal(changed.calls.includes('finish-scope'), false);
 });
