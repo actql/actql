@@ -206,9 +206,11 @@ const mutations = [
     '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
     "      if (answer.kind === 'unresolvable' && unsafeRestartInput !== undefined) {\n" +
       '        const original = unsafeRestartInput; unsafeRestartInput = undefined;\n' +
-      '        const restarted = await submit(original.kind, original.input, {parameters: original.parameters,\n' +
+      '        const restartOptions = {parameters: original.parameters,\n' +
       '          submissionRef: newSubmission(), unresolvedHistory: {submissionRef: owned,\n' +
-      "            acknowledgement: 'possible_prior_execution_and_effects'}});\n" +
+      "            acknowledgement: 'possible_prior_execution_and_effects'}};\n" +
+      '        const restarted = await withSourceProducer(original.kind, original.input, restartOptions,\n' +
+      '          sourceProducer => submit(original.kind, original.input, restartOptions, sourceProducer));\n' +
       '        await restarted.wait({signal: AbortSignal.timeout(15000)});\n' +
       '      }\n' +
       '      return retainSubmissionExplanation(freezeInput(answer), answer, context);',
