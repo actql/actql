@@ -125606,7 +125606,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "1f1f359c240fc2ef41a8d73a868701aba6ccfd64d70a9222a5f8057d6ee1ce99",
+      "sha256": "04aaa32d4d47657d791bb0603e9346fda20d85cca634916503ea5fa5bca8a49b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -125674,6 +125674,11 @@
         },
         {
           "name": "installedEffectModelPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
           "parameters": [],
           "async": false
         },
@@ -125847,7 +125852,8 @@
             "prepareInstalledEffectManagedPlanRun/prepareInstalledEffectManagedPlanRun#5",
             "prepareInstalledEffectManagedPlanRun/same/same",
             "prepareInstalledEffectManagedPlanRun/same/same/same",
-            "readInstalledEffectManagedPlanRun"
+            "readInstalledEffectManagedPlanRun",
+            "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -125994,6 +126000,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
               }
             ]
           }

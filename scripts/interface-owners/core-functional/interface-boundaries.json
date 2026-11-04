@@ -5658,6 +5658,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
           "parameters": [
             "parent",
@@ -9973,7 +9987,8 @@
             "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "usageKeys/usageKeys",
-            "usageKeys/usageKeys/usageKeys"
+            "usageKeys/usageKeys/usageKeys",
+            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand"
           ],
           "exports": [
             "contentCaptureControl",
@@ -10599,6 +10614,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
               }
             ]
           }
@@ -14342,7 +14365,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "964ad6466a75a0ccdfdd49c40667a5937a72d88cffd9554eb9b72a761c9921cf"
+      "sha256": "8875487fe59a40b7c55b53b07270dcc1f6f03029690471fcc4024bcd1d75a2ab"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -15046,7 +15069,7 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "c897ea84b7b024cd46eb244c3a1180b590c192267d7e55e53c4a8537f5894571",
+      "sha256": "cefef7d9aed1890dcd7511ddeb70235f55d215b12c795d6d61d709f5311ea47f",
       "role": "physical-io",
       "exports": [
         "inferOriginalReadCleanupComplete",
@@ -15113,6 +15136,7 @@
             "generatedInput",
             "originalPreparation",
             "deferred",
+            "deferredGeneratedInput",
             "inputPrefix",
             "bindComputeSuffix",
             "assertRuntimeCurrent"
@@ -16493,6 +16517,10 @@
               {
                 "path": "adapters/host-node/infer-restored-attachment.test.mjs",
                 "anchor": "test('saved attachment admission reaches the same private Core restore call without another issuer'"
+              },
+              {
+                "path": "adapters/host-node/composed-infer-provider.test.mjs",
+                "anchor": "a generated Model provider selects its purpose before binding the same late Content generation"
               }
             ]
           }
@@ -32168,7 +32196,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_model_demand.mbt",
-      "sha256": "bab1ccf10aaf25d024c98b1b5709ad76bfcf5dd6e6669d26620cc49c757bfc6c",
+      "sha256": "03abd6d213d3032283e2ce55fe8fba414e4e3b9afbf6bd5f5050ee3c9476bf46",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -32188,7 +32216,7 @@
         },
         {
           "name": "prepare_installed_effect_model_demand",
-          "declaration": "prepare_installed_effect_model_demand ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientInstalledEffectModelDemand , ClientInstalledManagedRunIssue ]"
+          "declaration": "prepare_installed_effect_model_demand ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
         }
       ],
       "contracts": [
@@ -32384,6 +32412,10 @@
               {
                 "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
                 "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
               }
             ]
           }
@@ -32921,7 +32953,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "867074f8ccb19a52b6ec88e2df88069e4b9713766715b4da5ebff78291596a0d",
+      "sha256": "3ea569397d0e6b10c1006171638ef213cbd74577054a9dab8b89b80fef8cc487",
       "exports": [],
       "operations": [
         {
@@ -49552,7 +49584,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "b196f557ca494097694c1f25a7e37503cccf26c369a8006083a3e40f499d75db",
+      "sha256": "bcc171793990897eaaab5c5916ca7710605e3a95408e169b0ef04c539eeab985",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -49585,6 +49617,10 @@
         {
           "name": "client_program_installed_mock_model_capture_plan_bind",
           "declaration": "client_program_installed_mock_model_capture_plan_bind ( original : @ client_local_host . ClientInstalledManagedCapturePlan , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_node_effect_model_demand_prepare",
+          "declaration": "client_program_installed_node_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap_retained_bytes : Int64 , bootstrap_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_provider_capture_module",
@@ -49642,7 +49678,8 @@
             "client_program_prepared_request_model_input_suffix",
             "installed_effect_model_plan_from_original_sources",
             "client_program_prepare_request_model_source_free_component_module",
-            "client_program_installed_effect_content_model_managed_plan_prepare"
+            "client_program_installed_effect_content_model_managed_plan_prepare",
+            "client_program_installed_node_effect_model_demand_prepare"
           ],
           "exports": [],
           "attributes": {
@@ -50044,6 +50081,14 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
               }
             ]
           }
@@ -76603,7 +76648,7 @@
     },
     {
       "module": "src/client_local_host/installed_physical_write_recipe.mbt",
-      "sha256": "57d88dfeba55ef303300f9b0c9d09e708e2f9084fe887a1e2d0f3495434986b2",
+      "sha256": "fbfcf93732e4b8ae6614ee57c1a3e0863dc377add52acd327833382b962c302d",
       "exports": [],
       "operations": [
         {

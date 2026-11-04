@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "cba40f9b10ebd74a2503e1b6f458a9e3371424343e6a70288e167435f16f0e0a",
+      "sha256": "852a8dd46362c7eced0425dc5088f34a4f5d2dd64afe021ad819751493d1349c",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -21834,7 +21834,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "67084ad81a36896abf09fa70147d5833b53381b45ba4b27ca64ada00a90fe503"
+      "sha256": "e0f83ee545fa40f5c55f01cbe9a94ad9fdddfd67d68b49d72f7d86bf59c9bb6f"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
