@@ -30773,7 +30773,7 @@
           }
         }
       ],
-      "sha256": "80913563af49902762909d4885568071c92fa356b704b4807eb98b8517e3d6b4",
+      "sha256": "a351fa55fbcf67a896268871687610bafb0bd02fd2efabcdd093bec35b9edcf0",
       "exports": [],
       "operations": [
         {
@@ -34284,7 +34284,11 @@
               },
               {
                 "path": "src/client_local_host/metadata_capacity_refusal_wbtest.mbt",
-                "anchor": "metadata quote failure is distinguished before provider construction"
+                "anchor": "unknown array metadata funds actual two rows independently of the ten million row policy"
+              },
+              {
+                "path": "src/client_local_host/metadata_capacity_refusal_wbtest.mbt",
+                "anchor": "actual metadata growth exhaustion preserves the same Run attempt and cleanup"
               }
             ]
           }
@@ -48899,7 +48903,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "9db4f5b54f62f7d63d57f672195317a1d0b9374b58d190b98d00673d890857c1",
+      "sha256": "2d4ecae1cfd8c6ddfecc34b367391bf0ea9c4aa783464f0f86d9335f5523136f",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",

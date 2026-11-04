@@ -3681,14 +3681,21 @@ product overflow remain unproved. The proof reads those retained typed facts,
 without parsing Source again or inspecting eventual rows. It neither increases
 the policy ceiling nor turns an above-policy output into successful truncation.
 
-Result metadata uses that same proved demand. Its quote distinguishes an
-amount, an absent metadata role and a failed required quote. In particular, a
-required envelope or retained-byte quote that cannot be represented does not
-become a zero-byte allowance or the general cleanup allowance. The original
-preparation refuses it before constructing providers. A graph-less calculator
-can still have no metadata role, independently of a genuine quoted zero; neither
-case grants a Graph, provider, output or physical resource. Existing general
-Graph cleanup and simultaneous failed-child retention remain separately funded.
+Result metadata initially funds fixed graph/schema material and a one-row
+metadata window. That window is reserved capacity, not a fact about the input
+or eventual Result. An unknown row estimate or a large executor ceiling does
+not allocate its maximum row-index arrays during preparation. Before actual
+Named Result projection or ordering constructs those arrays, the completed
+original output supplies its row count and the same task grows its original
+execution reservation. Refused growth constructs no indices and retains the
+original failure and cleanup; successful growth stays owned until task cleanup.
+
+The quote still distinguishes an amount, an absent metadata role and a failed
+required fixed quote. An unrepresentable fixed graph/schema envelope does not
+become zero or use a general cleanup allowance. A graph-less calculator can
+have no metadata role, independently of a genuine quoted zero; neither case
+grants a Graph, provider, output or physical resource. Existing general Graph
+cleanup and simultaneous failed-child retention remain separately funded.
 
 ## Captured suffix demand survives general metadata selection
 
