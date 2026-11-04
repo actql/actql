@@ -2,6 +2,7 @@
 // transport and accounting ports. No nominal Core, RowRun, Account or HTTPS
 // acceptance is inferred from these callback-boundary cases.
 import assert from 'node:assert/strict';
+import {checked} from '../../../host-common/runtime-result.mjs';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {readSalesforceQuery, readSalesforceManagedQuery} from
@@ -59,15 +60,24 @@ test('actual Salesforce caller selects the same complete native Reader before pu
   const policy = Object.freeze([65536, 100000, 100]);
   const moon = Object.freeze({
     clientProgramInstalledSourceReaderPolicy() {assert.equal(this, moon);return policy;},
-    clientProgramInstalledSalesforceSourceReaderResponseCapacity(...args) {
+    clientProgramInstalledSalesforceSourceReaderResponseCapacity() {
+      assert.fail('The current Reader cannot select the retired full-envelope quote');
+    },
+    clientProgramInstalledSalesforceCurrentResponseCapacity(...args) {
       assert.equal(this, moon);assert.deepEqual(args[0].slice(0, 8),
         [4_000_000, 48_000_000, 400_000, 32, 2000, 100, 12, 2000]);
       assert.equal(args[1], policy[2]);assert.equal(args[2], policy[0]);
       assert.deepEqual(args[3], Object.values(describe));assert.equal(args[4], 8_000_000);
       assert.ok(args[5] >= 2 * 71 + 44);assert.equal(args[6], 'Account'.length);
       assert.equal(args[7], 10);assert.equal(args[8], site.apiVersion.length);assert.equal(args[9], 4096);
-      assert.equal(args.length, 11);assert.equal(args[10], 0, 'Only initial controls precede the first owned response');
-      events.push('quote');return capacity;
+      assert.equal(args.length, 16);
+      assert.equal(args[10], 0, 'No Describe body precedes the original Reader');
+      assert.equal(args[11], undefined, 'No QueryRead precedes preparation');
+      assert.equal(args[12], '', 'No query path precedes preparation');
+      assert.equal(args[13], undefined, 'No response body precedes acquisition');
+      assert.equal(args[14], 0n, 'No raw response bytes have been received');
+      assert.equal(args[15], 0, 'No response originals have been received');
+      events.push('quote');return ok(capacity);
     },
   });
   let selected, row;
@@ -87,7 +97,7 @@ test('actual Salesforce caller selects the same complete native Reader before pu
     createRowSource(input) {row = input;events.push('source');return input;},
   });
   const create = await originalFunction('../host/installed-salesforce-source.mjs', 'installedSalesforceAdapter', {
-    cid() {return 'original-cid';}, fail, readLimits: limits,
+    cid() {return 'original-cid';}, fail, checked, readLimits: limits,
     declarationLimits: {maxBytes: 4_000_000}, installedJsonSourceReaderLimitNames,
     DEFAULT_SALESFORCE_CATALOG_LIMITS: {describe, maxObservationBytes: 8_000_000},
     installedSalesforceSiteBinding(actual) {assert.equal(actual, site);return {bindingCid: 'binding'};},
