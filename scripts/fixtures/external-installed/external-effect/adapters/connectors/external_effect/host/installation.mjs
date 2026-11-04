@@ -1,8 +1,9 @@
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
+import {types as nodeTypes} from 'node:util';
 import {canonicalJson} from '@actql/sdk/host-port';
-import {checked, rowSourceMapping, invokeScopedCredentialOperation}
+import {checked, rowSourceMapping}
   from '@actql/local-node/connector-installation';
 
 const registration = 'external_effect';
@@ -70,6 +71,7 @@ export async function load(profile, {root, principalId, moon, providerMoon,
       typeof construction.prepareMappings !== 'function' ||
       typeof construction.openRowSite !== 'function' ||
       typeof construction.createRowEffect !== 'function' ||
+      typeof construction.prepareEffectDriverConstruction !== 'function' ||
       typeof construction.configurationReader?.readOriginalText !== 'function' ||
       typeof construction.configurationReader.readJson !== 'function') {
     fail('ExternalEffectConstructionUnavailable');
@@ -93,39 +95,64 @@ export async function load(profile, {root, principalId, moon, providerMoon,
     accountConfiguration: selected.accountConfigurationWire, connection,
     resolveSecret: resolveSecret ?? (async () => fail('FixtureSecretUnavailable')),
     responseHeaders: installation?.responseHeaders ?? [], admitsApprovalTarget: () => false});
+  const native = captureEffectProvider(providerMoon);
+  const implementation = construction.prepareEffectDriverConstruction(Object.freeze({
+    capacity() {
+      return native.externalEffectDriverConstructionCapacity(BigInt(
+        origin.length + specification.namespaceId.length));
+    },
+    project() {return standardCreateImplementation(native, specification);},
+  }));
   return await construction.createRowEffect({connection, runtimeBundleCid,
     bindingCid: cid({version: 'actql-external-effect-binding/0.1',
       contextCid: authorization.context.contextCid, specification}),
-    ledgerRoot, installation,
-    driver: {
-      kinds: ['create'], writeOperation: () => operation,
-      requestFacts: request => ({value: JSON.parse(request.body)}),
-      prepareRequest({member, value}) {
-        if (member.resource !== 'events' || !exact(value, ['key', 'note']) ||
-            typeof value.key !== 'string' || typeof value.note !== 'string') {
-          fail('InvalidExternalEffectValue');
-        }
-        const prepared = JSON.parse(providerMoon.externalEffectRequestJson(value.key, value.note));
-        if (prepared.refused) fail(prepared.refused);
-        const request = Object.freeze({method: 'POST', path: '/events',
-          body: prepared.body, key: value.key});
-        // Exact request bytes retain data strings without normalization.
-        const requestCid = `sha256:${createHash('sha256')
-          .update('external_effect:POST:/events\0').update(request.body).digest('hex')}`;
-        return {request, requestCid};
-      },
-      async send({request, authorization: grant, credential, callResource, signal}) {
-        const response = await invokeScopedCredentialOperation({
-          authorization: grant, credential, callResource, operation,
-          method: request.method, path: request.path, body: request.body,
-          responseHeaders: [], maxRequestBytes: 4096, maxResponseBytes: 4096, signal});
-        return {observation: {useCid: response.useCid,
-          statusCode: response.statusCode, body: response.body}, headers: response.headers};
-      },
-      project: ({request, observation}) => JSON.parse(
-        providerMoon.externalEffectObservationJson(observation.statusCode,
-          observation.body, request.key)),
-      footprint: () => ({providerNamespace: registration, resourceKind: 'event',
-        boundaryCid: cid({origin, namespace: specification.namespaceId})}),
-    }});
+    ledgerRoot, installation, ...implementation});
+}
+
+// Retain the original native methods and receiver before initialization can
+// reenter. The standard composer forwards their quantity profile unchanged;
+// these are constructor DATA, never a declaration, Run, grant or cleanup ACK.
+function captureEffectProvider(provider) {
+  if (provider === null || typeof provider !== 'object' || nodeTypes.isProxy(provider)) {
+    fail('ExternalEffectProviderMissing');
+  }
+  const names = ['externalEffectRequestJson', 'externalEffectObservationJson',
+    'installedStandardCreateConstructionProfile', 'installedStandardCreateHttpLimits',
+    'externalEffectDriverConstructionCapacity'];
+  return Object.freeze(Object.fromEntries(names.map(name => {
+    const field = Object.getOwnPropertyDescriptor(provider, name);
+    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
+        nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
+      fail('ExternalEffectProviderMissing');
+    }
+    const method = field.value;
+    return [name, (...args) => Reflect.apply(method, provider, args)];
+  })));
+}
+
+function standardCreateImplementation(providerMoon, specification) {
+  // The same native limits bound the real send and the standard recipe. The
+  // common constructor validates its HTTP bounds; no second capacity table.
+  const [maxRequestBytes, maxResponseBytes] = providerMoon.installedStandardCreateHttpLimits();
+  const boundaryCid = cid({origin, namespace: specification.namespaceId});
+  const write = Object.freeze({kind: 'create', operation, resourceKind: 'event', boundaryCid,
+    http: Object.freeze({origin, method: 'POST', path: '/events',
+      responseHeaders: Object.freeze([]), maxRequestBytes, maxResponseBytes}),
+    request({resource, value}) {
+      if (resource !== 'events' || !exact(value, ['key', 'note']) ||
+          typeof value.key !== 'string' || typeof value.note !== 'string') {
+        fail('InvalidExternalEffectValue');
+      }
+      const prepared = JSON.parse(providerMoon.externalEffectRequestJson(value.key, value.note));
+      if (prepared.refused) fail(prepared.refused);
+      // Preserve this provider's original request identity and exact bytes.
+      const requestCid = `sha256:${createHash('sha256')
+        .update('external_effect:POST:/events\0').update(prepared.body).digest('hex')}`;
+      return Object.freeze({method: 'POST', path: '/events', body: prepared.body,
+        key: value.key, requestCid});
+    },
+    classify: ({request, observation}) => JSON.parse(providerMoon.externalEffectObservationJson(
+      observation.statusCode, observation.body, request.key)),
+  });
+  return Object.freeze({providerMoon, write});
 }

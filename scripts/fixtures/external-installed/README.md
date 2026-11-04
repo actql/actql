@@ -33,10 +33,14 @@ cannot replace that association by calling an independent public constructor.
 
 ## Provider boundary
 
-The independently linked providers exchange only byte arrays, strings and
-integers. Provider exports never accept a common runtime opaque handle. The
-injected `moon` owns declarations, Mappings, acquisition, capture, credentials,
-Effect claims and recovery.
+The independently linked business request and observation functions exchange
+only byte arrays, strings and integers. Provider exports never accept a common
+runtime opaque handle. The Effect installation also forwards the existing
+standard CREATE native construction-profile DATA unchanged into the typed
+common composer; JavaScript does not peel or recreate its Option/tuple layout.
+These quantities carry no declaration, Run, permission or cleanup
+acknowledgement. The injected `moon` owns declarations, Mappings, acquisition,
+capture, credentials, Effect claims and recovery.
 
 The consumer's explicit HTTPS port uses Node Readable and Writable lifecycle
 events, including observed binary reads and request close after response close.
@@ -59,6 +63,13 @@ supplying a physical socket cleanup acknowledgement.
   a matching typed 201 success or the declared 400 refusal. All other replies
   remain unclassified. Response parsing is capped at 4,096 bytes, 16 nodes and
   depth three. The Node adapter gives the common ledger the exact request CID.
+  The adapter uses the existing standard CREATE constructor and preserves that
+  same native request/projector and request CID. Its native HTTP limits and
+  JSON construction geometry feed the common capture, request, Credential/HTTP
+  and saved-control recipe. The same bound `prepareEffectDriverConstruction`
+  retains initialization; shared fixed/operation overhead remains common,
+  while the provider supplies only its data bounds and variable driver demand.
+  No independent Ledger or hand-written successful demand replaces the Plan.
 
 The Effect package's `catalog-views.json` supplies the finite resource schema
 required by the common Mapping declaration API. This is catalog metadata,
@@ -112,3 +123,10 @@ The fixture helper exposes its transport, profile and Program builders for
 focused diagnostics. It reports facts from executed assertions; its presence
 alone is not test evidence. Builds and runtime acceptance must run through the
 repository's bounded serial verification gate.
+
+The focused loader component in `scripts/local-node-external-package-inputs.test.mjs`
+uses the actual standard driver, recipe composer and Effect Plan connection with
+explicit Core ports. It qualifies original-method forwarding, request identity
+and Source-level recipe selection. The new provider metadata's compiled ABI,
+physical backing and ordinary Effect consumer still require matching artifacts
+and execution; this Source component does not establish those results.

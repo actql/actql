@@ -6,12 +6,13 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {EventEmitter} from 'node:events';
 import {Readable, Writable} from 'node:stream';
-import {types} from 'node:util';
+import {types, types as nodeTypes} from 'node:util';
 import {syncBuiltinESMExports} from 'node:module';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 import tls from 'node:tls';
+import {createHash} from 'node:crypto';
 import './local-node-declared-exports.test.mjs';
 import './external-installed-helper-types.test.mjs';
 import {resolveConnectorBuildInputs} from './connector-build-inputs.mjs';
@@ -19,9 +20,14 @@ import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
 import {buildExternalLocalNodeRuntime} from './build-runtime-packages.mjs';
-import {ownHttpRequest} from '../adapters/host-common/http-exchange.mjs';
+import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../adapters/host-common/http-exchange.mjs';
 import {httpsCredentialResponseHeaderByteLimit, httpsCredentialAuthorizationPrefix,
   httpsCredentialResponseReadQuantum} from '../adapters/site-node/https-credential-resource.mjs';
+import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
+import {localContractLimits} from '../adapters/host-node/local-values-plan.mjs';
+import {invokeScopedCredentialOperation} from '../adapters/host-common/owned-invocation-context.mjs';
+import {prepareInstalledStandardCreatePlanRecipe, prepareInstalledEffectManagedPlan}
+  from '../adapters/host-node/installed-effect-plan.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 function fixture(t, {collision = false, adapterImport, deferAdapterImport = false} = {}) {
@@ -230,10 +236,66 @@ async function externalFixtureLoader(role, ports) {
     text: value => typeof value === 'string' && value.length > 0,
     exact: (value, keys) => value !== null && typeof value === 'object' &&
       !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0'),
-    cid: () => 'sha256:' + 'd'.repeat(64), ...ports};
+    cid: () => 'sha256:' + 'd'.repeat(64), createHash, nodeTypes, ...ports};
   return Function(...Object.keys(values),
     functions.map(node => source.slice(node.start, node.end)).join('\n') + '\nreturn load;')(
     ...Object.values(values));
+}
+
+// Source component only: actual standard driver/composer/Plan functions with
+// explicit typed Core ports. No Resource, Common ABI or ordinary acceptance.
+async function assertExternalStandardPlan(options, profile) {
+  const {parse} = await import('acorn');
+  const source = readFileSync(join(repository, 'adapters/host-node/installed-row-effect.mjs'), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest',sourceType:'module'});
+  const node = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
+  const derive = Function('createHash','nodeTypes','canonicalJson','ownHttpRequest','ownRequestHeaders',
+    'ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits',
+    `return (${source.slice(node.start,node.end)});`)(createHash,nodeTypes,canonicalJson,
+      ownHttpRequest,ownRequestHeaders,ownResponseHeaderNames,invokeScopedCredentialOperation,localContractLimits);
+  const standard = derive(options.write, 'external_effect');
+  const quantities = Array.from({length:5},()=>Object.freeze({}));
+  const capture = Object.freeze({}), request = Object.freeze({}), write = Object.freeze({});
+  const originalPlan = Object.freeze({}), demand = Object.freeze({});
+  const ok = value => ({$tag:1,_0:value});
+  const moon = {
+    clientProgramInstalledStandardCreateRequestRecipeCapacities(original) {
+      assert.equal(this,moon); assert.equal(original,profile); return ok(quantities);
+    },
+    clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare(operation, originals) {
+      assert.equal(this,moon);assert.equal(operation,'external_effect:events:create');
+      assert.deepEqual(originals,quantities.slice(0,2));return ok(capture);
+    },
+    clientProgramInstalledEffectOperationExtentFromCapacityPrepare(operation, original, transfer, physical) {
+      assert.equal(this,moon);assert.equal(operation,'external_effect:events:create');
+      if(original===quantities[2]){assert.equal(transfer,0n);assert.equal(physical,false);return ok(request);}
+      assert.equal(original,quantities[3]);assert.ok(transfer>0n);assert.equal(physical,true);return ok(write);
+    },
+    clientProgramEffectAcquisitionCount:()=>0,
+    clientProgramInstalledEffectOperationDemandWithControlsPrepare(p, stage, effect, members, rows, controls) {
+      assert.equal(p,prepared);assert.equal(stage,0);assert.equal(effect,'create');
+      assert.deepEqual(members,[capture]);assert.deepEqual(rows,[request,write]);
+      assert.equal(controls,quantities[4]);return ok(demand);
+    },
+    clientProgramInstalledEffectManagedPlanPrepare(...args) {
+      assert.equal(args[0],prepared);assert.equal(args[1],identity);
+      assert.deepEqual(args.at(-1),[demand]);return ok(originalPlan);
+    },
+  };
+  const recipe = prepareInstalledStandardCreatePlanRecipe({moon,providerMoon:options.providerMoon,
+    construction:standard.construction,credentialSite:{construction:{limits:{maxSecretBytes:4096},scope:{},issuer:{}}},
+    limits:{maxWireBytes:4096,maxNodes:32,maxDepth:4},resourceTextUnits:6});
+  const prepared = Object.freeze({}),identity = Object.freeze({}),member = Object.freeze({effectId:'create'});
+  const plan = prepareInstalledEffectManagedPlan({moon,facts:{prepared,identity},
+    inputs:{installedContracts:{},values:'original-values'},unit:{stageIndex:0},members:[member],
+    recipeFor(original){assert.equal(original,member);return recipe;}});
+  assert.equal(plan,originalPlan);
+  const value={key:'original-key',note:'é\r\n😀'};
+  const selected=standard.driver.prepareRequest({member:{kind:'create',resource:'events'},value});
+  assert.equal(selected.requestCid,`sha256:${createHash('sha256').update('external_effect:POST:/events\0')
+    .update(JSON.stringify(value)).digest('hex')}`);
+  assert.equal(selected.request.key,value.key);
+  assert.deepEqual(standard.driver.requestFacts(selected.request).value,value);
 }
 
 for (const role of ['read', 'effect']) {
@@ -254,6 +316,15 @@ for (const role of ['read', 'effect']) {
     const prepared = Object.freeze({declaration, declared, environment});
     const implementation = Object.freeze({capacity: {}, runAcquisitionLimits: {maxBindings: 2, maxSecretBytes: 4096}});
     const reader = Object.freeze({original: 'reader'});
+    const nativeProfile = Object.freeze({original:'native-profile'}), nativeQuantity=Object.freeze({});
+    const provider = {
+      externalReadRequestJson() {},externalReadPageJson() {},
+      externalEffectRequestJson(key,note) {assert.equal(this,provider);return JSON.stringify({body:JSON.stringify({key,note})});},
+      externalEffectObservationJson() {assert.equal(this,provider);return '{"kind":"unclassified-response"}';},
+      installedStandardCreateConstructionProfile() {assert.equal(this,provider);return nativeProfile;},
+      installedStandardCreateHttpLimits() {assert.equal(this,provider);return [4096,4096,16,3];},
+      externalEffectDriverConstructionCapacity(units) {assert.equal(this,provider);assert.ok(units>0n);return nativeQuantity;},
+    };
     const construction = Object.freeze({
       configurationReader: Object.freeze({
         async readOriginalText(url) {calls.push('original-text'); return readFileSync(url, 'utf8');},
@@ -291,8 +362,18 @@ for (const role of ['read', 'effect']) {
         }
         calls.push('source'); return adapter;
       },
+      prepareEffectDriverConstruction(projection) {
+        assert.equal(this,construction);assert.equal(projection.capacity(),nativeQuantity);
+        calls.push('effect-construction');
+        // Original methods/receiver survive reentry before projection.
+        provider.externalEffectRequestJson=()=>assert.fail('No late mutable native request lookup');
+        provider.installedStandardCreateConstructionProfile=()=>assert.fail('No late native profile lookup');
+        return projection.project();
+      },
       async createRowEffect(options) {
-        assert.equal(options.driver.writeOperation(), 'external_effect:events:create');
+        assert.equal(options.driver,undefined);
+        assert.equal(options.write.operation,'external_effect:events:create');
+        await assertExternalStandardPlan(options,nativeProfile);
         for (const name of ['moon', 'environmentWire', 'site', 'authorization', 'mappings']) {
           assert.equal(Object.hasOwn(options, name), false, name);
         }
@@ -319,15 +400,14 @@ for (const role of ['read', 'effect']) {
       root: '/fixture', principalId: 'fixture', baseEnvironmentWire: '{}',
       moon: {clientProgramRowSourceRestoreDeclaration: () => declaration,
         clientProgramRowSourceDeclarationJson: () => JSON.stringify(declared)},
-      providerMoon: {externalReadRequestJson() {}, externalReadPageJson() {},
-        externalEffectRequestJson() {}, externalEffectObservationJson() {}},
+      providerMoon: provider,
       runtimeBundleCid: 'sha256:' + 'e'.repeat(64), construction,
     });
     assert.equal(result, adapter, 'Return only the same bound constructor original');
     assert.deepEqual(legacy, [], 'The installed loader supplies the construction owner');
     assert.deepEqual(calls, role === 'read'
       ? ['original-site', 'original-text', 'declaration', 'implementation', 'site', 'reader', 'source']
-      : ['original-site', 'original-text', 'declaration', 'original-text', 'mappings', 'site', 'effect']);
+      : ['original-site', 'original-text', 'declaration', 'original-text', 'mappings', 'site', 'effect-construction', 'effect']);
   });
 }
 
