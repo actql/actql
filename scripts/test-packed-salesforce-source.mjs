@@ -642,6 +642,15 @@ authorization.observe = (name, detail) => {
     appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
       pendingScratch}) + '\\n');
   }
+  if (name === 'model_resume_failed' || name === 'model_recovery_failed') {
+    // Cold Model failures have their own existing Host events. Retain only
+    // their bounded code label, never the original Run/scope or Error object.
+    const code = Object.getOwnPropertyDescriptor(detail ?? {}, 'code')?.value;
+    const failure = {name};
+    if (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,95}$/.test(code)) failure.code = code;
+    resumeFailures.push(failure);
+    if (resumeFailures.length > 16) resumeFailures.shift();
+  }
   if (optionalKind && name === 'acquisition_completed') {
     appendFileSync('optional-effect-selections.jsonl', JSON.stringify({ref: detail.ref,
       selection: detail.acquisition?.selection}) + '\\n');
