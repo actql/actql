@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
+import {checked as checkedRuntime} from '../host-common/runtime-result.mjs';
 import {sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {installRowSourceAuthorization} from './installed-row-source.mjs';
 import {createInstalledTableSource} from './installed-table-source.mjs';
@@ -84,6 +85,10 @@ async function sourceFixture(t, rows, runtime = moon) {
       values: JSON.stringify(aoa.execution_contracts['REL.values']),
       fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+    // Admit the same installed contract tuple once, as the normal Host does;
+    // query preparation and its two-capture Ledger share this nominal original.
+    inputs.registry = checkedRuntime(moon.clientPrepareInstalledSequenceContracts(
+      inputs.registry, inputs.values, inputs.fragment, inputs.ordered));
     const preparedSources = await Promise.all([0, 1].map(stage => source.prepare(
       {...inputs, occurrence: {stage, input: 0, task: stage}})));
     const capacities = preparedSources.map(value => source.ledgerCapacity(value));
@@ -102,7 +107,13 @@ async function sourceFixture(t, rows, runtime = moon) {
 for (const empty of [false, true]) {
   test(`installed Table Source freezes a real ${empty ? 'empty' : 'sparse'} generation through later replace`, async t => {
     const expected = empty ? [] : [{id: 1, p: 'e\u0301\r\n'}, {id: 2, p: null}, {id: 3}, {id: 3}];
-    const f = await sourceFixture(t, expected);
+    let captureResumes = 0;
+    const runtime = Object.freeze({...moon,
+      clientProgramRowSourceCaptureAdvance(...args) {
+        captureResumes++;
+        return Reflect.apply(moon.clientProgramRowSourceCaptureAdvance, moon, args);
+      }});
+    const f = await sourceFixture(t, expected, runtime);
     let received, generation, replaced = false;
     const bridge = {...f.bridge,
       async resolveGeneration(selector, signal) {
@@ -129,13 +140,18 @@ for (const empty of [false, true]) {
       },
     };
     const source = await f.install(bridge), prepared = await f.prepare(source);
+    const preparationChecks = f.checks();
+    assert.equal(preparationChecks, 2); // Both original Source occurrences prepare.
     const acquired = await source.open({...prepared, retainedRelationOutput: true});
     try {
       assert.deepEqual(received, expected);
       assert.equal(moon.clientProgramCapturedSourceRowCount(acquired.identity), expected.length);
       assert.equal(moon.clientProgramCapturedSourceSchemaCid(acquired.identity),
         'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513');
-      assert.equal(f.checks(), 5);
+      // Five fixed original read boundaries plus current authority at every
+      // actual bounded capture resume; the batching work is not a fixed count.
+      assert.ok(captureResumes > 0);
+      assert.equal(f.checks(), preparationChecks + 5 + captureResumes);
       assert.equal(acquired.setup, undefined);
       assert.ok(acquired.capture.source());
       assert.ok(ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(prepared.ledger)).heldBytes > 0n);
