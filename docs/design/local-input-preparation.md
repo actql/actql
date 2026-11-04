@@ -5109,6 +5109,15 @@ callers and single-stage installed layout callers retain their own entrances.
 The same original read cleanup observation remains tied to actual Core execution
 cleanup; a layout claim, constructor refusal or provider return is not that ACK.
 
+A cold composed Model selects the same installed preparation's explicit
+`restoreRead` entrance. The fresh-read entrance still refuses saved input.
+The original-restored Core constructor checks the authenticated saved call scope
+against the same compiled Run, Definition, occurrence and Plan before entering
+the one original consumer and restoring input. It retains that consumer and
+original Model preparation through input failure and cleanup. Saved rows and
+scope do not issue a new Ledger, read permission, dispatch admission or resend;
+the existing durable call entry and original send mask remain independent.
+
 ### Adopted Node Model Source and failed setup custody
 
 The ordinary installed one-Source Model retains its component in the existing

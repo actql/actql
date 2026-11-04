@@ -3938,6 +3938,20 @@ function publicationControl(moon) {
         consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
         modelExecutionBytes, sources));
     },
+    startCheckedClientOriginalRestoredComposedInferExecution(compiled, definition,
+      occurrence, graph, prefix, provider, snapshot, custodyAvailable, savedScope,
+      consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+      modelExecutionBytes, referenceIssuer) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalRestoredComposedInferExecution(
+        occurrence, graph, prefix, provider, snapshot.binding, snapshot.descriptorWire,
+        snapshot.rows, custodyAvailable, savedScope, value, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes,
+        referenceIssuer));
+    },
     // Reuse the original compiled/definition token domains. A public wrapper
     // object cannot be passed as a nominal MoonBit compiled Run or contract.
     claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,
