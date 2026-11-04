@@ -7,6 +7,7 @@ struct ClientModelReadOrigin {
   compiled : ClientCompiledRun
   definition_cid : String
   plan : ClientInferPlanGraph
+  model_limits : @resources.LedgerLimits?
   host_policy_cid : String
   execution_context_cid : String
 }
@@ -32,7 +33,7 @@ struct ClientModelReadScope {
 // CID getters return retained strings and create no copied UTF16 backing.
 let client_model_read_scope_construction_units : @execution.PreparationRepresentationUnits = {
   record_headers: 2L,
-  reference_slots: 9L,
+  reference_slots: 10L,
   scalar_words: 4L,
   owned_utf16_units: 0L,
   owned_wire_bytes: 0L,
@@ -43,19 +44,21 @@ let client_model_read_scope_construction_units : @execution.PreparationRepresent
 /// The original caller must fund this and its census growth before binding.
 pub fn client_model_read_scope_construction_inventory() -> @execution.PreparationRepresentationUnits {
   // The existing Resource claim now retains a resident optional closed-child
-  // reference even on the singular path. Back it on the same original scope
-  // entrance before that later claim allocation; it issues no child/grant.
+  // reference even on the singular path. The selected physical allowance has
+  // one optional borrowed reference; back its Some frame before binding too.
+  // This same original scope entrance issues no additional child/grant.
   let slots = @resources.original_read_children_construction_slots(1).unwrap()
   {
     ..client_model_read_scope_construction_units,
     record_headers: client_model_read_scope_construction_units.record_headers +
-    slots.0,
+    slots.0 +
+    1L,
     reference_slots: client_model_read_scope_construction_units.reference_slots +
     slots.1 +
-    1L,
+    2L,
     scalar_words: client_model_read_scope_construction_units.scalar_words +
     slots.2 +
-    2L,
+    3L,
   }
 }
 
@@ -88,6 +91,7 @@ pub fn begin_client_model_read_scope(
   max_reservations : Int,
   max_holdings : Int,
   max_delegations : Int,
+  model_limits? : @resources.LedgerLimits? = None,
 ) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
   // No Run authentication or binding allocation precedes the funded envelope.
   if !@resources.original_read_bootstrap_available(ledger, bootstrap) {
@@ -104,7 +108,14 @@ pub fn begin_client_model_read_scope(
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
   }
-  bind_client_model_read_scope(compiled, definition, plan, ledger, identity)
+  bind_client_model_read_scope(
+    compiled,
+    definition,
+    plan,
+    ledger,
+    identity,
+    model_limits~,
+  )
 }
 
 ///|
@@ -118,6 +129,7 @@ pub fn bind_client_model_read_scope(
   plan : ClientInferPlanGraph,
   ledger : @resources.Ledger,
   identity : @resources.OriginalLedgerIdentity,
+  model_limits? : @resources.LedgerLimits? = None,
 ) -> Result[ClientModelReadScope, ClientModelReadPreparationIssue] {
   if !client_compiled_run_has_infer(compiled, plan) ||
     check_client_compiled_run_definition(compiled, definition) is Err(_) {
@@ -129,6 +141,7 @@ pub fn bind_client_model_read_scope(
   }
   let origin : ClientModelReadOrigin = {
     compiled,
+    model_limits,
     definition_cid: @publication.publication_contract_identity(definition),
     plan,
     host_policy_cid: @publication.run_publication_host_policy(

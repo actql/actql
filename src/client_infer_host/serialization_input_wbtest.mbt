@@ -1492,3 +1492,122 @@ test "generated original Model startup uses the same broader parent before any p
   assert_true(cleanup(active).unwrap())
   original_composed_test_release(ledger, consumer)
 }
+
+///|
+test "generated Model consumes its original physical allowance through Content preflight and actual provider call" {
+  for full_startup in [false, true] {
+    let prepared = serialized_infer_fixture_program()
+    let graph = generated_original_startup_plan(prepared)
+    let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
+      prepared,
+    ).unwrap()
+    let selected = prepared_composed_bounds(occurrence, graph).unwrap()
+    let (compiled, definition) = original_input_capacity_run(prepared, graph)
+    let (_, _, live, generation) = serialized_infer_fixture_material(
+      prepared,
+      run=Some(compiled),
+      definition=Some(definition),
+    )
+    // These are independently declared startup controls, not the complete
+    // native Model allowance. The same Plan funds both, once, on one parent.
+    let startup_retained = if full_startup {
+      selected.model.ledger.retained_bytes
+    } else {
+      14464L
+    }
+    let startup_execution = if full_startup {
+      selected.model.ledger.execution_bytes
+    } else {
+      14464L
+    }
+    let model_limits = {
+      ..selected.model.ledger,
+      retained_bytes: selected.model.ledger.retained_bytes + startup_retained,
+      execution_bytes: selected.model.ledger.execution_bytes + startup_execution,
+    }
+    let ledger = @resources.create_ledger({
+      ..model_limits,
+      retained_bytes: model_limits.retained_bytes + 3L + 7L,
+      execution_bytes: model_limits.execution_bytes + 2L + 5L,
+    }).unwrap()
+    @resources.configure_quantities(ledger, {
+      tokens: 33L,
+      cost_units: 0L,
+      duration_ms: 500L,
+    }).unwrap()
+    let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+    let scope = @publication_host.begin_client_model_read_scope(
+      compiled,
+      definition,
+      graph,
+      ledger,
+      bootstrap,
+      12,
+      8,
+      4,
+      model_limits=Some(model_limits),
+    ).unwrap()
+    let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+    let consumer = @publication_host.claim_client_model_read_preparation(
+      read, compiled, definition, graph, 7L, 5L,
+    ).unwrap()
+    let calls = Ref(0)
+    let provider = original_funded_start_provider(calls)
+    let active = start_original_generated(
+      prepared,
+      compiled,
+      generation.unwrap(),
+      graph,
+      provider,
+      standard_limits(),
+      definition,
+      consumer,
+      7L,
+      5L,
+      startup_retained,
+      startup_execution,
+    ).unwrap()
+    assert_true(
+      @publication_host.client_model_read_consumer_model_limits(
+        consumer, compiled, definition, graph,
+      ).unwrap()
+      is Some(original) &&
+      physical_equal(original, model_limits),
+    )
+    bind_run(active, compiled, definition).unwrap()
+    let account = evidence_account(@authorization.Allow)
+    let permit = @publication_host.issue_client_infer_dispatch_admission(
+      compiled,
+      definition,
+      account,
+      "fixture-principal",
+      "2026-10-12T00:00:00.000Z",
+      observe_current=() => Ok((account, "2026-10-12T00:00:00.000Z")),
+    ).unwrap()
+    bind_dispatch_admission(active, permit).unwrap()
+    serialized_infer_fixture_physical(
+      active,
+      @publication_host.client_infer_plan_graph_execution_contract(graph),
+      provider,
+      live,
+    )
+    let terminal = fixture_finish(active)
+    assert_true(
+      terminal is Complete(_, ..),
+      msg="original generated call must complete through physical preflight",
+    )
+    assert_eq(calls.val, 1)
+    assert_true(
+      @publication_host.client_model_read_consumer_model_limits(
+        consumer, compiled, definition, graph,
+      )
+      is Err(@publication_host.ForeignRun),
+    )
+    let usage = @resources.quantity_usage(ledger)
+    assert_eq(usage.consumed.tokens, 3L)
+    assert_eq(@resources.ledger_usage(ledger).attempts, 1)
+    assert_true(cleanup(active).unwrap())
+    original_composed_test_release(ledger, consumer)
+    assert_eq(@resources.quantity_usage(ledger), usage)
+  }
+}

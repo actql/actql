@@ -328,6 +328,7 @@ pub fn[I] prepare_request_effect_model_read_scope(
                 selected.graph,
                 owner.ledger,
                 identity,
+                model_limits=Some(selected.model_limits),
               ).map_err(issue => ModelRead(issue))
           }
         }

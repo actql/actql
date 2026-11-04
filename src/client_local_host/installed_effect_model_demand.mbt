@@ -10,6 +10,7 @@ struct ClientInstalledEffectModelDemand {
   _occurrence : @publication_host.ClientInferOccurrence
   graph : @publication_host.ClientInferPlanGraph
   limits : @resources.LedgerLimits
+  model_limits : @resources.LedgerLimits
   read_retained_bytes : Int64
   read_execution_bytes : Int64
   bootstrap_retained_bytes : Int64
@@ -75,6 +76,7 @@ pub fn prepare_installed_effect_model_demand(
     _occurrence: occurrence,
     graph,
     limits,
+    model_limits,
     read_retained_bytes,
     read_execution_bytes,
     bootstrap_retained_bytes,

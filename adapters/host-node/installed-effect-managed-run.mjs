@@ -2,6 +2,7 @@
 // admission. A matching numeric quote, restored DATA or another original cannot
 // replace it. This owns no provider work, permission or physical cleanup ACK.
 import {types} from 'node:util';
+import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openNodeComposedInferProvider, retireNodeInferOriginalRead} from './infer-operation.mjs';
@@ -281,10 +282,11 @@ export function installedEffectModelPreparation(run, publicationCapacity, assert
       window.some(value => typeof value !== 'bigint' || value <= 0n)) fail('InvalidHostRuntimeResult');
   const retained = window[0], execution = window[1];
   const physical = run.modelSelection?.originalReadInstallation;
+  const startup = physical === undefined ? undefined : inferOriginalReadStartupCapacity(physical);
   const fields = {control, compiled: model.compiled, runDefinition: definition, scope, publicationCapacity,
     readRetainedBytes: retained, readExecutionBytes: execution,
-    modelRetainedBytes: physical?.modelRetainedBytes ?? retained,
-    modelExecutionBytes: physical?.modelExecutionBytes ?? execution,
+    modelRetainedBytes: startup?.modelRetainedBytes ?? retained,
+    modelExecutionBytes: startup?.modelExecutionBytes ?? execution,
     ...(physical === undefined ? {} : {nodeInstallation: physical.nodeInstallation,
       metadataInstallation: physical,
       assertRuntimeCurrent() {
