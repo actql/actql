@@ -307,10 +307,19 @@ test('Sheets clear keeps a lost response Unknown after cold restart without rese
   assert.equal(setup.state.cleared.length, 0);
   await approve(first, execution);
   await execution.reconcile();
+  let lastStatus;
   const unknown = await until(async () => {
     const current = await execution.status();
+    lastStatus = current.status;
     return current.status === 'needs_reconciliation' || terminal.has(current.status) ||
       setup.observations.some(([name]) => name === 'effect_resume_failed') ? current : undefined;
+  }).catch(error => {
+    t.diagnostic(JSON.stringify({phase: 'clear-post-approval', status: lastStatus,
+      clearedBatches: setup.state.cleared.length,
+      resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
+        .map(([, detail]) => typeof detail?.code === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(detail.code)
+          ? detail.code : 'UnavailableErrorTag')}));
+    throw error;
   });
   assert.equal(unknown.status, 'needs_reconciliation', JSON.stringify({status: unknown.status,
     resumeFailures: setup.observations.filter(([name]) => name === 'effect_resume_failed')
