@@ -288,9 +288,9 @@ jobs:
         target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
     # Physical Native fixtures use the existing Darwin arm64 profile.
     runs-on: ${{ matrix.target == 'native' && 'macos-14' || 'ubuntu-24.04' }}
-    # Native keeps its full 60-minute cold compile/test child plus fixture
-    # preparation, current compiler diagnostics and cleanup.
-    timeout-minutes: ${{ matrix.target == 'native' && 75 || 30 }}
+    # Native keeps its full 60-minute child after the separate cold checkpoint
+    # producers, with time for original failure diagnostics and cleanup.
+    timeout-minutes: ${{ matrix.target == 'native' && 90 || 30 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
