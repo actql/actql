@@ -3002,14 +3002,16 @@ test('closing during a resumed dispatch records its end before releasing',
   });
 
 // DCI-R7 current recovery: observing and attaching the historical original
-// never starts it outside resumed authorization. Bare-ID new submission is
-// separately refused; no legacy submission acceptance is claimed.
+// never starts it outside resumed authorization. A restart claiming that
+// unresolved history needs its original Ref; ordinary named submission is
+// a separate domain, not legacy submission acceptance.
 async function resubmittedWhileStalled(t, {leaseMs = 60_000,
   checkpointTtlMs, wait = 0, untilExpired = false}) {
   const steps = [];
   let stall = true;
   let released;
   const stalled = new Promise(resolve => { released = resolve; });
+  t.after(() => released());
   const host = await remoteHost(t, protectedHost('delegate', {
     leaseMs, ...(checkpointTtlMs === undefined ? {} : {checkpointTtlMs}),
     async faultInjection(name) {
@@ -3022,6 +3024,8 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
   const client = await host.as('owner-token');
   const reviewer = await host.as('reviewer-token');
   await heldRequests(client, ['again-a']);
+  const historical = await client.lookupRequest('again-a');
+  assert.equal(historical.kind, 'held');
   const items = await allCheckpoints(reviewer);
   await approveAll(reviewer, items);
   await waitFor(() => steps.includes('definition_admitted'));
@@ -3034,7 +3038,8 @@ async function resubmittedWhileStalled(t, {leaseMs = 60_000,
   const found = await client.lookupRequest('again-a');
   assert.equal(found.kind, 'found');
   const again = await client.attach(found.ref);
-  await assert.rejects(client.startSource(document, {format: 'json', requestId: 'again-a'}),
+  await assert.rejects(client.startSource(document, {format: 'json', requestId: 'again-a',
+    unresolvedHistory: historical}),
     {code: 'SubmissionReferenceRequired'});
   // Original lookup/attach starts nothing outside the approved resume claim.
   await new Promise(resolve => setTimeout(resolve, 200));
