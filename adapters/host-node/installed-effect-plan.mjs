@@ -834,6 +834,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     fail('InstalledEffectControlRuntimeUnavailable');
   }
   let working = false, codecWorking = false, failed = false, retired = false, primary, pending, work;
+  let previewInputWire, previewInput;
   const sameRecord = () => !run.closed && run.runtime === runtime && run.value === parent &&
     run.prepared === prepared && run.request === request && run.operationPlan === plan &&
     run.readPlan === readPlan && run.controlConstruction === work;
@@ -946,13 +947,33 @@ export function prepareInstalledEffectControlConstruction(run) {
       throw cause;
     } finally { codecWorking = false; }
   };
-  const parsePreview = wire => {
+  const parsePreview = (wire, borrowOriginal = false) => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
     if (failed) throw primary;
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     originalRecord();
-    if (typeof wire !== 'string' || typeof hasHostInput !== 'function') {
+    if (typeof wire !== 'string' || typeof borrowOriginal !== 'boolean' || typeof hasHostInput !== 'function') {
       fail('InstalledEffectControlRuntimeUnavailable');
+    }
+    // Hot recovery borrows the SAME funded forest. A cold owner has no such
+    // original and must enter its first one-use constructor below.
+    if (borrowOriginal && previewInputWire !== undefined) {
+      if (wire !== previewInputWire) fail('ForeignInstalledEffectManagedRun');
+      working = true;
+      run.selecting = true;
+      try {
+        const current = Reflect.apply(readPlan, runtime, [parent, prepared, request]);
+        retainInvalid(current);
+        if (checked(current) !== plan) fail('ForeignInstalledEffectManagedRun');
+        originalRecord();
+        return previewInput;
+      } catch (cause) {
+        if (pending !== undefined) {failed = true; primary = cause;}
+        throw cause;
+      } finally {
+        working = false;
+        if (pending === undefined) run.selecting = false;
+      }
     }
     // Other installed recipes retain their unchanged fixed parser envelope.
     // Only the typed opted-in Plan can refine this existing control token.
@@ -963,7 +984,10 @@ export function prepareInstalledEffectControlConstruction(run) {
       return Reflect.apply(parseJson, jsonReceiver, [wire]);
     }
     if (typeof beginInput !== 'function') fail('InstalledEffectControlRuntimeUnavailable');
-    return invoke(jsonReceiver, parseJson, [wire], wire);
+    const parsed = invoke(jsonReceiver, parseJson, [wire], wire);
+    previewInputWire = wire;
+    previewInput = parsed;
+    return parsed;
   };
   const retainInputs = inputs => {
     if (retired) fail('InstalledEffectControlConstructionRetired');
@@ -993,6 +1017,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     // Actual complete dispatch retirement calls this before returning its
     // Core control backing. A retained Error may itself keep a heavy prefix.
     primary = undefined;
+    previewInputWire = previewInput = undefined;
     retired = true;
     return true;
   };

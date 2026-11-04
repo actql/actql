@@ -70,7 +70,9 @@ fn installed_effect_operation_control_capacity(
   // transient lookup/result carriers. Charge this once, never per wrapper.
   // The actual Effect Ledger exposes31 methods and one DATA field. Its
   // caller view retains31 original-method/context pairs (2H,7R each), one
-  // 32-field view and the same Run's control-work closure/context (6H,18R,3W).
+  // 32-field view and the same Run's control-work closure/context (6H,20R,3W).
+  // Two references retain its successfully parsed Preview and original wire
+  // for hot recovery; the same forest is never constructed a second time.
   // Internal original calls keep the original ledger, not nested wrappers.
   // These are fixed existing implementation holders, not another owner or
   // per-method fee. Source tests pin this inventory to the real declaration.
@@ -84,7 +86,7 @@ fn installed_effect_operation_control_capacity(
     slots +
     shared.reference_slots +
     17L * count +
-    267L +
+    269L +
     4L,
     scalar_words: 25L + shared.scalar_words + 29L * count + 4L,
     owned_utf16_units: 0L,
