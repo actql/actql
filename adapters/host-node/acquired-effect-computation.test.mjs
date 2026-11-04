@@ -636,3 +636,122 @@ test('original Model alias retirement preserves thrown undefined null and Error 
     assert.equal(f.content.live, true);
   }
 });
+
+
+// Actual source/evidence and Model component caller fragments. Core funding,
+// admitted evidence and physical Source ports remain explicit here.
+const inferSourceText = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+const inferSourceNodes = [];
+(function walk(node) {
+  if (!node || typeof node !== 'object') return;
+  if (node.type) inferSourceNodes.push(node);
+  for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(walk);
+  else if (value && typeof value === 'object') walk(value);
+})(parse(inferSourceText, {ecmaVersion: 'latest', sourceType: 'module'}));
+const declares = (node, name) => node.type === 'VariableDeclaration' &&
+  node.declarations.some(value => value.id.name === name);
+const sourceEvidenceBlock = inferSourceNodes.filter(node => node.type === 'BlockStatement' &&
+  node.body.some(value => declares(value, 'sourceEvidenceOptions')));
+assert.equal(sourceEvidenceBlock.length, 1);
+const sourceEvidenceStatements = sourceEvidenceBlock[0].body;
+const evidenceFirst = sourceEvidenceStatements.findIndex(node => declares(node, 'sourceEvidenceOptions'));
+const evidenceLast = sourceEvidenceStatements.findIndex(node => node.type === 'ExpressionStatement' &&
+  inferSourceText.slice(node.start, node.end).startsWith('await sourceContinuation?.captured('));
+assert(evidenceLast > evidenceFirst);
+const evidenceSource = inferSourceText.slice(sourceEvidenceStatements[evidenceFirst].start,
+  sourceEvidenceStatements[evidenceLast].end);
+const inferComponentNode = inferSourceNodes.filter(node => node.type === 'VariableDeclarator' &&
+  node.id.name === 'prepareInferComponent');
+assert.equal(inferComponentNode.length, 1);
+
+function sourceOriginalFixture({changedDuringPreparation = false} = {}) {
+  const capture = {}, original = Object.freeze({wire: 'original-source-evidence'}), evidence = [];
+  const calls = [], stale = new Error('original-Source-no-longer-current');
+  let current = true;
+  const ports = {infer: {}, captured: {capture, checkedSource: {sourceDataPolicyCid: 'original-policy'},
+    async prepareSourceEvidenceOriginal(options) {
+      assert.deepEqual(options, {authorityScopeCid: 'original-scope', effectiveDataPolicyCid: 'original-policy'});
+      calls.push('prepare'); if (changedDuringPreparation) current = false;
+    }, issueSourceEvidence() {assert.fail('do not reissue the same original evidence through its wire port');}},
+    acquired: {authorityScopeCid: 'original-scope', control: {takeSourceEvidenceOriginal(value) {
+      assert.strictEqual(value, capture); assert(current); calls.push('take'); return original;
+    }}},
+    current() {if (!current) throw stale;}, evidence,
+    source: {}, captureStartedAt: 'start', now: () => 'end', sourceContinuation: {captured(source, captured, wire, start, end) {
+      assert.strictEqual(source, ports.source); assert.strictEqual(captured, ports.captured);
+      assert.equal(wire, original.wire); assert.deepEqual([start, end], ['start', 'end']); calls.push('continuation');
+    }}};
+  const invoke = new Function(...Object.keys(ports), 'return (async()=>{' + evidenceSource + '})();');
+  return {invoke: () => invoke(...Object.values(ports)), evidence, original, calls, stale};
+}
+
+test('acquired Model Source transfers its one original evidence and derives only the continuation wire', async () => {
+  const f = sourceOriginalFixture(); await f.invoke();
+  assert.deepEqual(f.calls, ['prepare', 'take', 'continuation']);
+  assert.equal(f.evidence.length, 1);
+  assert.strictEqual(f.evidence[0].sourceEvidence, f.original);
+  assert.equal(f.evidence[0].sourceEvidenceWire, f.original.wire);
+});
+
+test('acquired Model Source rechecks current after evidence preparation before transferring the original', async () => {
+  const f = sourceOriginalFixture({changedDuringPreparation: true});
+  await assert.rejects(f.invoke, error => error === f.stale);
+  assert.deepEqual(f.calls, ['prepare']); assert.deepEqual(f.evidence, []);
+});
+
+function inferOriginalComponentFixture({refusal} = {}) {
+  const captures = [{logicalInput: {}}, {logicalInput: {}}], originals = [{}, {}];
+  const evidence = originals.map(sourceEvidence => ({sourceEvidence}));
+  const occurrence = {}, admitted = {}, compiled = {}, operation = {}, custody = {};
+  const calls = [];
+  const control = {admitComposedInferSources(actual, sources, values, scope, start, end) {
+    assert.strictEqual(actual, occurrence); assert.strictEqual(sources, captures);
+    assert.strictEqual(values[0], originals[0]); assert.strictEqual(values[1], originals[1]);
+    assert.deepEqual([scope, start, end], ['scope', 'start', 'end']); calls.push('admit');
+    if (refusal !== undefined) throw refusal; return admitted;
+  }, adoptCheckedClientEffectInferRun() {calls.push('compiled'); return compiled;},
+  admitRunEvidence() {assert.fail('the same transferred evidence is not reparsed');}};
+  const acquired = {control, prepared: {}, allowed: {}, runDefinition: {}, authorityScopeCid: 'scope'};
+  const ports = {current() {}, infer: {occurrence}, multiple: true, sourceFree: false,
+    contentFamily: undefined, evidence, captures, acquired, captureStartedAt: 'start', captureCompletedAt: 'end',
+    moon: {clientProgramAdmitComposedInferSources() {assert.fail('the facade must unwrap actual evidence tokens');},
+      strategyRunEvidenceJson() {assert.fail('an original logical input is not a String argument');}},
+    modelToken: undefined, restoredModelInput: undefined, originalModelSelection: undefined,
+    originalPreparation: undefined, principalId: 'principal', signal: undefined, now: () => 'now', store: {},
+    modelController: undefined, modelRecord: undefined, faultInjection: undefined,
+    openNodeInferCaptureCustody(facts) {
+      assert.strictEqual(facts.operation, operation); assert.strictEqual(facts.sourceEvidence[0], originals[0]);
+      assert.strictEqual(facts.sourceEvidence[1], originals[1]); calls.push('retain'); return custody;
+    }, openNodeComposedInferProvider(context) {
+      assert.strictEqual(context.sources, admitted); assert.strictEqual(context.plan.compiled, compiled);
+      assert.strictEqual(context.control, control); calls.push('provider'); context.retainOperation(operation); return operation;
+    }, originalModelComponent: undefined};
+  const actual = inferSourceText.slice(inferComponentNode[0].init.start, inferComponentNode[0].init.end);
+  const invoke = new Function(...Object.keys(ports), 'let modelPlan,inferOperation,inferCapture;return (' + actual + ')();');
+  return {invoke: () => invoke(...Object.values(ports)), operation, calls};
+}
+
+test('acquired Model joins and publishes the same transferred evidence through the existing typed facade', () => {
+  const f = inferOriginalComponentFixture(); assert.strictEqual(f.invoke(), f.operation);
+  assert.deepEqual(f.calls, ['admit', 'compiled', 'provider', 'retain']);
+});
+
+test('acquired Model preserves its original typed Source refusal without provider or wire fallback', () => {
+  const refusal = new Error('original-Source-tuple-refused'), f = inferOriginalComponentFixture({refusal});
+  assert.throws(f.invoke, error => error === refusal); assert.deepEqual(f.calls, ['admit']);
+});
+
+test('acquired Effect publication reuses transferred Source evidence and admits only legacy wire inputs', () => {
+  const text = readFileSync(new URL('./local-values-plan.mjs', import.meta.url), 'utf8');
+  const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.declaration?.id?.name === 'acquiredMultiEffectPublicationPlan').declaration;
+  const node = declaration.body.body.find(node => declares(node, 'sourceEvidence')).declarations[0].init;
+  const original = {}, legacy = {}, limits = {}, calls = [];
+  const sources = [{sourceEvidence: original, sourceEvidenceWire: 'not-reparsed'}, {sourceEvidenceWire: 'legacy-wire'}];
+  const control = {admitRunEvidence(name, wire, actualLimits) {
+    assert.equal(name, 'source_evidence'); assert.equal(wire, 'legacy-wire');
+    assert.strictEqual(actualLimits, limits); calls.push('legacy'); return legacy;
+  }};
+  const values = new Function('sources', 'control', 'limits', 'return (' + text.slice(node.start, node.end) + ');')(sources, control, limits);
+  assert.strictEqual(values[0], original); assert.strictEqual(values[1], legacy); assert.deepEqual(calls, ['legacy']);
+});

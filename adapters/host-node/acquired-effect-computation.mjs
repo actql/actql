@@ -301,13 +301,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       if (!multiple && !sourceFree && contentFamily === undefined) {
         throw new TypeError('UnsupportedComposedInferSourceClosure');
       }
+      const sourceEvidence = evidence.map(value => value.sourceEvidence);
       const admittedSources = sourceFree || contentFamily !== undefined ? undefined
-        : checked(moon.clientProgramAdmitComposedInferSources(
-          infer.occurrence, captures.map(value => value.capture.source()),
-          captures.map(value => value.identity), captures.map(value => value.requirement),
-          captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)),
-          evidence.map(value => value.sourceEvidenceWire), acquired.authorityScopeCid,
-          captureStartedAt, captureCompletedAt));
+        : acquired.control.admitComposedInferSources(
+          infer.occurrence, captures, sourceEvidence, acquired.authorityScopeCid,
+          captureStartedAt, captureCompletedAt);
       const compiled = modelPlan?.compiled ?? acquired.control.adoptCheckedClientEffectInferRun(
         acquired.allowed, acquired.runDefinition, acquired.resultDataPolicy,
         acquired.resultDataPolicyLimits);
@@ -330,9 +328,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
           inferOperation = operation;
           inferCapture = openNodeInferCaptureCustody({moon, control: acquired.control,
             operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid, durableCalls: true,
-            sourceEvidence: evidence.map(source => acquired.control.admitRunEvidence(
-              'source_evidence', source.sourceEvidenceWire,
-              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})),
+            sourceEvidence,
             faultInjection,
             publicationFor: ({issuance, modelEvidence}) =>
               sourceFree ? sourceFreeInferEffectPublicationPlan({acquired,
@@ -406,11 +402,21 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
       diagnostic('acquisition_completed', {task: source.occurrence.task,
         acquisition: captured.acquisition});
       current();
-      const sourceEvidenceWire = await captured.issueSourceEvidence({
+      const sourceEvidenceOptions = {
         authorityScopeCid: acquired.authorityScopeCid,
-        effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
+        effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid};
+      let sourceEvidence, sourceEvidenceWire;
+      if (infer === undefined) {
+        sourceEvidenceWire = await captured.issueSourceEvidence(sourceEvidenceOptions);
+      } else {
+        await captured.prepareSourceEvidenceOriginal(sourceEvidenceOptions);
+        current();
+        sourceEvidence = acquired.control.takeSourceEvidenceOriginal(captured.capture);
+        sourceEvidenceWire = sourceEvidence.wire;
+      }
       current();
-      evidence.push({captured, sourceEvidenceWire});
+      evidence.push({captured, sourceEvidenceWire,
+        ...(sourceEvidence === undefined ? {} : {sourceEvidence})});
       await sourceContinuation?.captured(source, captured, sourceEvidenceWire,
         captureStartedAt, now());
       current();
