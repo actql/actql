@@ -101,15 +101,21 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
         item = original(path)
         require({key: item[key] for key in ('bytes', 'sha256')} == expected,
                 'Selected signed source input differs')
+    # Linux binutils entry points may be aliases. Pin and invoke the same
+    # resolved original; ordinary source inputs still refuse aliases.
+    nm = Path('/usr/bin/nm')
+    if sdk is None:
+        nm = nm.resolve(strict=True)
     selected = [archive, signature, keyring, RECIPE,
                 Path(__file__).resolve(), ROOT / 'scripts/produce-native-remote-scoped-runtime.py',
                 ROOT / 'scripts/produce-native-http-tls.py',
-                clang, make, gpgv, Path(sys.executable).resolve(), Path('/usr/bin/nm')]
+                clang, make, gpgv, Path(sys.executable).resolve(), nm]
     if sdk is not None:
         selected.extend([sdk / 'SDKSettings.json', Path('/usr/bin/otool'),
                          Path('/usr/bin/codesign'), Path('/usr/bin/install_name_tool')])
     else:
-        selected.append(Path('/usr/bin/readelf'))
+        readelf = Path('/usr/bin/readelf').resolve(strict=True)
+        selected.append(readelf)
     if owned_openssl_receipt is not None:
         owned = json.loads(owned_openssl_receipt.read_bytes())
         TLS.validate_receipt_profile(owned, target, profile['minimumMacOS'])
@@ -216,10 +222,10 @@ def build(source: str, archive: Path, signature: Path, keyring: Path,
         shutil.copy2(produced.resolve(), library)
         minimum_macos = None
         if sdk is None:
-            dynamic = run('observed-dependencies', ['/usr/bin/readelf', '--dynamic', '--wide', str(library)])
-            exports = run('observed-exports', ['/usr/bin/nm', '-D', '--defined-only', str(library)])
+            dynamic = run('observed-dependencies', [str(readelf), '--dynamic', '--wide', str(library)])
+            exports = run('observed-exports', [str(nm), '-D', '--defined-only', str(library)])
             observed_dependencies = inspect_linux_component(library, dynamic, exports)
-            run('observed-imports', ['/usr/bin/nm', '-D', '--undefined-only', str(library)])
+            run('observed-imports', [str(nm), '-D', '--undefined-only', str(library)])
         else:
             observed_dependencies, minimum_macos = inspect_darwin_component(
                 library, openssl, prefix, {**recipe, 'minimumMacOS': profile['minimumMacOS']},
