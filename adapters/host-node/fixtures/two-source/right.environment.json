@@ -227,6 +227,14 @@
       "max_temporal_matches_per_key": 1000,
       "max_temporal_output_rows": 1000,
       "version": "actql-capacity-host-policy/0.1"
+    },
+    "text_time_evaluation": {
+      "max_input_codepoints": 4096,
+      "max_input_utf8_bytes": 16384,
+      "max_output_bytes": 1048576,
+      "max_pattern_bytes": 4096,
+      "max_replacements": 4096,
+      "version": "actql-text-time-host-policy/0.1"
     }
   },
   "mapping_contracts": [],
@@ -300,5 +308,5 @@
     }
   ],
   "version": "actql-check-environment/0.1",
-  "evidence_bundle_cid": "sha256:5430c416b45d740f3d882a91dd4a782c65f0216b97d0441aef56ed381040275c"
+  "evidence_bundle_cid": "sha256:ab024933438977868a2d58ce082c7601a2526fc24ff631937fba2e8483da54b5"
 }

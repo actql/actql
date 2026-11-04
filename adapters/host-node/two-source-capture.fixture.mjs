@@ -16,12 +16,14 @@ import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from
 import {capturedDuckDBNativeConfiguration} from './captured-duckdb-source.mjs';
 import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {adoptCapturedPublicationFixture} from './fixtures/local-publication-original.mjs';
+import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
 import {acquiredTaskRunAdmission, acquiredMultiTaskPublicationPlan} from
   './local-values-plan.mjs';
 
 const {DuckDBInstance, DuckDBConnection, DuckDBExtractedStatements} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))('@duckdb/node-api');
 const fixtures = new URL('./fixtures/two-source/', import.meta.url);
+const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 export const boundaryCid = digit => `sha256:${digit.repeat(64)}`;
 const read = name => readFile(new URL(name, fixtures), 'utf8');
 const authorityScopeCid = boundaryCid('a');
@@ -48,6 +50,8 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
   fundedPublication = false} = {}) {
   assert.equal(typeof fundedPublication, 'boolean');
   const root = await mkdtemp(join(tmpdir(), 'actql-two-capture-boundary-'));
+  const baseEnvironmentWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
+  const loaderParent = createInstalledLoaderParent({root, principalId: 'owner', moon});
   const adapters = [];
   const opened = new Set();
   const adopted = new Map();
@@ -58,6 +62,7 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
       await adapter.close();
       await adapter.sourceAccess.authorization.close?.();
     }
+    await loaderParent.close();
     for (const [prepared, original] of adopted) {
       const {run, identity} = original;
       try {checked(moon.clientProgramInstalledManagedRunRetire(run.value));}
@@ -75,6 +80,7 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
     await preparation?.close();
     await rm(root, {recursive: true, force: true});
   });
+  loaderParent.open();
   const databaseRows = JSON.parse(await read('database-rows.json'));
   const rows = [databaseRows.left, equalContent
     ? databaseRows.equal_content : databaseRows.right];
@@ -138,8 +144,8 @@ export async function twoSourceCaptureFixture(t, {equalContent = false, priority
       schema: 'main', table: 'records', sourceRef, accountConfigurationWire,
       checkEnvironmentWire: canonicalJson(JSON.parse(await read(`${side}.environment.json`))),
     }));
-    adapters.push(await loadInstalledSource(profilePath, {root,
-      principalId: 'owner', moon}));
+    adapters.push(await loaderParent.load(loadInstalledSource, profilePath, {root,
+      principalId: 'owner', moon, runtimeUrl, baseEnvironmentWire}));
   }
   const prepareSources = async (owner = prepared) => Promise.all(adapters.map(
     async (adapter, task) => {
