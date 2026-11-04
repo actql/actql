@@ -13,6 +13,7 @@
     "signerFingerprint": "27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2",
     "releaseKey": {
       "url": "https://keys.openpgp.org/vks/v1/by-fingerprint/27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2",
+      "sourcePath": "scripts/fixtures/curl-release-key-27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2.asc",
       "bytes": 1847,
       "sha256": "55b605e2e455e1214781c14932696116b792adf334a400dda9ef2a6f06852b32"
     }
