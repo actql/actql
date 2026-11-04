@@ -136,8 +136,16 @@ class AsyncReader:
             raise ClientError('ReaderClosed')
         return self
 
-    async def __aexit__(self, *exc):
-        await self.aclose()
+    async def __aexit__(self, _type, failure, _traceback):
+        try:
+            await self.aclose()
+        except ClientError as cleanup:
+            if failure is None:
+                raise
+            # Context exit may retry a failed read's response cleanup. Keep
+            # that original failure and every cleanup failure on the same reader.
+            cleanup.cleanup_error = getattr(failure, 'cleanup_error', None)
+            failure.cleanup_error = cleanup
 
     def __aiter__(self):
         return self
@@ -198,6 +206,7 @@ class AsyncReader:
         client._readers.add(self)
         buffer = bytearray()
         count = 0
+        failure = None
         try:
             self._response = await client._open('read', {'ref': thaw(run.ref), 'resultName': self._result._name,
                                                 'format': 'jsonl', 'attemptId': self.attempt_id})
@@ -243,16 +252,26 @@ class AsyncReader:
                     raise ClientError('ResultRowWireLimit')
             if buffer != b'\x1e':
                 raise ClientError('IncompleteResultStream')
-        except asyncio.CancelledError as failure:
+        except asyncio.CancelledError as error:
             if self._closed:
                 return
+            failure = error
             failure.attempt_id, failure.rows_yielded = self.attempt_id, self.rows_yielded
             raise
-        except ClientError as failure:
+        except ClientError as error:
+            failure = error
             failure.attempt_id, failure.rows_yielded = self.attempt_id, self.rows_yielded
             raise failure from None
         except Exception:
-            raise ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id, rows_yielded=self.rows_yielded) from None
+            failure = ClientError('ReadOutcomeUnknown', attempt_id=self.attempt_id, rows_yielded=self.rows_yielded)
+            raise failure from None
         finally:
             self._closed = True
-            await self._release()
+            try:
+                await self._release()
+            except ClientError as cleanup:
+                if failure is None:
+                    raise
+                # Preserve the original read/cancellation and the same pending
+                # response. A cleanup failure supplies no resend permission.
+                failure.cleanup_error = cleanup

@@ -2,7 +2,7 @@
 // Opening or stopping a reader neither cancels nor resubmits its Run.
 import {projectDeliveryExplanation, projectDeliveryLookupFailure, projectReadExplanation,
   localizeOperation} from '../operation-presentation.mjs';
-import {contentCid} from '../checkpoints.mjs';
+import {canonicalJson, contentCid} from '../checkpoints.mjs';
 import {resultSerializationContractCids} from '../json-value-wire.generated.mjs';
 import {awaitValidation, captureReadOptions, captureResultRead, validationOutcome} from '../result-schema.mjs';
 import {captureResponse, freezeInput, positive} from './data.mjs';
@@ -94,19 +94,56 @@ function tighter(requested, maximum) {
 }
 
 // A decoded-value accounting bound, not an operating-system RSS measurement.
-function retainedValueBytes(value) {
+function retainedValueBytes(value, raw = false) {
   let nodes = 0;
+  const active = new Set();
   const visit = item => {
     nodes++;
-    if (Array.isArray(item)) item.forEach(visit);
-    else if (item !== null && typeof item === 'object') {
+    if (raw && (item === null || typeof item !== 'object')) {
+      // The existing canonical codec owns scalar number and text validity.
+      canonicalJson(item, {dataKeys: true});
+      return;
+    }
+    if (raw && active.has(item)) throw new TypeError('CyclicResultValue');
+    if (raw) active.add(item);
+    if (Array.isArray(item)) {
+      for (const child of item) visit(child);
+    } else if (item !== null && typeof item === 'object') {
+      if (raw && Object.getPrototypeOf(item) !== Object.prototype) throw new TypeError('InvalidResultValue');
       for (const [key, entry] of Object.entries(item)) {
         nodes++; visit(key); visit(entry);
       }
     }
+    if (raw) active.delete(item);
   };
-  visit(value);
+  try { visit(value); }
+  catch (error) {
+    if (raw) fail('InvalidResultFrame');
+    throw error;
+  }
   return new TextEncoder().encode(JSON.stringify(value)).byteLength + nodes * 64;
+}
+
+// JSON.parse has already checked the grammar. Check the original text's decoded
+// object keys per nesting level; last-key-wins parsing would hide duplicates.
+function rejectDuplicateRowKeys(text) {
+  const scopes = [];
+  for (const [token] of text.matchAll(/"(?:\\[\s\S]|[^"\\])*"|[{}\[\],:]/gu)) {
+    if (token === '{') scopes.push({keys: new Set(), key: true});
+    else if (token === '[') scopes.push(null);
+    else if (token === '}' || token === ']') scopes.pop();
+    else {
+      const scope = scopes.at(-1);
+      if (scope == null) continue;
+      if (token === ',') scope.key = true;
+      else if (token === ':') scope.key = false;
+      else if (scope.key) {
+        const key = JSON.parse(token);
+        if (scope.keys.has(key)) fail('InvalidResultFrame');
+        scope.keys.add(key);
+      }
+    }
+  }
 }
 
 // Only this module's original Result owns these continuations. The association
@@ -150,7 +187,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       let state = 'not_started';
       let rowsYielded = 0, rawRows = 0, retainedBytes = 0;
       const controller = new AbortController();
-      const acceptRow = async (row, size = retainedValueBytes(row)) => {
+      const acceptRow = async (row, size = retainedValueBytes(row, true)) => {
         // Charge the untouched decoded row before invoking application code.
         // A mutating/shrinking transform cannot reduce its collection charge.
         if (size > maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
@@ -188,7 +225,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         if (options.signal?.aborted) controller.abort();
         let wireBytes = 0, line = '';
         let stream, failure, localCleanup, frames;
-        let framesComplete = false;
+        let framesComplete = false, cleanupUncertain = false;
         activeReaders.add(ownedReader);
         try {
           const response = await runRequest('read', {
@@ -229,7 +266,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
               // Capture borrowed row fields once. Accounting and application
               // validation consume that same owned value, not later getters.
               const row = structuredClone(value);
-              const size = retainedValueBytes(row);
+              const size = retainedValueBytes(row, true);
               if (size > maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
               state = 'prefix';
               const output = await acceptRow(row, size);
@@ -261,6 +298,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
                 let row;
                 try { row = JSON.parse(item); }
                 catch { fail('InvalidResultFrame'); }
+                rejectDuplicateRowKeys(item);
                 if (row === null || typeof row !== 'object' ||
                     Array.isArray(row)) fail('InvalidResultFrame');
                 yield row;
@@ -319,6 +357,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
                 }
               }
             } catch (cause) {
+              cleanupUncertain = true;
               if (failure) {
                 appendCleanupFailure(failure, cause, context.redactErrors);
                 retainReadExplanation(failure, context, rowsYielded,
@@ -333,6 +372,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
             try {
               if (state !== 'complete') await stream.cancel();
             } catch (cause) {
+              cleanupUncertain = true;
               // Remote delivery uncertainty stays on this read. Releasing
               // its local lock is not a remote cleanup acknowledgment, and
               // a closed stream supplies no Host cleanup retry witness.
@@ -367,7 +407,10 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
           }
           activeReaders.delete(ownedReader);
           // A pending iterator.return() skips code after finally.
-          if (failure) throw failure;
+          if (failure) {
+            if (cleanupUncertain) ownedReader.cleanupFailure = failure;
+            throw failure;
+          }
         }
       };
       const reader = Object.freeze({attemptId, state: () => state,

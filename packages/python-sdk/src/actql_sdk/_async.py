@@ -663,6 +663,7 @@ class AsyncExecution:
         self._admission = freeze(snapshot(admission))
         self._submission = submission
         self._latest_control = None
+        self._latest_state = None
 
     @property
     def ref(self):
@@ -678,14 +679,21 @@ class AsyncExecution:
                     else wire.valid(value, 'run_state'))
         if not accepted:
             raise ClientError('InvalidHostRunState')
+        previous_state = self._latest_state
+        if previous_state is not None and (value['run_id'] != previous_state[0] or
+                value['revision'] < previous_state[1]):
+            raise ClientError('StaleHostRunObservation')
         control = value.get('control')
         if control is not None:
             previous = self._latest_control
             if previous is not None and (control['revision'] < previous['revision'] or
                     control['revision'] == previous['revision'] and control != previous):
                 raise ClientError('StaleHostRunObservation')
+        observation = RunState(value)
+        if control is not None:
             self._latest_control = snapshot(control)
-        return RunState(value)
+        self._latest_state = (value['run_id'], value['revision'])
+        return observation
 
     async def status(self):
         return await self._observe('status')
