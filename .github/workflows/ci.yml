@@ -1177,7 +1177,7 @@ jobs:
           retention-days: 14
       - name: Test Node-free native storage publication and control
         env:
-          ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests
         run: |
           # Match the existing Linux Native compiler stack prerequisite.
           # All original cases and product resource budgets remain unchanged.

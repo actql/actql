@@ -8,9 +8,60 @@ import test from 'node:test';
 import {parse} from 'yaml';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs, pythonWheelAcceptanceRequired, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
+import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
+
+function nativeScratchSourceFixture(t) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-native-scratch-source-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const repository = join(root, 'checkout'), runner = join(root, 'runner-temp');
+  mkdirSync(repository);mkdirSync(runner);
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: repository, encoding: 'utf8', timeout: 5000});
+    assert.equal(result.error, undefined);assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  git(['init', '--quiet']);
+  writeFileSync(join(repository, 'source.txt'), 'Original tracked Source\n');
+  git(['add', 'source.txt']);
+  git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+    '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'Original Source']);
+  const afterSourceAdmission = new Error('Source admitted before compiler selection');
+  const prepare = () => prepareNativeRuntimeBundle(repository, join(root, 'bundle'), {
+    platform: 'linux', arch: 'x64', moonHome: root,
+    execute(command, args) {
+      if (command === 'git') return git(args);
+      assert.equal(command, 'sh');assert.deepEqual(args, ['-c', 'command -v clang']);
+      // Stop before any compiler, producer, prepared artifact or Native Runtime.
+      throw afterSourceAdmission;
+    },
+  });
+  return {repository, runner, git, prepare, afterSourceAdmission};
+}
+
+test('Linux Native scratch output leaves Source clean for delayed bundle admission', t => {
+  const f = nativeScratchSourceFixture(t);
+  const step = jobs.native.steps.find(row => row.name === 'Test Node-free native storage publication and control');
+  const scratch = step.env.ACTQL_TEST_SCRATCH_ROOT
+    .replaceAll('${{ github.workspace }}', f.repository)
+    .replaceAll('${{ runner.temp }}', f.runner);
+  mkdirSync(scratch, {recursive: true});
+  const original = mkdtempSync(join(scratch, 'native-http-'));
+  writeFileSync(join(original, 'original-fixture-output.txt'), 'Retained original output\n');
+  assert.throws(f.prepare, error => error === f.afterSourceAdmission);
+  assert.equal(f.git(['status', '--porcelain']), '');
+  assert.equal(readFileSync(join(original, 'original-fixture-output.txt'), 'utf8'), 'Retained original output\n');
+});
+
+test('Native bundle Source admission still refuses untracked checkout scratch output', t => {
+  const f = nativeScratchSourceFixture(t);
+  mkdirSync(join(f.repository, '.native-tests'));
+  writeFileSync(join(f.repository, '.native-tests', 'original-output.txt'), 'Retained output\n');
+  assert.throws(f.prepare, /Clean fixed bundle build Source required/u);
+  assert.equal(f.git(['status', '--porcelain']), '?? .native-tests/\n');
+});
 
 test('preflight checks Native counter assignments before the build toolchain', () => {
   const steps = jobs.preflight.steps;
