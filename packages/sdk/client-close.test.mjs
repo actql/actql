@@ -86,7 +86,7 @@ test('client-initiated close reports original frame cleanup uncertainty after re
   await reader[Symbol.asyncIterator]().next();
   await assert.rejects(f.client.close(), error => {
     assert.equal(error.code, 'ResultReadCleanupUnknown');
-    assert.equal(explainReadFailure(error).cleanup, 'unknown');
+    assert.equal(explainReadFailure(error).observation, 'cleanup_unknown');
     assert.equal(explainReadFailure(error).attemptId, reader.attemptId);
     return true;
   });
@@ -97,6 +97,43 @@ test('client-initiated close reports original frame cleanup uncertainty after re
   assert.equal(releases, 1);
   assert.equal(returns, 1);
   assert.equal(f.calls.includes('cancel'), false);
+});
+
+test('original frame cleanup failure survives a pending Client lease', async () => {
+  let releases = 0, returns = 0;
+  const f = await local(() => ({kind: 'rows', frames: {
+    [Symbol.asyncIterator]() {return {
+      async next() {return {done: false, value: {value: {n: 1}, byteLength: 7}};},
+      async return() {returns++; throw new Error('frame return failed');},
+    };},
+  }}), async () => {if (++releases === 1) throw new Error('lease pending');});
+  const reader = f.result.rows();
+  await reader[Symbol.asyncIterator]().next();
+  await assert.rejects(f.client.close(), {code: 'ClientCleanupPending'});
+  await assert.rejects(f.client.close(), error =>
+    explainReadFailure(error).attemptId === reader.attemptId);
+  await f.client.close();
+  assert.equal(releases, 2);
+  assert.equal(returns, 1);
+});
+
+test('close preserves each original failed reader disposal', async () => {
+  const f = await local(() => ({kind: 'rows', frames: {
+    [Symbol.asyncIterator]() {return {
+      async next() {return {done: false, value: {value: {n: 1}, byteLength: 7}};},
+      async return() {throw new Error('frame return failed');},
+    };},
+  }}));
+  const readers = [f.result.rows(), f.result.rows()];
+  for (const reader of readers) await reader[Symbol.asyncIterator]().next();
+  await assert.rejects(f.client.close(), error => {
+    assert.equal(error.code, 'ResultReadCleanupUnknown');
+    assert.ok(error.cleanupError instanceof AggregateError);
+    assert.deepEqual(error.cleanupError.errors.map(failure => explainReadFailure(failure).attemptId),
+      readers.map(reader => reader.attemptId));
+    return true;
+  });
+  await f.client.close();
 });
 
 test('close returns a paused batch wrapper and discards its buffered next row', async () => {

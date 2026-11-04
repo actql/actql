@@ -3918,7 +3918,7 @@
           ]
         }
       ],
-      "sha256": "0c9df9233fd132fa4e16c96862d565cb61ac49acfa32f14fa1668ef525c1d034",
+      "sha256": "dbfdbf621b5ea7e3c43353e701f006dcc38e283b747fd92bdebe840e027540b4",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -4148,6 +4148,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
                 "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_wait_since.py",
+                "anchor": "test_observation_history_rejects_rollback_and_scope_substitution"
               }
             ]
           }
@@ -6738,7 +6742,7 @@
           ]
         }
       ],
-      "sha256": "c5af123f75ac2602c0b1bf7395a96cbf18f436426c68492c32939e02f28e1a00",
+      "sha256": "0eb06136763e1d161f70a087d14b1e0c29fa205755772855ce1fb37795557d7e",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -6892,6 +6896,10 @@
               {
                 "path": "packages/python-sdk/README.md",
                 "anchor": "### Application row schemas"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_read_failure_and_cleanup_failure_are_both_preserved"
               }
             ]
           }

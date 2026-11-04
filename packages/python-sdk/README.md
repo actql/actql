@@ -208,6 +208,11 @@ connection attempt whose cleanup also fails exposes `error.cleanup_client` for
 this purpose. That handle is closed to further requests and can only release
 its remaining local resources.
 
+If a Result read or task cancellation fails and response cleanup also fails,
+the original exception is preserved with `cleanup_error` set to
+`ReaderCleanupFailed`. The same reader retains its response for explicit close
+retry; cleanup failure never permits a new read or Run resend.
+
 `check(input, kind="text" | "program", scope="template_only" | "bound_input", ...)`
 does not execute. Text calls also select `format="sql"` or `"aql"`. The existing `"aql-text"`
 spelling selects the same compiler and is preserved in retained requests.

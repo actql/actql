@@ -75,11 +75,22 @@ test('typed Result values reject noncanonical scalars before application validat
   }
 });
 
+test('raw Result admission does not restrict application batch output objects', async t => {
+  const f = await fixture(t, {value: {n: 1}, byteLength: 7});
+  const output = new Date('2026-10-07T00:00:00.000Z');
+  const schema = {'~standard': {version: 1, vendor: 'typed-result-capture',
+    validate() {return {value: output};}}};
+  const batches = await Array.fromAsync(f.result.batches(schema));
+  assert.equal(batches[0][0], output);
+  assert.deepEqual(f.cleanup(), {returns: 1, closes: 1});
+});
+
 test('HTTP Result rows reject invalid values and decoded duplicate keys', async t => {
   let wire, reads = 0, validations = 0;
   mock.method(globalThis, 'fetch', async url => {
     const operation = url.pathname.split('/').at(-1);
-    if (operation === 'connect') return Response.json({...profile, mode: 'remote', owner: 'remote'});
+    if (operation === 'connect') return Response.json({...profile, mode: 'remote', owner: 'remote',
+      limits: {...profile.limits, maxRowRetainedValueBytes: 4096, maxRetainedValueBytes: 8192}});
     if (operation === 'attach') return Response.json(admission);
     assert.equal(operation, 'read'); reads++;
     return new Response(wire + '\n\x1e');
