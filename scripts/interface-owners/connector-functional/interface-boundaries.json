@@ -20497,6 +20497,7 @@
       ],
       "imports": [
         "../host-common/credential-scope-fields.generated.mjs",
+        "../host-common/effect-preparation-result.mjs",
         "../host-common/runtime-result.mjs",
         "../site-node/https-credential-resource.mjs",
         "./effect-ledger-implementation-bounds.mjs",
@@ -20504,7 +20505,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "82d6ccd04a2c10809a085566cbfed63a5e88b9c4add11c063acbc09293f4890d",
+      "sha256": "a5e739723deeadfdd3b7ef81174c51c398e72d006b364b21c57042a82929a850",
       "contracts": [
         {
           "operations": [
