@@ -1636,6 +1636,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
   const preparations = new WeakMap();
   // SAME prepared read, retained until the accounted RowRun takes custody.
   const preparingSourceReads = new Set();
+  const reauthorizingPreparations = new WeakSet();
   const keyedPreparations = new WeakMap();
   function prepareOriginalAcquisition(requirement) {
     if (retainedAcquisitionContracts && acquisitionContracts === undefined) fail('InstalledSourceInitializationClosed');
@@ -1898,7 +1899,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
 
   async function prepare({preparedProgram, preparedEffect, registry, values,
     fragment, ordered, sourceAccess: access = sourceAccess,
-    queryTimePreparation, requestIdentity, managedRun,
+    queryTimePreparation, requestIdentity, managedRun, preparedSource,
     occurrence = {stage: 0, input: 0, task: 0}}) {
     if (immutableTargets !== undefined && physicalTargetGeneration === undefined) {
       fail('InstalledSourceInitializationClosed');
@@ -1915,6 +1916,37 @@ export async function createInstalledRowSource({moon, declaration, commands,
     occurrence = Object.freeze({...occurrence});
     const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
+    if (preparedSource !== undefined) {
+      const original = preparations.get(preparedSource);
+      const recheck = () => {
+        if (original === undefined || preparations.get(preparedSource) !== original ||
+            original.checkedOwner !== checkedOwner || original.effectful !== effectful ||
+            original.managedRun === undefined || original.managedRun !== managedRun ||
+            original.requestIdentity !== requestIdentity ||
+            original.occurrence.stage !== occurrence.stage ||
+            original.occurrence.input !== occurrence.input ||
+            original.occurrence.task !== occurrence.task ||
+            !preparingSourceReads.has(original.originalRead)) {
+          fail('InstalledSourcePreparationMismatch');
+        }
+        ordinaryRecoveryBinding(preparedSource);
+        checked(moon.clientProgramInstalledSourceReadCheckCurrent(original.originalRead));
+      };
+      recheck();
+      if (reauthorizingPreparations.has(preparedSource)) fail('InstalledSourcePreparationMismatch');
+      reauthorizingPreparations.add(preparedSource);
+      try {
+        // Approval changes read authority, not the admitted Plan's original
+        // acquisition. Revalidate that same unentered read instead of issuing
+        // another one under an equal requirement.
+        await currentRead(preparedSource, access);
+        recheck();
+        preparations.set(preparedSource, Object.freeze({...original, access}));
+        return preparedSource;
+      } finally {
+        reauthorizingPreparations.delete(preparedSource);
+      }
+    }
     let planned;
     let wholeInput = false;
     if (effectful) {
@@ -2039,7 +2071,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       }
       preparations.set(prepared, Object.freeze({checkedOwner, effectful,
         requirement, resource, access, acquisition, wholeInput,
-        occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun,
+        occurrence, physicalBindingCid, providerCaptureCapacity, originalRead, managedRun, requestIdentity,
         ...(immutableTargets === undefined ? {} : {physicalBindingOriginal: prepared.physicalBinding,
           physicalTargetGeneration})}));
       ordinaryRecoveryBinding(prepared);
@@ -2609,7 +2641,7 @@ export async function createInstalledRowSource({moon, declaration, commands,
       captureCapacity(owner);
     }
     const decision = await currentRead(prepared, access, signal);
-    const granted = owner.originalRead === undefined && decision.basis === 'resumed_approval'
+    const granted = decision.basis === 'resumed_approval'
       ? site.admitCheckpointReadApproval(decision) : decision;
     const acquisition = owner.acquisition;
     const columns = owner.wholeInput ? moon.clientProgramWholeSourceTarget(acquisition).slice(1)

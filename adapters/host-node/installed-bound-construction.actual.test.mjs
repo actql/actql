@@ -258,7 +258,7 @@ for (const role of ['source', 'effect']) {
         'environmentWire', 'generationCid', 'connectorBindings', 'readAuthorization',
         'sourceAccess', 'sourceReadAccesses', 'admitsSource', 'ledgerCapacity',
         'managedCaptureCapacity', 'managedWholeSourceCapacity', 'managedEffectPlanSelection', 'prepare',
-        'open', 'close', 'discovery', 'queryAliases'].sort());
+        'open', 'close', 'retirePreparedSource', 'discovery', 'queryAliases'].sort());
       assert.equal(adapter.realizationKey, 'salesforce-acquired');
       assert.equal(adapter.supportsRetainedRelationOutput, true);
     } else {

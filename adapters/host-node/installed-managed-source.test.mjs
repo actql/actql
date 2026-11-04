@@ -177,6 +177,53 @@ test('unmigrated and already managed Sources retain their selected preparation p
   assert.strictEqual(bindInstalledManagedSources(undefined, forbidden), undefined);
 });
 
+test('Source reauthorization preserves its original read and refuses foreign, concurrent and retired preparations', async () => {
+  const text = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
+  let node;
+  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}), candidate => {
+    if (candidate.type === 'FunctionDeclaration' && candidate.id?.name === 'prepare') node = candidate;
+  });
+  assert(node);
+  // Execute the actual authority-transition boundary with explicit nominal
+  // ports. Public recovery separately exercises the real Core and Site.
+  const prepared = {}, program = {}, request = {}, run = {}, read = {}, access = {};
+  const occurrence = {stage: 0, input: 0, task: 0};
+  const original = Object.freeze({checkedOwner: program, requestIdentity: request,
+    managedRun: run, originalRead: read, occurrence, effectful: false, access: {}});
+  const preparations = new WeakMap([[prepared, original]]), pending = new Set([read]);
+  let current = async () => {}, checks = 0;
+  const ports = {immutableTargets: undefined, physicalTargetGeneration: undefined, directReadIdentity: undefined,
+    preparations, preparingSourceReads: pending, reauthorizingPreparations: new WeakSet(),
+    checked: value => value, fail: code => {throw new Error(code);},
+    ordinaryRecoveryBinding(value) {assert.equal(value, prepared);},
+    moon: {clientProgramInstalledSourceReadCheckCurrent(value) {assert.equal(value, read); checks++;}},
+    currentRead(value, selected) {assert.equal(value, prepared); assert.equal(selected, access); return current();}};
+  const prepare = new Function(...Object.keys(ports), `return ${text.slice(node.start, node.end)};`)(...Object.values(ports));
+  const facts = {preparedProgram: program, requestIdentity: request, managedRun: run,
+    preparedSource: prepared, sourceAccess: access, occurrence};
+  assert.equal(await prepare(facts), prepared);
+  const updated = preparations.get(prepared);
+  assert.equal(updated.originalRead, read);
+  assert.equal(updated.access, access);
+  assert.equal(checks, 2, 'the same Core read is current before and after authorization');
+  for (const changed of [{preparedSource: {...prepared}}, {preparedProgram: {}},
+    {requestIdentity: {}}, {managedRun: {}}, {occurrence: {stage: 1, input: 0, task: 1}}]) {
+    await assert.rejects(prepare({...facts, ...changed}), /InstalledSourcePreparationMismatch/);
+  }
+  const denied = new Error('same authority refusal');
+  current = async () => {throw denied;};
+  await assert.rejects(prepare(facts), error => error === denied);
+  assert.equal(preparations.get(prepared), updated);
+  let release;
+  current = () => new Promise(resolve => {release = resolve;});
+  const awaiting = prepare(facts);
+  await assert.rejects(prepare(facts), /InstalledSourcePreparationMismatch/);
+  pending.delete(read);
+  release();
+  await assert.rejects(awaiting, /InstalledSourcePreparationMismatch/);
+  assert.equal(preparations.get(prepared), updated, 'retirement cannot revive the original preparation');
+});
+
 test('managed Source view preserves original physical and plural method receivers without changing their returns', () => {
   const child = {}, close = Promise.resolve({pending: true}), capture = {}, source = {
     managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},

@@ -673,7 +673,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               connectorRevision: installedSource.connectorRevision,
               bindingCid: installedSource.connectorBindings[0].bindingCid}})}) ?? installedSource.sourceAccess;
         const preparedSource = directAccess === held.preparedSourceAccess ? held.preparedSource :
-          await prepareAcquisition(preparedProgram, directAccess, directOccurrence);
+          await prepareAcquisition(preparedProgram, directAccess, directOccurrence,
+            held.managedRun === undefined ? undefined : held.preparedSource);
         const facts = checked(moon.clientProgramKeyedAcquisitionSourceEvidenceFacts(keyedAcquisition));
         const keyedAdapter = installedSourceFor(sourceProfile, facts[0]);
         if (typeof installedSource.openCapture !== 'function' ||
@@ -808,7 +809,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const access = checkpoints?.acquisitionAccess(submission.requestId,
           installedSource.sourceAccess) ?? installedSource.sourceAccess;
         if (held.preparedSourceAccess !== access) {
-          held.preparedSource = await prepareAcquisition(preparedProgram, access);
+          held.preparedSource = await prepareAcquisition(preparedProgram, access, undefined,
+            held.managedRun === undefined ? undefined : held.preparedSource);
           held.preparedSourceAccess = access;
         }
         if (requestModelAcquired) {
@@ -826,7 +828,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         const access = checkpoints?.acquisitionAccess(submission.requestId,
           installedSource.sourceAccess) ?? installedSource.sourceAccess;
         if (held.preparedSourceAccess !== access) {
-          held.preparedSource = await prepareAcquisition(preparedProgram, access);
+          held.preparedSource = await prepareAcquisition(preparedProgram, access, undefined,
+            held.managedRun === undefined ? undefined : held.preparedSource);
           held.preparedSourceAccess = access;
         }
         if (typeof installedSource.ledgerCapacity !== 'function') {
@@ -1038,7 +1041,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       } else if (acquiring) {
         if (held.preparedSourceAccess !== sourceAccess) {
           held.preparedSource = await prepareAcquisition(preparedProgram,
-            sourceAccess);
+            sourceAccess, undefined, held.managedRun === undefined ? undefined : held.preparedSource);
           held.preparedSourceAccess = sourceAccess;
         }
         const {captureStartedAt, captureCompletedAt, sourceEvidence, sourceEvidenceWire} =

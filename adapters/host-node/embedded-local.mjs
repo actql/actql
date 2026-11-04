@@ -3355,7 +3355,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     return coordinates === undefined ? undefined
       : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
   };
-  const prepareAcquisition = async (preparedProgram, sourceAccess, occurrence) => {
+  const prepareAcquisition = async (preparedProgram, sourceAccess, occurrence, preparedSource) => {
     occurrence ??= modelSourceOccurrence(preparedProgram, 0) ?? {stage: 0, input: 0, task: 0};
     const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
     if (requestIdentity === undefined) throw clientOperationError('ClientProgramNeedsInputs');
@@ -3370,6 +3370,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     try {
       const prepared = await adapter.prepare({preparedProgram, registry, values, fragment, ordered,
         sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence, requestIdentity,
+        ...(preparedSource === undefined ? {} : {preparedSource}),
         requireImmediateReadAuthorization: checkpoints === undefined});
       if (prepared.selection !== undefined) diagnostic('acquisition_selection',
         {task: occurrence.task, selection: prepared.selection});

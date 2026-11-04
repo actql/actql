@@ -13467,7 +13467,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "sha256": "9c888f32ca78b66dffa6e50f81e1306abd67dcee2ed7f702800ff71b04e62c93",
+      "sha256": "eb37c4402a3730fcaf7ff5994914bda8c42cacb83a5a3227d6b7c41a7cef82ab",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -14117,6 +14117,7 @@
             "queryTimePreparation",
             "requestIdentity",
             "managedRun",
+            "preparedSource",
             "occurrence"
           ],
           "async": true
@@ -14138,6 +14139,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepare/recheck/recheck",
+          "parameters": [],
           "async": false
         },
         {
@@ -15318,6 +15324,7 @@
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
             "createInstalledRowSource/prepare/prepare",
+            "createInstalledRowSource/prepare/recheck/recheck",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed#2",

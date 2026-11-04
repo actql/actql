@@ -37379,7 +37379,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "0d0b7f1b426610644fedb413087bae009c5114b9bf1eb62b4ea7df72a369c979",
+      "sha256": "fa788584e7e1c6fe70a2c4ac116cfbd3f344790b5ef6661f5a3777de33a9d89d",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -58835,7 +58835,8 @@
           "parameters": [
             "preparedProgram",
             "sourceAccess",
-            "occurrence"
+            "occurrence",
+            "preparedSource"
           ],
           "async": true
         },
@@ -61765,7 +61766,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "47ea19cb27c9ce43c220ff982bee06e10dced4879822ac47ca0855a71e7e2dc5"
+      "sha256": "acdb3cb3cfed1a7f99a9d94cfee49b6e878d3863f9dd6b2f207547accd827075"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -86090,7 +86091,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "9c888f32ca78b66dffa6e50f81e1306abd67dcee2ed7f702800ff71b04e62c93",
+      "sha256": "eb37c4402a3730fcaf7ff5994914bda8c42cacb83a5a3227d6b7c41a7cef82ab",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -86753,6 +86754,7 @@
             "queryTimePreparation",
             "requestIdentity",
             "managedRun",
+            "preparedSource",
             "occurrence"
           ],
           "async": true
@@ -86774,6 +86776,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/prepare/recheck/recheck",
+          "parameters": [],
           "async": false
         },
         {
@@ -88290,6 +88297,7 @@
             "createInstalledRowSource/prepare",
             "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
             "createInstalledRowSource/prepare/prepare",
+            "createInstalledRowSource/prepare/recheck/recheck",
             "createInstalledRowSource/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed",
             "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
