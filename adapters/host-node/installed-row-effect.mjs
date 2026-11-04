@@ -3090,7 +3090,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {computation, preview, storedResults} = durable;
     const previewWire = control.effectComputationPreviewWire(preview);
     const body = managedEffect === undefined ? JSON.parse(previewWire)
-      : managedEffect.controlConstruction.parsePreview(previewWire);
+      : managedEffect.controlConstruction.parsePreview(previewWire, true);
     const members = recoveredMembers(body, provider, selected);
     bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index, updateTargetSelections);

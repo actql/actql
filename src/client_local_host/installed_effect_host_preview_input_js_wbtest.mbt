@@ -119,6 +119,7 @@ test "Host Preview deferred forest keeps original full text and codec maxima" {
 ///|
 test "Host Preview grows same original control before parse and keeps its returned forest across later children" {
   let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture()
+  assert_true(owner.effect_operation_controls.unwrap().host_input is None)
   let before = @resources.ledger_usage(ledger)
   let wire = "{\"rows\":[{\"id\":1}]}"
   begin_installed_effect_operation_control_input(
@@ -134,6 +135,13 @@ test "Host Preview grows same original control before parse and keeps its return
   let held = @resources.ledger_usage(ledger)
   assert_eq(held.reserved_retention_bytes, active.reserved_retention_bytes)
   assert_true(held.reserved_execution_bytes < active.reserved_execution_bytes)
+  assert_true(
+    physical_equal(
+      installed_effect_managed_operation_plan(owner, prepared, request).unwrap(),
+      plan,
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), held)
   assert_true(
     begin_installed_effect_operation_control_input(
       owner, prepared, request, plan, wire,
@@ -199,6 +207,7 @@ test "standard two-role capture grows the same original Preview forest and keeps
   let (prepared, request, plan, owner, ledger) = effect_host_preview_input_fixture(
     standard=true,
   )
+  assert_true(owner.effect_operation_controls.unwrap().host_input is None)
   let before = @resources.ledger_usage(ledger)
   assert_true(
     begin_installed_effect_operation_control_input(
