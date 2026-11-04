@@ -74288,12 +74288,16 @@
     },
     {
       "module": "src/connectors/github/host_node/read_construction.mbt",
-      "sha256": "bf28110fc1c04b289fa2576757775d184bc85eedbe55a1bb5d59232a22facc93",
+      "sha256": "5b2fc68d5f6fbfb459936b3209266e0e177466be27ac41542f6df34468cb0894",
       "exports": [],
       "operations": [
         {
           "name": "github_read_collection_units",
           "declaration": "github_read_collection_units ( value : @ shape . CollectionConstructionExtent , ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "github_read_prefix_construction_capacity",
+          "declaration": "github_read_prefix_construction_capacity ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , pages : Int , max_subjects : Int , response_bytes : Int , header_bytes : Int , responses : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "github_read_request_inventory",
@@ -74302,6 +74306,10 @@
         {
           "name": "github_source_read_construction_capacity",
           "declaration": "github_source_read_construction_capacity ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , pages : Int , max_subjects : Int , response_bytes : Int , header_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "github_source_read_prefix_construction_capacity",
+          "declaration": "github_source_read_prefix_construction_capacity ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_rows : Int , pages : Int , max_subjects : Int , response_bytes : Int , header_bytes : Int , responses : Int , ) - > @ execution . ExecutionCapacity ?"
         }
       ],
       "responsibilityFacet": "primary",
@@ -74312,8 +74320,10 @@
           "operations": [
             "<module>",
             "github_read_collection_units",
+            "github_read_prefix_construction_capacity",
             "github_read_request_inventory",
-            "github_source_read_construction_capacity"
+            "github_source_read_construction_capacity",
+            "github_source_read_prefix_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -74387,6 +74397,14 @@
               {
                 "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
                 "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              },
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source prefix quotes retained occurrences without constructing future pages\""
+              },
+              {
+                "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
+                "anchor": "test('GitHub Source grows the original prefix for each equal-sized response before decode'"
               }
             ]
           }

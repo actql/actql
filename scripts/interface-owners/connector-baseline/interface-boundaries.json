@@ -6374,7 +6374,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8bb08e6a87bf468fed39433c481218f81194a51f63878f46ed83875ed5680bb9",
+      "sha256": "5746edd620699606efe7044345915ca01e9fe176e2c309103d6abf4958850b07",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -6509,7 +6509,8 @@
         {
           "name": "loadInstalledGitHubSource/responseCapacity/responseCapacity",
           "parameters": [
-            "bytes"
+            "bytes",
+            "responses"
           ],
           "async": false
         },
@@ -7505,7 +7506,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e03c85abb440551e737ed4a50d65cce78afd1511a4b5da82e5ac35b003cf0f56",
+      "sha256": "559018e68eb52bc27caf2f6e9123fd07e41785d38dc45e78c166104ecf3a10a9",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [

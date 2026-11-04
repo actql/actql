@@ -154,8 +154,13 @@ bound an allocation that already occurred before that refusal.
 
 Initial request/control construction is selected before any read callback.
 After each actual response is retained and charged, the same RowRun grows its
-original allowance from the largest owned response extent before native
-projection. This narrows constructor geometry only; parser, page, subject,
+original allowance from the largest owned response extent and the number of
+actual retained responses before native projection. Equal-sized replies still
+add original prefix occurrences. The quantity also retains the next request
+while keeping future, unreceived rows out of the current constructor inventory.
+Every completed native row or subject contains the original `id` and `updatedAt`
+text members; their disjoint encoded objects bound row geometry, with an extra
+partial current row retained on failure. This narrows constructor geometry only; parser, page, subject,
 row and total-response rejection limits keep their original values. The shared
 native Reader composes its response/binding/credential inventory with that
 original provider quantity; neither quantity issues permission or a new budget.

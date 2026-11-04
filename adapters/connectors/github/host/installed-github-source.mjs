@@ -344,7 +344,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
       maxValueNodes:readLimits.maxNodes,maxValueTextBytes:readLimits.maxBytes,
       maxRowsWireBytes:rowLimits.maxPageBytes,maxRowsWireNodes:readLimits.maxNodes,
       maxRowsWireDepth:readLimits.maxDepth,maxSecretBytes:policy[0]});
-    const nativeCapacity = Object.getOwnPropertyDescriptor(providerMoon, 'githubSourceReadConstructionCapacity')?.value;
+    const nativeCapacity = Object.getOwnPropertyDescriptor(providerMoon, 'githubSourceReadPrefixConstructionCapacity')?.value;
     const readerCapacity = Object.getOwnPropertyDescriptor(moon, 'clientProgramInstalledNativeSourceReaderCapacity')?.value;
     if (typeof nativeCapacity !== 'function' || typeof readerCapacity !== 'function') {
       fail('InstalledSourceReaderRuntimeUnavailable');
@@ -352,8 +352,8 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
     const originalBounds = Object.freeze(['maxBytes','maxNodes','maxDepth','maxRows','maxPages','maxSubjects']
       .map(name => readLimits[name]));
     const readerBounds = Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name]));
-    const responseCapacity = bytes => {
-      const domain = Reflect.apply(nativeCapacity,providerMoon,[...originalBounds,bytes,httpsCredentialResponseHeaderByteLimit]);
+    const responseCapacity = (bytes, responses = 0) => {
+      const domain = Reflect.apply(nativeCapacity,providerMoon,[...originalBounds,bytes,httpsCredentialResponseHeaderByteLimit,responses]);
       const capacity = Reflect.apply(readerCapacity,moon,[readerBounds,policy[2],policy[0],domain]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');
       return capacity;

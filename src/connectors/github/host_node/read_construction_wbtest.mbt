@@ -98,6 +98,91 @@ test "GitHub Source backs initial requests then grows only actual native respons
 }
 
 ///|
+test "GitHub Source prefix quotes retained occurrences without constructing future pages" {
+  let quote = (responses, bytes) => {
+    github_source_read_prefix_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      bytes,
+      original_node_http_header_bound(),
+      responses,
+    ).unwrap()
+  }
+  let initial = quote(0, 0)
+  let first = quote(1, 1153)
+  let second = quote(2, 1153)
+  let all = quote(10, 1153)
+  assert_true(
+    @execution.execution_capacity_retained_bytes(first) >
+    @execution.execution_capacity_retained_bytes(initial),
+  )
+  assert_true(
+    @execution.execution_capacity_retained_bytes(second) >
+    @execution.execution_capacity_retained_bytes(first),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(second) >
+    @execution.execution_capacity_execution_bytes(first),
+  )
+  assert_true(
+    @execution.execution_capacity_execution_bytes(first) <
+    @execution.execution_capacity_execution_bytes(all),
+  )
+  let original = github_source_read_construction_capacity(
+    4000000,
+    400000,
+    32,
+    100,
+    10,
+    100,
+    1153,
+    original_node_http_header_bound(),
+  ).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(all),
+    @execution.execution_capacity_retained_bytes(original),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(all),
+    @execution.execution_capacity_execution_bytes(original),
+  )
+  for count in [-1, 11] {
+    assert_true(
+      github_source_read_prefix_construction_capacity(
+        4000000,
+        400000,
+        32,
+        100,
+        10,
+        100,
+        1153,
+        original_node_http_header_bound(),
+        count,
+      )
+      is None,
+    )
+  }
+  assert_true(
+    github_source_read_prefix_construction_capacity(
+      4000000,
+      400000,
+      32,
+      100,
+      10,
+      100,
+      1153,
+      original_node_http_header_bound(),
+      0,
+    )
+    is None,
+  )
+}
+
+///|
 test "GitHub Source request quantity covers original escaped node cursor and all fixed document families" {
   let node = "\u{1}".repeat(256)
   let cursor = "\u{2}".repeat(1024)

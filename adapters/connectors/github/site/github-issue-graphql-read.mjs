@@ -417,12 +417,16 @@ export function prepareGitHubSourceReadSequence(options) {
       scope.runInvocationCid!==preparedRead.runInvocationCid ||
       scope.dispatchRequestCid!==preparedRead.dispatchRequestCid) fail('ForeignGitHubSourceRead');
   let credential=site.credential,managed={prefix:undefined,escaped:new Set(),context:undefined,project:undefined};
-  let pending=false,started=false,retired=false,largest=0,capacity;
+  let pending=false,started=false,retired=false,largest=0,responses=0,capacity;
   const sequence=Object.freeze({
     responseCapacity(bytes) {
-      if(this!==sequence||!pending||retired||!Number.isSafeInteger(bytes)||bytes<0||bytes>limits.maxBytes)
+      if(this!==sequence||!pending||retired||!Number.isSafeInteger(bytes)||bytes<0||bytes>limits.maxBytes||responses>=limits.maxPages)
         fail('InvalidGitHubSourceResponseExtent');
-      if(capacity===undefined||bytes>largest){largest=Math.max(largest,bytes);capacity=responseCapacity(largest);}
+      // Every original response remains in this reader's prefix, including
+      // equal-sized pages. Quote it before decoding, together with the next
+      // request; a peak byte size alone cannot describe the held prefix.
+      largest=Math.max(largest,bytes);responses++;
+      capacity=responseCapacity(largest,responses);
       return capacity;
     },
     async read(context,initialAuthorization) {

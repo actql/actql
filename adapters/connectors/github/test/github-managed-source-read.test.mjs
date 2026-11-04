@@ -16,7 +16,7 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
   const events = [], grant = {}, scope = Object.freeze({operation:'github:graphql:read',
     runInvocationCid:'original-run',dispatchRequestCid:'original-dispatch'});
   const original = Object.freeze({grant,scope,useId:'nonce-read-0'});
-  const facts = new WeakMap(), charge = {}, capacities = [];
+  const facts = new WeakMap(), charge = {}, capacities = [], responseExtents = [];
   const credential = Object.freeze({control:Object.freeze({
     identity(actual) {assert.equal(actual,grant);return 'original-grant';},
     useProjection(value) {return value;},
@@ -81,7 +81,7 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
       provider=prepare({moon,site,repository:{nodeId:'R_original',databaseId:13,nameWithOwner:'o/r'},
         preparedRead:input.preparedRead,originalAuthorization:original,
         limits:{maxPages:10,maxRows:100,maxBytes:4000000,maxNodes:400000,maxDepth:32,perPage:100,maxRequestBytes:16384,maxSubjects:100},
-        retireProjection,responseCapacity(bytes){events.push('grow-before-decode');return {bytes};}});
+        retireProjection,responseCapacity(bytes, responses){responseExtents.push([bytes,responses]);events.push('grow-before-decode');return {bytes,responses};}});
       return provider;
     }});
   const reader=factory.prepare(Object.freeze({resource,columns:['id'],originalAuthorization:original,
@@ -97,7 +97,7 @@ function protocolFixture({foreign = false, pagePending, projectionFailure, resou
     async consumePage(rows,metadata){assert.deepEqual(rows,[{id:'original'}]);assert.equal(metadata.charge,charge);
       events.push('consume');if(pagePending)await pagePending;},
   }),undefined,capacity=>{capacities.push(capacity);events.push('grow-retained');});
-  return {events,reader,factory,capacities,provider:()=>provider};
+  return {events,reader,factory,capacities,responseExtents,provider:()=>provider};
 }
 
 test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement', async () => {
@@ -158,8 +158,8 @@ test('GitHub actual loader forwards original native capacity sequence and comple
     clientProgramInstalledNativeSourceReaderCapacity(original,columns,secret,domain){
       assert.equal(original.length,16);assert.equal(original[0],4000000);assert.equal(original[6],10);
       assert.equal(columns,64);assert.equal(secret,128);assert.equal(domain,native);return capacity;}});
-  const providerMoon=Object.freeze({githubSourceReadConstructionCapacity(...args){
-    assert.deepEqual(args,[4000000,400000,32,100,10,100,0,16384]);quotes++;return native;}});
+  const providerMoon=Object.freeze({githubSourceReadPrefixConstructionCapacity(...args){
+    assert.deepEqual(args,[4000000,400000,32,100,10,100,0,16384,0]);quotes++;return native;}});
   const ports={readLimits:limits,rowLimits,httpsCredentialResponseHeaderByteLimit:16384,viewsUrl:new URL('file:///authored/views.json'),
     checkInstalledGitHubSourceProfile:profile=>profile,readSite:async()=>site,readGitHubPublication:async()=>publication,
     GITHUB_GRAPHQL_READ_OPERATION:'github:graphql:read',TARGET_VERSION:'actql-installed-github-target/0.1',
@@ -345,4 +345,17 @@ test('GitHub Source Host fixture keeps finite Run admission separate from provid
   assert.deepEqual(evaluate(readOnly, 'row-source-acquired', 'write'),
     {outcome: 'deny', reason: 'no_match'});
   assert.equal(evaluate(readOnly, 'run', 'read').outcome, 'allow');
+});
+
+
+// Equal-sized responses are distinct retained prefix occurrences, not a new
+// peak-size observation that can reuse the preceding one-response quote.
+test('GitHub Source grows the original prefix for each equal-sized response before decode', async () => {
+  const f = protocolFixture({resource:'issue_comments'});
+  try {
+    await f.reader.read();
+    assert.deepEqual(f.responseExtents, [[21,1],[21,2]]);
+    assert.deepEqual(f.capacities, [{bytes:21,responses:1},{bytes:21,responses:2}]);
+    assert.equal(f.events.filter(value => value === 'receive').length, 2);
+  } finally {f.reader.requestStop();}
 });

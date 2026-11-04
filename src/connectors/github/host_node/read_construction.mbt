@@ -60,6 +60,49 @@ pub fn github_source_read_construction_capacity(
   response_bytes : Int,
   header_bytes : Int,
 ) -> @execution.ExecutionCapacity? {
+  github_read_prefix_construction_capacity(
+    max_bytes, max_nodes, max_depth, max_rows, pages, max_subjects, response_bytes,
+    header_bytes, pages,
+  )
+}
+
+///|
+/// Quote the actual retained response prefix before its next decoder. The
+/// original page/row/parser limits are unchanged; future responses do not yet
+/// own native rows. Keep the next request's original construction as well.
+#export_name("githubSourceReadPrefixConstructionCapacity")
+pub fn github_source_read_prefix_construction_capacity(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  pages : Int,
+  max_subjects : Int,
+  response_bytes : Int,
+  header_bytes : Int,
+  responses : Int,
+) -> @execution.ExecutionCapacity? {
+  if responses == 0 && response_bytes != 0 {
+    return None
+  }
+  github_read_prefix_construction_capacity(
+    max_bytes, max_nodes, max_depth, max_rows, pages, max_subjects, response_bytes,
+    header_bytes, responses,
+  )
+}
+
+///|
+fn github_read_prefix_construction_capacity(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_rows : Int,
+  pages : Int,
+  max_subjects : Int,
+  response_bytes : Int,
+  header_bytes : Int,
+  responses : Int,
+) -> @execution.ExecutionCapacity? {
   if max_bytes < 1 ||
     max_nodes < 1 ||
     max_depth < 1 ||
@@ -69,21 +112,27 @@ pub fn github_source_read_construction_capacity(
     max_depth > 2147483643 ||
     response_bytes < 0 ||
     response_bytes > max_bytes ||
+    responses < 0 ||
+    responses > pages ||
     header_bytes < 1 ||
     header_bytes > 2147483647 / 12 {
     return None
   }
   let bytes = Int::max(1, response_bytes)
   let nodes = Int::min(max_nodes, bytes)
+  let body_pages = Int::max(1, responses)
+  // No next request can pass the unchanged original page ceiling. A request
+  // can already be prepared before the following response is received.
+  let pages = if responses < pages { responses + 1 } else { pages }
   guard @execution.checked_preparation_add_product(
       0L,
-      pages.to_int64(),
+      body_pages.to_int64(),
       bytes.to_int64(),
     )
     is Some(total_bytes) &&
     @execution.checked_preparation_add_product(
       0L,
-      pages.to_int64(),
+      body_pages.to_int64(),
       nodes.to_int64(),
     )
     is Some(total_nodes) &&
@@ -92,8 +141,15 @@ pub fn github_source_read_construction_capacity(
   }
   // The global JS row/subject checks happen AFTER a current native page is
   // constructed. Retained accepted rows and one offending full page coexist.
-  let rows = Int64::min(2L * max_rows.to_int64(), total_bytes)
-  let subjects = Int64::min(2L * max_subjects.to_int64(), total_bytes)
+  // Every completed Issue, PullRequest, Comment and enumerated subject must
+  // contain these two original text members. Their disjoint encoded objects
+  // occupy at least this many bytes even with empty values. Escaped keys and
+  // valid timestamps only increase that size. One additional partial/failed
+  // current row is kept; parser/index scratch is separately bounded below.
+  let row_bytes = "{\"id\":\"\",\"updatedAt\":\"\"}".length().to_int64()
+  let prefix_rows = total_bytes / row_bytes + 1L
+  let rows = Int64::min(2L * max_rows.to_int64(), prefix_rows)
+  let subjects = Int64::min(2L * max_subjects.to_int64(), prefix_rows)
   // Key/value strings are not duplicated by native typed getters. Their
   // backing survives the parser through the row/subject/continuation owner.
   // Co-count the Issue+PullRequest row alternatives:16H39R21W per row includes

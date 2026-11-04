@@ -295,11 +295,11 @@ test('public Client reads published GitHub Issues to a Named Result', async t =>
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const rows = await execution.result('issues').all();
-  // A's open Issues.
+  // A's open Issues; the declared int64 retains its decimal-String value wire.
   assert.deepEqual(rows.map(row => [row.number, row.title, row.author])
     .sort((a, b) => a[0] - b[0]),
-  [[1, 'Issue 1', 'octocat'], [4, 'Issue 4', 'octocat'],
-    [5, 'Issue 5', 'octocat']]);
+  [['1', 'Issue 1', 'octocat'], ['4', 'Issue 4', 'octocat'],
+    ['5', 'Issue 5', 'octocat']]);
   // Two pages of A (page size 2 of 4 Issues), each by A's node ID.
   const reads = listings(setup.api);
   assert.deepEqual(reads.map(request => request.variables.id),
