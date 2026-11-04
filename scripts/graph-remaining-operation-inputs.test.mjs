@@ -101,10 +101,13 @@ test('retained Graph observer preserves complete scoped Site authorization', () 
   const saved = JSON.parse(JSON.stringify(original));
   assert.equal(saved.accountConfig, undefined);
   const account = JSON.parse(saved.accountConfiguration);
-  assert.equal(account.entries.length, 1);
+  assert.equal(account.entries.length, 2);
   assert.equal(account.entries[0].outcome, 'allow');
   assert.deepEqual(account.entries[0].connection, {any_of: ['actql-remote-host']});
   assert.deepEqual(account.entries[0].operation, {any_of: ['write']});
+  assert.deepEqual(account.entries[1], {entry_id: 'synthetic-site-read', outcome: 'allow',
+    principal: account.entries[0].principal, connection: account.entries[0].connection,
+    resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []});
   assert.equal(createPublicKey(createPrivateKey(saved.hostKey.privateKey)).asymmetricKeyType, 'ed25519');
   assert.equal(createPublicKey(saved.reviewers[0].publicKey).asymmetricKeyType, 'ed25519');
   const events = [];
