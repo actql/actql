@@ -224,6 +224,88 @@ test('installed Effect releases its consumer pins before Compute reclamation', a
     'stage-dispose']);
 });
 
+test('installed Effect retains a failed constructor before its first await', async () => {
+  let retained, finish;
+  let running = true, pending = true, closes = 0;
+  const primary = new Error('ReferenceCaptureUnavailable');
+  const original = {close() {
+    closes++;
+    if (running) return false;
+    pending = false;
+    return true;
+  }, status: () => ({pending})};
+  const execution = {close() {}, cleanup: async () => true, cleanupPending: () => false};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    async prepareCaptured({retainConstructionOwner}) {
+      retainConstructionOwner(original);
+      assert.throws(() => retainConstructionOwner({...original}),
+        {code: 'InstalledEffectCleanupOwnerAlreadySet'});
+      await new Promise(resolve => { finish = resolve; });
+      running = false;
+      throw primary;
+    }, prepareRecovered() { assert.fail('No replacement constructor'); }});
+  const opening = site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => { retained = value; }});
+  const rejected = assert.rejects(opening, error => error === primary);
+  while (finish === undefined) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(await retained.cleanup(), false);
+  assert.equal(retained.cleanupPending(), true);
+  finish();
+  await rejected;
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(closes, 2, 'retirement consumes the same constructor once');
+  assert.equal(retained.cleanupPending(), false);
+});
+
+test('installed Effect constructor retirement follows actual input and physical cleanup', async () => {
+  const order = [];
+  let retained, pending = true, inputsReleased = false, disposed = false;
+  const execution = {close() {}, cleanup: async () => {order.push('physical');return true;},
+    cleanupPending: () => false};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured({retainConstructionOwner}) {
+      retainConstructionOwner({close() {
+        assert.equal(inputsReleased, true);
+        assert.equal(disposed, true);
+        order.push('constructor');
+        return true;
+      }, status: () => ({pending})});
+      return {releaseInputs() {inputsReleased = true;order.push('inputs');},
+        dispose() {disposed = true;order.push('dispose');}};
+    }, prepareRecovered() {assert.fail('No replacement constructor');}});
+  await assert.rejects(site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => {retained = value;}}), {code: 'InvalidInstalledEffectCapture'});
+  assert.equal(await retained.cleanup(), false, 'close alone cannot acknowledge pending custody');
+  assert.equal(retained.cleanupPending(), true);
+  pending = false;
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.deepEqual(order, ['inputs', 'physical', 'dispose', 'constructor', 'constructor']);
+});
+
+test('installed Effect constructor cleanup failure preserves the same retry', async () => {
+  let retained, pending = true, closes = 0;
+  const primary = new Error('ReferenceConstructorCleanupUnavailable');
+  const execution = {close() {}, cleanup: async () => true, cleanupPending: () => false};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured({retainConstructionOwner}) {
+      retainConstructionOwner({close() {
+        if (++closes === 1) throw primary;
+        pending = false;
+        return true;
+      }, status: () => ({pending})});
+      throw new Error('ReferenceCaptureUnavailable');
+    }, prepareRecovered() {assert.fail('No replacement constructor');}});
+  await assert.rejects(site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => {retained = value;}}), {message: 'ReferenceCaptureUnavailable'});
+  await assert.rejects(retained.cleanup(), error => error === primary);
+  assert.equal(retained.cleanupPending(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(closes, 2);
+});
+
 for (const mismatch of ['Preview', 'Unit', 'missing Unit']) {
 test(`installed Effect continuation rejects ${mismatch} before claim`,
   async () => {

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {nodeTestArguments} from '../../scripts/test-execution.mjs';
 import {assertPartialEffectSeedExit} from './fixtures/effect-crash-evidence.mjs';
+import {referenceEffectManagedFixture} from './fixtures/reference-effect-managed.fixture.mjs';
 import {checkpointEffectReviewDouble} from './fixtures/checkpoint-effect-review.fixture.mjs';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
@@ -360,18 +361,21 @@ function referencePreflight({moon, preview, mappingCids, requestScope,
     maxFootprintWork: 4, maxWork: effectLimits.maxWork};
 }
 
-function referenceDispatch({ledger, preview, sends, loseReply, failRow}) {
+function referenceDispatch({ledger, preview, sends, loseReply, failRow, physical, completed}) {
   return async ({memberIndex, rowIndex, claim}) => {
     sends.push([memberIndex, rowIndex]);
     const failed = failRow?.(memberIndex, rowIndex) === true;
     await captureClaimedEffectResponse({ledger, claim,
       requestCid: claim.canonicalRequestCid,
-      execute: async () => {
-        if (loseReply?.(memberIndex, rowIndex)) {
-          throw new Error('ReferenceEffectReplyLost');
-        }
-        return {observation: {useCid: referenceCid('use'),
-          statusCode: failed ? 422 : 204, body: Buffer.alloc(0)}};
+      execute: () => {
+        const invoke = async () => {
+          if (loseReply?.(memberIndex, rowIndex)) {
+            throw new Error('ReferenceEffectReplyLost');
+          }
+          return {observation: {useCid: referenceCid('use'),
+            statusCode: failed ? 422 : 204, body: Buffer.alloc(0)}};
+        };
+        return physical === undefined ? invoke() : physical({memberIndex, rowIndex}, invoke);
       }});
     ledger.recordAdmittedRowOutcome({claim, preview,
       memberIndex, previewRowIndex: rowIndex,
@@ -382,18 +386,19 @@ function referenceDispatch({ledger, preview, sends, loseReply, failRow}) {
           result: {record_id: `reference-${rowIndex}`}})});
     ledger.commitAdmittedRowOutcome({claim, preview,
       memberIndex, previewRowIndex: rowIndex});
+    completed?.({memberIndex, rowIndex});
   };
 }
 
-function referenceLedger(directory, moon, requestIdentity) {
+function referenceLedger(directory, moon, requestIdentity, controlConstruction) {
   return openEffectLedger({moon, root: join(directory, 'effect-ledger'),
     authorityScopeCid: moon.clientRequestAuthorityScopeCid(requestIdentity),
     callerRequestId: moon.clientRequestCallerId(requestIdentity),
-    maxEntryBytes: 4096});
+    maxEntryBytes: 4096, controlConstruction});
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply, failRow, maxInputPins = 2,
+  sends, loseReply, failRow, physical, completed, controlConstruction, maxInputPins = 2,
   expectedDependencyCount = maxInputPins === 3 ? 2 : undefined}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
@@ -469,7 +474,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
   if (sourceSet.payloads[0].prepared.status().pending) {
     await sourceSet.payloads[0].prepared.release();
   }
-  const ledger = referenceLedger(directory, moon, identity);
+  const ledger = referenceLedger(directory, moon, identity, controlConstruction);
   const effect = runtimeCore(moon).effectApplicationControl;
   const applyPreview = effect.admitPreviewIdentity(authored.wire,
     plan.runDefinition.identity, authored.authoringCid, requestScope,
@@ -485,7 +490,7 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
       ledger, members, maxFrontierWork: effectLimits.maxFrontierWork,
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends, loseReply, failRow})},
+        sends, loseReply, failRow, physical, completed})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -506,11 +511,11 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
 }
 
 function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
-  loseReply, failRow}) {
+  loseReply, failRow, physical, completed, controlConstruction}) {
   const {moon, control, store, recovered, continuation} = facts;
   const {requestIdentity, requestScope, computation: durable} = recovered;
   const {computation, preview, storedResults} = durable;
-  const ledger = referenceLedger(directory, moon, requestIdentity);
+  const ledger = referenceLedger(directory, moon, requestIdentity, controlConstruction);
   const effect = runtimeCore(moon).effectApplicationControl;
   const previewWire = control.effectComputationPreviewWire(preview);
   const body = JSON.parse(previewWire);
@@ -538,7 +543,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
         maxWork: effectLimits.maxWork},
       refreshPreflight: async () => preflight,
       dispatchRow: referenceDispatch({ledger, preview: applyPreview,
-        sends, loseReply, failRow})},
+        sends, loseReply, failRow, physical, completed})},
     receipt: {ledger, preview: applyPreview, commonMoon: moon,
       publicationPreview: preview,
       authorizeEvidenceRead: async () => true,
@@ -3489,7 +3494,11 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     let targetInventories = 0;
     let recoveredStage;
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
+      'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)));
+    let liveStage;
     const installed = createInstalledEffectSite({
+      prepareManagedPlan: managed.prepareManagedPlan,
       environmentWire: fixture.environmentWire,
       privateEvidenceKey: Buffer.alloc(32, 74),
       leaseMs: 1000,
@@ -3502,9 +3511,9 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
       },
       async prepareCaptured(facts) {
         captureCount++;
-        return prepareReferenceCapture(facts, hooks);
+        return managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned}));
       },
-      prepareRecovered(facts) {
+      async prepareRecovered(facts) {
         assert.ok(facts.continuation.target_read_binding,
           'recovery retains the authenticated original target binding');
         if (phase === 'recover' && (refusal === 'read' || refusal === 'commit')) {
@@ -3513,8 +3522,9 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         } else {
           assert.deepEqual(facts.targetReads.captureBinding(), facts.continuation.target_read_binding);
         }
-        const stage = prepareReferenceRecovery(facts, hooks);
-        recoveredStage = stage;
+        const stage = await managed.stage(facts, true, owned => prepareReferenceRecovery(facts, {...hooks, ...owned}),
+          () => liveStage === undefined);
+        recoveredStage = liveStage = stage;
         if (phase === 'seed') {
           const dispatch = stage.apply.dispatchRow;
           const crash = () => {
@@ -3535,10 +3545,10 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
               sends.push([row.memberIndex, row.rowIndex]);
               try {
                 await captureClaimedEffectResponse({ledger: stage.apply.ledger, claim: row.claim,
-                  requestCid: row.claim.canonicalRequestCid, execute: async () => {
+                  requestCid: row.claim.canonicalRequestCid, execute: () => stage.referencePhysical(row, async () => {
                     if (rowState === 'unknown') throw new Error('ReferenceEffectReplyLost');
                     return {observation: {useCid: referenceCid('use'), statusCode: 202, body: Buffer.alloc(0)}};
-                  }});
+                  })});
               } catch (error) {
                 if (rowState !== 'unknown' || error.message !== 'ReferenceEffectReplyLost') throw error;
                 const effect = runtimeCore(facts.moon).effectApplicationControl;
@@ -3559,6 +3569,7 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
                 })});
               stage.apply.ledger.commitAdmittedRowOutcome({claim: row.claim, preview: stage.receipt.preview,
                 memberIndex: row.memberIndex, previewRowIndex: row.rowIndex});
+              stage.referenceCompleted(row);
             } else {
               await dispatch(row);
             }
@@ -3581,10 +3592,19 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         receipts.push(JSON.parse(wires.setWire));
         memberReceipts.push(...wires.memberWires.map(wire => JSON.parse(wire)));
       }
+      liveStage = recoveredStage = undefined;
       return result;
     }};
+    const observationConfiguration = (read, commit) => {
+      const body = JSON.parse(effectCommitConfiguration(read, commit));
+      body.entries.push({entry_id: 'partial-run-observation', outcome: 'allow',
+        principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/rows', 'run']}, operation: {any_of: ['read']}, exclusions: []});
+      body.entries.sort((left, right) => left.entry_id < right.entry_id ? -1 : left.entry_id > right.entry_id ? 1 : 0);
+      return canonicalJson(body);
+    };
     const account = () => protectedHost(undefined, {
-      accountConfiguration: effectCommitConfiguration(
+      accountConfiguration: observationConfiguration(
         phase === 'recover' && refusal === 'read' ? 'deny' : 'allow',
         phase === 'recover' && refusal === 'commit' ? 'deny' : 'delegate'),
       checkpointTtlMs: refusal === 'answer_deadline' ? 3000 : 30000,

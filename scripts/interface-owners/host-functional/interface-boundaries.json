@@ -64985,7 +64985,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "265b2179a10d408c9b31571a94fc14df2734fb295e4fb19149dda9ce1e0a8d62",
+      "sha256": "f23881f00d91b4aa5d9976cbf078eea31345968b5579b8c8e561d9771b7412aa",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -65109,6 +65109,13 @@
           "async": false
         },
         {
+          "name": "cleanupCustody/init:retainConstruction/init:retainConstruction",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "cleanupCustody/init:retainRecoveryResources/init:retainRecoveryResources",
           "parameters": [
             "original"
@@ -65179,6 +65186,13 @@
           "async": true
         },
         {
+          "name": "createInstalledEffectSite/init:execute/init:execute/capturedFacts/capturedFacts",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
           "name": "createInstalledEffectSite/init:execute/init:execute/gate/gate",
           "parameters": [],
           "async": true
@@ -65224,6 +65238,13 @@
         },
         {
           "name": "createInstalledEffectSite/init:resume/init:resume/init:resume#2",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledEffectSite/init:resume/init:resume/init:resume#3",
           "parameters": [
             "owner"
           ],
@@ -65333,6 +65354,7 @@
             "cleanupCustody/init:requireRelease/init:requireRelease",
             "cleanupCustody/init:retainAuthorization/init:retainAuthorization",
             "cleanupCustody/init:retainAuthorization/init:retainAuthorization/init:retainAuthorization",
+            "cleanupCustody/init:retainConstruction/init:retainConstruction",
             "cleanupCustody/init:retainRecoveryResources/init:retainRecoveryResources",
             "cleanupCustody/releaseAuthorizations/releaseAuthorizations",
             "cleanupCustody/releaseAuthorizations/releaseAuthorizations/releaseAuthorizations",
@@ -65341,6 +65363,7 @@
             "continuation",
             "createInstalledEffectSite",
             "createInstalledEffectSite/init:execute/init:execute",
+            "createInstalledEffectSite/init:execute/init:execute/capturedFacts/capturedFacts",
             "createInstalledEffectSite/init:execute/init:execute/gate/gate",
             "createInstalledEffectSite/init:execute/init:execute/init:execute",
             "createInstalledEffectSite/init:execute/init:execute/init:execute#2",
@@ -65349,6 +65372,7 @@
             "createInstalledEffectSite/init:resume/init:resume/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
             "createInstalledEffectSite/init:resume/init:resume/init:resume",
             "createInstalledEffectSite/init:resume/init:resume/init:resume#2",
+            "createInstalledEffectSite/init:resume/init:resume/init:resume#3",
             "currentRunState",
             "effectUnitId",
             "fail/fail",
@@ -65575,6 +65599,18 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.test.mjs",
+                "anchor": "test('installed Effect retains a failed constructor before its first await'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.test.mjs",
+                "anchor": "test('installed Effect constructor retirement follows actual input and physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.test.mjs",
+                "anchor": "test('installed Effect constructor cleanup failure preserves the same retry'"
               }
             ]
           }
