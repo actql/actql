@@ -398,7 +398,8 @@ function referenceLedger(directory, moon, requestIdentity, controlConstruction) 
 }
 
 async function prepareReferenceCapture(facts, {directory, mappingCids,
-  sends, loseReply, failRow, physical, completed, controlConstruction, maxInputPins = 2,
+  sends, loseReply, failRow, physical, completed, controlConstruction,
+  retainInputCleanup, retainStageCleanup, maxInputPins = 2,
   expectedDependencyCount = maxInputPins === 3 ? 2 : undefined}) {
   const {moon, control, store, execution, publicationPlan: plan,
     prepared, checkedHost, identity} = facts;
@@ -408,6 +409,8 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     outputLimits: plan.outputLimits,
     contractLimits: plan.contractLimits});
   const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, maxInputPins));
+  const releaseInputs = () => {moon.clientProgramReleaseEffectInputs(inputs);};
+  retainInputCleanup?.(releaseInputs);
   const sourceSet = await preparePinnedEffectSourceSet({moon,
     checkedOwner: prepared, execution, inputs,
     maxMembers: mappingCids.length,
@@ -475,6 +478,8 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
     await sourceSet.payloads[0].prepared.release();
   }
   const ledger = referenceLedger(directory, moon, identity, controlConstruction);
+  const dispose = () => ledger.close();
+  retainStageCleanup?.(dispose);
   const effect = runtimeCore(moon).effectApplicationControl;
   const applyPreview = effect.admitPreviewIdentity(authored.wire,
     plan.runDefinition.identity, authored.authoringCid, requestScope,
@@ -506,16 +511,17 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
       attempt: plan.attempt}),
     // Match the installed Site's consumer ownership: durable capture no
     // longer needs these in-process Preview pins when the Host stops.
-    releaseInputs: () => { moon.clientProgramReleaseEffectInputs(inputs); },
-    dispose: () => ledger.close()};
+    releaseInputs, dispose};
 }
 
 function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
-  loseReply, failRow, physical, completed, controlConstruction}) {
+  loseReply, failRow, physical, completed, controlConstruction, retainStageCleanup}) {
   const {moon, control, store, recovered, continuation} = facts;
   const {requestIdentity, requestScope, computation: durable} = recovered;
   const {computation, preview, storedResults} = durable;
   const ledger = referenceLedger(directory, moon, requestIdentity, controlConstruction);
+  const dispose = () => ledger.close();
+  retainStageCleanup?.(dispose);
   const effect = runtimeCore(moon).effectApplicationControl;
   const previewWire = control.effectComputationPreviewWire(preview);
   const body = JSON.parse(previewWire);
@@ -562,7 +568,7 @@ function prepareReferenceRecovery(facts, {directory, mappingCids, sends,
     continuationWire: canonicalJson(continuation.provider),
     cleanupOwner: {async close() {}, async cleanup() { return true; },
       cleanupPending: () => false},
-    dispose: () => ledger.close()};
+    dispose};
 }
 const owner = userInfo().username;
 const crashFixtureKeys = process.env.ACTQL_TEST_HOST_CRASH_KEYS === undefined
@@ -3493,6 +3499,10 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
     let captureCount = 0;
     let targetInventories = 0;
     let recoveredStage;
+    const constructorFailure = phase === 'constructor_failure';
+    const constructorPrimary = new Error('ReferenceCaptureUnavailable');
+    let commonCustody, constructorOwner, constructorRun, constructorRejected, retirement;
+    let allowInputRelease = false, allowDispose = false, inputReleases = 0, ledgerCloses = 0;
     const hooks = {directory, mappingCids: fixture.mappingCids, sends};
     const managed = referenceEffectManagedFixture(await import(new URL('../../_build/js/release/build/' +
       'connectors_builtin_node/connectors_builtin_node.js', import.meta.url)));
@@ -3511,6 +3521,36 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
       },
       async prepareCaptured(facts) {
         captureCount++;
+        if (constructorFailure) {
+          constructorRun = facts.managedEffect;
+          try {
+            return await managed.stage({...facts, retainConstructionOwner(owner) {
+              constructorOwner = owner;
+              facts.retainConstructionOwner({...owner, async close() {
+                const before = checked(facts.moon.clientProgramInstalledManagedRunAccounting(constructorRun.value));
+                const closed = await owner.close();
+                if (closed) retirement = {before,
+                  after: checked(facts.moon.clientProgramInstalledManagedRunAccounting(constructorRun.value))};
+                return closed;
+              }});
+            }}, false, async owned => {
+              const inputs = checked(facts.moon.clientProgramPinEffectSources(facts.checkedHost, 2));
+              owned.retainInputCleanup(() => {
+                inputReleases++;
+                if (!allowInputRelease) return false;
+                facts.moon.clientProgramReleaseEffectInputs(inputs);
+                return true;
+              });
+              const ledger = referenceLedger(directory, facts.moon, facts.identity, owned.controlConstruction);
+              owned.retainStageCleanup(() => {
+                ledgerCloses++;
+                if (!allowDispose) return false;
+                ledger.close();return true;
+              });
+              throw constructorPrimary;
+            });
+          } catch (error) {constructorRejected = error;throw error;}
+        }
         return managed.stage(facts, false, owned => prepareReferenceCapture(facts, {...hooks, ...owned}));
       },
       async prepareRecovered(facts) {
@@ -3584,7 +3624,11 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
         return stage;
       },
     });
-    const effectInstallation = {...installed, async resume(facts) {
+    const effectInstallation = {...installed, execute(facts) {
+      return installed.execute({...facts, retainExecution(owner) {
+        commonCustody = owner;facts.retainExecution(owner);
+      }});
+    }, async resume(facts) {
       const result = await installed.resume(facts);
       if (result.result?.issuedSet !== undefined) {
         const wires = issuedEffectSetReceiptWires(result.result.issuedSet,
@@ -3611,13 +3655,45 @@ if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
       leaseMs: 1000, resumeAfterAnswer: false,
       observe: (name, detail) => diagnostics.push({name, detail}),
     });
-    if (phase === 'seed') {
+    if (phase === 'seed' || constructorFailure) {
       let host = await remoteHost(t, account(), {directory, effectInstallation});
       const client = await host.as('owner-token');
       const submissionRef = client.newSubmission({nonce: 'partial-effect-refusal'});
       writeFileSync(join(directory, 'partial-effect-submission.json'), JSON.stringify(submissionRef));
       const run = await client.startSource(fixture.document,
         {format: 'json', submissionRef});
+      if (constructorFailure) {
+        await waitFor(() => constructorRejected !== undefined);
+        assert.equal(constructorRejected, constructorPrimary);
+        assert.equal(constructorOwner.status().pending, true);
+        await assert.rejects(commonCustody.cleanup(), {code: 'InstalledEffectConstructionCleanupPending'});
+        assert.equal(ledgerCloses, 0, 'live input pins precede physical/ledger cleanup');
+        allowInputRelease = true;
+        assert.equal(await commonCustody.cleanup(), false);
+        assert.equal(constructorOwner.status().pending, true);
+        assert.equal(retirement, undefined, 'a false ledger close never refunds the real constructor');
+        allowDispose = true;
+        assert.equal(await commonCustody.cleanup(), true);
+        assert.equal(constructorOwner.status().pending, false);
+        assert.equal(inputReleases >= 2, true);
+        assert.equal(ledgerCloses, 2, 'the same original ledger is retried, never reopened');
+        // Construction owns CapacityReservation, not a published Holding:
+        // retire_installed_effect_operation -> settle_capacity -> settle_reservation.
+        assert.equal(retirement.after[10], retirement.before[10] - 1n,
+          'exactly the original constructor reservation retired');
+        assert.equal(retirement.before[9], retirement.after[9], 'cleanup does not rewrite actual Holding count');
+        assert(retirement.before[15] + retirement.before[16] > retirement.after[15] + retirement.after[16],
+          'its retained backing retired');
+        assert(retirement.before[17] > retirement.after[17], 'its execution backing retired');
+        assert.deepEqual(retirement.before.slice(6, 8), retirement.after.slice(6, 8),
+          'cleanup never resets cumulative planning or attempts');
+        const settled = checked(constructorRun.runtime.clientProgramInstalledManagedRunAccounting(constructorRun.value));
+        assert.equal(await commonCustody.cleanup(), true);
+        assert.deepEqual(checked(constructorRun.runtime.clientProgramInstalledManagedRunAccounting(constructorRun.value)), settled);
+        assert.deepEqual(sends, []);
+        await host.close();
+        return;
+      }
       await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
       const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
       await (await host.as('reviewer-token')).resolveCheckpoints([

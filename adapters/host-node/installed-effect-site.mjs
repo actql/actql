@@ -223,6 +223,10 @@ function cleanupCustody(physical, requirePhysical = false) {
     return authorizations.every(state => state.released);
   };
   const releaseInputs = async () => {
+    if (typeof constructionOwner?.releaseInputs === 'function' &&
+        await constructionOwner.releaseInputs() !== true) {
+      fail('InstalledEffectConstructionCleanupPending');
+    }
     if (!inputsReleased && typeof stage?.releaseInputs === 'function') {
       await stage.releaseInputs();
       inputsReleased = true;
@@ -258,7 +262,8 @@ function cleanupCustody(physical, requirePhysical = false) {
     },
     retainConstruction(original) {
       if (constructionOwner !== undefined || typeof original?.close !== 'function' ||
-          typeof original?.status !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
+          typeof original?.status !== 'function' || original.releaseInputs !== undefined &&
+          typeof original.releaseInputs !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
       constructionOwner = original;
     },
     retainRecoveryResources(original) {

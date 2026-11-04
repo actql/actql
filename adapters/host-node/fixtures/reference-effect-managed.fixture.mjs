@@ -43,20 +43,51 @@ export function referenceEffectManagedFixture(runtime) {
         run.value, run.prepared, run.request, run.operationPlan, 0, false,
         slot.operationIndex, 0, operation));
       let running = true, inputsReleased = false, disposed = false, active;
+      let release, dispose, releasing = false, disposing = false, closing = false;
+      const retainInputCleanup = original => {
+        assert.equal(typeof original, 'function');assert.equal(release, undefined);
+        assert.equal(inputsReleased, false);release = original;
+      };
+      const retainStageCleanup = original => {
+        assert.equal(typeof original, 'function');assert.equal(dispose, undefined);
+        assert.equal(disposed, false);dispose = original;
+      };
+      const releaseInputs = async () => {
+        if (running || releasing) return false;
+        if (inputsReleased) return true;
+        releasing = true;
+        try {
+          if (await release?.() === false) return false;
+          release = undefined;inputsReleased = true;return true;
+        } finally {releasing = false;}
+      };
+      const disposeStage = async () => {
+        if (running || disposing) return false;
+        if (disposed) return true;
+        disposing = true;
+        try {
+          if (await dispose?.() === false) return false;
+          dispose = undefined;disposed = true;return true;
+        } finally {disposing = false;}
+      };
       const owner = Object.freeze({
-        close() {
+        releaseInputs,
+        async close() {
           if (token === undefined) return true;
           // A resolved callback does not acknowledge its returned payload,
           // physical ledger, or external receipt borrower. Common cuts those
           // SAME aliases before invoking this original retirement callback.
-          if (running || !inputsReleased || !disposed || active !== undefined || !aliasesRetired()) return false;
-          if (checked(runtime.clientProgramInstalledEffectOperationRetire(token, true)) !== true) return false;
-          token = undefined;return true;
+          if (running || closing || active !== undefined || !aliasesRetired()) return false;
+          closing = true;
+          try {
+            if (!await releaseInputs() || !await disposeStage()) return false;
+            if (checked(runtime.clientProgramInstalledEffectOperationRetire(token, true)) !== true) return false;
+            token = undefined;return true;
+          } finally {closing = false;}
         },
         status: () => Object.freeze({pending: token !== undefined}),
       });
       facts.retainConstructionOwner(owner);
-      checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
       const physical = async (row, invoke) => {
         original(run);assert.equal(active, undefined, 'the original apply loop awaits each reference row');
         const slot = recipe.physicalWrite, operation = recipe.rowOperations[slot.operationIndex].operation;
@@ -76,22 +107,26 @@ export function referenceEffectManagedFixture(runtime) {
         active = undefined;
       };
       try {
-        const stage = await construct({physical, completed, controlConstruction: run.controlConstruction});
-        construct = facts = undefined;
+        checked(runtime.clientProgramInstalledEffectOperationConstructionBegin(token));
+        const stage = await construct({physical, completed, controlConstruction: run.controlConstruction,
+          retainInputCleanup, retainStageCleanup});
         stage.referencePhysical = physical;stage.referenceCompleted = completed;
-        let release = stage.releaseInputs, dispose = stage.dispose;
+        if (stage.releaseInputs !== undefined) {
+          if (release === undefined) retainInputCleanup(stage.releaseInputs);
+          else assert.equal(stage.releaseInputs, release);
+        }
+        if (stage.dispose !== undefined) {
+          if (dispose === undefined) retainStageCleanup(stage.dispose);
+          else assert.equal(stage.dispose, dispose);
+        }
         stage.releaseInputs = async () => {
-          if (inputsReleased) return;
-          if (await release?.() === false) throw new Error('ReferenceEffectInputCleanupPending');
-          release = undefined;inputsReleased = true;
+          if (!await releaseInputs()) throw new Error('ReferenceEffectInputCleanupPending');
         };
         stage.dispose = async () => {
-          if (disposed) return;
-          if (await dispose?.() === false) throw new Error('ReferenceEffectStageCleanupPending');
-          dispose = undefined;disposed = true;
+          if (!await disposeStage()) throw new Error('ReferenceEffectStageCleanupPending');
         };
         return stage;
-      } finally {running = false;}
+      } finally {construct = facts = undefined;running = false;}
     },
   });
 }

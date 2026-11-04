@@ -64985,7 +64985,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f23881f00d91b4aa5d9976cbf078eea31345968b5579b8c8e561d9771b7412aa",
+      "sha256": "a3cbda43803f26f4790f8ebd0a3f090837b23da413e338742d3211f480592fe2",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -65611,6 +65611,10 @@
               {
                 "path": "adapters/host-node/installed-effect-site.test.mjs",
                 "anchor": "test('installed Effect constructor cleanup failure preserves the same retry'"
+              },
+              {
+                "path": "adapters/host-node/effect-partial-refusal.test.mjs",
+                "anchor": "test('failed reference Effect constructor keeps its real token through same cleanup retry'"
               }
             ]
           }
