@@ -16,7 +16,9 @@ fn buffered_writer_construction_inventory(
   keys : Int,
   depth : Int,
 ) -> BufferedWriterConstructionInventory? {
-  if bytes < 0 || retained_fragment_utf16 < 0 || keys < 0 || depth < 0 { return None }
+  if bytes < 0 || retained_fragment_utf16 < 0 || keys < 0 || depth < 0 {
+    return None
+  }
   let frames = writer_frame_construction_extent(keys, depth)
   // Same current builder, old/new growth backing, drained String, ASCII
   // view and scalar/escape controls as TextOutput. BufferedText adds its
@@ -31,8 +33,7 @@ fn buffered_writer_construction_inventory(
     record_headers: frames.record_headers + 20L,
     reference_slots: frames.reference_slots + 11L,
     scalar_words: frames.scalar_words + 16L,
-    owned_utf16_units: 3L * peak + 2L +
-      Int::min(bytes, 257).to_int64() + 29L,
+    owned_utf16_units: 3L * peak + 2L + Int::min(bytes, 257).to_int64() + 29L,
   })
 }
 
@@ -51,18 +52,26 @@ pub fn buffered_writer_next_construction_inventory(
   fragment_bytes : Int,
   retained_fragment_utf16 : Int,
 ) -> BufferedWriterConstructionInventory? {
-  guard !writer.closed && writer.output is BufferedTextOutput(buffer) &&
-    buffer.bytes == 0 && fragment_bytes >= 0 && retained_fragment_utf16 >= 0 &&
-    fragment_bytes <= buffer.limit && fragment_bytes <= writer.remaining_bytes else {
+  guard !writer.closed &&
+    writer.output is BufferedTextOutput(buffer) &&
+    buffer.bytes == 0 &&
+    fragment_bytes >= 0 &&
+    retained_fragment_utf16 >= 0 &&
+    fragment_bytes <= buffer.limit &&
+    fragment_bytes <= writer.remaining_bytes else {
     return None
   }
   let nodes = writer.max_nodes - writer.remaining_nodes
   let keys = if nodes < writer.max_nodes { nodes + 1 } else { nodes }
   let next_depth = if writer.frames.length() < writer.max_depth {
     writer.frames.length() + 1
-  } else { writer.frames.length() }
+  } else {
+    writer.frames.length()
+  }
   // Native pop retains backing. Completed payloads are explicitly retired,
   // but the original maximum open depth still funds that backing.
   let depth = Int::max(writer.peak_depth, next_depth)
-  buffered_writer_construction_inventory(fragment_bytes, retained_fragment_utf16, keys, depth)
+  buffered_writer_construction_inventory(
+    fragment_bytes, retained_fragment_utf16, keys, depth,
+  )
 }

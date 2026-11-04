@@ -21,16 +21,30 @@ pub(all) struct WireAdmissionConstructionGeometry {
 
 ///|
 fn wire_admission_geometry_valid(g : WireAdmissionConstructionGeometry) -> Bool {
-  g.bytes > 0 && g.nodes > 0 && g.depth > 0 && g.fields >= 0 &&
-  g.objects >= 0 && g.arrays >= 0 && g.root_fields >= 0 &&
-  g.max_fields >= g.root_fields && g.max_fields <= g.fields &&
-  g.fields < g.nodes && g.objects <= g.nodes && g.arrays <= g.nodes &&
+  g.bytes > 0 &&
+  g.nodes > 0 &&
+  g.depth > 0 &&
+  g.fields >= 0 &&
+  g.objects >= 0 &&
+  g.arrays >= 0 &&
+  g.root_fields >= 0 &&
+  g.max_fields >= g.root_fields &&
+  g.max_fields <= g.fields &&
+  g.fields < g.nodes &&
+  g.objects <= g.nodes &&
+  g.arrays <= g.nodes &&
   g.objects.to_int64() + g.arrays.to_int64() <= g.nodes.to_int64() &&
-  g.key_utf16_units >= 0 && g.max_key_utf16_units >= 0 &&
+  g.key_utf16_units >= 0 &&
+  g.max_key_utf16_units >= 0 &&
   g.max_key_utf16_units <= g.key_utf16_units &&
-  g.members >= 0 && g.members <= g.nodes && g.snapshots >= 0 &&
-  g.snapshots <= g.members && g.catalogs >= 0 && g.catalogs <= g.members &&
-  g.manifest_entries >= 0 && g.manifest_entries <= g.nodes
+  g.members >= 0 &&
+  g.members <= g.nodes &&
+  g.snapshots >= 0 &&
+  g.snapshots <= g.members &&
+  g.catalogs >= 0 &&
+  g.catalogs <= g.members &&
+  g.manifest_entries >= 0 &&
+  g.manifest_entries <= g.nodes
 }
 
 ///|
@@ -81,10 +95,7 @@ fn wire_admission_envelope_retained(
     maps: 0L,
     map_entries: 0L,
   }).unwrap()
-  {
-    ..wire_admission_units(value),
-    owned_utf16_units: 71L * (m + 1L),
-  }
+  { ..wire_admission_units(value), owned_utf16_units: 71L * (m + 1L), }
 }
 
 ///|
@@ -100,7 +111,9 @@ fn wire_admission_manifest_scratch(
   // reconstructed at a time; it borrows original names and member trees.
   let output = @shape.collection_construction_extent({
     records: 9L + 2L * e + access.record_headers + 8L * child.record_headers,
-    record_references: 9L + 4L * e + access.reference_slots +
+    record_references: 9L +
+    4L * e +
+    access.reference_slots +
     8L * child.reference_slots,
     record_words: 10L + access.scalar_words + 8L * child.scalar_words,
     reference_arrays: 3L,
@@ -111,17 +124,24 @@ fn wire_admission_manifest_scratch(
     map_entries: c + e,
   }).unwrap()
   let outer = @decode.closed_object_field_construction_extent(
-    Some(g.max_fields), 2, 1L,
+    Some(g.max_fields),
+    2,
+    1L,
   ).unwrap()
   let entry = @decode.closed_object_field_construction_extent(
-    Some(g.max_fields), 3, 3L,
+    Some(g.max_fields),
+    3,
+    3L,
   ).unwrap()
   let catalog = @decode.open_object_construction_extent(g.max_fields).unwrap()
   let result = wire_admission_add(
     wire_admission_units(output),
     wire_admission_add(
       wire_admission_units(outer),
-      wire_admission_add(wire_admission_units(entry), wire_admission_units(catalog)),
+      wire_admission_add(
+        wire_admission_units(entry),
+        wire_admission_units(catalog),
+      ),
     ),
   )
   { ..result, owned_utf16_units: 71L * e, }
@@ -139,41 +159,65 @@ pub fn wire_admission_construction_extent(
     return None
   }
   guard @source.json_construction_extent(
-      g.bytes, g.nodes, g.depth, normalize_keys=false,
-    ) is Some(parser) &&
-    @unicode.nfc_lf_construction_extent(g.max_key_utf16_units) is Some(normalization) &&
+      g.bytes,
+      g.nodes,
+      g.depth,
+      normalize_keys=false,
+    )
+    is Some(parser) &&
+    @unicode.nfc_lf_construction_extent(g.max_key_utf16_units)
+    is Some(normalization) &&
     @unicode.nfc_lf_retained_output_units(g.key_utf16_units.to_int64())
     is Some(normalized_keys) &&
     @decode.admission_construction_inventory(
-      g.nodes, g.fields, g.objects, g.arrays, g.depth,
-    ) is Some(index) else {
+      g.nodes,
+      g.fields,
+      g.objects,
+      g.arrays,
+      g.depth,
+    )
+    is Some(index) else {
     return None
   }
   // This is the same normalized parser family: its literal construction plus
   // the actual largest key's normalization workspace, all returned key Strings
   // and their cumulative output bound. No key is assumed already normalized.
   let parsed : RegistryConstructionExtent = {
-    record_headers: parser.record_headers + normalization.record_headers +
-    g.fields.to_int64() + 10L,
-    reference_slots: parser.reference_slots + normalization.reference_slots + 16L,
+    record_headers: parser.record_headers +
+    normalization.record_headers +
+    g.fields.to_int64() +
+    10L,
+    reference_slots: parser.reference_slots +
+    normalization.reference_slots +
+    16L,
     scalar_words: parser.scalar_words + normalization.scalar_words + 24L,
     // Strict UTF8 decode owns its input String beside parser-owned literals.
-    owned_utf16_units: parser.owned_utf16_units + normalization.owned_utf16_units +
-    normalized_keys + g.bytes.to_int64(),
+    owned_utf16_units: parser.owned_utf16_units +
+    normalization.owned_utf16_units +
+    normalized_keys +
+    g.bytes.to_int64(),
     owned_wire_bytes: g.bytes.to_int64(),
   }
   let decoded : RegistryConstructionExtent = {
-    record_headers: index.indexed.record_headers + index.keys.record_headers +
-    index.ancestry.record_headers + index.controls.record_headers,
-    reference_slots: index.indexed.reference_slots + index.keys.reference_slots +
-    index.ancestry.reference_slots + index.controls.reference_slots,
-    scalar_words: index.indexed.scalar_words + index.keys.scalar_words +
-    index.ancestry.scalar_words + index.controls.scalar_words,
+    record_headers: index.indexed.record_headers +
+    index.keys.record_headers +
+    index.ancestry.record_headers +
+    index.controls.record_headers,
+    reference_slots: index.indexed.reference_slots +
+    index.keys.reference_slots +
+    index.ancestry.reference_slots +
+    index.controls.reference_slots,
+    scalar_words: index.indexed.scalar_words +
+    index.keys.scalar_words +
+    index.ancestry.scalar_words +
+    index.controls.scalar_words,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   }
   let root = @decode.closed_object_field_construction_extent(
-    Some(g.root_fields), 12, 0L,
+    Some(g.root_fields),
+    12,
+    0L,
   ).unwrap()
   let snapshot = @decode.open_object_construction_extent(g.max_fields).unwrap()
   let child = @decode.indexed_child_construction_extent()
@@ -215,16 +259,18 @@ pub fn wire_admission_construction_extent(
     owned_utf16_units: hash.owned_utf16_units + raw.owned_utf16_units + 213L,
     owned_wire_bytes: hash.owned_wire_bytes + raw.owned_wire_bytes,
   }
-  Some(wire_admission_add(
-    parsed,
+  Some(
     wire_admission_add(
-      decoded,
+      parsed,
       wire_admission_add(
-        envelope,
-        wire_admission_add(hashes, wire_admission_manifest_scratch(g)),
+        decoded,
+        wire_admission_add(
+          envelope,
+          wire_admission_add(hashes, wire_admission_manifest_scratch(g)),
+        ),
       ),
     ),
-  ))
+  )
 }
 
 ///|
@@ -239,8 +285,13 @@ pub fn wire_admission_retained_extent(
     return None
   }
   guard @decode.admission_construction_inventory(
-      g.nodes, g.fields, g.objects, g.arrays, g.depth,
-    ) is Some(index) &&
+      g.nodes,
+      g.fields,
+      g.objects,
+      g.arrays,
+      g.depth,
+    )
+    is Some(index) &&
     @unicode.nfc_lf_retained_output_units(g.key_utf16_units.to_int64())
     is Some(normalized_keys) else {
     return None
@@ -251,10 +302,15 @@ pub fn wire_admission_retained_extent(
   // Keep index growth backing conservatively; its temporary ancestry is small
   // and is not used as evidence of a physical allocator/GC release.
   let decoded : RegistryConstructionExtent = {
-    record_headers: index.indexed.record_headers + index.ancestry.record_headers +
+    record_headers: index.indexed.record_headers +
+    index.ancestry.record_headers +
     2L * spans,
-    reference_slots: index.indexed.reference_slots + index.ancestry.reference_slots + spans,
-    scalar_words: index.indexed.scalar_words + index.ancestry.scalar_words + 6L * spans,
+    reference_slots: index.indexed.reference_slots +
+    index.ancestry.reference_slots +
+    spans,
+    scalar_words: index.indexed.scalar_words +
+    index.ancestry.scalar_words +
+    6L * spans,
     owned_utf16_units: g.bytes.to_int64() + normalized_keys,
     owned_wire_bytes: 0L,
   }

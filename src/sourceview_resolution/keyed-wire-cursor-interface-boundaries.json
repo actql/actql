@@ -124,7 +124,7 @@
     {
       "module": "src/encode_core/buffered_writer_construction_inventory.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0ee44437e418011a53432177144e28f03b0889bb6dd5f4ef477e4424dd264441",
+      "sha256": "b9e695f68f82a6501bfab69d42846f6d7b075c762931be415f8287dd5ac4cb23",
       "role": "common-semantics",
       "owner": "Existing selected keyed request, buffered Writer and typed/canonical emitter construction owners",
       "exports": [],

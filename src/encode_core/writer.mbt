@@ -268,7 +268,9 @@ pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
 pub fn cancel_writer(w : Writer) -> Unit {
   w.closed = true
   w.string_active = false
-  for index in 0..<w.frames.length() { w.frames[index] = RetiredFrame }
+  for index in 0..<w.frames.length() {
+    w.frames[index] = RetiredFrame
+  }
   w.frames.clear()
   match w.output {
     TextOutput(text) => text.reset()
@@ -561,7 +563,8 @@ fn value_start(w : Writer) -> Unit raise EncodeFailure {
         }
         w.frames[index] = ArrayItems(false)
       }
-      RetiredFrame | ObjectKey(_, _) | OrderedObjectKey(_) => fail(w, InvalidStructure)
+      RetiredFrame | ObjectKey(_, _) | OrderedObjectKey(_) =>
+        fail(w, InvalidStructure)
       ObjectValue(keys) => w.frames[index] = ObjectKey(false, keys)
       OrderedObjectValue(previous) =>
         w.frames[index] = OrderedObjectKey(Some(previous))

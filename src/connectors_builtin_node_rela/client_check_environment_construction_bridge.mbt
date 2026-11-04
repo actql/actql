@@ -11,14 +11,16 @@ fn client_check_environment_capacity(
       scalar_words: retained.scalar_words,
       owned_utf16_units: retained.owned_utf16_units,
       owned_wire_bytes: retained.owned_wire_bytes,
-    }) is Some(retained_bytes) &&
+    })
+    is Some(retained_bytes) &&
     @execution.preparation_representation_cost({
       record_headers: peak.record_headers,
       reference_slots: peak.reference_slots,
       scalar_words: peak.scalar_words,
       owned_utf16_units: peak.owned_utf16_units,
       owned_wire_bytes: peak.owned_wire_bytes,
-    }) is Some(peak_bytes) else {
+    })
+    is Some(peak_bytes) else {
     return None
   }
   @execution.execution_capacity(retained_bytes, peak_bytes)
@@ -46,8 +48,19 @@ pub fn client_program_check_environment_wire_construction_capacity(
   manifest_entries : Int,
 ) -> @execution.ExecutionCapacity? {
   let geometry : @check_environment.WireAdmissionConstructionGeometry = {
-    bytes, nodes, depth, fields, objects, arrays, root_fields, max_fields,
-    key_utf16_units, max_key_utf16_units, members, snapshots, catalogs,
+    bytes,
+    nodes,
+    depth,
+    fields,
+    objects,
+    arrays,
+    root_fields,
+    max_fields,
+    key_utf16_units,
+    max_key_utf16_units,
+    members,
+    snapshots,
+    catalogs,
     manifest_entries,
   }
   guard @check_environment.wire_admission_construction_extent(geometry)
@@ -68,7 +81,9 @@ pub fn client_program_read_check_environment_wire(
   body : String,
   evidence_bundle_cid : String,
 ) -> @check_environment.WireEnvironment? {
-  @publication_host.admit_client_check_environment_wire(body, evidence_bundle_cid)
+  @publication_host.admit_client_check_environment_wire(
+    body, evidence_bundle_cid,
+  )
 }
 
 ///|
@@ -100,8 +115,18 @@ pub fn client_program_check_environment_from_wire_construction_capacity(
     return None
   }
   client_check_environment_capacity(
-    client_check_environment_add_extent(retained, @publication_host.client_check_environment_wrapper_construction_extent(false)),
-    client_check_environment_add_extent(peak, @publication_host.client_check_environment_wrapper_construction_extent(true)),
+    client_check_environment_add_extent(
+      retained,
+      @publication_host.client_check_environment_wrapper_construction_extent(
+        false,
+      ),
+    ),
+    client_check_environment_add_extent(
+      peak,
+      @publication_host.client_check_environment_wrapper_construction_extent(
+        true,
+      ),
+    ),
   )
 }
 
@@ -120,7 +145,11 @@ pub fn client_program_check_environment_from_wire(
   calendar : Bool,
   text_rank : Bool,
 ) -> @program_check.CheckEnvironment? {
-  if @check_environment.member_count(original, @check_environment.ModelTaskContracts) != 0 ||
+  if @check_environment.member_count(
+      original,
+      @check_environment.ModelTaskContracts,
+    ) !=
+    0 ||
     (sga && !selected_sga_supported()) {
     return None
   }

@@ -39,7 +39,10 @@ test "wire admission normalization depends on the actual largest key not arbitra
   let b = wire_admission_construction_extent(wide).unwrap()
   assert_true(b.scalar_words > a.scalar_words)
   assert_true(b.owned_utf16_units > a.owned_utf16_units)
-  assert_eq(wire_admission_retained_extent(small), wire_admission_retained_extent(wide))
+  assert_eq(
+    wire_admission_retained_extent(small),
+    wire_admission_retained_extent(wide),
+  )
   // A longer value String does not manufacture more key-normalization words.
   let text = wire_admission_construction_extent({ ..small, bytes: 8192, }).unwrap()
   assert_eq(text.scalar_words, a.scalar_words)
@@ -49,15 +52,16 @@ test "wire admission normalization depends on the actual largest key not arbitra
 ///|
 test "wire admission rejects inconsistent negative or detached scalar geometry" {
   let g = wire_construction_geometry()
-  for invalid in [
-    { ..g, nodes: 0, },
-    { ..g, fields: -1, },
-    { ..g, fields: g.nodes, },
-    { ..g, root_fields: g.max_fields + 1, },
-    { ..g, max_key_utf16_units: g.key_utf16_units + 1, },
-    { ..g, snapshots: g.members + 1, },
-    { ..g, manifest_entries: -1, },
-  ] {
+  for
+    invalid in [
+      { ..g, nodes: 0, },
+      { ..g, fields: -1, },
+      { ..g, fields: g.nodes, },
+      { ..g, root_fields: g.max_fields + 1, },
+      { ..g, max_key_utf16_units: g.key_utf16_units + 1, },
+      { ..g, snapshots: g.members + 1, },
+      { ..g, manifest_entries: -1, },
+    ] {
     assert_true(wire_admission_construction_extent(invalid) is None)
     assert_true(wire_admission_retained_extent(invalid) is None)
   }
@@ -67,11 +71,14 @@ test "wire admission rejects inconsistent negative or detached scalar geometry" 
 fn wire_construction_model_environment(model : String) -> WireEnvironment {
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[],\"contract_registry\":[],"
   let suffix = "\"host_policy_profile\":{},\"mapping_contracts\":[],\"model_task_contracts\":[" +
-    model + "],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
+    model +
+    "],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
   let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + suffix))
-  read(@utf8.encode(prefix + "\"evidence_bundle_cid\":\"" + cid + "\"," + suffix), cid, {
-    max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256,
-  }).unwrap()
+  read(
+    @utf8.encode(prefix + "\"evidence_bundle_cid\":\"" + cid + "\"," + suffix),
+    cid,
+    { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
+  ).unwrap()
 }
 
 ///|
