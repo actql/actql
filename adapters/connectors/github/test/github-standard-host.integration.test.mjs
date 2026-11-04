@@ -616,21 +616,21 @@ const twoSourceEventsWindowProgram = () => {
 const useDuckDBAsSecondSource = document => {
   // The declared DuckDB fixture key is DOUBLE. Preserve the original GitHub
   // int64 identity and author a separate Number key from its fixture title.
-  document.stages[0].steps.splice(1, 0,
-    {derive: {join_number: issueTitleNumber('title')}, as: 'numeric'});
-  document.stages[0].steps.at(-1).select.push('join_number');
-  document.stages[0].results.r.fields.push('join_number');
   document.stages[1].inputs.remote = {connector: 'crm/main', resource: 'r'};
   document.stages[1].steps = [
     {filter: 'id >= 0', as: 'open'},
     {select: ['id', 'amount'], as: 'rows'},
   ];
   document.stages[1].results.r.fields = ['id', 'amount'];
-  document.stages[2].steps[0].join.on = [{left: 'join_number', right: 'id'}];
-  document.stages[2].steps[0].join.select = {
+  const joinStep = document.stages[2].steps[0];
+  joinStep.from = 'left_numeric';
+  joinStep.join.on = [{left: 'join_number', right: 'id'}];
+  joinStep.join.select = {
     number: 'left.number', left_title: 'left.title',
     amount: 'right.amount',
   };
+  document.stages[2].steps.unshift({from: 'l',
+    derive: {join_number: issueTitleNumber('title')}, as: 'left_numeric'});
   document.stages[2].results.r.fields = ['number', 'left_title', 'amount'];
   if (document.stages[3]?.id === 'events') {
     for (const step of document.stages[3].steps) {
