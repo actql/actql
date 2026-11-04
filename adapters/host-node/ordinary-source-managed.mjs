@@ -868,6 +868,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             // selected original once; later namespace replacement cannot supply
             // a different Scope constructor or adoption method.
             for (const name of ['clientProgramPrepareRequestEffectModelReadScope',
+              'clientProgramPrepareRequestEffectModelReadScopeWithQuantities',
               'clientProgramAdoptRequestEffectModelPreparation']) {
               names.push(name);
               methods.push(Object.getOwnPropertyDescriptor(moon, name)?.value);
@@ -1600,7 +1601,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             fields[name]?.value !== original) fail('ForeignInstalledSourceProducer');
       }
       const methods = state.effectBorrowMethods;
-      if (typeof methods.clientProgramPrepareRequestEffectModelReadScope !== 'function' ||
+      const quantityLimits = retainedRun.modelSelection?.quantityCapacity?.limits;
+      const prepareScope = quantityLimits === undefined ? methods.clientProgramPrepareRequestEffectModelReadScope
+        : methods.clientProgramPrepareRequestEffectModelReadScopeWithQuantities;
+      if (typeof prepareScope !== 'function' ||
           typeof methods.clientProgramAdoptRequestEffectModelPreparation !== 'function') {
         fail('NodeManagedRunRuntimeUnavailable');
       }
@@ -1614,8 +1618,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.effectPlan = operationPlan;
       state.adopting = true;
       try {
-        retainedRun.modelScope = checked(methods.clientProgramPrepareRequestEffectModelReadScope(
-          state.parent, producer.receipt, operationPlan));
+        retainedRun.modelScope = checked(prepareScope(state.parent, producer.receipt, operationPlan,
+          ...(quantityLimits === undefined ? [] : [quantityLimits.tokens,
+            quantityLimits.costUnits, quantityLimits.durationMs])));
         checked(methods.clientProgramCompleteRequestEffectPreparation(state.parent, producer.receipt, operationPlan));
         const value = checked(methods.clientProgramAdoptRequestEffectModelPreparation(
           state.parent, identity, retainedRun.modelScope));

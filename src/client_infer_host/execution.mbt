@@ -299,7 +299,13 @@ pub fn start_original_generated(
   // still belong to start_generated; do not duplicate their input execution.
   start_generated(prepared, compiled, generation, plan, provider, limits).map(active => {
     retain_original_model_preparation(
-      active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+      active,
+      compiled,
+      definition,
+      consumer,
+      model_retained_bytes,
+      model_execution_bytes,
+      shared_mock=true,
     )
     active
   })
@@ -351,7 +357,13 @@ pub fn start_original_generated_inputs(
   }
   start_generated_inputs(compiled, generation, plan, inputs, provider, limits).map(active => {
       retain_original_model_preparation(
-        active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+        active,
+        compiled,
+        definition,
+        consumer,
+        model_retained_bytes,
+        model_execution_bytes,
+        shared_mock=true,
       )
       active
     },

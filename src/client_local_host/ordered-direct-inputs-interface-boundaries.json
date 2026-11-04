@@ -1527,7 +1527,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2bc1e470befa3549efecae5f61c77a544435263b2882f43a025c068035a4f04e",
+      "sha256": "16660ca7e74a405f1bd0ad2a8340c1e11c01f7f50910e6729a9a00e7eb9fd97e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1562,7 +1562,7 @@
         },
         {
           "name": "[I]prepare_request_effect_model_read_scope",
-          "declaration": "[ I ] prepare_request_effect_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ @ publication_host . ClientModelReadScope , ClientInstalledManagedRunIssue , ]"
+          "declaration": "[ I ] prepare_request_effect_model_read_scope ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
         },
         {
           "name": "[I]request_effect_plan_quote",
