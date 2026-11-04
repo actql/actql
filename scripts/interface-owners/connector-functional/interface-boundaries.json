@@ -3024,7 +3024,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "768dfc6fac90d3efdffeb39e295858c01693903b83f3eee4a2bda0d8f8abbace",
+      "sha256": "5e4523d0a443f5a0eb1bc066b29f4778af942458e1a7065dc7d103802c3c41c7",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -3107,6 +3107,18 @@
           "async": false
         },
         {
+          "name": "installedSalesforceAdapter/currentResponseCapacity/currentResponseCapacity",
+          "parameters": [
+            "metadataBytes",
+            "read",
+            "path",
+            "body",
+            "receivedBytes",
+            "responseCount"
+          ],
+          "async": false
+        },
+        {
           "name": "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
           "parameters": [
             "prepared"
@@ -3183,13 +3195,6 @@
           "name": "installedSalesforceAdapter/resourceUnits/resourceUnits",
           "parameters": [
             "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "installedSalesforceAdapter/responseCapacity/responseCapacity",
-          "parameters": [
-            "bytes"
           ],
           "async": false
         },
@@ -3362,8 +3367,7 @@
             "installedSalesforceAdapter/resourceUnits/resourceUnits",
             "loadInstalledSalesforceSource/loadInstalledSalesforceSource",
             "installedSalesforceAdapter/capacityArguments/capacityArguments",
-            "installedSalesforceAdapter/capacityArguments/capacityArguments#2",
-            "installedSalesforceAdapter/responseCapacity/responseCapacity"
+            "installedSalesforceAdapter/capacityArguments/capacityArguments#2"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_SOURCE_VERSION",
@@ -3527,6 +3531,86 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installedSalesforceAdapter/currentResponseCapacity/currentResponseCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Salesforce response construction on the original reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The installed Salesforce reader charges and retains each original response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing QueryRead retains the original body, path and digest with the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "advances that same parser. A copied or changed body cannot consume the cursor."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Only one query page is pending; its original acknowledgment precedes the next"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "locator request. Interruption retires its pending parser through the existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one next bounded transport buffer, including the first offending response. The"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "admission. Missing nullable cells, compound roles and multipicklist expansion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/catalog/query_response_source_wbtest.mbt",
+                "anchor": "test \"original query preflight retains one parser and the same long response\""
+              },
+              {
+                "path": "src/client_local_host/installed_native_source_reader_current_wbtest.mbt",
+                "anchor": "test \"native reader funds received raw prefix and only one next response\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_salesforce_current_response_bridge_wbtest.mbt",
+                "anchor": "test \"current Salesforce bridge quotes long original body without future raw totals\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
               }
             ]
           }
@@ -4124,7 +4208,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "a3f179c7bb8cade15f2b479eefdcafde406945879517a9f6bda6b6d9c433282d",
+      "sha256": "33b1a587771b64b209bc4bdd70503b69644056eeef1c1ec253b211fb37aaab37",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
@@ -4205,6 +4289,13 @@
           "async": true
         },
         {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:onQueryRead/init:onQueryRead",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:read",
           "parameters": [
             "_path",
@@ -4248,6 +4339,17 @@
         },
         {
           "name": "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity",
+          "parameters": [
+            "bytes",
+            "body",
+            "path",
+            "receivedBytes",
+            "responseCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity#2",
           "parameters": [
             "bytes"
           ],
@@ -4465,8 +4567,7 @@
             "readSalesforceSourceChild",
             "readSalesforceSourceChild/init:prepare/init:prepare",
             "readSalesforceSourceChild/init:prepare/init:prepare/init:project/init:project",
-            "readSalesforceSourceChild/readSalesforceSourceChild",
-            "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity"
+            "readSalesforceSourceChild/readSalesforceSourceChild"
           ],
           "exports": [
             "readSalesforceManagedQuery",
@@ -4633,6 +4734,88 @@
               {
                 "path": "adapters/host-node/managed-source-reader.md",
                 "anchor": "## Native response construction phase"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareSalesforceSourceReadSequence/sequence/init:read/init:read/init:onQueryRead/init:onQueryRead",
+            "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity#2",
+            "prepareSalesforceSourceReadSequence/sequence/init:responseCapacity/init:responseCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Salesforce response construction on the original reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The installed Salesforce reader charges and retains each original response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing QueryRead retains the original body, path and digest with the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "advances that same parser. A copied or changed body cannot consume the cursor."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Only one query page is pending; its original acknowledgment precedes the next"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "locator request. Interruption retires its pending parser through the existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one next bounded transport buffer, including the first offending response. The"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "admission. Missing nullable cells, compound roles and multipicklist expansion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/catalog/query_response_source_wbtest.mbt",
+                "anchor": "test \"original query preflight retains one parser and the same long response\""
+              },
+              {
+                "path": "src/client_local_host/installed_native_source_reader_current_wbtest.mbt",
+                "anchor": "test \"native reader funds received raw prefix and only one next response\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_salesforce_current_response_bridge_wbtest.mbt",
+                "anchor": "test \"current Salesforce bridge quotes long original body without future raw totals\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
               }
             ]
           }

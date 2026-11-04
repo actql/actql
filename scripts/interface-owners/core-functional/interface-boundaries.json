@@ -35722,7 +35722,7 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "58addf72af6fe90e14a476b0a0ff4ac24eded2851ae2af3248350bf5549d2fc1",
+      "sha256": "6450b4bae10b609242887debfac2dadc94bd92236893e94de42e6915c497a39a",
       "operations": [
         {
           "name": "installed_gmail_thread_reader_capacity",
@@ -35742,7 +35742,7 @@
         },
         {
           "name": "installed_native_source_reader_capacity",
-          "declaration": "installed_native_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "installed_native_source_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , native : @ execution . ExecutionCapacity ? , received ? : ( Int64 , Int ) ?"
         },
         {
           "name": "installed_preserving_json_source_reader_capacity_with_request",
@@ -35995,7 +35995,6 @@
         },
         {
           "operations": [
-            "installed_native_source_reader_capacity",
             "installed_source_reader_control_inventory",
             "installed_source_reader_fixed_retention_inventory",
             "installed_source_reader_retained_inventory"
@@ -36132,6 +36131,86 @@
               {
                 "path": "src/connectors_builtin_node/client_kintone_managed_capacity_wbtest.mbt",
                 "anchor": "managed Kintone complete base keeps actual protocol limits and original geometry"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installed_native_source_reader_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Salesforce response construction on the original reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The installed Salesforce reader charges and retains each original response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing QueryRead retains the original body, path and digest with the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "advances that same parser. A copied or changed body cannot consume the cursor."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Only one query page is pending; its original acknowledgment precedes the next"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "locator request. Interruption retires its pending parser through the existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one next bounded transport buffer, including the first offending response. The"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "admission. Missing nullable cells, compound roles and multipicklist expansion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/catalog/query_response_source_wbtest.mbt",
+                "anchor": "test \"original query preflight retains one parser and the same long response\""
+              },
+              {
+                "path": "src/client_local_host/installed_native_source_reader_current_wbtest.mbt",
+                "anchor": "test \"native reader funds received raw prefix and only one next response\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_salesforce_current_response_bridge_wbtest.mbt",
+                "anchor": "test \"current Salesforce bridge quotes long original body without future raw totals\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
               }
             ]
           }
@@ -52836,7 +52915,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "1b2d35dc2c5cd6f2e864bac55b2388b1eb465b4776693705c15a68c346be45f1",
+      "sha256": "1cf5f9c7f8859b50303a30357f7ea3c92aa45e5fd48db4047a674c97690cdb51",
       "operations": [
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
@@ -52861,6 +52940,10 @@
         {
           "name": "client_program_installed_preserving_json_source_reader_capacity_with_request",
           "declaration": "client_program_installed_preserving_json_source_reader_capacity_with_request ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , request : @ execution . ExecutionCapacity ? , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "client_program_installed_salesforce_current_response_capacity",
+          "declaration": "client_program_installed_salesforce_current_response_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , describe : Array [ Int ] , max_observation_bytes : Int , binding_units : Int , resource_units : Int , query_pages : Int , api_units : Int , soql_units : Int , metadata_bytes : Int , read : @ salesforce_catalog . QueryRead ? , path : String , body : Bytes ? , received_bytes : Int64 , received_responses : Int , ) - > Result [ @ execution . ExecutionCapacity , @ salesforce_catalog . QueryReadIssue ]"
         },
         {
           "name": "client_program_installed_salesforce_source_reader_capacity",
@@ -53383,6 +53466,86 @@
               {
                 "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
                 "anchor": "test('GitHub original decoder failure survives caller stop and its same close remains retryable'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_installed_salesforce_current_response_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Salesforce response construction on the original reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The installed Salesforce reader charges and retains each original response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing QueryRead retains the original body, path and digest with the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "advances that same parser. A copied or changed body cannot consume the cursor."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Only one query page is pending; its original acknowledgment precedes the next"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "locator request. Interruption retires its pending parser through the existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one next bounded transport buffer, including the first offending response. The"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "admission. Missing nullable cells, compound roles and multipicklist expansion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/catalog/query_response_source_wbtest.mbt",
+                "anchor": "test \"original query preflight retains one parser and the same long response\""
+              },
+              {
+                "path": "src/client_local_host/installed_native_source_reader_current_wbtest.mbt",
+                "anchor": "test \"native reader funds received raw prefix and only one next response\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_salesforce_current_response_bridge_wbtest.mbt",
+                "anchor": "test \"current Salesforce bridge quotes long original body without future raw totals\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
               }
             ]
           }
@@ -71077,7 +71240,7 @@
         },
         {
           "name": "native_read_construction_capacity",
-          "declaration": "native_read_construction_capacity ( describe : @ catalog . DescribeLimits , query : @ catalog . QueryPageLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , columns : Int , pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . ExecutionCapacity ?"
+          "declaration": "native_read_construction_capacity ( describe : @ catalog . DescribeLimits , query : @ catalog . QueryPageLimits , max_observation_bytes : Int , binding_units : Int , resource_units : Int , columns : Int , pages : Int , api_units : Int , soql_units : Int , query_geometry ? : @ source . JsonSourceGeometry ?"
         },
         {
           "name": "sf_read_collection_units",
@@ -71097,7 +71260,7 @@
         },
         {
           "name": "sf_read_query_construction_inventory",
-          "declaration": "sf_read_query_construction_inventory ( limits : @ catalog . QueryPageLimits , columns : Int , pages : Int , api_units : Int , soql_units : Int , ) - > @ execution . PreparationExecutionInventory ?"
+          "declaration": "sf_read_query_construction_inventory ( limits : @ catalog . QueryPageLimits , columns : Int , pages : Int , api_units : Int , soql_units : Int , source_nodes ? : Int ?"
         }
       ],
       "contracts": [
@@ -71105,12 +71268,10 @@
           "operations": [
             "<module>",
             "named_describe_construction_capacity",
-            "native_read_construction_capacity",
             "sf_read_collection_units",
             "sf_read_describe_parse_inventory",
             "sf_read_metadata_construction_inventory",
-            "sf_read_observation_construction_inventory",
-            "sf_read_query_construction_inventory"
+            "sf_read_observation_construction_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -71169,9 +71330,90 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "native_read_construction_capacity",
+            "sf_read_query_construction_inventory"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Salesforce response construction on the original reader"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The installed Salesforce reader charges and retains each original response"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "The existing QueryRead retains the original body, path and digest with the"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "advances that same parser. A copied or changed body cannot consume the cursor."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "Only one query page is pending; its original acknowledgment precedes the next"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "before grammar construction. This geometry bounds malformed prefixes as well"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "locator request. Interruption retires its pending parser through the existing"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "one next bounded transport buffer, including the first offending response. The"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "admission. Missing nullable cells, compound roles and multipicklist expansion"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/salesforce/catalog/query_response_source_wbtest.mbt",
+                "anchor": "test \"original query preflight retains one parser and the same long response\""
+              },
+              {
+                "path": "src/client_local_host/installed_native_source_reader_current_wbtest.mbt",
+                "anchor": "test \"native reader funds received raw prefix and only one next response\""
+              },
+              {
+                "path": "src/connectors_builtin_node/client_salesforce_current_response_bridge_wbtest.mbt",
+                "anchor": "test \"current Salesforce bridge quotes long original body without future raw totals\""
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/salesforce-rejected-query-accounting.test.mjs",
+                "anchor": "test('Salesforce current constructor receives the original body and query with exact raw-prefix counters'"
+              }
+            ]
+          }
         }
       ],
-      "sha256": "08526ff0dc21abf273dfe3321c5f430c802092e28c090e2013b4d7de9a8e6f7b"
+      "sha256": "81ecb05e177b7a83e559c2615dad9fe539269a0670f5d6fc3818c60f3603ebf0"
     },
     {
       "module": "src/client_local_host/installed_effect_managed_run.mbt",

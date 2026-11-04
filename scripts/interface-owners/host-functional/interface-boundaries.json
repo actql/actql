@@ -124597,7 +124597,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "165562802b61bbfe5b4b8f9eafdbb4f84a437724eec0a7e82d67700421ac5a87",
+      "sha256": "536000de4ea4495ead7ea93e73619a306a3438fce97da23fb0ad5118db2225b4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
