@@ -370,7 +370,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
     let calls = 0;
     let failedWrite = false;
     let failedObservation = false;
-    let observationSteps = 0;
+    let publicationWrites = 0;
     let cancelledDuringExecution = false;
     const injectedFailure = boundary.endsWith('-failure');
     const restarting = boundary.startsWith('restart-');
@@ -398,11 +398,12 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         await startedRun;
         await run.cancel();
       }
-      if (name === 'infer_observation_advanced') {
-        observationSteps++;
+      if (name === 'infer_private_holding_commit' &&
+          ['observation_set', 'run_invocation'].includes(detail.role)) {
+        publicationWrites++;
         if (!failedObservation &&
-            ((boundary === 'observation-step-failure' && !detail.complete) ||
-             (boundary === 'observation-complete-failure' && detail.complete))) {
+            ((boundary === 'observation-step-failure' && detail.role === 'observation_set') ||
+             (boundary === 'observation-complete-failure' && detail.role === 'run_invocation'))) {
           failedObservation = true;
           throw new Error('InjectedObservationBoundaryFailure');
         }
@@ -522,7 +523,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         assert.equal(terminal.status, 'needs_reconciliation');
         await assert.rejects(run.result('answer').all());
         assert.equal(calls, 0, 'unknown response custody cannot redispatch');
-        assert.equal(observationSteps, 0);
+        assert.equal(publicationWrites, 0);
         return;
       }
       // A failed private write can be observed before retained cleanup has
@@ -542,10 +543,13 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       assert.equal(failedWrite, boundary === 'private-write-failure' ||
         boundary === 'usage-overflow-write-failure');
       assert.equal(failedObservation, boundary.startsWith('observation-'));
-      // Begin, one slot, and finalize: retries retain the issuer
-      // rather than starting another observation or advancing a terminal one.
+      // The composed owner seals its original Observation synchronously before
+      // Local transfers completed output. Its two real async Store writers,
+      // rather than the retired single-operation codec's three steps, expose
+      // the partial/complete publication failures and SAME-writer retry.
       const failedBeforeAggregate = failedBeforeCapture || boundary === 'private-write-failure';
-      assert.equal(observationSteps, failedBeforeAggregate ? 0 : 3);
+      assert.equal(publicationWrites, failedBeforeAggregate ? 0 :
+        boundary === 'observation-step-failure' ? 1 : 2);
       if (successful) {
         assert.deepEqual(await run.result('answer').all(),
           keepProjection
@@ -566,13 +570,14 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         version: 'actql-local-store-owner/0.1', root: join(root, 'state'),
         principalId: userInfo().username})).digest('hex')}`;
       for (const [role, slot] of [
-        ...(!failedBeforeAggregate ? [['model_capture_bundle', -1], ['observation_set', -1],
-          ['run_invocation', -1], ['model_slot_capture', 0]] : []),
+        ...(!failedBeforeAggregate ? [['model_capture_bundle', 0], ['observation_set', -1],
+          ...(boundary === 'observation-step-failure' ? [] : [['run_invocation', -1]]),
+          ['model_slot_capture', 0]] : []),
         ...(boundary === 'private-write-failure' ? [['model_slot_capture', 0], ['model_capture_bundle', 0]] : []),
         ['model_call_attempt', 0], ['model_attempt_accounting', 0],
         ['model_attempt_outcome', 0], ['model_dispatch_authority', 0],
       ]) {
-        const identity = failedBeforeAggregate
+        const identity = role.startsWith('model_')
           ? scopedModelHolding(join(root, 'state'), run.ref.runDefinitionCid, storeCid, role, slot)
           : contentCid({role, slot,
           run_definition_cid: run.ref.runDefinitionCid,

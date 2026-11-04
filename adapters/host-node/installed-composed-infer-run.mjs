@@ -316,6 +316,10 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       const entry = child.continuation?.entry(slot);
       if (entry === undefined || slot !== boundary.slot) throw new Error('ModelPauseSettlementMismatch');
       await child.capture.persistSettlement(settlement, entry);
+      // This original async pause owns the durable response before Local can
+      // resume it. Never await a Host callback inside synchronous completion.
+      await faultInjection?.('infer_execution_advanced', {});
+      assertCurrent();
       return {action: 'resume'};
     }
     if (boundary.status !== 'waiting') throw new Error('InvalidModelPause');
@@ -408,6 +412,10 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     holding = preparePrivatePublicationHolding(store, {name: original.name, wire: original.wire,
       semanticCid: original.identity,
       holdingCid: control.modelPrivateHoldingCid(plan.runDefinition, storeAuthorityCid, original.name, -1)});
+    // Retain the SAME writer before the original fallible async observation.
+    // Cleanup commits this owner; it never constructs or seals another issuer.
+    await faultInjection?.('infer_private_holding_commit', {role: original.name, slot: -1});
+    assertCurrent();
     await holding.commit(); holding = undefined;
   }
   // Match the existing single-Model durable capture boundary: every capture
