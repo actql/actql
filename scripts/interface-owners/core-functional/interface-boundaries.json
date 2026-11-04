@@ -15698,6 +15698,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "an earlier query-selection suffix. Direct callers that supply both issuers still"
               }
             ],
             "synchronization": [
@@ -15762,6 +15766,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation.mbt",
                 "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "throw new TypeError('InvalidInferOriginalSuffixBinding');"
               }
             ],
             "cancellation": [
@@ -15926,6 +15934,10 @@
               {
                 "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
                 "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "a direct original operation still refuses simultaneous suffix issuers before claiming a read"
               }
             ]
           }
@@ -17479,7 +17491,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0eab54ae242743d04483e34b99d93ff3afc4e36abe96a6107d3b93576161616e"
+      "sha256": "8688e3b76d21903567c3ee159414027516f1d25b6e8aa8e347c0e17625f909d6"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",

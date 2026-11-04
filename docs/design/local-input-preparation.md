@@ -5155,6 +5155,9 @@ stays in the same Host Run inventory before the first fallible constructor.
 The prefix is an original opaque sequence; its optional suffix stays inside a
 typed binder closure. JavaScript forwards that binder without interpreting or
 reboxing the Option. Local calls it only after retaining the actual execution.
+When this original binder is present, the composed provider does not also forward
+an earlier query-selection suffix. Direct callers that supply both issuers still
+refuse before claiming a read; binder failure keeps the same retained operation.
 
 Before Source acquisition, dispatch retains the existing Core preparation borrow
 and obtains the original adopted Run's Ledger with its same original capacity.
