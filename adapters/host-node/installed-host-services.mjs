@@ -1,4 +1,4 @@
-import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition} from './installed-funded-environment.mjs';
+import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentComposition, bindInstalledEnvironmentConstruction} from './installed-funded-environment.mjs';
 // Standard installed Host service owner. This public cut retains the exact
 // original Source implementation/Site association; numerical DATA is neither
 // a Run admission nor permission. Other service facets extend this SAME owner.
@@ -273,13 +273,17 @@ function prepareSourceNativeInput(original, material, projection, attempts, vali
     fail('ForeignInstalledSourceInitialization');
   }
   validate();
-  const {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+  let {capacity: capacityFor, project} = sourceProjectionMethods(projection);
+  if (typeof material.methods.InstalledSourceRetainedConstructionCapacity !== 'function') {
+    fail('InstalledSourceInitializationRuntimeUnavailable');
+  }
   attempts.add(projection);
   let quantity;
   material.busy = true;
   try {quantity = requireSynchronousSourceConstruction(material, Reflect.apply(capacityFor, projection, []));}
   finally {material.busy = false;}
   if (!quantity || typeof quantity !== 'object' || nodeTypes.isProxy(quantity)) fail('InstalledSourceInputCapacityUnavailable');
+  const providerIndex = material.providers.length, projectionIndex = material.inputs.length;
   material.providers.push(quantity); material.inputs.push(projection);
   reserveSource(original, material);
   validate();
@@ -294,6 +298,22 @@ function prepareSourceNativeInput(original, material, projection, attempts, vali
       fail('InvalidInstalledSourceNativeInput');
     }
     retain(value);
+  } finally {material.busy = false;}
+  // This synchronous producer has returned and its actual output is retained.
+  // Cut only its input callback aliases, then keep the existing Core retained
+  // quantity. Failed/asynchronous producers above keep their full original
+  // peak and callbacks; no physical child or GC observation is an ACK here.
+  material.busy = true;
+  try {
+    const retained = checked(Reflect.apply(material.methods.InstalledSourceRetainedConstructionCapacity,
+      original.moon, [quantity]));
+    validate();
+    if (!retained || typeof retained !== 'object' || nodeTypes.isProxy(retained) ||
+        material.phase !== 'working' || material.providers[providerIndex] !== quantity ||
+        material.inputs[projectionIndex] !== projection) fail('InstalledSourceInputCapacityUnavailable');
+    material.inputs[projectionIndex] = undefined;
+    material.providers[providerIndex] = retained;
+    projection = capacityFor = project = quantity = undefined;
   } finally {material.busy = false;}
   reconcileSource(original, material);
   return value;
@@ -441,6 +461,41 @@ export function installedSourceConfigurationReader(services) {
     },
   });
   material.configurationReader = reader;
+  // The Common composer alone receives this capability. Provider readers have
+  // no release method and cannot turn arbitrary returned values into refunds.
+  bindInstalledEnvironmentConstruction(services, reader, () => {
+    original.current();
+    if (material.phase !== 'working' || material.busy || material.ioPending !== 0) {
+      fail('ForeignInstalledSourceInitialization');
+    }
+    const providerStart = material.providers.length, inputStart = material.inputs.length;
+    let finished = false;
+    return () => {
+      if (finished) fail('InstalledEnvironmentConstructionAlreadyFinished');
+      finished = true;
+      const providerEnd = material.providers.length, inputEnd = material.inputs.length;
+      let released = false;
+      return () => {
+        if (released) return;
+        original.current();
+        if (material.configurationReader !== reader || material.phase !== 'working' ||
+            material.busy || material.ioPending !== 0) fail('ForeignInstalledSourceInitialization');
+        const empty = sourceCall(original, material, 'InstalledSourceConstructionCapacity',
+          [0n, 0n, 0n, 0n, 0n, 0n]);
+        let providers = material.providers.slice(providerStart, providerEnd),
+          inputs = material.inputs.slice(inputStart, inputEnd);
+        for (let index = providerStart; index < providerEnd; index++) material.providers[index] = empty;
+        for (let index = inputStart; index < inputEnd; index++) material.inputs[index] = undefined;
+        try {reconcileSource(original, material);}
+        catch (cause) {
+          for (let index = providerStart; index < providerEnd; index++) material.providers[index] = providers[index - providerStart];
+          for (let index = inputStart; index < inputEnd; index++) material.inputs[index] = inputs[index - inputStart];
+          throw cause;
+        }
+        released = true; providers = inputs = undefined;
+      };
+    };
+  });
   return reader;
 }
 

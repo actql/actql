@@ -76,15 +76,41 @@ function sealComposedBody(body) {
   return Object.freeze(body);
 }
 
+// Bound synchronously while the nominal reader is first issued, before any
+// provider receives it. This capability remains only in the existing owner
+// index; it is never returned through the provider-facing reader.
+export function bindInstalledEnvironmentConstruction(services, reader, begin) {
+  let owner = owners.get(services);
+  if (owner === undefined) {
+    owner = {busy: false, failed: false, cause: undefined, base: undefined}; owners.set(services, owner);
+  }
+  if (owner.reader !== undefined || typeof begin !== 'function') fail('ForeignInstalledEnvironmentOwner');
+  owner.reader = reader; owner.begin = begin;
+}
+
 export function composeInstalledSourceEnvironment(services, moon, baseInput, sourceInput, effectInput) {
+  return composeEnvironment(services, moon, baseInput, sourceInput, effectInput);
+}
+
+// Only these two Common inventory folds own a replaceable local prefix. Their
+// synchronous acceptance checks precede its retirement; base/member originals
+// and normal escaped composition results retain their original custody.
+export function composeInstalledInventoryEnvironment(services, moon, baseInput, sourceInput, effectInput, accept) {
+  return composeEnvironment(services, moon, baseInput, sourceInput, effectInput, accept);
+}
+
+function composeEnvironment(services, moon, baseInput, sourceInput, effectInput, accept) {
   if (services === null || typeof services !== 'object') fail('ForeignInstalledHostServices');
   let owner = owners.get(services);
-  if (owner === undefined) {owner = {busy: false, failed: false, cause: undefined, base: undefined};owners.set(services, owner);}
+  if (owner === undefined) {
+    owner = {busy: false, failed: false, cause: undefined, base: undefined}; owners.set(services, owner);
+  }
   if (owner.failed) throw owner.cause;
   if (owner.busy) fail('InstalledEnvironmentConstructionReentry');
   owner.busy = true;
   try {
     const reader = installedSourceEnvironmentConstructionReader(services, moon);
+    if (owner.reader !== reader) fail('ForeignInstalledEnvironmentOwner');
     const current = () => {
       if (installedSourceEnvironmentConstructionReader(services, moon) !== reader) fail('ForeignInstalledEnvironmentOwner');
     };
@@ -96,9 +122,10 @@ export function composeInstalledSourceEnvironment(services, moon, baseInput, sou
     }, project);
     const borrow = value => {
       const record = originals.get(value);
-      if (record === undefined || record.services !== services || record.moon !== moon || record.reader !== reader) {
+      if (record === undefined || record.services !== services || record.moon !== moon || record.reader !== reader || record.retired === true) {
         fail('ForeignInstalledEnvironmentOriginal');
       }
+      if (accept === undefined && record.release !== undefined) record.escaped = true;
       current();return record;
     };
     const admit = (wire, evidenceCid, body, counts) => {
@@ -150,14 +177,36 @@ export function composeInstalledSourceEnvironment(services, moon, baseInput, sou
     const effect = effectInput === sourceInput ? source : input(effectInput);
     const baseRecord = borrow(base), sourceRecord = source === undefined ? undefined : borrow(source),
       effectRecord = effect === undefined ? undefined : borrow(effect);
+    const finish = owner.begin();
     const composed = js(() => installedEnvironmentCompositionConstructionGeometry(base.body, source?.body, effect?.body), () =>
       composeAdmittedCheckEnvironmentOriginals(base, source, effect, (wire, evidenceCid, body) => {
         sealComposedBody(body);
         return Object.freeze({wire, evidenceCid, body,
           counts: mergedCounts(baseRecord, sourceRecord, effectRecord, wire, body)});
       }));
-    if (originals.has(composed)) {borrow(composed);return composed;}
-    const result = admit(composed.wire, composed.evidenceCid, composed.body, composed.counts);
+    const result = originals.has(composed) ? composed :
+      admit(composed.wire, composed.evidenceCid, composed.body, composed.counts);
+    const release = finish();
+    const record = borrow(result);
+    if (accept !== undefined) {
+      if (typeof accept !== 'function') fail('ForeignInstalledEnvironmentOwner');
+      const accepted = accept(result);
+      if (typeof accepted !== 'boolean') fail('InvalidInstalledEnvironmentAcceptance');
+      current();
+      // An existing original never becomes an inventory-owned prefix merely
+      // by borrowing it. A fresh merge owns only its new shallow containers,
+      // canonical wire and native admission, not the member trees it borrows.
+      if (result !== source && result !== effect && result !== base) {record.release = release; record.escaped = accepted;}
+      else {if (accepted) record.escaped = true; release();}
+      // A one-sided manifest merge may borrow its old envelope, not only
+      // member leaves. Keep that prior prefix until normal parent retirement.
+      const borrowsPriorManifest = source?.body.connector_manifest !== undefined &&
+        result.body.connector_manifest === source.body.connector_manifest;
+      if (sourceRecord?.release !== undefined && sourceRecord.escaped !== true &&
+          source !== result && !borrowsPriorManifest) {
+        sourceRecord.release(); sourceRecord.release = undefined; sourceRecord.retired = true;
+      }
+    }
     current();return result;
   } catch (cause) {owner.failed = true;owner.cause = cause;throw cause;}
   finally {owner.busy = false;}

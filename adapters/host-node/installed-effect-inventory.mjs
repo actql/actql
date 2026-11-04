@@ -1,5 +1,5 @@
 import {installedSourceEnvironmentConstructionReader} from './installed-host-services.mjs';
-import {composeInstalledSourceEnvironment} from './installed-funded-environment.mjs';
+import {composeInstalledInventoryEnvironment} from './installed-funded-environment.mjs';
 // Private installation routing over published facts. Selecting an owner never
 // prepares an Effect, acquires a provider, or grants an execution permission.
 import {isAbsolute} from 'node:path';
@@ -233,16 +233,18 @@ export async function composeInstalledEffects(paths, options, load) {
       const effect = await load(path, options, cleanup.retain);
       // Compose and validate every member before loading the next. The common
       // composer independently admits the publication and the growing result.
-      const combinedOriginal = composeInstalledSourceEnvironment(options.installationServices, options.moon,
-          options.baseEnvironmentWire, environmentOriginal, effect.environmentOriginal ?? effect.environmentWire);
+      const combinedOriginal = composeInstalledInventoryEnvironment(options.installationServices, options.moon,
+          options.baseEnvironmentWire, environmentOriginal, effect.environmentOriginal ?? effect.environmentWire, () => {
+            verifyInstalledConnectorBindings(environmentWire === undefined ? undefined :
+              {environmentWire, connectorBindings: [...bindings.values()]}, effect);
+            for (const [ref, identity] of ownedContracts(effect)) {
+              if (refs.has(ref) || cids.has(identity)) fail('InstalledEffectMappingAmbiguous');
+              refs.add(ref);
+              cids.add(identity);
+            }
+            return effects.length + 1 === paths.length;
+      });
       const combined = combinedOriginal.wire;
-      verifyInstalledConnectorBindings(environmentWire === undefined ? undefined :
-        {environmentWire, connectorBindings: [...bindings.values()]}, effect);
-      for (const [ref, identity] of ownedContracts(effect)) {
-        if (refs.has(ref) || cids.has(identity)) fail('InstalledEffectMappingAmbiguous');
-        refs.add(ref);
-        cids.add(identity);
-      }
       environmentWire = combined;
       environmentOriginal = combinedOriginal;
       for (const binding of effect.connectorBindings ?? []) {
