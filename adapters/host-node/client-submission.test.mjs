@@ -998,10 +998,10 @@ for (const partial of [false, true]) {
 // These are actual Host callback/holder bodies with explicit pre-Resource
 // ports. The Journal and its immutable outcomes below use real SQLite/Common;
 // this fixture does not claim a new Common/ordinary Host execution.
-function pairedAdmissionFixture() {
+function pairedAdmissionFixture({wholeSource = false} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), declarations = new Map();
-  let holder, route;
+  let holder, route, requestNode, unadmitted;
   function visit(node) {
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'FunctionDeclaration' && node.id?.name === 'captureInstalledManagedRunRoute') {
@@ -1009,6 +1009,12 @@ function pairedAdmissionFixture() {
     }
     if (node.type === 'Property' && node.method &&
         node.key.name === 'isOriginalManagedComputePreparationRefusal') {assert.equal(holder, undefined); holder = node;}
+    if (node.type === 'Property' && node.method && node.key.name === 'assertUnadmittedSourceRequest') {
+      assert.equal(unadmitted, undefined); unadmitted = node;
+    }
+    if (node.type === 'VariableDeclarator' && node.id.name === 'requestOf') {
+      assert.equal(requestNode, undefined); requestNode = node.init;
+    }
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
         ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].includes(node.declarations[0].id.name)) {
       const name = node.declarations[0].id.name; assert.equal(declarations.has(name), false); declarations.set(name, node);
@@ -1018,7 +1024,7 @@ function pairedAdmissionFixture() {
       else if (child && typeof child === 'object') visit(child);
     }
   }
-  visit(ast); assert(holder); assert(route); assert.equal(declarations.size, 3);
+  visit(ast); assert(holder); assert(route); assert(requestNode); assert(unadmitted); assert.equal(declarations.size, 3);
   const text = node => source.slice(node.start, node.end), record = {computeRuns: new Map()};
   const runtime = {clientProgramSerializationOccurrences: () => []}, prepared = {}, requested = {};
   const originalInstallation = {initialControl: {}}, originals = {installation: originalInstallation};
@@ -1042,18 +1048,109 @@ function pairedAdmissionFixture() {
       assert.equal(this, preparation); projections++; return Reflect.apply(project, preparation, args);
     },
   };
+  const sourceProfile = {}, adapter = {}, sourceRef = 'source:fixture';
+  const inferSelections = new WeakMap(), sourceFreeRequestIdentities = new WeakMap();
+  let existingDefinition, sourceError, selectedAdapter = adapter;
+  const prepareSubmit = {assertOwned(value) {assert.equal(value, prepared);}, kindOf: () => 'effect_free'};
+  preparation.assertUnadmittedSourceRequest = new Function('record', 'moon', 'originals',
+    'sourceManaged', 'computeManaged', 'assertInitialControlHostPreparation',
+    'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
+    'originalSourceManagedHostRequest', 'clientOperationError',
+    `return ({${text(unadmitted)}}).assertUnadmittedSourceRequest;`)(record, runtime, originals,
+    {}, undefined, assertCurrent, assertCurrent, assertCurrent,
+    (actual, value) => {assert.equal(actual, originals); assert.equal(value, prepared);},
+    code => Object.assign(new Error(code), {code}));
+  const installedSourceFor = (profile, ref) => {
+    assert.equal(profile, sourceProfile); assert.equal(ref, sourceRef); return selectedAdapter;
+  };
+  let requestOf = candidate => {
+    requestReads++; assert.equal(candidate.preparedProgram, prepared);
+    return {requested, acquisitionCount: 0, effectful: false};
+  };
+  if (wholeSource) {
+    Object.assign(runtime, {clientProgramAcquisitionCount: () => 1,
+      clientProgramSelectSingleKeyedAcquisition: () => undefined,
+      clientProgramSelectedSourceInputKind: () => 'whole-input',
+      clientProgramSelectedSourceInputRef: () => sourceRef});
+    preparation.managedModelSourceCoordinates = () => undefined;
+    preparation.selectManagedDomainSourceInput = () => Object.freeze({});
+    const ports = {prepareSubmit, moon: runtime, earlyContentPlans: new WeakMap(), sourceProfile,
+      originalSourceFreeRequest(value, requestId) {
+        assert.equal(value, prepared); sourceFreeRequestIdentities.set(value, {requested, requestId}); return requested;
+      }, preparation, installedSourceFor, inferSelections, checked: value => value,
+      runtimeOptionalField: () => undefined, diagnostic() {}, runtimeTag: () => undefined,
+      clientOperationError(code, cause) {
+        sourceError = Object.assign(new Error(code, {cause}), {code}); return sourceError;
+      }};
+    const actualRequest = new Function(...Object.keys(ports), `return (${text(requestNode)});`)(...Object.values(ports));
+    requestOf = (...args) => {requestReads++; return actualRequest(...args);};
+  }
   const prepareOrdinaryManagedRun = new Function('clientOperationError', `return ${text(route)};`)(
     code => Object.assign(new Error(code), {code}))({preparation, moon: runtime,
     prepareInvocation() {assert.fail('The original refusal precedes invocation preparation');}});
   const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections', 'prepareOrdinaryManagedRun',
+    'sourceProfile', 'sourceFreeRequestIdentities', 'prepareSubmit', 'installedSourceFor', 'journal', 'namespaceId', 'control',
     ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].map(name => text(declarations.get(name))).join('\n') +
-      '\nreturn admitPreparedSubmission;')(preparation, runtime, candidate => {
-    requestReads++; assert.equal(candidate.preparedProgram, prepared);
-    return {requested, acquisitionCount: 0, effectful: false};
-  }, new WeakMap(), prepareOrdinaryManagedRun);
+      '\nreturn admitPreparedSubmission;')(preparation, runtime, requestOf, inferSelections, prepareOrdinaryManagedRun,
+    sourceProfile, sourceFreeRequestIdentities, prepareSubmit, installedSourceFor,
+    {resolveDefinition(value) {assert.equal(value, requested); return existingDefinition;}}, 'fixture', {});
   return {callback, error, prepared, requested, record, originalInstallation,
+    adapter, inferSelections, runtime, setDefinition(value) {existingDefinition = value;},
+    replaceAdapter(value) {selectedAdapter = value;},
+    get sourceError() {return sourceError;},
     get requestReads() {return requestReads;}, get projections() {return projections;}, stop() {current = false;}};
 }
+
+test('original whole-input implementation refusal is retained before any Run entry', async t => {
+  const p = pairedAdmissionFixture({wholeSource: true});
+  const f = await fixture(t, {prepare: () => p.prepared, admit: p.callback});
+  const outcome = await f.service.submitIntent(f.body());
+  assert.equal(outcome.kind, 'not_accepted');
+  assert.deepEqual(outcome.problem, {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+  assert.equal(Object.hasOwn(outcome, 'admission'), false);
+  assert.equal(p.record.computeRuns.size, 0);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  assert.equal(p.requestReads, 1);
+});
+
+test('original whole-input refusal belongs to one candidate and one consumption', () => {
+  const p = pairedAdmissionFixture({wholeSource: true});
+  const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+  assert.throws(() => p.callback(candidate), error => error === p.sourceError);
+  const read = value => Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, value]);
+  assert.equal(read({...candidate}), false);
+  assert.equal(read(candidate), true);
+  assert.equal(read(candidate), false);
+});
+
+for (const change of ['current', 'Run prefix', 'existing definition', 'foreign adapter', 'capacity method', 'pending cleanup', 'cleanup handle', 'Model', 'Content']) {
+  test(`original whole-input refusal retains the ${change} fence`, () => {
+    const p = pairedAdmissionFixture({wholeSource: true});
+    const candidate = {preparedProgram: p.prepared, requestId: 'original'};
+    assert.throws(() => p.callback(candidate), error => error === p.sourceError);
+    if (change === 'current') p.stop();
+    if (change === 'Run prefix') p.record.computeRuns.set(p.prepared, {});
+    if (change === 'existing definition') p.setDefinition({});
+    if (change === 'foreign adapter') p.replaceAdapter({});
+    if (change === 'capacity method') p.adapter.managedWholeSourceCapacity = () => assert.fail('No replacement constructor');
+    if (change === 'pending cleanup') p.sourceError.cleanupPending = true;
+    if (change === 'cleanup handle') p.sourceError.cleanupHandle = {};
+    if (change === 'Model') p.inferSelections.set(p.prepared, {});
+    if (change === 'Content') p.runtime.clientProgramSerializationOccurrences = () => [{}];
+    const read = () => Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [p.sourceError, candidate]);
+    if (change === 'current' || change === 'Run prefix') assert.throws(read);
+    else assert.equal(read(), false);
+  });
+}
+
+test('an arbitrary undefined pre-admission throw cannot certify refusal', async t => {
+  const f = await fixture(t, {admit() {throw undefined;}});
+  let failed = false;
+  try {await f.service.submitIntent(f.body());} catch (cause) {failed = true; assert.equal(cause, undefined);}
+  assert.equal(failed, true);
+  assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
 
 test('paired pre-admission original refusal is retained without entering the Run owner', async t => {
   const p = pairedAdmissionFixture();

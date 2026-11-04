@@ -189,10 +189,14 @@ function observeCheckOnly(t, root) {
 
 async function localClient(t, configuration, installed = {}) {
   const root = await mkdtemp(join(scratch, 'local-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  let client;
+  t.after(async () => {
+    await client?.close();
+    await rm(root, {recursive: true, force: true});
+  });
   const sourceInstallation = await installedConfigurations(root, configuration);
   const observation = observeCheckOnly(t, root);
-  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+  client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
     installation: {directory: join(root, 'state'), ...sourceInstallation, ...installed}});
   return {check: client.check, start: client.start, startSource: client.startSource,
     newSubmission: client.newSubmission, lookupSubmission: client.lookupSubmission,
@@ -5674,6 +5678,15 @@ for (const entrance of ['local', 'http']) {
     const records = [];
     const observation = createHostObservationConnection({deliver: record => records.push(record)});
     const installed = {observation,
+      ...(entrance === 'http' ? {authorization: {accountConfiguration: canonicalJson({
+        version: 'actql-execution-account-config/0.1', account_id: 'authoring-run-observation',
+        entries: [{entry_id: 'owner-read', outcome: 'allow', principal: {any_of: [owner]},
+          connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['result/main', 'run']},
+          operation: {any_of: ['read']}, exclusions: []},
+        {entry_id: 'owner-start', outcome: 'allow', principal: {any_of: [owner]},
+          connection: {any_of: ['actql-remote-host']}, resource: {any_of: ['duckdb-acquired']},
+          operation: {any_of: ['write']}, exclusions: []}],
+      })}} : {}),
       registerModelProviders: () => [{providerId: 'models/authoring-fixture',
         validatePrompt: () => false,
         invoke() {modelCalls++; throw new Error('UnexpectedAuthoringModelExecution');}}],
@@ -5875,8 +5888,13 @@ for (const entrance of ['local', 'http']) {
     // Complete bound checking does not promise a physical Program backend.
     // The ordinary execution Owner currently refuses this direct Source route.
     await assert.rejects(client.start(getCheckInput(sourceBound, 'program').value, {parameters: {x: 7}}), error => {
-      assert.equal(error.code, 'SubmissionPreparationFailed');
-      assert.equal(sdk.getSubmissionOutcome(error)?.problem.code, 'ClientProgramUnsupported');
+      // Original implementation selection precedes business admission.
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.equal(Object.hasOwn(outcome, 'admission'), false);
+      assert.deepEqual(outcome.problem,
+        {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
       return true;
     });
     client.assertNoExecution();
@@ -5891,7 +5909,7 @@ for (const entrance of ['local', 'http']) {
     }
     const status = await run.wait({signal: AbortSignal.timeout(20000)});
     assert.equal(status.status, 'succeeded', JSON.stringify(status));
-    assert.deepEqual(await run.result('answer').all(), [{id: 1}]);
+    assert.deepEqual(await run.result('main').all(), [{id: 1}]);
     await flushObservations();
     const counts = client.executionCounts();
     assert.equal(counts.runs, 1);
