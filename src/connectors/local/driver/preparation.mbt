@@ -57,18 +57,6 @@ pub fn prepare_local_dispatch_plan(
   if first < 0 || first > count || sequences.length() != count - first {
     return Err(Configuration(ForeignPreparation))
   }
-  let input_counts = Array::make(sequences.length(), 0)
-  for index in 0..<@strategy.graph_data_count(graph) {
-    let edge = @strategy.graph_data_at(graph, index).unwrap()
-    if edge.consumer >= first && edge.consumer < count {
-      let slot = edge.consumer - first
-      if input_counts[slot] == 2147483647 {
-        return Err(Configuration(InvalidLimits))
-      }
-      // Count actual input occurrences, including two ports of one producer.
-      input_counts[slot] += 1
-    }
-  }
   let physical_sequences = []
   for index, sequence in sequences {
     if !(@strategy.graph_task_owner(graph, index + first) is Some(owner) &&
@@ -104,6 +92,26 @@ pub fn prepare_local_dispatch_plan(
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
+  }
+  let input_counts = Array::make(sequences.length(), 0)
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    if edge.consumer >= first &&
+      edge.consumer < count &&
+      !(edge.producer >= first &&
+      @local.local_module_sequence_outputs_carrier(
+        implementation,
+        edge.producer - first,
+      )) {
+      let slot = edge.consumer - first
+      if input_counts[slot] == 2147483647 {
+        return Err(Configuration(InvalidLimits))
+      }
+      // Count the same row-import occurrences as managed dispatch. Carrier
+      // predecessors supply their original managed material, never a row wire
+      // importer. Repeated Relation ports still own separate import storage.
+      input_counts[slot] += 1
+    }
   }
   let capacities = Array::makei(physical_sequences.length(), index => {
     @local.local_module_capacity(implementation, index)

@@ -358,6 +358,14 @@ test "two captured Sources retain every Event task under the original execution 
   assert_eq(plan.measurement.max_bytes, 500000)
   assert_eq(plan.values.max_text_bytes, 500000)
   assert_eq(plan.execution.rows.max_rows, 100)
+  // Nine original data edges: seven row transfers and two Carrier views.
+  // Carrier views never construct the row wire importer at runtime.
+  assert_eq(
+    @local_driver.local_dispatch_preparation_transfer_bytes(
+      capture.configuration.dispatch,
+    ),
+    Some(7000000L),
+  )
   assert_eq(capture.captures.length(), 2)
   assert_true(capture.limits.execution_bytes <= 536870912L)
   assert_true(capture.limits.retained_bytes <= 536870912L)

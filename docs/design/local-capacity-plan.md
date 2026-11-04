@@ -98,6 +98,16 @@ execution envelopes still contributes to the coexisting installed Plan. The
 proof applies to physical record measurement, not evaluator intermediates or
 arbitrary external values.
 
+The installed dispatch Plan counts wire import occurrences from its SAME selected
+Local module. A predecessor whose selected physical target is a Carrier takes
+`PreparedCarrier` and its original managed view; it never constructs the Relation
+bridge/importer. Such an edge keeps its provider, completion metadata and Carrier
+storage but has no row-wire transfer or importer holding. Every Relation edge,
+including repeated ports of the same producer, keeps its separate import quote.
+The existing `local_module_sequence_outputs_carrier` decision is also used by the
+runtime predecessor selector; no operation label or new schema reconstruction
+selects this path.
+
 ## Metadata funding
 
 [`capacity_metadata.mbt`](../../src/client_local_host/capacity_metadata.mbt)
