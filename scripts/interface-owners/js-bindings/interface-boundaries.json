@@ -20571,6 +20571,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph",
+            "selected",
+            "installation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
           "parameters": [
             "parent",
@@ -25528,7 +25542,8 @@
             "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
-            "publicationControl/token/token"
+            "publicationControl/token/token",
+            "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand"
           ],
           "exports": [],
           "attributes": {
@@ -26026,6 +26041,14 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "physical Model Content Effect keeps its original Node layout and trusted Scope through retry"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
+                "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
               }
             ]
           }
@@ -30557,7 +30580,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "964ad6466a75a0ccdfdd49c40667a5937a72d88cffd9554eb9b72a761c9921cf"
+      "sha256": "8875487fe59a40b7c55b53b07270dcc1f6f03029690471fcc4024bcd1d75a2ab"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -31183,7 +31206,7 @@
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cba40f9b10ebd74a2503e1b6f458a9e3371424343e6a70288e167435f16f0e0a",
+      "sha256": "852a8dd46362c7eced0425dc5088f34a4f5d2dd64afe021ad819751493d1349c",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -61315,7 +61338,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "67084ad81a36896abf09fa70147d5833b53381b45ba4b27ca64ada00a90fe503"
+      "sha256": "e0f83ee545fa40f5c55f01cbe9a94ad9fdddfd67d68b49d72f7d86bf59c9bb6f"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -63113,7 +63136,7 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c897ea84b7b024cd46eb244c3a1180b590c192267d7e55e53c4a8537f5894571",
+      "sha256": "cefef7d9aed1890dcd7511ddeb70235f55d215b12c795d6d61d709f5311ea47f",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -63181,6 +63204,7 @@
             "generatedInput",
             "originalPreparation",
             "deferred",
+            "deferredGeneratedInput",
             "inputPrefix",
             "bindComputeSuffix",
             "assertRuntimeCurrent"
@@ -64746,6 +64770,10 @@
               {
                 "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs",
                 "anchor": "Request-owned plain acquired Model"
+              },
+              {
+                "path": "adapters/host-node/composed-infer-provider.test.mjs",
+                "anchor": "a generated Model provider selects its purpose before binding the same late Content generation"
               }
             ]
           }
