@@ -940,6 +940,11 @@ async function preflightDispatchFixture(t, {
           }, tasks);
       } catch (error) {
         originalFailure = error;
+        const code = Object.getOwnPropertyDescriptor(error, 'code')?.value;
+        const message = Object.getOwnPropertyDescriptor(error, 'message')?.value;
+        t.diagnostic(JSON.stringify({preflightOriginalFailure: {
+          code: typeof code === 'string' ? code.slice(0, 128) : undefined,
+          message: typeof message === 'string' ? message.slice(0, 1024) : undefined}}));
         if (sanitize) throw new Error('outer boundary withheld error details');
         throw error;
       }
