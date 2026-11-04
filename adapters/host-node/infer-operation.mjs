@@ -1287,7 +1287,10 @@ export function openNodeComposedInferProvider({moon, selected, sources,
             control, compiled: plan.compiled, definition: plan.runDefinition,
             generation: generatedInput.generation(), inputs,
             recovery: generatedInput.recovery?.()},
-          computeSuffix: !generated ? selected.computeSuffix : undefined, provider: selected.provider,
+          // The Request module's original binder already owns this suffix.
+          // An earlier query-selection suffix is not a second issuer for it.
+          computeSuffix: !generated && bindComputeSuffix === undefined
+            ? selected.computeSuffix : undefined, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,

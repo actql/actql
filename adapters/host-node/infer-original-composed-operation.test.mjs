@@ -364,7 +364,8 @@ test('Request composed suffix binder receives the same active only after origina
   let open, retained, binds = 0;
   f.moon.clientProgramComposedInferLocalProvider = (_occurrence, actualOpen) => {open = actualOpen; return {};};
   const component = openNodeComposedInferProvider({moon: f.moon,
-    selected: {occurrence: f.occurrence, graph: f.graph, provider: f.provider},
+    selected: {occurrence: f.occurrence, graph: f.graph, provider: f.provider,
+      computeSuffix: Object.freeze({source: 'earlier-query-selection'})},
     sources: f.sources, control: f.originalPreparation.control,
     originalPreparation: f.originalPreparation,
     retainOperation(value) {retained = value;},
@@ -472,4 +473,14 @@ test('original restored composed input cannot combine fresh and cold originals o
     assert.throws(() => openNodeInferOperation(options), /InvalidInferOriginalPreparation/u);
     assert.equal(f.calls.length, 0);
   }
+});
+
+
+test('a direct original operation still refuses simultaneous suffix issuers before claiming a read', () => {
+  const f = fixture();
+  assert.throws(() => openNodeInferOperation({...f.options,
+    computeSuffix: {}, bindComputeSuffix() {assert.fail('no suffix callback before refusal');}}),
+  {message: 'InvalidInferOriginalSuffixBinding'});
+  assert.equal(f.calls.length, 0);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), false);
 });
