@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, isAbsolute, join, relative, sep} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import './local-node-declared-exports.test.mjs';
 import './external-installed-helper-types.test.mjs';
@@ -197,3 +197,116 @@ test('external providers cannot import the Core-only source preparation export',
     await assert.rejects(inspectExternalLocalNodeAdapterGraph(inputs), /UndeclaredLocalNodeDependency/);
   }
 });
+
+// Execute the authored load and its actual local helper bodies. Public helper
+// imports are explicit ports here: this checks fixture wiring, not Common,
+// Account, Resource, transport or packed Host acceptance.
+async function externalFixtureLoader(role, ports) {
+  const {parse} = await import('acorn');
+  const directory = join(repository, 'scripts/fixtures/external-installed', `external-${role}`);
+  const source = readFileSync(join(directory,
+    `adapters/connectors/external_${role}/host/installation.mjs`), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const functions = tree.body.map(node => node.type === 'ExportNamedDeclaration'
+    ? node.declaration : node).filter(node => node?.type === 'FunctionDeclaration');
+  assert.equal(functions.filter(node => node.id.name === 'load').length, 1);
+  const values = {registration: `external_${role}`, revision: `external_${role}/0.1`,
+    operation: role === 'read' ? 'external_read:records:read' : 'external_effect:events:create',
+    origin: `https://external-${role}.fixture.invalid`, isAbsolute,
+    viewsUrl: pathToFileURL(join(directory, 'src/connectors/external_read/source-views.json')),
+    assets: pathToFileURL(join(directory, 'src/connectors/external_effect') + sep),
+    fail: code => {throw Object.assign(new Error(code), {code});},
+    text: value => typeof value === 'string' && value.length > 0,
+    exact: (value, keys) => value !== null && typeof value === 'object' &&
+      !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0'),
+    cid: () => 'sha256:' + 'd'.repeat(64), ...ports};
+  return Function(...Object.keys(values),
+    functions.map(node => source.slice(node.start, node.end)).join('\n') + '\nreturn load;')(
+    ...Object.values(values));
+}
+
+for (const role of ['read', 'effect']) {
+  test(`external ${role} fixture consumes its same bound construction original`, async () => {
+    const declared = Object.freeze({catalog_cid: 'sha256:' + 'a'.repeat(64)});
+    const declaration = Object.freeze({original: 'declaration'});
+    const environment = Object.freeze({wire: '{"original":"environment"}'});
+    const authorization = Object.freeze({context: Object.freeze({contextCid: 'sha256:' + 'b'.repeat(64)})});
+    const site = Object.freeze({credential: {}, callResource() {}, close() {return true;}});
+    const adapter = Object.freeze({original: `${role}-adapter`});
+    const mapping = Object.freeze({resource: 'events', target: 'events',
+      mappingRef: 'mapping:events.v1', mappingCid: 'sha256:' + 'c'.repeat(64), body: '{}'});
+    const specification = Object.freeze({resourceOrigin: `https://external-${role}.fixture.invalid`,
+      namespaceId: 'fixture', environment: 'fixture', siteKey: 'fixture', siteGeneration: 1,
+      credentialAuthorityId: 'fixture', credentialKeyId: 'fixture',
+      credentialPrivateKeyPath: '/fixture/key.pem', journalRoot: '/fixture/journal'});
+    const calls = [], legacy = [];
+    const prepared = Object.freeze({declaration, declared, environment});
+    const construction = Object.freeze({
+      configurationReader: Object.freeze({
+        async readOriginalText(url) {calls.push('original-text'); return readFileSync(url, 'utf8');},
+        async readJson(path, options) {
+          assert.equal(path, '/fixture/site.json'); assert.equal(options.maxBytes, 16384);
+          calls.push('original-site'); return specification;
+        },
+      }),
+      prepareAuthoredDeclaration(wire) {
+        assert.equal(JSON.parse(wire).views[0].resource, role === 'read' ? 'records' : 'events');
+        calls.push('declaration'); return prepared;
+      },
+      prepareMappings(wire, writes) {
+        assert.equal(typeof wire, 'string'); assert.equal(writes[0].resource, 'events');
+        assert.ok(Object.isFrozen(writes) && Object.isFrozen(writes[0]) &&
+          Object.isFrozen(writes[0].sources) && writes[0].sources.every(Object.isFrozen));
+        calls.push('mappings'); return Object.freeze({...prepared, mappings: Object.freeze([mapping])});
+      },
+      async openRowSite(options) {
+        assert.equal(options.profile, specification);
+        assert.equal(options.accountConfiguration, '{"original":"account"}');
+        calls.push('site'); return Object.freeze({site, authorization});
+      },
+      async createRowSource(options) {
+        assert.equal(typeof options.readPages, 'function');
+        for (const name of ['moon', 'declaration', 'declared', 'environmentWire', 'site', 'authorization']) {
+          assert.equal(Object.hasOwn(options, name), false, name);
+        }
+        calls.push('source'); return adapter;
+      },
+      async createRowEffect(options) {
+        assert.equal(options.driver.writeOperation(), 'external_effect:events:create');
+        for (const name of ['moon', 'environmentWire', 'site', 'authorization', 'mappings']) {
+          assert.equal(Object.hasOwn(options, name), false, name);
+        }
+        calls.push('effect'); return adapter;
+      },
+    });
+    const load = await externalFixtureLoader(role, {
+      checked: value => value, rowSourceCheckEnvironment: () => environment,
+      rowSourceMapping: () => mapping,
+      async readFile(path, encoding) {
+        if (typeof path === 'string') return Buffer.from(JSON.stringify(specification));
+        return readFileSync(path, encoding);
+      },
+      async installRowSourceAuthorization() {legacy.push('authorization'); return authorization;},
+      async openRowSourceCredentialSite() {legacy.push('site'); return site;},
+      async createInstalledRowSource() {legacy.push('source'); return {unbound: true};},
+      async createInstalledRowEffect() {legacy.push('effect'); return {unbound: true};},
+      async retainInstalledHostInitializationFailure(cause) {return cause;},
+    });
+    const result = await load({version: role === 'read'
+      ? 'actql-installed-external-read-source/0.1' : 'actql-installed-external-effect/0.1',
+      connectorId: 'fixture', accountConfigurationWire: '{"original":"account"}',
+      siteProfilePath: '/fixture/site.json'}, {
+      root: '/fixture', principalId: 'fixture', baseEnvironmentWire: '{}',
+      moon: {clientProgramRowSourceRestoreDeclaration: () => declaration,
+        clientProgramRowSourceDeclarationJson: () => JSON.stringify(declared)},
+      providerMoon: {externalReadRequestJson() {}, externalReadPageJson() {},
+        externalEffectRequestJson() {}, externalEffectObservationJson() {}},
+      runtimeBundleCid: 'sha256:' + 'e'.repeat(64), construction,
+    });
+    assert.equal(result, adapter, 'Return only the same bound constructor original');
+    assert.deepEqual(legacy, [], 'The installed loader supplies the construction owner');
+    assert.deepEqual(calls, role === 'read'
+      ? ['original-site', 'original-text', 'declaration', 'site', 'source']
+      : ['original-site', 'original-text', 'declaration', 'original-text', 'mappings', 'site', 'effect']);
+  });
+}
