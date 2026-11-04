@@ -76,7 +76,7 @@ import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication, sourceAliasPublicationOriginal,
   retireSourceAliasPublicationOriginal} from './source-alias-publication.mjs';
-import {installedModelEnvironment, readInstalledModelExecution,
+import {installedModelEnvironment, readInstalledModelExecution, consumeInstalledModelExecutionAbsence,
   readInstalledModelDependencies, installModelProviders,
   admitInstalledModelProvider, admitInstalledModelProviderBinding} from
   './installed-model.mjs';
@@ -898,8 +898,9 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
       model.occurrence, model.graph, model.selectedBounds, physical);
   } else {
     const sources = readInstalledMockPreparation(originals).sources;
-    if (sources.length !== 2 || typeof moon.clientProgramPrepareRequestModelCaptureModule !== 'function' ||
-        typeof model.control.prepareCheckedClientRequestModelCaptureModule !== 'function') {
+    if (sources.length !== 2 || model.selection?.graph !== model.graph || model.component !== undefined ||
+        typeof moon.clientProgramPrepareRequestModelComponentCaptureModule !== 'function' ||
+        typeof model.control.prepareCheckedClientRequestModelComponentCaptureModule !== 'function') {
       throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
     }
     const query = readInitialControlInstallationAsset(initialControl, originals,
@@ -909,10 +910,25 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     // Same fixed Mock document limits as its real original reader. These
     // supply demand to Core; no row, Source observation or ACK is fabricated.
     const documentBytes = Object.freeze([1048576n, 1048576n]);
-    run.preparedSequences = model.control.prepareCheckedClientRequestModelCaptureModule(
+    run.preparedSequences = model.control.prepareCheckedClientRequestModelComponentCaptureModule(
       parent, input, run.request, model.compiled, model.runDefinition, compilation,
       sources.map(value => value.declaration), query, evidence,
-      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation);
+      documentBytes, documentBytes, installed.admission, retainedRelationOutput, run.queryTimePreparation,
+      (_capacity, prefix, bindSuffix) => {
+        current();
+        if (model.component !== undefined || typeof bindSuffix !== 'function') {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        const component = openNodeComposedInferProvider({moon, selected: model.selection,
+          inputPrefix: prefix, bindComputeSuffix: bindSuffix, deferred: true});
+        if (run.closed || Object.hasOwn(run, 'failure') || run.model !== model ||
+            originals.installation.computeRuns?.get(run.prepared) !== run) {
+          throw clientOperationError('ForeignInstalledModelPreparation');
+        }
+        model.component = component;
+        current();
+        return component.provider;
+      });
     current();
     run.modelPlan = model.control.bindCheckedClientMockModelCapturePlan(run.preparedSequences,
       model.compiled, model.runDefinition, model.occurrence, model.graph, model.selectedBounds);
@@ -2843,6 +2859,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
     }
   };
+  const missingModelExecutionRefusals = new WeakSet();
   const prepareInferSelection = (preparedProgram, occurrence, retain = true) => {
     // The Effect compiler retains this exact graph for the saved admission.
     // Current account/egress callbacks are checked again by physical dispatch.
@@ -2889,12 +2906,16 @@ async function openInstalledHost(originalInstallation, preparation) {
             modelInstallation, occurrence, requestModelMaterials));
         } else execution = runtimeField(originalInfer, 2);
       } catch (cause) {
+        const absent = consumeInstalledModelExecutionAbsence(cause,
+          preparedProgram, modelInstallation, occurrence);
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
           code: cause.code, cause: cause.cause ?? cause,
           typedCause: cause.code === 'MoonBitHostFailure' ?
             moon.clientProgramInferModelExecutionIssueKind(cause.cause) :
             undefined});
-        throw clientOperationError('ClientProgramUnsupported', cause);
+        const error = clientOperationError('ClientProgramUnsupported', cause);
+        if (absent) missingModelExecutionRefusals.add(error);
+        throw error;
       }
       let dependencies;
       try {
@@ -3360,6 +3381,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
+    // Bind this SAME nominal Request before the immutable Model inventory can
+    // refuse. The failed path must not issue a replacement identity later.
+    const requested = originalSourceFreeRequest(preparedProgram, requestId);
     const inventory = moon.clientProgramComposedInferOccurrences(preparedProgram);
     const occurrences = runtimeIsOkRequired(inventory) ? runtimeField(inventory, 0) : [];
     if (occurrences.length > 1) {
@@ -3381,7 +3405,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     // graph. Keep its compiler-owned identity instead of falling back to the
     // legacy single-task step lookup, which would miss that Model boundary.
     } else prepareInferSelection(preparedProgram, occurrences[0]);
-    const requested = originalSourceFreeRequest(preparedProgram, requestId);
     const resultNames = [];
     for (let index = 0;
       index < moon.clientProgramResultCount(preparedProgram); index++) {
@@ -4433,7 +4456,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (selectedModel?.localMock) {
       const early = earlyMockInferPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
-      sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
+      managedSourceRun = sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
         control, early.plan, selectedModel,
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
     } else if (selectedModel !== undefined) {
@@ -4943,6 +4966,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           if (held !== undefined) held.managedRun = managedRun;
         }
       } catch (error) {
+        if (missingModelExecutionRefusals.has(error)) {
+          requested = sourceFreeRequestIdentities.get(submission.preparedProgram)?.requested;
+        }
         admissionFailures.set(submission, Object.freeze({error, requested,
           prepared: submission.preparedProgram, sourceRefusal}));
         throw error;
@@ -4953,6 +4979,21 @@ async function openInstalledHost(originalInstallation, preparation) {
       admissionFailures.delete(submission);
       if (original === undefined || original.error !== error ||
           original.prepared !== submission.preparedProgram) return false;
+      if (missingModelExecutionRefusals.has(error)) {
+        missingModelExecutionRefusals.delete(error);
+        const input = sourceFreeRequestIdentities.get(original.prepared);
+        if (input?.requested !== original.requested || input?.requestId !== submission.requestId ||
+            original.requested === undefined || inferSelections.has(original.prepared) ||
+            error.cleanupPending === true || error.cleanupHandle !== undefined) return false;
+        prepareSubmit.assertOwned(original.prepared);
+        if (prepareSubmit.kindOf(original.prepared) !== 'effect_free' ||
+            moon.clientProgramAcquisitionCount(original.prepared) !== 0 ||
+            moon.clientProgramSerializationOccurrences(original.prepared).length !== 0) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested);
+        if (journal.resolveDefinition(original.requested, {namespaceId}, moon, control) !== undefined) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, original.requested);
+        return true;
+      }
       const source = original.sourceRefusal;
       if (source !== undefined) {
         if (source.error !== error || source.requestId !== submission.requestId ||

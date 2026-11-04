@@ -3606,6 +3606,19 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, declarations, query, evidence,
         transport, scratch, contracts, retainedOutput, queryTime]));
     },
+    prepareCheckedClientRequestModelComponentCaptureModule(parent, input, request, compiled, definition, compilation,
+      declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      const prepare = moon.clientProgramPrepareRequestModelComponentCaptureModule;
+      if (typeof prepare !== 'function' || typeof construct !== 'function') {
+        throw new TypeError('Request Model component constructor unavailable');
+      }
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation,
+        declarations, query, evidence, transport, scratch, contracts, retainedOutput, queryTime, construct]));
+    },
     prepareCheckedClientRequestModelProviderCaptureModule(parent, input, request, compiled, definition, compilation,
       declaration, provider, query, evidence, transport, scratch, contracts, retainedOutput, queryTime) {
       const value = compiledRunTokens.get(compiled);
@@ -3924,6 +3937,20 @@ function publicationControl(moon) {
         occurrence, graph, prefix, inputs, provider, value, token(definition),
         consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
         modelExecutionBytes, sources));
+    },
+    startCheckedClientOriginalRestoredComposedInferExecution(compiled, definition,
+      occurrence, graph, prefix, provider, snapshot, custodyAvailable, savedScope,
+      consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+      modelExecutionBytes, referenceIssuer) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalRestoredComposedInferExecution(
+        occurrence, graph, prefix, provider, snapshot.binding, snapshot.descriptorWire,
+        snapshot.rows, custodyAvailable, savedScope, value, token(definition), consumer,
+        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes,
+        referenceIssuer));
     },
     // Reuse the original compiled/definition token domains. A public wrapper
     // object cannot be passed as a nominal MoonBit compiled Run or contract.
@@ -5003,6 +5030,13 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Effect computation Preview');
       }
       return admitted;
+    },
+    retainInstalledEffectRecoveredInputInventory(run, prepared, request, plan,
+      allowed, definition, invocation, preview) {
+      const admitted = computationPreviewTokens.get(preview);
+      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
+      return checked(moon.clientProgramInstalledEffectRecoveredInputInventoryRetain(
+        run, prepared, request, plan, allowed, definition, token(invocation), admitted));
     },
     effectComputationPreviewSemanticCid(preview) {
       const admitted = computationPreviewTokens.get(preview);

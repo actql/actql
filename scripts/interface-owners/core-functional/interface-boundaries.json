@@ -2358,7 +2358,8 @@
             "usageKeys/usageKeys/usageKeys",
             "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
             "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals"
+            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
+            "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory"
           ],
           "exports": [
             "contentCaptureControl",
@@ -3387,7 +3388,8 @@
             "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
             "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
             "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
-            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution"
+            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
+            "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution"
           ],
           "exports": [],
           "attributes": {
@@ -3399,6 +3401,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -3413,6 +3423,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -3423,6 +3441,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -3437,6 +3463,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -3447,6 +3481,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -3461,6 +3503,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -3471,6 +3521,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -3485,6 +3543,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -3495,6 +3561,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -3513,6 +3587,26 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
               }
             ]
           }
@@ -5058,7 +5152,8 @@
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule"
           ],
           "exports": [],
           "attributes": {
@@ -5128,6 +5223,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "identity": [
@@ -5162,6 +5261,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "ownership": [
@@ -5196,6 +5299,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "synchronization": [
@@ -5332,6 +5439,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_module.mbt",
+                "anchor": "pub fn[I] prepare_request_model_capture_module("
               }
             ],
             "extension": [
@@ -5408,6 +5523,18 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request Model constructs both actual query acquisitions only inside same Request module with original QueryTime'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source Mock retains its same deferred component when the current callback refuses'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
               }
             ]
           }
@@ -10893,6 +11020,27 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelComponentCaptureModule/init:prepareCheckedClientRequestModelComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
           "parameters": [
             "parent",
@@ -11810,6 +11958,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
+          "parameters": [
+            "run",
+            "prepared",
+            "request",
+            "plan",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
           "parameters": [
             "capturedRun"
@@ -12047,6 +12209,27 @@
             "readExecutionBytes",
             "modelRetainedBytes",
             "modelExecutionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "prefix",
+            "provider",
+            "snapshot",
+            "custodyAvailable",
+            "savedScope",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "referenceIssuer"
           ],
           "async": false
         },
@@ -14492,7 +14675,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4e2c6d3d8ba4eb1fc4fb2a305eeeddee9daebbd77469913c9f0066be9f2245e9"
+      "sha256": "297e547f159f22ec8a5f28a9c8fbb4f29ed4bb18990aaa640accd0d3dd00be58"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -15345,7 +15528,9 @@
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
             "withNodeInferResult/withNodeInferResult",
-            "openNodeInferOperation/operation/operation/owners/owners"
+            "openNodeInferOperation/operation/operation/owners/owners",
+            "openNodeComposedInferProvider/selectRead/selectRead",
+            "openNodeInferOperation/openNodeInferOperation#7"
           ],
           "exports": [
             "finishNodeInferOriginalReadScopes",
@@ -15383,6 +15568,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -15409,6 +15602,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -15435,6 +15636,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -15465,6 +15674,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -15487,6 +15704,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -15513,6 +15738,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -15535,6 +15768,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -15561,6 +15802,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -15583,6 +15832,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -15633,6 +15890,26 @@
               {
                 "path": "adapters/host-node/composed-infer-provider.test.mjs",
                 "anchor": "a generated Model provider selects its purpose before binding the same late Content generation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
               }
             ]
           }
@@ -16224,6 +16501,14 @@
           "async": false
         },
         {
+          "name": "openNodeComposedInferProvider/selectRead/selectRead",
+          "parameters": [
+            "preparation",
+            "restored"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation",
           "parameters": [
             "moon",
@@ -16252,6 +16537,7 @@
             "retainOperation",
             "ioNotification",
             "originalPreparation",
+            "restoredPreparation",
             "rawCaptureBinder",
             "serializedInput",
             "restoredReferenceIssuer",
@@ -16337,6 +16623,11 @@
         },
         {
           "name": "openNodeInferOperation/openNodeInferOperation#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/openNodeInferOperation#7",
           "parameters": [],
           "async": false
         },
@@ -17172,7 +17463,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fa444c9f9c55bb0a76076a9db33574fbfcaffaf29e4d607b2910a3e3c247c756"
+      "sha256": "0eab54ae242743d04483e34b99d93ff3afc4e36abe96a6107d3b93576161616e"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -18316,7 +18607,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "62d4db777f69677547674b917ac5063f1ac2d60281beefc6fd3ee7b4555ce5c4",
+      "sha256": "e57f4a05ae5bc0c3f4d2fd36d1ca827d9651ffceb5bf9f9c5e6a099d35cc777a",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -20531,13 +20822,14 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "e7f1da946186279ddcbb81dd4718647ee0d975b40b4216b6cf874f37af655077",
+      "sha256": "604a3e78446c7c918e2f3ae06c23383dae7f403c4e4181491d151f0fd2b09cf7",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
         "assertInstalledModelDefaultsAdoption",
         "assertInstalledModelDefaultsPreparation",
+        "consumeInstalledModelExecutionAbsence",
         "installModelProviders",
         "installedModelEnvironment",
         "prepareInstalledModelProviderDefaults",
@@ -20595,6 +20887,16 @@
           "name": "checkInstallation/checkInstallation",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "consumeInstalledModelExecutionAbsence",
+          "parameters": [
+            "error",
+            "prepared",
+            "installation",
+            "occurrence"
           ],
           "async": false
         },
@@ -20721,6 +21023,13 @@
           "name": "originalModelMaterialArrays",
           "parameters": [
             "installation"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalModelMaterialArrays/originalModelMaterialArrays",
+          "parameters": [
+            "entries"
           ],
           "async": false
         },
@@ -20998,7 +21307,9 @@
             "retainModelQuantityCapacity/retainModelQuantityCapacity/retainModelQuantityCapacity",
             "retainModelQuantityCapacity/retainModelQuantityCapacity#2",
             "retainProviderBindingOriginals",
-            "retainProviderBindingOriginals/retainProviderBindingOriginals"
+            "retainProviderBindingOriginals/retainProviderBindingOriginals",
+            "consumeInstalledModelExecutionAbsence",
+            "originalModelMaterialArrays/originalModelMaterialArrays"
           ],
           "exports": [
             "admitInstalledModelProvider",
@@ -21006,7 +21317,8 @@
             "installModelProviders",
             "installedModelEnvironment",
             "readInstalledModelDependencies",
-            "readInstalledModelExecution"
+            "readInstalledModelExecution",
+            "consumeInstalledModelExecutionAbsence"
           ],
           "attributes": {
             "responsibility": [
@@ -21649,7 +21961,8 @@
         "../host-common/runtime-result.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-selection.mjs",
-        "./installed-check-environment.mjs"
+        "./installed-check-environment.mjs",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -33134,7 +33447,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "d4df65e6f54d6455b38d6070cd040735b07d0042a854b4e32300a1740b2f5a1d",
+      "sha256": "c7e81d9601d600fd51e340c55e7d9b94f81cb6109d6f220008ced917f9abfef4",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -33254,6 +33567,10 @@
           "declaration": "retain_installed_effect_captured_input_inventory ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , inputs : @ strategy . CapturedEffectInputs , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
+          "name": "retain_installed_effect_control_row_inventory",
+          "declaration": "retain_installed_effect_control_row_inventory ( owner : ClientInstalledManagedRun , preparation : ClientInstalledManagedRunOriginal , admission : @ resources . PreparedRunAdmission [ ClientInstalledEffectManagedPlan ] , plan : ClientInstalledEffectManagedPlan , ledger : @ resources . Ledger , control : ClientEffectOperationControls , rows : Int , check_inventory : ( ) - > Result [ Unit , ClientInstalledManagedRunIssue ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "retain_installed_effect_operation_construction",
           "declaration": "retain_installed_effect_operation_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , member_index : Int , per_row : Bool , operation_index : Int , row_index : Int , operation : String , ) - > Result [ ClientInstalledEffectOperationBorrow , ClientInstalledManagedRunIssue , ]"
         },
@@ -33264,6 +33581,10 @@
         {
           "name": "retain_installed_effect_operation_controls_before_construction",
           "declaration": "retain_installed_effect_operation_controls_before_construction ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , ) - > Result [ ClientInstalledEffectManagedPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "retain_installed_effect_recovered_input_inventory",
+          "declaration": "retain_installed_effect_recovered_input_inventory ( owner : ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , expected_plan : ClientInstalledEffectManagedPlan , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "retire_installed_effect_operation",
@@ -33384,7 +33705,9 @@
             "retain_installed_effect_operation_controls_before_construction",
             "select_installed_effect_operation_controls",
             "select_installed_effect_operation_original",
-            "retain_installed_effect_captured_input_inventory"
+            "retain_installed_effect_captured_input_inventory",
+            "retain_installed_effect_control_row_inventory",
+            "retain_installed_effect_recovered_input_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -41441,7 +41764,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "390831c169a2f6b1db1b7b3801a78a9905724f343777ac3818c2900e681b2d95",
+      "sha256": "4794f2157135f478189a2b461c5b19cd3afcd0cf33101642c92b6245cd35cad6",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
@@ -41612,6 +41935,14 @@
               {
                 "path": "src/client_local_host/preparation_request_same_stage_model_js_wbtest.mbt",
                 "anchor": "same-stage acquired serialized Model preserves original capture module inputs"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"two Source singleton Model component keeps its backed original prefix and suffix before configuration\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"two Source singleton Model component refuses original current loss before its constructor\""
               }
             ]
           }
@@ -50760,7 +51091,8 @@
             "client_program_prepare_request_models_source_free_component_module",
             "client_program_prepare_request_models_source_free_plan",
             "client_program_request_model_direct_source_coordinates",
-            "client_request_models_plan_projection"
+            "client_request_models_plan_projection",
+            "client_program_prepare_request_model_component_capture_module"
           ],
           "exports": [],
           "attributes": {
@@ -50846,6 +51178,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "identity": [
@@ -50888,6 +51224,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "ownership": [
@@ -50930,6 +51270,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "synchronization": [
@@ -51098,6 +51442,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_module.mbt",
+                "anchor": "pub fn[I] prepare_request_model_capture_module("
               }
             ],
             "extension": [
@@ -51206,6 +51558,18 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request Model constructs both actual query acquisitions only inside same Request module with original QueryTime'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source Mock retains its same deferred component when the current callback refuses'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
               }
             ]
           }
@@ -51244,6 +51608,10 @@
         {
           "name": "client_program_installed_node_effect_model_demand_prepare",
           "declaration": "client_program_installed_node_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap_retained_bytes : Int64 , bootstrap_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_component_capture_module",
+          "declaration": "client_program_prepare_request_model_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_provider_capture_module",
@@ -51306,7 +51674,7 @@
           "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
-      "sha256": "2d01548dc73aa7e0f5b58a3c3a902ed152fafb92ea86a96990cd65957ba1477e"
+      "sha256": "5018096b3d94638d7e9f2d7c89471790516efefa9c3a38fe1d0bab7cb3e779af"
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_operation_bridge.mbt",
@@ -51432,7 +51800,8 @@
             "client_program_installed_effect_operation_control_construction_complete",
             "client_program_installed_effect_operation_controls_retain",
             "client_program_installed_effect_operation_input_begin",
-            "client_program_installed_effect_captured_input_inventory_retain"
+            "client_program_installed_effect_captured_input_inventory_retain",
+            "client_program_installed_effect_recovered_input_inventory_retain"
           ],
           "exports": [],
           "attributes": {
@@ -51676,7 +52045,7 @@
           }
         }
       ],
-      "sha256": "f8d7f5d34abf25a83e725e5df38a7b097bf0736b43f7e4af2e7dea1973a9ea88",
+      "sha256": "ed998acb11f210a4f04c40a0fcdc69572efd70cdb3fde7cecc96f94b5fa897cf",
       "operations": [
         {
           "name": "client_program_installed_effect_captured_input_inventory_retain",
@@ -51765,6 +52134,10 @@
         {
           "name": "client_program_installed_effect_operation_transfer_uncertain",
           "declaration": "client_program_installed_effect_operation_transfer_uncertain ( original : @ client_local_host . ClientInstalledEffectOperationBorrow , bytes : Int64 , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "client_program_installed_effect_recovered_input_inventory_retain",
+          "declaration": "client_program_installed_effect_recovered_input_inventory_retain ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , plan : @ client_local_host . ClientInstalledEffectManagedPlan , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , invocation : @ publication . PublicationContract , preview : @ publication . EffectPreviewIdentity , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_effect_response_buffer_construction_capacity",

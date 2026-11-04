@@ -7,15 +7,17 @@ import {DatabaseSync} from 'node:sqlite';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
-import {installedEffectIdentity, loadInstalledEffect, loadInstalledEffects,
+import {installedEffectIdentity, loadInstalledEffect as loadEffect,
   publishInstalledEffectProfile} from './installed-effect.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {installedUpdateTargets} from './installed-effect-inventory.mjs';
+import {installedInventoryComponent} from './fixtures/installed-inventory-component.fixture.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {createInstalledRowEffect, retainInstalledRowEffectAdapter,
   installedRowEffectOwnerBinding, validateInstalledUpdateOwnerSelections} from './installed-row-effect.mjs';
 import {installNodePublicSourcePreparation} from './public-source-preparation.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
@@ -33,6 +35,11 @@ const moon = await import(runtimeUrl.href);
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json',
   import.meta.url), 'utf8')).trimEnd();
 const version = 'actql-installed-update-target-fixture/0.1';
+// Authored publication metadata and row-owner ports test alias composition;
+// they do not qualify bound connector initialization or physical Provider IO.
+const loadInstalledEffect = (path, options) => options.loadMember(path, options);
+const loadInstalledEffects = (paths, options) => paths.length < 2
+  ? loadInstalledEffect(paths[0], options) : options.inventory.load('effect', paths, options);
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const alias = (name = 'crm.Account', targetRef = 'connector://crm/account') => ({name, targetRef});
 const seal = body => {
@@ -73,7 +80,13 @@ function adapter({connectorId = 'crm', count = 1} = {}) {
 
 async function fixture(t, installations = {main: adapter()}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-update-target-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
+  let inventory;
+  const originalRows = new Set();
+  t.after(async () => {
+    await inventory?.close();
+    for (const row of originalRows) await row.close();
+    await rm(root, {recursive: true, force: true});
+  });
   const counts = {loads: 0, publishes: 0, closes: 0, prepares: 0, credentials: 0};
   const checkedProfiles = [];
   const check = profile => {
@@ -94,6 +107,7 @@ async function fixture(t, installations = {main: adapter()}) {
         const body = JSON.parse(selected.environmentWire);
         const connectorId = body.mapping_contracts[0].target_ref.split('/')[2];
         const unavailable = () => { counts.prepares++; assert.fail('Publication cannot perform provider work'); };
+        let siteClosed = false;
         const row = await createInstalledRowEffect({moon, environmentWire: selected.environmentWire,
           connectorId, connectorRegistration: 'update_target_fixture',
           connectorRevision: selected.ownerRevision ?? 'update_target_fixture/0.1',
@@ -104,13 +118,14 @@ async function fixture(t, installations = {main: adapter()}) {
             mappingRef: mapping.mapping_ref, mappingCid: mapping.mapping_contract_cid,
             body: canonicalJson(mapping)})),
           site: {issueReadGrant: unavailable, issueEffectGrant: unavailable,
-            close() { counts.closes++; }},
+            close() { if (!siteClosed) {siteClosed = true; counts.closes++;} return true; }},
           authorization: {authorize: unavailable},
           driver: {kinds: ['update'], prepareRequest: unavailable, requestFacts: unavailable,
             writeOperation: unavailable, send: unavailable, project: unavailable,
             footprint: unavailable, targetRead: {operation: 'read'},
             observeTargets: unavailable, recoveryEntry: unavailable, recoverRequests: unavailable, requestCid: unavailable},
         });
+        originalRows.add(row);
         // Fault fixtures may deliberately present unowned metadata. Valid
         // fixtures retain the real row factory's private provenance.
         // The independent environment sealer sorts contracts by CID. Its
@@ -138,8 +153,25 @@ async function fixture(t, installations = {main: adapter()}) {
       ...(targets === undefined ? {} : {queryUpdateTargets: targets})}));
     return destination;
   };
+  const loadMember = async (path, captured, retain) => {
+    const before = new Set(originalRows);
+    try {
+      const value = await loadEffect(path, {...captured, installationServices: undefined});
+      retain?.(value);
+      return value;
+    } catch (cause) {
+      // This explicit component member owns the actual row factory result,
+      // including a malformed facade the production loader must not trust.
+      const acquired = [...originalRows].filter(row => !before.has(row));
+      assert.ok(acquired.length <= 1);
+      if (acquired.length) throw await retainInstalledHostInitializationFailure(cause,
+        {installedEffect: acquired[0]});
+      throw cause;
+    }
+  };
+  inventory = installedInventoryComponent({}, originalRows, loadMember);
   const options = {root, principalId: 'fixture', moon, runtimeUrl, connectorTable,
-    baseEnvironmentWire: baseWire,
+    baseEnvironmentWire: baseWire, loadMember, inventory,
     resolveSecret() { counts.credentials++; assert.fail('Installation cannot read credentials'); }};
   return {root, path, options, counts, checkedProfiles};
 }
@@ -348,9 +380,9 @@ test('actual JSON UPDATE preparation retains the installed selection in its orig
     const environment = admitted(installed.environmentWire);
     const publication = sourceAliasPublication(moon, environment, [], [],
       {updateTargets: installed.queryUpdateTargets});
-    const prepare = installNodeClientProgramPreparation({moon, environment,
+    const prepare = await fundedClientPreparation(t, {moon, environment,
       allowEffects: true, sourcePublication: publication});
-    const prepared = prepare({kind: 'program', parameters: null, input: {
+    const prepared = await prepare({kind: 'program', parameters: null, input: {
       version: 'actql/0.1', id: 'json-update-original', stages: [{id: 'apply', inputs: {},
         steps: [{values: {schema: {id: {type: 'string', nullable: false},
           name: {type: 'string', nullable: false}}, rows: [{id: 'original-id', name: 'Ada'}]},
@@ -395,7 +427,7 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
     const environment = admitted(installed.environmentWire);
     const publication = sourceAliasPublication(moon, environment, [], [],
       {updateTargets: installed.queryUpdateTargets});
-    const prepare = installNodeClientProgramPreparation({moon, environment,
+    const prepare = await fundedClientPreparation(t, {moon, environment,
       allowEffects: true, sourcePublication: publication});
     const document = structuredClone(program);
     document.stages[0].steps[0].values.schema.text.nullable = false;
@@ -412,7 +444,7 @@ test('actual JSON Model UPDATE acceptance saves and restores both originals in t
     document.results = {updates: {from: {stage: 'main', result: 'rows'}}};
     // Match public startSource(..., {format: 'json'}), not the separate
     // object-Program convenience route. Both must reach the same Effect Owner.
-    const prepared = prepare({kind: 'aql', parameters: null,
+    const prepared = await prepare({kind: 'aql', parameters: null,
       input: {text: JSON.stringify(document), format: 'json'}});
     assert.equal(prepare.kindOf(prepared), 'effectful');
     const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
@@ -832,7 +864,7 @@ test('update metadata cannot bypass a missing or refusing common validator', () 
     {updateTargets: [{...alias(), installationBindingCid: cid('c'), installationOwnerCid: ownerCid}]});
   for (const validator of [undefined, () => false]) {
     assert.throws(() => installNodePublicSourcePreparation({
-      moon: {...moon, clientProgramSourcePublicationValid: validator}, environment, publication}),
+      moon: {...moon, clientProgramPublicSourceEnvironmentMatches: validator}, environment, publication}),
     {message: 'InvalidPublicSourcePublication'});
   }
 });

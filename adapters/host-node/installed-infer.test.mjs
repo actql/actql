@@ -20,6 +20,24 @@ import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {loadPrivateEvidenceKey} from './local-continuation-evidence.mjs';
 
+// Publish Model declarations under the SAME explicit operator policy as the
+// Host. The ordinary Local default now selects its own nominal row ceiling;
+// these fixtures retain their original spec policy and business assertions.
+const fixtureHostCapacityPolicy = Object.freeze(JSON.parse(await readFile(new URL(
+  '../../spec/local-check-environment.json', import.meta.url), 'utf8')).host_policy_profile.capacity);
+
+function retainModelFixtureOriginals(installation) {
+  // Freeze the same authored entries after each case finishes its mutations.
+  // An absent optional inventory stays empty, never a fabricated contract.
+  installation.executionContracts ??= [];
+  installation.dependencyBodies ??= [];
+  for (const entries of [installation.executionContracts, installation.dependencyBodies]) {
+    for (const entry of entries) Object.freeze(entry);
+    Object.freeze(entries);
+  }
+  return Object.freeze(installation);
+}
+
 const oneRowInfer = (objectProjection = false, keep = false) => {
   const program = {version: 'actql/0.1', id: 'installed-infer',
   stages: [{id: 'main', inputs: {}, steps: [
@@ -121,6 +139,7 @@ function assertPreparationRefusal(error, kind, code) {
 
 async function installedHost(t, options = {}) {
   const {initializeRoot, ...hostOptions} = options;
+  if (hostOptions.modelInstallation !== undefined) retainModelFixtureOriginals(hostOptions.modelInstallation);
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-infer-'));
   const priorCertificates = getCACertificates('default');
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
@@ -138,7 +157,9 @@ async function installedHost(t, options = {}) {
       await host?.close();
     } finally {
       setDefaultCACertificates(priorCertificates);
-      await rm(root, {recursive: true, force: true});
+      if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+        await rm(root, {recursive: true, force: true});
+      }
     }
   });
   const certificate = await readFile(join(root, 'host.crt'));
@@ -148,6 +169,7 @@ async function installedHost(t, options = {}) {
     await initializeRoot?.(join(root, 'state'));
     host = await openInstalledRemoteHttpHost({directory: join(root, 'state'),
       authenticate: () => userInfo().username,
+      hostCapacityPolicy: fixtureHostCapacityPolicy,
       beforeDispatch: () => { physicalStarts++; }, ...hostOptions});
   } catch (cause) {
     t.diagnostic(inspect(cause, {depth: 4}));
@@ -201,7 +223,9 @@ test('installed ModelTask reaches normal public preparation but cannot bypass mi
         })});
     await assert.rejects(client.start(oneRowInfer(),
       {submissionRef: client.newSubmission({nonce: 'infer-installed'})}),
-      error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+      // The original empty execution inventory refuses before the Journal
+      // retains a preparing intent; the existing service law is not_accepted.
+      error => assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported'));
     assert.equal(observations.length, 1);
     assert.equal(observations[0].boundary, 'model_execution');
     assert.equal(observations[0].code,
@@ -440,6 +464,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           import {openInstalledRemoteHttpHost} from ${JSON.stringify(new URL('./embedded-local.mjs', import.meta.url).href)};
           const input = JSON.parse(readFileSync(0, 'utf8'));
           const {directory, installation, taskCid, authorization, boundary} = input;
+          const retainModelFixtureOriginals = ${retainModelFixtureOriginals.toString()};
+          retainModelFixtureOriginals(installation);
           const {providerBindingOriginals} = await import(${JSON.stringify(new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href)});
           const checked = ${checked.toString()};
           const oneRowInfer = ${oneRowInfer.toString()};
@@ -455,6 +481,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           };
           const host = await openInstalledRemoteHttpHost({directory,
             authenticate: () => userInfo().username, authorization,
+            hostCapacityPolicy: ${JSON.stringify(fixtureHostCapacityPolicy)},
             modelInstallation: installation, registerModelProviders});
           const certificate = readFileSync(join(dirname(directory), 'host.crt'));
           setDefaultCACertificates([certificate.toString()]);

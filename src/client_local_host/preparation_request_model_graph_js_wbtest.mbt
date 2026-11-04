@@ -587,16 +587,18 @@ priv struct RequestSerializedModelFixture {
 fn request_serialized_model_fixture(
   current? : () -> Bool = () => true,
   single_capture? : Bool = false,
+  two_captures? : Bool = false,
   serialized? : Bool = true,
   nonterminal? : Bool = false,
 ) -> RequestSerializedModelFixture raise {
-  let declaration = if single_capture {
+  let declaration = if single_capture || two_captures {
     Some(request_model_module_declaration())
   } else {
     None
   }
   let (parent, input, prepared) = request_model_input_fixture(
     with_serialization=serialized,
+    captured=two_captures,
     single_capture~,
     nonterminal~,
     current~,
@@ -2196,6 +2198,142 @@ test "plain Model component factory receives the already backed original input b
   assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
   abort_request_preparation_after_cleanup(f.parent).unwrap()
   assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+}
+
+///|
+test "two Source singleton Model component keeps its backed original prefix and suffix before configuration" {
+  for nonterminal in [false, true] {
+    let f = request_serialized_model_fixture(
+      two_captures=true,
+      serialized=false,
+      nonterminal~,
+    )
+    let before = @resources.preparation_capacity_working_extents(
+      f.parent.program_capacity.unwrap(),
+      f.input,
+    ).unwrap()
+    let segments = if nonterminal { 2 } else { 1 }
+    let containers = request_model_module_container_bytes(
+      @strategy.graph_task_count(
+        @publication_host.prepared_client_graph(f.prepared),
+      ),
+      2,
+      1,
+      input_segments=segments,
+      model_components=1,
+    ).unwrap()
+    let protocols = request_model_material_body_bytes(2, index => {
+      if index == 0 {
+        original_row_query_contract_fixture
+      } else {
+        original_row_evidence_contract_fixture
+      }
+    }).unwrap()
+    let queries = request_local_query_construction_bytes().unwrap() * 2L
+    let inputs = program_check_data_extent_cost(f.parent.program_data.unwrap()).unwrap() *
+      segments.to_int64()
+    let required = containers + protocols + queries + inputs
+    let calls = Ref(0)
+    let backed = Ref(false)
+    let prefix : Ref[@execution.GeneratedSequence?] = Ref(None)
+    let suffix : Ref[@execution.GeneratedSequence?] = Ref(None)
+    let original = prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap(), f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L, 4096L],
+      [2048L, 2048L],
+      f.contracts,
+      true,
+      1,
+      _ => [],
+      component_factory=Some((capacity, original_prefix, original_suffix) => {
+        let current = @resources.preparation_capacity_working_extents(
+          f.parent.program_capacity.unwrap(),
+          f.input,
+        ).unwrap()
+        backed.val = current.0 >= before.0 + required &&
+          current.1 >= before.1 + required
+        calls.val += 1
+        prefix.val = Some(original_prefix)
+        suffix.val = original_suffix
+        @local.managed_provider(_ => false, _ => Some(capacity), (_, _, _, _, _) => {
+          Err(@connector.ComputeUnsupported)
+        })
+      }),
+    ).unwrap()
+    assert_eq(calls.val, 1)
+    assert_true(backed.val)
+    assert_eq(original.captures.length(), 2)
+    assert_true(physical_equal(f.parent.program_captured.unwrap(), original))
+    assert_true(
+      prefix.val is Some(value) &&
+      physical_equal(value, original.model_input_prefix.unwrap()),
+    )
+    if nonterminal {
+      assert_true(
+        suffix.val is Some(value) &&
+        physical_equal(value, original.model_input_suffix.unwrap()),
+      )
+    } else {
+      assert_true(suffix.val is None && original.model_input_suffix is None)
+    }
+    assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+    abort_request_preparation_after_cleanup(f.parent).unwrap()
+    assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+    assert_eq(@resources.ledger_usage(f.parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "two Source singleton Model component refuses original current loss before its constructor" {
+  let current = Ref(true)
+  let f = request_serialized_model_fixture(
+    two_captures=true,
+    serialized=false,
+    current=() => current.val,
+  )
+  let calls = Ref(0)
+  current.val = false
+  assert_true(
+    prepare_request_model_capture_module(
+      f.parent,
+      f.input,
+      f.request,
+      f.compiled,
+      f.definition,
+      f.compilation,
+      [f.declaration.unwrap(), f.declaration.unwrap()],
+      original_row_query_contract_fixture,
+      original_row_evidence_contract_fixture,
+      [4096L, 4096L],
+      [2048L, 2048L],
+      f.contracts,
+      true,
+      1,
+      _ => [],
+      component_factory=Some((capacity, _, _) => {
+        calls.val += 1
+        @local.managed_provider(_ => false, _ => Some(capacity), (_, _, _, _, _) => {
+          Err(@connector.ComputeUnsupported)
+        })
+      }),
+    )
+    is Err(Preparation(Capacity(_))),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(f.parent.program_captured is None)
+  current.val = true
+  assert_false(@resources.return_preparation_body_borrow(f.holder).unwrap())
+  abort_request_preparation_after_cleanup(f.parent).unwrap()
+  assert_eq(@resources.ledger_usage(f.parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(f.parent.ledger).held_bytes, 0L)
 }
 
 ///|

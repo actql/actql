@@ -565,7 +565,8 @@ pub fn[I] prepare_request_model_capture_module(
           installed_providers,
           query_time,
           provider_captures=if providers is Some(_) { count } else { 0 },
-          component_inputs=components_factory is Some(_),
+          component_inputs=component_factory is Some(_) ||
+            components_factory is Some(_),
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
@@ -589,7 +590,7 @@ pub fn[I] prepare_request_model_capture_module(
       }
       let model = compilation.infers[0]
       let input_calls = if components_factory is None &&
-        count == 1 &&
+        (count == 1 || component_factory is Some(_)) &&
         model.serialization is None {
         if @publication_host.client_infer_occurrence_terminal(model.occurrence) {
           1L

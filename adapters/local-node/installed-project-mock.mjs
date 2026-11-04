@@ -223,12 +223,13 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           record.model?.runDefinition !== plan.runDefinition || record.model?.graph !== selection.graph ||
           record.model?.control !== control || record.model.closed) fail('ForeignInstalledModelPreparation');
       sameRun(prepared);
-      return;
+      return record.value;
     }
     if (typeof prepareRequestModel !== 'function') fail('InstalledMockModelOperationalAdmissionUnavailable');
     if (records.size === 4096) fail('InstalledMockRunLimit');
     const model = {control, compiled: plan.compiled, runDefinition: plan.runDefinition,
-      graph: selection.graph, occurrence: selection.occurrence, queryTimePreparation: plan.queryTimePreparation,
+      graph: selection.graph, occurrence: selection.occurrence, selection, component: undefined,
+      queryTimePreparation: plan.queryTimePreparation,
       scope: undefined, publicationCapacity, releaseAliases() {
         if (this !== model) fail('ForeignInstalledModelPreparation');
         if (record.aliasesReleased) return;
@@ -249,6 +250,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       const run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
       record.original = run.original; record.value = run.value; record.preparationFunded = true;
       sameRun(prepared);
+      return record.value;
     } catch (cause) {record.failure = cause; throw cause;}
   }
   function modelPreparation(prepared, plan) {
@@ -260,10 +262,34 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       if (model.closed || typeof model.publicationCapacity !== 'function') fail('HostResultPublicationUnavailable');
       return model.publicationCapacity();
     };
-    return Object.freeze({control: model.control, compiled: model.compiled,
+    return Object.freeze({control: model.control, compiled: model.compiled, selection: model.selection,
+      component: model.component,
       runDefinition: model.runDefinition, scope: model.scope, publicationCapacity,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
+      prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {
+        sameRun(prepared);
+        if (!run.requestOwned || model.closed || model.scopeFinished || model.taken || model.readAttempted ||
+            !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(prepared) ||
+            capacities.length < 1 || capacities.length > 2 ||
+            capacities.some(value => value?.managedRun !== run.value)) fail('InvalidInstalledMockModelPreparation');
+        if (model.sourceLedgerAttempted) {
+          if (Object.hasOwn(model, 'sourceLedgerFailure')) throw model.sourceLedgerFailure;
+          fail('InstalledModelSourceLedgerAlreadyBorrowed');
+        }
+        const original = run.value, request = run.request;
+        model.sourceLedgerAttempted = true;
+        try {
+          const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(original,
+            prepared, request, capacities.map(value => value.capacity),
+            capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
+            registry, values, fragment, ordered));
+          if (sameRun(prepared) !== run || run.model !== model || run.value !== original ||
+              run.request !== request || model.closed || model.scopeFinished) fail('ForeignInstalledModelPreparation');
+          model.sourceLedger = ledger;
+          return ledger;
+        } catch (cause) {model.sourceLedgerFailure = cause; throw cause;}
+      },
       retain() {
         if (model.closed || model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.taken = true;
@@ -280,6 +306,16 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
           run.value, prepared, run.request, registry, values, fragment, ordered, providers));
       },
+      ...(moon.clientProgramAcquisitionCount(prepared) === 0 ? {} : {openCapturedHost(captures) {
+        sameRun(prepared);
+        if (!run.requestOwned || run.effectful || run.retired || model.closed || !model.taken ||
+            model.hostAttempted || !Array.isArray(captures) || captures.length !== 2 ||
+            moon.clientProgramAcquisitionCount(prepared) !== captures.length ||
+            typeof model.component?.bindOriginal !== 'function') fail('InstalledComposedInferHostUnavailable');
+        model.hostAttempted = true;
+        return checked(moon.clientProgramOpenInstalledManagedCaptureHost(run.value, prepared, run.request,
+          captures.map(value => value.capture.source())));
+      }}),
       prepareRead() {
         // The Scope predates all Sources. Its descriptor/read snapshots the
         // same Ledger only when Local hands the actual prefix inputs to the
@@ -560,12 +596,13 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedOwner)
             : moon.clientProgramAcquisitionCount(checkedOwner);
           const shared = effectRuns.get(checkedOwner)?.deref() === run;
+          const planned = shared || run.requestOwned;
           const reads = shared ? run.mockSourceReads ??= [] : run.reads;
           if (effectful !== (run.preparationKind === 'effect-plan' || run.effectful === true) || selected !== declaration ||
               !['stage', 'input', 'task'].every(name => Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
               reads.length >= count || reads.some(read => read !== undefined &&
                 ['stage', 'input', 'task'].every(name => read.occurrence[name] === occurrence[name])) ||
-              shared && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
+              planned && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
           if (shared) {
             if (run.releaseMockSourceAliases !== undefined &&
                 run.releaseMockSourceAliases !== releaseEffectSourceAliases) fail('InstalledSourcePreparationMismatch');
@@ -583,7 +620,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             fail('InstalledMockSourceUnavailable');
           }
           sourceManaged.assertCurrent();
-          read.value = shared ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceReadAt(
+          read.value = planned ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceReadAt(
             run.value, occurrence.stage, occurrence.input, occurrence.task));
           originalReads.set(read.value, {run, read});
           return read.value;

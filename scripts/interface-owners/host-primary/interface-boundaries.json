@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "2c696447e94caffc250ec8eceae14e9f8dc300db2a47ceb39d3cf617c82c010a",
+      "sha256": "159397704850e990f871a494f419eca438ce1075351a2c30881c154c22729b70",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -17618,7 +17618,8 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
             "prepareRequestMockModelPlan/retainBoundsAndBudget",
             "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget",
-            "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget#2"
+            "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget#2",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12"
           ],
           "exports": [],
           "attributes": {
@@ -17704,6 +17705,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "identity": [
@@ -17746,6 +17751,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "ownership": [
@@ -17788,6 +17797,10 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
               }
             ],
             "synchronization": [
@@ -17956,6 +17969,14 @@
               {
                 "path": "docs/design/infer-physical-observation.md",
                 "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
+                "anchor": "pub fn client_program_prepare_request_model_component_capture_module("
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_module.mbt",
+                "anchor": "pub fn[I] prepare_request_model_capture_module("
               }
             ],
             "extension": [
@@ -18052,6 +18073,18 @@
               {
                 "anchor": "## Verification",
                 "path": "adapters/host-node/installed-funded-environment.md"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request Model constructs both actual query acquisitions only inside same Request module with original QueryTime'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source Mock retains its same deferred component when the current callback refuses'"
+              },
+              {
+                "path": "adapters/host-node/request-model-plan.test.mjs",
+                "anchor": "test('Request two-Source component facade forwards originals and rejects copied compiler or Definition'"
               }
             ]
           }
@@ -21698,6 +21731,15 @@
           "async": false
         },
         {
+          "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
+          "parameters": [
+            "_capacity",
+            "prefix",
+            "bindSuffix"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareRequestMockModelPlan/prepareRequestMockModelPlan#2",
           "parameters": [
             "source"
@@ -22240,7 +22282,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "568fdb172af0aca67fbd6c3e791b69ac43249a609a6d7d46490ec412a53b3fd5"
+      "sha256": "5120d1821440b6bd6e4f76d790a52df754653b11f9ac7df9d9dd2b434ed46ea5"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

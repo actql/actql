@@ -1471,3 +1471,44 @@ test('control retirement waits for the same recovered request body and its actua
   assert.equal(f.work.retire(),true);assert.equal(calls,2);
   assert.throws(()=>f.work(undefined,()=>{},[]),{code:'InstalledEffectControlConstructionRetired'});
 });
+
+test('recovered Effect inventory keeps original Run tuple before entering any constructor', () => {
+  const f = controlWorkFixture(), allowed = {}, definition = {}, invocation = {}, preview = {};
+  const control = {retainInstalledEffectRecoveredInputInventory(...args) {
+    assert.strictEqual(this, control);
+    assert.deepEqual(args, [f.run.value, f.run.prepared, f.run.request,
+      f.run.operationPlan, allowed, definition, invocation, preview]);
+    for (const [index, original] of [f.run.value, f.run.prepared, f.run.request,
+      f.run.operationPlan, allowed, definition, invocation, preview].entries()) {
+      assert.strictEqual(args[index], original);
+    }
+    assert.throws(() => f.work.retainRecoveredInputs(control, allowed, definition, invocation, preview),
+      {code: 'InstalledEffectControlConstructionPending'});
+    assert.deepEqual(f.events, [], 'inventory precedes construction Begin');
+  }};
+  f.work.retainRecoveredInputs(control, allowed, definition, invocation, preview);
+  assert.equal(f.run.selecting, false);
+  assert.deepEqual(f.events, []);
+  assert.equal(f.work.retire(), true);
+});
+
+test('recovered Effect inventory keeps original refusal and post-current replacement sticky', () => {
+  for (const mode of ['throw undefined', 'replace Plan']) {
+    const f = controlWorkFixture(); let calls = 0;
+    const control = {retainInstalledEffectRecoveredInputInventory() {
+      calls++;
+      if (mode === 'throw undefined') throw undefined;
+      f.run.operationPlan = {};
+    }};
+    let caught = false, original;
+    try { f.work.retainRecoveredInputs(control, {}, {}, {}, {}); }
+    catch (cause) { caught = true; original = cause; }
+    assert(caught);
+    if (mode === 'throw undefined') assert.strictEqual(original, undefined);
+    else assert.equal(original.code, 'ForeignInstalledEffectManagedRun');
+    assert.throws(() => f.work({}, () => assert.fail('no constructor after failed inventory'), []),
+      cause => cause === original);
+    assert.equal(calls, 1);
+    assert.deepEqual(f.events, []);
+  }
+});

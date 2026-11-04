@@ -54,6 +54,51 @@ pub fn client_program_check_original_composed_infer_preparation(
 }
 
 ///|
+/// Reattach authenticated saved input to the same original Model consumer.
+/// The saved scope is checked by the existing Core owner before input starts.
+#export_name("clientProgramStartOriginalRestoredComposedInferExecution")
+pub fn client_program_start_original_restored_composed_infer_execution(
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  prefix : @execution.GeneratedSequence,
+  provider : @model.ModelProvider,
+  binding : String,
+  descriptor_wire : String,
+  rows : Array[String],
+  custody_available : () -> Bool,
+  saved_scope : @publication_host.ClientInferSavedCallScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+  reference_issuer : @admitted.ReferenceIssuer?,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_original_restored_composed(
+    occurrence,
+    graph,
+    prefix,
+    provider,
+    binding,
+    descriptor_wire,
+    rows,
+    custody_available,
+    saved_scope,
+    @infer_host.standard_limits(),
+    compiled,
+    definition,
+    consumer,
+    read_retained_bytes,
+    read_execution_bytes,
+    model_retained_bytes,
+    model_execution_bytes,
+    reference_issuer?,
+  )
+}
+
+///|
 /// Thin same-Owner composed input connection. The actual installation supplies
 /// the original consumer and complete overlap; this entry issues no resources,
 /// Model IO access, Account permission or dispatch admission.

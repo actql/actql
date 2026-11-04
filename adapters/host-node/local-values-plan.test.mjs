@@ -13,8 +13,7 @@ import * as runtime from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {installNodeClientProgramPreparation} from
-  './client-program-preparation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {sourceFreeValuesPlan, sourceFreeTaskPlan, sourceFreePlanExecutionOwner,
   acquiredTaskRunAdmission} from
   './local-values-plan.mjs';
@@ -142,6 +141,13 @@ for (const kind of ['values', 'tasks']) {
   executable.plan_facts = executable.resolved_limits.map(value => ({kind: 'resolved_limit', value}));
   executable.plan_fact_manifest_cid = hash({version: 'actql-plan-fact-manifest/0.1',
     plan_facts: executable.plan_facts});
+  const currentEnvironment = JSON.parse(await read(kind === 'tasks'
+    ? './fixtures/query-amount-environment.json'
+    : '../../packages/sdk/fixtures/values.environment.json'));
+  const {evidence_bundle_cid: environmentCid, ...environmentBody} = currentEnvironment;
+  assert.equal(environmentCid, hash(environmentBody));
+  template.check_environment_cid = environmentCid;
+  executable.execution_material.check_environment_cid = environmentCid;
   template.grammar_manifest_cid = grammar.grammar_manifest_cid;
   template.barrier_contract_manifest_cid = barriers.barrier_contract_manifest_cid;
   executable.execution_material.barrier_contract_manifest_cid = barriers.barrier_contract_manifest_cid;
@@ -158,7 +164,7 @@ const policy = Object.freeze({executionContextCid: cid('a'),
   hostPolicyCid: cid('b'), expiresAt: '2027-01-01T00:00:00.000Z'});
 
 test('source-free task profile issues through the compiled Run owner',
-  async () => {
+  async t => {
     const document = await read('../../packages/sdk/fixtures/values.json');
     const environmentWire = await read(
       '../../packages/sdk/fixtures/values.environment.json');
@@ -167,9 +173,8 @@ test('source-free task profile issues through the compiled Run owner',
       canonicalText(environmentBody), environmentBody.evidence_bundle_cid,
       false, false, true, false, false, false, false);
     assert.ok(environment);
-    const prepare = installNodeClientProgramPreparation({moon: runtime,
-      environment});
-    const preparedProgram = prepare({kind: 'aql', input: {
+    const prepare = await fundedClientPreparation(t, {moon: runtime, environment});
+    const preparedProgram = await prepare({kind: 'aql', input: {
       text: document, format: 'json'}, parameters: null});
     const control = runtimeCore(runtime).publicationControl;
     const plan = sourceFreeTaskPlan({moon: runtime, control, publicationOriginal: publicationOriginalFixture(runtime, preparedProgram),
@@ -198,7 +203,7 @@ test('source-free task profile issues through the compiled Run owner',
 
 for (const kind of ['values', 'tasks']) {
   test(`Local ${kind} prepares and compiles once with exact owner custody`,
-    async () => {
+    async t => {
       const acquired = kind === 'tasks';
       const environmentWire = await read(acquired
         ? './fixtures/query-amount-environment.json'
@@ -210,9 +215,9 @@ for (const kind of ['values', 'tasks']) {
         '../connectors/duckdb/node/examples/parameters.json')) : null;
       const calls = {prepare: 0, values: 0, tasks: 0};
       const moon = {...runtime,
-        clientProgramPrepareEffectFreeWithParameters(...args) {
+        clientProgramPrepareRequestSourceComputation(...args) {
           calls.prepare++;
-          return runtime.clientProgramPrepareEffectFreeWithParameters(...args);
+          return runtime.clientProgramPrepareRequestSourceComputation(...args);
         },
         clientProgramCompileLocalValues(...args) {
           calls.values++;
@@ -228,10 +233,10 @@ for (const kind of ['values', 'tasks']) {
         JSON.parse(environmentWire).evidence_bundle_cid,
         false, false, true, false, false, false, false);
       assert.ok(environment);
-      const prepare = installNodeClientProgramPreparation({moon, environment});
+      const prepare = await fundedClientPreparation(t, {moon, environment});
       const request = {kind: 'aql', input: {text: document, format: 'json'},
         parameters};
-      const preparedProgram = prepare(request);
+      const preparedProgram = await prepare(request);
       prepare.assertOwned(preparedProgram);
       const control = runtimeCore(moon).publicationControl;
       const plan = (acquired ? acquiredTaskRunAdmission : sourceFreeValuesPlan)({
@@ -245,9 +250,8 @@ for (const kind of ['values', 'tasks']) {
       assert.deepEqual(calls,
         {prepare: 1, values: acquired ? 0 : 1, tasks: acquired ? 1 : 0});
 
-      const otherInstallation = installNodeClientProgramPreparation({moon,
-        environment});
-      const foreign = otherInstallation(request);
+      const otherInstallation = await fundedClientPreparation(t, {moon, environment});
+      const foreign = await otherInstallation(request);
       assert.throws(() => prepare.assertOwned(foreign),
         /Foreign Client preparation/);
       assert.throws(() => prepare.assertOwned({...preparedProgram}),

@@ -71773,7 +71773,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "6e743a06f03b5af763a412d3ec2663e4b01b5ba989c9662e616ec62dd4136b38",
+      "sha256": "476cdd3a3db4475a37afc93fac616bdc5bfb902f2b55f1052ffd7a3e6e583d41",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -72087,6 +72087,20 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectMockSources/modelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
           "parameters": [
             "registry",
@@ -72094,6 +72108,45 @@
             "fragment",
             "ordered",
             "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+          "parameters": [
+            "capacities",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -72752,7 +72805,14 @@
             "installPreparedProjectMockSources/modelPreparation/init:retain/init:retain",
             "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
             "installPreparedProjectMockSources/prepareManagedMockModelRun",
-            "installPreparedProjectMockSources/retireModelRead"
+            "installPreparedProjectMockSources/retireModelRead",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
+            "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
+            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost"
           ],
           "exports": [],
           "attributes": {
@@ -72778,6 +72838,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
               }
             ],
             "identity": [
@@ -72788,6 +72856,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
               }
             ],
             "ownership": [
@@ -72802,6 +72878,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
               }
             ],
             "synchronization": [
@@ -72812,6 +72896,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "failure": [
@@ -72826,6 +72914,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
               }
             ],
             "cancellation": [
@@ -72850,6 +72942,22 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
+                "anchor": "pub fn client_program_installed_managed_run_prepare_ledger("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "openCapturedHost(captures) {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_module.mbt",
+                "anchor": "pub fn[I] prepare_request_model_capture_module("
               }
             ],
             "extension": [
@@ -72878,6 +72986,22 @@
               {
                 "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
                 "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock Model dispatch uses the same adopted parent and one original two-Source Ledger'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock Model Ledger refuses a foreign Source and retains post-callback retirement without reborrowing'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock submit retains the actual returned parent for its existing dispatch comparison'"
+              },
+              {
+                "path": "adapters/host-node/request-model-source-ledger.test.mjs",
+                "anchor": "test('Mock captured Model opens only its retained Plan after the original Scope is retained'"
               }
             ]
           }
@@ -110049,7 +110173,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "8ca4bdc773dda45927f69ec06a082f0bd48cd3e4a0c47967c852fdeb174589fc",
+      "sha256": "31aab7b88af609592badd36d50c85d3dd9a731c52e361fcad4b748b82eef09c8",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
@@ -125812,7 +125936,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "b7d5c9f86683aaefb319e128ac7f94de428f1fdebaab65180c9c202ff6f58dba",
+      "sha256": "96884e66a514a08d83b2cf970d85549cea80498b30fb222549b50e7ce2464d22",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -125901,8 +126025,15 @@
           "async": false
         },
         {
-          "name": "installedEffectModelPreparation/view/init:prepareRead/init:prepareRead",
+          "name": "installedEffectModelPreparation/prepareRead/prepareRead",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installedEffectModelPreparation/view/init:restoreRead/init:restoreRead",
+          "parameters": [
+            "input"
+          ],
           "async": false
         },
         {
@@ -126053,7 +126184,6 @@
             "installedEffectModelPreparation",
             "installedEffectModelPreparation/current/current",
             "installedEffectModelPreparation/installedEffectModelPreparation",
-            "installedEffectModelPreparation/view/init:prepareRead/init:prepareRead",
             "installedEffectModelPreparation/view/init:retain/init:retain",
             "installedEffectModelPreparation/view/init:retire/init:retire",
             "prepareInstalledEffectManagedPlanRun",
@@ -126066,7 +126196,9 @@
             "prepareInstalledEffectManagedPlanRun/same/same/same",
             "readInstalledEffectManagedPlanRun",
             "installedEffectModelPreparation/fields/init:assertRuntimeCurrent/init:assertRuntimeCurrent",
-            "finishInstalledEffectModelScope/original/original"
+            "finishInstalledEffectModelScope/original/original",
+            "installedEffectModelPreparation/prepareRead/prepareRead",
+            "installedEffectModelPreparation/view/init:restoreRead/init:restoreRead"
           ],
           "exports": [
             "finishInstalledEffectModelScope",
@@ -126091,6 +126223,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "inputsOutputs": [
@@ -126105,6 +126245,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "identity": [
@@ -126119,6 +126267,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "ownership": [
@@ -126137,6 +126293,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "synchronization": [
@@ -126155,6 +126319,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "failure": [
@@ -126177,6 +126349,14 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "cancellation": [
@@ -126191,6 +126371,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "resources": [
@@ -126209,6 +126397,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "quiesces the same original operation/control owner."
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "extension": [
@@ -126223,6 +126419,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Request-owned Effect Plan completion"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
               }
             ],
             "verification": [
@@ -126249,6 +126453,30 @@
               {
                 "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
                 "anchor": "test('Model Effect quiescence rejects changed original and preserves thrown undefined without finishing Scope'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Effect Model cold read retains exact failed issuance and refuses lost original current without a replacement'"
               }
             ]
           }
