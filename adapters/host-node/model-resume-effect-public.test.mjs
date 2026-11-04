@@ -17,6 +17,7 @@ import {salesforceEffectSiteHooks} from '../connectors/salesforce/host/installed
 import {installedEffect, accountConfiguration, recordEntry} from
   '../connectors/salesforce/test/installed-salesforce-effect.fixture.mjs';
 import {modelConfiguration, registerCompositionModel} from '../../scripts/fixtures/composed-infer-effect-input.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {graphResultDataPolicy} from '../../scripts/fixtures/graph-infer-effect-input.mjs';
 
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
@@ -78,6 +79,7 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
   const observations = [];
   const writes = () => installed.org.seen.filter(item => ['PATCH', 'POST'].includes(item.method));
   let mapping;
+  const runtimeSource = await readFile(new URL('./infer-operation.mjs', import.meta.url));
   const open = async () => {
     const effect = await installed.load({accountConfigurationWire: account});
     mapping ??= effect.mappings[0];
@@ -87,7 +89,8 @@ test('public Model approval leaves downstream Effect writes at zero until its ow
       authenticate: header => header === 'Bearer fixture-owner' ? owner : undefined,
       effectInstallation: site, modelInstallation: model.installation,
       registerModelProviders: moon => registerCompositionModel(moon, model.taskCid,
-        score => modelInputs.push(score)),
+        score => modelInputs.push(score), {installation: model.installation,
+          runtimeSource, publicationControl: runtimeCore(moon).publicationControl}),
       resultDataPolicy: graphResultDataPolicy,
       authorization: {accountConfiguration: account, leaseMs: 1000,
         reviewers: [{keyId: signer.keyId, reviewerId: signer.reviewerId,
