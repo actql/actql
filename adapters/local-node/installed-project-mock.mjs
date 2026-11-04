@@ -560,12 +560,13 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedOwner)
             : moon.clientProgramAcquisitionCount(checkedOwner);
           const shared = effectRuns.get(checkedOwner)?.deref() === run;
+          const planned = shared || run.requestOwned;
           const reads = shared ? run.mockSourceReads ??= [] : run.reads;
           if (effectful !== (run.preparationKind === 'effect-plan' || run.effectful === true) || selected !== declaration ||
               !['stage', 'input', 'task'].every(name => Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
               reads.length >= count || reads.some(read => read !== undefined &&
                 ['stage', 'input', 'task'].every(name => read.occurrence[name] === occurrence[name])) ||
-              shared && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
+              planned && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
           if (shared) {
             if (run.releaseMockSourceAliases !== undefined &&
                 run.releaseMockSourceAliases !== releaseEffectSourceAliases) fail('InstalledSourcePreparationMismatch');
@@ -583,7 +584,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             fail('InstalledMockSourceUnavailable');
           }
           sourceManaged.assertCurrent();
-          read.value = shared ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceReadAt(
+          read.value = planned ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceReadAt(
             run.value, occurrence.stage, occurrence.input, occurrence.task));
           originalReads.set(read.value, {run, read});
           return read.value;
