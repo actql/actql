@@ -1293,13 +1293,24 @@ fn prepare_installed_managed_run_ledger_owned(
     )
   }
   guard required is Some(required) else { return Err(Unsupported) }
-  let available = @resources.ledger_limits(ledger)
-  if required.planning_work > available.planning_work ||
-    required.attempts > available.attempts ||
-    required.holdings > available.holdings ||
-    required.transfer_bytes > available.transfer_bytes ||
-    required.retained_bytes > available.retained_bytes ||
-    required.execution_bytes > available.execution_bytes {
+  let fits = match value.preparation_retirement {
+    None =>
+      installed_effect_limits_fit(required, @resources.ledger_limits(ledger))
+    Some(EffectPlanPreparation(_)) => false
+    Some(PurePreparation(original)) => {
+      // Captured/Content routes returned through their existing constructors
+      // above. This is the same preparation-owned source-free Pure body.
+      guard value.reads.is_empty() &&
+        value.preparation is Some(PureManaged(admission, prepared)) &&
+        value.source_free_preparation is Some(plan) &&
+        plan.owner is Pure(selected) &&
+        physical_equal(selected, prepared) else {
+        return Err(ForeignOriginal)
+      }
+      preparation_owned_run_limits_fit(original, admission, prepared, ledger)
+    }
+  }
+  if !fits {
     return Err(InsufficientCapacity)
   }
   for index in 0..<value.reads.length() {

@@ -311,43 +311,21 @@ fn installed_effect_managed_limits_fit(
   plan : ClientInstalledEffectManagedPlan,
   ledger : @resources.Ledger,
 ) -> Bool {
-  let limits = @resources.ledger_limits(ledger)
   match owner.preparation_retirement {
-    None => return installed_effect_limits_fit(plan.limits, limits)
+    None =>
+      return installed_effect_limits_fit(
+        plan.limits,
+        @resources.ledger_limits(ledger),
+      )
     Some(PurePreparation(_)) => return false
     Some(EffectPlanPreparation(original)) => {
       guard owner.preparation is Some(PlannedEffectManaged(admission, selected)) &&
-        physical_equal(selected, plan) &&
-        physical_equal(original.admission, admission) &&
-        original.holder is Some(holder) &&
-        @resources.preparation_body_borrow_value(holder) is Some(body) &&
-        physical_equal(body, plan) &&
-        @resources.preparation_body_borrow_reserved_extents(holder)
-        is Ok((retained, execution)) &&
-        retained <= limits.retained_bytes &&
-        execution <= limits.execution_bytes else {
+        physical_equal(selected, plan) else {
         return false
       }
+      preparation_owned_run_limits_fit(original, admission, plan, ledger)
     }
   }
-  // Preserve every consumed/reserved non-byte dimension and current holding.
-  // Future work/attempts/allocations still debit the original finite limits;
-  // a larger theoretical Plan cannot replace these amounts or the Ledger.
-  let usage = @resources.ledger_usage(ledger)
-  usage.planning_work <= limits.planning_work &&
-  usage.attempts <= limits.attempts &&
-  usage.reserved_attempts <= limits.attempts - usage.attempts &&
-  usage.holdings <= limits.holdings &&
-  usage.transferred_bytes <= limits.transfer_bytes &&
-  usage.uncertain_transfer_bytes <=
-  limits.transfer_bytes - usage.transferred_bytes &&
-  usage.reserved_transfer_bytes <=
-  limits.transfer_bytes -
-  usage.transferred_bytes -
-  usage.uncertain_transfer_bytes &&
-  usage.held_bytes <= limits.retained_bytes &&
-  usage.reserved_retention_bytes <= limits.retained_bytes - usage.held_bytes &&
-  usage.reserved_execution_bytes <= limits.execution_bytes
 }
 
 ///|

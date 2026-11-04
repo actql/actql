@@ -57,12 +57,9 @@ fn[I] begin_preparation_owned_installed_managed_run_original(
     0 {
     return Err(Unsupported)
   }
-  let available = match preparation_initial_limits(initial, input) {
-    Err(issue) => return Err(Resource(issue))
-    Ok(value) => value
-  }
-  if !installed_effect_limits_fit(original.limits, available) {
-    return Err(InsufficientCapacity)
+  match check_preparation_owned_body_limits(initial, input, capacity) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   match
     @resources.discard_unbound_preparation_capacity_inventory(capacity, input) {
@@ -248,6 +245,15 @@ fn[I] check_preparation_owned_effect_limits(
   input : I,
   capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  check_preparation_owned_body_limits(initial, input, capacity)
+}
+
+///|
+fn[I, P] check_preparation_owned_body_limits(
+  initial : ClientPreparationInitial[I],
+  input : I,
+  capacity : @resources.PreparationCapacity[I, P],
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
   let limits = match preparation_initial_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
@@ -292,6 +298,47 @@ fn[I] adopt_preparation_owned_installed_effect_plan(
     EffectPlanPreparation({ retirement, admission, holder: Some(holder), }),
   )
   Ok(value)
+}
+
+///|
+// Call only after the original Run/admission current fence. The same retained
+// body holder supplies ownership; usage DATA cannot replace it. Both Pure and
+// Effect preparation routes keep this original finite Ledger for later growth.
+fn[P] preparation_owned_run_limits_fit(
+  original : ClientManagedPreparationRetirement[P],
+  admission : @resources.PreparedRunAdmission[P],
+  selected : P,
+  ledger : @resources.Ledger,
+) -> Bool {
+  let limits = @resources.ledger_limits(ledger)
+  guard physical_equal(original.admission, admission) &&
+    original.holder is Some(holder) &&
+    @resources.preparation_body_borrow_value(holder) is Some(body) &&
+    physical_equal(body, selected) &&
+    @resources.preparation_body_borrow_reserved_extents(holder)
+    is Ok((retained, execution)) &&
+    retained <= limits.retained_bytes &&
+    execution <= limits.execution_bytes else {
+    return false
+  }
+  // Preserve every consumed/reserved non-byte dimension and current holding.
+  // Future work/attempts/allocations still debit the original finite limits;
+  // a larger theoretical Plan cannot replace these amounts or the Ledger.
+  let usage = @resources.ledger_usage(ledger)
+  usage.planning_work <= limits.planning_work &&
+  usage.attempts <= limits.attempts &&
+  usage.reserved_attempts <= limits.attempts - usage.attempts &&
+  usage.holdings <= limits.holdings &&
+  usage.transferred_bytes <= limits.transfer_bytes &&
+  usage.uncertain_transfer_bytes <=
+  limits.transfer_bytes - usage.transferred_bytes &&
+  usage.reserved_transfer_bytes <=
+  limits.transfer_bytes -
+  usage.transferred_bytes -
+  usage.uncertain_transfer_bytes &&
+  usage.held_bytes <= limits.retained_bytes &&
+  usage.reserved_retention_bytes <= limits.retained_bytes - usage.held_bytes &&
+  usage.reserved_execution_bytes <= limits.execution_bytes
 }
 
 ///|

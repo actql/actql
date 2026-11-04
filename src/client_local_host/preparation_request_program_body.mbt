@@ -716,34 +716,45 @@ fn[I] prepare_request_program_module_body_owned(
           },
         )
       }
-      // This exact configured Plan is already retained by the Request. Check
-      // the same initial admission before completing its body or adopting a Run.
-      // These immutable quantities neither grant bytes nor establish currentness.
-      if plan is Some(original) {
-        let available = match preparation_initial_limits(owner.initial, input) {
-          Err(issue) => return Err(Installed(Resource(issue)))
-          Ok(value) => value
+      // The Request already backs this original body and constructor. The
+      // Plan's whole-Run maxima remain runtime policy DATA; each actual task
+      // reserves/grows on this same finite Ledger before its allocation.
+      if plan is Some(_) {
+        guard owner.program_capacity is Some(capacity) else {
+          return Err(Preparation(WrongPhase))
         }
-        let required = original.limits
-        if required.retained_bytes > available.retained_bytes ||
-          required.execution_bytes > available.execution_bytes {
-          return Err(
-            CapacityExceeded({
-              phase: "source_free_plan",
-              dimension: if required.retained_bytes > available.retained_bytes {
-                "retention"
-              } else {
-                "execution"
-              },
-              required_retention: required.retained_bytes,
-              required_execution: required.execution_bytes,
-              available_retention: available.retained_bytes,
-              available_execution: available.execution_bytes,
-            }),
-          )
-        }
-        if !installed_effect_limits_fit(required, available) {
-          return Err(Installed(InsufficientCapacity))
+        match
+          check_preparation_owned_body_limits(owner.initial, input, capacity) {
+          Err(InsufficientCapacity) => {
+            // Preserve the existing typed pre-admission refusal for an actual
+            // body deficit. Whole-run policy DATA cannot supply these amounts.
+            let available = match
+              preparation_initial_limits(owner.initial, input) {
+              Err(issue) => return Err(Installed(Resource(issue)))
+              Ok(value) => value
+            }
+            let (retained, execution) = match
+              @resources.preparation_capacity_working_extents(capacity, input) {
+              Err(issue) => return Err(Installed(Preparation(issue)))
+              Ok(value) => value
+            }
+            return Err(
+              CapacityExceeded({
+                phase: "source_free_plan",
+                dimension: if retained > available.retained_bytes {
+                  "retention"
+                } else {
+                  "execution"
+                },
+                required_retention: retained,
+                required_execution: execution,
+                available_retention: available.retained_bytes,
+                available_execution: available.execution_bytes,
+              }),
+            )
+          }
+          Err(issue) => return Err(Installed(issue))
+          Ok(_) => ()
         }
       }
       let artifact = match

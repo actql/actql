@@ -1498,7 +1498,7 @@ test "timed invocation backing survives original Module adoption and pending pay
 }
 
 ///|
-test "source-free adoption checks exact initial limits before transferring its original custody" {
+test "source-free adoption preserves loose Plan DATA and rejects foreign input before original custody transfer" {
   let (parent, input, prepared) = request_program_body_fixture()
   reserve_request_program_plan(parent, input).unwrap()
   let original = request_program_installed_plan(prepared)
@@ -1519,16 +1519,6 @@ test "source-free adoption checks exact initial limits before transferring its o
     "capacity-before-adoption",
   ).unwrap()
   let before = @resources.ledger_usage(parent.ledger)
-  assert_true(
-    begin_request_program_managed_run(parent, request)
-    is Err(InsufficientCapacity),
-  )
-  assert_true(parent.phase == ProgramBodyReady)
-  assert_true(physical_equal(parent.program_source_free.unwrap(), oversized))
-  let after = @resources.ledger_usage(parent.ledger)
-  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
-  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
-  assert_eq(after.live_reservations, before.live_reservations)
   assert_true(
     begin_preparation_owned_installed_managed_run_original(
       parent.initial,
@@ -1555,7 +1545,20 @@ test "source-free adoption checks exact initial limits before transferring its o
   )
   abort_request_preparation_after_cleanup(foreign_parent).unwrap()
   ignore(foreign_input)
-  abort_request_preparation_after_cleanup(parent).unwrap()
+  let after_refusal = @resources.ledger_usage(parent.ledger)
+  assert_eq(after_refusal, before)
+  assert_true(parent.phase == ProgramBodyReady)
+  assert_true(physical_equal(parent.program_source_free.unwrap(), oversized))
+  // Enlarged quote DATA does not enlarge the finite original Ledger or make
+  // future tasks prepaid. The actual retained body already fits that parent.
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(physical_equal(run.source_free_preparation.unwrap(), oversized))
+  assert_eq(@resources.ledger_limits(parent.ledger), available)
+  assert_eq(@resources.ledger_usage(parent.ledger).attempts, before.attempts)
+  assert_true(
+    abort_request_preparation_after_cleanup(parent) is Err(WrongPhase),
+  )
+  retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
 }
 
@@ -1639,4 +1642,262 @@ test "Request Plan quote backs original checked node proof frames before factory
   assert_eq(parent.program_plan_quote, Some(quote))
   abort_request_preparation_after_cleanup(parent).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
+
+///|
+// Exact authored Program from the public fixture, including its unused arrays.
+let public_array_nearest_array_document : String =
+  #|{"version":"actql/0.1","id":"public-nearest-input","stages":[{"id":"candidates","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"embedding":{"type":"vector","dimensions":2,"nullable":false},"zz_unused":{"type":"array","nullable":false,"max_items":129,"items":{"type":"number","nullable":false}}},"rows":[{"id":"xb","embedding":[1,2],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},{"id":"xa","embedding":[1,2],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","embedding","zz_unused"]}}},{"id":"queries","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"embedding":{"type":"vector","dimensions":2,"nullable":false},"zz_unused":{"type":"array","nullable":false,"max_items":129,"items":{"type":"number","nullable":false}}},"rows":[{"id":"xb","embedding":[1,2],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},{"id":"xa","embedding":[1,2],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","embedding","zz_unused"]}}},{"id":"nearest","inputs":{"queries":{"result":{"stage":"queries","result":"r"}},"candidates":{"result":{"stage":"candidates","result":"r"}}},"steps":[{"from":"candidates","nearest":{"queries":"queries","metric":"dot","k":2,"candidate_id":"id","candidate_vector":"embedding","query_id":"id","query_vector":"embedding"},"as":"out"}],"results":{"r":{"from":"out","fields":["candidate_id","query_id","rank","score"]}}},{"id":"consumer_a","inputs":{"rows":{"result":{"stage":"nearest","result":"r"}}},"steps":[{"select":["candidate_id","query_id","rank","score"],"as":"out"}],"results":{"r":{"from":"out","fields":["candidate_id","query_id","rank","score"]}}},{"id":"consumer_b","inputs":{"rows":{"result":{"stage":"nearest","result":"r"}}},"steps":[{"select":["candidate_id","query_id","rank","score"],"as":"out"}],"results":{"r":{"from":"out","fields":["candidate_id","query_id","rank","score"]}}}],"results":{"published":{"from":{"stage":"nearest","result":"r"}},"consumed_a":{"from":{"stage":"consumer_a","result":"r"}},"consumed_b":{"from":{"stage":"consumer_b","result":"r"}}}}
+
+///|
+// Exact authored Program from the public fixture, including its unused arrays.
+let public_array_nearest_names_document : String =
+  #|{"version":"actql/0.1","id":"public-nearest-names","stages":[{"id":"candidates","inputs":{},"steps":[{"values":{"schema":{"aa_unused":{"type":"array","nullable":false,"max_items":115,"items":{"type":"number","nullable":false}},"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀":{"type":"number","nullable":false},"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀":{"type":"vector","dimensions":2,"nullable":false},"zz_unused":{"type":"array","nullable":false,"max_items":129,"items":{"type":"number","nullable":false}}},"rows":[{"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀":2,"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀":[1,2],"aa_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},{"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀":1,"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀":[1,2],"aa_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}]},"as":"out"}],"results":{"r":{"from":"out","fields":["aa_unused","mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀","zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀","zz_unused"]}}},{"id":"queries","inputs":{},"steps":[{"values":{"schema":{"aa_unused":{"type":"array","nullable":false,"max_items":115,"items":{"type":"number","nullable":false}},"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀":{"type":"number","nullable":false},"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀":{"type":"vector","dimensions":2,"nullable":false},"zz_unused":{"type":"array","nullable":false,"max_items":129,"items":{"type":"number","nullable":false}}},"rows":[{"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀":2,"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀":[1,2],"aa_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},{"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀":1,"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀":[1,2],"aa_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}]},"as":"out"}],"results":{"r":{"from":"out","fields":["aa_unused","mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀","zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀","zz_unused"]}}},{"id":"nearest","inputs":{"queries":{"result":{"stage":"queries","result":"r"}},"candidates":{"result":{"stage":"candidates","result":"r"}}},"steps":[{"from":"candidates","nearest":{"queries":"queries","metric":"dot","k":2,"candidate_id":"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀","candidate_vector":"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀","query_id":"mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm😀","query_vector":"zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz😀"},"as":"out"}],"results":{"r":{"from":"out","fields":["candidate_id","query_id","rank","score"]}}},{"id":"consumer_a","inputs":{"rows":{"result":{"stage":"nearest","result":"r"}}},"steps":[{"select":["candidate_id","query_id","rank","score"],"as":"out"}],"results":{"r":{"from":"out","fields":["candidate_id","query_id","rank","score"]}}},{"id":"consumer_b","inputs":{"rows":{"result":{"stage":"nearest","result":"r"}}},"steps":[{"select":["candidate_id","query_id","rank","score"],"as":"out"}],"results":{"r":{"from":"out","fields":["candidate_id","query_id","rank","score"]}}}],"results":{"published":{"from":{"stage":"nearest","result":"r"}},"consumed_a":{"from":{"stage":"consumer_a","result":"r"}},"consumed_b":{"from":{"stage":"consumer_b","result":"r"}}}}
+
+///|
+// Exact authored Program from the public fixture, including its unused arrays.
+let public_array_ranking_array_document : String =
+  #|{"version":"actql/0.1","id":"public-ranking-input","stages":[{"id":"left","inputs":{},"steps":[{"values":{"schema":{"q":{"type":"number","nullable":true},"segment":{"type":"string","nullable":true},"id":{"type":"number","nullable":false},"rank":{"type":"number","nullable":false},"zz_unused":{"type":"array","nullable":false,"items":{"type":"number","nullable":false},"max_items":129}},"rows":[{"q":null,"segment":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs","id":2,"rank":2,"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},{"q":null,"segment":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs","id":1,"rank":1,"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}]},"as":"out"}],"results":{"r":{"from":"out","fields":["q","segment","id","rank","zz_unused"]}}},{"id":"right","inputs":{},"steps":[{"values":{"schema":{"q":{"type":"number","nullable":true},"segment":{"type":"string","nullable":true},"id":{"type":"number","nullable":false},"rank":{"type":"number","nullable":false},"zz_unused":{"type":"array","nullable":false,"items":{"type":"number","nullable":false},"max_items":129}},"rows":[{"q":null,"segment":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs","id":2,"rank":2,"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]},{"q":null,"segment":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs","id":1,"rank":1,"zz_unused":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}]},"as":"out"}],"results":{"r":{"from":"out","fields":["q","segment","id","rank","zz_unused"]}}},{"id":"ranking","inputs":{"left":{"result":{"stage":"left","result":"r"}},"right":{"result":{"stage":"right","result":"r"}}},"steps":[{"from":"left","merge_rankings":{"with":["right"],"by":["q","segment"],"candidate":"id","rank":"rank","k":3,"score_policy":{"rrf":{"rank_constant":1,"weights":[1,1],"rank_window":2}}},"as":"out"}],"results":{"r":{"from":"out","fields":["id","q","rank","score","segment"]}}},{"id":"consumer_a","inputs":{"rows":{"result":{"stage":"ranking","result":"r"}}},"steps":[{"select":["id","q","rank","score","segment"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","q","rank","score","segment"]}}},{"id":"consumer_b","inputs":{"rows":{"result":{"stage":"ranking","result":"r"}}},"steps":[{"select":["id","q","rank","score","segment"],"as":"out"}],"results":{"r":{"from":"out","fields":["id","q","rank","score","segment"]}}}],"results":{"published":{"from":{"stage":"ranking","result":"r"}},"consumed_a":{"from":{"stage":"consumer_a","result":"r"}},"consumed_b":{"from":{"stage":"consumer_b","result":"r"}}}}
+
+///|
+// Actual checker/compiler/module/VecA/task/cleanup on one original parent.
+// The provider is the installed VecA component, not full Host acceptance.
+fn public_array_preparation_host(
+  source : String,
+) -> (
+  ClientInstalledManagedRun,
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @resources.Ledger,
+) raise {
+  let assets = @publication_host.client_local_product_assets()
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    "sha256:2217670f3f4f54047e764878501863d4eaf37cf069ab741d7306a9d8985cc94f",
+    { text_time: false, veca: true, },
+    { rela: true, sga: true, tea: true, calendar: false, text_rank: false, },
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+    graph=true,
+  ).unwrap()
+
+  let publication = @source_publication.prepare_published_query_environment(
+    environment,
+    "{\"environmentCid\":\"" +
+    @checked.checking_environment_cid(environment) +
+    "\",\"aliases\":[]}",
+  ).unwrap()
+  let (parent, input) = native_driver_parent(source)
+  let ledger = parent.ledger
+  let limits = @resources.ledger_limits(ledger)
+  assert_eq(limits.retained_bytes, 536870912L)
+  assert_eq(limits.execution_bytes, 536870912L)
+  assert_eq(
+    prepare_request_native_computation(
+      parent,
+      input,
+      request_native_test_value(source),
+      native_json_reader,
+      environment,
+      publication,
+      [],
+      @publication_host.client_standard_program_preparation_limits(),
+      @publication_host.client_standard_effect_computation_limits(),
+    ).unwrap(),
+    Pure,
+  )
+  let prepared = parent.compiled_program.unwrap()
+  prepare_request_program_module_body(
+    parent,
+    input,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    retained_output=true,
+    provider_factory=capacity => {
+      [
+        @nearest_provider.provider(
+          {
+            max_input_records: 100,
+            max_records: 100,
+            max_fields_per_record: 100,
+            max_value_bytes: 10000,
+            max_total_value_bytes: 100000,
+            max_retained_value_bytes: 100000,
+            max_value_nodes: 10000,
+            max_value_depth: 100,
+            max_contract_work: 10000,
+            max_work: 100000,
+            max_workspace_slots: 10000,
+          },
+          100000L,
+          capacity,
+        ),
+      ]
+    },
+  ).unwrap()
+  let plan = parent.program_source_free.unwrap()
+  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  let request = @publication_host.prepare_source_free_client_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "public-array-original",
+  ).unwrap()
+  let run = begin_request_program_managed_run(parent, request).unwrap()
+  assert_true(
+    physical_equal(require_installed_managed_run(run).unwrap(), ledger),
+  )
+  let setup = open_installed_managed_source_free_host(
+      run,
+      prepared,
+      request,
+      plan.installed_contracts,
+      plan.values_body,
+      plan.fragment_body,
+      plan.ordered_body,
+      true,
+    )
+    .unwrap()
+    .unwrap()
+  let dag = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  assert_true(physical_equal(@strategy.captured_dag_ledger(dag), ledger))
+  // Match the ordinary Node Named Result identity owner, whose actual row
+  // indices grow before construction on this SAME task reservation.
+  assert_true(
+    @strategy.configure_captured_managed_identity_policy(
+      dag, true, false, false, false,
+    ),
+  )
+  (run, setup, ledger)
+}
+
+///|
+test "public nearest-array module starts actual tasks below whole Plan maxima on the original parent" {
+  let (run, setup, ledger) = public_array_preparation_host(
+    public_array_nearest_array_document,
+  )
+  let limits = @resources.ledger_limits(ledger)
+  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    true
+  }).unwrap()
+  let rows = execution.rows().unwrap()
+  let expected = [
+    "{\"candidate_id\":\"xa\",\"query_id\":\"xa\",\"rank\":1,\"score\":5}", "{\"candidate_id\":\"xb\",\"query_id\":\"xa\",\"rank\":2,\"score\":5}",
+    "{\"candidate_id\":\"xa\",\"query_id\":\"xb\",\"rank\":1,\"score\":5}", "{\"candidate_id\":\"xb\",\"query_id\":\"xb\",\"rank\":2,\"score\":5}",
+  ]
+  assert_eq(rows.length(), expected.length())
+  for index in 0..<rows.length() {
+    assert_eq(@json.parse(rows[index]), @json.parse(expected[index]))
+  }
+  let attempts = @resources.ledger_usage(ledger).attempts
+  assert_true(attempts > 0)
+  assert_true(execution.close())
+  retire_installed_managed_run(run).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, attempts)
+  assert_eq(after.live_reservations, 0)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+}
+
+///|
+test "public nearest-names module starts actual tasks below whole Plan maxima on the original parent" {
+  let (run, setup, ledger) = public_array_preparation_host(
+    public_array_nearest_names_document,
+  )
+  let limits = @resources.ledger_limits(ledger)
+  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    true
+  }).unwrap()
+  let rows = execution.rows().unwrap()
+  let expected = [
+    "{\"candidate_id\":1,\"query_id\":1,\"rank\":1,\"score\":5}", "{\"candidate_id\":2,\"query_id\":1,\"rank\":2,\"score\":5}",
+    "{\"candidate_id\":1,\"query_id\":2,\"rank\":1,\"score\":5}", "{\"candidate_id\":2,\"query_id\":2,\"rank\":2,\"score\":5}",
+  ]
+  assert_eq(rows.length(), expected.length())
+  for index in 0..<rows.length() {
+    assert_eq(@json.parse(rows[index]), @json.parse(expected[index]))
+  }
+  let attempts = @resources.ledger_usage(ledger).attempts
+  assert_true(attempts > 0)
+  assert_true(execution.close())
+  retire_installed_managed_run(run).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, attempts)
+  assert_eq(after.live_reservations, 0)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+}
+
+///|
+test "public ranking-array module starts actual tasks below whole Plan maxima on the original parent" {
+  let (run, setup, ledger) = public_array_preparation_host(
+    public_array_ranking_array_document,
+  )
+  let limits = @resources.ledger_limits(ledger)
+  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    true
+  }).unwrap()
+  let rows = execution.rows().unwrap()
+  let expected = [
+    "{\"id\":1,\"q\":null,\"rank\":1,\"score\":1,\"segment\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs\"}",
+    "{\"id\":2,\"q\":null,\"rank\":2,\"score\":0.6666666666666666,\"segment\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxs\"}",
+  ]
+  assert_eq(rows.length(), expected.length())
+  for index in 0..<rows.length() {
+    assert_eq(@json.parse(rows[index]), @json.parse(expected[index]))
+  }
+  let attempts = @resources.ledger_usage(ledger).attempts
+  assert_true(attempts > 0)
+  assert_true(execution.close())
+  retire_installed_managed_run(run).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, attempts)
+  assert_eq(after.live_reservations, 0)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(@resources.ledger_limits(ledger), limits)
+}
+
+///|
+test "public array actual task metadata exhaustion retains the same parent attempts and physical cleanup" {
+  let (run, setup, ledger) = public_array_preparation_host(
+    public_array_nearest_array_document,
+  )
+  let limits = @resources.ledger_limits(ledger)
+  let dag = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  let task = @strategy.graph_result_task(@strategy.captured_dag_graph(dag), 0).unwrap()
+  let block : Ref[@resources.CapacityReservation?] = Ref(None)
+  let execution = execute_source_free_local_tasks_guarded(setup, 64, 100000, () => {
+    let usage = @resources.ledger_usage(ledger)
+    if block.val is None && usage.attempts == task + 1 {
+      block.val = Some(
+        @resources.reserve_capacity(
+          ledger,
+          0L,
+          limits.execution_bytes - usage.reserved_execution_bytes,
+        ).unwrap(),
+      )
+    }
+    true
+  })
+  assert_true(block.val is Some(_))
+  guard execution is Err(failure) else {
+    fail("Actual exhausted metadata must refuse before row-index allocation")
+  }
+  assert_true(failure.issue is Driver(Execution(Physical(ExecutionLimit))))
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  assert_true(retire_installed_managed_run(run) is Err(CleanupPending))
+  @resources.settle_capacity(ledger, block.val.unwrap()).unwrap()
+  let attempts = @resources.ledger_usage(ledger).attempts
+  retire_installed_managed_run(run).unwrap()
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.attempts, attempts)
+  assert_eq(after.live_reservations, 0)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(@resources.ledger_limits(ledger), limits)
 }
