@@ -114,13 +114,18 @@ test('installed Source identity bounds each published metadata file', async t =>
   const expected = identity([{...input, accountConfigurationWire: {account_id: 'a'}},
     site, publication]);
   assert.equal(await installedSourceIdentity(path), expected);
-  for (const [metadataPath, value] of [[siteProfilePath, site], [publicationPath, publication]]) {
-    await writePadded(metadataPath, value, byteLimit);
+  // Site configuration keeps the common 8 MiB bound; a saved Salesforce
+  // generation has its own 16,000,000-byte published-format bound.
+  for (const [metadataPath, value, limit, error] of [
+    [siteProfilePath, site, byteLimit, 'InvalidInstalledSourceProfile'],
+    [publicationPath, publication, 16_000_000, 'InvalidSalesforcePublication'],
+  ]) {
+    await writePadded(metadataPath, value, limit);
     assert.equal(await installedSourceIdentity(path), expected);
-    await writePadded(metadataPath, value, byteLimit + 1);
-    await assert.rejects(installedSourceIdentity(path), {message: 'InvalidInstalledSourceProfile'});
+    await writePadded(metadataPath, value, limit + 1);
+    await assert.rejects(installedSourceIdentity(path), {message: error});
     await writeHuge(metadataPath);
-    await assert.rejects(installedSourceIdentity(path), {message: 'InvalidInstalledSourceProfile'});
+    await assert.rejects(installedSourceIdentity(path), {message: error});
     await writeFile(metadataPath, JSON.stringify(value));
     assert.equal(await installedSourceIdentity(path), expected);
   }

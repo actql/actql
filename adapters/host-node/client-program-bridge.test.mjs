@@ -2706,6 +2706,9 @@ async function effectFixture({splitSource = false,
     ? canonicalHashWithoutSelf(mapping, 'mapping_contract_cid')
     : hashWithoutSelf(mapping, 'mapping_contract_cid');
   const environmentDocument = JSON.parse(environmentBody);
+  const baseEnvironment = JSON.parse(await readFile(new URL(
+    '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
+  environmentDocument.host_policy_profile.text_time_evaluation = baseEnvironment.host_policy_profile.text_time_evaluation;
   mapping.connector_manifest_cid = withFixtureConnector(environmentDocument,
     mapping.target_ref);
   mapping.mapping_contract_cid = canonicalHashWithoutSelf(mapping,
