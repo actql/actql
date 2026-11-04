@@ -19558,7 +19558,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-http.test.mjs",
-                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {"
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -19702,7 +19702,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-http.test.mjs",
-                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {"
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
               },
               {
                 "path": "src/run_publication/pkg.generated.mbti",
@@ -25334,7 +25334,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-http.test.mjs",
-                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {"
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -25526,7 +25526,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-http.test.mjs",
-                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {"
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -50198,7 +50198,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-http.test.mjs",
-                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {"
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -50342,7 +50342,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/client-http.test.mjs",
-                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {"
+                "anchor": "test('epoch-bound submit has one outcome contract over HTTP and in-process', async t => {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
