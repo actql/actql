@@ -76,7 +76,7 @@ import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication, sourceAliasPublicationOriginal,
   retireSourceAliasPublicationOriginal} from './source-alias-publication.mjs';
-import {installedModelEnvironment, readInstalledModelExecution, consumeInstalledModelExecutionAbsence,
+import {installedModelEnvironment, readInstalledModelExecution, consumeInstalledModelPreparationRefusal,
   readInstalledModelDependencies, installModelProviders,
   admitInstalledModelProvider, admitInstalledModelProviderBinding} from
   './installed-model.mjs';
@@ -2906,8 +2906,8 @@ async function openInstalledHost(originalInstallation, preparation) {
             modelInstallation, occurrence, requestModelMaterials));
         } else execution = runtimeField(originalInfer, 2);
       } catch (cause) {
-        const absent = consumeInstalledModelExecutionAbsence(cause,
-          preparedProgram, modelInstallation, occurrence);
+        const absent = consumeInstalledModelPreparationRefusal(cause,
+          preparedProgram, modelInstallation, occurrence, requestModelMaterials);
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
           code: cause.code, cause: cause.cause ?? cause,
           typedCause: cause.code === 'MoonBitHostFailure' ?
@@ -2920,14 +2920,18 @@ async function openInstalledHost(originalInstallation, preparation) {
       let dependencies;
       try {
         dependencies = readInstalledModelDependencies(moon, execution,
-          modelInstallation, requestModelMaterials);
+          modelInstallation, requestModelMaterials, preparedProgram, occurrence);
       } catch (cause) {
+        const original = consumeInstalledModelPreparationRefusal(cause,
+          preparedProgram, modelInstallation, occurrence, requestModelMaterials, execution);
         diagnostic('infer_preparation_rejected', {boundary: 'model_dependencies',
           code: cause.code, cause: cause.cause ?? cause,
           typedCause: cause.code === 'MoonBitHostFailure' ?
             moon.clientProgramInferModelDependencyIssueKind(cause.cause) :
             undefined});
-        throw clientOperationError('ClientProgramUnsupported', cause);
+        const error = clientOperationError('ClientProgramUnsupported', cause);
+        if (original) missingModelExecutionRefusals.add(error);
+        throw error;
       }
       let admittedProvider, originalMockInstallation;
       try {

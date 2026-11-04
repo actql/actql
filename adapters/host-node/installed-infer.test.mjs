@@ -262,7 +262,7 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
           })});
       await assert.rejects(client.start(oneRowInfer(),
         {submissionRef: client.newSubmission({nonce: `infer-${variant}`})}),
-        error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+        error => assertPreparationRefusal(error, 'not_accepted', 'ClientProgramUnsupported'));
       assert.equal(observations.length, 1);
       const observed = observations[0];
       if (variant === 'valid') {
@@ -468,7 +468,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           const retainModelFixtureOriginals = ${retainModelFixtureOriginals.toString()};
           retainModelFixtureOriginals(installation);
           const {providerBindingOriginals} = await import(${JSON.stringify(new URL('../../scripts/fixtures/model-provider-binding-fixture.mjs', import.meta.url).href)});
-          const checked = ${checked.toString()};
+          const {checked} = await import(${JSON.stringify(new URL('../host-common/runtime-result.mjs', import.meta.url).href)});
           const oneRowInfer = ${oneRowInfer.toString()};
           let calls = 0;
           const registerModelProviders = ${registerModelProviders.toString()};
@@ -681,7 +681,8 @@ for (const [variant, boundary, typedCause] of [
       });
       await assert.rejects(client.start(oneRowInfer(),
         {submissionRef: client.newSubmission({nonce: `dependencies-${variant}`})}),
-        error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
+        error => assertPreparationRefusal(error, boundary === 'model_dependencies'
+          ? 'not_accepted' : 'preparation_failed', 'ClientProgramUnsupported'));
       assert.equal(observations.length, 1);
       assert.equal(observations[0].boundary, boundary);
       assert.equal(observations[0].typedCause, typedCause);
@@ -740,6 +741,9 @@ for (const reason of ['timeout', 'abort']) {
       }), decisionTimeoutMs: reason === 'timeout' ? 25 : 30000,
       accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
         account_id: 'model-cleanup', entries: [entry('model', 'infer', 'delegate'),
+          {entry_id: 'read-original-run', outcome: 'allow',
+            principal: {any_of: [userInfo().username]}, connection: {all: true},
+            resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []},
           entry('run', 'write', 'allow')]}),
       decide(view, {signal}) {
         assert.equal(view.tuple.operation, 'infer');

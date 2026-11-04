@@ -4,7 +4,8 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {configuration} from '../../scripts/fixtures/installed-infer-fixture.mjs';
 import {readInstalledModelExecution, readInstalledModelDependencies,
-  admitInstalledModelProviderBinding, consumeInstalledModelExecutionAbsence} from './installed-model.mjs';
+  admitInstalledModelProviderBinding, consumeInstalledModelExecutionAbsence,
+  consumeInstalledModelPreparationRefusal} from './installed-model.mjs';
 
 // Actual exported readers with explicit native/current reservation ports.
 // The sentinel ends before a Core issuer, Provider, Account or physical IO.
@@ -62,6 +63,77 @@ test('Model execution absence does not promote custom metadata or callback error
   assert.throws(() => readInstalledModelExecution(moon, prepared, installation, occurrence,
     () => {throw callbackFailure;}), error => error === callbackFailure);
   assert.equal(consumeInstalledModelExecutionAbsence(callbackFailure, prepared, installation, occurrence), false);
+});
+
+test('original native Model metadata rejection follows returned material funding and consumes the same tuple once', () => {
+  const prepared = {}, occurrence = {}, issue = {}, execution = {};
+  const installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
+  const calls = [], beforeRead = () => {calls.push('funded');};
+  const moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
+    clientProgramInferOccurrenceModelTaskCid: () => 'task',
+    clientProgramReadComposedInferModelExecution(value) {
+      assert.equal(value, occurrence); calls.push('native'); return {$tag: 0, _0: issue};
+    },
+    clientProgramInferDependencyReferences: () => ({_0: 'prompt', _1: 'retry', _2: 'backoff'}),
+    clientProgramInferMediaDependencyReferences: () => [],
+    clientProgramReadInferModelDependencies(value) {
+      assert.equal(value, execution); calls.push('native'); return {$tag: 0, _0: issue};
+    }};
+  for (const read of [() => readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead),
+    () => readInstalledModelDependencies(moon, execution, installation, beforeRead, prepared, occurrence)]) {
+    let failure;
+    try {read();} catch (error) {failure = error;}
+    assert.equal(failure.cause, issue);
+    assert.deepEqual(calls.splice(0), ['funded', 'native']);
+    assert.equal(consumeInstalledModelPreparationRefusal({...failure}, prepared, installation, occurrence, beforeRead, execution), false);
+    assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, beforeRead, execution), true);
+    assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, beforeRead, execution), false);
+  }
+});
+
+test('native metadata witness excludes funding throws, native throws, foreign callbacks and asynchronous funding', () => {
+  const prepared = {}, occurrence = {}, installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'}], []);
+  const lookalike = Object.assign(new Error('MoonBitHostFailure'), {code: 'MoonBitHostFailure', cause: {}});
+  const beforeRead = () => {}, moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
+    clientProgramInferOccurrenceModelTaskCid: () => 'task',
+    clientProgramReadComposedInferModelExecution: () => ({$tag: 0, _0: {}})};
+  for (const [fund, read] of [[() => {throw lookalike;}, () => assert.fail('No native read after funding throw')],
+    [beforeRead, () => {throw lookalike;}], [() => Promise.resolve(), moon.clientProgramReadComposedInferModelExecution]]) {
+    moon.clientProgramReadComposedInferModelExecution = read;
+    let failure;
+    try {readInstalledModelExecution(moon, prepared, installation, occurrence, fund);} catch (error) {failure = error;}
+    assert(failure);
+    assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, fund), false);
+  }
+  moon.clientProgramReadComposedInferModelExecution = () => ({$tag: 0, _0: {}});
+  let failure;
+  try {readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead);} catch (error) {failure = error;}
+  assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, () => {}), false);
+  assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, beforeRead), false);
+});
+
+test('native metadata rejection cannot certify custom element reads or replaced original selection intrinsics', () => {
+  const prepared = {}, occurrence = {}, entry = Object.freeze({modelTaskCid: 'task', cid: 'execution', bodyWire: '{}'});
+  let getters = 0;
+  const entries = [];
+  Object.defineProperty(entries, '0', {get() {getters++; return entry;}, enumerable: true});
+  const installation = Object.freeze({environmentWire: '{}', executionContracts: Object.freeze(entries),
+    dependencyBodies: Object.freeze([])});
+  const moon = {clientProgramInferOccurrenceCoordinates: () => ({_2: 0}),
+    clientProgramInferOccurrenceModelTaskCid: () => 'task',
+    clientProgramReadComposedInferModelExecution: () => ({$tag: 0, _0: {}})};
+  const beforeRead = () => {};
+  let failure;
+  try {readInstalledModelExecution(moon, prepared, installation, occurrence, beforeRead);} catch (error) {failure = error;}
+  assert(getters > 0);
+  assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, installation, occurrence, beforeRead), false);
+  const ordinary = frozen([entry], []), original = Object.getOwnPropertyDescriptor(Array.prototype, 'find');
+  const replaced = () => {Object.defineProperty(Array.prototype, 'find', {...original,
+    value(...args) {return Reflect.apply(original.value, this, args);}});};
+  try {
+    try {readInstalledModelExecution(moon, prepared, ordinary, occurrence, replaced);} catch (error) {failure = error;}
+    assert.equal(consumeInstalledModelPreparationRefusal(failure, prepared, ordinary, occurrence, replaced), false);
+  } finally {Object.defineProperty(Array.prototype, 'find', original);}
 });
 
 const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');

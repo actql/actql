@@ -62279,7 +62279,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "5120d1821440b6bd6e4f76d790a52df754653b11f9ac7df9d9dd2b434ed46ea5"
+      "sha256": "f4f42423f1d295c9280a1a4e603e04c4eff5cc08384e31e120d50c758f45e0ba"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -73792,7 +73792,7 @@
     {
       "module": "adapters/host-node/installed-model.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "604a3e78446c7c918e2f3ae06c23383dae7f403c4e4181491d151f0fd2b09cf7",
+      "sha256": "542c2f684a276a24f6e60a238546a684498646e01f0e8ca9792612ea3ed3ea77",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -73801,6 +73801,7 @@
         "assertInstalledModelDefaultsAdoption",
         "assertInstalledModelDefaultsPreparation",
         "consumeInstalledModelExecutionAbsence",
+        "consumeInstalledModelPreparationRefusal",
         "installModelProviders",
         "installedModelEnvironment",
         "prepareInstalledModelProviderDefaults",
@@ -73848,6 +73849,14 @@
           "async": false
         },
         {
+          "name": "checkedModelMetadata",
+          "parameters": [
+            "result",
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "checkInstallation",
           "parameters": [
             "installation"
@@ -73868,6 +73877,18 @@
             "prepared",
             "installation",
             "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "consumeInstalledModelPreparationRefusal",
+          "parameters": [
+            "error",
+            "prepared",
+            "installation",
+            "occurrence",
+            "beforeRead",
+            "execution"
           ],
           "async": false
         },
@@ -73998,18 +74019,31 @@
           "async": false
         },
         {
-          "name": "originalModelMaterialArrays/originalModelMaterialArrays",
-          "parameters": [
-            "entries"
-          ],
-          "async": false
-        },
-        {
           "name": "originalModelMaterialArrays/ownString/ownString",
           "parameters": [
             "entry",
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "originalModelMaterialArrays/validate/validate",
+          "parameters": [
+            "entries",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalModelMaterialArrays/validate/validate/entryFields/entryFields",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "originalModelMaterialIntrinsics",
+          "parameters": [],
           "async": false
         },
         {
@@ -74056,7 +74090,9 @@
             "moon",
             "execution",
             "installation",
-            "beforeRead"
+            "beforeRead",
+            "prepared",
+            "occurrence"
           ],
           "async": false
         },
@@ -74068,14 +74104,21 @@
           "async": false
         },
         {
-          "name": "readInstalledModelDependencies/readInstalledModelDependencies",
+          "name": "readInstalledModelDependencies/funded/funded",
           "parameters": [
             "index"
           ],
           "async": false
         },
         {
-          "name": "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
+          "name": "readInstalledModelDependencies/funded/funded/funded",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledModelDependencies/readInstalledModelDependencies",
           "parameters": [
             "entry"
           ],
@@ -74083,13 +74126,6 @@
         },
         {
           "name": "readInstalledModelDependencies/readInstalledModelDependencies#2",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "readInstalledModelDependencies/readInstalledModelDependencies#3",
           "parameters": [
             "entry"
           ],
@@ -74144,7 +74180,7 @@
           "async": false
         },
         {
-          "name": "readInstalledModelExecution/readInstalledModelExecution",
+          "name": "readInstalledModelExecution/funded/funded",
           "parameters": [],
           "async": false
         },
@@ -74246,7 +74282,8 @@
             "readInstalledModelDependenciesLegacy/readInstalledModelDependenciesLegacy#2",
             "readInstalledModelExecutionLegacy",
             "readInstalledModelExecutionLegacy/entry/entry",
-            "originalModelMaterialArrays/originalModelMaterialArrays"
+            "originalModelMaterialArrays/validate/validate",
+            "originalModelMaterialArrays/validate/validate/entryFields/entryFields"
           ],
           "exports": [
             "admitInstalledModelProvider"
@@ -74991,9 +75028,9 @@
             "readInstalledModelDependencies",
             "readInstalledModelDependencies/bodies/bodies",
             "readInstalledModelDependencies/readInstalledModelDependencies",
-            "readInstalledModelDependencies/readInstalledModelDependencies/readInstalledModelDependencies",
             "readInstalledModelDependencies/readInstalledModelDependencies#2",
-            "readInstalledModelDependencies/readInstalledModelDependencies#3"
+            "readInstalledModelDependencies/funded/funded",
+            "readInstalledModelDependencies/funded/funded/funded"
           ],
           "exports": [
             "readInstalledModelDependencies"
@@ -75109,12 +75146,16 @@
           "operations": [
             "readInstalledModelExecution",
             "readInstalledModelExecution/entry/entry",
-            "readInstalledModelExecution/readInstalledModelExecution",
-            "consumeInstalledModelExecutionAbsence"
+            "consumeInstalledModelExecutionAbsence",
+            "checkedModelMetadata",
+            "consumeInstalledModelPreparationRefusal",
+            "originalModelMaterialIntrinsics",
+            "readInstalledModelExecution/funded/funded"
           ],
           "exports": [
             "readInstalledModelExecution",
-            "consumeInstalledModelExecutionAbsence"
+            "consumeInstalledModelExecutionAbsence",
+            "consumeInstalledModelPreparationRefusal"
           ],
           "attributes": {
             "responsibility": [
