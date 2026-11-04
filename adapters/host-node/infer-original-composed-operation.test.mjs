@@ -230,20 +230,22 @@ test('original composed provider retains original preparation through the existi
   await retained.close();
 });
 
-function deferredProvider(f, originalPreparation) {
+function deferredProvider(f, originalPreparation, restoredInput, deferred = false) {
   let open;
   f.moon.clientProgramComposedInferLocalProvider = (_occurrence, callback) => {
     open = callback; return f.provider;
   };
-  const component = openNodeComposedInferProvider({moon: f.moon, sources: f.sources,
-    selected: {occurrence: f.occurrence, graph: f.graph, computePrefix: f.prefix, provider: f.provider},
-    originalPreparation, plan: {compiled: f.originalPreparation.compiled,
-      runDefinition: f.originalPreparation.runDefinition},
+  const selected = {occurrence: f.occurrence, graph: f.graph, computePrefix: f.prefix, provider: f.provider};
+  const context = {selected, sources: f.sources, originalPreparation, restoredInput,
+    plan: {compiled: f.originalPreparation.compiled, runDefinition: f.originalPreparation.runDefinition},
     control: {
       bindCheckedClientInferRun() { f.calls.push(['run']); },
       bindCheckedClientInferDispatch() { f.calls.push(['dispatch']); },
     }, now: () => '2026-10-20T00:00:00.000Z',
-    retainOperation() { f.calls.push(['retain']); }});
+    retainOperation() { f.calls.push(['retain']); }};
+  const component = openNodeComposedInferProvider(deferred
+    ? {moon: f.moon, selected, deferred: true} : {moon: f.moon, ...context});
+  if (deferred) component.bindOriginal(context);
   return {component, open: () => open(f.inputs)};
 }
 
@@ -377,4 +379,97 @@ test('Request composed suffix binder receives the same active only after origina
   assert.equal(originalReadCleaned(f.originalPreparation.read), false);
   await retained.close();
   assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});
+
+
+function originalRestoredFixture() {
+  const f = fixture(), savedScope = {}, token = {available: true}, snapshot = {
+    binding: 'original-input', descriptorWire: 'original-descriptor', rows: ['original-row'],
+  };
+  f.moon.clientProgramStartOriginalRestoredComposedInferExecution = (...args) => {
+    f.calls.push(['restore', ...args]); return {$tag: 1, _0: f.active};
+  };
+  const sendMask = [false];
+  f.moon.clientProgramRestrictInferSendSlots = (active, mask) => {
+    assert.strictEqual(active, f.active); assert.strictEqual(mask, sendMask);
+    f.calls.push(['mask']); return {$tag: 1, _0: undefined};
+  };
+  f.moon.clientProgramStartRestoredComposedInferInput = () => assert.fail('no unowned restored input');
+  return {...f, restoredInput: {savedScope, token, snapshot, sendMask}};
+}
+
+test('original restored composed read uses its explicit cold port and same nominal original before saved input', async () => {
+  const f = originalRestoredFixture(), view = Object.freeze(f.originalPreparation);
+  let reads = 0;
+  const original = {
+    prepareRead() { assert.fail('saved input is never fresh preparation'); },
+    restoreRead(input) {
+      assert.strictEqual(this, original); assert.strictEqual(input, f.restoredInput);
+      reads++; f.calls.push(['restoreRead']); return view;
+    },
+  };
+  const {component, open} = deferredProvider(f, original, f.restoredInput, true);
+  assert.equal(reads, 0); const active = open();
+  assert.equal(component.failure(), undefined); assert.strictEqual(active, f.active);
+  assert.deepEqual(f.calls.map(x => x[0]), ['restoreRead', 'claim', 'restore', 'retain', 'mask', 'run', 'dispatch']);
+  assert.deepEqual(f.calls[1], ['claim', view.read, f.rawCompiled, f.rawDefinition, f.graph, 7n, 5n]);
+  const args = f.calls[2].slice(1), input = f.restoredInput;
+  const expected = [f.occurrence, f.graph, f.prefix, f.provider,
+    input.snapshot.binding, input.snapshot.descriptorWire, input.snapshot.rows,
+    args[7], input.savedScope, f.rawCompiled, f.rawDefinition, f.consumer,
+    7n, 5n, 100n, 0n, undefined];
+  sameArguments(args, expected);
+  assert.equal(args[7](), true); input.token.available = false; assert.equal(args[7](), false);
+  assert.strictEqual(component.operation().originalResourceScope(), view.scope);
+  assert.equal(open(), undefined); assert.equal(reads, 1);
+  await component.operation().close();
+});
+
+function sameArguments(actual, expected) {
+  assert.equal(actual.length, expected.length);
+  actual.forEach((value, i) => assert.strictEqual(value, expected[i]));
+}
+
+test('original restored composed read refuses a fresh-only owner before issuing or claiming anything', () => {
+  const f = originalRestoredFixture(); let reads = 0;
+  assert.throws(() => deferredProvider(f, {prepareRead() { reads++; return f.originalPreparation; }},
+    f.restoredInput), /InvalidComposedInferOriginalPreparation/u);
+  assert.equal(reads, 0); assert.equal(f.calls.length, 0);
+});
+
+test('original restored composed failure retains the original owner failure without reissuing its read', () => {
+  const f = originalRestoredFixture(), cause = new Error('OriginalColdReadPending'); let reads = 0;
+  const {component, open} = deferredProvider(f, {restoreRead() { reads++; throw cause; }}, f.restoredInput);
+  assert.equal(open(), undefined); assert.strictEqual(component.failure(), cause);
+  assert.equal(open(), undefined); assert.strictEqual(component.failure(), cause);
+  assert.equal(reads, 1); assert.equal(f.calls.length, 0);
+});
+
+test('original restored composed private control refuses foreign compiled and Definition wrappers before saved start', () => {
+  for (const mutate of [
+    f => { f.originalPreparation.compiled = {...f.originalPreparation.compiled}; },
+    f => { f.originalPreparation.runDefinition = {...f.originalPreparation.runDefinition}; },
+    f => { f.originalPreparation.control = runtimeCore({...f.moon}).publicationControl; },
+  ]) {
+    const f = originalRestoredFixture(); mutate(f);
+    assert.throws(() => openNodeInferOperation({...f.options, originalPreparation: undefined,
+      restoredPreparation: f.originalPreparation, restoredInput: f.restoredInput}),
+    /Foreign (?:Client compiled Infer preparation|publication contract)/u);
+    assert.equal(f.calls.length, 0);
+  }
+});
+
+test('original restored composed input cannot combine fresh and cold originals or omit the saved scope', () => {
+  for (const mutate of [
+    options => { options.originalPreparation = options.restoredPreparation; },
+    options => { options.restoredInput = {}; },
+    options => { options.composedInput = undefined; },
+    options => { options.keyedInput = {}; },
+  ]) {
+    const f = originalRestoredFixture(), options = {...f.options, originalPreparation: undefined,
+      restoredPreparation: f.originalPreparation, restoredInput: f.restoredInput};
+    mutate(options);
+    assert.throws(() => openNodeInferOperation(options), /InvalidInferOriginalPreparation/u);
+    assert.equal(f.calls.length, 0);
+  }
 });
