@@ -616,7 +616,7 @@ test('Native Core selects the admitted Darwin arm64 runner without dropping targ
   // The runner keeps both the focused prerequisite and the complete Native
   // campaign. The existing harness selects the original platform libraries.
   assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn -p platform_native\/trusted_clock/u);
-  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn --strip -j/u);
+  assert.match(coreStep.run, /node scripts\/test-native-core\.mjs --deny-warn --release --strip -j/u);
   assert.doesNotMatch(coreStep.run, /ACTQL_TEST_NATIVE_SQLITE_LIBRARY/u);
 });
 
@@ -988,14 +988,14 @@ test('native journal inspection declares required interfaces', () => {
 });
 
 
-test('full Native Core strips only debug information while retaining the complete strict serial selection and failures', t => {
+test('full Native Core selects release code generation while retaining the complete strict serial selection and failures', t => {
   const root=mkdtempSync(join(tmpdir(),'actql-core-strip-routing-'));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const bin=join(root,'bin');mkdirSync(bin);
   for(const name of ['node','moon']){
     const command=join(bin,name);
     writeFileSync(command,`#!${process.execPath}
-console.log(JSON.stringify(process.argv.slice(2)));
+console.log(JSON.stringify({args:process.argv.slice(2),native:process.env.MOONBIT_NEW_NATIVE}));
 if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))process.exit(7);
 `);
     chmodSync(command,0o755);
@@ -1005,15 +1005,17 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
   for(const target of ['native','js','wasm']){
     const command=coreStep.run.replaceAll('${{ matrix.target }}',target);
     const result=spawnSync('bash',['-eo','pipefail','-c',command],{
-      cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH},
+      cwd:root,encoding:'utf8',timeout:5000,env:{...process.env,PATH:bin+':'+process.env.PATH,MOONBIT_NEW_NATIVE:'1'},
     });
     assert.equal(result.error,undefined);assert.equal(result.signal,null);assert.equal(result.status,0,result.stderr);
-    const calls=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
+    const records=result.stdout.trim().split('\n').map(line=>JSON.parse(line));
+    const calls=records.map(record=>record.args);
     if(target==='native'){
       assert.deepEqual(calls,[
         ['scripts/test-native-core.mjs','--deny-warn','-p','platform_native/trusted_clock'],
-        ['scripts/test-native-core.mjs','--deny-warn','--strip','-j','1','--verbose'],
+        ['scripts/test-native-core.mjs','--deny-warn','--release','--strip','-j','1','--verbose'],
       ]);
+      assert.deepEqual(records.map(record=>record.native),['1','0']);
       const failed=spawnSync('bash',['-eo','pipefail','-c',command],{
         cwd:root,encoding:'utf8',timeout:5000,
         env:{...process.env,PATH:bin+':'+process.env.PATH,ACTQL_FIXTURE_FAIL_FULL:'1'},
@@ -1021,6 +1023,7 @@ if(process.env.ACTQL_FIXTURE_FAIL_FULL==='1'&&process.argv.includes('--strip'))p
       assert.equal(failed.error,undefined);assert.equal(failed.signal,null);assert.equal(failed.status,7);
     }else{
       assert.equal(calls.length,target==='js'?1:4);
+      assert(records.every(record=>record.native==='1'));
       assert(calls.every(args=>!args.includes('--strip')));
       assert.deepEqual(calls[0],['test','--target',target,'--deny-warn','-j','3']);
     }
@@ -1032,7 +1035,7 @@ test('Native target child keeps a finite cold Core budget without widening ordin
   const start = source.indexOf("child = spawn(process.execPath, ['--input-type=module', '-e',");
   const end = source.indexOf('\n  if (compilerDriver)', start);
   assert(start >= 0 && end > start);
-  const moonArgs = ['--target', 'native', '--deny-warn', '--strip', '-j', '1', '--verbose'];
+  const moonArgs = ['--target', 'native', '--deny-warn', '--release', '--strip', '-j', '1', '--verbose'];
   for (const [coreArgs, originalLocalReview, timeout] of [
     [undefined, false, 180000],
     [undefined, true, 600000],
@@ -1064,12 +1067,12 @@ test('Native target child keeps a finite cold Core budget without widening ordin
 });
 
 
-test('Native checkpoint producers retain the selected debug mode before the same full Core command', () => {
+test('Native checkpoint producers retain the selected optimization and debug mode before the same full Core command', () => {
   const source=readFileSync(new URL('native-client-checkpoint-fixture.mjs',import.meta.url),'utf8');
   const before=source.indexOf('function originalReference(');
   const after=source.indexOf('export function nativeClientCheckpointFixture(',before);
   assert(before>=0&&after>before);
-  for(const strip of [false,true]) for(const denyWarn of [false,true]){
+  for(const strip of [false,true]) for(const denyWarn of [false,true]) for(const release of [false,true]){
     const calls=[];
     const original=runInNewContext('('+source.slice(before,after).trim()+')',{
       spawnSync(node,args,options){
@@ -1084,17 +1087,17 @@ test('Native checkpoint producers retain the selected debug mode before the same
         return {status:0,signal:null,stdout:'ACTQL_CLIENT_CHECKPOINT original-reference\n',stderr:''};
       },process:{execPath:process.execPath,stdout:{write(){}},stderr:{write(){}}},
     });
-    assert.equal(original('/original/root',{},'original_wbtest.mbt',strip,denyWarn),'original-reference');
+    assert.equal(original('/original/root',{},'original_wbtest.mbt',strip,denyWarn,release),'original-reference');
     assert.deepEqual(calls,[['--target','native',...(strip?['--strip']:[]),
-      ...(denyWarn?['--deny-warn']:[]),'original_wbtest.mbt','--index','0']]);
+      ...(denyWarn?['--deny-warn']:[]),...(release?['--release']:[]),'original_wbtest.mbt','--index','0']]);
   }
 });
 
-test('strict Native checkpoint producers share the full child compilation mode without changing its selection', t => {
+test('strict Native checkpoint producers share the full release child compilation mode without changing its selection', t => {
   const f = fixture(t);
   const commands = join(f.root, 'native-commands.jsonl');
   const result = spawnSync(process.execPath, ['scripts/test-native-core.mjs',
-    '--deny-warn', '--strip', '-j', '3', '--verbose'], {
+    '--deny-warn', '--release', '--strip', '-j', '3', '--verbose'], {
     cwd: f.checkout, encoding: 'utf8', timeout: 10000,
     env: {...f.env, ACTQL_FIXTURE_NATIVE_COMMANDS: commands},
   });
@@ -1104,9 +1107,9 @@ test('strict Native checkpoint producers share the full child compilation mode w
   const calls = readFileSync(commands, 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(calls.length, 3);
   const compilation = args => args.filter(arg =>
-    ['--target', 'native', '--strip', '--deny-warn'].includes(arg)).sort();
+    ['--target', 'native', '--strip', '--deny-warn', '--release'].includes(arg)).sort();
   assert.deepEqual(calls[2], ['test', '--target', 'native',
-    '--deny-warn', '--strip', '-j', '3', '--verbose']);
+    '--deny-warn', '--release', '--strip', '-j', '3', '--verbose']);
   for (const [index, file] of [
     'src/platform_native/client_host/run_checkpoint_wbtest.mbt',
     'src/platform_native/client_host/run_effect_receipt_wbtest.mbt',

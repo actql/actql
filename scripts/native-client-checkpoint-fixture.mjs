@@ -5,9 +5,9 @@ import {nativeResolutionFixture} from './fixtures/native-effect-resolution-fixtu
 // Materialize signatures for the original references compiled by Native.
 // Neither statuses nor expected rows are obtained from that producer. The
 // surrounding bounded test runner owns this child and the heavy-check lock.
-function originalReference(root, env, referenceFile, strip = false, denyWarn = false) {
+function originalReference(root, env, referenceFile, strip = false, denyWarn = false, release = false) {
   const produced = spawnSync(process.execPath, ['--input-type=module', '-e',
-    'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("moon",["--target","native",...(process.argv[2]==="1"?["--strip"]:[]),...(process.argv[3]==="1"?["--deny-warn"]:[]),process.argv[1],"--index","0"],{cwd:process.cwd()});', referenceFile, strip ? '1' : '0', denyWarn ? '1' : '0'],
+    'import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests("moon",["--target","native",...(process.argv[2]==="1"?["--strip"]:[]),...(process.argv[3]==="1"?["--deny-warn"]:[]),...(process.argv[4]==="1"?["--release"]:[]),process.argv[1],"--index","0"],{cwd:process.cwd()});', referenceFile, strip ? '1' : '0', denyWarn ? '1' : '0', release ? '1' : '0'],
   {cwd: root, env, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024});
   process.stdout.write(produced.stdout ?? '');
   process.stderr.write(produced.stderr ?? '');
@@ -35,14 +35,14 @@ function originalReference(root, env, referenceFile, strip = false, denyWarn = f
   return references[0];
 }
 
-export function nativeClientCheckpointFixture(root, env = process.env, strip = false, denyWarn = false) {
+export function nativeClientCheckpointFixture(root, env = process.env, strip = false, denyWarn = false, release = false) {
   const signers = {reviewer: generateKeyPairSync('ed25519'), host: generateKeyPairSync('ed25519')};
   const result = {};
   for (const [prefix, file] of [
     ['', 'src/platform_native/client_host/run_checkpoint_wbtest.mbt'],
     ['RECEIPT_', 'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'],
   ]) {
-    const reference = originalReference(root, env, file, strip, denyWarn);
+    const reference = originalReference(root, env, file, strip, denyWarn, release);
     const fixtures = {
       APPROVE: nativeResolutionFixture(reference, signers),
       REJECT: nativeResolutionFixture(reference, {...signers, decision: 'rejected'}),

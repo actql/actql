@@ -339,10 +339,10 @@ jobs:
             fi
             # Reopen remains within a run; the full run below starts fresh.
             node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
-            # Keep the debug optimization level and every test; omit generated DWARF
-            # from the large full-Core C compilation. The focused prerequisite
-            # and Reader/compiler diagnostics above keep their debug profile.
-            node scripts/test-native-core.mjs --deny-warn --strip -j 1 --verbose
+            # Optimize the test IR before emitting the large full-Core C input.
+            # Keep every test, strict warnings and the original generated-C
+            # backend; production and the focused debug prerequisite are unchanged.
+            MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 1 --verbose
           else
             moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
             if [ "${{ matrix.target }}" = wasm ]; then

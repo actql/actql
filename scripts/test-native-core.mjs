@@ -35,12 +35,12 @@ const full = !['focused', 'reporting'].includes(classifyMoon('test', args).class
 const privateHost = full || args.some(arg => arg.includes('platform_native/filesystem'))
   ? nativePrivateHostFixture(namespace) : {};
 const clientCheckpoint = full || args.some(arg => arg.includes('platform_native/client_host'))
-  // Match the selected debug and warning modes before the original producers
-  // populate the cache. Changing strictness afterwards invalidates their Core
+  // Match optimization, debug and warning modes before the original producers
+  // populate the cache. Changing the mode afterwards invalidates their Core
   // dependencies even when the physical test source has not changed.
   ? nativeClientCheckpointFixture(root, process.env,
     args.lastIndexOf('--strip') > args.lastIndexOf('--no-strip'),
-    args.includes('--deny-warn') || args.includes('-d')) : {};
+    args.includes('--deny-warn') || args.includes('-d'), args.includes('--release')) : {};
 // Only the final Native test child receives the injection environment. The
 // existing checkpoint producers and other preparation commands do not.
 const readerCustody = full || args.some(arg =>
