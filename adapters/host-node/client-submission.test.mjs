@@ -921,9 +921,9 @@ test('retained Source analysis budget rechecks original intent and current discl
     runnable: {verdict: 'yes', reasons: []}}}), false);
   let disclosed = true;
   const observed = [];
-  const f = await fixture(t, {prepare() {
-    throw Object.assign(new Error('typed budget fixture'), {code: 'ClientProgramAnalysisLimit'});
-  }, async check(value) {
+  let originalReports = 0, laterChecks = 0;
+  const failure = Object.assign(new Error('typed budget fixture'), {code: 'ClientProgramAnalysisLimit'});
+  const observe = async value => {
     observed.push(value.input.text);
     const outcome = structuredClone(budget);
     if (!disclosed) {
@@ -933,7 +933,11 @@ test('retained Source analysis budget rechecks original intent and current discl
     }
     assert.equal(validCheckOutcome(outcome), true);
     return outcome;
-  }});
+  };
+  const f = await fixture(t, {prepare() {throw failure;},
+    originalObservation(error, value) {
+      assert.strictEqual(error, failure); originalReports++; return observe(value);
+    }, check(value) {laterChecks++; return observe(value);}});
   const first = await f.service.submitIntent(f.body('SELECT original AS n'));
   assert.deepEqual(first.problem, {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'});
   f.restart();
@@ -946,6 +950,7 @@ test('retained Source analysis budget rechecks original intent and current discl
   assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
   assert.ok(observed.every(text => text === 'SELECT original AS n'));
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  assert.deepEqual({originalReports, laterChecks}, {originalReports: 2, laterChecks: 2});
 });
 
 
@@ -957,9 +962,9 @@ for (const partial of [false, true]) {
       '../../packages/client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
     let limit = 'implementation_limit';
     const observed = [];
-    const f = await fixture(t, {prepare() {
-      throw Object.assign(new Error('typed implementation fixture'), {code: 'ClientProgramImplementationLimit'});
-    }, async check(value) {
+    let originalReports = 0, laterChecks = 0;
+    const failure = Object.assign(new Error('typed implementation fixture'), {code: 'ClientProgramImplementationLimit'});
+    const observe = async value => {
       observed.push(value.input.text);
       const report = structuredClone(verified.report);
       report.verdict = 'undetermined';
@@ -968,7 +973,11 @@ for (const partial of [false, true]) {
       const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
       assert.equal(validCheckOutcome(outcome), true);
       return outcome;
-    }});
+    };
+    const f = await fixture(t, {prepare() {throw failure;},
+      originalObservation(error, value) {
+        assert.strictEqual(error, failure); originalReports++; return observe(value);
+      }, check(value) {laterChecks++; return observe(value);}});
     const first = await f.service.submitIntent(f.body('SELECT original AS n'));
     assert.deepEqual(first.problem, {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'});
     f.restart();
@@ -981,6 +990,7 @@ for (const partial of [false, true]) {
     assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
     assert.ok(observed.every(text => text === 'SELECT original AS n'));
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+    assert.deepEqual({originalReports, laterChecks}, {originalReports: 2, laterChecks: 2});
   });
 }
 
