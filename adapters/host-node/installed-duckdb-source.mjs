@@ -152,6 +152,16 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
     readAuthorization: profile.readAuthorization,
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => !closing && sourceRef === profile.sourceRef,
+    managedEffectPlanSelection() {
+      current();
+      // Inert inputs to the SAME Plan's native capture constructor. The Plan
+      // prepares its Query once; this neither selects an acquisition nor
+      // replaces the original Account gate with a row-backed declaration.
+      const physical = computePhysicalCapacity(profile.transportLimits);
+      return Object.freeze({nativeSource: Object.freeze({sourceRef: profile.sourceRef,
+        schema: profile.schema, table: profile.table, contracts: capacityContracts}),
+      transferBytes: physical.transferBytes, executionBytes: physical.executionBytes});
+    },
     managedCaptureCapacity(requirement) {
       current();
       if (moon.clientProgramQueryRequirementSourceRef(requirement) !== profile.sourceRef) {
@@ -195,11 +205,14 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       current();
       let originalCapture;
       if (managedRun !== undefined) {
-        if (preparedEffect !== undefined || typeof moon.clientProgramInstalledManagedDuckDBCapture !== 'function') {
+        const effectful = preparedEffect !== undefined;
+        const readOriginal = effectful ? moon.clientProgramInstalledEffectManagedDuckDBCapture
+          : moon.clientProgramInstalledManagedDuckDBCapture;
+        if (typeof readOriginal !== 'function' || effectful && preparedProgram !== undefined) {
           throw new TypeError('InstalledSourcePreparationMismatch');
         }
-        const original = checked(moon.clientProgramInstalledManagedDuckDBCapture(
-          managedRun, preparedProgram, requestIdentity, occurrence.task));
+        const original = checked(Reflect.apply(readOriginal, moon,
+          [managedRun, effectful ? preparedEffect : preparedProgram, requestIdentity, occurrence.task]));
         current();
         originalCapture = Object.freeze({requirement: runtimeField(original, 0),
           capacity: runtimeField(original, 1)});

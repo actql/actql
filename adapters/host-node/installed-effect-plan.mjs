@@ -374,11 +374,16 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   // inputs cannot select a zero-Source or ordinary-purpose replacement.
   const count = moon.clientProgramEffectAcquisitionCount(facts.prepared);
   const sources = inputs.sourceInputs;
+  const nativeInputs = sources?.inputs;
   if (!Number.isSafeInteger(count) || count < 0 ||
       count !== 0 && sources === undefined || sources !== undefined &&
       (sources === null || typeof sources !== 'object' || !Object.isFrozen(sources) ||
-       !['declarations', 'transferBytes', 'executionBytes'].every(name =>
+       !['transferBytes', 'executionBytes'].every(name =>
          Array.isArray(sources[name]) && Object.isFrozen(sources[name]) && sources[name].length === count) ||
+       (nativeInputs === undefined
+         ? !Array.isArray(sources.declarations) || !Object.isFrozen(sources.declarations) || sources.declarations.length !== count
+         : !Array.isArray(nativeInputs) || !Object.isFrozen(nativeInputs) || nativeInputs.length !== count ||
+           sources.declarations !== undefined || sources.providers !== undefined) ||
        sources.providers !== undefined && (!Array.isArray(sources.providers) ||
          !Object.isFrozen(sources.providers) || sources.providers.length !== count) ||
        typeof sources.queryContract !== 'string' || typeof sources.evidenceContract !== 'string' ||
@@ -403,6 +408,14 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   });
   const model = inputs.modelDemand !== undefined, providers = sources?.providers;
   const content = inputs.contentPreparation;
+  if (nativeInputs !== undefined) {
+    const construct = moon.clientProgramInstalledEffectManagedSourcePlanPrepare;
+    if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
+    return checked(Reflect.apply(construct, moon, [facts.prepared, facts.identity, nativeInputs,
+      sources.queryContract, sources.evidenceContract, sources.transferBytes, sources.executionBytes,
+      inputs.installedContracts, inputs.values, inputs.fragment, inputs.ordered, demands,
+      facts.queryTimePreparation, inputs.modelDemand, inputs.modelComponents ?? [], content]));
+  }
   const construct = content !== undefined && model ? moon.clientProgramInstalledEffectContentModelManagedPlanPrepare
     : content !== undefined ? moon.clientProgramInstalledEffectContentManagedPlanPrepare : model ? providers === undefined
     ? moon.clientProgramInstalledEffectModelManagedPlanPrepare

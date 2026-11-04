@@ -211,6 +211,49 @@ for (const sourceKind of ['source-free', 'base Source', 'provider Source']) {
   });
 }
 
+for (const model of [false, true]) for (const content of [false, true]) {
+  test(`Effect native Plan forwards original Source inputs with Model=${model} Content=${content}`, () => {
+    const prepared = {}, identity = {}, queryTime = {}, source = {}, installedContracts = {}, demand = {}, plan = {};
+    const modelDemand = model ? {} : undefined, components = model ? Object.freeze([{}]) : undefined;
+    const contentPreparation = content ? {} : undefined;
+    const sources = Object.freeze({inputs: Object.freeze([source]), queryContract: 'original-query',
+      evidenceContract: 'original-evidence', transferBytes: Object.freeze([37n]), executionBytes: Object.freeze([109n])});
+    const facts = {prepared, identity, queryTimePreparation: queryTime};
+    const inputs = {sourceInputs: sources, installedContracts, values: 'values', fragment: 'fragment', ordered: 'ordered',
+      ...(model ? {modelDemand, modelComponents: components} : {}), ...(content ? {contentPreparation} : {})};
+    const extent = {}, recipe = captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze([]),
+      rowOperations: Object.freeze([Object.freeze({operation: 'write', extent})])}), 1);
+    let demands = 0, plans = 0;
+    const moon = {clientProgramEffectAcquisitionCount: () => 1,
+      clientProgramInstalledEffectOperationDemandPrepare(p, stage, effectId, memberExtents, rowExtents) {
+        assert.strictEqual(p, prepared); assert.deepEqual([stage, effectId, memberExtents, rowExtents], [2, 'write', [], [extent]]);
+        demands++; return {$tag: 1, _0: demand};
+      },
+      clientProgramInstalledEffectManagedSourcePlanPrepare(...actual) {
+        assert.strictEqual(this, moon); plans++;
+        const expected = [prepared, identity, sources.inputs, sources.queryContract, sources.evidenceContract,
+          sources.transferBytes, sources.executionBytes, installedContracts, 'values', 'fragment', 'ordered',
+          [demand], queryTime, modelDemand, components ?? [], contentPreparation];
+        assert.equal(actual.length, expected.length);
+        actual.forEach((value, index) => index === 11 || index === 14 && !model
+          ? assert.deepEqual(value, expected[index]) : assert.strictEqual(value, expected[index]));
+        return {$tag: 1, _0: plan};
+      },
+      clientProgramInstalledEffectManagedPlanPrepare() {assert.fail('no row-only fallback for a native input');},
+    };
+    assert.strictEqual(prepareInstalledEffectManagedPlan({moon, facts, inputs,
+      unit: {stageIndex: 2}, members: [{effectId: 'write'}], recipeFor: () => recipe}), plan);
+    assert.deepEqual([demands, plans], [1, 1]);
+    for (const change of [{inputs: Object.freeze([])}, {declarations: Object.freeze([{}])}, {providers: Object.freeze([{}])}]) {
+      assert.throws(() => prepareInstalledEffectManagedPlan({moon, facts,
+        inputs: {...inputs, sourceInputs: Object.freeze({...sources, ...change})},
+        unit: {stageIndex: 2}, members: [{effectId: 'write'}], recipeFor: () => recipe}),
+      {code: 'InstalledEffectPlanInputsUnavailable'});
+    }
+    assert.deepEqual([demands, plans], [1, 1], 'invalid Source originals refuse before any operation constructor');
+  });
+}
+
 // Explicit Core ports count calls only. This refusal case does not fabricate a
 // successful native Plan, a Request parent, a source acquisition or capacity.
 test('unavailable original Source or Model inputs refuse before constructing Effect demands', () => {
