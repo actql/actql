@@ -1185,7 +1185,7 @@ fn resize_installed_effect_operation_control_construction(
         return Err(AlreadyBound)
       }
   }
-  let codec_workspace = match ledger_codec {
+  let (codec_workspace, codec_retained) = match ledger_codec {
     Some((true, wire, nodes, depth)) => {
       if nodes < 1 || nodes > 4096 || depth < 1 || depth > 32 {
         return Err(Unsupported)
@@ -1205,17 +1205,16 @@ fn resize_installed_effect_operation_control_construction(
       guard installed_effect_contract_response_construction_capacity(
           bytes, nodes, depth,
         )
-        is Some(codec) &&
-        @execution.execution_capacity_retained_bytes(codec) <=
-        @execution.execution_capacity_retained_bytes(
-          plan.operation_control_capacity,
-        ) else {
+        is Some(codec) else {
         return Err(Unsupported)
       }
-      @execution.execution_capacity_execution_bytes(codec) -
-      @execution.execution_capacity_retained_bytes(codec)
+      (
+        @execution.execution_capacity_execution_bytes(codec) -
+        @execution.execution_capacity_retained_bytes(codec),
+        @execution.execution_capacity_retained_bytes(codec),
+      )
     }
-    _ => 0L
+    _ => (0L, 0L)
   }
   let input = match input_wire {
     None => None
@@ -1248,6 +1247,7 @@ fn resize_installed_effect_operation_control_construction(
       plan,
       input~,
       codec_workspace=Some(codec_workspace),
+      codec_retained~,
     )
     is Some((capacity, idle)) else {
     return Err(Unsupported)
@@ -1555,6 +1555,7 @@ fn installed_effect_control_capacity(
   input? : (String, @execution.ExecutionCapacity)? = None,
   codec_workspace? : Int64? = None,
   captured_rows? : Int? = None,
+  codec_retained? : Int64 = 0L,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -1586,6 +1587,13 @@ fn installed_effect_control_capacity(
     (plan.operation_control_capacity, plan.operation_control_idle_execution)
   }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
+  // The actual original captured inventory may already have grown this
+  // same control reservation beyond its initial zero-row Plan quote. Check
+  // the codec against that selected base once, before adding any Host forest;
+  // retained input or unrelated spare bytes cannot fund a missing control.
+  if codec_retained < 0L || codec_retained > base_retained {
+    return None
+  }
   guard @execution.checked_preparation_add_product(
       base_retained, codec_workspace, 1L,
     )
