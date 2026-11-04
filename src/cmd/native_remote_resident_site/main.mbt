@@ -4503,10 +4503,18 @@ fn run_holder(
         slot,
         issue,
       )
+      report("setup-failed", [
+        ("attempt", attempt),
+        ("reason", "output-resources-refused"),
+      ])
       return HolderCommandFailed(None, issue)
     }
     Err(HolderOutputSetupPending(original, issue)) => {
       retain_partial_holder_output_setup(original, environment, slot, issue)
+      report("setup-failed", [
+        ("attempt", attempt),
+        ("reason", "output-resources-pending"),
+      ])
       return HolderCommandFailed(None, issue)
     }
   }
