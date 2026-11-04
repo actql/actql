@@ -18671,7 +18671,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "a03b1da607a1fe37cf4f5b2c98bcfe90a1be944acf37becbb555b5de12ad3cd4",
+      "sha256": "96ead5312b6a2c9b9ae912f068435ad959ecb99a6b297c92ea5897d891302f9f",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",
@@ -19098,6 +19098,49 @@
           "async": false
         },
         {
+          "name": "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan",
+          "parameters": [
+            "facts",
+            "inputs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/members/members",
+          "parameters": [
+            "effectId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/members/members#2",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan#3",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledTableEffect/prepareRecovered",
           "parameters": [
             "facts"
@@ -19289,12 +19332,12 @@
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/owner",
             "createInstalledTableEffect/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage",
-            "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage#2",
+            "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/createInstalledTableEffect",
-            "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
             "createInstalledTableEffect/createInstalledTableEffect#2",
             "createInstalledTableEffect/createInstalledTableEffect#3",
+            "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispose/dispose",
@@ -19320,6 +19363,12 @@
             "createInstalledTableEffect/prepareCaptured/releaseInputs/releaseInputs",
             "createInstalledTableEffect/prepareCaptured/retained/retained",
             "createInstalledTableEffect/prepareCaptured/targets/targets",
+            "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan",
+            "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/members/members",
+            "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/members/members#2",
+            "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan",
+            "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan#2",
+            "createInstalledTableEffect/prepareManagedPlan/prepareManagedPlan/prepareManagedPlan#3",
             "createInstalledTableEffect/prepareRecovered",
             "createInstalledTableEffect/prepareRecovered/evidenceDecision/evidenceDecision",
             "createInstalledTableEffect/prepareRecovered/prepareRecovered",
@@ -19395,6 +19444,10 @@
               {
                 "path": "adapters/host-node/installed-table-effect.mjs",
                 "anchor": "checkInstalledTableEffectLimits"
+              },
+              {
+                "path": "adapters/host-node/installed-table-effect.mjs",
+                "anchor": "prepareManagedPlan"
               }
             ],
             "extension": [
@@ -19407,6 +19460,10 @@
               {
                 "path": "adapters/host-node/installed-table-effect.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/table-managed-demand.test.mjs",
+                "anchor": "Table managed demand keeps one whole-Relation dispatch"
               }
             ]
           }
@@ -19421,6 +19478,7 @@
         "../host-common/runtime-result.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
+        "./installed-effect-plan.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-values-plan.mjs",
