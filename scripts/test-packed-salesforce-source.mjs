@@ -463,7 +463,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     'graph-node-infer-effect-duplicate-key.program.template.json',
     'graph-node-infer-effect-null-property.program.template.json',
     'installed-infer-fixture.mjs', 'model-provider-binding-fixture.mjs',
-    'two-source-public-query.mjs',
+    'packed-infer-preparation-diagnostic.mjs', 'two-source-public-query.mjs',
     'public-query-input.mjs', ...optionalEffectFixtureFiles]) {
     await writeFile(join(root, name), await readFile(join(repository,
       'scripts/fixtures', name)));
@@ -571,6 +571,7 @@ import {resolve} from 'node:path';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {observeTwoSourceProvider} from './two-source-public-query.mjs';
+import {inferPreparationFailureData} from './packed-infer-preparation-diagnostic.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
@@ -621,7 +622,18 @@ const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
 let temporaryReleaseConfirmed = false;
 const resumeFailures = [];
+let inferPreparationFailureObserved = false;
 authorization.observe = (name, detail) => {
+  // The packed command uploader retains stderr, not arbitrary scratch files.
+  // Keep the same bounded Model DATA projection as the standalone consumer;
+  // no Error, Run reference, input or current/acceptance decision is exported.
+  if (name === 'infer_preparation_rejected' && !inferPreparationFailureObserved) {
+    const data = inferPreparationFailureData(detail);
+    if (data !== undefined) {
+      inferPreparationFailureObserved = true;
+      console.error(JSON.stringify({event: name, ...data}));
+    }
+  }
   if (name === 'effect_resume_failed' || name === 'source_resume_failed') {
     resumeFailures.push({name, code: detail.code, detail: detail.detail, cause: detail.cause});
     if (resumeFailures.length > 16) resumeFailures.shift();

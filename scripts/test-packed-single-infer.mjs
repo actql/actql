@@ -39,7 +39,7 @@ async ({root, directory, run, recordTarball}) => {
     join(root, `actql-${name}-0.0.0-development.tgz`))],
   {cwd: root, env, timeout: 240000});
   for (const name of ['installed-infer-fixture.mjs', 'model-provider-binding-fixture.mjs',
-    'model-custody-fixture.mjs',
+    'model-custody-fixture.mjs', 'packed-infer-preparation-diagnostic.mjs',
     'packed-single-infer.mjs']) {
     await writeFile(join(root, name),
       await readFile(join(repository, 'scripts', 'fixtures', name)));

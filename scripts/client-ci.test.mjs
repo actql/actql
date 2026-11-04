@@ -3,9 +3,10 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {readFile, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {types as nodeTypes} from 'node:util';
@@ -24,6 +25,7 @@ import {selectInstalledHostEnvironment, selectInstalledLocalMaterializationEnvir
   '../adapters/host-node/installed-host-policy.mjs';
 import {composeInstalledCheckEnvironment} from '../adapters/host-node/installed-check-environment.mjs';
 import {contentCid} from '../adapters/host-node/local-account-config.mjs';
+import {inferPreparationFailureData} from './fixtures/packed-infer-preparation-diagnostic.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -37,13 +39,7 @@ const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script]
 });
 
 test('packed INFER original preparation evidence excludes opaque values getters and proxy traps', () => {
-  const script = readFileSync(new URL('./fixtures/packed-single-infer.mjs', import.meta.url), 'utf8');
-  const tree = parseJavaScript(script, {ecmaVersion: 'latest', sourceType: 'module'});
-  const definition = tree.body.find(node => node.type === 'FunctionDeclaration' &&
-    node.id.name === 'inferPreparationFailureData');
-  assert(definition);
-  const project = new Function('nodeTypes', script.slice(definition.start, definition.end) +
-    ';return inferPreparationFailureData;')(nodeTypes);
+  const project = inferPreparationFailureData;
   let getterReads = 0;
   const cause = {$tag: 3};
   Object.defineProperty(cause, 'message', {get() {getterReads++; throw new Error('private');}});
@@ -182,6 +178,79 @@ test('packed INFER keeps at most its first original admission event in existing 
   assert.deepEqual(lines.map(line => JSON.parse(line)),
     [{event: 'infer_preparation_rejected', boundary: 'model_provider'},
       {event: 'dispatch_failed', code: 'MoonBitHostFailure', issueTag: 7, calls: 0}]);
+});
+
+test('packed composition retains the first original Model admission event in command stderr', () => {
+  const source = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  let template;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'writeFile' &&
+        node.arguments[0]?.type === 'CallExpression' &&
+        node.arguments[0].arguments.some(value => value.value === 'effect-run.mjs')) {
+      assert.equal(template, undefined); template = node.arguments[1];
+    }
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  };
+  visit(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(template.expressions.length, 0);
+  const driver = template.quasis[0].value.cooked;
+  const tree = parseJavaScript(driver, {ecmaVersion: 'latest', sourceType: 'module'});
+  const assignment = tree.body.find(node => node.type === 'ExpressionStatement' &&
+    node.expression.type === 'AssignmentExpression' &&
+    node.expression.left.object?.name === 'authorization' &&
+    node.expression.left.property?.name === 'observe');
+  assert(assignment);
+  const lines = [];
+  const observe = new Function('authorization', 'inferPreparationFailureData', 'console', 'appendFileSync',
+    'let inferPreparationFailureObserved=false;const resumeFailures=[];const optionalKind=undefined;' +
+    driver.slice(assignment.start, assignment.end) + ';return authorization.observe;')(
+      {}, inferPreparationFailureData, {error: line => lines.push(line)},
+      () => assert.fail('Model preparation diagnostics must not write custody or business files'));
+  observe('unrelated', {});
+  observe('infer_preparation_rejected', {boundary: 'private-input'});
+  observe('infer_preparation_rejected', {boundary: 'model_execution', code: 'MoonBitHostFailure',
+    typedCause: 'missing_body', cause: {$tag: 3}, ref: 'private', input: ['private']});
+  observe('infer_preparation_rejected', {boundary: 'model_dependencies', code: 'later'});
+  assert.deepEqual(lines.map(line => JSON.parse(line)), [{event: 'infer_preparation_rejected',
+    boundary: 'model_execution', code: 'MoonBitHostFailure', typedCause: 'missing_body', issueTag: 3}]);
+});
+
+test('both packed Model consumers copy their shared diagnostic without a checkout fallback', async () => {
+  const name = 'packed-infer-preparation-diagnostic.mjs';
+  for (const file of ['test-packed-single-infer.mjs', 'test-packed-salesforce-source.mjs']) {
+    const source = readFileSync(new URL(file, import.meta.url), 'utf8');
+    let loop, writer;
+    const visit = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'ForOfStatement' && node.right.type === 'ArrayExpression' &&
+          node.right.elements.some(value => value?.value === name)) loop = node;
+      for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    };
+    visit(parseJavaScript(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+    assert(loop, file);
+    const findWriter = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'AwaitExpression' && node.argument.type === 'CallExpression' &&
+          node.argument.callee.name === 'writeFile') writer = node;
+      for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(findWriter);
+      else if (value && typeof value === 'object') findWriter(value);
+    };
+    findWriter(loop.body); assert(writer, file);
+    const scratch = mkdtempSync(join(tmpdir(), 'actql-packed-diagnostic-'));
+    try {
+      const copy = new Function('root', 'repository', 'join', 'writeFile', 'readFile', 'name',
+        'return (async()=>{' + source.slice(writer.start, writer.end) + ';})();');
+      await copy(scratch, root, join, writeFile, readFile, name);
+      assert.equal(readFileSync(join(scratch, name), 'utf8'),
+        readFileSync(new URL('./fixtures/' + name, import.meta.url), 'utf8'));
+      const copied = await import(pathToFileURL(join(scratch, name)).href);
+      assert.deepEqual(copied.inferPreparationFailureData({boundary: 'model_provider', code: 'Original'}),
+        {boundary: 'model_provider', code: 'Original'});
+    } finally {rmSync(scratch, {recursive: true, force: true});}
+  }
 });
 
 test('packed INFER metadata uses the same installed Local policy without reidentifying its Model', async () => {
