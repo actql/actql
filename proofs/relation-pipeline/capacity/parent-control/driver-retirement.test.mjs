@@ -11,7 +11,8 @@ const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
 const changed = (path, from, to, anchor) => {
   const original = read(path).toString();
-  const body = anchor === undefined ? original : blockAfter(original, anchor);
+  const anchors = anchor === undefined ? [] : Array.isArray(anchor) ? anchor : [anchor];
+  const body = anchors.reduce((source, entry) => blockAfter(source, entry), original);
   const pattern = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')
     .replace(/\s+/g,'\\s+'),'g');
   assert.equal([...body.matchAll(pattern)].length,1,
@@ -60,14 +61,20 @@ for (const [name,from,to] of [
     '@resources.settle_execution_reservation( run.ledger, execution.reservation, remaining_execution=0L, )',
     '@resources.settle_reservation(run.ledger, execution.reservation)'],
 ]) test('completed scratch correspondence rejects '+name,()=>{
-  assert.throws(()=>checkDriverRetirementSource(changed(strategyPath,from,to,'if !execution.disposed')));
+  const mutated=changed(strategyPath,from,to,
+    ['fn release_task_execution_owned(', 'if !execution.disposed']);
+  assert.throws(()=>checkDriverRetirementSource(mutated));
 });
 test('completed scratch cannot acknowledge cleanup or discard original hooks',()=>{
+  const original=read(strategyPath).toString();
+  const branch=blockAfter(blockAfter(original, 'fn release_task_execution_owned('),
+    'if !execution.disposed');
+  const ending='\n    return Ok(false)\n  }';
+  assert(branch.endsWith(ending), 'Mutation must reach the original partial-release return');
+  assert.equal(original.split(branch).length,2, 'Completed scratch branch must be unique');
   for (const replacement of ['return Ok(true)', 'execution.hooks = None\nreturn Ok(false)']) {
-    const mutated=changed(strategyPath,
-      'Ok(_) => ()\n      }\n    }\n    return Ok(false)',
-      'Ok(_) => ()\n      }\n    }\n    '+replacement,
-      'if !execution.disposed');
+    const replaced=branch.slice(0,-ending.length)+'\n    '+replacement+'\n  }';
+    const mutated=path=>path===strategyPath?original.replace(branch,replaced):read(path);
     assert.throws(()=>checkDriverRetirementSource(mutated));
   }
 });
