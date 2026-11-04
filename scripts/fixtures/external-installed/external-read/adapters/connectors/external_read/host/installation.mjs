@@ -105,7 +105,8 @@ export async function load(profile, {root, principalId, moon, providerMoon,
         fetchPage({pageIndex}) {
           const request = JSON.parse(providerMoon.externalReadRequestJson(pageIndex));
           if (request.refused) fail(request.refused);
-          return {method: 'GET', target: request.path};
+          const target = new URL(request.path, origin);
+          return {method: 'GET', path: target.pathname, query: [...target.searchParams]};
         },
         decodePage(response, {pageIndex}) {
           if (!response.accepted || response.statusCode !== 200) fail('ExternalReadProviderRejected');
