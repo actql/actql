@@ -784,10 +784,9 @@ test('an acquisition failure without a stated end is never inferred stopped',
 async function preflightDispatchFixture(t, {
   blocked, unowned = false, partialSiteInstallation = false, sanitize = false,
 } = {}) {
-  const [document, environmentWire, registry, contract] = await Promise.all([
+  const [document, environmentWire, contract] = await Promise.all([
     readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'),
     readFile(new URL('../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8'),
-    readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8'),
     readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'),
   ]);
   let funded, owner, physicalStore, directory;
@@ -920,7 +919,8 @@ async function preflightDispatchFixture(t, {
         preflightDispatchFailure: detail.code, primaryCode: detail.primaryCode,
         issueTag: detail.issueTag, nestedIssueTag: detail.nestedIssueTag}));
     },
-    namespaceId, registry, values: JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']),
+    namespaceId, registry: funded.installedContracts,
+    values: JSON.stringify(JSON.parse(contract).execution_contracts['REL.values']),
     startRun: async () => ({kind: 'reserved', ref}), hostConnection: () => true,
     planFor: () => plan,
     async runPublished(actualSetup, publication, options, signal, observer, retainOwner, tasks) {
