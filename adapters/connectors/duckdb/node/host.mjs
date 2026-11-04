@@ -83,7 +83,11 @@ function sourceEvidenceOriginalAccess(current, issue) {
       evidence = undefined;
       return original;
     },
-    retire() {evidence = undefined;},
+    pending: () => preparing,
+    retire() {
+      if (preparing) throw new DuckDBTransportError('SourceEvidencePending');
+      evidence = undefined;
+    },
   });
 }
 
@@ -1443,6 +1447,7 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     close() {
       if (captureReleased) return;
       closed = true;
+      if (evidenceOriginal.pending()) throw new DuckDBTransportError('SourceEvidencePending');
       if (retainedOutput !== undefined) retainedComputations.delete(retainedOutput);
       body?.close();
       store?.close();
@@ -1651,6 +1656,7 @@ export async function runBroadHostQuery(grant, setup, limits, signal,
     close() {
       if (captureReleased) return;
       closed = true;
+      if (evidenceOriginal.pending()) throw new DuckDBTransportError('SourceEvidencePending');
       captured.close();
       evidenceOriginal.retire();
       captureReleased = true;

@@ -398,3 +398,9 @@ Its existing current read decision still precedes issuance. Pending or failed
 physical retirement retains the original evidence duty; successful original
 close drops the retained value. No JSON round trip admits another evidence
 value, and no new capture or read permission is created.
+
+If close reenters during the original current/issuance await, the same capture
+marks itself closed and refuses retirement while that preparation is pending.
+The original settlement then fails its closed fence; only a later original
+close may retire physical children and clear evidence. Pending callback custody
+therefore cannot be mistaken for a completed capture return.

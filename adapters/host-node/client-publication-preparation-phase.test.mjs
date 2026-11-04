@@ -833,9 +833,12 @@ test('DuckDB original evidence transfer retains the same issuer value and reject
     return new Promise(resolve => {complete = resolve;});
   });
   const preparing = access.prepare(options);
+  assert.equal(access.pending(), true);
+  assert.throws(() => access.retire(), {code: 'SourceEvidencePending'});
   assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
   await assert.rejects(access.prepare(options), {code: 'SourceEvidencePending'});
   complete(original); await preparing;
+  assert.equal(access.pending(), false);
   assert.equal(access.take(), original);
   assert.throws(() => access.take(), {code: 'SourceEvidenceUnavailable'});
   const next = access.prepare(options);
@@ -897,5 +900,58 @@ test('DuckDB captured Source prepares evidence on the same original physical cap
     assert.equal(result.capture, capture);
     await result.prepareSourceEvidenceOriginal(options);
     await result.close();
+  }
+});
+
+test('Native and Broad original close retain pending evidence custody before physical retirement', () => {
+  const source = readFileSync(new URL('../connectors/duckdb/node/host.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const walk = (node, visit) => {
+    if (!node || typeof node !== 'object') return;
+    visit(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(child => walk(child, visit));
+      else if (value && typeof value === 'object') walk(value, visit);
+    }
+  };
+  for (const name of ['runHostNativeQuery', 'runBroadHostQuery']) {
+    let original, close;
+    walk(ast, node => {if (node.type === 'FunctionDeclaration' && node.id?.name === name) original = node;});
+    assert(original, name);
+    walk(original, node => {
+      if (node.type !== 'VariableDeclarator' || node.id?.name !== 'result') return;
+      const object = node.init?.arguments?.[0];
+      if (object?.type !== 'ObjectExpression' ||
+          !object.properties.some(property => property.key?.name === 'takeSourceEvidenceOriginal')) return;
+      close = object.properties.find(property => property.key?.name === 'close')?.value;
+    });
+    assert(close, name);
+    const calls = [];
+    let pending = true;
+    class Failure extends Error {constructor(code) {super(code); this.code = code;}}
+    const context = {
+      evidenceOriginal: {pending: () => pending, retire: () => calls.push('evidence')},
+      captured: {close: () => calls.push('physical')},
+      body: {close: () => calls.push('body')}, store: {close: () => calls.push('store')},
+      retainedComputations: {delete: () => calls.push('retained')}, retainedOutput: {},
+      DuckDBTransportError: Failure,
+    };
+    // Execute each actual close body with explicit physical/current ports.
+    // No original capture, database or resource ACK is fabricated here.
+    const make = new Function(...Object.keys(context),
+      `let closed=false,captureReleased=false,sourceCapture={};
+       const close=function()${source.slice(close.body.start, close.body.end)};
+       return {close,status:()=>({closed,captureReleased})};`);
+    const actual = make(...Object.values(context));
+    assert.throws(actual.close, {code: 'SourceEvidencePending'});
+    assert.deepEqual(calls, []);
+    assert.deepEqual(actual.status(), {closed: true, captureReleased: false});
+    pending = false;
+    actual.close();
+    assert.equal(calls.filter(value => value === 'physical').length, 1);
+    assert.equal(calls.at(-1), 'evidence');
+    assert.deepEqual(actual.status(), {closed: true, captureReleased: true});
+    actual.close();
+    assert.equal(calls.filter(value => value === 'physical').length, 1);
   }
 });

@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
-      "sha256": "155a45bdf9bb9a5788723b110b6689ddd409ede17de6286a371671e1d31d44ae",
+      "sha256": "277e299394f369180e96461d8b6dc826fe303b27b59e0d9419b70f06f5c80996",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB checked host/acquisition/completion and Store borrower; MoonBit retains logical admission",
@@ -1502,6 +1502,11 @@
           "name": "sourceEvidenceOriginalAccess/init:take/init:take",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "sourceEvidenceOriginalAccess/sourceEvidenceOriginalAccess",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -1722,7 +1727,8 @@
             "sourceEvidenceOriginalAccess",
             "sourceEvidenceOriginalAccess/init:prepare/init:prepare",
             "sourceEvidenceOriginalAccess/init:retire/init:retire",
-            "sourceEvidenceOriginalAccess/init:take/init:take"
+            "sourceEvidenceOriginalAccess/init:take/init:take",
+            "sourceEvidenceOriginalAccess/sourceEvidenceOriginalAccess"
           ],
           "exports": [
             "consumeRetainedComputeInput",
