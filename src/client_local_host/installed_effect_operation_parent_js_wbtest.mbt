@@ -744,9 +744,15 @@ fn unknown_effect_capture_controls(
       4,
     ).unwrap()
     assert_true(physical_equal(control.reservation, original_reservation))
+    // The next decoder coexists with the already grown two-row controls.
+    // Its complete retained tree is additive until this exact codec finishes.
+    let next_codec = installed_effect_contract_response_construction_capacity(
+      installed_effect_control_wire_bound(1, 1000000).unwrap(), 64, 4,
+    ).unwrap()
     assert_eq(
       @resources.ledger_usage(ledger).reserved_retention_bytes,
-      held.reserved_retention_bytes,
+      held.reserved_retention_bytes +
+      @execution.execution_capacity_retained_bytes(next_codec),
     )
     assert_eq(@resources.ledger_usage(ledger).attempts, held.attempts)
     assert_eq(

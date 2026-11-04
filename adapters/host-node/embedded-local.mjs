@@ -5589,13 +5589,23 @@ async function openInstalledHost(originalInstallation, preparation) {
                 inferOriginal, current.runDefinition, current.requestIdentity,
                 current.runAdmissionEvidence, submission);
             } else {
-              // The admitted Model checkpoint retains this SAME Effect input.
-              // Keep its new physical-process request pending before Source
-              // preparation, exactly as on the existing held/read resume path.
+              // Restore through the SAME funded Request entrance used by cold
+              // Effect recovery. A saved Prepared projection cannot stand in
+              // for this pending Request's actual compiler/borrower.
+              const originalIntent = journal.originalSubmittedIntent(current.requestIdentity,
+                {namespaceId}, moon, control);
+              const materialWire = current.runAdmissionEvidence?.updateTargetRunOriginal?.materialsWire ??
+                current.runAdmissionEvidence?.effectOriginalRunWire;
+              if (originalIntent === undefined || typeof materialWire !== 'string') {
+                throw new Error('ModelResumeOriginalMaterialsUnavailable');
+              }
+              originalIntent.assertCurrent();
               recovery = preparation.retainEffectRequestInput(moon,
-                submission, undefined, token.snapshot.submission);
+                submission, originalIntent.intent, undefined, materialWire);
+              const prepared = await prepareSubmit(submission);
+              prepareSubmit.assertSubmittedIntent(prepared, originalIntent.intent);
               localPreparationCustody.attach(submission,
-                localPreparationCustody.adopt(await prepareCapturedSubmission(submission, ref), submission));
+                localPreparationCustody.adopt(prepared, submission));
             }
             preparation.bindSourceRequest(submission, submission.preparedProgram);
             const requested = requestOf(submission);

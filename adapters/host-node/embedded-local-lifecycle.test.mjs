@@ -960,7 +960,7 @@ test('held abandonment keeps the original start failure including undefined and 
 // Native allocation, saved tuple admission, dispatch and physical cleanup are
 // explicit ports; these controls issue no real Run, permission or stop ACK.
 function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
-  executeFailure, finishFailure} = {}) {
+  executeFailure, finishFailure, missingMaterial = false} = {}) {
   const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
   const nodes = [];
   (function visit(node) {
@@ -982,11 +982,12 @@ function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
     connection: 'same-connection', kind: 'program', input: Object.freeze({id: 'same-program'})});
   const events = [], receipt = {}, result = Object.freeze({status: 'waiting_checkpoint'});
   const execution = deferred(), entered = deferred();
+  const intent = {}, material = 'same-original-materials';
   let submitted, finishes = 0;
   const original = value => registry.originalSourceRequest(host, installation, host, value);
-  const manager = {retainRequestInput(request, intent, captured) {
+  const manager = {retainRequestInput(request, originalIntent, captured, materialWire) {
     assert.strictEqual(this, manager); assert.strictEqual(original(request), request);
-    assert.equal(intent, undefined); assert.strictEqual(captured, snapshot);
+    assert.strictEqual(originalIntent, intent); assert.equal(captured, undefined); assert.equal(materialWire, material);
     assert.equal(submitted, undefined); submitted = request; events.push('retain');
     return {receipt, body: snapshot};
   }, finishSourceProducer(value, terminal) {
@@ -1003,7 +1004,7 @@ function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
     source.slice(node.start, node.end)).join(',') + '});')(...Object.values(methodPorts));
   const ownRef = {namespaceId: 'namespace', runDefinitionCid: 'same-definition'};
   const current = {requestId: snapshot.requestId, requestIdentity: identity,
-    runDefinition: definition, runAdmissionEvidence: {}, ref: ownRef};
+    runDefinition: definition, runAdmissionEvidence: missingMaterial ? {} : {updateTargetRunOriginal: {materialsWire: material}}, ref: ownRef};
   const facts = {}, requested = {}, accepted = {ref: ownRef};
   const ports = {moon, control: {}, ref: ownRef, retained: current, token: {snapshot: {submission: snapshot}},
     assertCurrent() {}, canonicalValueJson: JSON.stringify,
@@ -1011,12 +1012,16 @@ function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
     preparation, localPreparationCustody: installLocalPreparationRegistry(() => false),
     journal: {lookupOwnedDefinition(value) {
       assert.equal(value.requestId, snapshot.requestId); return current;
+    }, originalSubmittedIntent(value) {
+      assert.strictEqual(value, identity); events.push('original-intent');
+      return {intent, assertCurrent() {events.push('intent-current');}};
     }, resolveDefinition(value) {assert.strictEqual(value, requested); return accepted;}},
-    async prepareCapturedSubmission(request, ref) {
-      assert.strictEqual(ref, ownRef); assert.strictEqual(original(request), request);
+    async prepareCapturedSubmission() {assert.fail('No unfunded saved Prepared admission');},
+    prepareSubmit: Object.assign(async request => { assert.strictEqual(original(request), request);
       assert.notStrictEqual(request, snapshot); events.push('prepare');
       if (failPrepare) throw prepareFailure; return prepared;
-    }, prepareSubmit: {restoreInferOriginal() {assert.fail('No pure Model replacement for an Effect request');}},
+    }, {restoreInferOriginal() {assert.fail('No pure Model replacement for an Effect request');},
+      assertSubmittedIntent(value, original) {assert.strictEqual(value, prepared); assert.strictEqual(original, intent); events.push('same-intent');}}),
     requestOf(request) {
       assert.strictEqual(original(prepared), request); assert.strictEqual(request, submitted);
       events.push('request'); return {effectful: true, requested};
@@ -1042,7 +1047,7 @@ function coldModelEffectRequestFixture({prepareFailure, failPrepare = false,
 
 test('cold Model Effect retains the original pending request and derived Prepared through actual execution return', async () => {
   const f = coldModelEffectRequestFixture(), work = f.invoke(); await f.entered.promise;
-  assert.deepEqual(f.events, ['retain', 'prepare', 'request', 'admit', 'restore', 'execute']);
+  assert.deepEqual(f.events, ['original-intent', 'intent-current', 'retain', 'prepare', 'same-intent', 'request', 'admit', 'restore', 'execute']);
   assert.strictEqual(f.original(f.prepared), f.submitted());
   assert.throws(() => f.original({...f.submitted()}), {code: 'InstalledHostPreparationChanged'});
   f.releaseExecution(); assert.strictEqual(await work, f.result);
@@ -1060,9 +1065,9 @@ test('cold Model Effect keeps its exact preparation failure and same failed inpu
   await assert.rejects(f.invoke(), error => {
     failure = error; return error.cause === primary && error.cleanupHandle.status().pending === true;
   });
-  assert.deepEqual(f.events, ['retain', 'prepare', 'finish:failed']);
+  assert.deepEqual(f.events, ['original-intent', 'intent-current', 'retain', 'prepare', 'finish:failed']);
   assert.equal((await failure.cleanupHandle.retry()).pending, false);
-  assert.deepEqual(f.events, ['retain', 'prepare', 'finish:failed', 'finish:failed']);
+  assert.deepEqual(f.events, ['original-intent', 'intent-current', 'retain', 'prepare', 'finish:failed', 'finish:failed']);
 });
 
 test('cold Model Effect cannot return its request input before the same failed execution cleanup', async () => {
@@ -1080,4 +1085,11 @@ test('cold Model Effect cannot return its request input before the same failed e
   assert.equal(f.events.at(-1), 'finish:failed');
   await Promise.resolve(); await Promise.resolve();
   assert.throws(() => f.original(f.prepared), {code: 'InstalledHostPreparationChanged'});
+});
+
+
+test('cold Model Effect refuses absent original material before opening its Request input', async () => {
+  const f = coldModelEffectRequestFixture({missingMaterial: true});
+  await assert.rejects(f.invoke(), {message: 'ModelResumeOriginalMaterialsUnavailable'});
+  assert.deepEqual(f.events, ['original-intent']);
 });
