@@ -577,7 +577,10 @@ export function runAcceptanceConfiguration(outcome, {siteKey =
   return canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: 'remote-account',
-    entries: [{entry_id: 'run-acceptance', outcome,
+    entries: [{entry_id: 'owner-read', outcome: 'allow',
+      principal: {any_of: [owner]}, connection: {any_of: [siteKey]},
+      resource: {any_of: ['result/answer', 'run']}, operation: {any_of: ['read']}, exclusions: []},
+    {entry_id: 'run-acceptance', outcome,
       principal: {all: true}, connection: {any_of: [siteKey]},
       resource: {any_of: ['source-free-values']},
       operation: {any_of: ['write']}, exclusions: []}],
@@ -867,16 +870,17 @@ test('a synthetic historical held request is reviewed, answered and resumed by t
     assert.equal(held.kind, 'held');
     assert.equal(held.state, 'waiting_checkpoint');
     assert.equal(host.dispatches(), 0);
-    // The original can be observed repeatedly; current ingress cannot create
-    // new work or an epoch from its historical bare request ID.
+    // The original can be observed repeatedly. This historical observation
+    // cannot authorize risk restart without a current submitted reference;
+    // the SDK's separate public-name domain does not relabel its identity.
     assert.deepEqual(await client.lookupRequest('held-a'), held);
-    await assert.rejects(client.startSource(document, {format: 'json', requestId: 'held-a'}),
+    await assert.rejects(client.startSource(document, {format: 'json', requestId: 'held-a', unresolvedHistory: held}),
       {code: 'SubmissionReferenceRequired'});
     // The separate same-submitted-identity test below preserves the actual
-    // changed-intent conflict control; bare-ID rejection is not that evidence.
+    // changed-intent conflict control; missing restart reference is not that evidence.
     const changed = JSON.parse(document);
     changed.stages[0].steps[0].values.rows = [{id: 9}];
-    await assert.rejects(client.startSource(JSON.stringify(changed), {format: 'json', requestId: 'held-a'}),
+    await assert.rejects(client.startSource(JSON.stringify(changed), {format: 'json', requestId: 'held-a', unresolvedHistory: held}),
       {code: 'SubmissionReferenceRequired'});
     const waitingLookup = await client.lookupRequest('held-a');
     assert.equal(waitingLookup.state, 'waiting_checkpoint');
