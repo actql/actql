@@ -544,7 +544,7 @@
     {
       "module": "src/program_check/source_execution.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "09a2ba2dcb506a17722c899c0349517ed2fcbdaee8184a54c39ee6e896bece4c",
+      "sha256": "e8937596e0b3e115aadb5a7124eb81d31d1b87da3ab58e2229f1c73ca4e6b8ba",
       "role": "common-semantics",
       "owner": "Existing SourceView, pipeline producer context and checked Program owners",
       "exports": [],

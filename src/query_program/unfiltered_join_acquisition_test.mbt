@@ -20,7 +20,6 @@ fn check_pair_acquisitions(
         names.push(
           match @check.input_request_at(requests, index).unwrap().kind {
             HostCapacityPolicy => "host capacity"
-            KeyedAcquisitionInputRows(_) => "keyed input rows"
             ParameterValue(_) => "parameter"
             _ => "other"
           },
