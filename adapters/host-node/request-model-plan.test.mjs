@@ -499,7 +499,7 @@ test('plural Model Plan forwards the same complete selected bounds and private c
 });
 
 
-function completeModelPlanFixture({expireMember, badOrder = false} = {}) {
+function completeModelPlanFixture({expireMember, badOrder = false, captured = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {},
     compiled = {}, definition = {}, admission = {}, initialControl = {}, calls = [], prefixes = [{}, {}], providers = [{}, {}];
   const selected = Object.freeze([0, 1].map(() => Object.freeze({graph: {}, occurrence: {}, selectedBounds: {}})));
@@ -512,7 +512,7 @@ function completeModelPlanFixture({expireMember, badOrder = false} = {}) {
   let live = true;
   const current = () => {if (!live) throw primary;};
   const moon = {
-    clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return 0;},
+    clientProgramAcquisitionCount(p) {assert.equal(p, prepared); return captured ? 2 : 0;},
     clientProgramPreparedComposedInferBounds() {assert.fail('Reuse each retained selected Limits');},
     clientProgramComposedInferRetainedLimits(bounds) {
       const index = selected.findIndex(value => value.selectedBounds === bounds); assert(index >= 0);
@@ -542,11 +542,44 @@ function completeModelPlanFixture({expireMember, badOrder = false} = {}) {
   };
   model.control = control;
   run.runtime = moon;
+  const sourceProfile = {}, coordinates = Object.freeze([Object.freeze([4, 1, 0]), Object.freeze([6, 2, 1])]),
+    sourceOriginals = [0, 1].map(() => Object.freeze({declaration: {}, provider: {}, transferBytes: 123n, executionBytes: 45n}));
   const originals = {installation: {projectRuntime: moon, initialControl, retainedRelationOutput: false,
-    computeRuns: new WeakMap([[prepared, run]])}};
+    managedSourceProfile: sourceProfile, computeRuns: new WeakMap([[prepared, run]])}};
+  if (captured) {
+    run.sourceProfile = sourceProfile;
+    moon.clientProgramRequestModelDirectSourceCoordinates = (p, i) => {
+      assert.equal(p, parent); assert.equal(i, input); return coordinates;
+    };
+    moon.clientProgramSelectInstalledSourceInput = (p, r, stage, input) => {
+      assert.equal(p, prepared); assert.equal(r, request);
+      const index = coordinates.findIndex(value => value[0] === stage && value[1] === input);
+      assert(index >= 0); calls.push('Direct'+stage+':'+input); return sourceOriginals[index];
+    };
+    moon.clientProgramSelectedSourceInputKind = () => 'query';
+    moon.clientProgramSelectedSourceInputRef = value => sourceOriginals.indexOf(value);
+    control.prepareCheckedClientRequestModelsProviderComponentCaptureModule = function(...args) {
+      assert.equal(this, control); assert.deepEqual(args.slice(0, 6), [parent, input, request, compiled, definition, compilation]);
+      assert.deepEqual(args.slice(6, 12), [sourceOriginals.map(source => source.declaration), sourceOriginals.map(source => source.provider),
+        'query-contract', 'evidence-contract', [123n, 123n], [45n, 45n]]);
+      calls.push('one captured complete module');
+      for (let index = 0; index < 2; index++) assert.equal(args[15](index, {}, prefixes[index], () => {}), providers[index]);
+      return module;
+    };
+    control.prepareCheckedClientRequestModelsCapturePlan = function(...args) {
+      assert.equal(this, control); assert.deepEqual(args.slice(0, 6), [parent, input, module, request, compiled, definition]);
+      assert.deepEqual(args[6], selected.map(value => value.occurrence)); assert.equal(args[7], model.graph);
+      calls.push('one captured complete Plan'); return plan;
+    };
+  }
   const ports = {assertSourceManagedHostPreparation: current, originalSourceManagedHostRequest: current,
     prepareInstalledSequenceContractOriginal: () => ({moon, control: initialControl, contracts: {}, admission}),
     runtimeCore: () => ({publicationControl: control}), checked: value => value,
+    readInitialControlInstallationAsset(actual, o, path) {
+      assert.equal(actual, initialControl); assert.equal(o, originals);
+      return path.includes('process-evidence') ? 'evidence-contract' : 'query-contract';
+    },
+    installedSourceFor(profile, index) {assert.equal(profile, sourceProfile); return {managedEffectPlanSelection() {return sourceOriginals[index];}};},
     clientOperationError: code => Object.assign(new Error(code), {code}),
     openNodeComposedInferProvider(options) {
       const index = selected.indexOf(options.selected); assert(index >= 0);
@@ -574,4 +607,12 @@ test('complete Request Model caller retains both original providers when the lat
   const swapped = completeModelPlanFixture({badOrder: true});
   assert.throws(swapped.invoke, {code: 'InstalledModelGroupPreparationUnavailable'});
   assert.deepEqual(swapped.calls, []);
+});
+
+
+test('complete captured Request Model module uses actual checked Direct Stage and input coordinates for its same provider originals', () => {
+  const f = completeModelPlanFixture({captured: true}); assert.equal(f.invoke(), f.plan);
+  assert.equal(f.run.preparedSequences, f.module); assert.equal(f.run.modelSourceSelections.length, 2);
+  assert.deepEqual(f.calls, ['bounds0', 'bounds1', 'Direct4:1', 'Direct6:2',
+    'one captured complete module', 'provider0', 'provider1', 'one captured complete Plan']);
 });

@@ -202,10 +202,10 @@ const hostEnd = hostSource.indexOf('    prepareManagedComputeRun(runtime,', host
 const retireStart = hostSource.indexOf('    retireManagedComputeRun(prepared) {');
 const retireEnd = hostSource.indexOf('    isOriginalManagedComputePreparationRefusal(', retireStart);
 assert(hostStart >= 0 && hostEnd > hostStart && retireStart >= 0 && retireEnd > retireStart);
-function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, configuredModel = false, group = false, onScopeFinish} = {}) {
+function hostFixture({refuse, failAfterAdopt = false, retainedSelection = false, missingSelectionRetirement = false, nodeModel = false, configuredModel = false, group = false, managedProfile = false, onScopeFinish} = {}) {
   const prepared = {}, request = {}, sdkRequest = {}, original = {}, value = {}, parent = {}, input = {}, compilation = {};
   const scope = {}, calls = [], model = {compiled: {}, runDefinition: {}, graph: {}, scope: undefined};
-  const record = {mockSourceProfile: {}}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
+  const record = {mockSourceProfile: {}, ...(managedProfile ? {managedSourceProfile: {}} : {})}, originalInstallation = {releaseRequestDomainAliases() {}}, originals = {};
   if (missingSelectionRetirement) delete originalInstallation.releaseRequestDomainAliases;
   const primary = new Error('original-check-after-adopt');
   let finish = true, physicalDone = false, payloadSevered = false, severFailure;
@@ -669,7 +669,7 @@ test('Request Model Graph keeps constructor failure or changed Content on the sa
 });
 
 
-function installedModelRequestFixture({serialized = false, refusePlan, refuseScope, acquisitions = 0} = {}) {
+function installedModelRequestFixture({serialized = false, refusePlan, refuseScope, acquisitions = 0, multiple = false} = {}) {
   let constructor;
   const walk = n => {
     if (!n || typeof n !== 'object') return;
@@ -678,8 +678,10 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
   };
   walk(parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'})); assert(constructor);
   const prepared = {}, request = {}, graph = {}, compilation = {}, definition = {}, scope = {}, queryTime = {}, calls = [];
-  const selected = {graph, occurrence: {}, originalReadInstallation: {}, serializationGraph: serialized ? {} : undefined};
-  const plan = {compiled: compilation, runDefinition: definition, inferGraph: graph,
+  const members = multiple ? Object.freeze([{graph: {}, occurrence: {}}, {graph: {}, occurrence: {}}]) : undefined;
+  const selected = multiple ? {components: members, graph: Object.freeze(members.map(member => member.graph))}
+    : {graph, occurrence: {}, originalReadInstallation: {}, serializationGraph: serialized ? {} : undefined};
+  const plan = {compiled: compilation, runDefinition: definition, inferGraph: selected.graph,
     serializationGraph: selected.serializationGraph, queryTimePreparation: queryTime};
   const inferSelections = new WeakMap([[prepared, selected]]), earlyMockInferPlans = new WeakMap();
   const control = {}, moon = {clientProgramAcquisitionCount: () => acquisitions};
@@ -691,11 +693,16 @@ function installedModelRequestFixture({serialized = false, refusePlan, refuseSco
     assert.equal(earlyMockInferPlans.get(prepared).model, model);
     assert.equal(model.compiled, compilation); assert.equal(model.runDefinition, definition);
     assert.equal(model.originalReadInstallation, selected.originalReadInstallation);
+    if (multiple) assert.deepEqual(model.components.map(member => member.graph), selected.graph);
     assert.equal(model.queryTimePreparation, queryTime);
     if (managed !== undefined) {assert.equal(managed.model, model); calls.push('same adopted Run'); return managed;}
     assert.equal(Object.getOwnPropertyDescriptor(model, 'scope').writable, true);
     assert.equal(model.scope, undefined); calls.push('construct');
     managed = {model, value: {}}; model.scope = scope;
+    if (multiple) {
+      model.scopes = Object.freeze([scope, {}]);
+      model.components.forEach((member, index) => {member.scope = model.scopes[index];});
+    }
     if (refuseScope !== undefined) throw refuseScope;
     return managed;
   }};
@@ -1235,17 +1242,20 @@ test('Model adoption forwards only the same selected quantity limits before Scop
 const sourceFreeGroupPreparationNode = parse(installedInferSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'sourceFreeModelsPreparation');
 assert(sourceFreeGroupPreparationNode);
-function sourceFreeGroupFixture() {
+function sourceFreeGroupFixture({captured = false} = {}) {
   const prepared={}, plan={compiled:{},runDefinition:{}}, scopes=Object.freeze([{},{}]), reads=[{},{}], calls=[], publication={}, host={};
   const selected={components:Object.freeze([{graph:{},occurrence:{}},{graph:{},occurrence:{}}])};
   selected.graph=Object.freeze(selected.components.map(value=>value.graph));
   const model={prepared, selection:selected, graph:selected.graph, scopes, scope:scopes[0],...plan};
   let finish=false;
-  const moon={clientProgramAcquisitionCount:p=>{assert.equal(p,prepared);return 0;},
+  const moon={clientProgramAcquisitionCount:p=>{assert.equal(p,prepared);return captured ? 2 : 0;},
     clientProgramOpenInstalledManagedSourceFreeComposedInferHost(...args) {
       assert.deepEqual(args,[managed.value,prepared,managed.request,'registry','values','fragment','ordered',
         model.components.map(member=>member.component.provider)]);
       calls.push('one original Host'); return host;
+    },clientProgramOpenInstalledManagedCaptureHost(...args) {
+      assert.deepEqual(args,[managed.value,prepared,managed.request,['source0','source1']]);
+      calls.push('one captured original Host'); return host;
     }};
   const control={prepareCheckedClientInferOriginalRead(compiled,definition,graph,scope,budget) {
     const index=selected.graph.indexOf(graph);assert(index>=0);assert.equal(compiled,plan.compiled);assert.equal(definition,plan.runDefinition);
@@ -1263,7 +1273,9 @@ function sourceFreeGroupFixture() {
     installedInferSource.slice(sourceFreePreparationNode.start,sourceFreePreparationNode.end)+';'+
     installedInferSource.slice(sourceFreeGroupPreparationNode.start,sourceFreeGroupPreparationNode.end)+';return sourceFreeModelsPreparation;')(
       value=>value,member=>{if(member.read===undefined)return;const index=model.components.indexOf(member);assert.equal(member.read,reads[index]);calls.push('retire'+index);},finishNodeInferOriginalReadScopes);
-  return {model,selected,plan,reads,calls,host,publication,make:()=>construct(moon,control,prepared,plan,selected,model),
+  const acquired = captured ? {managedRun: managed.value, ledger: {}} : undefined;
+  if (captured) model.sourceLedger = acquired.ledger;
+  return {model,selected,plan,reads,calls,host,publication,make:()=>construct(moon,control,prepared,plan,selected,model,acquired, captured ? {} : undefined),
     finish:()=>{finish=true;}};
 }
 
@@ -1308,4 +1320,42 @@ test('complete source-free Host reuses every retained provider and exact child o
   }),error=>error===primary);
   assert.deepEqual(calls,['retain-all','bind0','bind1','one original Host']);
   assert.equal(await owner.cleanup(),true);assert.deepEqual(calls.slice(-1),['retire-all']);
+});
+
+
+test('complete captured Model caller opens the same original Host and all reads without a sourcefree or Ledger fallback', async () => {
+  const f = sourceFreeGroupFixture({captured: true}), original = f.make();
+  assert.equal(original.openSourceFreeHost, undefined); assert(original.preparationHolder);
+  original.retain();
+  const captures = [0, 1].map(index => ({capture: {source() {f.calls.push('source'+index); return 'source'+index;}}}));
+  assert.equal(original.openCapturedHost(captures), f.host);
+  original.components[1].prepareRead(); original.components[0].prepareRead();
+  assert.deepEqual(f.calls.slice(0, 5), ['source0', 'source1', 'one captured original Host', 'read1', 'read0']);
+  f.finish(); assert.equal(await original.retire(), true);
+  assert(f.model.components.every(member => member.scopeFinished));
+});
+
+
+test('complete installed Model constructor retains every original member across one compiler and same Request adoption', () => {
+  for (const acquisitions of [0, 2]) {
+    const f = installedModelRequestFixture({multiple: true, acquisitions}), model = f.invoke();
+    assert.equal(model, f.early().model); assert.equal(f.invoke(), model);
+    assert.equal(model.graph, f.selected.graph); assert.equal(model.components.length, 2);
+    assert(model.components.every((member, index) => member.graph === model.graph[index] &&
+      member.compiled === f.plan.compiled && member.runDefinition === f.plan.runDefinition && member.managed === f.managed));
+    assert.equal(f.calls.filter(value => value === 'compile/Definition').length, 1);
+    assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+  }
+  const primary = new Error('original complete Scope refusal'), f = installedModelRequestFixture({multiple: true, acquisitions: 2, refuseScope: primary});
+  assert.throws(f.invoke, cause => cause === primary); assert.throws(f.invoke, cause => cause === primary);
+  assert(f.early().model.components.every(member => member.scope !== undefined));
+  assert.equal(f.calls.filter(value => value === 'construct').length, 1);
+});
+
+
+test('complete Host Model retains the actual installed Source profile instead of classifying the group by its absent singular read installation', () => {
+  const f = hostFixture({group: true, managedProfile: true}), run = f.begin();
+  assert.equal(run.sourceProfile, f.record.managedSourceProfile);
+  assert.notEqual(run.sourceProfile, f.record.mockSourceProfile);
+  const finish = f.retire(); finish(); assert.equal(run.closed, true);
 });

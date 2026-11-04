@@ -1382,6 +1382,33 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         throw cause;
       }
     },
+    modelSourceCoordinates(prepared, request) {
+      const producer = producerForRequest(request), state = producer?.preparation;
+      if (state?.preparationFailed) throw state.preparationFailure;
+      if (state === undefined || state.compilationFamily !== 'model') return undefined;
+      current();
+      if (state.prepared !== prepared || state.holder === undefined || state.parent === undefined || state.preparing ||
+          state.inventoryHolder !== undefined) fail('ForeignInstalledSourceProducer');
+      if (state.modelSourceCoordinates !== undefined) return state.modelSourceCoordinates;
+      if (state.adopting) fail('ForeignInstalledSourceProducer');
+      const moon = state.context.runtime, parent = state.parent, holder = state.holder;
+      const select = Object.getOwnPropertyDescriptor(moon, 'clientProgramRequestModelDirectSourceCoordinates')?.value;
+      if (typeof select !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+      if (moon.clientProgramPreparationBorrowRead(holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const coordinates = checked(Reflect.apply(select, moon, [parent, producer.receipt]));
+      // This immutable projection supplies no authority. Keep the same exact
+      // checked Stage/input/task DATA through submission after Plan adoption.
+      if (!Array.isArray(coordinates) || coordinates.some(value => !Array.isArray(value) || value.length !== 3 ||
+          value.some(coordinate => !Number.isSafeInteger(coordinate) || coordinate < 0))) fail('InvalidHostRuntimeResult');
+      for (const value of coordinates) Object.freeze(value);
+      state.modelSourceCoordinates = Object.freeze(coordinates);
+      current();
+      if (producer.preparation !== state || state.prepared !== prepared || state.parent !== parent || state.holder !== holder ||
+          state.context.runtime !== moon || moon.clientProgramPreparationBorrowRead(holder) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      return state.modelSourceCoordinates;
+    },
     selectDomainSourceInput(prepared, request, identity, stage, sourceIndex) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
@@ -1634,7 +1661,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       run.prepared = run.request = undefined;
       state.prepared = state.snapshot = state.snapshotDocument = state.parametersCursor = undefined;
       state.capturePlan = state.effectPlan = run.operationPlan = run.content = undefined;
-      state.modelProviderBinding = undefined;
+      state.modelProviderBinding = state.modelSourceCoordinates = undefined;
       state.preparationFailure = state.originalCheckResult = state.projectOriginalCheck = undefined;
       state.preparationFailed = false;
       const holder = state.holder;state.holder = undefined;

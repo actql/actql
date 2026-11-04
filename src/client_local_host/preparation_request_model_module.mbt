@@ -100,7 +100,7 @@ fn[I] begin_request_model_module(
   installed_providers : Int,
   query_time : @publication_host.ClientQueryTimePreparation?,
   provider_captures? : Int = 0,
-  source_free_component? : Bool = false,
+  component_inputs? : Bool = false,
 ) -> Result[
   @publication_host.PreparedClientProgram,
   ClientRequestProgramPlanIssue,
@@ -186,7 +186,7 @@ fn[I] begin_request_model_module(
   }
   let dag = @publication_host.prepared_client_graph(prepared)
   let mut input_segments = 0L
-  if source_free_component {
+  if component_inputs {
     for original in retained_graphs {
       if original.serialization is None {
         input_segments += if @publication_host.client_infer_occurrence_terminal(
@@ -219,7 +219,7 @@ fn[I] begin_request_model_module(
       installed_providers,
       provider_captures~,
       input_segments=input_segments.to_int(),
-      model_components=if source_free_component {
+      model_components=if component_inputs {
         retained_graphs.length()
       } else {
         0
@@ -247,7 +247,7 @@ fn[I] begin_request_model_module(
 ///|
 // The actual existing input/suffix lowering, selected by the SAME checked
 // occurrence. Each constructor grows the same Request before invoking it.
-fn[I] construct_request_source_free_model_input(
+fn[I] construct_request_model_input(
   owner : ClientRequestPreparation[I],
   input : I,
   prepared : @publication_host.PreparedClientProgram,
@@ -373,16 +373,14 @@ pub fn[I] prepare_request_model_source_free_module(
   // Add that inventory HERE, once, beside its checked module construction;
   // the higher bridge supplies only its existing fixed family provider count.
   let installed_providers = if components_factory is Some(_) {
-    guard @execution.checked_preparation_add_product(
-        installed_providers.to_int64(),
-        compilation.infers.length().to_int64(),
-        1L,
+    guard request_model_provider_count(
+        installed_providers,
+        compilation.infers.length(),
       )
-      is Some(total) &&
-      total <= 2147483647L else {
+      is Some(total) else {
       return Err(Installed(InsufficientCapacity))
     }
-    total.to_int()
+    total
   } else {
     installed_providers
   }
@@ -400,7 +398,7 @@ pub fn[I] prepare_request_model_source_free_module(
           0,
           installed_providers,
           query_time,
-          source_free_component=component_factory is Some(_) ||
+          component_inputs=component_factory is Some(_) ||
             components_factory is Some(_),
         ) {
         Err(issue) => return Err(issue)
@@ -411,7 +409,7 @@ pub fn[I] prepare_request_model_source_free_module(
       let mut component_inputs = None
       if component_factory is Some(_) {
         let (prefix, suffix) = match
-          construct_request_source_free_model_input(
+          construct_request_model_input(
             owner,
             input,
             prepared,
@@ -429,7 +427,7 @@ pub fn[I] prepare_request_model_source_free_module(
         let inputs = []
         for graph in compilation.infers {
           let original = match
-            construct_request_source_free_model_input(
+            construct_request_model_input(
               owner, input, prepared, request, graph, contracts, query_time,
             ) {
             Err(issue) => return Err(issue)
@@ -516,6 +514,12 @@ pub fn[I] prepare_request_model_capture_module(
     @execution.GeneratedSequence,
     @execution.GeneratedSequence?,
   ) -> @local.ManagedProvider)? = None,
+  components_factory? : ((
+    Int,
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    @execution.GeneratedSequence?,
+  ) -> @local.ManagedProvider)? = None,
 ) -> Result[ClientInstalledManagedCapturePlan, ClientRequestProgramPlanIssue] {
   let count = declarations.length()
   if (count != 1 && count != 2) ||
@@ -527,8 +531,24 @@ pub fn[I] prepare_request_model_capture_module(
     ) {
     return Err(Installed(Unsupported))
   }
-  if component_factory is Some(_) && compilation.infers.length() != 1 {
+  if (
+      component_factory is Some(_) &&
+      (compilation.infers.length() != 1 || components_factory is Some(_))
+    ) ||
+    (components_factory is Some(_) && compilation.infers.length() < 2) {
     return Err(Preparation(ForeignOriginal))
+  }
+  let installed_providers = if components_factory is Some(_) {
+    guard request_model_provider_count(
+        installed_providers,
+        compilation.infers.length(),
+      )
+      is Some(total) else {
+      return Err(Installed(InsufficientCapacity))
+    }
+    total
+  } else {
+    installed_providers
   }
   preparation_module_call(
     () => {
@@ -545,6 +565,7 @@ pub fn[I] prepare_request_model_capture_module(
           installed_providers,
           query_time,
           provider_captures=if providers is Some(_) { count } else { 0 },
+          component_inputs=components_factory is Some(_),
         ) {
         Err(issue) => return Err(issue)
         Ok(value) => value
@@ -567,7 +588,9 @@ pub fn[I] prepare_request_model_capture_module(
         return Err(Preparation(Policy))
       }
       let model = compilation.infers[0]
-      let input_calls = if count == 1 && model.serialization is None {
+      let input_calls = if components_factory is None &&
+        count == 1 &&
+        model.serialization is None {
         if @publication_host.client_infer_occurrence_terminal(model.occurrence) {
           1L
         } else {
@@ -599,6 +622,21 @@ pub fn[I] prepare_request_model_capture_module(
       // same original. Pass the bound invocation, never sample another clock.
       let mut input_prefix = None
       let mut input_suffix = None
+      let mut component_inputs = None
+      if components_factory is Some(_) {
+        let inputs = []
+        for graph in compilation.infers {
+          let original = match
+            construct_request_model_input(
+              owner, input, prepared, request, graph, contracts, query_time,
+            ) {
+            Err(issue) => return Err(issue)
+            Ok(value) => value
+          }
+          inputs.push(original)
+        }
+        component_inputs = Some(inputs)
+      }
       if input_calls > 0L {
         let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
           model.occurrence,
@@ -656,7 +694,7 @@ pub fn[I] prepare_request_model_capture_module(
         Err(issue) => return Err(ModelSource(issue))
         Ok(value) => value
       }
-      let direct = match installed_direct_occurrences_owned(Pure(prepared)) {
+      let direct = match request_model_direct_occurrences_owned(owner, input) {
         Ok(value) => value
         Err(issue) => return Err(Installed(issue))
       }
@@ -747,6 +785,13 @@ pub fn[I] prepare_request_model_capture_module(
             if component_factory is Some(construct) &&
               input_prefix is Some(prefix) {
               providers.push(construct(capacity, prefix, input_suffix))
+            } else if components_factory is Some(construct) &&
+              component_inputs is Some(inputs) {
+              for index, original in inputs {
+                providers.push(
+                  construct(index, capacity, original.0, original.1),
+                )
+              }
             }
             providers
           },
@@ -798,4 +843,66 @@ pub fn prepared_request_model_input_suffix(
     Ok(_) => ()
   }
   Ok(original.model_input_suffix)
+}
+
+///|
+/// Select the checked Direct inventory once while this SAME Model Plan input
+/// is retained. The module reuses the original; coordinates are only source
+/// selection DATA, never a Source read, provider grant or a new owner.
+pub fn[I] request_model_direct_occurrences(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientDirectAcquisitionOccurrences,
+  ClientInstalledManagedRunIssue,
+] {
+  if owner.phase != ModelPlanReserved {
+    return Err(ForeignOriginal)
+  }
+  request_model_direct_occurrences_owned(owner, input)
+}
+
+///|
+fn[I] request_model_direct_occurrences_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  @publication_host.ClientDirectAcquisitionOccurrences,
+  ClientInstalledManagedRunIssue,
+] {
+  guard (owner.phase == ModelPlanReserved || owner.phase == Selecting) &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.compiled_program is Some(prepared) &&
+    owner.program_capacity is Some(_) else {
+    return Err(ForeignOriginal)
+  }
+  if owner.program_model_direct is Some(original) {
+    if !installed_direct_occurrences_match_owner(original, Pure(prepared)) {
+      return Err(ForeignOriginal)
+    }
+    return Ok(original)
+  }
+  let selected = match installed_direct_occurrences_owned(Pure(prepared)) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  owner.program_model_direct = Some(selected)
+  Ok(selected)
+}
+
+///|
+fn request_model_provider_count(families : Int, models : Int) -> Int? {
+  guard families >= 0 &&
+    models >= 0 &&
+    @execution.checked_preparation_add_product(
+      families.to_int64(),
+      models.to_int64(),
+      1L,
+    )
+    is Some(total) &&
+    total <= 2147483647L else {
+    return None
+  }
+  Some(total.to_int())
 }

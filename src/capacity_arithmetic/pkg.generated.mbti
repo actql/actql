@@ -16,6 +16,8 @@ pub fn minimum(Value, Value) -> Value
 
 pub fn multiply(Value, Value) -> Result[Value, Issue]
 
+pub fn preparation_array_slots(Int64, Int64, Bool) -> (Int64, Int64, Int64)?
+
 pub fn read(Int64) -> Result[Value, Issue]
 
 pub fn value(Value) -> Int64

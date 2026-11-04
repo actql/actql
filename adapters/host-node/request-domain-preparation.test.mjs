@@ -482,3 +482,27 @@ test('complete Model handoff keeps all original Scopes and sticky completion fai
   assert.deepEqual(f.calls, ['scopes', 'complete']);
   assert.equal(f.producer.liveRuns, 0);
 });
+
+
+test('Model Source coordinate projection retains the same checked Direct inventory through adoption without guessing Stage or input', async () => {
+  const f = fixture({infers: [{}, {}], acquisitions: 2}); await f.read();
+  const producer = {preparation: f.state, receipt: f.input}, coordinates = [[4, 1, 0], [6, 2, 1]];
+  let selects = 0;
+  f.moon.clientProgramRequestModelDirectSourceCoordinates = function(parent, input) {
+    assert.equal(this, f.moon); assert.equal(parent, f.parent); assert.equal(input, f.input); selects++; return coordinates;
+  };
+  const start = source.indexOf('    modelSourceCoordinates(prepared, request) {'),
+    end = source.indexOf('    selectDomainSourceInput(', start);
+  assert(start > 0 && end > start);
+  const api = Function('current', 'producerForRequest', 'checked', 'fail',
+    'return ({'+source.slice(start, end).trim().replace(/,$/u, '')+'});')(
+      () => {}, request => {assert.equal(request, f.request); return producer;}, value => value, fail);
+  assert.equal(api.modelSourceCoordinates(f.prepared, f.request), coordinates);
+  assert(Object.isFrozen(coordinates)); assert(coordinates.every(Object.isFrozen));
+  f.state.adopting = true;
+  assert.equal(api.modelSourceCoordinates(f.prepared, f.request), coordinates);
+  assert.equal(selects, 1);
+  assert.throws(() => api.modelSourceCoordinates({}, f.request), {code: 'ForeignInstalledSourceProducer'});
+  f.state.prepared = undefined;
+  assert.throws(() => api.modelSourceCoordinates(f.prepared, f.request), {code: 'ForeignInstalledSourceProducer'});
+});

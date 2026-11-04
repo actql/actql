@@ -231,7 +231,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
         input.captureStartedAt, input.captureCompletedAt);
     }
   } else if (!sourceFree && checkpoints !== undefined && prepareAcquisition !== undefined) {
-    const occurrence = {stage: 0, input: 0, task: 0};
+    const coordinates = originalPreparation?.sourceCoordinates?.[0];
+    const occurrence = coordinates === undefined ? {stage: 0, input: 0, task: 0}
+      : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
     const preparedSource = input?.preparedSource ?? await prepareAcquisition(preparedProgram);
     assertCurrent();
     const saved = historical?.token.snapshot.sourceContinuation;

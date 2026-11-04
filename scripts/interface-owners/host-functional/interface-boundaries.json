@@ -111348,12 +111348,34 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
           "parameters": [
-            "method"
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#3",
+          "parameters": [
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
           "parameters": [],
           "async": false
         },
@@ -111546,6 +111568,28 @@
           "parameters": [
             "receipt",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+          "parameters": [
+            "coordinate"
           ],
           "async": false
         },
@@ -113538,6 +113582,9 @@
             "prepareOrdinaryManagedInstallation/constructRequestDomain",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
@@ -113571,6 +113618,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -113597,6 +113648,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -113619,6 +113674,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -113641,6 +113700,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -113663,6 +113726,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -113685,6 +113752,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -113707,6 +113778,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -113729,6 +113804,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -113751,6 +113830,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -114419,6 +114502,9 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#3",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
           ],
@@ -114440,6 +114526,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -114458,6 +114548,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -114476,6 +114570,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -114494,6 +114592,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -114512,6 +114614,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -114530,6 +114636,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -114548,6 +114658,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -114566,6 +114680,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -114584,6 +114702,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -115935,7 +116057,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "35694e4672e22bab947901fd04bed99a92cd636f358427839a95e2f1403b34dc"
+      "sha256": "7f5a2ab9de5934bf8b83f12425a64add9d3b152063fc9ce131c0723b498d6f27"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -120390,7 +120512,7 @@
     },
     {
       "module": "adapters/local-node/request-preparation-adapter.mjs",
-      "sha256": "47abbe2cdd6d21f009870f70e701cd19fb67a20c7c066f8e8e41025f0e8cab44",
+      "sha256": "cf409a43d962b918afc50e5911619610091844fcedd6e0504198f522b21df8d2",
       "exports": [
         "assertRequestPreparationControl",
         "beginRequestInput",

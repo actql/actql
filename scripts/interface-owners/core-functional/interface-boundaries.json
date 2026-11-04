@@ -5743,6 +5743,21 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
+            "selected"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRequestModelSerializationPlan/init:prepareCheckedClientRequestModelSerializationPlan",
           "parameters": [
             "parent",
@@ -5798,6 +5813,59 @@
             "definition",
             "occurrence",
             "graph",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "declarations",
+            "providers",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "compiled",
+            "definition",
+            "compilation",
+            "contracts",
+            "retainedOutput",
+            "queryTime",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
+          "parameters": [
+            "parent",
+            "input",
+            "original",
+            "request",
+            "compiled",
+            "definition",
+            "occurrences",
+            "graphs",
             "selected"
           ],
           "async": false
@@ -11355,8 +11423,8 @@
         },
         {
           "operations": [
-            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -12655,11 +12723,15 @@
             "publicationControl/init:prepareCheckedClientRequestModelCaptureModule/init:prepareCheckedClientRequestModelCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderCaptureModule/init:prepareCheckedClientRequestModelProviderCaptureModule",
             "publicationControl/init:prepareCheckedClientRequestModelProviderComponentCaptureModule/init:prepareCheckedClientRequestModelProviderComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreeModule/init:prepareCheckedClientRequestModelSourceFreeModule",
             "publicationControl/init:prepareCheckedClientRequestModelSourceFreePlan/init:prepareCheckedClientRequestModelSourceFreePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelsCapturePlan/init:prepareCheckedClientRequestModelsCapturePlan",
+            "publicationControl/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule/init:prepareCheckedClientRequestModelsProviderComponentCaptureModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsSourceFreeComponentModule/init:prepareCheckedClientRequestModelsSourceFreeComponentModule",
+            "publicationControl/init:prepareCheckedClientRequestModelsSourceFreePlan/init:prepareCheckedClientRequestModelsSourceFreePlan",
             "publicationControl/init:prepareCheckedClientRequestNodeModelCapturePlan/init:prepareCheckedClientRequestNodeModelCapturePlan",
-            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan",
-            "publicationControl/init:prepareCheckedClientRequestModelSourceFreeComponentModule/init:prepareCheckedClientRequestModelSourceFreeComponentModule"
+            "publicationControl/init:prepareCheckedClientRequestNodeModelSourceFreePlan/init:prepareCheckedClientRequestNodeModelSourceFreePlan"
           ],
           "exports": [],
           "attributes": {
@@ -12691,6 +12763,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -12721,6 +12797,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -12751,6 +12831,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -12781,6 +12865,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -12811,6 +12899,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -12841,6 +12933,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -12871,6 +12967,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -12901,6 +13001,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -12931,6 +13035,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "prepareCheckedClientRequestModelSourceFreeComponentModule"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -14340,7 +14448,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "74dad8a19e401a2762c26d31f496e5bb3925469b00c5968f74bd4127f6020d21"
+      "sha256": "92bdac9ac215a711a5900c6b84d397d6846f3149a1ab6ca1cc41ae0d6dc69777"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -15044,9 +15152,10 @@
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "c897ea84b7b024cd46eb244c3a1180b590c192267d7e55e53c4a8537f5894571",
+      "sha256": "01b0e05b06b8821bc42d6bb1ba56ee6360dba25257cdfd9b532a9afdd0cda2f7",
       "role": "physical-io",
       "exports": [
+        "finishNodeInferOriginalReadScopes",
         "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
@@ -15078,6 +15187,26 @@
           "name": "codecLimits/codecLimits/codecLimits",
           "parameters": [
             "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "finishNodeInferOriginalReadScopes",
+          "parameters": [
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "finishNodeInferOriginalReadScopes/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "finishNodeInferOriginalReadScopes/current/current/current",
+          "parameters": [
+            "member",
+            "index"
           ],
           "async": false
         },
@@ -15563,6 +15692,20 @@
           "async": false
         },
         {
+          "name": "openNodeInferOperation/operation/operation/operation#5",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "openNodeInferOperation/operation/operation/operation#6",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
           "name": "openNodeInferOperation/operation/operation/saved/saved",
           "parameters": [
             "item"
@@ -15881,7 +16024,8 @@
             "ledger",
             "maxSlots",
             "maxWireBytes",
-            "maxWork"
+            "maxWork",
+            "operations"
           ],
           "async": false
         },
@@ -16063,7 +16207,21 @@
           "async": false
         },
         {
+          "name": "startCompleteInferObservation/funding/funding",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "startCompleteInferObservation/startCompleteInferObservation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "startCompleteInferObservation/startCompleteInferObservation#2",
           "parameters": [
             "operation"
           ],
@@ -16110,6 +16268,9 @@
             "codecInt/codecInt",
             "codecLimits/codecLimits",
             "codecLimits/codecLimits/codecLimits",
+            "finishNodeInferOriginalReadScopes",
+            "finishNodeInferOriginalReadScopes/current/current",
+            "finishNodeInferOriginalReadScopes/current/current/current",
             "metadataUnavailable/metadataUnavailable",
             "openNodeComposedInferProvider",
             "openNodeComposedInferProvider/component/component",
@@ -16118,10 +16279,10 @@
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal",
             "openNodeComposedInferProvider/component/init:bindOriginal/init:bindOriginal/read/read",
             "openNodeComposedInferProvider/provider/provider",
-            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
             "openNodeComposedInferProvider/provider/provider#4",
+            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/recordFailure/recordFailure",
             "openNodeInferOperation",
             "openNodeInferOperation/bindOriginalRuntimeObservation",
@@ -16132,12 +16293,12 @@
             "openNodeInferOperation/drive",
             "openNodeInferOperation/observeOriginalRuntime",
             "openNodeInferOperation/openNodeInferOperation",
-            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/openNodeInferOperation#2",
             "openNodeInferOperation/openNodeInferOperation#3",
             "openNodeInferOperation/openNodeInferOperation#4",
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
+            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateDecode/init:advanceOriginalCurrentStateDecode",
@@ -16168,12 +16329,6 @@
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateDecode/init:startOriginalCurrentStateDecode",
             "openNodeInferOperation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation#2",
-            "openNodeInferOperation/operation/operation/operation#3",
-            "openNodeInferOperation/operation/operation/operation#4",
-            "openNodeInferOperation/operation/operation/saved/saved",
-            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/operation/operation#10",
             "openNodeInferOperation/operation/operation#11",
             "openNodeInferOperation/operation/operation#12",
@@ -16222,6 +16377,14 @@
             "openNodeInferOperation/operation/operation#7",
             "openNodeInferOperation/operation/operation#8",
             "openNodeInferOperation/operation/operation#9",
+            "openNodeInferOperation/operation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation#2",
+            "openNodeInferOperation/operation/operation/operation#3",
+            "openNodeInferOperation/operation/operation/operation#4",
+            "openNodeInferOperation/operation/operation/operation#5",
+            "openNodeInferOperation/operation/operation/operation#6",
+            "openNodeInferOperation/operation/operation/saved/saved",
+            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
             "openNodeInferOperation/requestStop/requestStop",
             "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
@@ -16240,6 +16403,7 @@
             "selectOriginalInferStoreBootstrapAcquisition",
             "startCompleteInferObservation",
             "startCompleteInferObservation/active/active",
+            "startCompleteInferObservation/funding/funding",
             "withNodeInferResult",
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
@@ -16247,6 +16411,7 @@
             "withNodeInferResult/withNodeInferResult"
           ],
           "exports": [
+            "finishNodeInferOriginalReadScopes",
             "openNodeComposedInferProvider",
             "openNodeInferOperation",
             "retireNodeInferOriginalRead",
@@ -16277,6 +16442,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -16299,6 +16468,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -16321,6 +16494,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -16347,6 +16524,10 @@
               {
                 "path": "src/model_execution/partial_restore.mbt",
                 "anchor": "  attachment_admission : @publication.RunEvidenceValue?"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -16365,6 +16546,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -16387,6 +16572,10 @@
               {
                 "path": "src/model_execution/attachment_evidence.mbt",
                 "anchor": "fn restore_model_attachment_admission("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -16405,6 +16594,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -16427,6 +16620,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -16445,6 +16642,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -16634,7 +16835,8 @@
         {
           "operations": [
             "inferOriginalReadCleanupComplete",
-            "startCompleteInferObservation/startCompleteInferObservation"
+            "startCompleteInferObservation/startCompleteInferObservation",
+            "startCompleteInferObservation/startCompleteInferObservation#2"
           ],
           "exports": [
             "inferOriginalReadCleanupComplete"
@@ -16644,6 +16846,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -16654,6 +16860,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "export function startCompleteInferObservation("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -16664,6 +16874,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "if (operations.some(operation => originalOperations.has(operation))) {"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -16674,6 +16888,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "let originalPublicationCapacity;"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -16684,6 +16902,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "if (originalPublicationCapacity !== undefined) return false;"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -16693,13 +16915,21 @@
               },
               {
                 "path": "adapters/host-node/infer-operation.mjs",
-                "anchor": "if (operations.length !== 1 || ledger !== undefined || content !== undefined) {"
+                "anchor": "if (funding.length !== 1) throw new TypeError('InferOriginalPublicationCapacityUnavailable');"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "function cleanup() {"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -16714,6 +16944,10 @@
               {
                 "path": "src/model_execution/original_publication_capacity.mbt",
                 "anchor": "pub fn original_model_publication_capacity_current("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -16724,6 +16958,10 @@
               {
                 "path": "adapters/host-node/infer-operation.mjs",
                 "anchor": "return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -16889,7 +17127,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "333854d6d55ba5c9e7d0906422f606a0ec28836bcee88888c4e5f4765cc8c67a",
+      "sha256": "e33fcb7ce767d345a212d0cfbf49f2d94b5a2a7f956c17aeafce02f2bf90b383",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -16966,6 +17204,14 @@
           "name": "runInstalledComposedInfers/cleanup",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "runInstalledComposedInfers/completeOriginal/completeOriginal",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
         },
         {
           "name": "runInstalledComposedInfers/context/context",
@@ -17058,6 +17304,20 @@
           "async": false
         },
         {
+          "name": "runInstalledComposedInfers/retainCompleted/retainCompleted",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/retainCompleted/retainCompleted#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers",
           "parameters": [],
           "async": false
@@ -17071,19 +17331,21 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#4",
           "parameters": [
-            "slot"
+            "original"
           ],
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#5",
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#4",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#5",
+          "parameters": [
+            "slot"
+          ],
           "async": false
         },
         {
@@ -17093,13 +17355,18 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#8",
           "parameters": [
             "child"
           ],
           "async": false
         },
         {
-          "name": "runInstalledComposedInfers/runInstalledComposedInfers#8",
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#9",
           "parameters": [
             "child"
           ],
@@ -17144,6 +17411,7 @@
             "runInstalledComposedInfers/candidates/candidates",
             "runInstalledComposedInfers/children/children",
             "runInstalledComposedInfers/cleanup",
+            "runInstalledComposedInfers/completeOriginal/completeOriginal",
             "runInstalledComposedInfers/context/context",
             "runInstalledComposedInfers/context/init:retainOperation/init:retainOperation",
             "runInstalledComposedInfers/declaredResults/declaredResults",
@@ -17162,6 +17430,8 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#5",
             "runInstalledComposedInfers/runInstalledComposedInfers#6",
             "runInstalledComposedInfers/runInstalledComposedInfers#7",
+            "runInstalledComposedInfers/runInstalledComposedInfers#8",
+            "runInstalledComposedInfers/runInstalledComposedInfers#9",
             "runInstalledComposedInfers/setup/setup"
           ],
           "exports": [
@@ -17184,6 +17454,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -17202,6 +17476,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -17216,6 +17494,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -17230,6 +17512,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -17244,6 +17530,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -17258,6 +17548,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -17272,6 +17566,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -17286,6 +17584,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -17300,6 +17602,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -17330,7 +17636,6 @@
           "operations": [
             "runInstalledComposedInfers/captures/captures",
             "runInstalledComposedInfers/originals/originals",
-            "runInstalledComposedInfers/runInstalledComposedInfers#8",
             "runInstalledComposedInfers/setup/setup#2",
             "runInstalledComposedInfers/setup/setup#3"
           ],
@@ -17344,6 +17649,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -17358,6 +17667,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -17368,6 +17681,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -17382,6 +17699,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -17392,6 +17713,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -17406,6 +17731,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -17416,6 +17745,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -17430,6 +17763,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -17440,6 +17777,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -17468,7 +17809,9 @@
         },
         {
           "operations": [
-            "runInstalledComposedInfers/retainCompleted"
+            "runInstalledComposedInfers/retainCompleted",
+            "runInstalledComposedInfers/retainCompleted/retainCompleted",
+            "runInstalledComposedInfers/retainCompleted/retainCompleted#2"
           ],
           "exports": [],
           "attributes": {
@@ -17480,6 +17823,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -17489,27 +17836,35 @@
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: [child.operation],"
+                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: children.map(original => original.operation),"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "if (children.length !== 1 || children[0] !== child) {"
+                "anchor": "if (!children.includes(child)) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
-                "anchor": "if (!child.capture.retainCompleted()) return false;"
+                "anchor": "if (!child.capture.retainCompleted(completeOriginal ? publicationOwner : child.operation)) return false;"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -17518,6 +17873,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -17528,6 +17887,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -17538,6 +17901,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -17548,6 +17915,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -17562,6 +17933,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -17572,6 +17947,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -17888,7 +18267,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "b55b3d75c08b1b8cb62aeaa1dcf4b77cc170c1b75c34f787d7b3fb0e5d7483fd",
+      "sha256": "62d4db777f69677547674b917ac5063f1ac2d60281beefc6fd3ee7b4555ce5c4",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -17925,14 +18304,58 @@
         {
           "name": "installNodeInferRun/installNodeInferRun",
           "parameters": [
-            "preparedProgram",
-            "plan",
-            "sourceCapacity"
+            "prepared",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/installNodeInferRun",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/installNodeInferRun#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun/ledger/ledger#3",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
         {
           "name": "installNodeInferRun/installNodeInferRun#2",
+          "parameters": [
+            "preparedProgram",
+            "plan",
+            "sourceCapacity",
+            "sourceCapacities"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/installNodeInferRun#3",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -18232,6 +18655,84 @@
           "name": "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "plan",
+            "selected",
+            "model",
+            "acquired",
+            "preparationHolder"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/current/current/current",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "provider",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "sourceFreeModelsPreparation/originals/originals",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
         }
       ],
       "owner": "Existing checked Model/Run publication and per-call journal custody",
@@ -18242,6 +18743,12 @@
             "installNodeInferRun",
             "installNodeInferRun/installNodeInferRun",
             "installNodeInferRun/installNodeInferRun#2",
+            "installNodeInferRun/installNodeInferRun#3",
+            "installNodeInferRun/installNodeInferRun/installNodeInferRun",
+            "installNodeInferRun/installNodeInferRun/installNodeInferRun#2",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#2",
+            "installNodeInferRun/installNodeInferRun/ledger/ledger#3",
             "installNodeInferRun/run/run",
             "installNodeInferRun/run/run/assertOriginalRuntime/assertOriginalRuntime",
             "installNodeInferRun/run/run/cleanup/cleanup",
@@ -18304,6 +18811,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -18322,6 +18833,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -18340,6 +18855,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -18358,6 +18877,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -18376,6 +18899,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -18394,6 +18921,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -18412,6 +18943,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -18430,6 +18965,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -18448,6 +18987,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -18598,7 +19141,17 @@
             "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
             "sourceFreeModelPreparation/init:retain/init:retain",
             "sourceFreeModelPreparation/init:retire/init:retire",
-            "sourceFreeModelPreparation/publicationCapacity/publicationCapacity"
+            "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
+            "sourceFreeModelsPreparation",
+            "sourceFreeModelsPreparation/current/current",
+            "sourceFreeModelsPreparation/current/current/current",
+            "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelsPreparation/init:retain/init:retain",
+            "sourceFreeModelsPreparation/init:retire/init:retire",
+            "sourceFreeModelsPreparation/originals/originals"
           ],
           "exports": [],
           "attributes": {
@@ -18606,54 +19159,90 @@
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model)"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "const original = managed?.value, request = managed?.request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "model.originalReadInstallation !== undefined || model.managed !== managed"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "model.taken = true;"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "catch (cause) {model.readFailure = cause; throw cause;}"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "retireNodeInferOriginalRead(model);"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
               {
                 "path": "adapters/host-node/installed-infer-run.mjs",
                 "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers)"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -31584,7 +32173,7 @@
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
-      "sha256": "95d11b5fbec46f0a24dc7a4a8ed8b5a2f987799943b82445c85bd22131dc787f",
+      "sha256": "56fa75aa7b12d61a84b97674b27f421797c98ace2de38134b595eec494c09727",
       "exports": [],
       "operations": [
         {
@@ -33835,7 +34424,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "dce90520994f229653c04fc9706f6046f811416060fcc9708df6f34cad2fb177",
+      "sha256": "18e1909032a2bc02dc66b652e2af8ad3e2955a6cab60fb7ad9cb8d868c350747",
       "exports": [],
       "operations": [
         {
@@ -34006,6 +34595,8 @@
             "[P]check_installed_managed_run_admission",
             "begin_installed_managed_run",
             "begin_installed_managed_run_source_read",
+            "begin_installed_managed_run_source_read_at",
+            "begin_installed_managed_run_source_read_owned",
             "begin_prepared_installed_managed_source_free_run",
             "check_installed_managed_run",
             "check_installed_managed_run_binding",
@@ -34063,6 +34654,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -34085,6 +34680,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -34107,6 +34706,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -34129,6 +34732,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -34151,6 +34758,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -34173,6 +34784,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -34195,6 +34810,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -34217,6 +34836,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -34239,6 +34862,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -34297,7 +34924,7 @@
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
-      "sha256": "a8af1c16c20eb77549da59431230c921bd6e2b1cc010d93cae638f1ee94931ec",
+      "sha256": "bf878d28b837d69ee64ac15e695b13e4fe3cc4dd3c30e407924add9f4863d212",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing configured Local module and same original Request Model owners",
@@ -36945,7 +37572,7 @@
     },
     {
       "module": "src/client_local_host/preparation_closed_values_program.mbt",
-      "sha256": "8607154029be6e3b5f0b72e99b68fb86124a25f7d9f70cdc2d4d39dcc6d88b02",
+      "sha256": "48f602d76633ce58d2d6f2b54a4f2dd4e9b32511d8bc5c77037603689e596166",
       "exports": [],
       "operations": [
         {
@@ -39159,7 +39786,7 @@
     },
     {
       "module": "src/client_local_host/preparation_request_capture_body.mbt",
-      "sha256": "2391acff8e423265c215688c46b14f3fbf43ecbe1386573bc1d8a028d8955348",
+      "sha256": "12f253792cc4e5835e78a1d742b75a21df037cc571db8a6783fb685bed94cf12",
       "exports": [],
       "operations": [
         {
@@ -40007,8 +40634,12 @@
       "exports": [],
       "operations": [
         {
+          "name": "[I,T]prepare_request_model_read_scopes_owned",
+          "declaration": "[ I , T ] prepare_request_model_read_scopes_owned ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , quantity_limits : @ resources . QuantityAmounts ? , bind : ( ClientInstalledManagedModelPlan , @ resources . Ledger , @ resources . OriginalLedgerIdentity , ) - > Result [ T , @ publication_host . ClientModelReadPreparationIssue ] , ) - > Result [ T , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "[I]begin_request_model_managed_run",
-          "declaration": "[ I ] begin_request_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ ClientInstalledManagedRun , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] begin_request_model_managed_run ( owner : ClientRequestPreparation [ I ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , scopes ? : Array [ @ publication_host . ClientModelReadScope ] ?"
         },
         {
           "name": "[I]borrow_request_model_plan_input",
@@ -40035,18 +40666,27 @@
           "declaration": "[ I ] prepare_request_model_source_free_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , read_retained_bytes : Int64 , read_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
         },
         {
+          "name": "[I]prepare_request_models_compilation",
+          "declaration": "[ I ] prepare_request_models_compilation ( owner : ClientRequestPreparation [ I ] , input : I , selected : Array [ @ publication_host . ClientInferPlanGraph ] , contracts : ClientInstalledSequenceContracts , manifests ~ : @ publication_host . ClientCompilationManifests , compilation_limits ~ : @ publication_host . ClientPureCompilationLimits , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramPlanIssue , ]"
+        },
+        {
           "name": "[I]prepare_request_node_model_capture_plan",
           "declaration": "[ I ] prepare_request_node_model_capture_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ environment . DecisionProbabilityProfile ? , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
         },
         {
           "name": "[I]prepare_request_node_model_source_free_plan",
           "declaration": "[ I ] prepare_request_node_model_source_free_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , model_limits : @ resources . LedgerLimits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ environment . DecisionProbabilityProfile ? , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "bind_request_single_model_read_scope",
+          "declaration": "bind_request_single_model_read_scope ( plan : ClientInstalledManagedModelPlan , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ @ publication_host . ClientModelReadScope , @ publication_host . ClientModelReadPreparationIssue , ]"
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
+            "[I,T]prepare_request_model_read_scopes_owned",
             "[I]begin_request_model_managed_run",
             "[I]borrow_request_model_plan_input",
             "[I]complete_request_model_preparation",
@@ -40054,8 +40694,10 @@
             "[I]prepare_request_model_compilation",
             "[I]prepare_request_model_read_scope",
             "[I]prepare_request_model_source_free_plan",
+            "[I]prepare_request_models_compilation",
             "[I]prepare_request_node_model_capture_plan",
-            "[I]prepare_request_node_model_source_free_plan"
+            "[I]prepare_request_node_model_source_free_plan",
+            "bind_request_single_model_read_scope"
           ],
           "exports": [],
           "attributes": {
@@ -40083,6 +40725,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -40109,6 +40755,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -40135,6 +40785,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -40161,6 +40815,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -40187,6 +40845,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -40213,6 +40875,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -40239,6 +40905,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -40265,6 +40935,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -40291,6 +40965,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -40343,15 +41021,19 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "52149e0bef008080941643dbf7745f76dbddc0e567f2f64e582693f4e270a9aa"
+      "sha256": "666c1177d8d3f101cfb4074738e6f40730b60214c7911e2a12e43d0dc0687b57"
     },
     {
       "module": "src/client_local_host/preparation_request_model_module.mbt",
-      "sha256": "5742018e5551bee149546901444fd7e68745155c5f171541e25685e56c7a3c9b",
+      "sha256": "390831c169a2f6b1db1b7b3801a78a9905724f343777ac3818c2900e681b2d95",
       "operations": [
         {
           "name": "[I]begin_request_model_module",
           "declaration": "[ I ] begin_request_model_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , captures : Int , installed_providers : Int , query_time : @ publication_host . ClientQueryTimePreparation ? , provider_captures ? : Int"
+        },
+        {
+          "name": "[I]construct_request_model_input",
+          "declaration": "[ I ] construct_request_model_input ( owner : ClientRequestPreparation [ I ] , input : I , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , graph : @ publication_host . ClientInferPlanGraph , contracts : ClientInstalledSequenceContracts , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ ( @ execution . GeneratedSequence , @ execution . GeneratedSequence ? ) , ClientRequestProgramPlanIssue , ]"
         },
         {
           "name": "[I]prepare_request_model_capture_module",
@@ -40360,6 +41042,14 @@
         {
           "name": "[I]prepare_request_model_source_free_module",
           "declaration": "[ I ] prepare_request_model_source_free_module ( owner : ClientRequestPreparation [ I ] , input : I , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : ClientInstalledSequenceContracts , retained_output : Bool , installed_providers : Int , provider_factory : ( @ execution . ExecutionCapacity ) - > Array [ @ local . ManagedProvider , ] , query_time ? : @ publication_host . ClientQueryTimePreparation ?"
+        },
+        {
+          "name": "[I]request_model_direct_occurrences",
+          "declaration": "[ I ] request_model_direct_occurrences ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "[I]request_model_direct_occurrences_owned",
+          "declaration": "[ I ] request_model_direct_occurrences_owned ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ publication_host . ClientDirectAcquisitionOccurrences , ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "prepared_request_model_input_prefix",
@@ -40372,6 +41062,10 @@
         {
           "name": "request_model_module_container_bytes",
           "declaration": "request_model_module_container_bytes ( tasks : Int , captures : Int , installed_providers : Int , provider_captures ? : Int"
+        },
+        {
+          "name": "request_model_provider_count",
+          "declaration": "request_model_provider_count ( families : Int , models : Int ) - > Int ?"
         }
       ],
       "exports": [],
@@ -40380,11 +41074,15 @@
           "operations": [
             "<module>",
             "[I]begin_request_model_module",
+            "[I]construct_request_model_input",
             "[I]prepare_request_model_capture_module",
             "[I]prepare_request_model_source_free_module",
+            "[I]request_model_direct_occurrences",
+            "[I]request_model_direct_occurrences_owned",
             "prepared_request_model_input_prefix",
             "prepared_request_model_input_suffix",
-            "request_model_module_container_bytes"
+            "request_model_module_container_bytes",
+            "request_model_provider_count"
           ],
           "exports": [],
           "attributes": {
@@ -40392,54 +41090,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -40481,7 +41215,7 @@
       "operations": [
         {
           "name": "[I,P]request_model_scope_construction_quote",
-          "declaration": "[ I , P ] request_model_scope_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ( Int64 , Int64 ) , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I , P ] request_model_scope_construction_quote ( capacity : @ resources . PreparationCapacity [ I , P ] , input : I , max_reservations : Int , max_holdings : Int , max_delegations : Int , model_count ? : Int"
         }
       ],
       "contracts": [
@@ -40560,7 +41294,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "bbb2ab79684be1051610e50cd19cc720d0f1eff10e95e4cdbb8c1c71de823690"
+      "sha256": "4aa1dfdc5d31bcf730d7fb8338e4ea7a2d7df33ae0fd5a9b01c2879302d40519"
     },
     {
       "module": "src/client_local_host/preparation_request_native_computation.mbt",
@@ -41312,7 +42046,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "86b10a33011ba5d1e159a7f6d249d16914bef5624ff2e0594156b0daf808b730",
+      "sha256": "10084838b8d73906546b549d084b32e51ebc7c45f8527dedc91e224cddf9a926",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -43005,7 +43739,7 @@
           }
         }
       ],
-      "sha256": "759198df49b7d30226ea25ec52c1c7825e7ca1385785b63c884beff0011952f8",
+      "sha256": "3e602b717ca6b4bef07e23b47d23681fe2c2e2f7861e3198b95812dc9e7db034",
       "exports": [],
       "operations": [
         {
@@ -49535,7 +50269,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "6e0520760619500e7383ed4da9545e27203bce3985bf9889e44fe25d5ded6fdd",
+      "sha256": "cc9b8c5b202d96c35afee4a51b98cc8fdf013ba277b16a761d45633c547726fc",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
@@ -49582,6 +50316,22 @@
           "declaration": "client_program_prepare_request_model_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_models_capture_plan",
+          "declaration": "client_program_prepare_request_models_capture_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_models_provider_component_capture_module",
+          "declaration": "client_program_prepare_request_models_provider_component_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , providers : Array [ @ execution . ExecutionCapacity ? ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( Int , @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_models_source_free_component_module",
+          "declaration": "client_program_prepare_request_models_source_free_component_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , construct : ( Int , @ execution . ExecutionCapacity , @ execution . GeneratedSequence , ( @ infer_host . Execution ) - > Result [ Unit , @ infer_host . Issue ] , ) - > @ local . ManagedProvider , ) - > Result [ @ client_local_host . ClientInstalledManagedSourceFreePreparation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_models_source_free_plan",
+          "declaration": "client_program_prepare_request_models_source_free_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_node_model_capture_plan",
           "declaration": "client_program_prepare_request_node_model_capture_plan ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , original : @ client_local_host . ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , selected : @ infer_host . Limits , layout : @ publication_host . ClientNodeModelPreparationLayout ? , installation : @ check_environment . ModelResponseProfileInstallation , runtime_artifact_cid : String , layout_artifact_cid : String , probability : @ check_environment . DecisionProbabilityProfile ? , model_retained_bytes : Int64 , model_execution_bytes : Int64 , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap_retained_bytes : Int64 , bootstrap_execution_bytes : Int64 , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
@@ -49596,6 +50346,14 @@
         {
           "name": "client_program_prepared_request_model_input_suffix",
           "declaration": "client_program_prepared_request_model_input_suffix ( original : @ client_local_host . ClientInstalledManagedCapturePlan , ) - > Result [ @ execution . GeneratedSequence ? , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_request_model_direct_source_coordinates",
+          "declaration": "client_program_request_model_direct_source_coordinates ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ Array [ Array [ Int ] ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_request_models_plan_projection",
+          "declaration": "client_request_models_plan_projection ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , selected : Array [ @ infer_host . Limits ] , construct : ( Array [ @ resources . LedgerLimits ] , Array [ Int64 ] , Array [ Int64 ] , Int , Int , Int , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ] , ) - > Result [ @ client_local_host . ClientInstalledManagedModelPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "installed_effect_model_plan_from_original_sources",
@@ -49614,13 +50372,19 @@
             "client_program_installed_mock_model_capture_plan_bind",
             "client_program_prepare_request_model_provider_capture_module",
             "client_program_prepare_request_model_provider_component_capture_module",
+            "client_program_prepare_request_model_source_free_component_module",
             "client_program_prepare_request_model_source_free_plan",
+            "client_program_prepare_request_models_capture_plan",
+            "client_program_prepare_request_models_provider_component_capture_module",
+            "client_program_prepare_request_models_source_free_component_module",
+            "client_program_prepare_request_models_source_free_plan",
             "client_program_prepare_request_node_model_capture_plan",
             "client_program_prepare_request_node_model_source_free_plan",
             "client_program_prepared_request_model_input_prefix",
             "client_program_prepared_request_model_input_suffix",
-            "installed_effect_model_plan_from_original_sources",
-            "client_program_prepare_request_model_source_free_component_module"
+            "client_program_request_model_direct_source_coordinates",
+            "client_request_models_plan_projection",
+            "installed_effect_model_plan_from_original_sources"
           ],
           "exports": [],
           "attributes": {
@@ -49660,6 +50424,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -49698,6 +50466,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -49736,6 +50508,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -49774,6 +50550,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -49812,6 +50592,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -49850,6 +50634,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -49888,6 +50676,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -49926,6 +50718,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -49964,6 +50760,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
                 "anchor": "client_program_prepare_request_model_source_free_component_module"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -52605,7 +53405,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6fab7f2ca5f17846419f45aac7b55b0a65bdf99577ee331542bd41ba3462df0d",
+      "sha256": "198e7b2153a9e8b534948f55a80beee5d4c216bae8690a44f737db5271318cbd",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -52633,6 +53433,10 @@
         {
           "name": "client_program_adopt_request_model_preparation",
           "declaration": "client_program_adopt_request_model_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , scope : @ publication_host . ClientModelReadScope , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_adopt_request_models_preparation",
+          "declaration": "client_program_adopt_request_models_preparation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , request : @ publication_host . ClientRequestIdentity , scopes : Array [ @ publication_host . ClientModelReadScope ] , ) - > Result [ @ client_local_host . ClientInstalledManagedRun , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_adopt_request_program_preparation",
@@ -52849,6 +53653,18 @@
         {
           "name": "client_program_prepare_request_model_source_free_module",
           "declaration": "client_program_prepare_request_model_source_free_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedSourceFreePreparation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_models_compilation",
+          "declaration": "client_program_prepare_request_models_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_models_read_scopes",
+          "declaration": "client_program_prepare_request_models_read_scopes ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_models_read_scopes_with_quantities",
+          "declaration": "client_program_prepare_request_models_read_scopes_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_prepare_request_native_computation",
@@ -53374,6 +54190,7 @@
             "client_program_adopt_request_content_preparation",
             "client_program_adopt_request_effect_model_preparation",
             "client_program_adopt_request_model_preparation",
+            "client_program_adopt_request_models_preparation",
             "client_program_borrow_request_content_plan_input",
             "client_program_borrow_request_model_plan_input",
             "client_program_complete_request_content_preparation",
@@ -53391,6 +54208,9 @@
             "client_program_prepare_request_model_read_scope",
             "client_program_prepare_request_model_read_scope_with_quantities",
             "client_program_prepare_request_model_source_free_module",
+            "client_program_prepare_request_models_compilation",
+            "client_program_prepare_request_models_read_scopes",
+            "client_program_prepare_request_models_read_scopes_with_quantities",
             "client_program_prepare_request_program_compilation",
             "client_program_prepare_request_serialization_compilation",
             "client_program_prepare_request_serialization_graph",
@@ -53407,6 +54227,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
@@ -53417,6 +54241,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
@@ -53427,6 +54255,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
@@ -53437,6 +54269,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
@@ -53447,6 +54283,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
@@ -53457,6 +54297,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
@@ -53467,6 +54311,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
@@ -53477,6 +54325,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
@@ -53487,6 +54339,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request-owned terminal serialization compilation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -64884,14 +65740,89 @@
       "exports": [],
       "operations": [
         {
+          "name": "begin_client_model_read_scope",
+          "declaration": "begin_client_model_read_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ledger : @ resources . Ledger , bootstrap : @ resources . CapacityReservation , max_reservations : Int , max_holdings : Int , max_delegations : Int , ) - > Result [ ClientModelReadScope , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "bind_client_model_read_scope",
+          "declaration": "bind_client_model_read_scope ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ ClientModelReadScope , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "client_model_origin_matches",
+          "declaration": "client_model_origin_matches ( origin : ClientModelReadOrigin , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_model_read_available",
+          "declaration": "client_model_read_available ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_model_read_origin_matches",
+          "declaration": "client_model_read_origin_matches ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_model_read_preparation_available",
+          "declaration": "client_model_read_preparation_available ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , execution_bytes : Int64 , retained_bytes ? : Int64"
+        },
+        {
           "name": "client_model_read_scope_construction_inventory",
           "declaration": "client_model_read_scope_construction_inventory ( ) - > @ execution . PreparationRepresentationUnits"
+        },
+        {
+          "name": "client_model_read_scope_live",
+          "declaration": "client_model_read_scope_live ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Bool"
+        },
+        {
+          "name": "client_model_read_scope_original_inventory",
+          "declaration": "client_model_read_scope_original_inventory ( scope : ClientModelReadScope , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Bool"
+        },
+        {
+          "name": "finish_client_model_read_inventory",
+          "declaration": "finish_client_model_read_inventory ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , original_run_cleanup_complete : Bool , ) - > Result [ Bool , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "finish_client_model_read_scope",
+          "declaration": "finish_client_model_read_scope ( scope : ClientModelReadScope , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , original_run_cleanup_complete : Bool , ) - > Result [ Bool , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "handoff_client_model_read",
+          "declaration": "handoff_client_model_read ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , ) - > Result [ @ resources . Ledger , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "handoff_client_model_read_capacity",
+          "declaration": "handoff_client_model_read_capacity ( value : ClientModelReadPreparation , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plan : ClientInferPlanGraph , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( @ resources . Ledger , @ resources . CapacityReservation ) , ClientModelReadPreparationIssue , ]"
+        },
+        {
+          "name": "prepare_client_model_read",
+          "declaration": "prepare_client_model_read ( scope : ClientModelReadScope , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ClientModelReadPreparation , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "settle_client_model_read",
+          "declaration": "settle_client_model_read ( value : ClientModelReadPreparation , physical_cleanup_complete : Bool , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "stop_client_model_read",
+          "declaration": "stop_client_model_read ( value : ClientModelReadPreparation , ) - > Result [ Unit , ClientModelReadPreparationIssue ]"
         }
       ],
       "contracts": [
         {
           "operations": [
-            "client_model_read_scope_construction_inventory"
+            "begin_client_model_read_scope",
+            "bind_client_model_read_scope",
+            "client_model_origin_matches",
+            "client_model_read_available",
+            "client_model_read_origin_matches",
+            "client_model_read_preparation_available",
+            "client_model_read_scope_construction_inventory",
+            "client_model_read_scope_live",
+            "client_model_read_scope_original_inventory",
+            "finish_client_model_read_inventory",
+            "finish_client_model_read_scope",
+            "handoff_client_model_read",
+            "handoff_client_model_read_capacity",
+            "prepare_client_model_read",
+            "settle_client_model_read",
+            "stop_client_model_read"
           ],
           "exports": [],
           "attributes": {
@@ -64899,54 +65830,90 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "failure": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
               }
             ],
             "verification": [
@@ -64963,7 +65930,7 @@
         }
       ],
       "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
-      "sha256": "23c0e7bafd9a41b99f89e2ee85d31a81a8eb2159ed22c8a6609e2f51dd043b6e"
+      "sha256": "eaeafd7a3cd67b06716bc2ae7276a1a832ec3af07a250a08d9163c183197b772"
     },
     {
       "module": "src/run_publication_host/client_ordered_sequence.mbt",
@@ -76519,6 +77486,799 @@
         }
       ],
       "referenceQualification": "Existing same-Request read-only restoration reservation and constructor-current/nominal/cleanup controls. The existing saved compiled owner, input token and saved Scope remain separate; this source/API registration is not normal Model replay or physical acceptance."
+    },
+    {
+      "module": "src/physical_resources/original_read_group.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Resource original read with a closed declared child group on the same Ledger; no new owner or attempt refund",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[T]claim_funded_read_preparations",
+          "declaration": "[ T ] claim_funded_read_preparations ( claim : FundedReadClaim [ T ] , original : T , origins : Array [ T ] , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , ) - > Result [ Array [ FundedReadConsumer [ T ] ] , OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]enter_original_read_child",
+          "declaration": "[ T ] enter_original_read_child ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , origin : T , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ Unit , OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]finish_original_read_children",
+          "declaration": "[ T ] finish_original_read_children ( claim : FundedReadClaim [ T ] , ) - > Result [ Unit , OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]handoff_original_read_child_capacity",
+          "declaration": "[ T ] handoff_original_read_child_capacity ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , origin : T , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ( Ledger , CapacityReservation ) , OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]leave_original_read_children",
+          "declaration": "[ T ] leave_original_read_children ( group : OriginalReadChildren [ T ] ) - > Unit"
+        },
+        {
+          "name": "[T]original_read_child",
+          "declaration": "[ T ] original_read_child ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , ) - > OriginalReadChild [ T ] ?"
+        },
+        {
+          "name": "[T]original_read_child_available",
+          "declaration": "[ T ] original_read_child_available ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , origin : T , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Bool"
+        },
+        {
+          "name": "[T]original_read_child_origin",
+          "declaration": "[ T ] original_read_child_origin ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , handed_off : Bool , ) - > T ?"
+        },
+        {
+          "name": "[T]original_read_children_current",
+          "declaration": "[ T ] original_read_children_current ( claim : FundedReadClaim [ T ] ) - > Bool"
+        },
+        {
+          "name": "[T]settle_original_read_child",
+          "declaration": "[ T ] settle_original_read_child ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , physical_cleanup_complete : Bool , ) - > Result [ Unit , OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]stop_original_read_child",
+          "declaration": "[ T ] stop_original_read_child ( claim : FundedReadClaim [ T ] , consumer : FundedReadConsumer [ T ] , ) - > Result [ Unit , OriginalReadIssue ]"
+        },
+        {
+          "name": "[T]stop_original_read_children",
+          "declaration": "[ T ] stop_original_read_children ( claim : FundedReadClaim [ T ] , ) - > Result [ Unit , OriginalReadIssue ]"
+        },
+        {
+          "name": "original_read_children_construction_slots",
+          "declaration": "original_read_children_construction_slots ( count : Int , ) - > ( Int64 , Int64 , Int64 ) ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[T]claim_funded_read_preparations",
+            "[T]enter_original_read_child",
+            "[T]finish_original_read_children",
+            "[T]handoff_original_read_child_capacity",
+            "[T]leave_original_read_children",
+            "[T]original_read_child",
+            "[T]original_read_child_available",
+            "[T]original_read_child_origin",
+            "[T]original_read_children_current",
+            "[T]settle_original_read_child",
+            "[T]stop_original_read_child",
+            "[T]stop_original_read_children",
+            "original_read_children_construction_slots"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/physical_resources/preparation_inventory_backing_nonjs_wbtest.mbt",
+                "anchor": "test \"exact scalar census backing and indexed originals"
+              },
+              {
+                "path": "src/physical_resources/original_read_group_wbtest.mbt",
+                "anchor": "test \"closed original read group hands off two planned children on one claim and keeps pending cleanup\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "7d5d9203b293dbb8ebeda8fc7c463168f0ae8a3acf664657d65cd84379502ed2"
+    },
+    {
+      "module": "src/run_publication_host/client_model_read_group.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing Model read Scopes share their original Run binding, descriptor, claim and census; actual child cleanup precedes census finish",
+      "exports": [],
+      "operations": [
+        {
+          "name": "bind_client_model_read_scopes",
+          "declaration": "bind_client_model_read_scopes ( compiled : ClientCompiledRun , definition : @ publication . PublicationContract , plans : Array [ ClientInferPlanGraph ] , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , retained_bytes : Array [ Int64 ] , execution_bytes : Array [ Int64 ] , ) - > Result [ Array [ ClientModelReadScope ] , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "client_model_read_scopes_construction_inventory",
+          "declaration": "client_model_read_scopes_construction_inventory ( count : Int , ) - > @ execution . PreparationRepresentationUnits ?"
+        },
+        {
+          "name": "client_model_read_scopes_match_originals",
+          "declaration": "client_model_read_scopes_match_originals ( scopes : Array [ ClientModelReadScope ] , compiled : ClientCompiledRun , definition : @ publication . PublicationContract , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Bool"
+        },
+        {
+          "name": "finish_client_model_group_scope",
+          "declaration": "finish_client_model_group_scope ( scope : ClientModelReadScope , group : ClientModelReadGroup , physical_cleanup_complete : Bool , ) - > Result [ Bool , ClientModelReadPreparationIssue ]"
+        },
+        {
+          "name": "leave_client_model_read_group",
+          "declaration": "leave_client_model_read_group ( group : ClientModelReadGroup ) - > Unit"
+        },
+        {
+          "name": "prepare_client_model_group_read",
+          "declaration": "prepare_client_model_group_read ( scope : ClientModelReadScope , group : ClientModelReadGroup , retained_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ ClientModelReadPreparation , ClientModelReadPreparationIssue ]"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind_client_model_read_scopes",
+            "client_model_read_scopes_construction_inventory",
+            "client_model_read_scopes_match_originals",
+            "finish_client_model_group_scope",
+            "leave_client_model_read_group",
+            "prepare_client_model_group_read"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              },
+              {
+                "path": "src/run_publication_host/client_model_read_group_wbtest.mbt",
+                "anchor": "test \"complete compiler Model scopes use one original read in either child start order and retire children before parent\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "33f753544af98f63db4fcbea0b303b7b2e77664efb53769fd9c5733f5de0f98c"
+    },
+    {
+      "module": "src/client_local_host/preparation_request_models_plan.mbt",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Existing same-Request Model module, full compiler inventory, aggregate Plan and all original Scopes; no second preparation or Ledger",
+      "exports": [],
+      "operations": [
+        {
+          "name": "[I]prepare_request_models_capture_plan",
+          "declaration": "[ I ] prepare_request_models_capture_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedCapturePlan , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "[I]prepare_request_models_plan_owned",
+          "declaration": "[ I ] prepare_request_models_plan_owned ( owner : ClientRequestPreparation [ I ] , input : I , source_free : ClientInstalledManagedSourceFreePreparation ? , captured : ClientInstalledManagedCapturePlan ? , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap : ( Int64 , Int64 ) ? , ) - > Result [ ClientInstalledManagedModelPlan , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "[I]prepare_request_models_read_scopes",
+          "declaration": "[ I ] prepare_request_models_read_scopes ( owner : ClientRequestPreparation [ I ] , input : I , plan : ClientInstalledManagedModelPlan , quantity_limits ? : @ resources . QuantityAmounts ?"
+        },
+        {
+          "name": "[I]prepare_request_models_source_free_plan",
+          "declaration": "[ I ] prepare_request_models_source_free_plan ( owner : ClientRequestPreparation [ I ] , input : I , original : ClientInstalledManagedSourceFreePreparation , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , occurrences : Array [ @ publication_host . ClientInferOccurrence ] , graphs : Array [ @ publication_host . ClientInferPlanGraph ] , model_limits : Array [ @ resources . LedgerLimits ] , read_retained_bytes : Array [ Int64 ] , read_execution_bytes : Array [ Int64 ] , max_reservations : Int , max_holdings : Int , max_delegations : Int , bootstrap ? : ( Int64 , Int64 ) ?"
+        },
+        {
+          "name": "[I]reserve_request_models_plan_projection",
+          "declaration": "[ I ] reserve_request_models_plan_projection ( owner : ClientRequestPreparation [ I ] , input : I , count : Int , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "bind_request_multiple_model_read_scopes",
+          "declaration": "bind_request_multiple_model_read_scopes ( plan : ClientInstalledManagedModelPlan , ledger : @ resources . Ledger , identity : @ resources . OriginalLedgerIdentity , ) - > Result [ Array [ @ publication_host . ClientModelReadScope ] , @ publication_host . ClientModelReadPreparationIssue , ]"
+        },
+        {
+          "name": "request_model_plan_quantity_limits",
+          "declaration": "request_model_plan_quantity_limits ( plan : ClientInstalledManagedModelPlan , installed : @ resources . QuantityAmounts , ) - > @ resources . QuantityAmounts ?"
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]prepare_request_models_capture_plan",
+            "[I]prepare_request_models_plan_owned",
+            "[I]prepare_request_models_read_scopes",
+            "[I]prepare_request_models_source_free_plan",
+            "[I]reserve_request_models_plan_projection",
+            "bind_request_multiple_model_read_scopes",
+            "request_model_plan_quantity_limits"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source intake and borrowed handoff on the same Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Request-owned Node Model layout"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "installed Model caller cuts"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Acquired Node Model provider and capture handoff"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "Request acquired Node Model binds"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original occurrence before a plain Model Graph"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "plain acquired Model constructs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Model Scope composes original demand instead of whole-Run ceilings"
+              },
+              {
+                "path": "src/client_local_host/model_scope_demand_js_wbtest.mbt",
+                "anchor": "same Request Model Scope uses configured planning demand and keeps original cleanup"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_source_input_wbtest.mbt",
+                "anchor": "test \"funded Source Request keeps same Parameter compiler and borrower through actual pending retirement\" {"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"two captured Model Request keeps original Direct inventory and all scopes on its one aggregate Plan\""
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Original Scope/census construction and same-parent continuation only; not full Host/provider/runtime backing or ordinary acceptance.",
+      "sha256": "00c541b34cbe9a1e1c79d530f5c59acc8a1c4ce09b66ef65d37328ab51a03d11"
     }
   ]
 }

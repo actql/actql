@@ -168,6 +168,8 @@ pub fn[I, P] check_working_preparation_capacity_current(PreparationCapacity[I, P
 
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
 
+pub fn[T] claim_funded_read_preparations(FundedReadClaim[T], T, Array[T], Array[Int64], Array[Int64]) -> Result[Array[FundedReadConsumer[T]], OriginalReadIssue]
+
 pub fn claim_model_io_access(ModelIoAccess, Ledger, Reservation, Int, Int) -> Result[ModelIoLease, ModelIoAdmissionIssue]
 
 pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
@@ -367,6 +369,8 @@ pub fn original_ledger_prefix_available(OriginalLedgerIdentity) -> Bool
 pub fn original_ledger_preparation_available(OriginalLedgerIdentity) -> Bool
 
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
+
+pub fn original_read_children_construction_slots(Int) -> (Int64, Int64, Int64)?
 
 pub fn[T] original_read_workspace_binding_current(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> Bool
 

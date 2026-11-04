@@ -178,6 +178,7 @@ struct ClientRequestPreparation[I] {
   mut program_compilation : @publication_host.ClientRunCompilation?
   mut program_source_free : ClientInstalledManagedSourceFreePreparation?
   mut program_captured : ClientInstalledManagedCapturePlan?
+  mut program_model_direct : @publication_host.ClientDirectAcquisitionOccurrences?
   mut program_model : ClientInstalledManagedModelPlan?
   mut program_content : ClientInstalledContentPreparation
   mut program_content_request : @publication_host.ClientRequestIdentity?
@@ -376,6 +377,7 @@ fn[I] begin_request_preparation_original(
     program_compilation: None,
     program_source_free: None,
     program_captured: None,
+    program_model_direct: None,
     program_model: None,
     program_content: NoContent,
     program_content_request: None,
@@ -692,6 +694,7 @@ pub fn[I] abort_request_preparation_after_cleanup(
   owner.program_domain_compilation_inputs = None
   owner.program_source_free = None
   owner.program_captured = None
+  owner.program_model_direct = None
   owner.program_model = None
   owner.program_content = NoContent
   owner.program_content_request = None

@@ -30,19 +30,132 @@ pub fn[I] prepare_request_models_source_free_plan(
   max_delegations : Int,
   bootstrap? : (Int64, Int64)? = None,
 ) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  prepare_request_models_plan_owned(
+    owner,
+    input,
+    Some(original),
+    None,
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    model_limits,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    bootstrap,
+  )
+}
+
+///|
+/// Same complete Model Plan for the original captured Source module.
+pub fn[I] prepare_request_models_capture_plan(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  original : ClientInstalledManagedCapturePlan,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrences : Array[@publication_host.ClientInferOccurrence],
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  model_limits : Array[@resources.LedgerLimits],
+  read_retained_bytes : Array[Int64],
+  read_execution_bytes : Array[Int64],
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  bootstrap? : (Int64, Int64)? = None,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  prepare_request_models_plan_owned(
+    owner,
+    input,
+    None,
+    Some(original),
+    request,
+    compiled,
+    definition,
+    occurrences,
+    graphs,
+    model_limits,
+    read_retained_bytes,
+    read_execution_bytes,
+    max_reservations,
+    max_holdings,
+    max_delegations,
+    bootstrap,
+  )
+}
+
+///|
+fn[I] prepare_request_models_plan_owned(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  source_free : ClientInstalledManagedSourceFreePreparation?,
+  captured : ClientInstalledManagedCapturePlan?,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrences : Array[@publication_host.ClientInferOccurrence],
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  model_limits : Array[@resources.LedgerLimits],
+  read_retained_bytes : Array[Int64],
+  read_execution_bytes : Array[Int64],
+  max_reservations : Int,
+  max_holdings : Int,
+  max_delegations : Int,
+  bootstrap : (Int64, Int64)?,
+) -> Result[ClientInstalledManagedModelPlan, ClientInstalledManagedRunIssue] {
+  let (module_prepared, compilation, compute_limits, query_time) = match
+    (source_free, captured) {
+    (Some(original), None) => {
+      guard owner.program_source_free is Some(selected) &&
+        physical_equal(selected, original) &&
+        original.owner is Pure(prepared) &&
+        original.configuration is Some(_) &&
+        original.compilation is Some(@publication_host.Tasks(compilation)) else {
+        return Err(ForeignOriginal)
+      }
+      if original._observed_query_time is Some((_, bound)) &&
+        !physical_equal(bound, request) {
+        return Err(ForeignOriginal)
+      }
+      (
+        prepared,
+        compilation,
+        original.limits,
+        original._observed_query_time.map(value => value.0),
+      )
+    }
+    (None, Some(original)) => {
+      guard owner.program_captured is Some(selected) &&
+        physical_equal(selected, original) &&
+        physical_equal(original.request, request) &&
+        original.compilation is Some(@publication_host.Tasks(compilation)) else {
+        return Err(ForeignOriginal)
+      }
+      (
+        original.prepared,
+        compilation,
+        original.limits,
+        original._observed_query_time,
+      )
+    }
+    _ => return Err(ForeignOriginal)
+  }
   guard owner.phase == ModelPlanReserved &&
     owner.input is Some(same_input) &&
     physical_equal(same_input, input) &&
     owner.program_capacity is Some(capacity) &&
     owner.compiled_program is Some(prepared) &&
-    owner.program_source_free is Some(selected_module) &&
-    physical_equal(selected_module, original) &&
-    original.owner is Pure(original_prepared) &&
-    physical_equal(original_prepared, prepared) &&
-    original.configuration is Some(_) &&
+    physical_equal(module_prepared, prepared) &&
     owner.program_domain_compilation_inputs
     is Some(RequestModelsCompilation(_, _, _, retained_graphs)) &&
-    owner.program_compilation is Some(@publication_host.Tasks(compilation)) &&
+    owner.program_compilation
+    is Some(@publication_host.Tasks(retained_compilation)) &&
+    physical_equal(compilation, retained_compilation) &&
     installed_mock_model_compilation_matches(prepared, compilation) &&
     @publication_host.client_compiled_run_matches_tasks(
       compiled, prepared, compilation,
@@ -51,8 +164,6 @@ pub fn[I] prepare_request_models_source_free_plan(
     is Ok(_) &&
     owner.program_model is None &&
     owner.program_domain_quote is None &&
-    original.compilation is Some(@publication_host.Tasks(module_compilation)) &&
-    physical_equal(module_compilation, compilation) &&
     graphs.length() > 1 &&
     graphs.length() == retained_graphs.length() &&
     graphs.length() == compilation.infers.length() &&
@@ -72,18 +183,11 @@ pub fn[I] prepare_request_models_source_free_plan(
     @publication_host.client_request_parameters_cid(request) {
     return Err(ForeignOriginal)
   }
-  if original._observed_query_time is Some((time, bound)) &&
-    (
-      !physical_equal(bound, request) ||
-      !@publication_host.client_query_time_preparation_context(time)
-      .map(context => {
-        physical_equal(
-          @publication.query_evaluation_time_definition(context),
-          definition,
-        )
-      })
-      .unwrap_or(false)
-    ) {
+  if query_time is Some(time) &&
+    @publication_host.client_query_time_preparation_context_for_run(
+      time, prepared, compiled, definition, request,
+    )
+    is Err(_) {
     return Err(ForeignOriginal)
   }
   let count = graphs.length()
@@ -126,8 +230,15 @@ pub fn[I] prepare_request_models_source_free_plan(
     physical_equal(current_input, input) &&
     owner.program_capacity is Some(current_capacity) &&
     physical_equal(current_capacity, capacity) &&
-    owner.program_source_free is Some(current_module) &&
-    physical_equal(current_module, original) &&
+    (match (source_free, captured) {
+      (Some(original), None) =>
+        owner.program_source_free is Some(current) &&
+        physical_equal(current, original)
+      (None, Some(original)) =>
+        owner.program_captured is Some(current) &&
+        physical_equal(current, original)
+      _ => false
+    }) &&
     owner.program_model is None else {
     return Err(ForeignOriginal)
   }
@@ -190,7 +301,7 @@ pub fn[I] prepare_request_models_source_free_plan(
   }
   // One module demand, every original concurrent child, one bootstrap.
   guard installed_model_demand_limits(models, r, e, bootstrap~) is Some(models) &&
-    @resources.add_ledger_limits(original.limits, models) is Some(limits) else {
+    @resources.add_ledger_limits(compute_limits, models) is Some(limits) else {
     return Err(InsufficientCapacity)
   }
   let partitions : Array[ClientInstalledModelReadPartition] = []
@@ -209,8 +320,8 @@ pub fn[I] prepare_request_models_source_free_plan(
     graph: retained_graphs[0],
     _occurrence: occurrences[0],
     models: Some(partitions),
-    source_free: Some(original),
-    captured: None,
+    source_free,
+    captured,
     content_prefix: None,
     limits,
     max_reservations,
@@ -295,9 +406,15 @@ fn bind_request_multiple_model_read_scopes(
   Array[@publication_host.ClientModelReadScope],
   @publication_host.ClientModelReadPreparationIssue,
 ] {
-  guard plan.models is Some(models) &&
-    plan.source_free is Some(original) &&
-    original.compilation is Some(@publication_host.Tasks(compilation)) else {
+  guard plan.models is Some(models) else {
+    return Err(@publication_host.ForeignRun)
+  }
+  let compilation = match (plan.source_free, plan.captured) {
+    (Some(original), None) => original.compilation
+    (None, Some(original)) => original.compilation
+    _ => None
+  }
+  guard compilation is Some(@publication_host.Tasks(compilation)) else {
     return Err(@publication_host.ForeignRun)
   }
   let retained : Array[Int64] = []

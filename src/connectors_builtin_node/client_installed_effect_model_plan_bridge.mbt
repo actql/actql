@@ -637,6 +637,65 @@ pub fn client_program_prepare_request_models_source_free_component_module(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestModelsProviderComponentCaptureModule")
+pub fn client_program_prepare_request_models_provider_component_capture_module(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  compilation : @publication_host.ClientTaskCompilation,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  providers : Array[@execution.ExecutionCapacity?],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+  retained_output : Bool,
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  construct : (
+    Int,
+    @execution.ExecutionCapacity,
+    @execution.GeneratedSequence,
+    (@infer_host.Execution) -> Result[Unit, @infer_host.Issue],
+  ) -> @local.ManagedProvider,
+) -> Result[
+  @client_local_host.ClientInstalledManagedCapturePlan,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  @client_local_host.prepare_request_model_capture_module(
+    parent,
+    input,
+    request,
+    compiled,
+    definition,
+    compilation,
+    declarations,
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    contracts,
+    retained_output,
+    installed_client_family_provider_count(),
+    installed_client_family_providers,
+    query_time~,
+    providers=Some(providers),
+    components_factory=Some((index, capacity, prefix, suffix) => {
+      construct(index, capacity, prefix, active => {
+        match suffix {
+          None => Ok(())
+          Some(original) => @infer_host.bind_compute_suffix(active, original)
+        }
+      })
+    }),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
 /// Same original complete Limits inventory retained before the one compiler.
 /// Project only its existing Model/read/census DATA after the same Request has
 /// backed the temporary native containers. No numerical selector runs again.
@@ -653,6 +712,78 @@ pub fn client_program_prepare_request_models_source_free_plan(
   occurrences : Array[@publication_host.ClientInferOccurrence],
   graphs : Array[@publication_host.ClientInferPlanGraph],
   selected : Array[@infer_host.Limits],
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  client_request_models_plan_projection(
+    parent,
+    input,
+    occurrences,
+    graphs,
+    selected,
+    (model, retained, execution, reservations, holdings, delegations) => {
+      @client_local_host.prepare_request_models_source_free_plan(
+        parent, input, original, request, compiled, definition, occurrences, graphs,
+        model, retained, execution, reservations, holdings, delegations,
+      )
+    },
+  )
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelsCapturePlan")
+pub fn client_program_prepare_request_models_capture_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedCapturePlan,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrences : Array[@publication_host.ClientInferOccurrence],
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  client_request_models_plan_projection(
+    parent,
+    input,
+    occurrences,
+    graphs,
+    selected,
+    (model, retained, execution, reservations, holdings, delegations) => {
+      @client_local_host.prepare_request_models_capture_plan(
+        parent, input, original, request, compiled, definition, occurrences, graphs,
+        model, retained, execution, reservations, holdings, delegations,
+      )
+    },
+  )
+}
+
+///|
+fn client_request_models_plan_projection(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrences : Array[@publication_host.ClientInferOccurrence],
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+  construct : (
+    Array[@resources.LedgerLimits],
+    Array[Int64],
+    Array[Int64],
+    Int,
+    Int,
+    Int,
+  ) -> Result[
+    @client_local_host.ClientInstalledManagedModelPlan,
+    @client_local_host.ClientInstalledManagedRunIssue,
+  ],
 ) -> Result[
   @client_local_host.ClientInstalledManagedModelPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -695,8 +826,37 @@ pub fn client_program_prepare_request_models_source_free_plan(
     retained.push(limits.mapping.logical.max_live_value_bytes)
     execution.push(limits.identity.wire.max_bytes.to_int64())
   }
-  @client_local_host.prepare_request_models_source_free_plan(
-    parent, input, original, request, compiled, definition, occurrences, graphs,
-    model, retained, execution, reservations, holdings, delegations,
-  )
+  construct(model, retained, execution, reservations, holdings, delegations)
+}
+
+///|
+#export_name("clientProgramRequestModelDirectSourceCoordinates")
+pub fn client_program_request_model_direct_source_coordinates(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+) -> Result[
+  Array[Array[Int]],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let selected = match
+    @client_local_host.request_model_direct_occurrences(parent, input) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let coordinates : Array[Array[Int]] = []
+  for
+    index in 0..<@publication_host.client_direct_acquisition_occurrence_count(
+      selected,
+    ) {
+    guard @publication_host.client_direct_acquisition_occurrence_at(
+        selected, index,
+      )
+      is Some((stage, input, task)) else {
+      return Err(ForeignOriginal)
+    }
+    coordinates.push([stage, input, task])
+  }
+  Ok(coordinates)
 }
