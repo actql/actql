@@ -115,7 +115,8 @@ fn installed_effect_operation_control_capacity(
     269L +
     4L +
     recovery.reference_slots,
-    scalar_words: 25L +
+    // The active codec retains its separately charged original output bound.
+    scalar_words: 26L +
     shared.scalar_words +
     29L * count +
     4L +
@@ -653,6 +654,7 @@ fn retain_installed_effect_operation_controls(
         construction_active: false,
         ledger_codec_active: false,
         ledger_codec_workspace: 0L,
+        ledger_codec_retained: 0L,
         captured_rows: None,
         host_input: None,
       }
@@ -1247,7 +1249,7 @@ fn resize_installed_effect_operation_control_construction(
       plan,
       input~,
       codec_workspace=Some(codec_workspace),
-      codec_retained~,
+      codec_retained=Some(codec_retained),
     )
     is Some((capacity, idle)) else {
     return Err(Unsupported)
@@ -1285,6 +1287,7 @@ fn resize_installed_effect_operation_control_construction(
         Some((entering, _, _, _)) => {
           control.ledger_codec_active = entering
           control.ledger_codec_workspace = codec_workspace
+          control.ledger_codec_retained = codec_retained
         }
         None => control.construction_active = active
       }
@@ -1555,7 +1558,7 @@ fn installed_effect_control_capacity(
   input? : (String, @execution.ExecutionCapacity)? = None,
   codec_workspace? : Int64? = None,
   captured_rows? : Int? = None,
-  codec_retained? : Int64 = 0L,
+  codec_retained? : Int64? = None,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let selected = match input {
     Some(value) => Some(value)
@@ -1574,6 +1577,12 @@ fn installed_effect_control_capacity(
       None => 0L
     },
   )
+  let codec_retained = codec_retained.unwrap_or(
+    match control {
+      Some(value) => value.ledger_codec_retained
+      None => 0L
+    },
+  )
   let rows = match captured_rows {
     Some(_) => captured_rows
     None => control.bind(value => value.captured_rows)
@@ -1587,19 +1596,21 @@ fn installed_effect_control_capacity(
     (plan.operation_control_capacity, plan.operation_control_idle_execution)
   }
   let base_retained = @execution.execution_capacity_retained_bytes(base)
-  // The actual original captured inventory may already have grown this
-  // same control reservation beyond its initial zero-row Plan quote. Check
-  // the codec against that selected base once, before adding any Host forest;
-  // retained input or unrelated spare bytes cannot fund a missing control.
-  if codec_retained < 0L || codec_retained > base_retained {
+  // The next actual wire's decoder coexists with these original controls.
+  // Its retained tree/output and scratch are additional demand on the SAME
+  // reservation, not limited by an initial zero-row quote. A finite parent
+  // must admit the complete sum before decoding. Host input stays separate.
+  if codec_retained < 0L {
     return None
   }
   guard @execution.checked_preparation_add_product(
-      base_retained, codec_workspace, 1L,
+      base_retained, codec_retained, 1L,
     )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(retained, codec_workspace, 1L)
     is Some(codec_execution) &&
     @execution.execution_capacity(
-      base_retained,
+      retained,
       Int64::max(
         @execution.execution_capacity_execution_bytes(base),
         codec_execution,

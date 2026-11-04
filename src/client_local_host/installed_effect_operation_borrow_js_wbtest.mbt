@@ -1475,6 +1475,13 @@ test "saved Ledger codec keeps maximum retained and Receipt workspace but stages
   // Plan does not reserve that unconstructed future workspace at adoption.
   quote[5] += @execution.execution_capacity_execution_bytes(full) -
     @execution.execution_capacity_execution_bytes(staged)
+  let decoder = installed_effect_contract_response_construction_capacity(
+    1000000, 512, 16,
+  ).unwrap()
+  // This finite component parent explicitly includes the next decoder's
+  // simultaneous retained demand, independently of the staged controls.
+  quote[4] += @execution.execution_capacity_retained_bytes(decoder)
+  quote[5] += @execution.execution_capacity_retained_bytes(decoder)
   let (input, initial, _, admitted) = effect_parent_test_preparation(
     plan, quote,
   )
@@ -1504,11 +1511,14 @@ test "saved Ledger codec keeps maximum retained and Receipt workspace but stages
   ).unwrap()
   let baseline_usage = @resources.ledger_usage(ledger)
   let reservation = control.reservation
+  let mut peak = baseline_usage.peak_retention_bytes
   for wire in [Some("{}"), None, Some("x".repeat(1000000))] {
     begin_installed_effect_operation_ledger_codec(
       owner, prepared, request, plan, wire, 512, 16,
     ).unwrap()
     let active = @resources.ledger_usage(ledger)
+    peak = Int64::max(peak, active.reserved_retention_bytes)
+    assert_eq(active.peak_retention_bytes, peak)
     assert_true(control.ledger_codec_active)
     let (same_active, _) = installed_effect_control_capacity(
       Some(control),
@@ -1526,7 +1536,7 @@ test "saved Ledger codec keeps maximum retained and Receipt workspace but stages
     )
     assert_eq(
       active.reserved_retention_bytes,
-      baseline_usage.reserved_retention_bytes,
+      baseline_usage.reserved_retention_bytes + control.ledger_codec_retained,
     )
     assert_eq(active.attempts, baseline_usage.attempts)
     assert_eq(active.reserved_attempts, baseline_usage.reserved_attempts)
@@ -1550,7 +1560,10 @@ test "saved Ledger codec keeps maximum retained and Receipt workspace but stages
     complete_installed_effect_operation_ledger_codec(
       owner, prepared, request, plan,
     ).unwrap()
-    assert_eq(@resources.ledger_usage(ledger), baseline_usage)
+    assert_eq(@resources.ledger_usage(ledger), {
+      ..baseline_usage,
+      peak_retention_bytes: peak,
+    })
     assert_true(physical_equal(control.reservation, reservation))
   }
   complete_installed_effect_operation_control_construction(
@@ -1594,9 +1607,14 @@ test "contract Ledger outputs survive private decoder completion on the same Eff
   let plan = effect_operation_plan_with_control_fixture(
     prepared, request, contracts, baseline, capacity,
   ).unwrap()
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  let decoder = installed_effect_contract_response_construction_capacity(
+    1000000, 64, 4,
+  ).unwrap()
+  quote[4] += @execution.execution_capacity_retained_bytes(decoder)
+  quote[5] += @execution.execution_capacity_retained_bytes(decoder)
   let (input, initial, _, admitted) = effect_parent_test_preparation(
-    plan,
-    prepared_installed_effect_managed_requirements(plan),
+    plan, quote,
   )
   let owner = begin_preparation_owned_installed_effect_managed_run(
     initial, input, admitted, prepared, request, plan,
@@ -1621,10 +1639,14 @@ test "contract Ledger outputs survive private decoder completion on the same Eff
     4,
   ).unwrap()
   let issued = @effect.issue_prepared_effect_ledger_entry(basis, 1000000, 64, 4).unwrap()
+  let issued_peak = @resources.ledger_usage(ledger).peak_retention_bytes
   complete_installed_effect_operation_ledger_codec(
     owner, prepared, request, plan,
   ).unwrap()
-  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    peak_retention_bytes: issued_peak,
+  })
   let wire = @effect.effect_ledger_entry_wire(issued)
   assert_eq(
     @effect.effect_ledger_entry_cid(issued),
@@ -1640,10 +1662,15 @@ test "contract Ledger outputs survive private decoder completion on the same Eff
     4,
   ).unwrap()
   let restored = @effect.admit_effect_ledger_entry(wire, 1000000, 64, 4).unwrap()
+  let restored_peak = @resources.ledger_usage(ledger).peak_retention_bytes
+  assert_true(restored_peak >= issued_peak)
   complete_installed_effect_operation_ledger_codec(
     owner, prepared, request, plan,
   ).unwrap()
-  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    peak_retention_bytes: restored_peak,
+  })
   assert_true(@effect.effect_ledger_entry_matches_basis(restored, basis))
   assert_eq(@effect.effect_ledger_entry_wire(restored), wire)
   assert_true(
@@ -1676,6 +1703,10 @@ test "saved Ledger codec refused growth retains same prefix and permits only ori
   ).unwrap()
   let quote = prepared_installed_effect_managed_requirements(plan)
   quote[5] += @execution.execution_capacity_execution_bytes(full)
+  let decoder = installed_effect_contract_response_construction_capacity(
+    1000000, 512, 16,
+  ).unwrap()
+  quote[4] += @execution.execution_capacity_retained_bytes(decoder)
   let (input, initial, _, admitted) = effect_parent_test_preparation(
     plan, quote,
   )
@@ -1737,6 +1768,7 @@ test "saved Ledger codec refused growth retains same prefix and permits only ori
   // A failed callback would leave this same active peak; outer completion
   // cannot acknowledge it. Only its real synchronous success calls complete.
   assert_true(control.ledger_codec_active)
+  let codec_peak = @resources.ledger_usage(ledger).peak_retention_bytes
   assert_true(
     complete_installed_effect_operation_control_construction(
       owner, prepared, request, plan,
@@ -1746,7 +1778,10 @@ test "saved Ledger codec refused growth retains same prefix and permits only ori
   complete_installed_effect_operation_ledger_codec(
     owner, prepared, request, plan,
   ).unwrap()
-  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    peak_retention_bytes: codec_peak,
+  })
   complete_installed_effect_operation_control_construction(
     owner, prepared, request, plan,
   ).unwrap()
@@ -1817,33 +1852,142 @@ test "capture and recovery constructors spend distinct original slots on the sam
 }
 
 ///|
-test "Ledger codec cannot borrow retained Host input to replace missing original control capacity" {
+test "next Ledger codec one-short retained capacity refuses atomically and retries only after actual return" {
   let (prepared, request, contracts) = effect_operation_plan_inputs()
   let plan = effect_operation_plan_fixture(prepared, request, contracts)
-  let missing = @execution.execution_capacity_retained_bytes(
+  let codec = installed_effect_contract_response_construction_capacity(
+    2, 512, 16,
+  ).unwrap()
+  let codec_retained = @execution.execution_capacity_retained_bytes(codec)
+  let quote = prepared_installed_effect_managed_requirements(plan)
+  quote[4] += codec_retained
+  quote[5] += @execution.execution_capacity_execution_bytes(codec)
+  let (input, initial, _, admitted) = effect_parent_test_preparation(
+    plan, quote,
+  )
+  let owner = begin_preparation_owned_installed_effect_managed_run(
+    initial, input, admitted, prepared, request, plan,
+  ).unwrap()
+  let ledger = owner.ledger.unwrap()
+  retain_installed_effect_operation_controls_before_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  |> ignore
+  begin_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  let control = owner.effect_operation_controls.unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let free = @resources.ledger_limits(ledger).retained_bytes -
+    before.reserved_retention_bytes
+  let pressure = @resources.reserve_capacity(
+    ledger,
+    free - codec_retained + 1L,
+    0L,
+  ).unwrap()
+  let occupied = @resources.ledger_usage(ledger)
+  assert_true(
+    begin_installed_effect_operation_ledger_codec(
+      owner,
+      prepared,
+      request,
+      plan,
+      Some("{}"),
+      512,
+      16,
+    )
+    is Err(Ledger(@resources.RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), occupied)
+  assert_false(control.ledger_codec_active)
+  assert_eq(control.ledger_codec_retained, 0L)
+  @resources.settle_capacity(ledger, pressure).unwrap()
+  begin_installed_effect_operation_ledger_codec(
+    owner,
+    prepared,
+    request,
+    plan,
+    Some("{}"),
+    512,
+    16,
+  ).unwrap()
+  let active = @resources.ledger_usage(ledger)
+  assert_eq(
+    active.reserved_retention_bytes,
+    before.reserved_retention_bytes + codec_retained,
+  )
+  assert_eq(
+    active.peak_retention_bytes,
+    Int64::max(occupied.peak_retention_bytes, active.reserved_retention_bytes),
+  )
+  assert_eq(active.attempts, before.attempts)
+  assert_true(control.ledger_codec_active)
+  let (same, _) = installed_effect_control_capacity(Some(control), plan).unwrap()
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(same),
+    @execution.execution_capacity_retained_bytes(
       plan.operation_control_capacity,
     ) +
-    1L
-  let host = @execution.execution_capacity(missing * 2L, missing * 3L).unwrap()
-  // Pure layout counter only: this input pair grants no Host/Run/physical
-  // authority. Its independent retained forest must stay fully additive.
-  let (with_host, _) = installed_effect_control_capacity(
+    codec_retained,
+  )
+  complete_installed_effect_operation_ledger_codec(
+    owner, prepared, request, plan,
+  ).unwrap()
+  assert_eq(control.ledger_codec_retained, 0L)
+  assert_eq(@resources.ledger_usage(ledger), {
+    ..before,
+    peak_retention_bytes: active.peak_retention_bytes,
+  })
+  complete_installed_effect_operation_control_construction(
+    owner, prepared, request, plan,
+  ).unwrap()
+  retire_installed_managed_run(owner).unwrap()
+}
+
+///|
+test "next Ledger codec funds its own retained demand beside original controls and Host input" {
+  let (prepared, request, contracts) = effect_operation_plan_inputs()
+  let plan = effect_operation_plan_fixture(prepared, request, contracts)
+  let (base, _) = installed_effect_control_capacity(None, plan).unwrap()
+  let base_retained = @execution.execution_capacity_retained_bytes(base)
+  let next_retained = base_retained + 1L
+  let host = @execution.execution_capacity(
+    next_retained * 2L,
+    next_retained * 3L,
+  ).unwrap()
+  // These are separate simultaneously live records, not spare capacity of
+  // an unrelated Host forest. Initial control size is not a future ceiling.
+  let (codec, _) = installed_effect_control_capacity(
+    None,
+    plan,
+    codec_retained=Some(next_retained),
+  ).unwrap()
+  let (combined, _) = installed_effect_control_capacity(
     None,
     plan,
     input=Some(("layout-only-original-input", host)),
+    codec_retained=Some(next_retained),
   ).unwrap()
-  assert_true(@execution.execution_capacity_retained_bytes(with_host) > missing)
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(codec),
+    base_retained + next_retained,
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(combined),
+    base_retained +
+    next_retained +
+    @execution.execution_capacity_retained_bytes(host),
+  )
+  assert_true(
+    installed_effect_control_capacity(None, plan, codec_retained=Some(-1L))
+    is None,
+  )
   assert_true(
     installed_effect_control_capacity(
       None,
       plan,
-      input=Some(("layout-only-original-input", host)),
-      codec_retained=missing,
+      codec_retained=Some(9223372036854775807L),
     )
-    is None,
-  )
-  assert_true(
-    installed_effect_control_capacity(None, plan, codec_retained=missing)
     is None,
   )
 }
