@@ -896,3 +896,46 @@ test "captured publication foreign definition leaves slot intact but semantic fa
   assert_eq(usage.live_reservations, 0)
   assert_eq(usage.attempts, 0)
 }
+
+///|
+test "captured Event Plan adopts the same backed Request and retires without changing resource policy" {
+  let environment = @publication_host.admit_client_check_environment(
+    source_query_original_environment,
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
+    { text_time: true, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: false, text_rank: false, },
+  ).unwrap()
+  let (parent, child, _, input) = registration_parent_fixture(
+    text=captured_events_schema_budget_program,
+    environment=Some(environment),
+  )
+  guard finish_program_check_preparation(child).unwrap() is @checked.Checked(_) else {
+    fail("original captured Event Program must finish its supported check")
+  }
+  let prepared = compile_program_check_preparation(
+    child,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  assert_true(
+    physical_equal(
+      continue_request_program_preparation(parent, input).unwrap(),
+      prepared,
+    ),
+  )
+  reserve_request_program_plan(parent, input).unwrap()
+  let (plan, request) = request_capture_plan_fixture(prepared)
+  complete_request_capture_preparation(parent, input, plan).unwrap()
+  let run = begin_request_capture_managed_run(parent, request).unwrap()
+  assert_true(
+    physical_equal(
+      installed_managed_capture_plan(run, prepared, request).unwrap(),
+      plan,
+    ),
+  )
+  assert_true(plan.capacity_plan.demand_inventory.unwrap().carrier_values)
+  let original = require_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_limits(original).execution_bytes, 536870912L)
+  assert_eq(@resources.ledger_limits(original).retained_bytes, 536870912L)
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+}
