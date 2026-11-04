@@ -46,6 +46,32 @@ test('current driver/common owner source and additive Native overlay are admitte
   }
 });
 
+// Completed scratch can retire while the original output remains live. That
+// partial accounting cannot close retention, discard hooks or report cleanup.
+for (const [name,from,to] of [
+  ['unfinished task releases scratch', 'if !task_done(run, execution.task) {', 'if false {'],
+  ['pending scratch releases its reservation',
+    'if scratch_released && @resources.reservation_open(execution.reservation) {',
+    'if @resources.reservation_open(execution.reservation) {'],
+  ['current fence after provider observation is omitted',
+    'if !task_execution_matches(run, execution) {', 'if false {'],
+  ['partial release erases accounting failure', 'Err(issue) => return Err(issue)', 'Err(_) => ()'],
+  ['partial release retires live retention',
+    '@resources.settle_execution_reservation( run.ledger, execution.reservation, remaining_execution=0L, )',
+    '@resources.settle_reservation(run.ledger, execution.reservation)'],
+]) test('completed scratch correspondence rejects '+name,()=>{
+  assert.throws(()=>checkDriverRetirementSource(changed(strategyPath,from,to,'if !execution.disposed')));
+});
+test('completed scratch cannot acknowledge cleanup or discard original hooks',()=>{
+  for (const replacement of ['return Ok(true)', 'execution.hooks = None\nreturn Ok(false)']) {
+    const mutated=changed(strategyPath,
+      'Ok(_) => ()\n      }\n    }\n    return Ok(false)',
+      'Ok(_) => ()\n      }\n    }\n    '+replacement,
+      'if !execution.disposed');
+    assert.throws(()=>checkDriverRetirementSource(mutated));
+  }
+});
+
 test('selected Host helper retains transitive declarations and enum variants without weakening warning checks',()=>{
   const sources={a:'fn run_current_host_graph_relation_path() { leaf() }\nfn leaf() { accept(Second) }\nfn unused() { leaf() }',
     b:'enum Kind {\n First\n Second\n}\nfn accept(x : Kind) { ignore(x) }'};

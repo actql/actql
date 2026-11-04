@@ -118,7 +118,24 @@ const retirementObservation=`{
   result
 }`;
 const retirement=`{
-  if !execution.disposed || !execution.execution_settled || !task_execution_matches(run, execution) {
+  if !execution.execution_settled || !task_execution_matches(run, execution) {
+    return Ok(false)
+  }
+  if !execution.disposed {
+    if !task_done(run, execution.task) {
+      return Ok(false)
+    }
+    let scratch_released = task_execution_scratch_released(execution)
+    if !task_execution_matches(run, execution) {
+      return Ok(execution.hooks is None)
+    }
+    if scratch_released && @resources.reservation_open(execution.reservation) {
+      match @resources.settle_execution_reservation(run.ledger, execution.reservation,
+        remaining_execution=0L,) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
     return Ok(false)
   }
   let scratch_released = task_execution_scratch_released(execution)
