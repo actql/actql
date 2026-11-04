@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {types} from 'node:util';
 import {parse} from 'acorn';
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {invokeScopedCredentialOperation, invocationBindingsMatch} from '../../../host-common/owned-invocation-context.mjs';
 import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
 
@@ -297,4 +298,51 @@ test('GitHub Source fixture shares its pending original close instead of returni
   finish();
   await first;
   assert.equal(settled, true);
+});
+
+
+// Exact positive fixture Account, interpreted only by its original Core. The
+// provider read grant does not imply the independent Host Run-creation grant.
+test('GitHub Source Host fixture keeps finite Run admission separate from provider and result rights', async () => {
+  const common = await import('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+  const source = readFileSync(new URL('./github-standard-host.integration.test.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const names = new Set(['hostReadEntry', 'hostRunEntry', 'sourceHostAuthorization']);
+  const declarations = tree.body.flatMap(node => node.type === 'VariableDeclaration'
+    ? node.declarations.filter(value => names.has(value.id.name)) : []);
+  assert(declarations.some(value => value.id.name === 'hostReadEntry'));
+  assert(declarations.some(value => value.id.name === 'sourceHostAuthorization'));
+  const wire = new Function('canonicalJson', declarations.map(value =>
+    'const ' + source.slice(value.start, value.end) + ';').join('\n') +
+    '\nreturn sourceHostAuthorization.accountConfiguration;')(canonicalJson);
+  const account = common.executionAuthorizationAdmit(wire);
+  assert.equal(JSON.parse(common.executionAuthorizationAccountJson(account)).state, 'admitted');
+  const evaluate = (original, resource, operation, connection = 'actql-remote-host') =>
+    JSON.parse(common.executionAuthorizationEvaluationJson(common.executionAuthorizationEvaluate(
+      original, 'source-reader', connection, resource, operation)));
+  for (const resource of ['installed-multi-acquired', 'row-source-acquired']) {
+    assert.deepEqual(evaluate(account, resource, 'write'),
+      {outcome: 'allow', entry_id: 'host-run-acceptance'});
+  }
+  for (const resource of ['result/audit', 'result/consumed', 'result/consumed_a',
+    'result/consumed_b', 'result/grouped', 'result/issues', 'result/joined', 'result/windowed', 'run']) {
+    assert.deepEqual(evaluate(account, resource, 'read'),
+      {outcome: 'allow', entry_id: 'host-original-observations'});
+  }
+  for (const [resource, operation, connection] of [
+    ['source-free-values', 'write', 'actql-remote-host'],
+    ['row-source-acquired', 'write', 'another-host'],
+    ['result/not-declared', 'read', 'actql-remote-host'],
+    ['issues', 'read', 'actql-remote-host'],
+    ['run', 'write', 'actql-remote-host'],
+  ]) assert.deepEqual(evaluate(account, resource, operation, connection),
+    {outcome: 'deny', reason: 'no_match'});
+  const document = JSON.parse(wire);
+  assert.deepEqual(document.entries.map(value => value.entry_id),
+    ['host-original-observations', 'host-run-acceptance']);
+  const readOnly = common.executionAuthorizationAdmit(canonicalJson({...document,
+    entries: document.entries.filter(value => value.entry_id !== 'host-run-acceptance')}));
+  assert.deepEqual(evaluate(readOnly, 'row-source-acquired', 'write'),
+    {outcome: 'deny', reason: 'no_match'});
+  assert.equal(evaluate(readOnly, 'run', 'read').outcome, 'allow');
 });
