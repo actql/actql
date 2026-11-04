@@ -329,11 +329,21 @@ test "Events row Result subset retains its checked contract through another task
   ).unwrap()
   let limits = run_materials_limits()
   let prepared = prepare_effect_free_client_program(
-    document, Json, environment, None, limits.preparation,
+    document,
+    Json,
+    environment,
+    None,
+    limits.preparation,
   ).unwrap()
   let compilation = issue_prepared_client_task_compilation(
-    prepared, run_materials_manifests(), limits.sequence,
-    1000, 1000, 1000000, 100000, 100,
+    prepared,
+    run_materials_manifests(),
+    limits.sequence,
+    1000,
+    1000,
+    1000000,
+    100000,
+    100,
   )
   let compilation = match compilation {
     Ok(value) => value
