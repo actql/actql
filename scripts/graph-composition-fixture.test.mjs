@@ -55,7 +55,16 @@ async function restoreStartedEffect(resultPolicyOriginal, prepareExecution) {
     clientRequestAuthorityScopeCid: () => ref.authorityScopeCid,
     clientRequestCallerId: () => identity.requestId,
   };
+  let originalIntentReads = 0;
   const journal = {
+    originalSubmittedIntent(value, scope, runtime) {
+      assert.equal(this, journal); assert.equal(value, identity);
+      assert.deepEqual(scope, {namespaceId: 'local'}); assert.equal(runtime, moon);
+      originalIntentReads++;
+      // This historical component record has no submitted-intent entry.
+      // Lookup observes absence; it issues no replacement intent or start.
+      return undefined;
+    },
     lookupDefinition: () => retained, reserveDispatch: forbidden,
     reservePhysicalStart: forbidden,
     async admitOrLookupDefinition(value, options) {
@@ -71,7 +80,8 @@ async function restoreStartedEffect(resultPolicyOriginal, prepareExecution) {
     prepareExecution, execute: forbidden, now: () => '2026-10-04T00:00:00.000Z'});
   const handle = await effectRun.accept({prepared, ...ref, requestId: identity.requestId,
     principalId: 'owner', connection: {mode: 'local'}, lookupExpiresAt: '2026-10-05T00:00:00.000Z'});
-  return effectRun.restoreComputation(handle);
+  try {return await effectRun.restoreComputation(handle);}
+  finally {assert.equal(originalIntentReads, 1);}
 }
 
 test('started Graph Effect restoration revalidates the saved Result Policy original without a new start', async () => {
