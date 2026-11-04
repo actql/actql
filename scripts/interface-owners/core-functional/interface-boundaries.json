@@ -33099,7 +33099,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_borrow.mbt",
-      "sha256": "c9f25c583b6ece0cbc4c998d5e87676c2713b02b0d58de8f93f365bd1a8bc81b",
+      "sha256": "d0e26149e9519aac0451f34196a1d1f5867e441da2edde6a6ba51f4a27cca7ae",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect operation borrow and retained same-Run management controls",
@@ -33440,6 +33440,14 @@
               {
                 "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
                 "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_staged_input_js_wbtest.mbt",
+                "anchor": "test \"cold recovered input grows the same deferred child below its unused warm workspace\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_staged_input_js_wbtest.mbt",
+                "anchor": "test \"cold input cannot replace a warm constructor whose original workspace is live\""
               }
             ]
           }
