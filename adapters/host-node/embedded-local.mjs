@@ -3215,7 +3215,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     return original.requested;
   };
-  const requestOf = ({preparedProgram, requestId}) => {
+  const requestOf = ({preparedProgram, requestId}, retainWholeSourceRefusal) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
       const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
@@ -3266,6 +3266,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       // Every occurrence is selected by its checked requirement before any I/O.
       for (let task = 0; task < acquisitionCount; task++) {
+        let unsupportedWholeSource;
         try {
           const coordinates = keyedAcquisition === undefined ? undefined
             : moon.clientProgramKeyedDirectAcquisitionCoordinates(keyedAcquisition);
@@ -3295,7 +3296,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
           const adapter = installedSourceFor(sourceProfile, sourceRef);
           if (kind === 'whole-input' && typeof adapter.managedWholeSourceCapacity !== 'function') {
-            throw new Error('InstalledSourceCapacityUnavailable');
+            const cause = new Error('InstalledSourceCapacityUnavailable');
+            unsupportedWholeSource = {cause, adapter, sourceRef};
+            throw cause;
           }
           if (acquisitionCount === 2 &&
               !installedSourceReadBindings(adapter).includes(sourceRef)) {
@@ -3307,7 +3310,16 @@ async function openInstalledHost(originalInstallation, preparation) {
           diagnostic('acquisition_preparation_rejected', {boundary: 'query_requirement',
             task, code: cause.code, issueTag: runtimeTag(cause.cause),
             requirementTag: runtimeTag(runtimeOptionalField(cause.cause, 0))});
-          throw clientOperationError('ClientProgramUnsupported', cause);
+          const error = clientOperationError('ClientProgramUnsupported', cause);
+          // Only this original static implementation selection can issue the
+          // same-candidate refusal. No reader, Model/Content or Run has begun.
+          if (unsupportedWholeSource?.cause === cause &&
+              !inferSelections.has(preparedProgram) &&
+              moon.clientProgramSerializationOccurrences(preparedProgram).length === 0) {
+            retainWholeSourceRefusal?.(error, requested,
+              unsupportedWholeSource.adapter, unsupportedWholeSource.sourceRef);
+          }
+          throw error;
         }
       }
       if (keyedAcquisition !== undefined) {
@@ -4829,8 +4841,14 @@ async function openInstalledHost(originalInstallation, preparation) {
     Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
   const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
     function(submission, held) {
-      const {requested, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
+      let requested, sourceRefusal;
       try {
+        const selected = requestOf(submission, (error, request, adapter, sourceRef) => {
+          sourceRefusal = Object.freeze({error, request, adapter, sourceRef,
+            profile: sourceProfile, requestId: submission.requestId});
+        });
+        requested = selected.requested;
+        const {acquisitionCount, keyedAcquisition, effectful} = selected;
         const selection = inferSelections.get(submission.preparedProgram);
         if (effectful) {
           if (installedEffect === undefined && effectInstallation === undefined ||
@@ -4898,7 +4916,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       } catch (error) {
         admissionFailures.set(submission, Object.freeze({error, requested,
-          prepared: submission.preparedProgram}));
+          prepared: submission.preparedProgram, sourceRefusal}));
         throw error;
       }
     }, {isOriginalPreparationRefusal(error, submission) {
@@ -4906,7 +4924,26 @@ async function openInstalledHost(originalInstallation, preparation) {
       const original = admissionFailures.get(submission);
       admissionFailures.delete(submission);
       if (original === undefined || original.error !== error ||
-          original.prepared !== submission.preparedProgram || typeof holderRefusal !== 'function') return false;
+          original.prepared !== submission.preparedProgram) return false;
+      const source = original.sourceRefusal;
+      if (source !== undefined) {
+        if (source.error !== error || source.requestId !== submission.requestId ||
+            source.profile !== sourceProfile || source.request === undefined ||
+            error.cleanupPending === true || error.cleanupHandle !== undefined ||
+            sourceFreeRequestIdentities.get(original.prepared)?.requested !== source.request ||
+            sourceFreeRequestIdentities.get(original.prepared)?.requestId !== source.requestId) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
+        prepareSubmit.assertOwned(original.prepared);
+        if (prepareSubmit.kindOf(original.prepared) !== 'effect_free' ||
+            inferSelections.has(original.prepared) ||
+            moon.clientProgramSerializationOccurrences(original.prepared).length !== 0 ||
+            installedSourceFor(sourceProfile, source.sourceRef) !== source.adapter ||
+            typeof source.adapter.managedWholeSourceCapacity === 'function' ||
+            journal.resolveDefinition(source.request, {namespaceId}, moon, control) !== undefined) return false;
+        preparation.assertUnadmittedSourceRequest(moon, original.prepared, source.request);
+        return true;
+      }
+      if (typeof holderRefusal !== 'function') return false;
       return Reflect.apply(holderRefusal, preparation,
         [error, original.prepared, original.requested]);
     }}));
@@ -7333,6 +7370,16 @@ async function openPreparedInstalledHost(options, initialEntry) {
         if (mockSourceRetirement) run.retiringMockSources = false;
         if (effectRetirement) run.retiringEffect = false;
       }
+    },
+    assertUnadmittedSourceRequest(runtime, prepared, request) {
+      if (runtime !== moon || request === undefined || record.computeRuns?.has(prepared)) {
+        throw clientOperationError('ForeignInstalledComputeRun');
+      }
+      assertInitialControlHostPreparation(originals);
+      if (sourceManaged !== undefined) assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      else if (computeManaged !== undefined) assertManagedComputeInstallationCurrent(computeManaged, originals);
+      else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
+      originalSourceManagedHostRequest(originals, prepared);
     },
     isOriginalManagedComputePreparationRefusal(error, prepared, request) {
       const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;

@@ -8140,7 +8140,8 @@
             "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication",
             "openPreparedInstalledHost/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
             "readHostResultPublicationPreparation",
-            "readHostResultPublicationRunRequirements"
+            "readHostResultPublicationRunRequirements",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/selected/selected"
           ],
           "exports": [
             "assertOriginalHostPublicationStoreFacilityCurrent",
@@ -8291,6 +8292,18 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('held resume forwards its one admitted ordinary Run through the physical-start handoff'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('original whole-input implementation refusal is retained before any Run entry'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('original whole-input refusal belongs to one candidate and one consumption'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('an arbitrary undefined pre-admission throw cannot certify refusal'"
               }
             ]
           }
@@ -9636,7 +9649,8 @@
             "readManagedComputeRunRequirements",
             "readManagedComputeRunRequirements/asset/asset",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
-            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2"
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2",
+            "openPreparedInstalledHost/preparation/init:assertUnadmittedSourceRequest/init:assertUnadmittedSourceRequest"
           ],
           "exports": [
             "managedComputeSubmittedIntentCid",
@@ -9659,6 +9673,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The same Run holder can retain a pure preparation refusal before Resource"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "inputsOutputs": [
@@ -9681,6 +9699,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function installedManagedRunContracts(originals) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "identity": [
@@ -9703,6 +9725,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preAdmissionRefusal = Object.freeze({error, prepared: checkedPrepared,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "ownership": [
@@ -9725,6 +9751,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preAdmissionRefusal = undefined;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "synchronization": [
@@ -9743,6 +9773,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Installed contract originals contain validated immutable contract data."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "failure": [
@@ -9777,6 +9811,10 @@
               {
                 "path": "adapters/host-node/managed-output-mode.test.mjs",
                 "anchor": "test('source-free quote refuses a missing or non-Boolean original mode before construction'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "cancellation": [
@@ -9795,6 +9833,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "installed static contract aliases survive pending child cleanup and cut at actual retirement"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "resources": [
@@ -9833,6 +9875,10 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "#export_name(\"clientProgramInstalledManagedRunAccounting\")"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "extension": [
@@ -9847,6 +9893,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "Installed contract originals contain validated immutable contract data."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ],
             "verification": [
@@ -9901,6 +9951,22 @@
               {
                 "path": "adapters/host-node/managed-output-mode.test.mjs",
                 "anchor": "test('normal installed output mode is explicit before the same source-free preparation quote'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('original whole-input implementation refusal is retained before any Run entry'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('original whole-input refusal belongs to one candidate and one consumption'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('an arbitrary undefined pre-admission throw cannot certify refusal'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertUnadmittedSourceRequest(runtime, prepared, request)"
               }
             ]
           }
@@ -18440,6 +18506,16 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/selected/selected",
+          "parameters": [
+            "error",
+            "request",
+            "adapter",
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
           "parameters": [
             "error",
@@ -19473,7 +19549,8 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
           "parameters": [
             "preparedProgram",
-            "requestId"
+            "requestId",
+            "retainWholeSourceRefusal"
           ],
           "async": false
         },
@@ -20462,6 +20539,15 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:assertResultPublicationCurrent/init:assertResultPublicationCurrent",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:assertUnadmittedSourceRequest/init:assertUnadmittedSourceRequest",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request"
+          ],
           "async": false
         },
         {
@@ -22105,7 +22191,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "1f8dfb1d1e9edcdb901b5a8e63f098b2e8c4c8ff78dace531756430055a3d61c"
+      "sha256": "a168219f5447a5e2b9d9ec0618be7240178ae4a294000a912b3021b3397428ce"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
