@@ -99,7 +99,7 @@ test('packed public-query staging covers every eagerly loaded Graph fixture', as
 
 // A repository with one file in each build input directory, an ignored
 // generated directory, and one packed tarball shared through a manifest.
-async function fixture(t) {
+async function fixture(t, {names = ['sdk']} = {}) {
   const base = await mkdtemp(join(tmpdir(), 'actql-packed-client-'));
   t.after(() => rm(base, {recursive: true, force: true}));
   const repository = join(base, 'repository');
@@ -121,7 +121,7 @@ async function fixture(t) {
   const shared = join(base, 'shared');
   const pack = name => writeFile(join(shared, tarball(name)),
     `${name} packed\n`);
-  await packClientPackages({repository, destination: shared, names: ['sdk'],
+  await packClientPackages({repository, destination: shared, names,
     pack});
   const destination = join(base, 'install');
   await mkdir(destination);
@@ -135,6 +135,39 @@ async function fixture(t) {
     destination, pack: () => assert.fail('packed again instead of reusing')});
   return {base, repository, shared, destination, pack, reuse};
 }
+
+// Execute the real consumer's package-acquisition statements with the original
+// canonical helper. The npm port is explicit; this is not prepack or runtime
+// acceptance, and the remaining installed smoke assertions are untouched.
+async function runHostPackageAcquisition(repository, installation, run) {
+  const {parse} = await import('acorn');
+  const source = await readFile(new URL('./test-packed-run-host-core.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const acquiresPackage = node => {
+    if (node === null || typeof node !== 'object') return false;
+    if (node.type === 'CallExpression' && node.callee.type === 'Identifier' &&
+        (node.callee.name === 'packedClientPackage' ||
+          node.callee.name === 'run' && node.arguments[0]?.value === 'npm' &&
+          node.arguments[1]?.elements?.[0]?.value === 'pack')) return true;
+    return Object.values(node).some(value => Array.isArray(value)
+      ? value.some(acquiresPackage) : acquiresPackage(value));
+  };
+  const selected = tree.body.filter(acquiresPackage);
+  assert(selected.length > 0, 'Exercise the actual consumer package acquisition');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  return new AsyncFunction('repository', 'installation', 'run', 'packedClientPackage', 'join',
+    selected.map(node => source.slice(node.start, node.end)).join('\n'))(
+    repository, installation, run, packedClientPackage, join);
+}
+
+test('Run Host packed consumer reuses both original tarballs without another prepack', async t => {
+  const {repository, destination} = await fixture(t, {names: ['run-host-core', 'client-wire']});
+  await runHostPackageAcquisition(repository, destination,
+    () => assert.fail('The packed Run Host consumer started another npm pack'));
+  for (const name of ['run-host-core', 'client-wire']) {
+    assert.equal(await readFile(join(destination, tarball(name)), 'utf8'), `${name} packed\n`);
+  }
+});
 
 test('an unchanged checkout reuses the shared tarball as packed', async t => {
   const {repository, destination, reuse} = await fixture(t);
