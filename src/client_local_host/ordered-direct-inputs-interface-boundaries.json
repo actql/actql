@@ -48,7 +48,8 @@
             "prepared_installed_managed_source_free_requirements",
             "require_installed_managed_run",
             "retire_installed_managed_run",
-            "source_free_installed_managed_preparation_owned"
+            "source_free_installed_managed_preparation_owned",
+            "quiesce_installed_managed_run"
           ],
           "exports": [],
           "attributes": {
@@ -74,6 +75,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
               }
             ],
             "synchronization": [
@@ -86,6 +91,14 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public array actual task metadata exhaustion retains the same parent attempts and physical cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
               }
             ],
             "cancellation": [
@@ -98,6 +111,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
               }
             ],
             "extension": [
@@ -110,6 +127,26 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public nearest-array module starts actual tasks below whole Plan maxima on the original parent\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public nearest-names module starts actual tasks below whole Plan maxima on the original parent\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public ranking-array module starts actual tasks below whole Plan maxima on the original parent\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public array actual task metadata exhaustion retains the same parent attempts and physical cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
               }
             ]
           }
@@ -278,7 +315,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "a439eec178e3144ad4cb1e3b490c2a6f3c3482b49a9f18ad9ee9f248cec837ea"
+      "sha256": "3f235bdbe7a093a2eaf22567550dc411947d97fdc20ec9662ec7df7609ce971c"
     },
     {
       "module": "src/client_local_host/installed_capture_plan.mbt",
@@ -1279,7 +1316,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "3e602b717ca6b4bef07e23b47d23681fe2c2e2f7861e3198b95812dc9e7db034",
+      "sha256": "9e95471e410f79992dc6347b1e56227c950b3d888ad8b318668e0e23840cefb4",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1409,6 +1446,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
               }
             ],
             "synchronization": [
@@ -1421,6 +1462,14 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public array actual task metadata exhaustion retains the same parent attempts and physical cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
               }
             ],
             "cancellation": [
@@ -1433,6 +1482,10 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The preparation-owned Pure source-free route admits that actual retained body"
               }
             ],
             "extension": [
@@ -1445,6 +1498,26 @@
               {
                 "path": "src/client_local_host/ordered-direct-inputs-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public nearest-array module starts actual tasks below whole Plan maxima on the original parent\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public nearest-names module starts actual tasks below whole Plan maxima on the original parent\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public ranking-array module starts actual tasks below whole Plan maxima on the original parent\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"public array actual task metadata exhaustion retains the same parent attempts and physical cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body_js_wbtest.mbt",
+                "anchor": "test \"Request installed module preserves exact one-byte-short refusal before its original factory\""
               }
             ]
           }

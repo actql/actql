@@ -3122,6 +3122,17 @@ adopting the body. Neither the module quote nor an available codec ceiling is
 spare compiler backing, and a Plan with an absent artifact is not evidence of a
 funded compilation.
 
+The preparation-owned Pure source-free route admits that actual retained body
+and constructor debit on its original finite Ledger. Its complete runtime Plan
+may have a larger upper bound than policy, including with finite nested arrays
+or long role names; that bound neither allocates bytes at startup nor enlarges
+the grant. Original-holder/current checks precede the shared actual-usage fit.
+Every later task reserves its attempt, transfer, retention and execution before
+start; actual Named Result rows grow the same task's workspace before index
+allocation. Exhaustion keeps the original task and physical cleanup pending,
+without refunding consumed history. Standalone and unconverted constructors
+that still allocate their complete envelopes retain their existing full fit.
+
 ### Original pure artifacts on the Request Plan
 
 The generic pure module constructor retains the selected installed module
