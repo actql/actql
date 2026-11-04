@@ -1,7 +1,8 @@
 ///|
 // Pure DATA inputs reconstructed from the original GCS source-qualified helpers.
 // They do not issue a Site, credential, acquisition ticket or execution grant.
-// The independent 3 * 2 * 8192 bound is 49152, even for an empty path list.
+// The independent full-run estimate is 3 * 2 * 8192 = 49152. An estimate
+// above the cumulative budget is optional planning DATA, including empty paths.
 fn original_lookup_diagnostic_environment(
   one_short : Bool,
 ) -> @program_check.CheckEnvironment {
@@ -41,19 +42,18 @@ fn original_lookup_diagnostic_programs() -> Array[String] {
 }
 
 ///|
-test "original lookup rejection projection preserves stage and join step without compiler tags" {
+test "original lookup estimate above cumulative budget preserves runtime admission" {
   let one_short = original_lookup_diagnostic_environment(true)
   for program in original_lookup_diagnostic_programs() {
-    let rejected = client_program_prepare_effect_free_with_parameters(
+    let ready = client_program_prepare_effect_free_with_parameters(
       program,
       "json",
       one_short,
       None,
     )
-    assert_true(client_program_preparation_ready(rejected) is None)
-    assert_eq(
-      client_program_preparation_decoded_response_limit_json(rejected),
-      Some("{\"stageIndex\":0,\"stepIndex\":2}"),
+    assert_true(client_program_preparation_ready(ready) is Some(_))
+    assert_true(
+      client_program_preparation_decoded_response_limit_json(ready) is None,
     )
   }
 }
