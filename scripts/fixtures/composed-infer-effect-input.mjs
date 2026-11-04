@@ -52,13 +52,13 @@ export async function modelConfiguration(baseEnvironment) {
   const output = {type: 'object', nullable: false,
     additional_properties: false,
     fields: {risk: {type: 'string', nullable: false}}};
-  const bodies = [
+  const bodies = Object.freeze([
     {version: 'actql-model-prompt/0.1', payload: {
       format: 'composition-risk/0.1', instructions: 'Classify the score.'}},
     {version: 'actql-model-retry-policy/0.1', retryable_failures: []},
     {version: 'actql-model-backoff/0.1', delays_ms: []},
-  ].map(body => ({cid: cid(body),
-    bodyWire: canonical({...body, self_cid: cid(body)})}));
+  ].map(body => Object.freeze({cid: cid(body),
+    bodyWire: canonical({...body, self_cid: cid(body)})})));
   const task = {schema: 'actql.model_task/0.1',
     task_id: 'model-task:composition-risk.v1', version: '1',
     task_kind: 'structured_generate',
@@ -85,13 +85,15 @@ export async function modelConfiguration(baseEnvironment) {
     max_total_cost_units: 0, max_total_duration_ms: 1000,
     max_total_wire_bytes: 133072, max_total_token_reservation: 66,
     media_input_contracts: {}, default_publication: 'outcomes'};
-  return {taskCid, installation: {
+  // This authored installation is the supplier's closed DATA original. The
+  // Host borrows it; initialization must not freeze or copy a caller's graph.
+  return {taskCid, installation: Object.freeze({
     environmentWire: canonical({...environment,
       evidence_bundle_cid: cid(environment)}),
-    executionContracts: [{modelTaskCid: taskCid, cid: cid(execution),
-      bodyWire: canonical({...execution, self_cid: cid(execution)})}],
+    executionContracts: Object.freeze([Object.freeze({modelTaskCid: taskCid, cid: cid(execution),
+      bodyWire: canonical({...execution, self_cid: cid(execution)})})]),
     dependencyBodies: bodies,
-  }};
+  })};
 }
 
 export function registerCompositionModel(moon, taskCid, record, {cleanup = () => true} = {}) {
