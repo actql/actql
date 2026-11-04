@@ -3,9 +3,9 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {access, mkdir, realpath, writeFile} from 'node:fs/promises';
+import {access, mkdir, realpath, stat, symlink, writeFile} from 'node:fs/promises';
 import {constants} from 'node:fs';
-import {isAbsolute, join, resolve, delimiter} from 'node:path';
+import {dirname, isAbsolute, join, resolve, delimiter} from 'node:path';
 import {releaseVersion} from './release-version.mjs';
 
 const macro = '-DACTQL_NATIVE_CLIENT_PACKAGE_VERSION=';
@@ -41,18 +41,28 @@ export async function prepareNativeVersionCompiler(directory, repository, versio
   if (compiler === undefined) {
     for (const parent of (process.env.PATH ?? '').split(delimiter)) {
       const path = resolve(parent || '.', 'cc');
-      try {await access(path, constants.X_OK); compiler = path; break;}
+      try {
+        await access(path, constants.X_OK);
+        if ((await stat(path)).isFile()) {compiler = path; break;}
+      }
       catch (failure) {if (!['ENOENT', 'EACCES', 'ENOTDIR'].includes(failure.code)) throw failure;}
     }
   }
-  assert(compiler && isAbsolute(compiler), 'Select the original normal C compiler'); compiler = await realpath(compiler);
+  assert(compiler && isAbsolute(compiler), 'Select the original normal C compiler');
+  await access(compiler, constants.X_OK); assert((await stat(compiler)).isFile(), 'C compiler must be an executable file');
+  // Moon selects ar beside the PATH-selected cc, before resolving symlinks.
+  // Preserve that companion, rather than selecting an unrelated ar from PATH.
+  const companion = join(dirname(compiler), 'ar');
+  await access(companion, constants.X_OK); assert((await stat(companion)).isFile(), 'Native archiver must be an executable file');
+  const archiver = await realpath(companion); compiler = await realpath(compiler);
   await mkdir(directory, {mode: 0o700});
   await writeFile(join(directory, 'package.json'), '{"private":true,"type":"module"}\n', {flag: 'wx', mode: 0o600});
-  const context = {compiler, repository: resolve(repository), version: selected};
+  const context = {compiler, archiver, repository: resolve(repository), version: selected};
   const bytes = Buffer.from(`#!${process.execPath}\n` +
     `import {executeNativeVersionCompiler} from ${JSON.stringify(import.meta.url)};\n` +
     `process.exitCode=executeNativeVersionCompiler(process.argv.slice(2),${JSON.stringify(context)});\n`);
   const path = join(directory, 'cc'); await writeFile(path, bytes, {flag: 'wx', mode: 0o700});
+  await symlink(archiver, join(directory, 'ar'));
   return {path, directory, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), context};
 }
 
