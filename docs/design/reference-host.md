@@ -3231,3 +3231,13 @@ no physical release or cancellation acknowledgment follows from its return.
 The general response constructor remains unchanged for callers that retain a
 Source Cursor. Native provider output, Grant, received/saved buffers and every
 other live child remain separately additive; no policy ceiling changes.
+
+An original native constructor profile with both input and output JSON shapes
+returns a JSON String before the Host parses its stated output. That closed
+wire boundary cannot export its private input Source/index/ancestry records.
+The existing constructor fold retains a conservative span-free input tree and
+all old retained input text, in addition to the unchanged native and Host
+outputs. Only the remaining structural input roles become workspace; the
+original full execution and failed-prefix peak stays unchanged. An absent
+output shape supplies no such lifetime proof and keeps the general response
+constructor, including a retained Cursor's original backing.

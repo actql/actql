@@ -381,5 +381,56 @@ fn installed_standard_create_constructor_capacity(
         None => return Err(Unsupported)
       }
   }
+  let capacity = match (input, output) {
+    (Some(limits), Some(_)) => {
+      // This original profile promises a native JSON String, then Host JSON.
+      // Neither output can retain the native input's Source/index/ancestry.
+      // Keep a whole span-free input tree and ALL old retained input text as
+      // a conservative alias envelope, alongside every native/Host output.
+      // Only private structural roles change lifetime; the exact old full
+      // construction/failure peak remains on the same reservation.
+      guard installed_source_response_workspace(
+          limits.max_input_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        )
+        is Some(peak) &&
+        @canonical.nfc_lf_construction_scratch_extent(limits.max_input_bytes)
+        is Some(scratch) &&
+        peak.record_headers >= scratch.record_headers &&
+        peak.reference_slots >= scratch.reference_slots &&
+        peak.scalar_words >= scratch.scalar_words &&
+        peak.owned_utf16_units >= scratch.owned_utf16_units &&
+        installed_host_json_retained_roles(
+          {
+            record_headers: peak.record_headers - scratch.record_headers,
+            reference_slots: peak.reference_slots - scratch.reference_slots,
+            scalar_words: peak.scalar_words - scratch.scalar_words,
+            owned_utf16_units: peak.owned_utf16_units -
+            scratch.owned_utf16_units,
+            owned_wire_bytes: 0L,
+          },
+          limits.max_input_bytes,
+          limits.max_nodes,
+          keep_full_text=true,
+        )
+        is Some((_, completed)) &&
+        @execution.preparation_representation_cost(completed)
+        is Some(private_structures) &&
+        @execution.execution_capacity_retained_bytes(capacity) >=
+        private_structures &&
+        @execution.execution_capacity(
+          @execution.execution_capacity_retained_bytes(capacity) -
+          private_structures,
+          @execution.execution_capacity_execution_bytes(capacity),
+        )
+        is Some(projected) else {
+        return Err(Unsupported)
+      }
+      projected
+    }
+    // An opaque/Cursor result has no returned-wire lifetime proof.
+    _ => capacity
+  }
   Ok(capacity)
 }

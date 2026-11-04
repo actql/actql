@@ -33222,7 +33222,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_request_construction.mbt",
-      "sha256": "88c4bf4adce59ecc627d863750e67fe9db664bf23634958de4d625b29d59f0c5",
+      "sha256": "d2641331e7d39100f54cc96ec5f38e5d2ea9986a7872fc506c13ec290b7eca8b",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original Kintone native protocol constructors and same Request Effect composition",
@@ -33324,6 +33324,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Those constructor quantities remain separate from original request/response"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "An original native constructor profile with both input and output JSON shapes"
               }
             ],
             "extension": [

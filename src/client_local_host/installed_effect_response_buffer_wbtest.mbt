@@ -308,13 +308,20 @@ test "paired native wire output retires private input index while preserving eve
     max_depth: 3,
   }
   let without_input = installed_standard_create_constructor_capacity(
-    native, None, Some(output),
+    native,
+    None,
+    Some(output),
   ).unwrap()
   let old = installed_json_effect_response_construction_capacity(
-    without_input, input.max_input_bytes, input.max_nodes, input.max_depth,
+    without_input,
+    input.max_input_bytes,
+    input.max_nodes,
+    input.max_depth,
   ).unwrap()
   let paired = installed_standard_create_constructor_capacity(
-    native, Some(input), Some(output),
+    native,
+    Some(input),
+    Some(output),
   ).unwrap()
   assert_true(
     @execution.execution_capacity_retained_bytes(paired) <
@@ -326,10 +333,15 @@ test "paired native wire output retires private input index while preserving eve
   )
   // Output absence cannot assert that the original input Cursor is private.
   let unpaired = installed_standard_create_constructor_capacity(
-    native, Some(input), None,
+    native,
+    Some(input),
+    None,
   ).unwrap()
   let original = installed_json_effect_response_construction_capacity(
-    native, input.max_input_bytes, input.max_nodes, input.max_depth,
+    native,
+    input.max_input_bytes,
+    input.max_nodes,
+    input.max_depth,
   ).unwrap()
   assert_eq(
     @execution.execution_capacity_retained_bytes(unpaired),
