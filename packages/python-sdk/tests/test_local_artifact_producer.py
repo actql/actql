@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor
+from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor, table_module
 import hashlib
 import importlib.util
 import json
@@ -56,7 +56,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.library = self.root / 'original.dylib'
         # Synthetic format headers and declared receipt records exercise only
         # finite producer assembly. Neither component has been executed.
-        self.module.write_bytes(b'\0asm\x01\0\0\0fixture-not-an-executed-module')
+        self.module.write_bytes(table_module())
         self.core_input = self.root / 'original.core'
         self.core_input.write_bytes(b'Independent non-executable link input fixture')
         self.link_response = self.root / 'original.wasm.rsp'
@@ -141,6 +141,85 @@ class LocalArtifactProducerTests(unittest.TestCase):
 
     def run_producer(self):
         return producer.produce(self.core_file, self.duckdb_file, self.image_file, self.output)
+
+    def test_module_bound_pool_recipe_uses_exact_table_maximum_and_keeps_source_memory(self):
+        for minimum, maximum in ((1952, 1952), (1953, 1960), (60, 63)):
+            with self.subTest(minimum=minimum, maximum=maximum):
+                self.module.write_bytes(table_module(minimum, maximum))
+                digest = hash_bytes(self.module.read_bytes())
+                raw = producer.recipe.module_image_recipe_original(self.source, self.head, self.module, digest)
+                expected = json.loads(ORIGINAL)
+                expected['engine_body']['pooling']['table_elements'] = maximum
+                self.assertEqual(json.loads(raw), expected)
+                self.assertEqual(producer.recipe.image_recipe_original(self.source, self.head), ORIGINAL)
+                self.assertEqual(expected['engine_body']['memory_reservation'], 16 * 1024 * 1024)
+                self.assertEqual(expected['engine_body']['pooling']['max_memory_size'], 16 * 1024 * 1024)
+
+    def test_module_bound_pool_recipe_keeps_same_hash_and_source_original_refusals(self):
+        with self.assertRaises((ValueError, LocalInstallationError)):
+            producer.recipe.module_image_recipe_original(self.source, self.head, self.module, '0' * 64)
+        path = self.source / 'packages/python-local-runtime/selected-image-recipe.json'
+        path.write_bytes(ORIGINAL + b' ')
+        with self.assertRaisesRegex(ValueError, 'committed original'):
+            producer.recipe.module_image_recipe_original(self.source, self.head, self.module,
+                                                        hash_bytes(self.module.read_bytes()))
+
+    def test_module_bound_recipe_is_staged_and_recomputed_in_the_same_artifact_verifier(self):
+        self.module.write_bytes(table_module(1952, 1956))
+        digest = hash_bytes(self.module.read_bytes())
+        expected = json.loads(ORIGINAL)
+        expected['engine_body']['pooling']['table_elements'] = 1956
+        engine_hash = hash_bytes(json.dumps(expected['engine_body'], sort_keys=True,
+            separators=(',', ':')).encode('ascii'))
+        self.core['module_sha256'] = self.image['module_sha256'] = digest
+        self.image['core_abi'] = producer.LOCAL_CORE_ABI
+        self.image['engine_sha256'] = engine_hash
+        for name in ('contract', 'result', 'physical', 'workspace'):
+            self.core[name]['module_sha256'] = digest
+            self.core[name]['cohort']['module_sha256'] = digest
+            self.core[name]['cohort']['engine_sha256'] = engine_hash
+        self.write_receipts()
+        self.run_producer()
+        self.assertEqual(json.loads((self.output / 'engine-recipe.json').read_bytes()), expected)
+        self.assertEqual(producer.recipe.image_recipe_original(self.source, self.head), ORIGINAL)
+        # Reseal every metadata digest around a different numeric pool ceiling.
+        # It still cannot replace the exact Source + original-module projection.
+        expected['engine_body']['pooling']['table_elements'] = 1957
+        foreign = (json.dumps(expected, indent=2) + '\n').encode()
+        (self.output / 'engine-recipe.json').write_bytes(foreign)
+        artifact = json.loads((self.output / 'artifact.json').read_bytes())
+        artifact['engine_recipe'].update(bytes=len(foreign), sha256=hash_bytes(foreign))
+        artifact['compiled_image']['engine_body'] = expected['engine_body']
+        artifact['compiled_image']['engine_sha256'] = hash_bytes(json.dumps(expected['engine_body'],
+            sort_keys=True, separators=(',', ':')).encode('ascii'))
+        (self.output / 'artifact.json').write_text(json.dumps(artifact))
+        with self.assertRaisesRegex(ValueError, 'source original'):
+            producer.recipe.verify_artifact(self.output)
+
+    def test_platform_module_bound_recipe_uses_same_projection_through_ordinary_assembly(self):
+        original = json.loads(ORIGINAL)
+        original.update(runtime_allocation='platform', provider_library_sha256=None,
+                        provider_library_bytes=None)
+        selected = self.source / 'packages/python-local-runtime/selected-platform-image-recipe.json'
+        selected.write_text(json.dumps(original))
+        self.commit()
+        self.module.write_bytes(table_module(1952, 1956))
+        digest = hash_bytes(self.module.read_bytes())
+        expected = json.loads(json.dumps(original))
+        expected['engine_body']['pooling']['table_elements'] = 1956
+        self.core['source_sha'] = self.duckdb['source_sha'] = self.image['source_sha'] = self.head
+        self.image.update(module_sha256=digest, core_abi=producer.LOCAL_CORE_ABI,
+                          runtime_allocation='platform', provider_library_sha256=None,
+                          engine_sha256=hash_bytes(json.dumps(expected['engine_body'], sort_keys=True,
+                              separators=(',', ':')).encode('ascii')))
+        self.write_receipts()
+        result = producer.produce_platform(self.module_file, self.duckdb_file, self.image_file, self.output)
+        self.assertEqual(result['artifact']['compiled_image']['engine_body'], expected['engine_body'])
+        self.assertEqual(json.loads((self.output / 'engine-recipe.json').read_bytes()), expected)
+        self.assertEqual(json.loads(selected.read_bytes()), original)
+        self.assertIsNone(result['artifact']['compiled_image']['provider_library_sha256'])
+        self.assertFalse(result['runtime_executed'])
+        self.assertFalse(result['wheel_built'])
 
     def test_fixed_originals_copy_and_stage_through_existing_recipe_without_engine_loading(self):
         result = self.run_producer()

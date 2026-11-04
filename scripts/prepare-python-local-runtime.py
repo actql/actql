@@ -16,6 +16,7 @@ from typing import Any, TYPE_CHECKING, cast
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
+from python_wasm_table_geometry import defined_table_limits  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_distribution import (LocalComponents, WASMTIME_VERSION, inspect_local_components,
     _LOCAL_COMPONENT_PLATFORM, _inspect_local_components_for_packaging, _read_file)  # noqa: E402
@@ -201,6 +202,36 @@ def image_recipe_original(root: Path, source: str, *, runtime_allocation: str = 
         'Selected source-original image recipe')
 
 
+def module_image_recipe_original(root: Path, source: str, module: Path, module_sha256: str,
+                                 *, runtime_allocation: str = 'native-owned') -> bytes:
+    """Bind the selected pool table maximum to this exact original module.
+
+    All other source recipe fields, including the 16 MiB memory ceiling, remain
+    unchanged. The compiler, assembler and final copied-artifact verifier use
+    this same projection; no caller-supplied capacity or runtime fallback exists.
+    """
+    from actql_sdk._local_image_recipe import _recipe_from_original
+    original = image_recipe_original(root, source, runtime_allocation=runtime_allocation)
+    selected = _recipe_from_original(original, source_sha=source,
+        package_version=read_cohort(root), module_sha256=module_sha256)
+    raw = _read_file(module, maximum=32 * 1024 * 1024, digest=module_sha256, capture=True)
+    tables = defined_table_limits(raw)
+    body = json.loads(original)
+    pool = body['engine_body']['pooling']
+    if pool['total_tables'] != len(tables) or pool['max_tables_per_module'] != len(tables):
+        raise ValueError('Original Core table count differs from the selected pool')
+    maximum = max(limit[1] for limit in tables)
+    if pool['table_elements'] == maximum:
+        return original
+    pool['table_elements'] = maximum
+    derived = (json.dumps(body, indent=2, ensure_ascii=True, allow_nan=False) + '\n').encode('ascii')
+    checked = _recipe_from_original(derived, source_sha=source,
+        package_version=selected.package_version, module_sha256=module_sha256)
+    if checked.runtime_allocation != selected.runtime_allocation:
+        raise ValueError('Module geometry changed the selected runtime allocation')
+    return derived
+
+
 def verify_artifact(artifact: Path, *, target_platform: str = _LOCAL_COMPONENT_PLATFORM) -> LocalComponents:
     """Reuse the fixed-source, component, target and original-notice checks."""
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
@@ -213,7 +244,7 @@ def verify_artifact(artifact: Path, *, target_platform: str = _LOCAL_COMPONENT_P
     with components.module.open('rb') as source:
         if source.read(8) != b'\0asm\x01\0\0\0':
             raise ValueError('Invalid installed Wasm module format')
-    recipe_bytes = image_recipe_original(ROOT, head,
+    recipe_bytes = module_image_recipe_original(ROOT, head, components.module, components.module_sha256,
         runtime_allocation=components.image_recipe.runtime_allocation)
     if _read_file(components.engine_recipe, maximum=65536) != recipe_bytes:
         raise ValueError('Staged image recipe differs from its source original')
