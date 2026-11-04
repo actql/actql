@@ -32,6 +32,100 @@ class SignedInputs(unittest.TestCase):
             self.assertFalse((root/'output').exists())
 
 
+class LinuxInspectionTools(unittest.TestCase):
+    """Real input/alias/receipt checks with explicit build and inspector ports."""
+
+    def produce(self, root, *, change_tool=False, missing_tool=False):
+        source='a'*40
+        (root/'scripts').mkdir()
+        lifetime=root/'src/platform_native/http_client'
+        lifetime.mkdir(parents=True)
+        for path in (root/'scripts/produce-native-remote-scoped-runtime.py',
+                     root/'scripts/produce-native-http-tls.py',
+                     lifetime/'component_tls_lifetime.c', lifetime/'component_tls_lifetime.h'):
+            path.write_bytes(b'Explicit source fixture; never compiled')
+        curl=root/'curl-source';curl.mkdir()
+        (curl/'COPYING').write_text('Fixture license')
+        (curl/'configure').write_text('Explicit configure port')
+        archive=root/'curl.tar.xz'
+        with tarfile.open(archive,'w:xz') as stream:stream.add(curl,arcname='curl-test')
+        signature=root/'signature';signature.write_bytes(b'Explicit signature-verifier port')
+        pin=lambda path:{'bytes':path.stat().st_size,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+        recipe={'upstream':{'version':'test','archive':pin(archive),'signature':pin(signature),
+                           'signerFingerprint':'A'*40},'ownedOpenSSLSource':{'version':'fixture'},'configure':[]}
+        (root/'scripts/native-http-component-source.json').write_text(json.dumps(recipe))
+        stage=root/'tls';(stage/'lib').mkdir(parents=True);(stage/'include').mkdir()
+        for name in ('lib/libssl.a','lib/libcrypto.a','LICENSE.txt'):
+            (stage/name).write_bytes(b'Explicit TLS input; never loaded')
+        owned=root/'tls.json'
+        owned.write_text(json.dumps({'target':'linux-x64','minimumMacOS':None,
+            'upstream':recipe['ownedOpenSSLSource'],'stage':str(stage),'inputs':[],
+            'files':[P.HTTP.NATIVE.original(stage/name) for name in ('lib/libssl.a','lib/libcrypto.a','LICENSE.txt')]}))
+        paths={}
+        for name in ('nm','readelf','foreign-nm','cc','make','gpgv','keyring'):
+            paths[name]=root/name;paths[name].write_bytes(('Original '+name).encode())
+        aliases={name:root/(name+'-link') for name in ('nm','readelf')}
+        for name,path in aliases.items():path.symlink_to(paths[name])
+        if missing_tool:paths['nm'].unlink()
+        output=root/'output';commands=[]
+        def selected_path(*args,**kwargs):
+            path=Path(*args,**kwargs)
+            return {Path('/usr/bin/nm'):aliases['nm'],Path('/usr/bin/readelf'):aliases['readelf']}.get(path,path)
+        def execute(command,**kwargs):
+            commands.append(command)
+            text=''
+            if command[0]==str(paths['gpgv']):
+                text='[GNUPG:] VALIDSIG '+'A'*40+'\n'
+                aliases['nm'].unlink();aliases['nm'].symlink_to(paths['foreign-nm'])
+            elif command[0]==str(paths['make']):
+                library=output/'build/lib/.libs/libcurl.so.4';library.parent.mkdir(parents=True)
+                header=bytearray(64);header[:7]=b'\x7fELF\x02\x01\x01'
+                header[16:18]=(3).to_bytes(2,'little');header[18:20]=(62).to_bytes(2,'little')
+                library.write_bytes(header)
+            elif command[0]==str(paths['readelf']):
+                text='(NEEDED) Shared library: [libc.so.6]\n(SONAME) Library soname: [libcurl.so.4]\n'
+            elif command[0]==str(paths['nm']):
+                if '--defined-only' in command:
+                    text='\n'.join('0000 T '+name for name in P.HTTP.CURL_EXPORTS|{'curl_actql_native_tls_api_v3'})
+                elif change_tool:paths['nm'].write_bytes(b'Changed original inspection tool')
+            else:self.assertIn(command[0],('/bin/sh',str(paths['cc'])))
+            return subprocess.CompletedProcess(command,0,text,'')
+        with patch.object(P.HTTP,'ROOT',root),patch.object(P.HTTP,'RECIPE',root/'scripts/native-http-component-source.json'),\
+                patch.object(P.HTTP,'Path',side_effect=selected_path),\
+                patch.object(P.HTTP.sys,'platform','linux'),patch.object(P.HTTP.platform,'machine',return_value='x86_64'),\
+                patch.object(P.HTTP.subprocess,'check_output',side_effect=lambda args,**kw:source+'\n' if 'rev-parse' in args else ''),\
+                patch.object(P.HTTP.subprocess,'run',side_effect=execute):
+            result=P.HTTP.build(source,archive,signature,paths['keyring'],stage,paths['cc'],None,
+                                paths['make'],paths['gpgv'],output,30,owned,'linux-x64')
+        return result,commands,paths,aliases
+
+    def test_aliases_pin_and_invoke_the_same_original_inspection_tools(self):
+        with tempfile.TemporaryDirectory() as raw:
+            result,commands,paths,aliases=self.produce(Path(raw).resolve())
+            for name in ('nm','readelf'):
+                item=next(item for item in result['inputs'] if item['path']==str(paths[name]))
+                self.assertEqual(item,P.HTTP.original(paths[name]))
+                self.assertTrue(any(command[0]==str(paths[name]) for command in commands))
+                self.assertFalse(any(command[0]==str(aliases[name]) for command in commands))
+            self.assertEqual(aliases['nm'].resolve(),paths['foreign-nm'])
+            with self.assertRaisesRegex(ValueError,'Original build input unavailable'):
+                P.HTTP.original(aliases['nm'])
+            self.assertEqual(result['loaded'],0);self.assertEqual(result['initialized'],0)
+
+    def test_changed_original_tool_is_refused_before_receipt_publication(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw).resolve()
+            with self.assertRaisesRegex(ValueError,'Original input changed during component production'):
+                self.produce(root,change_tool=True)
+            self.assertFalse((root/'output/build.json').exists())
+
+    def test_missing_inspection_target_refuses_before_output_creation(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw).resolve()
+            with self.assertRaises((OSError,ValueError)):self.produce(root,missing_tool=True)
+            self.assertFalse((root/'output').exists())
+
+
 class ExistingProducerComposition(unittest.TestCase):
     def compose(self,target,fail=False,key_fingerprint='A'*40):
         with tempfile.TemporaryDirectory() as raw:
