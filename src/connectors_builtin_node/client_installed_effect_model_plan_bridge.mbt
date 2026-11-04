@@ -341,7 +341,61 @@ pub fn client_program_installed_effect_model_managed_provider_plan_prepare(
 }
 
 ///|
-// One shared original component/Plan construction for both typed entrances.
+// Content and Model retain the SAME compiled Effect original and parent Plan.
+// An empty provider vector selects the existing native declarations; nonempty
+// vectors retain their original installed provider capacities.
+#export_name("clientProgramInstalledEffectContentModelManagedPlanPrepare")
+pub fn client_program_installed_effect_content_model_managed_plan_prepare(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  request : @publication_host.ClientRequestIdentity,
+  declarations : Array[@client_row_source_host.RowDeclaration],
+  source_providers : Array[@execution.ExecutionCapacity],
+  query_contract_body : String,
+  evidence_contract_body : String,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  installed_contracts : @client_local_host.ClientInstalledSequenceContracts,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  selected_operations : Array[
+    @client_local_host.ClientInstalledEffectOperationDemand,
+  ],
+  model : @client_local_host.ClientInstalledEffectModelDemand,
+  components : Array[@local.ManagedProvider],
+  query_time : @publication_host.ClientQueryTimePreparation?,
+  content : @client_local_host.ClientInstalledEffectContentPreparation,
+) -> Result[
+  @client_local_host.ClientInstalledEffectManagedPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  installed_effect_model_plan_from_original_sources(
+    prepared,
+    request,
+    declarations,
+    if source_providers.is_empty() {
+      None
+    } else {
+      Some(source_providers)
+    },
+    query_contract_body,
+    evidence_contract_body,
+    transport_bytes,
+    transport_execution_bytes,
+    installed_contracts,
+    values_body,
+    fragment_body,
+    ordered_body,
+    selected_operations,
+    model,
+    components,
+    query_time,
+    content=Some(content),
+  )
+}
+
+///|
+// One shared original component/Plan construction for the typed entrances.
 fn installed_effect_model_plan_from_original_sources(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
@@ -361,6 +415,7 @@ fn installed_effect_model_plan_from_original_sources(
   model : @client_local_host.ClientInstalledEffectModelDemand,
   components : Array[@local.ManagedProvider],
   query_time : @publication_host.ClientQueryTimePreparation?,
+  content? : @client_local_host.ClientInstalledEffectContentPreparation? = None,
 ) -> Result[
   @client_local_host.ClientInstalledEffectManagedPlan,
   @client_local_host.ClientInstalledManagedRunIssue,
@@ -386,6 +441,7 @@ fn installed_effect_model_plan_from_original_sources(
     ordered_body,
     selected_operations,
     model=Some(model),
+    content~,
     query_time~,
     source_providers~,
     provider_factory=capacity => {

@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "783f29a01ba0ab20115019454ef429e1aaafab4314bf209d460471b2c7972d3f",
+      "sha256": "cba40f9b10ebd74a2503e1b6f458a9e3371424343e6a70288e167435f16f0e0a",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -8043,6 +8043,14 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
+          "parameters": [
+            "options",
+            "intermediate"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun",
           "parameters": [
             "submission",
@@ -9675,7 +9683,8 @@
             "runtime",
             "prepared",
             "options",
-            "intermediate"
+            "intermediate",
+            "modelOccurrence"
           ],
           "async": false
         },
@@ -9684,7 +9693,8 @@
           "parameters": [
             "parent",
             "input",
-            "contracts"
+            "contracts",
+            "effectful"
           ],
           "async": false
         },
@@ -19954,7 +19964,8 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows"
+            "validateValuesMaxRows",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -21722,6 +21733,7 @@
         "../host-common/run-state-observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
+        "../local-node/declared-file-installation.mjs",
         "../local-node/installed-mock-row-effect.mjs",
         "../local-node/installed-project-mock-answers.mjs",
         "../local-node/installed-project-mock.mjs",
@@ -21773,6 +21785,7 @@
         "./installed-effect-managed-run.mjs",
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
+        "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
@@ -21814,16 +21827,14 @@
         "node:module",
         "node:os",
         "node:path",
-        "node:url",
-        "../local-node/declared-file-installation.mjs",
-        "./installed-funded-environment.mjs"
+        "node:url"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "5116353b07606f488f9378cb6293275adfe03d8b4f346546964bb1fbbe57c07f"
+      "sha256": "67084ad81a36896abf09fa70147d5833b53381b45ba4b27ca64ada00a90fe503"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -22771,7 +22782,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "8627c062e3afbe73d9e35b528de79f4b2a5f243a3f08d6d858af0676f2638d33",
+      "sha256": "a70db1ca042b2b707b4b7f278476d25fec508bcbd20a15e9836e04393c7aee88",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",

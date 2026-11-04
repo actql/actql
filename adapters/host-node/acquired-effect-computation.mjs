@@ -251,7 +251,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired, mana
     const evidence = [];
     let component;
     if (serializations.length > 0 && originalContent !== undefined) {
-      if (!sourceFree || infer !== undefined || serializations.length !== 1) {
+      if (multiple || serializations.length !== 1 ||
+          infer !== undefined && (modelPlan === undefined || originalContent.plan?.compiled !== modelPlan.compiled)) {
         throw new TypeError('UnsupportedInstalledContentEffectClosure');
       }
       contentPlan = originalContent.plan;

@@ -668,7 +668,12 @@ export function serializationTaskRunAdmission(options) {
 // installed ceilings and original checked occurrence. Only root ownership differs.
 export function selectInstalledSerializationGraph(options, component = false) {
   const {moon, control, preparedProgram} = options;
-  const occurrences = moon.clientProgramSerializationOccurrences(preparedProgram);
+  const effectful = options.effectful === true;
+  if (effectful && (!component || typeof options.prepareSerializationGraph !== 'function')) {
+    throw new TypeError('InstalledContentComponentUnsupported');
+  }
+  const occurrences = (effectful ? moon.clientProgramEffectSerializationOccurrences
+    : moon.clientProgramSerializationOccurrences)(preparedProgram);
   if (!Array.isArray(occurrences) || occurrences.length !== 1) {
     throw new TypeError('InstalledContentComponentUnsupported');
   }

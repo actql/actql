@@ -545,7 +545,13 @@ pub fn prepare_installed_effect_managed_plan(
   if content is Some(original) &&
     (
       !installed_effect_content_preparation_matches(original, prepared) ||
-      model is Some(_)
+      (match model {
+        None => false
+        Some(selected) =>
+          !physical_equal(original.compiled, selected.compiled) ||
+          !physical_equal(original.compilation, selected._compilation) ||
+          !physical_equal(original.definition, selected.definition)
+      })
     ) {
     return Err(ForeignOriginal)
   }

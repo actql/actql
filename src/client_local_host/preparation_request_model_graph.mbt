@@ -140,7 +140,11 @@ pub fn[I] prepare_request_model_graph(
         physical_equal(original_component, component) &&
         (match prepared {
           Pure(original) => physical_equal(component.owner, original)
-          Effect(_) => false
+          Effect(original) =>
+            @publication_host.client_infer_occurrence_matches_effect(
+              occurrence, original,
+            ) &&
+            physical_equal(component.owner, occurrence.owner)
         }) &&
         component.task ==
         @publication_host.client_infer_occurrence_coordinates(occurrence).1 &&

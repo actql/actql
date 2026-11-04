@@ -29,11 +29,6 @@ fn installed_effect_content_preparation_matches(
     original.definition,
   )
   is Ok(_) &&
-  @strategy.graph_captured_prefix(
-    installed_managed_owner_graph(Effect(prepared)),
-  ) ==
-  0 &&
-  @publication_host.prepared_client_effect_infer_occurrence(prepared) is None &&
   @publication_host.prepared_client_effect_serialization_occurrences(prepared) ==
   [(original.component.task, original.component.step)]
 }
@@ -68,13 +63,9 @@ pub fn prepare_installed_effect_content(
     physical_equal(actual, component) else {
     return Err(ForeignOriginal)
   }
-  if @strategy.graph_captured_prefix(
-      installed_managed_owner_graph(Effect(prepared)),
+  if @publication_host.prepared_client_effect_serialization_occurrences(
+      prepared,
     ) !=
-    0 ||
-    @publication_host.prepared_client_effect_infer_occurrence(prepared)
-    is Some(_) ||
-    @publication_host.prepared_client_effect_serialization_occurrences(prepared) !=
     [(component.task, component.step)] {
     return Err(Unsupported)
   }

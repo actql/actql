@@ -78,7 +78,7 @@ export function prepareInstalledEffectManagedPlanRun({runs, liveRuns, runtime, m
       }
     }
     if (prepareContent !== undefined) {
-      if (model !== undefined || typeof prepareContent !== 'function') fail('UnsupportedInstalledContentEffectClosure');
+      if (typeof prepareContent !== 'function') fail('UnsupportedInstalledContentEffectClosure');
       run.contentOriginal = prepareContent(value => {run.contentCleanup = value;});
       if (run.contentOriginal?.preparation === undefined || run.contentCleanup === undefined) {
         fail('InstalledContentRunPreparationUnavailable');

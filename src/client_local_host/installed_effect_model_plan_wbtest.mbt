@@ -127,6 +127,20 @@ fn effect_model_plan_for_prepared(
     100000,
     100,
   ).unwrap()
+  effect_model_plan_for_graph(prepared, graph)
+}
+
+///|
+fn effect_model_plan_for_graph(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> (
+  @publication_host.PreparedClientEffectComputation,
+  @publication_host.ClientRequestIdentity,
+  ClientInstalledSequenceContracts,
+  ClientInstalledEffectModelDemand,
+) {
+  let occurrence = graph.occurrence
   let manifests = @publication_host.admit_client_compilation_manifests(
     @environment.compiler_grammar_manifest_wire(),
     @environment.compiler_barrier_contract_manifest_wire(),
@@ -201,6 +215,7 @@ fn effect_model_plan_fixture(
   contracts : ClientInstalledSequenceContracts,
   model : ClientInstalledEffectModelDemand,
   factory_calls : Ref[Int],
+  content? : ClientInstalledEffectContentPreparation? = None,
 ) -> ClientInstalledEffectManagedPlan {
   let extent = prepare_installed_effect_operation_extent(
     "operation",
@@ -229,6 +244,7 @@ fn effect_model_plan_fixture(
     None,
     [operation],
     model=Some(model),
+    content~,
     provider_factory=capacity => {
       factory_calls.val += 1
       [

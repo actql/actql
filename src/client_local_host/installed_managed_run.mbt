@@ -195,7 +195,12 @@ fn installed_managed_owner_shape_supported(
   // Later module/Plan callers must supply their actual checked Graph instead.
   let selected_occurrence = match model {
     Some(selected) => Some(selected.occurrence)
-    None => model_occurrence
+    None =>
+      match (owner, model_occurrence) {
+        (Effect(prepared), None) if mock_model =>
+          @publication_host.prepared_client_effect_infer_occurrence(prepared)
+        _ => model_occurrence
+      }
   }
   let boundary_count = match owner {
     Pure(prepared) =>
@@ -240,7 +245,6 @@ fn installed_managed_owner_shape_supported(
         (serialized.is_empty() && content is None) ||
         (match (owner, content) {
           (Effect(prepared), Some(original)) =>
-            !mock_model &&
             installed_effect_content_preparation_matches(original, prepared)
           _ => false
         })

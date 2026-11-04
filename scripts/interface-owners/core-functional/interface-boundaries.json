@@ -5665,7 +5665,8 @@
             "contracts",
             "checkedProgram",
             "options",
-            "intermediate"
+            "intermediate",
+            "modelOccurrence"
           ],
           "async": false
         },
@@ -5852,7 +5853,8 @@
             "contracts",
             "checkedProgram",
             "options",
-            "intermediate"
+            "intermediate",
+            "modelOccurrence"
           ],
           "async": false
         },
@@ -14340,7 +14342,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "74dad8a19e401a2762c26d31f496e5bb3925469b00c5968f74bd4127f6020d21"
+      "sha256": "964ad6466a75a0ccdfdd49c40667a5937a72d88cffd9554eb9b72a761c9921cf"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -32919,7 +32921,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_operation_demand.mbt",
-      "sha256": "536f997362683b07703ae733dc01ad91194981f8839e6f7ea602439635da9b08",
+      "sha256": "867074f8ccb19a52b6ec88e2df88069e4b9713766715b4da5ebff78291596a0d",
       "exports": [],
       "operations": [
         {
@@ -33835,7 +33837,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "dce90520994f229653c04fc9706f6046f811416060fcc9708df6f34cad2fb177",
+      "sha256": "db3813e80ed273c0ce6576403551bde41b3e23967f1fdbc8f103c39c79e5f6ee",
       "exports": [],
       "operations": [
         {
@@ -49535,12 +49537,16 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_model_plan_bridge.mbt",
-      "sha256": "6e0520760619500e7383ed4da9545e27203bce3985bf9889e44fe25d5ded6fdd",
+      "sha256": "b196f557ca494097694c1f25a7e37503cccf26c369a8006083a3e40f499d75db",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "D — original installed Effect Plan and Model demand correspondence",
       "exports": [],
       "operations": [
+        {
+          "name": "client_program_installed_effect_content_model_managed_plan_prepare",
+          "declaration": "client_program_installed_effect_content_model_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content : @ client_local_host . ClientInstalledEffectContentPreparation , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
         {
           "name": "client_program_installed_effect_model_demand_prepare",
           "declaration": "client_program_installed_effect_model_demand_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , compiled : @ publication_host . ClientCompiledRun , compilation : @ publication_host . ClientEffectCompilation , definition : @ publication . PublicationContract , occurrence : @ publication_host . ClientInferOccurrence , graph : @ publication_host . ClientInferPlanGraph , ) - > Result [ @ client_local_host . ClientInstalledEffectModelDemand , @ client_local_host . ClientInstalledManagedRunIssue , ]"
@@ -49599,7 +49605,7 @@
         },
         {
           "name": "installed_effect_model_plan_from_original_sources",
-          "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "installed_effect_model_plan_from_original_sources ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] ? , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , selected_operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand , ] , model : @ client_local_host . ClientInstalledEffectModelDemand , components : Array [ @ local . ManagedProvider ] , query_time : @ publication_host . ClientQueryTimePreparation ? , content ? : @ client_local_host . ClientInstalledEffectContentPreparation ?"
         }
       ],
       "contracts": [
@@ -49620,7 +49626,8 @@
             "client_program_prepared_request_model_input_prefix",
             "client_program_prepared_request_model_input_suffix",
             "installed_effect_model_plan_from_original_sources",
-            "client_program_prepare_request_model_source_free_component_module"
+            "client_program_prepare_request_model_source_free_component_module",
+            "client_program_installed_effect_content_model_managed_plan_prepare"
           ],
           "exports": [],
           "attributes": {
@@ -50506,7 +50513,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_effect_plan_bridge.mbt",
-      "sha256": "a20351dbcda67b66ddd8df46302dbfb342cf2ec5068d4da089d2f8d01019dd7f",
+      "sha256": "f36374e195cf65834f4021bdb3994e5abe308bf4b164d9ee3a286c95e4041baa",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing checked Program, typed sequence and original Request/Plan preparation owners",
@@ -50531,7 +50538,7 @@
         },
         {
           "name": "client_program_installed_effect_content_managed_plan_prepare",
-          "declaration": "client_program_installed_effect_content_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand ] , content : @ client_local_host . ClientInstalledEffectContentPreparation , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+          "declaration": "client_program_installed_effect_content_managed_plan_prepare ( prepared : @ publication_host . PreparedClientEffectComputation , request : @ publication_host . ClientRequestIdentity , declarations : Array [ @ client_row_source_host . RowDeclaration ] , source_providers : Array [ @ execution . ExecutionCapacity ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , operations : Array [ @ client_local_host . ClientInstalledEffectOperationDemand ] , content : @ client_local_host . ClientInstalledEffectContentPreparation , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledEffectManagedPlan , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         },
         {
           "name": "client_program_installed_effect_content_preparation_prepare",
@@ -52605,7 +52612,7 @@
     {
       "module": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6fab7f2ca5f17846419f45aac7b55b0a65bdf99577ee331542bd41ba3462df0d",
+      "sha256": "cc09f2d681b83f6d81fcaf81903fb31df11c4bb54d09facbd0e9d4a0c9d08b15",
       "role": "common-semantics",
       "owner": "Existing Request preparation and Resource body owners; Node projection only",
       "exports": [],
@@ -52819,6 +52826,10 @@
           "declaration": "client_program_prepare_request_keyed_serialization_compilation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , selected : @ client_local_host . ClientInstalledManagedKeyedPreparation , component : @ publication_host . ClientSerializationPlanGraph , ) - > Result [ @ publication_host . ClientTaskCompilation , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
+          "name": "client_program_prepare_request_model_acquired_serialization_graph",
+          "declaration": "client_program_prepare_request_model_acquired_serialization_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , task : Int , step : Int , max_rows : Int , max_bytes : Int , include_results : Bool , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientSerializationPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
+        },
+        {
           "name": "client_program_prepare_request_model_capture_module",
           "declaration": "client_program_prepare_request_model_capture_module ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , compilation : @ publication_host . ClientTaskCompilation , declarations : Array [ @ client_row_source_host . RowDeclaration ] , query_contract_body : String , evidence_contract_body : String , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , contracts : @ client_local_host . ClientInstalledSequenceContracts , retained_output : Bool , query_time : @ publication_host . ClientQueryTimePreparation ? , ) - > Result [ @ client_local_host . ClientInstalledManagedCapturePlan , ClientRequestProgramModuleBridgeIssue , ]"
         },
@@ -52845,6 +52856,10 @@
         {
           "name": "client_program_prepare_request_model_read_scope_with_quantities",
           "declaration": "client_program_prepare_request_model_read_scope_with_quantities ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , plan : @ client_local_host . ClientInstalledManagedModelPlan , tokens : Int64 , cost_units : Int64 , duration_ms : Int64 , ) - > Result [ @ publication_host . ClientModelReadScope , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_prepare_request_model_serialization_graph",
+          "declaration": "client_program_prepare_request_model_serialization_graph ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , task : Int , step : Int , policy_cid : String , policy_wire : String , max_rows : Int , max_bytes : Int , include_results : Bool , contracts : @ client_local_host . ClientInstalledSequenceContracts , ) - > Result [ @ publication_host . ClientSerializationPlanGraph , ClientRequestProgramModuleBridgeIssue , ]"
         },
         {
           "name": "client_program_prepare_request_model_source_free_module",
@@ -53395,7 +53410,9 @@
             "client_program_prepare_request_serialization_compilation",
             "client_program_prepare_request_serialization_graph",
             "client_program_prepare_request_serialized_model_graph",
-            "client_program_prepared_installed_managed_model_requirements"
+            "client_program_prepared_installed_managed_model_requirements",
+            "client_program_prepare_request_model_serialization_graph",
+            "client_program_prepare_request_model_acquired_serialization_graph"
           ],
           "exports": [],
           "attributes": {

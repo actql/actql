@@ -2839,16 +2839,26 @@ async function openInstalledHost(originalInstallation, preparation) {
         // before preparing either Source. There is no fake SDK preflight,
         // egress observation, quantity grant or replacement Model Ledger.
         const effectful = prepareSubmit.kindOf(preparedProgram) === 'effectful';
-        if (occurrence === undefined || restoredInfer !== undefined || originalInfer !== undefined ||
-            (effectful ? moon.clientProgramEffectSerializationOccurrences
-              : moon.clientProgramSerializationOccurrences)(preparedProgram).length !== 0) {
+        if (occurrence === undefined || restoredInfer !== undefined || originalInfer !== undefined) {
           throw clientOperationError('InstalledMockModelOriginalCompositionUnavailable');
         }
-        const segments = checked((effectful ? moon.clientProgramPrepareEffectInferSegments
-          : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
+        const hasSerialization = (effectful ? moon.clientProgramEffectSerializationOccurrences
+          : moon.clientProgramSerializationOccurrences)(preparedProgram).length !== 0;
+        if (hasSerialization && preparation === undefined) {
+          throw clientOperationError('InstalledMockModelOriginalCompositionUnavailable');
+        }
+        const serializationGraph = !hasSerialization ? undefined
+          : selectInstalledSerializationGraph({moon, control, preparedProgram, effectful,
+            resultDataPolicy: installedResultDataPolicy,
+            prepareSerializationGraph: preparation === undefined ? undefined :
+              (options, intermediate) => preparation.prepareManagedContentGraph(
+                moon, preparedProgram, options, intermediate, effectful ? occurrence : undefined)}, true);
+        const segments = serializationGraph !== undefined ? undefined : checked(
+          (effectful ? moon.clientProgramPrepareEffectInferSegments
+            : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
           occurrence, registry, values, fragment, ordered));
         const graph = preparation !== undefined
-          ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution)
+          ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution, serializationGraph)
           : checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
         const observeAccount = () => observeInstalledAccount(moon, authorization);
         const account = observeAccount();
@@ -2858,8 +2868,10 @@ async function openInstalledHost(originalInstallation, preparation) {
           ? (providerId, installation, contract, configuration) => preparation.prepareManagedModelBinding(
             moon, preparedProgram, providerId, installation, contract, configuration) : undefined);
         const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep,
-          occurrence, graph, computePrefix: effectful ? runtimeField(segments, 0) : runtimeOptionalField(segments, 0),
-          computeSuffix: effectful ? runtimeOptionalField(segments, 1) : runtimeField(segments, 1),
+          occurrence, graph, computePrefix: segments === undefined ? undefined
+            : effectful ? runtimeField(segments, 0) : runtimeOptionalField(segments, 0),
+          computeSuffix: segments === undefined ? undefined
+            : effectful ? runtimeOptionalField(segments, 1) : runtimeField(segments, 1),
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           account, observeAccount, providerBinding,
           currentProvider() {mockModels.originalsForRuntime(moon); return true;}});
@@ -2898,7 +2910,8 @@ async function openInstalledHost(originalInstallation, preparation) {
         // Intermediate Content owns its physical prefix separately from the
         // ordinary pure-Compute prefix. Select the common checked component
         // before admission, without inventing public Result roots.
-        const effectGraph = prepareSubmit.kindOf(preparedProgram) === 'effectful' &&
+        const effectful = prepareSubmit.kindOf(preparedProgram) === 'effectful';
+        const effectGraph = preparation === undefined && effectful &&
           moon.clientProgramEffectSerializationOccurrences(preparedProgram).length !== 0
           ? runtimeOptionalField(originalInfer, 0) ?? checked(
             moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution))
@@ -2906,17 +2919,18 @@ async function openInstalledHost(originalInstallation, preparation) {
         const serializationGraph = originalInfer !== undefined
           ? control.inferSerializationGraph(runtimeField(originalInfer, 0)) : effectGraph !== undefined
           ? control.inferSerializationGraph(effectGraph)
-          : prepareSubmit.kindOf(preparedProgram) !== 'effectful' &&
-          moon.clientProgramSerializationOccurrences(preparedProgram).length !== 0
-          ? selectInstalledSerializationGraph({moon, control, preparedProgram,
+          : (effectful ? moon.clientProgramEffectSerializationOccurrences
+            : moon.clientProgramSerializationOccurrences)(preparedProgram).length !== 0
+          ? selectInstalledSerializationGraph({moon, control, preparedProgram, effectful,
             resultDataPolicy: installedResultDataPolicy,
             prepareSerializationGraph: preparation === undefined ? undefined :
               (options, intermediate) => preparation.prepareManagedContentGraph(
-                moon, preparedProgram, options, intermediate)}, true) : undefined;
+                moon, preparedProgram, options, intermediate, effectful ? occurrence : undefined)}, true) : undefined;
         // This original installed Model's module now owns its actual input
         // lowering after the same Request debit. Do not allocate an early
         // standalone prefix/suffix before that backed constructor.
-        const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
+        const acquisitionCount = (effectful ? moon.clientProgramEffectAcquisitionCount
+          : moon.clientProgramAcquisitionCount)(preparedProgram);
         const deferredModelInput = restoredInfer === undefined && preparation !== undefined &&
           occurrence !== undefined && serializationGraph === undefined &&
           prepareSubmit.kindOf(preparedProgram) === 'effect_free' &&
@@ -2932,7 +2946,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           (prepareSubmit.kindOf(preparedProgram) === 'effectful'
             ? moon.clientProgramPrepareEffectInferSegments : moon.clientProgramPrepareComposedInferSegments)(preparedProgram, occurrence,
             registry, values, fragment, ordered));
-        const computeSuffix = deferredModelInput || effectGraph !== undefined ? undefined : serializationGraph !== undefined
+        const computeSuffix = deferredModelInput || effectGraph !== undefined ||
+          effectful && serializationGraph !== undefined ? undefined : serializationGraph !== undefined
           ? checked(moon.clientProgramPrepareComposedInferComputeSuffix(preparedProgram,
             occurrence, registry, values, fragment, ordered))
           : occurrence === undefined
@@ -4047,7 +4062,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         selected.assertPrepared?.({moon, prepared: facts.prepared, compilation: facts.compilation});
         preparation.prepareManagedEffectPlanRun(moon, facts, selected,
           {registry, values, fragment, ordered, sourceProfile}, inferSelections.get(facts.prepared),
-          moon.clientProgramEffectSerializationOccurrences(facts.prepared).length === 0 || inferSelections.has(facts.prepared) ? undefined
+          moon.clientProgramEffectSerializationOccurrences(facts.prepared).length === 0 ? undefined
             : retainCleanup => runContent.prepareEffectFamily({facts, store, principalId, retainCleanup}));
         if (mockEffectObservation !== undefined) retainMockEffectRunOriginal(facts);
       },
@@ -7203,7 +7218,7 @@ async function openPreparedInstalledHost(options, initialEntry) {
       return runtimeCore(runtime).publicationControl.checkedClientManagedQueryInvocationOriginal(
         run.value, prepared, run.queryInvocation);
     },
-    prepareManagedContentGraph(runtime, prepared, options, intermediate) {
+    prepareManagedContentGraph(runtime, prepared, options, intermediate, modelOccurrence) {
       const manager = sourceManaged ?? computeManaged;
       if (runtime !== moon || manager === undefined || typeof manager.prepareContentGraph !== 'function') {
         throw clientOperationError('NodeManagedRunCompilationUnavailable');
@@ -7212,11 +7227,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       const control = runtimeCore(runtime).publicationControl;
       return manager.prepareContentGraph(prepared, originalSourceManagedHostRequest(originals, prepared),
-        (parent, input, contracts) => runtime.clientProgramAcquisitionCount(prepared) === 0
-          ? control.prepareCheckedClientRequestSerializationGraph(
-            parent, input, contracts, prepared, options, intermediate)
-          : control.prepareCheckedClientRequestAcquiredSerializationGraph(
-            parent, input, contracts, prepared, options, intermediate));
+        (parent, input, contracts, effectful = false) => {
+          if (effectful ? !intermediate || modelOccurrence === undefined : modelOccurrence !== undefined) {
+            throw clientOperationError('ForeignInstalledSourceProducer');
+          }
+          const acquisitions = effectful ? runtime.clientProgramEffectAcquisitionCount
+            : runtime.clientProgramAcquisitionCount;
+          return Reflect.apply(acquisitions, runtime, [prepared]) === 0
+            ? control.prepareCheckedClientRequestSerializationGraph(
+              parent, input, contracts, prepared, options, intermediate, modelOccurrence)
+            : control.prepareCheckedClientRequestAcquiredSerializationGraph(
+              parent, input, contracts, prepared, options, intermediate, modelOccurrence);
+        });
     },
     prepareManagedContentCompilation(runtime, prepared, graph) {
       const manager = sourceManaged ?? computeManaged;

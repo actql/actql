@@ -1954,9 +1954,11 @@ function publicationControl(moon) {
       graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
         original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
     } else {
-      const issue = moon.clientProgramPrepareRequestSerializationGraph;
+      const issue = request.modelOccurrence === undefined ? moon.clientProgramPrepareRequestSerializationGraph
+        : moon.clientProgramPrepareRequestModelSerializationGraph;
       if (typeof issue !== 'function') throw new TypeError('Request Content Graph constructor unavailable');
       graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        ...(request.modelOccurrence === undefined ? [] : [request.modelOccurrence]),
         options.task, options.step, original.cid, original.wire, options.maxRows,
         options.maxBytes, !intermediate, request.contracts]), 'RunHostContentPlanRejected');
     }
@@ -1987,9 +1989,11 @@ function publicationControl(moon) {
       graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
         options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
     } else {
-      const issue = moon.clientProgramPrepareRequestAcquiredSerializationGraph;
+      const issue = request.modelOccurrence === undefined ? moon.clientProgramPrepareRequestAcquiredSerializationGraph
+        : moon.clientProgramPrepareRequestModelAcquiredSerializationGraph;
       if (typeof issue !== 'function') throw new TypeError('Request acquired Content Graph constructor unavailable');
       graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
+        ...(request.modelOccurrence === undefined ? [] : [request.modelOccurrence]),
         options.task, options.step, options.maxRows, options.maxBytes,
         !intermediate, request.contracts]), 'RunHostContentPlanRejected');
     }
@@ -2422,8 +2426,8 @@ function publicationControl(moon) {
     prepareCheckedClientSerializationComponent(checkedProgram, options) {
       return prepareSerializationGraph(checkedProgram, options, true);
     },
-    prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
-      return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
+    prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate, modelOccurrence) {
+      return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts, modelOccurrence});
     },
     // Keep the selected facade outside Core. Only this existing private map
     // supplies the SAME opaque Content original to the Request constructor.
@@ -2519,8 +2523,8 @@ function publicationControl(moon) {
     prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
       return prepareAcquiredSerializationGraph(checkedProgram, options, true);
     },
-    prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate) {
-      return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts});
+    prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate, modelOccurrence) {
+      return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts, modelOccurrence});
     },
     readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {

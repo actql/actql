@@ -597,7 +597,10 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     return frame;
   };
   run.prepareEffectFamily = ({facts, store, principalId, retainCleanup}) => {
-    const compiled = publications.adoptCheckedClientEffectSerializationRun(facts.allowed, facts.runDefinition);
+    // The Model compilation already retains this same serialization component.
+    // Reuse its original holder instead of issuing a second compiled Run.
+    const compiled = facts.modelCompiled ??
+      publications.adoptCheckedClientEffectSerializationRun(facts.allowed, facts.runDefinition);
     const plan = Object.freeze({kind: 'effect', compiled, runDefinition: facts.runDefinition,
       serializationGraph: publications.compiledSerializationGraph(compiled)});
     const managedOriginal = Object.freeze({

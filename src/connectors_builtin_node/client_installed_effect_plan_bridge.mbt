@@ -737,6 +737,7 @@ pub fn client_program_installed_effect_content_managed_plan_prepare(
   prepared : @publication_host.PreparedClientEffectComputation,
   request : @publication_host.ClientRequestIdentity,
   declarations : Array[@client_row_source_host.RowDeclaration],
+  source_providers : Array[@execution.ExecutionCapacity],
   query_contract_body : String,
   evidence_contract_body : String,
   transport_bytes : Array[Int64],
@@ -766,6 +767,11 @@ pub fn client_program_installed_effect_content_managed_plan_prepare(
     ordered_body,
     operations,
     content=Some(content),
+    source_providers=if source_providers.is_empty() {
+      None
+    } else {
+      Some(source_providers)
+    },
     query_time~,
     provider_factory=installed_client_family_providers,
   )

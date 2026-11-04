@@ -5362,6 +5362,19 @@ Request. The fixed callback is transient; no additional graph or constructor
 alias is retained. Foreign/current/reentry fences, adoption, Scope and physical
 cleanup responsibilities remain with their existing owners.
 
+An Effect Request can retain this intermediate Content component before its
+Model graph. It passes the already selected Model occurrence into the Content
+constructor, so both graphs retain the same checked compiler view. The existing
+Effect capacity funds both construction phases; this does not create a pure
+Program preparation or a standalone Result. The source-free policy or acquired
+Source policy is still admitted by its original owner.
+
+The combined Effect Plan retains one compiled Run and definition for Content
+and Model, with both demands included in its existing parent reservation.
+Content cleanup is retained before Model or provider selection can fail.
+Execution still requires the original Source capture, Model Scope, approval
+and child retirement; compilation or Promise settlement confirms none of them.
+
 
 ### Model selector and module use retained invocation originals
 

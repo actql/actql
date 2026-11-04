@@ -331,10 +331,8 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   });
   const model = inputs.modelDemand !== undefined, providers = sources?.providers;
   const content = inputs.contentPreparation;
-  if (content !== undefined && (model || providers !== undefined || (sources?.declarations?.length ?? 0) !== 0)) {
-    fail('UnsupportedInstalledContentEffectClosure');
-  }
-  const construct = content !== undefined ? moon.clientProgramInstalledEffectContentManagedPlanPrepare : model ? providers === undefined
+  const construct = content !== undefined && model ? moon.clientProgramInstalledEffectContentModelManagedPlanPrepare
+    : content !== undefined ? moon.clientProgramInstalledEffectContentManagedPlanPrepare : model ? providers === undefined
     ? moon.clientProgramInstalledEffectModelManagedPlanPrepare
     : moon.clientProgramInstalledEffectModelManagedProviderPlanPrepare
     : providers !== undefined ? facts.queryTimePreparation === undefined
@@ -346,12 +344,12 @@ export function prepareInstalledEffectManagedPlan({moon, facts, inputs, unit, me
   if (typeof construct !== 'function') fail('InstalledEffectPlanRuntimeUnavailable');
   const original = [facts.prepared, facts.identity,
     ...(content !== undefined || model || facts.queryTimePreparation === undefined ? [] : [facts.queryTimePreparation]),
-    sources?.declarations ?? [], ...(providers !== undefined ? [providers] : []),
+    sources?.declarations ?? [], ...(content !== undefined ? [providers ?? []] : providers !== undefined ? [providers] : []),
     sources?.queryContract ?? '', sources?.evidenceContract ?? '',
     sources?.transferBytes ?? [], sources?.executionBytes ?? [], inputs.installedContracts,
     inputs.values, inputs.fragment, inputs.ordered, demands,
     ...(model ? [inputs.modelDemand, inputs.modelComponents, facts.queryTimePreparation] : []),
-    ...(content === undefined ? [] : [content, facts.queryTimePreparation])];
+    ...(content === undefined ? [] : model ? [content] : [content, facts.queryTimePreparation])];
   // Empty query/evidence strings are unused arguments only for zero Sources;
   // they issue no query contract. Existing Core validates the checked graph.
   return checked(Reflect.apply(construct, moon, original));

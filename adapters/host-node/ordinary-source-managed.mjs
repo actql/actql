@@ -1105,11 +1105,15 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
       if (state === undefined) return undefined;
-      if (state.prepared !== prepared || !['content', 'model'].includes(state.compilationFamily) ||
+      const effectful = state.compilationKind === 'effectful' && state.effectBorrowMethods !== undefined;
+      if (state.prepared !== prepared || !effectful && !['content', 'model'].includes(state.compilationFamily) ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || typeof constructOriginal !== 'function') fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
-      if (contracts?.moon !== moon || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+      const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
+        : moon.clientProgramPreparationBorrowRead;
+      if (contracts?.moon !== moon || typeof readOriginal !== 'function' ||
+          Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
       if (state.contentGraph !== undefined) return state.contentGraph;
@@ -1117,11 +1121,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         // Retain before post-callback current can fail. This same Request's
         // original cleanup owns the native component and its partial peak.
         state.contentGraph = Reflect.apply(constructOriginal, undefined,
-          [state.parent, producer.receipt, contracts.admission]);
+          [state.parent, producer.receipt, contracts.admission, ...(effectful ? [true] : [])]);
         if (state.contentGraph === undefined) fail('NodeManagedRunCompilationUnavailable');
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
-            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+            Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) fail('ForeignInstalledSourceProducer');
         return state.contentGraph;
       });
     },

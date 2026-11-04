@@ -170,6 +170,26 @@ test('Model Effect retains one demand Plan parent and original Scope before Sour
   assert.deepEqual(f.calls, calls);
 });
 
+test('Model Effect retains the original Content cleanup before selecting the same parent Plan', () => {
+  const f = fixture(), preparation = {}, cleanup = {}, content = {preparation};
+  let prepared = 0;
+  f.options.prepareContent = retain => {prepared++; retain(cleanup); return content;};
+  f.options.selection = Object.freeze({prepareManagedPlan(facts, inputs) {
+    assert.strictEqual(facts, f.options.facts);
+    assert.strictEqual(inputs.contentPreparation, preparation);
+    assert.strictEqual(inputs.modelDemand, f.demand);
+    const run = f.runs.get(f.prepared);
+    assert.strictEqual(run.contentOriginal, content);
+    assert.strictEqual(run.contentCleanup, cleanup);
+    return f.plan;
+  }});
+  assert.strictEqual(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
+  assert.equal(prepared, 1);
+  assert.strictEqual(f.runs.get(f.prepared).contentOriginal, content);
+  assert.equal(prepareInstalledEffectManagedPlanRun(f.options), f.parent);
+  assert.equal(prepared, 1);
+});
+
 test('partial Model adoption retains its same Request Scope and never reissues or falls back', () => {
   const f = fixture(), failure = new Error('original Model adoption failure');
   f.failBegin(failure);

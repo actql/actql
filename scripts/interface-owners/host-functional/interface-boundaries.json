@@ -60422,7 +60422,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bdbb58a735c6d83a857098edc3ad2200be52bb45dc80df8b6ba94b93170f2114",
+      "sha256": "55896c4338d82290b4f9112a2e918b13088ee404098fb0aec944e85b01eb7a24",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -115935,7 +115935,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "35694e4672e22bab947901fd04bed99a92cd636f358427839a95e2f1403b34dc"
+      "sha256": "d77b166ad874251afc4338b6517d55d64f3baf75092188fd5a1317382d6dab57"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
@@ -125198,7 +125198,7 @@
     },
     {
       "module": "adapters/host-node/installed-effect-managed-run.mjs",
-      "sha256": "400e99ff69ed9ac0c765c37691d7b7cca2f447d7692f698563b58249154914b1",
+      "sha256": "1f1f359c240fc2ef41a8d73a868701aba6ccfd64d70a9222a5f8057d6ee1ce99",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",

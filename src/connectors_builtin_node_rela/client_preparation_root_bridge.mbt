@@ -1813,3 +1813,83 @@ pub fn client_program_installed_managed_keyed_content_prepare(
     prefix_execution_bytes,
   )
 }
+
+///|
+// The SAME Effect Model occurrence owns this intermediate Content component.
+#export_name("clientProgramPrepareRequestModelSerializationGraph")
+pub fn client_program_prepare_request_model_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  task : Int,
+  step : Int,
+  policy_cid : String,
+  policy_wire : String,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    policy_cid,
+    policy_wire,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    model_occurrence=Some(occurrence),
+  ).map_err(issue => Preparation(issue))
+}
+
+///|
+// The SAME Effect Model occurrence owns this intermediate Content component.
+#export_name("clientProgramPrepareRequestModelAcquiredSerializationGraph")
+pub fn client_program_prepare_request_model_acquired_serialization_graph(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  occurrence : @publication_host.ClientInferOccurrence,
+  task : Int,
+  step : Int,
+  max_rows : Int,
+  max_bytes : Int,
+  include_results : Bool,
+  contracts : @client_local_host.ClientInstalledSequenceContracts,
+) -> Result[
+  @publication_host.ClientSerializationPlanGraph,
+  ClientRequestProgramModuleBridgeIssue,
+] {
+  let manifests = match client_generated_compilation_manifests() {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @client_local_host.prepare_request_acquired_serialization_graph(
+    parent,
+    input,
+    task,
+    step,
+    max_rows,
+    max_bytes,
+    include_results,
+    contracts,
+    manifests~,
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    model_occurrence=Some(occurrence),
+  ).map_err(issue => Preparation(issue))
+}
