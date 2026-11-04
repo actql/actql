@@ -644,6 +644,25 @@ test('checked acquired source and downstream task emit their input ports',
             {cause}), {code: cause.code});
         }
         assert.equal(plan.results.length, 2);
+        // The existing one-Source wire issuer validates complete Source
+        // binding without spending the parent's one-use publication transition.
+        // Its Source-policy output is never published; the actual parent above
+        // binds the complete Result-policy join and original physical capture.
+        const args = invocationOriginals;
+        const validateSourceWire = wire => checked(
+          moon.clientProgramIssueCompiledTaskInvocation(args[2], args[3], wire,
+            moon.strategyRunEvidenceJson(opened.logicalInput),
+            opened.checkedSource.sourceRef, opened.checkedSource.sourceContractCid,
+            args[10], dataPolicyCid, args[12], args[13], ...args.slice(14)));
+        const baseline = validateSourceWire(sourceEvidenceWire);
+        const expectedObservation = {...JSON.parse(plan.observation.wire),
+          data_policy_cid: dataPolicyCid};
+        expectedObservation.observation_set_cid = canonicalHashWithoutSelf(
+          expectedObservation, 'observation_set_cid');
+        assert.deepEqual(JSON.parse(moon.strategyRunEvidenceJson(baseline._0)),
+          expectedObservation);
+        assert.equal(JSON.parse(moon.strategyPublicationContractJson(baseline._1))
+          .observation_set_cid, moon.strategyRunEvidenceIdentity(baseline._0));
         for (const changed of [
           {...sourceEvidenceBody, input_logical_cid: cid('9')},
           {...sourceEvidenceBody, completeness: 'partial'},
@@ -653,11 +672,8 @@ test('checked acquired source and downstream task emit their input ports',
           // The actual parent invocation is single-use. Exercise the existing
           // full wire validator with its same observed compiler/capture inputs,
           // rather than mistaking a spent-parent refusal for evidence checking.
-          const args = invocationOriginals;
-          assert.throws(() => checked(moon.clientProgramIssueCompiledMultiTaskInvocation(
-            args[2], args[3], args[4], args[5], args[6], [wire],
-            [moon.strategyRunEvidenceJson(opened.logicalInput)], ...args.slice(10))),
-          {code: 'MoonBitHostFailure'});
+          assert.throws(() => validateSourceWire(wire),
+            {code: 'MoonBitHostFailure'});
         }
         const store = await openLocalPublicationStore({
           directory: join(directory, 'publication'), storeAuthorityCid,
