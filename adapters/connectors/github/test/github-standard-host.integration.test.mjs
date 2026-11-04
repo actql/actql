@@ -471,7 +471,9 @@ test('retained GitHub rows keep Event times through a fixed window', async t => 
       {from: 'clocked', to_events: {id: 'number', time: 'clock_ms'}, as: 'source'},
       {from: 'source', window_events: {kind: 'fixed', size: 2},
         as: 'windowed'},
-      {from: 'windowed', events: true, as: 'out'},
+      {from: 'windowed', events: true, as: 'bridged'},
+      {from: 'bridged', select: ['number', 'title', 'author',
+        'window_start_ms', 'window_end_ms'], as: 'out'},
     ], results: {r: {from: 'out', fields: ['number', 'title', 'author',
       'window_start_ms', 'window_end_ms']}}};
   document.stages.push({id: 'consumer',
@@ -593,7 +595,9 @@ const twoSourceEventsWindowProgram = () => {
         as: 'windowed'},
       {from: 'windowed', events: true, as: 'bridged'},
       {from: 'bridged', filter: 'number > 0', as: 'out'},
-    ], results: {r: {from: 'out', fields: ['number', 'left_title',
+      {from: 'out', select: ['number', 'left_title', 'right_title',
+        'window_start_ms', 'window_end_ms'], as: 'projected'},
+    ], results: {r: {from: 'projected', fields: ['number', 'left_title',
       'right_title', 'window_start_ms', 'window_end_ms']}}},
   {id: 'consumer', inputs: {x: {result: {stage: 'events', result: 'r'}}},
     steps: [{select: ['number', 'window_start_ms'], as: 'out'}],
@@ -622,6 +626,13 @@ const useDuckDBAsSecondSource = document => {
     amount: 'right.amount',
   };
   document.stages[2].results.r.fields = ['number', 'left_title', 'amount'];
+  if (document.stages[3]?.id === 'events') {
+    for (const step of document.stages[3].steps) {
+      if (Array.isArray(step.select)) {
+        step.select = step.select.map(field => field === 'right_title' ? 'amount' : field);
+      }
+    }
+  }
   return document;
 };
 
