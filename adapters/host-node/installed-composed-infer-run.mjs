@@ -371,10 +371,18 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
     return Object.freeze({status: 'waiting_checkpoint', checkpoint: execution.checkpoint});
   }
   if (execution.status !== 'host-tasks-completed') {
+    let retirementPending = false;
     for (const child of children) {
-      if (child.operation?.physicalStopped()) await child.capture.persistStoppedAttempts();
+      if (child.operation !== undefined && !child.operation.physicalStopped()) await child.operation.stop();
+      if (child.operation?.physicalStopped()) {
+        await child.capture.persistStoppedAttempts();
+        // A stopped child's accepted response can still be in its SAME
+        // retained Store writer after a write failure. Finish that original
+        // custody before reading durable Saved/Unknown; never replay Compute.
+        if (await child.capture.custody.retirePublication() !== true) retirementPending = true;
+      } else if (child.operation !== undefined) retirementPending = true;
     }
-    if (modelController.unresolved(runId)) {
+    if (retirementPending || modelController.unresolved(runId)) {
       // A partial Run has no complete ObservationSet or Named Result. Reuse
       // authenticated individual Store originals without inventing either.
       for (const child of children) {
