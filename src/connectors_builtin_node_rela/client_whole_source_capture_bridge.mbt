@@ -386,6 +386,22 @@ pub fn client_program_open_installed_managed_capture_host(
 }
 
 ///|
+#export_name("clientProgramOpenInstalledManagedKeyedCaptureHost")
+pub fn client_program_open_installed_managed_keyed_capture_host(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  @client_local_host.ClientInstalledCaptureHostIssue,
+] {
+  @client_local_host.open_installed_managed_keyed_capture_host(
+    owner, prepared, request, lookup,
+  ).map(value => value.0)
+}
+
+///|
 #export_name("clientProgramInstalledWholeSourceReadStartRows")
 pub fn client_program_installed_whole_source_read_start_rows(
   read : @client_local_host.ClientInstalledSourceRead,

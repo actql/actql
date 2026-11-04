@@ -267,7 +267,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
 
   async function acquireKeyedSources(entry, preparedProgram, selected, acquired, principalId) {
     const {directAdapter, keyedAdapter, preparedSource, directOccurrence,
-      directAccess, keyedAccess, preparedKeyed, acquisition, capacity, ledger, capturedContent} = selected;
+      directAccess, keyedAccess, preparedKeyed, acquisition, capacity, ledger, capturedContent,
+      managedRun, requestIdentity} = selected;
     // Retain the aggregate before the first await. Compute borrows these
     // inputs; its confirmed close must precede reclamation of either source.
     entry.borrowedSources = true;
@@ -361,7 +362,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       preparedProgram, captured, sourceEvidence, keyedObservation,
       authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt: now(),
       namespaceId, storeAuthorityCid, now});
-    const setup = await lookup.openHost({registry, values, fragment, ordered, retainedRelationOutput});
+    const setup = await lookup.openHost({registry, values, fragment, ordered, retainedRelationOutput,
+      managedRun, requestIdentity});
     entry.pendingSetup = setup;
     return {plan, setup};
   }
@@ -691,7 +693,21 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           }
           keyedAdapter.keyedRecoveryBinding(preparedKeyed);
         }
-        ledger = generatingContent ? runContent.prepareKeyedLedger({preparedProgram, plan: held.plan,
+        const managedKeyed = !generatingContent && !inferring && direct.managedRun !== undefined;
+        if (managedKeyed) {
+          if (direct.managedRun !== held.managedRun ||
+              typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+            throw new Error('InstalledKeyedSourceOriginalRunUnavailable');
+          }
+          retainDispatchPreparationHost(entry, moon, held.managedRun, preparedProgram, requested,
+            preparationLease !== undefined);
+          // The retained Plan already owns Direct and Compute. Borrow its
+          // SAME Ledger; each actual keyed RowRun/lookup admits and grows its
+          // own demand there before use. A full budget is not another cost.
+          ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
+            held.managedRun, preparedProgram, requested, [direct.capacity],
+            [direct.transferBytes], [direct.executionBytes], registry, values, fragment, ordered));
+        } else ledger = generatingContent ? runContent.prepareKeyedLedger({preparedProgram, plan: held.plan,
           direct, acquisition: keyedAcquisition, capacity, capturedContent}) :
           inferring ? runInfer.prepareKeyedLedger({preparedProgram, plan: held.plan,
             direct, acquisition: keyedAcquisition, capacity, capturedContent}) :
@@ -703,7 +719,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.acquisitionLedger = ledger;
         keyedSelection = {directAdapter: installedSource, keyedAdapter, preparedSource,
           directOccurrence, directAccess, keyedAccess, preparedKeyed,
-          acquisition: keyedAcquisition, capacity, ledger, capturedContent};
+          acquisition: keyedAcquisition, capacity, ledger, capturedContent,
+          ...(managedKeyed ? {managedRun: held.managedRun, requestIdentity: requested} : {})};
       }
       if (multiple) {
         // Preparation creates the whole original prefix before the first

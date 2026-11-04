@@ -330,6 +330,7 @@ pub fn installed_managed_capture_plan(
 pub suberror ClientInstalledCaptureHostIssue {
   Managed(ClientInstalledManagedRunIssue)
   Run(@strategy.RunIssue)
+  Keyed(@publication_host.ClientKeyedRequestIssue)
   Configuration
 }
 
@@ -427,6 +428,84 @@ fn open_installed_managed_capture_host_owned(
     Err(issue) => return Err(Run(issue))
     Ok(run) => run
   }
+  bind_retained_installed_capture_host(value, plan, ledger, run)
+}
+
+///|
+/// The keyed input was assembled on this SAME adopted Run's Ledger. Reuse
+/// its retained configuration and generated sequences; opening the supplied
+/// port neither quotes another whole budget nor compiles the Program again.
+pub fn open_installed_managed_keyed_capture_host(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  if value.source_free_opening || value.source_free_captured is Some(_) {
+    return Err(Managed(AlreadyBound))
+  }
+  value.source_free_opening = true
+  let result = open_installed_managed_keyed_capture_host_owned(
+    value, prepared, request, lookup,
+  )
+  value.source_free_opening = false
+  result
+}
+
+///|
+fn open_installed_managed_keyed_capture_host_owned(
+  value : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  lookup : @publication_host.ClientKeyedLookupInput,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
+  let plan = match installed_managed_capture_plan(value, prepared, request) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(plan) => plan
+  }
+  if plan.whole_input is Some(_) || plan.captures.length() != 1 {
+    return Err(Managed(ForeignOriginal))
+  }
+  let ledger = match require_installed_managed_run(value) {
+    Err(issue) => return Err(Managed(issue))
+    Ok(ledger) => ledger
+  }
+  let run = match
+    @publication_host.open_client_keyed_lookup_dag(prepared, lookup, ledger) {
+    Err(issue) => return Err(Keyed(issue))
+    Ok(run) => run
+  }
+  bind_retained_installed_capture_host(value, plan, ledger, run)
+}
+
+///|
+fn bind_retained_installed_capture_host(
+  value : ClientInstalledManagedRun,
+  plan : ClientInstalledManagedCapturePlan,
+  ledger : @resources.Ledger,
+  run : @strategy.CapturedDAG,
+) -> Result[
+  (
+    @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+    @strategy.CapturedDAG,
+    Array[@execution.GeneratedSequence],
+  ),
+  ClientInstalledCaptureHostIssue,
+] {
   value.source_free_captured = Some(run)
   let host = bind_client_local_configuration(
     run,
