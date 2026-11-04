@@ -13,7 +13,7 @@ const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {validSubmissionLookup, validCheckOutcome} from '../../packages/client-wire/index.mjs';
+import {validSubmissionLookup, validCheckOutcome, snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -647,8 +647,60 @@ test('retained Source input problems recheck original intent and current disclos
     sourceAccesses: [{sourceRef, resource: 'records', connection: {}, authorization: {
       authorize() {return {action: visible ? 'dispatch' : 'deny'};},
     }}]});
-  const prepare = installNodeClientProgramPreparation({moon, environment, sourcePublication: publication});
-  const f = await fixture(t, {prepare, check(value) {
+  const preparedEnvironment = moon.clientProgramPreparePublicSourceEnvironment(environment, JSON.stringify(publication));
+  assert.ok(preparedEnvironment);
+  const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
+  const contracts = JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
+  const {checked} = await import('../host-common/runtime-result.mjs');
+  const admission = checked(moon.clientPrepareInstalledSequenceContracts(registry,
+    JSON.stringify(contracts.execution_contracts['REL.values']), undefined, undefined));
+  const context = Object.freeze({runtime: moon, environment, preparedEnvironment, retainedRelationOutput: false});
+  const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
+  const originalPreparation = await prepareOrdinarySourceManagedInstallation(originals, {
+    validator(actual) {assert.strictEqual(actual, originals);},
+    preparationContext(actual) {assert.strictEqual(actual, originals); return context;},
+  }, false);
+  let preparedRequest, originalReceipt, originalFailure, observations = 0;
+  const closeOriginal = async () => {
+    let failure;
+    try {
+      if (originalReceipt !== undefined) originalPreparation.finishSourceProducer(originalReceipt, 'failed');
+    } catch (error) {failure = error;}
+    try {
+      assert.deepEqual(await originalPreparation.close(), {pending: false});
+      originalReceipt = undefined;
+    } catch (cleanup) {
+      if (failure !== undefined) throw new AggregateError([failure, cleanup], 'Original preparation cleanup failed');
+      throw cleanup;
+    }
+    if (failure !== undefined) throw failure;
+  };
+  t.after(closeOriginal);
+  const prepare = installNodeClientProgramPreparation({moon, environment,
+    async getFundedPreparation(request, selectedEnvironment, verifier, signal) {
+      assert.equal(preparedRequest, undefined, 'only the original invocation prepares');
+      assert.strictEqual(selectedEnvironment, environment);
+      preparedRequest = request;
+      originalReceipt = originalPreparation.beforeSourceSnapshot(request.kind, request.input.text,
+        {parameters: request.parameters}, request.connection);
+      const body = originalPreparation.captureSourceSnapshot(originalReceipt,
+        {kind: request.kind, input: request.input, parameters: request.parameters}, snapshotClientRequest);
+      originalPreparation.bindSourceSnapshot(originalReceipt, body);
+      originalPreparation.bindSourceRequest(originalReceipt, body, request);
+      try {return await originalPreparation.fundedPreparation(request, selectedEnvironment, verifier, signal);}
+      catch (error) {originalFailure = error; throw error;}
+    }});
+  const f = await fixture(t, {prepare, originalObservation(error, value) {
+    assert.strictEqual(error, originalFailure);
+    assert.strictEqual(value.input, preparedRequest.input);
+    assert.strictEqual(value.parameters, preparedRequest.parameters);
+    assert.strictEqual(value.connection, preparedRequest.connection);
+    assert.strictEqual(value.submissionRef, preparedRequest.submissionRef);
+    observations++;
+    return originalPreparation.observeOriginalCheckOutcome(preparedRequest, error, project =>
+      checker.projectOriginal({principalId: value.principalId, connection: value.connection,
+        kind: 'text', scope: 'bound_input', input: value.input, parameters: value.parameters}, project));
+  }, check(value) {
     checks++;
     assert.deepEqual(value.input, {format: 'aql-text', text: 'SELECT missing AS n FROM records'});
     assert.equal(value.parameters, null);
@@ -657,6 +709,9 @@ test('retained Source input problems recheck original intent and current disclos
   const expected = {code: 'ClientProgramInvalidInput', classification: 'invalid_input'};
   const first = await f.service.submitIntent(f.body('SELECT missing AS n FROM records'));
   assert.deepEqual(first.problem, expected, '[check-mutation:submission-disclosure]');
+  assert.equal(observations, 2, 'project the same failed preparation before and after durable write');
+  assert.equal(checks, 0, 'initial classification cannot borrow a separate public check');
+  await closeOriginal();
   f.restart();
   visible = false;
   const hidden = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
@@ -670,8 +725,9 @@ test('retained Source input problems recheck original intent and current disclos
   visible = true;
   const restored = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
   assertReferenceOnly(restored, first, '[check-mutation:submission-disclosure]');
+  assert.equal(observations, 2, 'lookup and replay cannot reconstruct the retired original');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
-  assert.ok(checks >= 4);
+  assert.equal(checks, 3, 'only hidden lookup, retained replay and restored lookup recheck disclosure');
 });
 
 test('submission disclosure retains an admitted partial invalid report across original lookup', async t => {
