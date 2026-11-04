@@ -444,3 +444,13 @@ pub fn client_program_installed_managed_run_issue_is_unsupported(
     _ => false
   }
 }
+
+///|
+/// Complete only the same Run's original child/control phase. The original
+/// Scope and preparation parent keep their separate cleanup obligations.
+#export_name("clientProgramInstalledManagedRunQuiesce")
+pub fn client_program_installed_managed_run_quiesce(
+  value : @client_local_host.ClientInstalledManagedRun,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.quiesce_installed_managed_run(value)
+}

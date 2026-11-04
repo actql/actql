@@ -108,7 +108,7 @@ fn open_installed_effect_managed_host_original(
   let first = @strategy.graph_captured_prefix(graph)
   let checked = @publication_host.prepared_client_effect_run_graph(bound)
   if !physical_equal(@strategy.checked_effect_run_graph(checked), graph) ||
-    !installed_effect_limits_fit(plan.limits, @resources.ledger_limits(ledger)) {
+    !installed_effect_managed_limits_fit(owner, plan, ledger) {
     return Err(ForeignOriginal)
   }
   let opened = if first == 0 {

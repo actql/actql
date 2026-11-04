@@ -183,7 +183,7 @@ fn[I] begin_preparation_owned_installed_effect_managed_run_original(
   if plan.model is Some(_) {
     return Err(Unsupported)
   }
-  match check_preparation_owned_effect_limits(initial, input, plan) {
+  match check_preparation_owned_effect_limits(initial, input, capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -233,7 +233,7 @@ fn[I] begin_preparation_owned_installed_effect_model_run(
     ) {
     return Err(ForeignOriginal)
   }
-  match check_preparation_owned_effect_limits(initial, input, plan) {
+  match check_preparation_owned_effect_limits(initial, input, capacity) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -246,13 +246,21 @@ fn[I] begin_preparation_owned_installed_effect_model_run(
 fn[I] check_preparation_owned_effect_limits(
   initial : ClientPreparationInitial[I],
   input : I,
-  plan : ClientInstalledEffectManagedPlan,
+  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   let limits = match preparation_initial_limits(initial, input) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
-  if !installed_effect_limits_fit(plan.limits, limits) {
+  let (retained, execution) = match
+    @resources.preparation_capacity_reserved_extents(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  // This route adopts the already backed Request body. Runtime task/operation
+  // maxima are policy DATA, not simultaneous startup allocations. Their actual
+  // constructors must reserve/grow on this SAME finite Ledger before work.
+  if retained > limits.retained_bytes || execution > limits.execution_bytes {
     return Err(InsufficientCapacity)
   }
   Ok(())

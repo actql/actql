@@ -220,20 +220,49 @@ test "Effect Scope one-short growth retains one absolute quote and original Plan
 }
 
 ///|
-test "ordinary initial quote still refuses the selected Model work before Scope construction" {
-  let (parent, input, plan, _, construction) = request_effect_model_plan_fixture(
+test "ordinary initial Model keeps actual work history and refuses exhausted work before allocation" {
+  let (parent, input, plan, request, construction) = request_effect_model_plan_fixture(
     model_initial=false,
   )
+  let ledger = parent.ledger
+  let limits = @resources.ledger_limits(ledger)
+  assert_false(installed_effect_limits_fit(plan.limits, limits))
+  @resources.charge_planning(ledger, 1).unwrap()
   let before = @resources.ledger_usage(parent.ledger)
-  assert_true(
-    prepare_request_effect_model_read_scope(parent, input, plan)
-    is Err(InsufficientCapacity),
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).planning_work, before.planning_work)
+  assert_eq(@resources.ledger_usage(ledger).attempts, before.attempts)
+  assert_eq(
+    @resources.ledger_usage(ledger).transferred_bytes,
+    before.transferred_bytes,
   )
-  assert_eq(@resources.ledger_usage(parent.ledger), before)
-  assert_true(parent.effect_plan is None && parent.phase == EffectPlanReserved)
+  complete_request_effect_preparation(parent, input, plan).unwrap()
   @resources.return_preparation_body_borrow(construction).unwrap() |> ignore
-  abort_request_preparation_after_cleanup(parent).unwrap()
-  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  let owner = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  assert_true(
+    physical_equal(require_installed_managed_run(owner).unwrap(), ledger),
+  )
+  assert_eq(@resources.ledger_limits(ledger), limits)
+  @resources.charge_planning(
+    ledger,
+    limits.planning_work - before.planning_work,
+  ).unwrap()
+  let exhausted = @resources.ledger_usage(ledger)
+  assert_true(@resources.charge_planning(ledger, 1) is Err(PlanningLimit))
+  assert_eq(@resources.ledger_usage(ledger), exhausted)
+  let selected = plan.model.unwrap()
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope,
+      selected.compiled,
+      selected.definition,
+      selected.graph,
+      true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(owner).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).planning_work, limits.planning_work)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
 }
 
 ///|

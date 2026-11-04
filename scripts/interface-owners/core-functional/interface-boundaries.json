@@ -33869,7 +33869,7 @@
     },
     {
       "module": "src/client_local_host/installed_managed_run.mbt",
-      "sha256": "db3813e80ed273c0ce6576403551bde41b3e23967f1fdbc8f103c39c79e5f6ee",
+      "sha256": "57a3ae8f536db01278a91aaaf078ecbc4fcc213acec1ce498cfb4e90e67b1f94",
       "exports": [],
       "operations": [
         {
@@ -34017,6 +34017,10 @@
           "declaration": "prepared_installed_managed_source_free_requirements ( value : ClientInstalledManagedSourceFreePreparation , ) - > Array [ Int64 ]"
         },
         {
+          "name": "quiesce_installed_managed_run",
+          "declaration": "quiesce_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
           "name": "require_installed_managed_run",
           "declaration": "require_installed_managed_run ( value : ClientInstalledManagedRun , ) - > Result [ @ resources . Ledger , ClientInstalledManagedRunIssue ]"
         },
@@ -34073,7 +34077,10 @@
             "prepared_installed_managed_source_free_requirements",
             "require_installed_managed_run",
             "retire_installed_managed_run",
-            "source_free_installed_managed_preparation_owned"
+            "source_free_installed_managed_preparation_owned",
+            "quiesce_installed_managed_run",
+            "begin_installed_managed_run_source_read_at",
+            "begin_installed_managed_run_source_read_owned"
           ],
           "exports": [],
           "attributes": {
@@ -34097,6 +34104,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "inputsOutputs": [
@@ -34163,6 +34174,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "synchronization": [
@@ -34185,6 +34200,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "failure": [
@@ -34207,6 +34226,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"same Effect parent retains pending operation budget and never refunds consumed Starts\""
               }
             ],
             "cancellation": [
@@ -34251,6 +34274,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn source_free_installed_managed_preparation_owned("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "extension": [
@@ -34323,6 +34350,18 @@
               {
                 "path": "src/client_local_host/metadata_capacity_refusal_wbtest.mbt",
                 "anchor": "actual metadata growth exhaustion preserves the same Run attempt and cleanup"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_model_js_wbtest.mbt",
+                "anchor": "test \"Content Model Effect ordinary startup preserves original policy and grows control before construction\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"same Effect parent retains pending operation budget and never refunds consumed Starts\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Model Effect quiesces only original stopped control before Scope and keeps pending primary for retry'"
               }
             ]
           }
@@ -39560,7 +39599,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2bc1e470befa3549efecae5f61c77a544435263b2882f43a025c068035a4f04e",
+      "sha256": "2e805e909f893a28fa3450f70c885fe3ec7982b0b75e4777ef27bd93916fc8fe",
       "role": "common-semantics",
       "owner": "Existing Request preparation and installed Effect Plan owners",
       "exports": [],
@@ -39816,6 +39855,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_model_js_wbtest.mbt",
+                "anchor": "test \"Content Model Effect ordinary startup preserves original policy and grows control before construction\""
               }
             ],
             "cancellation": [
@@ -39828,6 +39871,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "extension": [
@@ -39844,6 +39891,14 @@
               {
                 "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
                 "anchor": "test \"Effect Scope one-short growth retains one absolute quote"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_model_js_wbtest.mbt",
+                "anchor": "test \"Content Model Effect ordinary startup preserves original policy and grows control before construction\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"ordinary initial Model keeps actual work history and refuses exhausted work before allocation\""
               }
             ]
           }
@@ -51073,7 +51128,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
-      "sha256": "41fd138ffd82fb7e7a9a779239da0abbecd18152c9121ca2b0a8b11dbbb1e67b",
+      "sha256": "b992f2fc2f979f74e33b8335fa2b2732df7b46a72c20dc1cf1d17b19448f3158",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed managed Run and Model original bounds consumer",
@@ -51138,6 +51193,10 @@
         {
           "name": "client_program_installed_managed_run_prepare_ledger",
           "declaration": "client_program_installed_managed_run_prepare_ledger ( value : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , capacities : Array [ @ client_local_host . ClientInstalledCaptureCapacity ] , transport_bytes : Array [ Int64 ] , transport_execution_bytes : Array [ Int64 ] , installed_contracts : @ client_local_host . ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , ) - > Result [ @ resources . Ledger , @ client_local_host . ClientInstalledManagedRunIssue , ]"
+        },
+        {
+          "name": "client_program_installed_managed_run_quiesce",
+          "declaration": "client_program_installed_managed_run_quiesce ( value : @ client_local_host . ClientInstalledManagedRun , ) - > Result [ Unit , @ client_local_host . ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "client_program_installed_managed_run_requirements",
@@ -51213,7 +51272,8 @@
             "client_program_node_managed_run_prepare",
             "client_program_prepare_infer_original_read",
             "client_program_prepared_installed_managed_source_free_requirements",
-            "combine_installed_mock_model_run_requirements"
+            "combine_installed_mock_model_run_requirements",
+            "client_program_installed_managed_run_quiesce"
           ],
           "exports": [],
           "attributes": {
@@ -51225,6 +51285,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_composed_infer_model_ledger_bytes("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "inputsOutputs": [
@@ -51255,6 +51319,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_composed_infer_model_ledger_bytes("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "synchronization": [
@@ -51265,6 +51333,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_composed_infer_model_ledger_bytes("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "failure": [
@@ -51275,6 +51347,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_composed_infer_model_ledger_bytes("
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"same Effect parent retains pending operation budget and never refunds consumed Starts\""
               }
             ],
             "cancellation": [
@@ -51295,6 +51371,10 @@
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_composed_infer_model_ledger_bytes("
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "quiesces the same original operation/control owner."
               }
             ],
             "extension": [
@@ -51319,6 +51399,18 @@
               {
                 "path": "src/connectors_builtin_node/installed_model_limits_composition_wbtest.mbt",
                 "anchor": "physical Model recipe reads the same stored Model ledger separately from legacy read allowances"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_model_js_wbtest.mbt",
+                "anchor": "test \"Content Model Effect ordinary startup preserves original policy and grows control before construction\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"same Effect parent retains pending operation budget and never refunds consumed Starts\""
+              },
+              {
+                "path": "adapters/host-node/installed-effect-model-plan-consumer.test.mjs",
+                "anchor": "test('Model Effect quiesces only original stopped control before Scope and keeps pending primary for retry'"
               }
             ]
           }
@@ -69795,7 +69887,7 @@
     },
     {
       "module": "src/client_local_host/installed_effect_managed_run.mbt",
-      "sha256": "7d74f47f5d3d78750352c1231c09ee1b4d50dfba5799e2d85df42a1ba66b2947",
+      "sha256": "7a071e9c30fa11d2d50c891e0ae4db62da2a90c5c18f79437930a2bb9cac827d",
       "exports": [],
       "operations": [
         {
@@ -69813,6 +69905,10 @@
         {
           "name": "check_installed_effect_operation_extent",
           "declaration": "check_installed_effect_operation_extent ( owner : ClientInstalledManagedRun , extent : ClientInstalledEffectOperationExtent , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+        },
+        {
+          "name": "installed_effect_managed_limits_fit",
+          "declaration": "installed_effect_managed_limits_fit ( owner : ClientInstalledManagedRun , plan : ClientInstalledEffectManagedPlan , ledger : @ resources . Ledger , ) - > Bool"
         },
         {
           "name": "installed_effect_managed_operation_plan",
@@ -69860,7 +69956,8 @@
             "installed_effect_mock_model_run_requirements",
             "prepare_installed_effect_managed_run_ledger",
             "prepare_planned_installed_effect_ledger",
-            "require_installed_effect_operation_plan"
+            "require_installed_effect_operation_plan",
+            "installed_effect_managed_limits_fit"
           ],
           "exports": [],
           "attributes": {
@@ -69868,12 +69965,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/preparation_capacity_working_observation.mbt",
+                "anchor": "pub fn[I, P] preparation_capacity_reserved_extents("
               }
             ],
             "identity": [
@@ -69906,6 +70011,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"one-short actual Effect operation refuses before allocation and retains its original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"ordinary initial Model keeps actual work history and refuses exhausted work before allocation\""
               }
             ],
             "cancellation": [
@@ -69918,12 +70031,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "verification": [
@@ -69934,6 +70055,26 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              },
+              {
+                "path": "src/physical_resources/preparation_construction_input_wbtest.mbt",
+                "anchor": "test \"original preparation debit observation covers Ready without a borrower or new allowance\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"planned Effect Compute executes retained sequence on the original managed parent Ledger\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"one-short actual Effect operation refuses before allocation and retains its original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"ordinary initial Model keeps actual work history and refuses exhausted work before allocation\""
               }
             ]
           }
@@ -70395,7 +70536,7 @@
     },
     {
       "module": "src/client_local_host/preparation_owned_run.mbt",
-      "sha256": "6ff2cb813cca7d49ebd25e504cdf00d2641a2463af5ab22219bf6bf092912ea0",
+      "sha256": "02d21daf80195b1599914232c605d8337d247c2d0da725a08c873b2cb41168b4",
       "exports": [],
       "operations": [
         {
@@ -70456,7 +70597,7 @@
         },
         {
           "name": "[I]check_preparation_owned_effect_limits",
-          "declaration": "[ I ] check_preparation_owned_effect_limits ( initial : ClientPreparationInitial [ I ] , input : I , plan : ClientInstalledEffectManagedPlan , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
+          "declaration": "[ I ] check_preparation_owned_effect_limits ( initial : ClientPreparationInitial [ I ] , input : I , capacity : @ resources . PreparationCapacity [ I , ClientInstalledEffectManagedPlan ] , ) - > Result [ Unit , ClientInstalledManagedRunIssue ]"
         },
         {
           "name": "[P]preparation_retirement_payload_severed",
@@ -70503,12 +70644,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/physical_resources/preparation_capacity_working_observation.mbt",
+                "anchor": "pub fn[I, P] preparation_capacity_reserved_extents("
               }
             ],
             "identity": [
@@ -70541,6 +70690,14 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"one-short actual Effect operation refuses before allocation and retains its original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"ordinary initial Model keeps actual work history and refuses exhausted work before allocation\""
               }
             ],
             "cancellation": [
@@ -70553,12 +70710,20 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "## Portable Request preparation under the original backed child"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "This preparation-owned route admits the actual retained"
               }
             ],
             "verification": [
@@ -70569,6 +70734,26 @@
               {
                 "path": "src/physical_resources/backed_preparation_admission_wbtest.mbt",
                 "anchor": "test \"backed prepared operation preserves original consumer refusal and post-consumer current fence\""
+              },
+              {
+                "path": "src/physical_resources/preparation_construction_input_wbtest.mbt",
+                "anchor": "test \"original preparation debit observation covers Ready without a borrower or new allowance\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"planned Effect Compute executes retained sequence on the original managed parent Ledger\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"unknown Effect capture grows its same control from completed original rows before child construction\""
+              },
+              {
+                "path": "src/client_local_host/installed_effect_operation_parent_js_wbtest.mbt",
+                "anchor": "test \"one-short actual Effect operation refuses before allocation and retains its original cleanup\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_effect_model_js_wbtest.mbt",
+                "anchor": "test \"ordinary initial Model keeps actual work history and refuses exhausted work before allocation\""
               }
             ]
           }

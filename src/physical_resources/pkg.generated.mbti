@@ -410,6 +410,8 @@ pub fn[I, P] preparation_capacity_inventory_original(PreparationCapacity[I, P], 
 
 pub fn[I, P] preparation_capacity_reservation_retired(PreparationCapacity[I, P]) -> Bool
 
+pub fn[I, P] preparation_capacity_reserved_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
+
 pub fn[I, P] preparation_capacity_working_extents(PreparationCapacity[I, P], I) -> Result[(Int64, Int64), PreparationCapacityIssue]
 
 pub fn preparation_inventory_growth_entry_construction() -> PreparationInventoryGrowthConstruction

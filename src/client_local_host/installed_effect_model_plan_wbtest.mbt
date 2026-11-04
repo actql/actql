@@ -216,6 +216,7 @@ fn effect_model_plan_fixture(
   model : ClientInstalledEffectModelDemand,
   factory_calls : Ref[Int],
   content? : ClientInstalledEffectContentPreparation? = None,
+  host_input? : Bool = false,
 ) -> ClientInstalledEffectManagedPlan {
   let extent = prepare_installed_effect_operation_extent(
     "operation",
@@ -223,11 +224,26 @@ fn effect_model_plan_fixture(
     7L,
     true,
   ).unwrap()
+  let members = [extent]
+  if host_input {
+    members.push(
+      prepare_installed_effect_host_input_capture_recipe_extent(
+        "preview",
+        [
+          @execution.execution_capacity(8L, 8L).unwrap(),
+          @execution.execution_capacity(0L, 0L).unwrap(),
+        ],
+        4096,
+        128,
+        16,
+      ).unwrap(),
+    )
+  }
   let operation = prepare_installed_effect_operation_demand(
     prepared,
     0,
     "save",
-    [extent],
+    members,
     [extent],
   ).unwrap()
   prepare_installed_effect_managed_plan(

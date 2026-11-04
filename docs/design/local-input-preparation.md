@@ -428,8 +428,15 @@ An Effect preparation's completed body is its original
 contracts, acquisitions and generated sequences. It is never cast to the
 pure `PreparedClientProgram` body. The existing initial admission is checked
 for its original purpose, input and immutable Ledger limits before cleanup
-custody transfers. A deficient final Plan envelope leaves the same initial
-owner available for retirement; no second imported business child is started.
+custody transfers. This preparation-owned route admits the actual retained
+body and initial construction, not the Plan's theoretical whole-Run maxima.
+Known and unknown inputs use the same rule: each later constructor, row inventory
+and task reserves or grows on this same finite Ledger before allocation. A
+Plan upper bound may exceed policy while actual allocations still fit. The
+bound neither enlarges policy nor refunds consumed history. Failure leaves the same initial owner
+available for retirement; no second imported business child is started.
+Standalone admissions that still allocate their complete envelope retain that
+full-envelope check.
 
 The Run retains a closed Pure/EffectPlan case and uses one generic retirement
 procedure. The selected dispatch borrows its original body before opening its
@@ -3556,13 +3563,18 @@ admission. For a Model Plan, the existing outer Run first retains the Scope
 constructed from that same Request input and exact Plan, then completion and
 Model adoption consume the same originals. Partial completion/adoption keeps
 that Scope attached for the existing physical cleanup, without a second Node
-admission. The generic initial envelope must already admit the selected Model
-and its simultaneous constructor/read holdings.
+admission. The initial reservation must already back the actual Scope/census
+constructor and current holdings. Later Model/read constructors and tasks grow
+on that same original Ledger before use; the complete theoretical runtime Plan
+is not a simultaneous startup allocation.
 
 After the actual dispatch and physical children have retired, Host cleanup
-starts the same managed Run retirement, observes its original payload-sever
-witness, returns the same Effect input borrow, and completes that retirement
-before closing the manager. Failed construction uses the original Request abort
+quiesces the same original operation/control owner. A pending constructor or
+child retains its controls and refuses Scope cleanup. Successful control
+quiescence closes the existing operation latch, then the original Model Scope
+acknowledges its census, and only then parent retirement observes its original
+payload-sever witness, returns the same Effect input borrow, and completes
+that retirement before closing the manager. Failed construction uses the original Request abort
 and typed-borrow cleanup. Neither a completed Promise nor a terminal provider
 classification acknowledges physical cleanup.
 

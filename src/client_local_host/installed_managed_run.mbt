@@ -1418,10 +1418,10 @@ fn open_installed_managed_source_free_host_original(
 }
 
 ///|
-/// Managed retirement after all Source capture duties, actual Compute usage
-/// report and the original logical stop. This does not acknowledge FD/backing
-/// release, an uncertain operation, or another Run's remaining holdings.
-pub fn retire_installed_managed_run(
+/// Stop new original operations and settle only controls whose actual child
+/// cleanup has completed. Model Scope quiescence then precedes parent-holder
+/// retirement. Pending children keep their same Run and reservation for retry.
+pub fn quiesce_installed_managed_run(
   value : ClientInstalledManagedRun,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
   guard value.original is Some(original) && physical_equal(value, original) else {
@@ -1451,11 +1451,12 @@ pub fn retire_installed_managed_run(
       return Err(CleanupPending)
     }
   }
+  // Fence new work before releasing the original idle controls.
+  value.effect_operation_closing = true
   // Every original child ACK precedes control retirement. Keep the spent
   // occurrence fence closed even if later Root retirement remains pending.
   if !value.effect_operations.is_empty() ||
     value.effect_operation_controls is Some(_) {
-    value.effect_operation_closing = true
     if value.effect_operation_controls is Some(control) &&
       value.ledger is Some(ledger) {
       match @resources.settle_capacity(ledger, control.reservation) {
@@ -1467,6 +1468,23 @@ pub fn retire_installed_managed_run(
       }
     }
     value.effect_operations.clear()
+  }
+  Ok(())
+}
+
+///|
+/// Managed retirement after all Source capture duties, actual Compute usage
+/// report and the original logical stop. This does not acknowledge FD/backing
+/// release, an uncertain operation, or another Run's remaining holdings.
+pub fn retire_installed_managed_run(
+  value : ClientInstalledManagedRun,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  match quiesce_installed_managed_run(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.ledger is None {
+    return Ok(())
   }
   if value.preparation_retirement is Some(original) {
     return match original {
