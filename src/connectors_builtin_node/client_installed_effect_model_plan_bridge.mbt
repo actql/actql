@@ -613,20 +613,6 @@ pub fn client_program_prepare_request_models_source_free_component_module(
   @client_local_host.ClientInstalledManagedSourceFreePreparation,
   ClientRequestProgramModuleBridgeIssue,
 ] {
-  guard @execution.checked_preparation_add_product(
-      installed_client_family_provider_count().to_int64(),
-      @publication_host.client_task_compilation_infers(compilation)
-      .length()
-      .to_int64(),
-      1L,
-    )
-    is Some(providers) &&
-    providers <= 2147483647L else {
-    let issue : @client_local_host.ClientRequestProgramPlanIssue = @client_local_host.Installed(
-      @client_local_host.InsufficientCapacity,
-    )
-    return Err(Preparation(issue))
-  }
   @client_local_host.prepare_request_model_source_free_module(
     parent,
     input,
@@ -636,7 +622,7 @@ pub fn client_program_prepare_request_models_source_free_component_module(
     compilation,
     contracts,
     retained_output,
-    providers.to_int(),
+    installed_client_family_provider_count(),
     installed_client_family_providers,
     query_time~,
     components_factory=Some((index, capacity, prefix, suffix) => {
@@ -648,4 +634,69 @@ pub fn client_program_prepare_request_models_source_free_component_module(
       })
     }),
   ).map_err(issue => Preparation(issue))
+}
+
+///|
+/// Same original complete Limits inventory retained before the one compiler.
+/// Project only its existing Model/read/census DATA after the same Request has
+/// backed the temporary native containers. No numerical selector runs again.
+#export_name("clientProgramPrepareRequestModelsSourceFreePlan")
+pub fn client_program_prepare_request_models_source_free_plan(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  occurrences : Array[@publication_host.ClientInferOccurrence],
+  graphs : Array[@publication_host.ClientInferPlanGraph],
+  selected : Array[@infer_host.Limits],
+) -> Result[
+  @client_local_host.ClientInstalledManagedModelPlan,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  let count = selected.length()
+  match
+    @client_local_host.reserve_request_models_plan_projection(
+      parent, input, count,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if selected.length() != count ||
+    occurrences.length() != count ||
+    graphs.length() != count {
+    return Err(ForeignOriginal)
+  }
+  let model : Array[@resources.LedgerLimits] = []
+  let retained : Array[Int64] = []
+  let execution : Array[Int64] = []
+  let mut reservations = 0
+  let mut holdings = 0
+  let mut delegations = 0
+  for limits in selected {
+    let r = limits.input.rows.operation_entries
+    let h = limits.input.rows.retained_entries
+    let d = limits.input.rows.metadata_entries
+    if r < 0 ||
+      h < 0 ||
+      d < 0 ||
+      r > 2147483647 - reservations ||
+      h > 2147483647 - holdings ||
+      d > 2147483647 - delegations {
+      return Err(InsufficientCapacity)
+    }
+    reservations += r
+    holdings += h
+    delegations += d
+    model.push(limits.model.ledger)
+    retained.push(limits.mapping.logical.max_live_value_bytes)
+    execution.push(limits.identity.wire.max_bytes.to_int64())
+  }
+  @client_local_host.prepare_request_models_source_free_plan(
+    parent, input, original, request, compiled, definition, occurrences, graphs,
+    model, retained, execution, reservations, holdings, delegations,
+  )
 }

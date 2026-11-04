@@ -1838,3 +1838,62 @@ pub fn client_program_installed_managed_keyed_content_prepare(
     prefix_execution_bytes,
   )
 }
+
+///|
+#export_name("clientProgramPrepareRequestModelsReadScopes")
+pub fn client_program_prepare_request_models_read_scopes(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(parent, input, plan)
+}
+
+///|
+#export_name("clientProgramPrepareRequestModelsReadScopesWithQuantities")
+pub fn client_program_prepare_request_models_read_scopes_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledManagedModelPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  Array[@publication_host.ClientModelReadScope],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_models_read_scopes(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
+#export_name("clientProgramAdoptRequestModelsPreparation")
+pub fn client_program_adopt_request_models_preparation(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  request : @publication_host.ClientRequestIdentity,
+  scopes : Array[@publication_host.ClientModelReadScope],
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  guard scopes.get(0) is Some(first) else { return Err(ForeignOriginal) }
+  @client_local_host.begin_request_model_managed_run(
+    parent,
+    request,
+    first,
+    scopes=Some(scopes),
+  )
+}

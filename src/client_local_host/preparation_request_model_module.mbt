@@ -369,6 +369,23 @@ pub fn[I] prepare_request_model_source_free_module(
     (components_factory is Some(_) && compilation.infers.length() < 2) {
     return Err(Preparation(ForeignOriginal))
   }
+  // The plural callback contributes one actual provider per compiler member.
+  // Add that inventory HERE, once, beside its checked module construction;
+  // the higher bridge supplies only its existing fixed family provider count.
+  let installed_providers = if components_factory is Some(_) {
+    guard @execution.checked_preparation_add_product(
+        installed_providers.to_int64(),
+        compilation.infers.length().to_int64(),
+        1L,
+      )
+      is Some(total) &&
+      total <= 2147483647L else {
+      return Err(Installed(InsufficientCapacity))
+    }
+    total.to_int()
+  } else {
+    installed_providers
+  }
   preparation_module_call(
     () => {
       let prepared = match

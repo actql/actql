@@ -2356,7 +2356,7 @@ test "multiple Model graphs retain complete original order on one Request compil
     compiled,
     contracts,
     true,
-    2,
+    0,
     _ => [],
     components_factory=Some((index, extent, _, _) => {
       let during = @resources.preparation_capacity_working_extents(
@@ -2470,7 +2470,7 @@ fn request_two_model_plan_fixture(
     compilation,
     contracts,
     true,
-    2,
+    0,
     _ => [],
     components_factory=Some((index, extent, _, _) => {
       module_entries.push(index)

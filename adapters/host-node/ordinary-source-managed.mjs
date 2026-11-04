@@ -1320,12 +1320,29 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const scopeField = Object.getOwnPropertyDescriptor(model, 'scope');
       if (scopeField === undefined || !Object.hasOwn(scopeField, 'value') ||
           scopeField.value !== undefined || scopeField.writable !== true) fail('ForeignInstalledSourceProducer');
+      const members = Object.getOwnPropertyDescriptor(model, 'components')?.value;
+      const multiple = members !== undefined;
+      if (multiple && (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
+          !Array.isArray(model.graph) || model.graph.length !== members.length ||
+          members.some((member, index) => member === null || typeof member !== 'object' || types.isProxy(member) ||
+            member.group !== model || member.graph !== model.graph[index] || member.scope !== undefined ||
+            Object.getOwnPropertyDescriptor(member, 'scope')?.writable !== true) ||
+          Object.getOwnPropertyDescriptor(model, 'scopes')?.value !== undefined ||
+          Object.getOwnPropertyDescriptor(model, 'scopes')?.writable !== true)) {
+        fail('ForeignInstalledSourceProducer');
+      }
       const moon = state.context.runtime;
       const quantityLimits = model.selection?.quantityCapacity?.limits;
-      const scope = quantityLimits === undefined ? moon.clientProgramPrepareRequestModelReadScope
-        : moon.clientProgramPrepareRequestModelReadScopeWithQuantities;
+      if (multiple && quantityLimits === undefined && members.some(member =>
+          member.selection?.quantityCapacity !== undefined)) fail('InstalledModelQuantityCapacityUnavailable');
+      const scope = multiple
+        ? quantityLimits === undefined ? moon.clientProgramPrepareRequestModelsReadScopes
+          : moon.clientProgramPrepareRequestModelsReadScopesWithQuantities
+        : quantityLimits === undefined ? moon.clientProgramPrepareRequestModelReadScope
+          : moon.clientProgramPrepareRequestModelReadScopeWithQuantities;
       const complete = moon.clientProgramCompleteRequestModelPreparation;
-      const adopt = moon.clientProgramAdoptRequestModelPreparation;
+      const adopt = multiple ? moon.clientProgramAdoptRequestModelsPreparation
+        : moon.clientProgramAdoptRequestModelPreparation;
       if (![scope, complete, adopt].every(method => typeof method === 'function')) {
         fail('NodeManagedRunRuntimeUnavailable');
       }
@@ -1337,12 +1354,22 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       state.adopting = true;
       try {
         registerRequestRun(run, () => {
-          model.scope = checked(Reflect.apply(scope, moon, [state.parent, producer.receipt, modelPlan,
+          const issued = checked(Reflect.apply(scope, moon, [state.parent, producer.receipt, modelPlan,
             ...(quantityLimits === undefined ? [] : [quantityLimits.tokens,
               quantityLimits.costUnits, quantityLimits.durationMs])]));
-          if (model.scope === undefined) fail('NodeManagedRunAdmissionUnavailable');
+          // Retain the WHOLE native return before validation/current/complete.
+          // Partial adoption must not strand a later original Scope.
+          if (multiple) {
+            model.scopes = issued;
+            if (!Array.isArray(issued) || issued.length !== members.length) fail('NodeManagedRunAdmissionUnavailable');
+            for (let index = 0; index < members.length; index++) members[index].scope = issued[index];
+            model.scope = issued[0];
+          } else model.scope = issued;
+          if (model.scope === undefined || multiple && members.some(member => member.scope === undefined)) {
+            fail('NodeManagedRunAdmissionUnavailable');
+          }
           checked(Reflect.apply(complete, moon, [state.parent, producer.receipt, modelPlan]));
-          return checked(Reflect.apply(adopt, moon, [state.parent, identity, model.scope]));
+          return checked(Reflect.apply(adopt, moon, [state.parent, identity, multiple ? model.scopes : model.scope]));
         });
         state.modelCompilation = state.modelGraph = state.modelPlan = state.modelProviderBinding = state.contentGraph = undefined;
         return run;

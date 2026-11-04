@@ -469,3 +469,31 @@ test('plural Model module forwards the same compiler definition and indexed nati
   assert.throws(()=>invoke(compiled,{...definition}),/Foreign publication contract/);
   assert.deepEqual(calls,[0,1],'foreign facades cannot enter another constructor');
 });
+
+
+test('plural Model Plan forwards the same complete selected bounds and private compiler original', () => {
+  const parsed = parse(runtimeSource, {ecmaVersion: 'latest', sourceType: 'module'});
+  let selectedMethod;
+  const visit = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.method && node.key.name === 'prepareCheckedClientRequestModelsSourceFreePlan') selectedMethod = node;
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
+    }
+  };
+  visit(parsed); assert(selectedMethod);
+  const parent={}, input={}, original={}, request={}, compiled=Object.freeze({kind:'infer'}), definition={}, rawCompiled={}, rawDefinition={};
+  const occurrences=Object.freeze([{},{}]), graphs=Object.freeze([{},{}]), bounds=Object.freeze([{},{}]), plan={};
+  let calls=0;
+  const moon={clientProgramPrepareRequestModelsSourceFreePlan(...args) {
+    assert.equal(this, moon); calls++;
+    assert.deepEqual(args,[parent,input,original,request,rawCompiled,rawDefinition,occurrences,graphs,bounds]);
+    return plan;
+  }};
+  const object=Function('moon','compiledRunTokens','token','checked',
+    'return ({'+runtimeSource.slice(selectedMethod.start,selectedMethod.end)+'});')(moon,new WeakMap([[compiled,rawCompiled]]),
+      value=>{assert.equal(value,definition);return rawDefinition;},value=>value);
+  assert.equal(object.prepareCheckedClientRequestModelsSourceFreePlan(parent,input,original,request,compiled,definition,occurrences,graphs,bounds),plan);
+  assert.throws(()=>object.prepareCheckedClientRequestModelsSourceFreePlan(parent,input,original,request,{...compiled},definition,occurrences,graphs,bounds),/Foreign Client compiled Infer preparation/);
+  assert.equal(calls,1);
+});

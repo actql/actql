@@ -334,3 +334,58 @@ pub fn[I] prepare_request_models_read_scopes(
     owner, input, plan, quantity_limits, bind_request_multiple_model_read_scopes,
   )
 }
+
+///|
+/// The existing higher typed bridge projects each original installed Limits
+/// into three temporary Arrays. Back exactly those projection containers on
+/// this SAME Request before the bridge constructs them. This internal entry
+/// is not a Node export, Plan issuer, scalar allowance or Model authority.
+pub fn[I] reserve_request_models_plan_projection(
+  owner : ClientRequestPreparation[I],
+  input : I,
+  count : Int,
+) -> Result[Unit, ClientInstalledManagedRunIssue] {
+  guard owner.phase == ModelPlanReserved &&
+    owner.input is Some(original) &&
+    physical_equal(original, input) &&
+    owner.program_capacity is Some(capacity) &&
+    owner.program_domain_compilation_inputs
+    is Some(RequestModelsCompilation(_, _, _, graphs)) &&
+    count > 1 &&
+    count == graphs.length() &&
+    owner.program_model is None &&
+    @execution.preparation_array_representation(3L, 3L * count.to_int64(), true)
+    is Some(arrays) &&
+    @execution.preparation_representation_cost(arrays) is Some(bytes) else {
+    return Err(ForeignOriginal)
+  }
+  let (r, e) = match
+    @resources.preparation_capacity_working_extents(capacity, input) {
+    Err(issue) => return Err(Preparation(issue))
+    Ok(value) => value
+  }
+  guard @execution.checked_preparation_add_product(r, bytes, 1L) is Some(r) &&
+    @execution.checked_preparation_add_product(e, bytes, 1L) is Some(e) else {
+    return Err(InsufficientCapacity)
+  }
+  owner.phase = Selecting
+  match @resources.reserve_working_preparation_phase(capacity, input, r, e) {
+    Err(issue) => {
+      if owner.phase == Selecting {
+        owner.phase = ProgramBodyFailed
+      }
+      return Err(Preparation(issue))
+    }
+    Ok(_) => ()
+  }
+  guard owner.phase == Selecting &&
+    owner.input is Some(current_input) &&
+    physical_equal(current_input, input) &&
+    owner.program_capacity is Some(current_capacity) &&
+    physical_equal(current_capacity, capacity) &&
+    owner.program_model is None else {
+    return Err(ForeignOriginal)
+  }
+  owner.phase = ModelPlanReserved
+  Ok(())
+}

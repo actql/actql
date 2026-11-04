@@ -171,10 +171,15 @@ test('Request Model compilation retains one original artifact and graph without 
 });
 
 
-function adoptionFixture(family, failure) {
+function adoptionFixture(family, failure, {multiple = false} = {}) {
   const parent = {}, input = {}, request = {}, identity = {}, prepared = {}, holder = {};
-  const plan = {}, scope = {}, value = {}, graph = {}, artifact = {}, original = {}, calls = [];
+  const plan = {}, scope = {}, value = {}, graph = multiple ? Object.freeze([{}, {}]) : {}, artifact = {}, original = {}, calls = [];
   const model = {graph, scope: undefined};
+  const scopes = multiple ? [scope, {}] : undefined;
+  if (multiple) {
+    model.scopes = undefined;
+    model.components = Object.freeze(graph.map(graph => ({graph, group: model, scope: undefined})));
+  }
   const originals = {}, requirements = Object.freeze({attempts: 2});
   const state = {parent, prepared, holder, context: {}, original, compilationFamily: family,
     modelCompilation: artifact, modelGraph: graph};
@@ -189,6 +194,10 @@ function adoptionFixture(family, failure) {
     clientProgramCompleteRequestModelPreparation(p, i, selected) {
       assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input); assert.equal(selected, plan);
       assert.equal(model.scope, scope, 'The existing caller must retain Scope before completion');
+      if (multiple) {
+        assert.equal(model.scopes, scopes, 'Keep the same native return before any fallible complete');
+        model.components.forEach((member, index) => assert.equal(member.scope, scopes[index]));
+      }
       calls.push('complete'); if (failure) throw failure;
     },
     clientProgramAdoptRequestModelPreparation(p, id, originalScope) {
@@ -204,6 +213,16 @@ function adoptionFixture(family, failure) {
       assert.equal(this, moon); assert.equal(p, parent); assert.equal(id, identity); calls.push('adopt'); return value;
     },
   };
+  if (multiple) {
+    moon.clientProgramPrepareRequestModelsReadScopes = function(p, i, selected) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input); assert.equal(selected, plan);
+      calls.push('scopes'); return scopes;
+    };
+    moon.clientProgramAdoptRequestModelsPreparation = function(p, id, originals) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(id, identity); assert.equal(originals, scopes);
+      calls.push('adopt-all'); return value;
+    };
+  }
   state.context.runtime = moon;
   const name = family === 'model' ? 'adoptModelPreparation' : 'adoptContentPreparation';
   const a = source.indexOf('    '+name+'('), b = source.indexOf('    adopt'+(family === 'model' ? 'Content' : 'Effect')+'Preparation(', a);
@@ -216,7 +235,7 @@ function adoptionFixture(family, failure) {
         calls.push('requirements'); return requirements;
       }}, originals,
     actual => {assert.equal(actual, request); return producer;}, runs, liveRuns, fail, types, result => result);
-  return {state, model, plan, scope, value, calls, original, requirements, producer, runs, liveRuns, prepared,
+  return {state, model, plan, scope, scopes, value, calls, original, requirements, producer, runs, liveRuns, prepared,
     adoptModel: actual => object[name](prepared, identity, plan, actual),
     adopt: () => family === 'model' ? object[name](prepared, identity, plan, model) : object[name](prepared, identity, plan)};
 }
@@ -438,4 +457,27 @@ test('multiple Model compiler refusal stays on the same parent without a replace
   try{f.compile(graphs);}catch(actual){failed=true;assert.strictEqual(actual,undefined);}
   assert.equal(failed,true);assert.equal(calls,1);assert.equal(f.state.preparationFailed,true);
   assert.strictEqual(f.state.parent,f.parent);assert.strictEqual(f.state.holder,f.selected);
+});
+
+
+test('complete Model handoff retains every original Scope before completion and adopts once', () => {
+  const f = adoptionFixture('model', undefined, {multiple: true});
+  const run = f.adopt();
+  assert.equal(run.model, f.model); assert.equal(run.value, f.value);
+  assert.equal(f.model.scopes, f.scopes);
+  assert.deepEqual(f.model.components.map(member => member.scope), f.scopes);
+  assert.equal(f.runs.get(f.prepared), run); assert.equal(f.producer.liveRuns, 1);
+  assert.deepEqual(f.calls, ['scopes', 'complete', 'adopt-all']);
+});
+
+test('complete Model handoff keeps all original Scopes and sticky completion failure without adoption', () => {
+  const primary = new Error('same-original-group-completion');
+  const f = adoptionFixture('model', primary, {multiple: true});
+  assert.throws(f.adopt, error => error === primary);
+  assert.equal(f.model.scopes, f.scopes);
+  assert.deepEqual(f.model.components.map(member => member.scope), f.scopes);
+  assert.equal(f.state.modelPlan, f.plan);
+  assert.throws(f.adopt, error => error === primary);
+  assert.deepEqual(f.calls, ['scopes', 'complete']);
+  assert.equal(f.producer.liveRuns, 0);
 });
