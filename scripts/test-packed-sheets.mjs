@@ -1,10 +1,12 @@
-// One exact release cohort, installed outside the checkout. Product imports
-// in the authored acceptance entry and its replay child are public exports.
+// One exact normal package cohort, installed outside the checkout. An explicit
+// release input retains its staged metadata; default CI uses development packs.
+// The authored acceptance entry and replay child use only public exports.
 import assert from 'node:assert/strict';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {checkoutState, packedNpmCache} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, checkoutState, normalNpmPackJsonArgs, packClientPackages,
+  packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
@@ -29,30 +31,37 @@ const directory = await withPackedQueryEvidence({
   delete environment.NODE_PATH;
   delete environment.ACTQL_LOCAL_SOURCE_PROFILE;
   delete environment.ACTQL_LOCAL_EFFECT_PROFILE;
-  delete environment.ACTQL_PACKED_CLIENT_PACKAGES;
-  const producer = normalRelease?.directory ?? join(root, 'release');
-  // The existing release recipe runs normal producer prepack, then changes
-  // metadata/license only and verifies all frozen runtime bytes and digests.
+  let names, archives;
   if (normalRelease === undefined) {
-    const recipe = join(repository, 'scripts/package-release.mjs');
-    run(process.execPath, [recipe, 'prepare', producer], {
-      cwd: repository, env: environment, timeout: 900_000,
-    });
-    run(process.execPath, [recipe, 'verify', producer], {cwd: repository, env: environment});
+    // CI does not choose a release version. Use the same lifecycle-enabled
+    // five-package producer and source/digest-checked reuse as other consumers.
+    const producer = join(root, 'packages');
+    names = CLIENT_PACKAGES;
+    await packClientPackages({repository, destination: producer, names,
+      pack: name => packedClientPackage({repository, name, destination: producer,
+        pack: () => run('npm', normalNpmPackJsonArgs([
+          'pack', '--pack-destination', producer, '--json',
+        ]), {cwd: join(repository, 'packages', name), env: environment, timeout: 600_000})})});
+    const manifest = JSON.parse(await readFile(join(producer, 'packed-client-packages.json'), 'utf8'));
+    assert.equal(manifest.revision, state.revision);
+    assert.deepEqual(Object.keys(manifest.tarballs), names);
+    archives = names.map(name => join(producer, `actql-${name}-0.0.0-development.tgz`));
+    console.log('SHEETS_ARTIFACT_COHORT', JSON.stringify({sourceSha: manifest.revision,
+      generation: 'normal-prepack-development', tarballs: manifest.tarballs}));
+  } else {
+    const manifest = normalRelease.manifest;
+    assert.equal(manifest.sourceSha, state.revision);
+    names = manifest.cohort.packages;
+    archives = normalRelease.archives;
+    console.log('SHEETS_ARTIFACT_COHORT', JSON.stringify({sourceSha: manifest.sourceSha,
+      manifestSha256: normalRelease.manifestSha256,
+      cohort: manifest.cohort, toolchain: manifest.toolchain,
+      recipeSha256: manifest.recipeSha256, cohortSha256: manifest.cohortSha256,
+      generation: manifest.generation,
+      packages: manifest.packages.map(({name, version, file, sha256, integrity}) =>
+        ({name, version, file, sha256, integrity}))}));
   }
-  const manifest = JSON.parse(await readFile(join(producer, 'release.json'), 'utf8'));
-  assert.equal(manifest.sourceSha, state.revision);
-  const names = manifest.cohort.packages;
-  assert.deepEqual(names, ['client-wire', 'sdk', 'local-node', 'node']);
-  const archives = manifest.packages.map(item => join(producer, item.file));
   for (const archive of archives) recordTarball(archive);
-  console.log('SHEETS_ARTIFACT_COHORT', JSON.stringify({sourceSha: manifest.sourceSha,
-    manifestSha256: normalRelease?.manifestSha256,
-    cohort: manifest.cohort, toolchain: manifest.toolchain,
-    recipeSha256: manifest.recipeSha256, cohortSha256: manifest.cohortSha256,
-    generation: manifest.generation,
-    packages: manifest.packages.map(({name, version, file, sha256, integrity}) =>
-      ({name, version, file, sha256, integrity}))}));
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
   run('npm', ['install', '--ignore-scripts', '--offline', '--no-save', '--no-audit', '--no-fund',
     ...archives], {cwd: root, env: environment});
