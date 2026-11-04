@@ -1099,14 +1099,20 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           // Core checks every original Run/Plan/current and the SAME parent
           // Ledger against this existing borrow before constructing metadata.
           // No operation's opaque Ledger or capacity is exposed to the caller.
-          return checked(moon.clientProgramStartCompleteOriginalInferObservationIssuance(
-            operations.map(owner => activeOperations.get(owner)), originalPublicationCapacity,
-            maxSlots, maxWireBytes, maxWork,
-            serializedInput === undefined ? [] : [serializedInput.generation]));
+          const owners = operations.map(owner => activeOperations.get(owner));
+          return serializedInput !== undefined
+            ? serializedInput.control.startCheckedClientOriginalContentInferObservation(
+              owners, [serializedInput.generation], originalPublicationCapacity,
+              {maxSlots, maxWireBytes, maxWork})
+            : checked(moon.clientProgramStartCompleteOriginalInferObservationIssuance(
+              owners, originalPublicationCapacity, maxSlots, maxWireBytes, maxWork, []));
         }
-        return checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
-          originalPublicationCapacity, maxSlots, maxWireBytes, maxWork,
-          serializedInput === undefined ? [] : [serializedInput.generation]));
+        return serializedInput !== undefined
+          ? serializedInput.control.startCheckedClientOriginalContentInferObservation(
+            [active], [serializedInput.generation], originalPublicationCapacity,
+            {maxSlots, maxWireBytes, maxWork})
+          : checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
+            originalPublicationCapacity, maxSlots, maxWireBytes, maxWork, []));
       }
       // Preserve the explicit legacy diagnostic/publication path. The original
       // installation never creates this separate Ledger as a funding fallback.
