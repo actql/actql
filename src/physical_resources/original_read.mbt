@@ -66,6 +66,8 @@ struct FundedReadClaim[T] {
   read_state : OriginalReservationSnapshot
   admitted : OriginalLedgerSnapshot
   mut phase : FundedReadPhase[T]
+  // None preserves the singular snapshot/SpentClaim protocol exactly.
+  mut children : OriginalReadChildren[T]?
 }
 
 ///|
@@ -424,6 +426,7 @@ pub fn[T] fund_original_read(
     read_state: original_reservation_snapshot(read.reservation),
     admitted: original_ledger_snapshot(ledger),
     phase: Reading,
+    children: None,
   })
 }
 
@@ -485,6 +488,12 @@ pub fn[T] funded_read_consumer_available(
   execution_bytes : Int64,
 ) -> Bool {
   guard consumer.claim is Some(claim) else { return false }
+  if claim.children is Some(_) {
+    return original_read_child_available(
+      claim, consumer, origin, retained_bytes, execution_bytes,
+    )
+  }
+
   funded_read_claim_has_active_consumer(claim, consumer) &&
   retained_bytes > 0L &&
   execution_bytes > 0L &&
@@ -503,6 +512,12 @@ pub fn[T] handoff_funded_read_consumer_capacity(
   execution_bytes : Int64,
 ) -> Result[(Ledger, CapacityReservation), OriginalReadIssue] {
   guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if claim.children is Some(_) {
+    return handoff_original_read_child_capacity(
+      claim, consumer, origin, retained_bytes, execution_bytes,
+    )
+  }
+
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }
@@ -597,6 +612,9 @@ pub fn[T] handoff_funded_read_capacity(
 pub fn[T] stop_funded_read(
   claim : FundedReadClaim[T],
 ) -> Result[Unit, OriginalReadIssue] {
+  if claim.children is Some(_) {
+    return stop_original_read_children(claim)
+  }
   match check_original_resources_mutable(claim.descriptor.ledger) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
@@ -621,6 +639,19 @@ pub fn[T] settle_funded_read(
   claim : FundedReadClaim[T],
   physical_cleanup_complete : Bool,
 ) -> Result[Unit, OriginalReadIssue] {
+  if claim.children is Some(_) {
+    if !physical_cleanup_complete {
+      stop_original_read_children(claim) |> ignore
+      return Err(CleanupPending)
+    }
+    let group = claim.children.unwrap()
+    if group.busy {
+      return Err(CleanupPending)
+    }
+    group.busy = true
+    defer leave_original_read_children(group)
+    return finish_original_read_children(claim)
+  }
   if claim.phase is Reclaimed {
     return Err(SpentClaim)
   }
@@ -698,6 +729,10 @@ pub fn[T] finish_funded_read_inventory(
 // the consuming Host, so this is neither send permission nor restored authority.
 pub fn[T] funded_read_consumer_origin(consumer : FundedReadConsumer[T]) -> T? {
   guard consumer.claim is Some(claim) else { return None }
+  if claim.children is Some(_) {
+    return original_read_child_origin(claim, consumer, false)
+  }
+
   if funded_read_claim_has_active_consumer(claim, consumer) &&
     funded_read_state_matches(claim, claim.descriptor.origin) {
     Some(claim.descriptor.origin)
@@ -710,6 +745,9 @@ pub fn[T] funded_read_consumer_origin(consumer : FundedReadConsumer[T]) -> T? {
 pub fn[T] stop_funded_read_consumer(
   consumer : FundedReadConsumer[T],
 ) -> Result[Unit, OriginalReadIssue] {
+  if consumer.claim is Some(claim) && claim.children is Some(_) {
+    return stop_original_read_child(claim, consumer)
+  }
   if consumer.claim is Some(claim) &&
     funded_read_claim_has_consumer(claim, consumer) {
     return stop_funded_read(claim)
@@ -723,6 +761,12 @@ pub fn[T] settle_funded_read_consumer(
   physical_cleanup_complete : Bool,
 ) -> Result[Unit, OriginalReadIssue] {
   guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if claim.children is Some(_) {
+    return settle_original_read_child(
+      claim, consumer, physical_cleanup_complete,
+    )
+  }
+
   if !funded_read_claim_has_consumer(claim, consumer) {
     return Err(SpentClaim)
   }
@@ -734,6 +778,11 @@ fn[T] funded_read_claim_has_active_consumer(
   claim : FundedReadClaim[T],
   consumer : FundedReadConsumer[T],
 ) -> Bool {
+  if claim.children is Some(_) {
+    return original_read_child(claim, consumer)
+      .map(child => child.phase == Declared || child.phase == Entered)
+      .unwrap_or(false)
+  }
   match claim.phase {
     Preparing(current) | ConsumerStarted(current) =>
       physical_equal(current, consumer)
@@ -746,6 +795,11 @@ fn[T] funded_read_claim_has_consumer(
   claim : FundedReadClaim[T],
   consumer : FundedReadConsumer[T],
 ) -> Bool {
+  if claim.children is Some(_) {
+    return original_read_child(claim, consumer)
+      .map(child => child.phase != Reclaimed)
+      .unwrap_or(false)
+  }
   match claim.phase {
     Preparing(current)
     | ConsumerStarted(current)
@@ -767,6 +821,12 @@ pub fn[T] enter_funded_read_consumer(
   execution_bytes : Int64,
 ) -> Result[Unit, OriginalReadIssue] {
   guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if claim.children is Some(_) {
+    return enter_original_read_child(
+      claim, consumer, origin, retained_bytes, execution_bytes,
+    )
+  }
+
   if !physical_equal(origin, claim.descriptor.origin) {
     return Err(ForeignOrigin)
   }

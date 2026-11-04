@@ -35,7 +35,19 @@ let client_model_read_scope_construction_units : @execution.PreparationRepresent
 /// Immutable construction DATA, not a byte allowance or Scope/permission.
 /// The original caller must fund this and its census growth before binding.
 pub fn client_model_read_scope_construction_inventory() -> @execution.PreparationRepresentationUnits {
-  client_model_read_scope_construction_units
+  // The existing Resource claim now retains a resident optional closed-child
+  // reference even on the singular path. Back it on the same original scope
+  // entrance before that later claim allocation; it issues no child/grant.
+  let slots = @resources.original_read_children_construction_slots(1).unwrap()
+  {
+    ..client_model_read_scope_construction_units,
+    record_headers: client_model_read_scope_construction_units.record_headers +
+    slots.0,
+    reference_slots: client_model_read_scope_construction_units.reference_slots +
+    slots.1,
+    scalar_words: client_model_read_scope_construction_units.scalar_words +
+    slots.2,
+  }
 }
 
 ///|
