@@ -11,6 +11,7 @@ import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, inspectExternalLocalNodeAdapterGraph} from './build-local-node-adapters.mjs';
 import {buildExternalLocalNodeRuntime} from './build-runtime-packages.mjs';
+import {ownHttpRequest} from '../adapters/host-common/http-exchange.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 function fixture(t, {collision = false, adapterImport, deferAdapterImport = false} = {}) {
@@ -388,7 +389,9 @@ test('external read fixture retains its bound managed reader and original page p
   assert.deepEqual(calls, ['implementation', 'site', 'reader', 'source']);
   const pages = preparePageReader({resource: 'records', columns: ['id', 'amount']});
   for (const pageIndex of [0, 1]) {
-    assert.deepEqual(pages.fetchPage({pageIndex}), {method: 'GET', target: `/records?page=${pageIndex}`});
+    const request = pages.fetchPage({pageIndex});
+    assert.deepEqual(request, {method: 'GET', path: '/records', query: [['page', String(pageIndex)]]});
+    assert.equal(ownHttpRequest(request).target, `/records?page=${pageIndex}`);
     assert.deepEqual(pages.decodePage({accepted: true, statusCode: 200, body: bodies[pageIndex]}, {pageIndex}),
       {rows: [{id: pageIndex === 0 ? 'first' : 'second', amount: pageIndex + 1}], done: pageIndex === 1});
   }
