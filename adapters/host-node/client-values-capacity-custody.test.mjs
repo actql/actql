@@ -8,9 +8,9 @@ import {DatabaseSync} from 'node:sqlite';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence} from './local-values-plan.mjs';
-import {valuesHostPolicyOriginal} from './local-values-capacity.mjs';
+import {valuesHostPolicyOriginal, valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 
@@ -25,6 +25,21 @@ const scope = {namespaceId: 'values-capacity', authorityScopeCid: cid('a')};
 const request = {kind: 'program', input: program, parameters: null};
 const planFor = preparedProgram => sourceFreeValuesPlan({moon, control, preparedProgram, publicationOriginal: publicationOriginalFixture(moon, preparedProgram),
   ...scope, storeAuthorityCid: cid('7'), now: () => '2026-10-07T00:00:00.000Z'});
+
+// Retained prior-format records keep their original explicit policy binding.
+// Ordinary new Plans below do not invent this historical evidence field.
+function priorProfilePlan(prepared) {
+  const original = valuesHostPolicyOriginal(121);
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'values', {
+    executionContextCid: valuesExecutionContextCid(scope.authorityScopeCid, original),
+    hostPolicyCid: original.cid, expiresAt: '2098-01-01T00:00:00.000Z'});
+  const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
+    namespaceId: scope.namespaceId, runId: 'prior-values-profile',
+    createdAt: '2026-10-07T00:00:00.000Z', validUntil: '2098-01-01T00:00:00.000Z'});
+  return {plan: {runDefinition}, evidence: Object.freeze({
+    prepared: compiled.preparedEvidence.wire, authorization: compiled.authorization.wire,
+    valuesHostPolicyOriginal: original})};
+}
 
 test('Embedded Local captures Values row selection once alongside the Host policy snapshot', async () => {
   let reads = 0;
@@ -41,30 +56,33 @@ test('Embedded Local captures Values row selection once alongside the Host polic
   assert.equal(reads, 1);
 });
 
-test('default Values capacity derives from input while an explicit insufficient ceiling rejects', () => {
-  const standard = installNodeClientProgramPreparation({moon, environment})(request);
+test('default Values capacity derives from input while an explicit insufficient ceiling rejects', async t => {
+  const prepareStandard = await fundedClientPreparation(t, {moon, environment});
+  const standard = await prepareStandard(request);
   assert.equal(moon.clientProgramValuesMaxRows(standard), 121);
   const standardPlan = planFor(standard);
   // Generic metadata retains one row collection and one order inventory.
   assert.equal(standardPlan.outputLimits.maxResultWorkspaceEntries, 2 * 121);
-  const short = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 120})(request);
-  assert.throws(() => planFor(short), {code: 'RunHostCompilationRejected'});
-  const selected = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 121})(request);
+  const prepareShort = await fundedClientPreparation(t, {moon, environment, valuesMaxRows: 120});
+  await assert.rejects(prepareShort(request), {code: 'ClientProgramUnsupported'});
+  const prepareSelected = await fundedClientPreparation(t, {moon, environment, valuesMaxRows: 121});
+  const selected = await prepareSelected(request);
   const plan = planFor(selected);
   assert.equal(plan.outputLimits.maxResultWorkspaceEntries, 2 * 121);
   assert.equal(plan.outputLimits.maxResultOrderWork, standardPlan.outputLimits.maxResultOrderWork);
   assert.equal(moon.clientProgramValuesMaxRows(standard), 121);
-  assert.equal(sourceFreeValuesAdmissionEvidence(plan).valuesHostPolicyOriginal.wire,
-    '{"max_rows":121,"name":"source-free-values","version":"actql-installed-local-policy/0.1"}');
+  assert.equal(moon.clientProgramValuesMaxRows(selected), 121);
+  assert.deepEqual(Object.keys(sourceFreeValuesAdmissionEvidence(plan)).sort(), ['authorization', 'prepared'],
+    'the selected ceiling is not a fabricated prior-format count proof');
 });
 
-test('Values profile custody rejects altered originals and a different Run context, and preserves its original after restart',
-  async () => {
+test('retained prior Values profile custody rejects altered originals and a different Run context after restart',
+  async t => {
     const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-values-custody-', label: 'Values profile custody'});
     const directory = scratch.path;
-    const prepared = installNodeClientProgramPreparation({moon, environment, valuesMaxRows: 121})(request);
-    const plan = planFor(prepared);
-    const evidence = sourceFreeValuesAdmissionEvidence(plan);
+    const prepare = await fundedClientPreparation(t, {moon, environment, valuesMaxRows: 121});
+    const prepared = await prepare(request);
+    const {plan, evidence} = priorProfilePlan(prepared);
     const identity = moon.clientProgramRequestIdentity(prepared, scope.authorityScopeCid, 'saved-profile', cid('b'));
     const options = {namespaceId: scope.namespaceId, runDefinition: plan.runDefinition,
       lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
