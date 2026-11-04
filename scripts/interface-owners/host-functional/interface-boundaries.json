@@ -112079,6 +112079,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
@@ -112101,6 +112105,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
@@ -112119,6 +112127,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
@@ -112137,6 +112149,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
@@ -112155,6 +112171,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
@@ -112173,6 +112193,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
@@ -112191,6 +112215,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
@@ -112209,6 +112237,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
@@ -112227,6 +112259,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -112257,6 +112293,18 @@
               {
                 "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
                 "anchor": "Request serialized Model preserves native Graph across actual facade Host and manager"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"Effect Model Graph grows its same Request before measuring and issuing the original component\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
+                "anchor": "test \"Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias\""
               }
             ]
           }
@@ -114167,7 +114215,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "a6963abd18d6815b525f96a9796d8120c7391ad38ae67987653bc923df2610cb"
+      "sha256": "7ed77cae2c50c2fd837d0816a7420454ddbeeb1f112e7aa821cc9ef475d79fdf"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

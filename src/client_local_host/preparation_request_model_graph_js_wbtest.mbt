@@ -1,4 +1,251 @@
 ///|
+// The real Effect compiler/borrower precedes Model Graph construction. No
+// Graph, Model Plan or Scope is constructed to manufacture these inputs.
+fn request_effect_model_graph_inputs(
+  current? : () -> Bool = () => true,
+) -> (
+  ClientRequestPreparation[Array[Int]],
+  Array[Int],
+  @publication_host.PreparedClientEffectComputation,
+  @resources.PreparationBodyBorrow[
+    @publication_host.PreparedClientEffectComputation,
+  ],
+  @publication_host.ClientInferOccurrence,
+  @environment.ModelExecutionContract,
+) raise {
+  let (environment, document) = effect_model_plan_source()
+  let initial = @resources.add_ledger_limits(
+    client_local_preparation_initial_limits(client_local_resource_policy()).unwrap(),
+    effect_model_plan_limits,
+  ).unwrap()
+  let (parent, child, _, input) = registration_parent_fixture(
+    current~,
+    text=document,
+    environment=Some(environment),
+    effect_limits=Some(
+      @publication_host.client_standard_effect_computation_limits(),
+    ),
+    initial_limits=Some(initial),
+  )
+  finish_effect_program_check_preparation(child).unwrap() |> ignore
+  let prepared = compile_effect_program_check_preparation(child).unwrap()
+  assert_true(
+    physical_equal(
+      continue_request_effect_preparation(parent, input).unwrap(),
+      prepared,
+    ),
+  )
+  let holder = borrow_request_effect_plan_input(parent, input).unwrap()
+  let occurrence = @publication_host.prepared_client_effect_infer_occurrence(
+    prepared,
+  ).unwrap()
+  let wire =
+    #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
+  let execution = @publication_host.read_client_infer_occurrence_model_execution(
+    occurrence,
+    @utf8.encode(wire),
+    "sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da",
+    { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
+    100000,
+  ).unwrap()
+  (parent, input, prepared, holder, occurrence, execution)
+}
+
+///|
+test "Effect Model Graph grows its same Request before measuring and issuing the original component" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let capacity = parent.effect_capacity.unwrap()
+  let ledger = parent.ledger
+  let before = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  let after = @resources.preparation_capacity_working_extents(capacity, input).unwrap()
+  assert_true(after.0 > before.0 && after.1 > before.1)
+  assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+  assert_true(physical_equal(parent.ledger, ledger))
+  assert_true(physical_equal(parent.compiled_effect.unwrap(), prepared))
+  assert_true(
+    parent.compiled_program is None && parent.program_capacity is None,
+  )
+  assert_true(parent.phase == EffectPlanReserved)
+  assert_true(
+    @publication_host.client_infer_occurrence_matches_plan(occurrence, graph),
+  )
+  assert_true(
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraph(_, _, _, original)) &&
+    physical_equal(original, graph),
+  )
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
+}
+
+///|
+test "Effect Model Graph refuses current loss before each constructor and retains the same failed child" {
+  for denied in [1, 2] {
+    let armed = Ref(false)
+    let calls = Ref(0)
+    let (parent, input, _, holder, occurrence, execution) = request_effect_model_graph_inputs(current=() => {
+        if !armed.val {
+          return true
+        }
+        calls.val += 1
+        calls.val != denied
+      },
+    )
+    let capacity = parent.effect_capacity.unwrap()
+    armed.val = true
+    assert_true(
+      prepare_request_model_graph(
+        parent,
+        input,
+        occurrence,
+        execution,
+        request_program_module_contracts(),
+        manifests=request_program_module_manifests(),
+        compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+      )
+      is Err(Preparation(Capacity(_))),
+    )
+    assert_true(parent.phase == EffectBodyFailed)
+    assert_true(physical_equal(parent.effect_capacity.unwrap(), capacity))
+    assert_true(parent.program_domain_quote is Some(_))
+    if denied == 1 {
+      assert_true(parent.program_domain_compilation_inputs is None)
+    } else {
+      assert_true(
+        parent.program_domain_compilation_inputs
+        is Some(RequestModelGraphConstruction(_, _, _, _)),
+      )
+    }
+    armed.val = false
+    assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+    abort_request_preparation_after_cleanup(parent).unwrap()
+    assert_true(parent.program_domain_compilation_inputs is None)
+    assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+  }
+}
+
+///|
+test "Effect Model Graph refuses another original occurrence without debiting its Request" {
+  let (parent, input, _, holder, _, _) = request_effect_model_graph_inputs()
+  let (foreign, _, _, foreign_holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let before = request_preparation_accounting(parent)
+  assert_true(
+    prepare_request_model_graph(
+      parent,
+      input,
+      occurrence,
+      execution,
+      request_program_module_contracts(),
+      manifests=request_program_module_manifests(),
+      compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+    )
+    is Err(Preparation(ForeignOriginal)),
+  )
+  assert_eq(request_preparation_accounting(parent), before)
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
+  abort_request_preparation_after_cleanup(parent).unwrap()
+  assert_false(
+    @resources.return_preparation_body_borrow(foreign_holder).unwrap(),
+  )
+  abort_request_preparation_after_cleanup(foreign).unwrap()
+}
+
+///|
+test "Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias" {
+  let (parent, input, prepared, holder, occurrence, execution) = request_effect_model_graph_inputs()
+  let graph = prepare_request_model_graph(
+    parent,
+    input,
+    occurrence,
+    execution,
+    request_program_module_contracts(),
+    manifests=request_program_module_manifests(),
+    compilation_limits=@publication_host.client_standard_pure_compilation_limits(),
+  ).unwrap()
+  let compilation = @publication_host.issue_prepared_client_effect_compilation(
+    prepared,
+    request_program_module_manifests(),
+    @publication_host.client_standard_values_sequence_limits(),
+    1000,
+    10000,
+    1000000,
+    100000,
+    100,
+    infer=Some(graph),
+  ).unwrap()
+  let allowed = @publication_host.issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = @publication_host.issue_client_effect_run_definition(
+    allowed, "Model-plan", "same-original", "2026-10-26T00:00:00.000Z", "2027-01-01T00:00:00.000Z",
+  ).unwrap()
+  let compiled = @publication_host.client_effect_allowed_infer_run_with_policy_body(
+    allowed,
+    Some(
+      "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+    ),
+    Some(
+      "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}",
+    ),
+    10000,
+    1000,
+    20,
+  ).unwrap()
+  let model = prepare_installed_effect_model_demand(
+    prepared, compiled, compilation, definition, occurrence, graph, effect_model_plan_limits,
+    500L, 700L, 20, 20, 20,
+  ).unwrap()
+  let request = @publication_host.prepare_client_effect_request_identity(
+    prepared,
+    "sha256:" + "a".repeat(64),
+    "effect-graph-original",
+    "sha256:" + "b".repeat(64),
+  ).unwrap()
+  let plan = effect_model_plan_fixture(
+    prepared,
+    request,
+    request_program_module_contracts(),
+    model,
+    Ref(0),
+  )
+  let scope = prepare_request_effect_model_read_scope(parent, input, plan).unwrap()
+  assert_true(
+    parent.program_domain_compilation_inputs
+    is Some(RequestModelGraph(_, _, _, original)) &&
+    physical_equal(original, graph),
+  )
+  complete_request_effect_preparation(parent, input, plan).unwrap()
+  @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
+  let run = begin_request_effect_model_managed_run(parent, request, scope).unwrap()
+  assert_true(parent.program_domain_compilation_inputs is None)
+  assert_true(parent.program_domain_quote is None)
+  assert_true(physical_equal(plan.model.unwrap().graph, graph))
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope, compiled, definition, graph, true,
+    ).unwrap(),
+  )
+  retire_installed_managed_run(run).unwrap()
+  assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  assert_eq(@resources.ledger_usage(parent.ledger).held_bytes, 0L)
+}
+
+///|
 // Reuse the existing independent execution-contract vector, without issuing
 // a Graph before the Request's new construction reservation.
 fn request_model_graph_inputs(

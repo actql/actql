@@ -1024,12 +1024,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       current();
       const producer = producerForRequest(request), state = producer?.preparation;
       if (state?.preparationFailed) throw state.preparationFailure;
-      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+      const effectful = state?.compilationKind === 'effectful' && state.effectBorrowMethods !== undefined;
+      if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelGraph !== undefined ||
           state.contentGraph !== serializationGraph) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime, contracts = originals.installation.sequenceContractOriginal;
-      if (contracts?.moon !== moon || moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
+      const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
+        : moon.clientProgramPreparationBorrowRead;
+      if (contracts?.moon !== moon || typeof readOriginal !== 'function' ||
+          Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
       const construct = serializationGraph === undefined ? moon.clientProgramPrepareRequestModelGraph
@@ -1048,7 +1052,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
             state.contentGraph !== serializationGraph ||
-            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+            Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) fail('ForeignInstalledSourceProducer');
         return state.modelGraph;
       });
     },
@@ -1488,6 +1492,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
+        state.modelGraph = undefined;
         return run;
       } catch (cause) {
         state.adopting = false;
@@ -1540,6 +1545,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
         runs.set(prepared, run); liveRuns.add(run);
+        state.modelGraph = undefined;
         return run;
       } catch (cause) {
         state.adopting = false;

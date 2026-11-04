@@ -423,6 +423,8 @@ fn[I] finish_request_effect_run_adoption(
       owner.effect_plan = None
       owner.program_data = None
       owner.program_plan_quote = None
+      owner.program_domain_quote = None
+      owner.program_domain_compilation_inputs = None
       owner.native_parameters = None
       owner.native_query_declarations = None
       owner.native_parameters_ready = false

@@ -4780,6 +4780,22 @@ capacity nor an extra compiler/provider/Run or a construction-backing receipt.
 
 ### Same-parent Model Scope construction
 
+The existing pre-Graph Model entrance distinguishes its original Pure Model
+input from an original Effect input. An Effect input stays under its Effect
+Plan borrower and capacity; it cannot be read as a Program preparation or
+replaced by a bare Graph issuer. Both entrances reserve measurement storage
+and the original lowering inputs before measurement, retain those inputs in
+the existing Request slot, then reserve the measured constructor overlap
+before issuing the component from those same inputs. A failed current check
+retains the selected geometry and quote under that family's failed-body phase.
+
+The Effect compiler, Plan and Model Scope consume that same component.
+Successful adoption transfers its custody to the original Run and clears the
+Request's transient Graph/quote aliases. Failed completion or adoption keeps
+them for the original cleanup. A serialized prefix must already belong to its
+existing Content owner; this entrance never reconstructs one from a missing
+selection or changes Effect publication into a Pure Result grant.
+
 The Scope owner declares the representation of its original binding and Scope
 records. Resource separately owns the census-slot representation. The existing
 Request uses those two declarations and the common tariff to reserve only the

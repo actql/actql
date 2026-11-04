@@ -291,8 +291,10 @@ pub fn issue_installed_client_composed_infer_plan_graph(
   construction? : ClientInferGraphConstruction? = None,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
   if construction is Some(original) {
-    if @strategy.graph_program_has_effects(occurrence.owner.graph) ||
-      !prepared_client_serialization_occurrences(occurrence.owner).is_empty() {
+    // The same measured constructor is also used by an original Effect
+    // occurrence. Its Effect publication remains with the enclosing compiler;
+    // this component still emits no Effect action or independent Result.
+    if !prepared_client_serialization_occurrences(occurrence.owner).is_empty() {
       return Err(UnsupportedProgram)
     }
     return issue_client_infer_plan_graph_for_occurrence(

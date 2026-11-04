@@ -510,15 +510,24 @@ test('Mock Effect reader consumes the same planned original and retires physical
 const graphMethodStart = managerSource.indexOf('    prepareModelGraph(');
 const graphMethodEnd = managerSource.indexOf('    prepareModelCompilation(', graphMethodStart);
 assert(graphMethodStart >= 0 && graphMethodEnd > graphMethodStart);
-function requestGraphFixture({serialized = true, missingPort = false, replaceAfter = false, refuse} = {}) {
+function requestGraphFixture({serialized = true, missingPort = false, replaceAfter = false, refuse,
+  effectful = false, foreignEffectBorrow = false} = {}) {
   const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, occurrence = {}, execution = {};
   const component = serialized ? {} : undefined, graph = {}, admission = {}, calls = [];
-  const state = {prepared, parent, holder, contentGraph: component, compilationFamily: 'model'};
+  const state = {prepared, parent, holder, contentGraph: component,
+    compilationFamily: effectful ? undefined : 'model',
+    compilationKind: effectful ? 'effectful' : 'effect_free'};
+  if (effectful) state.effectBorrowMethods = {clientProgramEffectPreparationInputRead(value) {
+    assert.equal(value, holder); return foreignEffectBorrow ? undefined : prepared;
+  }};
   const producer = {preparation: state, receipt: input};
   let object;
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const moon = {
-    clientProgramPreparationBorrowRead(value) {assert.equal(value, holder); return prepared;},
+    clientProgramPreparationBorrowRead(value) {
+      assert.equal(effectful, false, 'Effect never becomes a Program borrower');
+      assert.equal(value, holder); return prepared;
+    },
     clientProgramRequestProgramModuleIssueCode() {assert.fail('No issue reclassification on success');},
     clientProgramPrepareRequestModelGraph(...args) {
       assert.equal(this, moon); assert.equal(serialized, false);
@@ -549,6 +558,30 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
   return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized),
     foreign: () => object.prepareModelGraph(prepared, request, occurrence, execution, {}, constructSerialized)};
 }
+
+test('Request Effect Model Graph uses its original Effect borrower and same existing typed constructor', () => {
+  const f = requestGraphFixture({serialized: false, effectful: true});
+  assert.equal(f.invoke(), f.graph);
+  assert.equal(f.state.modelGraph, f.graph);
+  assert.equal(f.state.compilationFamily, undefined);
+  assert.deepEqual(f.calls, ['original Model']);
+  assert.equal(f.state.preparing, false);
+  assert.throws(f.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(f.calls, ['original Model']);
+});
+
+test('Request Effect Model Graph refuses a foreign Effect borrower and keeps a post-current original for cleanup', () => {
+  const missing = requestGraphFixture({serialized: false, effectful: true, foreignEffectBorrow: true});
+  assert.throws(missing.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.deepEqual(missing.calls, []);
+  const changed = requestGraphFixture({serialized: false, effectful: true, replaceAfter: true});
+  assert.throws(changed.invoke, {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(changed.state.modelGraph, changed.graph);
+  assert.equal(changed.state.preparationFailed, true);
+  const failure = changed.state.preparationFailure;
+  assert.throws(changed.invoke, cause => cause === failure);
+  assert.deepEqual(changed.calls, ['original Model']);
+});
 
 test('Request Model Graph forwards the same retained Content original to one typed parent constructor', () => {
   const original = requestGraphFixture();
