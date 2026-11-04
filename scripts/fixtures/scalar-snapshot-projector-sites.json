@@ -5,7 +5,7 @@
     "Some": "1header+1ref+2words (tag plus possible scalar payload)",
     "Array": "2headers+43refs+2words; max literal17items, capacity<=8+2*17 plus wrapperref"
   },
-  "loop_proof": "Five direct compose literals4+8+17+2+9, one canonical literal3 and two writer literals2:8 compose invocations/47 items.11 tariff projections and two five-product repeats:47*5+11*5+2*5=300 execution arithmetic delegates. Four collections/four maps/two extent additions add4*11+4*6+2*3=74, canonical output is used twice and adds2:376 shared arithmetic calls. Sort halving loop has no allocating body. Include eight array recipes, one map recipe, two subtractions, and schema-work standard-profile constructors. Option.map and unwrap_or execute at most once; their fixed packet also includes one noncapturing conversion closure.",
+  "loop_proof": "Five direct compose literals4+8+17+2+9, one canonical literal3 and two writer literals2:8 compose invocations/47 items.11 tariff projections and two five-product repeats:47*5+11*5+2*5=300 execution arithmetic delegates. Four collections/four maps/two extent additions add4*11+4*6+2*3=74, canonical output is used twice and adds2:376 shared arithmetic calls before arrays. Each of eight array delegates expands the shared representation and slots helpers, adding four checked products:408 shared arithmetic calls total. Sort halving loop has no allocating body. Include eight array recipes and both shared helper bodies, one map recipe, two subtractions, and schema-work standard-profile constructors. Option.map and unwrap_or execute at most once; their fixed packet also includes one noncapturing conversion closure.",
   "items": [
     {
       "path": "src/client_local_host/preparation_scalar_snapshot_layout.mbt",
@@ -64,7 +64,7 @@
       "record_sites": 9,
       "some_sites": 7,
       "array_sites": 0,
-      "source_sha256": "660a9942194900d7976ed3f47b5945cb1be41646e35a297aa1268b19eb7f2df2",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "734988bf6d2171e99d905ebd251e2017ececab87217ade8a3fdf42d662af4d63"
     },
     {
@@ -81,11 +81,31 @@
       "path": "src/client_local_host/preparation_closed_values_program.mbt",
       "function": "closed_values_program_arrays",
       "multiplicity": 8,
-      "record_sites": 6,
+      "record_sites": 1,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "8607154029be6e3b5f0b72e99b68fb86124a25f7d9f70cdc2d4d39dcc6d88b02",
-      "body_sha256": "1b9b45e2fdf91208ec473641fdd1eb7c81a8a0930f6a0a0d82218bd65f2623dc"
+      "source_sha256": "48f602d76633ce58d2d6f2b54a4f2dd4e9b32511d8bc5c77037603689e596166",
+      "body_sha256": "de6e4ee0a9e55fc16005872e504932f064d0cbbd8c1903d8e9e7f06d1901f367"
+    },
+    {
+      "path": "src/execution_relation/preparation_representation.mbt",
+      "function": "preparation_array_representation",
+      "multiplicity": 8,
+      "record_sites": 3,
+      "some_sites": 2,
+      "array_sites": 0,
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
+      "body_sha256": "8f8e864556d635bd02cc2d7c2b35c0e271e7b9e9fc53bcba80cb67e3afb54ef3"
+    },
+    {
+      "path": "src/capacity_arithmetic/preparation_counts.mbt",
+      "function": "preparation_array_slots",
+      "multiplicity": 8,
+      "record_sites": 8,
+      "some_sites": 5,
+      "array_sites": 0,
+      "source_sha256": "9f589075ee2f9edeaee21e1494f3dda92f5154d353eceaf897888607bba4104e",
+      "body_sha256": "d43c6b89a0935bf249d58c0439825f8d48fda5575a50d88b708fc94f7c5057b2"
     },
     {
       "path": "src/client_local_host/preparation_closed_values_program.mbt",
@@ -94,7 +114,7 @@
       "record_sites": 6,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "8607154029be6e3b5f0b72e99b68fb86124a25f7d9f70cdc2d4d39dcc6d88b02",
+      "source_sha256": "48f602d76633ce58d2d6f2b54a4f2dd4e9b32511d8bc5c77037603689e596166",
       "body_sha256": "28323a6840b3b29f6b56ce441b2184ece56bc6ddf9d7879d2195b2569d0d6013"
     },
     {
@@ -144,7 +164,7 @@
       "record_sites": 5,
       "some_sites": 4,
       "array_sites": 0,
-      "source_sha256": "660a9942194900d7976ed3f47b5945cb1be41646e35a297aa1268b19eb7f2df2",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "4f093e52c0babbce295194a97e4ee9665f07226aa4308b925473bee0d9762408"
     },
     {
@@ -154,7 +174,7 @@
       "record_sites": 1,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "660a9942194900d7976ed3f47b5945cb1be41646e35a297aa1268b19eb7f2df2",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "fca6276aac1151c1af408421d439d67d14482f1a160e24ffba98346490167013"
     },
     {
@@ -200,11 +220,11 @@
     {
       "path": "src/capacity_arithmetic/preparation_counts.mbt",
       "function": "checked_nonnegative_add_product",
-      "multiplicity": 376,
+      "multiplicity": 408,
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "8e75ff6d64457898ebcceac37c2aec5f3187f5821a6159afbfeea19760ce5042",
+      "source_sha256": "9f589075ee2f9edeaee21e1494f3dda92f5154d353eceaf897888607bba4104e",
       "body_sha256": "67c67521aa8847efe6882f98480c362dec14b655a7fc779a37812aeaeab8e203"
     },
     {
@@ -259,18 +279,18 @@
     }
   ],
   "weighted_sites": {
-    "record": 1776,
-    "some": 614,
+    "record": 1920,
+    "some": 702,
     "array": 8
   },
   "units": {
-    "record_headers": 2552,
-    "reference_slots": 20371,
-    "scalar_words": 20791,
+    "record_headers": 2638,
+    "reference_slots": 22166,
+    "scalar_words": 22540,
     "owned_utf16_units": 0,
     "owned_wire_bytes": 0
   },
-  "logical_bytes": 370128,
+  "logical_bytes": 399856,
   "fixed_sites": {
     "record": 5,
     "some": 3,
@@ -280,7 +300,7 @@
     "core_archive_sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1",
     "member": "./core/builtin/option.mbt",
     "source_sha256": "059fcefd01f0393fc0ded6456e28d3dc0699dd6c32fdd0ac80aadbb35473184a",
-    "constructor_summary": "Authenticated pinned Source: map has two braces and two Some sites (one match, one constructor); unwrap_or has two braces and one Some match, returns borrowed payload/default. Charge all four braces/three Some sites plus one noncapturing bytes=>bytes.to_int64 closure as a11-slot record. unwrap returns the same Some payload without constructors; None panics are unreachable for nonnegative Int-bounded writer/NFC shared helper products. Fixed nonrecursive call frames remain installed baseline.",
+    "constructor_summary": "Authenticated pinned Source: map has two braces and two Some sites (one match, one constructor); unwrap_or has two braces and one Some match, returns borrowed payload/default. Charge all four braces/three Some sites plus one noncapturing bytes=>bytes.to_int64 closure as a11-slot record. unwrap returns the same Some payload without constructors; None panics are unreachable for nonnegative Int-bounded writer/NFC/array shared helper products. Fixed nonrecursive call frames remain installed baseline.",
     "map": {
       "braces": 2,
       "some_sites": 2
@@ -292,12 +312,12 @@
     "closure_records": 1
   },
   "census_units": {
-    "record_headers": 2406,
-    "reference_slots": 20494,
-    "scalar_words": 20780,
+    "record_headers": 2638,
+    "reference_slots": 22166,
+    "scalar_words": 22540,
     "owned_utf16_units": 0,
     "owned_wire_bytes": 0
   },
-  "census_logical_bytes": 368688,
-  "allowance_note": "The unchanged units vector is the original decomposition of the fixed byte allowance, not separate H/R/W limits. The current finite census is priced by the same v1 tariff and must fit its unchanged logical_bytes ceiling. No allowance is inferred from executing a projector."
+  "census_logical_bytes": 399856,
+  "allowance_note": "The fixed quote prices the finite current constructor census at the existing v1 tariff. The original publication owner admits it plus its unchanged 1536-byte wrapper before projection. H/R/W remain accounting units; input-sized data retain their existing separate inventories."
 }

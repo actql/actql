@@ -707,6 +707,7 @@ function sourceRouteCallerFixture({kind = 'whole-input', queryFailure, wrapAdapt
     checkpoints: undefined, ExecutionAuthorizationError: class extends Error {},
   };
   context.originalSourceFreeRequest = sourceRouteBinding('originalSourceFreeRequest', context, true);
+  context.modelSourceOccurrence = sourceRouteBinding('modelSourceOccurrence', context);
   const requestOf = sourceRouteBinding('requestOf', context);
   const prepareAcquisition = sourceRouteBinding('prepareAcquisition', context);
   return {prepared, requested, preparedSource, events, identities,

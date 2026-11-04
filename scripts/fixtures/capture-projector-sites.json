@@ -54,7 +54,7 @@
       "record_sites": 9,
       "some_sites": 7,
       "array_sites": 0,
-      "source_sha256": "660a9942194900d7976ed3f47b5945cb1be41646e35a297aa1268b19eb7f2df2",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "734988bf6d2171e99d905ebd251e2017ececab87217ade8a3fdf42d662af4d63"
     },
     {
@@ -64,7 +64,7 @@
       "record_sites": 5,
       "some_sites": 4,
       "array_sites": 0,
-      "source_sha256": "660a9942194900d7976ed3f47b5945cb1be41646e35a297aa1268b19eb7f2df2",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "4f093e52c0babbce295194a97e4ee9665f07226aa4308b925473bee0d9762408"
     },
     {
@@ -74,7 +74,7 @@
       "record_sites": 1,
       "some_sites": 0,
       "array_sites": 0,
-      "source_sha256": "660a9942194900d7976ed3f47b5945cb1be41646e35a297aa1268b19eb7f2df2",
+      "source_sha256": "bd3a97c315b5f4812c8ad8b095811d7464228c93ee6137aeac923496eda50106",
       "body_sha256": "fca6276aac1151c1af408421d439d67d14482f1a160e24ffba98346490167013"
     },
     {
@@ -124,7 +124,7 @@
       "record_sites": 3,
       "some_sites": 1,
       "array_sites": 0,
-      "source_sha256": "8e75ff6d64457898ebcceac37c2aec5f3187f5821a6159afbfeea19760ce5042",
+      "source_sha256": "9f589075ee2f9edeaee21e1494f3dda92f5154d353eceaf897888607bba4104e",
       "body_sha256": "67c67521aa8847efe6882f98480c362dec14b655a7fc779a37812aeaeab8e203"
     }
   ],

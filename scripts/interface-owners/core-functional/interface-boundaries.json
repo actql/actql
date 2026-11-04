@@ -39418,7 +39418,7 @@
     {
       "module": "src/client_local_host/preparation_publication_owner.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "24e281c13c3838f3c1478cc6087846fa9b83ff63c14651de7a330dd77fe7826e",
+      "sha256": "c81d74291193889fda00afb38d211f4c8fd67956e8ee406fee2cdfffe33abb6a",
       "role": "common-semantics",
       "owner": "Existing original Local publication owner",
       "exports": [],
