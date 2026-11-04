@@ -169,6 +169,45 @@ test('Run Host packed consumer reuses both original tarballs without another pre
   }
 });
 
+test('Run Host shared packages refuse a dirty original checkout without repacking', async t => {
+  const {repository, destination} = await fixture(t, {names: ['run-host-core', 'client-wire']});
+  await appendFile(join(repository, 'src/core.mbt'), 'changed\n');
+  await assert.rejects(runHostPackageAcquisition(repository, destination,
+    () => assert.fail('Dirty shared inputs cannot select another pack')), /build inputs changed/u);
+  assert.deepEqual(await fsPromises.readdir(destination), []);
+});
+
+test('Run Host shared packages refuse another clean revision without repacking', async t => {
+  const {repository, destination} = await fixture(t, {names: ['run-host-core', 'client-wire']});
+  git(repository, '-c', 'user.name=t', '-c', 'user.email=t@example.invalid',
+    'commit', '-q', '--allow-empty', '-m', 'different original revision');
+  await assert.rejects(runHostPackageAcquisition(repository, destination,
+    () => assert.fail('A different revision cannot select another pack')),
+  /were packed from [0-9a-f]+, not this checkout/u);
+  assert.deepEqual(await fsPromises.readdir(destination), []);
+});
+
+test('Run Host shared packages retain the verified first copy when the second digest refuses', async t => {
+  const {repository, shared, destination} = await fixture(t, {names: ['run-host-core', 'client-wire']});
+  await appendFile(join(shared, tarball('client-wire')), 'changed\n');
+  await assert.rejects(runHostPackageAcquisition(repository, destination,
+    () => assert.fail('A changed shared tarball cannot select another pack')), /changed after packing/u);
+  assert.deepEqual(await fsPromises.readdir(destination), [tarball('run-host-core')]);
+  assert.equal(await readFile(join(destination, tarball('run-host-core')), 'utf8'), 'run-host-core packed\n');
+});
+
+test('Run Host default acquisition preserves both lifecycle-enabled original npm commands', async t => {
+  const {repository, destination} = await fixture(t, {names: ['run-host-core', 'client-wire']});
+  delete process.env.ACTQL_PACKED_CLIENT_PACKAGES;
+  const calls = [];
+  await runHostPackageAcquisition(repository, destination,
+    (command, args, cwd) => { calls.push({command, args, cwd}); });
+  assert.deepEqual(calls, ['run-host-core', 'client-wire'].map(name => ({
+    command: 'npm', args: ['pack', '--pack-destination', destination, '--json'],
+    cwd: join(repository, 'packages', name),
+  })));
+});
+
 test('an unchanged checkout reuses the shared tarball as packed', async t => {
   const {repository, destination, reuse} = await fixture(t);
   // Generated output and scratch outside the build inputs do not count.
