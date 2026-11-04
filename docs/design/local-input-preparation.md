@@ -4780,6 +4780,17 @@ capacity nor an extra compiler/provider/Run or a construction-backing receipt.
 
 ### Same-parent Model Scope construction
 
+Execution, dependency and provider-binding readers first enter the existing
+material reservation on their own Request family. An Effect uses its original
+Effect Plan input and capacity, including when its input row count is unknown;
+it does not borrow a Pure Program to obtain space. The existing actual selected
+body count and immutable original String lengths fund collection growth,
+UTF-8 inputs, parser overlap and returned binding metadata before those readers
+or issuers enter. Borrowed input Strings remain aliases, not extra copies.
+Current loss or a reader/issuer failure retains the same grown debit under that
+family's failed-body phase. This is constructor backing, not Model permission,
+an observed row count or an additional operational allowance.
+
 The existing pre-Graph Model entrance distinguishes its original Pure Model
 input from an original Effect input. An Effect input stays under its Effect
 Plan borrower and capacity; it cannot be read as a Program preparation or

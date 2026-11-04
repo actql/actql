@@ -53041,6 +53041,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "test \"Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }

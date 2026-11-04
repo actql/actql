@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {configuration} from '../../scripts/fixtures/installed-infer-fixture.mjs';
 import {readInstalledModelExecution, readInstalledModelDependencies,
   admitInstalledModelProviderBinding} from './installed-model.mjs';
@@ -10,6 +11,162 @@ import {readInstalledModelExecution, readInstalledModelDependencies,
 const frozen = (executions, bodies) => Object.freeze({environmentWire: '{}',
   executionContracts: Object.freeze(executions.map(Object.freeze)),
   dependencyBodies: Object.freeze(bodies.map(Object.freeze))});
+
+const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
+const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructRequestDomain('),
+  managerSource.indexOf('  const view = Object.freeze({'));
+const materialStart = managerSource.indexOf('    prepareModelMaterials(');
+const materialEnd = managerSource.indexOf('    prepareModelGraph(', materialStart);
+const hostSource = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+const hostTree = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'});
+let materialCallback;
+let mockGraph;
+const bindingCallbacks = [];
+const walk = node => {
+  if (!node || typeof node !== 'object') return;
+  if (node.type === 'VariableDeclarator' && node.id.name === 'requestModelMaterials') materialCallback = node.init;
+  if (node.type === 'VariableDeclarator' && node.id.name === 'graph' &&
+      node.init?.type === 'ConditionalExpression' &&
+      node.init.alternate?.callee?.name === 'checked' &&
+      node.init.alternate.arguments[0]?.callee?.property?.name === 'clientProgramInstalledComposedInferPlanGraph') mockGraph = node.init;
+  if (node.type === 'CallExpression' && node.callee.name === 'admitInstalledModelProviderBinding') bindingCallbacks.push(node.arguments[3]);
+  for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
+  else if (child && typeof child === 'object') walk(child);
+};
+walk(hostTree);
+assert(materialCallback && mockGraph && bindingCallbacks.length === 2);
+
+// Execute the actual Host and manager bodies with explicit typed constructor
+// ports. The Core companion owns the real Resource debit; these ports are not
+// a Model/Account grant, compiled ABI, Provider send or ordinary acceptance.
+function effectMaterialCaller({foreignBorrow = false, refuse = false, replaceAfter = false} = {}) {
+  const prepared = {}, request = {}, parent = {}, input = {}, holder = {}, evidence = {}, graph = {}, events = [];
+  let nativeCalls = 0;
+  const state = {prepared, parent, holder, compilationKind: 'effectful'};
+  const producer = {preparation: state, receipt: input};
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const moon = {
+    clientProgramPreparationBorrowRead() {assert.fail('Effect is never a Program borrower');},
+    clientProgramRequestProgramModuleIssueCode() {assert.fail('no successful issue reclassification');},
+    clientProgramPrepareRequestModelContractMaterials(p, i, count, wireAt, containers) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input);
+      assert.equal(state.preparing, true); nativeCalls++;
+      assert.throws(() => manager.prepareModelMaterials(prepared, request, 0, () => '', 0),
+        {code: 'ForeignInstalledSourceProducer'});
+      if (refuse) throw undefined;
+      events.push(['materials', count, containers, Array.from({length: count}, (_, index) => wireAt(index))]);
+      return {value: undefined};
+    },
+    clientProgramPrepareRequestModelProviderBinding(p, i, ...values) {
+      assert.equal(this, moon); assert.equal(p, parent); assert.equal(i, input);
+      assert.equal(state.preparing, true); nativeCalls++;
+      events.push(['binding', ...values]); return {value: evidence};
+    },
+  };
+  state.effectBorrowMethods = {clientProgramEffectPreparationInputRead(value) {
+    assert.equal(value, holder); return foreignBorrow ? undefined : prepared;
+  }};
+  state.context = {runtime: moon};
+  const manager = Function('current', 'producerForRequest', 'fail', 'checkedRequestProgramPreparation',
+    `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(materialStart, materialEnd)}});`)(
+    () => {if (replaceAfter && state.modelProviderBinding !== undefined) state.prepared = {};},
+    value => {assert.equal(value, request); return producer;}, fail,
+    (runtime, result) => {assert.equal(runtime, moon); return result.value;});
+  const preparation = {
+    prepareManagedModelMaterials(runtime, p, ...args) {
+      assert.equal(this, preparation); assert.equal(runtime, moon); assert.equal(p, prepared);
+      return manager.prepareModelMaterials(prepared, request, ...args);
+    },
+    prepareManagedModelBinding(runtime, p, ...args) {
+      assert.equal(this, preparation); assert.equal(runtime, moon); assert.equal(p, prepared);
+      return manager.prepareModelBinding(prepared, request, ...args);
+    },
+    prepareManagedModelGraph(runtime, p, occurrence, execution) {
+      assert.equal(this, preparation); assert.equal(runtime, moon); assert.equal(p, prepared);
+      assert(occurrence && execution); events.push(['graph']); return graph;
+    },
+  };
+  const select = (node, extra = {}) => Function('preparation', 'moon', 'preparedProgram', 'prepareSubmit', 'effectful', ...Object.keys(extra),
+    `return (${hostSource.slice(node.start, node.end)});`)(preparation, moon, prepared,
+    {kindOf: p => {assert.equal(p, prepared); return 'effectful';}}, true, ...Object.values(extra));
+  return {prepared, evidence, graph, state, moon, events, select, nativeCalls: () => nativeCalls,
+    beforeRead: select(materialCallback), bindingCallbacks: bindingCallbacks.map(node => select(node))};
+}
+
+test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers', () => {
+  const f = effectMaterialCaller(), occurrence = {}, execution = {}, dependencies = {};
+  const installation = frozen([{modelTaskCid: 'task', cid: 'execution', bodyWire: '{"execution":1}'}], [
+    {cid: 'prompt', bodyWire: '{"prompt":2}'}, {cid: 'retry', bodyWire: '{"retry":3}'},
+    {cid: 'backoff', bodyWire: '{"backoff":4}'},
+  ]);
+  Object.assign(f.moon, {
+    clientProgramInferOccurrenceCoordinates: () => ({_2: 4}),
+    clientProgramInferOccurrenceModelTaskCid: () => 'task',
+    clientProgramReadComposedInferModelExecution(o, wire, cid) {
+      assert.equal(this, f.moon); assert.equal(o, occurrence);
+      assert.deepEqual([wire, cid], ['{"execution":1}', 'execution']);
+      assert.equal(f.events.at(-1)[0], 'materials'); f.events.push(['execution reader']);
+      return {$tag: 1, _0: execution};
+    },
+    clientProgramInferDependencyReferences: () => ({_0: 'prompt', _1: 'retry', _2: 'backoff'}),
+    clientProgramInferMediaDependencyReferences: () => [],
+    clientProgramReadInferModelDependencies(e, ...wires) {
+      assert.equal(this, f.moon); assert.equal(e, execution);
+      assert.deepEqual(wires, ['{"prompt":2}', '{"retry":3}', '{"backoff":4}']);
+      assert.equal(f.events.at(-1)[0], 'materials'); f.events.push(['dependency reader']);
+      return {$tag: 1, _0: dependencies};
+    },
+  });
+  assert.equal(readInstalledModelExecution(f.moon, f.prepared, installation, occurrence, f.beforeRead).execution, execution);
+  assert.equal(readInstalledModelDependencies(f.moon, execution, installation, f.beforeRead), dependencies);
+  assert.deepEqual(f.events, [
+    ['materials', 1, 4, ['{"execution":1}']], ['execution reader'],
+    ['materials', 3, 4, ['{"prompt":2}', '{"retry":3}', '{"backoff":4}']], ['dependency reader'],
+  ]);
+  assert.equal(f.nativeCalls(), 2);
+});
+
+test('Effect Model actual Mock and physical binding callbacks retain only the same backed issuer result', () => {
+  for (let index = 0; index < bindingCallbacks.length; index++) {
+    const f = effectMaterialCaller();
+    const originals = {installationRevision: {wire: '{"installation":1}', cid: 'installation'},
+      configurationContract: {wire: '{"contract":2}', cid: 'contract'}, configuration: {wire: '{"configuration":3}', cid: 'configuration'}};
+    Object.assign(f.moon, {
+      clientProgramModelProviderBinding() {assert.fail('unbacked legacy issuer');},
+      strategyRunEvidenceJson(value) {assert.equal(value, f.evidence); return JSON.stringify({provider_id: 'mock', self_cid: 'binding',
+        installation_revision_cid: 'installation', configuration_contract_cid: 'contract', configuration_cid: 'configuration'});},
+      strategyRunEvidenceIdentity(value) {assert.equal(value, f.evidence); return 'binding';},
+    });
+    const actual = admitInstalledModelProviderBinding(f.moon, 'mock', {bindingOriginals: originals}, f.bindingCallbacks[index]);
+    assert.equal(actual.value, f.evidence); assert.equal(f.state.modelProviderBinding, f.evidence);
+    assert.deepEqual(f.events, [['binding', 'mock', '{"installation":1}', '{"contract":2}', '{"configuration":3}']]);
+    assert.equal(f.nativeCalls(), 1);
+    if (index === 0) {
+      f.moon.clientProgramInstalledComposedInferPlanGraph = () => assert.fail('unbacked Mock Graph issuer');
+      assert.equal(f.select(mockGraph, {occurrence: {}, execution: {}}), f.graph);
+      assert.deepEqual(f.events.at(-1), ['graph']);
+    }
+  }
+});
+
+test('Effect Model actual material caller preserves failed undefined and foreign or changed original custody', () => {
+  const refused = effectMaterialCaller({refuse: true});
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let caught = false;
+    try {refused.beforeRead(1, () => assert.fail('reader after refusal'), 1);}
+    catch (cause) {caught = true; assert.equal(cause, undefined);}
+    assert.equal(caught, true);
+  }
+  assert.equal(refused.nativeCalls(), 1);
+  const foreign = effectMaterialCaller({foreignBorrow: true});
+  assert.throws(() => foreign.beforeRead(1, () => assert.fail('foreign reader'), 1), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(foreign.nativeCalls(), 0);
+  const changed = effectMaterialCaller({replaceAfter: true});
+  assert.throws(() => changed.bindingCallbacks[0]('mock', '{}', '{}', '{}'), {code: 'ForeignInstalledSourceProducer'});
+  assert.equal(changed.state.modelProviderBinding, changed.evidence);
+  assert.equal(changed.state.preparationFailed, true);
+  assert.equal(changed.nativeCalls(), 1);
+});
 
 test('packed Model fixture supplies its original immutable material envelope to the funded reader', () => {
   const base = JSON.parse(readFileSync(new URL('../../spec/local-check-environment.json', import.meta.url)));

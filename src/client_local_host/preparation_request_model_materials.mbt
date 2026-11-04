@@ -107,11 +107,27 @@ pub fn[I] prepare_request_model_contract_materials(
   wire_at : (Int) -> String,
   container_count : Int,
 ) -> Result[Unit, ClientRequestProgramPlanIssue] {
-  guard owner.phase == ModelPlanReserved &&
-    owner.input is Some(original) &&
+  let prepared : ClientLocalSequenceOwner = match owner.phase {
+    ModelPlanReserved => {
+      guard owner.compiled_program is Some(original) &&
+        owner.program_capacity is Some(_) else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      Pure(original)
+    }
+    EffectPlanReserved => {
+      guard owner.compiled_effect is Some(original) &&
+        owner.effect_capacity is Some(_) &&
+        owner.effect_plan is None else {
+        return Err(Preparation(ForeignOriginal))
+      }
+      Effect(original)
+    }
+    _ => return Err(Preparation(ForeignOriginal))
+  }
+  let original_phase = owner.phase
+  guard owner.input is Some(original) &&
     physical_equal(original, input) &&
-    owner.compiled_program is Some(prepared) &&
-    owner.program_capacity is Some(_) &&
     (
       owner.program_domain_compilation_inputs is None ||
       owner.program_domain_compilation_inputs
@@ -126,33 +142,58 @@ pub fn[I] prepare_request_model_contract_materials(
   // the later same-Request Graph/module/Scope entries retain their own guards.
   // A single captured prefix needs its checked original occurrence here too,
   // before the material reader can enter or the backed Graph can be built.
-  let material_profile = if installed_managed_run_shape_supported(
-      prepared, true,
-    ) ||
-    (
-      @publication_host.prepared_client_composed_infer_occurrences(prepared)
-      is Some([occurrence]) &&
-      installed_managed_owner_shape_supported(
-        Pure(prepared),
-        true,
-        model_occurrence=Some(occurrence),
-      )
-    ) {
-    true
-  } else {
-    match
-      (
-        @publication_host.prepared_client_composed_infer_occurrences(prepared),
-        @publication_host.prepared_client_serialization_occurrences(prepared),
-      ) {
-      (Some([occurrence]), [(task, step)]) => {
-        let coordinates = @publication_host.client_infer_occurrence_coordinates(
-          occurrence,
-        )
-        task == coordinates.1 && step < coordinates.2
+  let material_profile = match prepared {
+    Pure(original) =>
+      if installed_managed_run_shape_supported(original, true) ||
+        (
+          @publication_host.prepared_client_composed_infer_occurrences(original)
+          is Some([occurrence]) &&
+          installed_managed_owner_shape_supported(
+            Pure(original),
+            true,
+            model_occurrence=Some(occurrence),
+          )
+        ) {
+        true
+      } else {
+        match
+          (
+            @publication_host.prepared_client_composed_infer_occurrences(
+              original,
+            ),
+            @publication_host.prepared_client_serialization_occurrences(
+              original,
+            ),
+          ) {
+          (Some([occurrence]), [(task, step)]) => {
+            let coordinates = @publication_host.client_infer_occurrence_coordinates(
+              occurrence,
+            )
+            task == coordinates.1 && step < coordinates.2
+          }
+          _ => false
+        }
       }
-      _ => false
-    }
+    Effect(original) =>
+      match
+        @publication_host.prepared_client_effect_infer_occurrence(original) {
+        None => false
+        Some(occurrence) => {
+          let serialized = @publication_host.prepared_client_effect_serialization_occurrences(
+            original,
+          )
+          match serialized {
+            [] => true
+            [(task, step)] => {
+              let coordinates = @publication_host.client_infer_occurrence_coordinates(
+                occurrence,
+              )
+              task == coordinates.1 && step < coordinates.2
+            }
+            _ => false
+          }
+        }
+      }
   }
   guard count >= 0 &&
     container_count >= 0 &&
@@ -166,7 +207,7 @@ pub fn[I] prepare_request_model_contract_materials(
   preparation_module_call(
     () => {
       match
-        reserve_request_domain_graph_construction(
+        reserve_request_model_graph_construction(
           owner, input, prepared, collections,
         ) {
         Err(issue) => return Err(issue)
@@ -176,7 +217,7 @@ pub fn[I] prepare_request_model_contract_materials(
         return Err(Preparation(Policy))
       }
       match
-        reserve_request_domain_graph_construction(owner, input, prepared, bytes) {
+        reserve_request_model_graph_construction(owner, input, prepared, bytes) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
       }
@@ -184,9 +225,17 @@ pub fn[I] prepare_request_model_contract_materials(
       // Retain the actual capacity debit; drop only this completed quote alias.
       // The later Graph/Scope grows independently from that SAME actual debit.
       owner.program_domain_quote = None
-      owner.phase = ModelPlanReserved
+      owner.phase = original_phase
       Ok(())
     },
-    () => if owner.phase == Selecting { owner.phase = ProgramBodyFailed },
+    () => {
+      if owner.phase == Selecting {
+        owner.phase = if original_phase == EffectPlanReserved {
+          EffectBodyFailed
+        } else {
+          ProgramBodyFailed
+        }
+      }
+    },
   )
 }

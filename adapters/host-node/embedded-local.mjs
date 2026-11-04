@@ -2769,8 +2769,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       ? moon.clientProgramSelectedInferStep(preparedProgram)
       : runtimeField(moon.clientProgramInferOccurrenceCoordinates(occurrence), 2);
     if (selectedStep !== undefined) {
-      const requestModelMaterials = preparation !== undefined &&
-        prepareSubmit.kindOf(preparedProgram) !== 'effectful'
+      const requestModelMaterials = preparation !== undefined
         ? (count, wireAt, containers) => preparation.prepareManagedModelMaterials(
           moon, preparedProgram, count, wireAt, containers) : undefined;
       let execution;
@@ -2844,14 +2843,14 @@ async function openInstalledHost(originalInstallation, preparation) {
         const segments = checked((effectful ? moon.clientProgramPrepareEffectInferSegments
           : moon.clientProgramPrepareComposedInferSegments)(preparedProgram,
           occurrence, registry, values, fragment, ordered));
-        const graph = !effectful && preparation !== undefined
+        const graph = preparation !== undefined
           ? preparation.prepareManagedModelGraph(moon, preparedProgram, occurrence, execution)
           : checked(moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
         const observeAccount = () => observeInstalledAccount(moon, authorization);
         const account = observeAccount();
         const providerBinding = admitInstalledModelProviderBinding(moon, 'mock', {
           bindingOriginals: mockModels.providerBindingOriginalsForRuntime(moon)},
-        !effectful && preparation !== undefined
+        preparation !== undefined
           ? (providerId, installation, contract, configuration) => preparation.prepareManagedModelBinding(
             moon, preparedProgram, providerId, installation, contract, configuration) : undefined);
         const selection = Object.freeze({localMock: true, originalMockInstallation, step: selectedStep,
@@ -2997,7 +2996,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const providerId = moon.clientProgramInferProviderId(execution);
         const providerBinding = durableModel
           ? admitInstalledModelProviderBinding(moon, providerId, physical,
-            prepareSubmit.kindOf(preparedProgram) !== 'effectful' && preparation !== undefined
+            preparation !== undefined
               ? (id, installation, contract, configuration) => preparation.prepareManagedModelBinding(
                 moon, preparedProgram, id, installation, contract, configuration) : undefined) : undefined;
         const selection = Object.freeze({step, graph, computeSuffix, serializationGraph, selectedBounds,

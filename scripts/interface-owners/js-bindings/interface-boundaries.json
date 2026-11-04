@@ -52870,6 +52870,10 @@
               {
                 "path": "docs/design/run-host-prepared-environment.md",
                 "anchor": "## Independently supplied Remote Effects"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
@@ -52960,6 +52964,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
@@ -53070,6 +53078,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
@@ -53180,6 +53192,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "        // A restored input already owns its original prefix. Its checked"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
@@ -53278,6 +53294,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
@@ -53372,6 +53392,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
@@ -53466,6 +53490,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
@@ -53576,6 +53604,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
@@ -53670,6 +53702,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -53880,6 +53916,18 @@
               {
                 "path": "src/client_infer_host/compute_boundary_wbtest.mbt",
                 "anchor": "test \"Infer execution owns the suffix across completion and cancellation\""
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -54279,6 +54327,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
@@ -54309,6 +54361,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
@@ -54339,6 +54395,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
@@ -54369,6 +54429,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
@@ -54399,6 +54463,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
@@ -54429,6 +54497,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
@@ -54459,6 +54531,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
@@ -54489,6 +54565,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
@@ -54519,6 +54599,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -54569,6 +54653,18 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -54796,6 +54892,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
@@ -54818,6 +54918,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
@@ -54836,6 +54940,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
@@ -54858,6 +54966,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
@@ -54876,6 +54988,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
@@ -54898,6 +55014,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
@@ -54916,6 +55036,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
@@ -54938,6 +55062,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
@@ -54956,6 +55084,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -54994,6 +55126,18 @@
               {
                 "path": "adapters/host-node/installed-model-registration.test.mjs",
                 "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -58761,7 +58905,7 @@
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "b590d444d5366d0ad670f582db02bae8efd411a79ae17caead5910ef8e27c062"
+      "sha256": "215dbbbbe52afb6bbc8ed570a35d962ba1bdd25371c0d010fa5faeee2300f693"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

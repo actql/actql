@@ -110927,6 +110927,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "inputsOutputs": [
@@ -110953,6 +110957,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "identity": [
@@ -110979,6 +110987,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "ownership": [
@@ -111001,6 +111013,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "synchronization": [
@@ -111023,6 +111039,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "failure": [
@@ -111045,6 +111065,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "cancellation": [
@@ -111067,6 +111091,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "resources": [
@@ -111093,6 +111121,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "extension": [
@@ -111115,6 +111147,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
               }
             ],
             "verification": [
@@ -111141,6 +111177,18 @@
               {
                 "path": "adapters/host-node/content-preparation-retirement.test.mjs",
                 "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Same-parent Model Scope construction"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -112305,6 +112353,14 @@
               {
                 "path": "src/client_local_host/preparation_request_model_graph_js_wbtest.mbt",
                 "anchor": "test \"Effect Model Graph transfers its same component to Scope and clears only the adopted Request alias\""
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_materials_js_wbtest.mbt",
+                "anchor": "test \"Effect Model material reserves original containers before its only body callback\""
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "test('Effect Model actual Host reserves execution and dependency materials through its same Request before readers'"
               }
             ]
           }
@@ -114215,7 +114271,7 @@
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "7ed77cae2c50c2fd837d0816a7420454ddbeeb1f112e7aa821cc9ef475d79fdf"
+      "sha256": "5bc8d88e75688634b53017a27bb7347cf1ba82180f00c413c0a603a39f6ad487"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

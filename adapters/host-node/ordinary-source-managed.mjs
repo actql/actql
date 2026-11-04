@@ -967,11 +967,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         try {return reserveModelRecovery(producer, state, count, wireAt, containerCount);}
         catch (cause) {state.preparationFailed = true; state.preparationFailure = cause; throw cause;}
       }
-      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+      const effectful = state?.compilationKind === 'effectful' && state.effectBorrowMethods !== undefined;
+      if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelCompilation !== undefined || typeof wireAt !== 'function') fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime;
-      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
+        : moon.clientProgramPreparationBorrowRead;
+      if (typeof readOriginal !== 'function' || Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
       const prepare = moon.clientProgramPrepareRequestModelContractMaterials;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
       if (typeof prepare !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
@@ -980,7 +985,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           [state.parent, producer.receipt, count, wireAt, containerCount]), issue);
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
-            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+            Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) fail('ForeignInstalledSourceProducer');
       });
     },
     prepareModelBinding(prepared, request, providerId, installation, contract, configuration) {
@@ -1003,11 +1008,16 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           return state.modelProviderBinding;
         });
       }
-      if (state === undefined || state.prepared !== prepared || state.compilationFamily !== 'model' ||
+      const effectful = state?.compilationKind === 'effectful' && state.effectBorrowMethods !== undefined;
+      if (state === undefined || state.prepared !== prepared || !effectful && state.compilationFamily !== 'model' ||
           state.holder === undefined || state.inventoryHolder !== undefined || state.adopting ||
           state.preparing || state.modelCompilation !== undefined || state.modelProviderBinding !== undefined) fail('ForeignInstalledSourceProducer');
       const moon = state.context.runtime;
-      if (moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+      const readOriginal = effectful ? state.effectBorrowMethods.clientProgramEffectPreparationInputRead
+        : moon.clientProgramPreparationBorrowRead;
+      if (typeof readOriginal !== 'function' || Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) {
+        fail('ForeignInstalledSourceProducer');
+      }
       const prepare = moon.clientProgramPrepareRequestModelProviderBinding;
       const issue = moon.clientProgramRequestProgramModuleIssueCode;
       if (typeof prepare !== 'function' || typeof issue !== 'function') fail('NodeManagedRunRuntimeUnavailable');
@@ -1016,7 +1026,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
           [state.parent, producer.receipt, providerId, installation, contract, configuration]), issue);
         current();
         if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
-            moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) fail('ForeignInstalledSourceProducer');
+            Reflect.apply(readOriginal, moon, [state.holder]) !== prepared) fail('ForeignInstalledSourceProducer');
         return state.modelProviderBinding;
       });
     },
