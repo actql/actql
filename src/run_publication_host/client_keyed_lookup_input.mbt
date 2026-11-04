@@ -115,12 +115,15 @@ fn start_client_keyed_lookup_input_owned(
     ) {
     return Err(Assembly("original_custody_changed"))
   }
-  guard @acquisition.lookup_bounds_at(
+  // The original completed producer supplies the actual assembly length.
+  // A present checked bound still constrains it; an absent estimate neither
+  // invents a count nor requires a second acquisition of the same Source.
+  if @acquisition.lookup_bounds_at(
       left.acquisition.binding.bounds,
       left.acquisition.binding.index,
     )
     is Some(counts) &&
-    rows.to_int64() <= counts.input_rows else {
+    rows.to_int64() > counts.input_rows {
     return Err(Assembly("input_rows"))
   }
   guard keyed_lookup_layout_capacity(rows.to_int64(), max_bytes, max_work)

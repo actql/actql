@@ -247,12 +247,16 @@ pub fn client_request_preparation_control_capacity(
   // overlaps. The fixed carriers are backed NOW, not by a later resize.
   let growth = @resources.preparation_inventory_growth_entry_construction()
   guard @execution.preparation_representation_cost({
-    record_headers: growth.record_headers,
-    reference_slots: growth.reference_slots,
-    scalar_words: growth.scalar_words,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }) is Some(entry) && entry <= 4096L else { return None }
+      record_headers: growth.record_headers,
+      reference_slots: growth.reference_slots,
+      scalar_words: growth.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    })
+    is Some(entry) &&
+    entry <= 4096L else {
+    return None
+  }
   if retained > limits.retained_bytes {
     return None
   }

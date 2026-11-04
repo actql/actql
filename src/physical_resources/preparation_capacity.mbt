@@ -527,12 +527,20 @@ fn[I, P] make_preparation_body_borrow(
     },
     reserve_phase_original: (body, retained, execution, inventory) => {
       match inventory {
-        Publication => reserve_original_preparation_publication_phase(value, body, retained, execution)
-        EnterRunningInventory => enter_preparation_inventory_growth(value.owner, body, Some(value))
-        LeaveRunningInventory => { value.owner.inventory_growth_active = false; Ok(()) }
+        Publication =>
+          reserve_original_preparation_publication_phase(
+            value, body, retained, execution,
+          )
+        EnterRunningInventory =>
+          enter_preparation_inventory_growth(value.owner, body, Some(value))
+        LeaveRunningInventory => {
+          value.owner.inventory_growth_active = false
+          Ok(())
+        }
         RunningInventory(identity, reservations, holdings, delegations) =>
-          grow_original_preparation_body_inventory(value, body, identity, retained, execution,
-            reservations, holdings, delegations)
+          grow_original_preparation_body_inventory(
+            value, body, identity, retained, execution, reservations, holdings, delegations,
+          )
       }
     },
   }

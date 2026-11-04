@@ -157,6 +157,7 @@ fn original_keyed_declaration_environment(
 fn original_keyed_run_fixture(
   selector_free? : Bool = false,
   relation_versions? : Bool = false,
+  unknown_left_rows? : Bool = false,
   serialization_max_bytes? : Int = 4096,
   typed_content_input? : Bool = false,
 ) -> (
@@ -201,9 +202,9 @@ fn original_keyed_run_fixture(
         join_step.get("join") is Some(Object(join)) else {
         abort("fixture version-history steps")
       }
-      // Ordinary Source cardinality is unknown. An explicit take provides
-      // existing producer membership, rather than borrowing a Host ceiling
-      // or adding FILES facts which do not describe this Relation.
+      // The optional take provides an actual static bound. Its companion
+      // keeps the same ordinary Source and checked target without that bound;
+      // a preserving filter neither counts rows nor invents FILES evidence.
       // Preserve the existing scan/filter/select acquisition. The later
       // bounded Local prefix, not an invented Source query, owns these guards.
       join["left"] = @json.parse("\"bounded\"")
@@ -217,7 +218,11 @@ fn original_keyed_run_fixture(
           "{\"from\":\"unique_names\",\"sort\":[{\"field\":\"name\",\"dir\":\"asc\",\"nulls\":\"last\"}],\"as\":\"ordered_names\"}",
         ),
         @json.parse(
-          "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}",
+          if unknown_left_rows {
+            "{\"from\":\"ordered_names\",\"filter\":{\"literal\":true},\"as\":\"bounded\"}"
+          } else {
+            "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}"
+          },
         ),
       ]
       for index in 2..<steps.length() {

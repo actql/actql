@@ -75,16 +75,10 @@ pub fn observe_client_keyed_request_attempt(
   request.attempts += 1L
   left.attempts += 1L
   left.request_bytes += bytes
-  guard @acquisition.lookup_bounds_at(
-      left.acquisition.binding.bounds,
-      left.acquisition.binding.index,
-    )
-    is Some(counts) else {
-    return keyed_lookup_fail(left, InvalidObservation)
-  }
-  if left.requests > counts.requests ||
-    left.attempts > counts.network_attempts ||
-    request.attempts >
+  // Optional whole-Run estimates do not authorize a physical attempt. The
+  // original RowRun admits its finite cumulative Ledger attempt before send;
+  // this owner retains actual byte/time totals and the per-request contract.
+  if request.attempts >
     @environment.lookup_execution_ceiling(
       policy,
       @environment.NetworkAttemptsPerRequest,

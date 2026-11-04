@@ -599,7 +599,11 @@ fn audit_source_execution(
         physical_equal(binding.requirement, requirement) &&
         physical_equal(@sourceviews.lookup_requirement_join(requirement), join) &&
         keyed_execution_producer_matches(bounds, index, join, binding.producer) &&
-        (match (binding.producer, @context.source_producer_at(producer, stage, index)) {
+        (match
+          (
+            binding.producer,
+            @context.source_producer_at(producer, stage, index),
+          ) {
           (Some(actual), Some(expected)) => physical_equal(actual, expected)
           (None, None) => true
           _ => false

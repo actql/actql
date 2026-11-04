@@ -112,7 +112,10 @@ fn check_keyed_rows_fixture(
       let checked = check_keyed_row_bounds(checked_facts, [target], 100).unwrap()
       assert_true(physical_equal(keyed_rows_at(checked, 0).unwrap(), target))
       if lookup != 0 {
-        let counts = lookup_bounds_at(check_lookup_bounds(checked, policy, 1).unwrap(), 0).unwrap()
+        let counts = lookup_bounds_at(
+          check_lookup_bounds(checked, policy, 1).unwrap(),
+          0,
+        ).unwrap()
         assert_eq(counts.input_rows, 0L)
         assert_eq(counts.batches, 0L)
         assert_eq(counts.requests, 0L)
@@ -139,7 +142,9 @@ fn check_keyed_rows_fixture(
       } else if lookup == 2 {
         let resolved = result.unwrap()
         let requirement = lookup_requirement_at(resolved, 0).unwrap()
-        assert_true(lookup_requirement_admission(requirement) is RuntimeAdmission)
+        assert_true(
+          lookup_requirement_admission(requirement) is RuntimeAdmission,
+        )
         assert_eq(lookup_bounds_at(resolved, 0).unwrap().input_rows, 3L)
         assert_true(lookup_requirement_estimate(requirement) is Some(_))
       } else {

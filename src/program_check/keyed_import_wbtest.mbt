@@ -21,7 +21,10 @@ test "formal keyed acquisition uses producer-only evidence across Result import"
   assert_true(visit != @capacity.target_membership_consumer_visit(membership))
   assert_eq(claim, 0)
   assert_eq(producer, visit)
-  assert_eq(@sourceviews.lookup_requirement_estimate(binding.requirement).unwrap().input_rows, 1L)
+  assert_eq(
+    @sourceviews.lookup_requirement_estimate(binding.requirement).unwrap().input_rows,
+    1L,
+  )
   let policy = publication_source_policy(
     unit_publication_at(program, 1, 0).unwrap(),
   ).unwrap()

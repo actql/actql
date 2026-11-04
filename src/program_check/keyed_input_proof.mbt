@@ -46,8 +46,11 @@ fn prepare_keyed_input_proofs(
     }
     guard binding.producer is Some(membership) else {
       guard keyed_execution_producer_matches(
-          binding.bounds, binding.index, binding.join, None,
-        ) else {
+        binding.bounds,
+        binding.index,
+        binding.join,
+        None,
+      ) else {
         raise ForeignOwner
       }
       // The exact Unit operation and checked join are the runtime obligation.
@@ -160,7 +163,9 @@ pub fn keyed_input_proof_acquired(
 /// The branch without a static estimate retains the exact original execution
 /// and left target. Known estimates also require runtime resource admission;
 /// this accessor identifies only the branch without a signed count proof.
-pub fn keyed_input_runtime_admission(value : KeyedInputProof) -> KeyedExecution? {
+pub fn keyed_input_runtime_admission(
+  value : KeyedInputProof,
+) -> KeyedExecution? {
   match value.execution.kind {
     KeyedRequest(binding) if binding.producer is None => Some(binding)
     _ => None
@@ -168,6 +173,8 @@ pub fn keyed_input_runtime_admission(value : KeyedInputProof) -> KeyedExecution?
 }
 
 ///|
-pub fn keyed_execution_requirement(value : KeyedExecution) -> @sourceviews.LookupRequirement {
+pub fn keyed_execution_requirement(
+  value : KeyedExecution,
+) -> @sourceviews.LookupRequirement {
   value.requirement
 }

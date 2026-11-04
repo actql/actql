@@ -148,7 +148,7 @@ pub fn check_lookup_bounds(
       @environment.source_batching_max_keys,
     )
     let capacity = facts.capacity
-    let counts = keyed_rows_at(rows, i).bind(bound =>
+    let counts = keyed_rows_at(rows, i).bind(bound => {
       lookup_counts(
         @capacity.target_rows_value(bound),
         batch,
@@ -159,13 +159,14 @@ pub fn check_lookup_bounds(
           selected,
           @environment.NetworkAttemptsPerRequest,
         ),
-      ),
-    )
+      )
+    })
     let admission = match counts {
-      Some(counts) if counts.decoded_response_bytes <= @environment.lookup_execution_ceiling(
-        selected,
-        @environment.TotalResponseDecodedBytes,
-      ) => LookupAdmission::EstimatedEnvelope
+      Some(counts) if counts.decoded_response_bytes <=
+        @environment.lookup_execution_ceiling(
+          selected,
+          @environment.TotalResponseDecodedBytes,
+        ) => LookupAdmission::EstimatedEnvelope
       _ => LookupAdmission::RuntimeAdmission
     }
     // A conservative upper estimate exceeding a ceiling is not a proof that

@@ -205,13 +205,16 @@ test "fixed Request control envelope preserves original upper bound through the 
     Some((14488L, 0L)),
   )
   let growth = @resources.preparation_inventory_growth_entry_construction()
-  assert_eq(@execution.preparation_representation_cost({
-    record_headers: growth.record_headers,
-    reference_slots: growth.reference_slots,
-    scalar_words: growth.scalar_words,
-    owned_utf16_units: 0L,
-    owned_wire_bytes: 0L,
-  }), Some(368L))
+  assert_eq(
+    @execution.preparation_representation_cost({
+      record_headers: growth.record_headers,
+      reference_slots: growth.reference_slots,
+      scalar_words: growth.scalar_words,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }),
+    Some(368L),
+  )
   assert_eq(request_preparation_fixed_control_envelope.owned_utf16_units, 0L)
   assert_eq(request_preparation_fixed_control_envelope.owned_wire_bytes, 0L)
 }
