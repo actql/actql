@@ -1590,6 +1590,29 @@ pub fn client_program_prepare_request_effect_model_read_scope(
 }
 
 ///|
+#export_name("clientProgramPrepareRequestEffectModelReadScopeWithQuantities")
+pub fn client_program_prepare_request_effect_model_read_scope_with_quantities(
+  parent : @client_local_host.ClientRequestPreparation[
+    ClientLocalPreparationInputOriginal,
+  ],
+  input : ClientLocalPreparationInputOriginal,
+  plan : @client_local_host.ClientInstalledEffectManagedPlan,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+) -> Result[
+  @publication_host.ClientModelReadScope,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_request_effect_model_read_scope(
+    parent,
+    input,
+    plan,
+    quantity_limits=Some({ tokens, cost_units, duration_ms, }),
+  )
+}
+
+///|
 #export_name("clientProgramAdoptRequestEffectModelPreparation")
 pub fn client_program_adopt_request_effect_model_preparation(
   parent : @client_local_host.ClientRequestPreparation[

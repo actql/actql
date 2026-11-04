@@ -1461,6 +1461,18 @@ async function originalEffectModelRequest(options = {}) {
     assert.equal(outer.original, f.original); assert.equal(outer.modelScope, undefined);
     f.events.push('scope'); return ok(scope);
   };
+  if (options.quantityCapacity !== undefined) {
+    outer.modelSelection = Object.freeze({quantityCapacity: options.quantityCapacity});
+    f.moon.clientProgramPrepareRequestEffectModelReadScopeWithQuantities = function(parent, receipt, plan, tokens, cost, duration) {
+      assert.equal(this, f.moon); assert.equal(parent, f.requestParent);
+      assert.equal(receipt, f.receipt); assert.equal(plan, f.plan);
+      const limits = options.quantityCapacity.limits;
+      assert.deepEqual([tokens, cost, duration], [limits.tokens, limits.costUnits, limits.durationMs]);
+      assert.equal(outer.original, f.original); assert.equal(outer.modelScope, undefined);
+      f.events.push('original quantities then scope'); return ok(scope);
+    };
+    f.moon.clientProgramPrepareRequestEffectModelReadScope = () => assert.fail('No unconfigured physical Model scope');
+  }
   f.moon.clientProgramCompleteRequestEffectPreparation = function(...args) {
     assert.equal(this, f.moon); assert.equal(outer.modelScope, scope);
     if (options.phase === 'complete') {f.events.push('complete-failed'); throw options.failure;}
@@ -1804,4 +1816,21 @@ test('original Request availability keeps the same state across metadata await a
     await assert.rejects(pending, {code: 'ForeignInstalledSourceProducer'});
   } finally {release(); await pending.catch(() => {}); await f.view.close();}
   assert.equal(resources.ordinaryManagedRunStatus(f.original).stopped, true);
+});
+
+
+test('physical Effect Model configures its SAME selected quantity limits before original Scope completion and adoption', async () => {
+  const quantityCapacity = Object.freeze({limits: Object.freeze({tokens: 33n, costUnits: 0n, durationMs: 500n}),
+    perAttempt: Object.freeze({tokens: 33n, costUnits: 0n, durationMs: 500n})});
+  const f = await originalEffectModelRequest({quantityCapacity});
+  await f.view.fundedPreparation(f.sdkRequest, undefined);
+  f.moon.clientProgramPrepareRequestEffectModelReadScopeWithQuantities = () => assert.fail('Use captured same-original constructor');
+  const actual = f.view.adoptEffectModelPreparation(f.prepared, f.sdkRequest, f.identity, f.plan, f.outer);
+  assert.equal(f.outer.modelSelection.quantityCapacity, quantityCapacity);
+  assert.equal(actual.original, f.original); assert.equal(actual.value, f.parent);
+  assert.deepEqual(f.events, ['check', 'compile', 'borrow', 'original quantities then scope', 'complete', 'adopt-model']);
+  f.finishScope(); f.outer.modelScope = undefined;
+  f.markRetiring(); f.view.severPreparation(f.prepared, f.original);
+  f.finishPhysicalRetirement(); f.view.retireSeveredPreparation(f.original);
+  f.view.finishSourceProducer(f.receipt, 'returned'); await f.view.close();
 });
