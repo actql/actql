@@ -11,7 +11,7 @@ import type {
   RowEffectDriver, RowEffectRequestChild,
   RestSourceInstallationDefinition, RestSourceTransform, InstallationCloseOwner,
 } from '@actql/local-node/connector-installation';
-import type {HostRequestValuePolicyVerifier} from './host-policy.js';
+import type {HostRequestValuePolicyVerifier} from '@actql/local-node';
 
 const verifyPolicy: HostRequestValuePolicyVerifier = (subject, {signal}) => {
   signal?.throwIfAborted();
@@ -189,7 +189,7 @@ void [commandWithoutRead, commandWithRead, missingGuardedRead];
 
 // DELETE has no proposed value in the actual installed Row Effect. Its
 // original target still comes from the checked row, not a placeholder body.
-type DeleteRequest = Readonly<{target: import('./connector-installation.js').ConnectorJsonValue}>;
+type DeleteRequest = Readonly<{target: import('@actql/local-node/connector-installation').ConnectorJsonValue}>;
 type DeleteDriver = RowEffectDriver<DeleteRequest, unknown, 'delete'>;
 declare const originalDeleteDriver: DeleteDriver;
 const deleteDriver: DeleteDriver = {
@@ -215,11 +215,11 @@ const deleteDriver: DeleteDriver = {
     };
   },
 };
-const publicDeleteKind: import('./connector-installation.js').RowEffectKind = 'delete';
-const publicAbsentEntry: import('./connector-installation.js').RowEffectEntry<DeleteRequest> = {
+const publicDeleteKind: import('@actql/local-node/connector-installation').RowEffectKind = 'delete';
+const publicAbsentEntry: import('@actql/local-node/connector-installation').RowEffectEntry<DeleteRequest> = {
   request: {target: 'original-id'}, requestCid: bindingCid, value: undefined,
 };
-const deleteEntry: import('./connector-installation.js').RowEffectEntry<DeleteRequest, 'delete'> = publicAbsentEntry;
+const deleteEntry: import('@actql/local-node/connector-installation').RowEffectEntry<DeleteRequest, 'delete'> = publicAbsentEntry;
 void [publicDeleteKind, publicAbsentEntry, deleteEntry];
 
 type DeletePreparation = Parameters<DeleteDriver['prepareRequest']>[0];
@@ -292,9 +292,9 @@ void [commandDriver, originalCommandWithoutRead, originalCommandWithRead, absent
 
 
 // Presence is original observation DATA, not a missing before-value convention.
-type UpsertObservation = import('./connector-installation.js').RowEffectTargetObservation<'upsert'>;
-type UpdateObservation = import('./connector-installation.js').RowEffectTargetObservation<'update'>;
-type DeleteObservation = import('./connector-installation.js').RowEffectTargetObservation<'delete'>;
+type UpsertObservation = import('@actql/local-node/connector-installation').RowEffectTargetObservation<'upsert'>;
+type UpdateObservation = import('@actql/local-node/connector-installation').RowEffectTargetObservation<'update'>;
+type DeleteObservation = import('@actql/local-node/connector-installation').RowEffectTargetObservation<'delete'>;
 const originalAbsence: UpsertObservation = {identity: 'original-key', state: 'absent'};
 const originalPresence: UpsertObservation = {identity: 'original-key',
   versionCid: bindingCid, before: {id: 'original-key'}};
