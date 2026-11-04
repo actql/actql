@@ -35746,6 +35746,10 @@
               {
                 "path": "docs/design/source-input-acquisition.md",
                 "anchor": "## Mixed installed capture originals"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&"
               }
             ],
             "extension": [
@@ -35806,6 +35810,10 @@
               {
                 "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
                 "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('dispatch retains an unreturned original Source preparation after physical cleanup'"
               }
             ]
           }
@@ -36999,7 +37007,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "c005be03d0afe2493b99ae9ca1fdea6f339c3a569dda9f6839ebdb0e0444976b",
+      "sha256": "0e711ab3f01ae9165c70d77398b9753c2c3bf22429465468b4d17c1eccceedc3",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {

@@ -369,7 +369,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   function retire(entry) {
     if (entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
-        entry.sourceCapture === undefined && entry.pendingSetup === undefined &&
+        entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
+        entry.pendingSetup === undefined &&
         !entry.stopObservationPending &&
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
