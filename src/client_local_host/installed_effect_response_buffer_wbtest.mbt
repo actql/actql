@@ -295,6 +295,46 @@ test "standard JSON constructor adapter rejects malformed and overflowing opaque
 }
 
 ///|
+test "paired native wire output retires private input index while preserving every text and execution role" {
+  let native = @execution.execution_capacity(17L, 23L).unwrap()
+  let input : @source.ParseLimits = {
+    max_input_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 32,
+  }
+  let output : @source.ParseLimits = {
+    max_input_bytes: 600272,
+    max_nodes: 8,
+    max_depth: 3,
+  }
+  let without_input = installed_standard_create_constructor_capacity(
+    native, None, Some(output),
+  ).unwrap()
+  let old = installed_json_effect_response_construction_capacity(
+    without_input, input.max_input_bytes, input.max_nodes, input.max_depth,
+  ).unwrap()
+  let paired = installed_standard_create_constructor_capacity(
+    native, Some(input), Some(output),
+  ).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(paired) <
+    @execution.execution_capacity_retained_bytes(old),
+  )
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(paired),
+    @execution.execution_capacity_execution_bytes(old),
+  )
+  // Output absence cannot assert that the original input Cursor is private.
+  let unpaired = installed_standard_create_constructor_capacity(
+    native, Some(input), None,
+  ).unwrap()
+  let original = installed_json_effect_response_construction_capacity(
+    native, input.max_input_bytes, input.max_nodes, input.max_depth,
+  ).unwrap()
+  assert_eq(unpaired, original)
+}
+
+///|
 test "standard constructor absence preserves native capacity without invented JSON output" {
   let native = @execution.execution_capacity(17L, 23L).unwrap()
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
