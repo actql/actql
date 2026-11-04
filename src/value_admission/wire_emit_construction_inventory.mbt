@@ -14,7 +14,9 @@ fn wire_emit_construction_inventory(
   pending : Int64,
   decimal : DecimalValue?,
 ) -> WireEmitConstructionInventory? {
-  if pending < 0 { return None }
+  if pending < 0 {
+    return None
+  }
   // Pending frames plus the popped current frame and one newly pushed frame.
   // Each frame can own one String/Key/ArrayRest/ObjectRest cursor. The largest
   // pair is KeyNext + OrderedKeyEmitCursor: 2H4R4W. ReferenceNext's canonical
@@ -36,8 +38,11 @@ fn wire_emit_construction_inventory(
   let mut decimal_refs = 0L
   let mut decimal_words = 0L
   if decimal is Some(value) {
-    if value.precision < 1 || value.precision > 38 || value.scale < 0 ||
-      value.scale > value.precision || value.coefficient.length() > value.precision + 1 {
+    if value.precision < 1 ||
+      value.precision > 38 ||
+      value.scale < 0 ||
+      value.scale > value.precision ||
+      value.coefficient.length() > value.precision + 1 {
       return None
     }
     if value.scale != 0 {
@@ -77,14 +82,20 @@ pub fn wire_emit_next_construction_inventory(
   // payload-free, so only the current original reference child retains its
   // own backing. Inspect that one top frame, never rescan the Value tree.
   let reference = match cursor.pending.last() {
-    Some(ReferenceNext(child)) => @identity.emit_storage_frames(child).to_int64()
+    Some(ReferenceNext(child)) =>
+      @identity.emit_storage_frames(child).to_int64()
     _ => 0L
   }
-  wire_emit_construction_inventory(cursor.pending.capacity().to_int64() + reference, decimal)
+  wire_emit_construction_inventory(
+    cursor.pending.capacity().to_int64() + reference,
+    decimal,
+  )
 }
 
 ///|
 /// Existing typed/canonical steps emit at most64 UTF16 units. Each can escape
 /// to six bytes, with at most four surrounding punctuation bytes. Decimal and
 /// signed64 spellings are bounded leaves; references reuse canonical steps.
-pub fn wire_emit_fragment_byte_bound() -> Int { 64 * 6 + 4 }
+pub fn wire_emit_fragment_byte_bound() -> Int {
+  64 * 6 + 4
+}

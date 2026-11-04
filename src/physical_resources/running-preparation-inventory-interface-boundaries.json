@@ -4,7 +4,7 @@
     {
       "module": "src/physical_resources/running_preparation_inventory.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "46d3662f6706bca23198b6ecbb84f5bb7c6a980928f6455ec418712debc8cd6c",
+      "sha256": "579764d8f2d3062d4bb400f408123ffc01a1b17129e610fc5163fe79e42fdab4",
       "role": "common-semantics",
       "owner": "Existing PreparationCapacity and Ledger census owner",
       "exports": [],
@@ -27,7 +27,7 @@
         },
         {
           "name": "[I,P]leave_preparation_inventory_growth",
-          "declaration": "[ I , P ] leave_preparation_inventory_growth ( owner : PreparationCapacity [ I , P ] ) - > Unit"
+          "declaration": "[ I , P ] leave_preparation_inventory_growth ( owner : PreparationCapacity [ I , P ] , ) - > Unit"
         },
         {
           "name": "[I,P]running_preparation_borrow_matches",

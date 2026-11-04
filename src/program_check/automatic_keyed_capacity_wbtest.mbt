@@ -93,7 +93,12 @@ test "keyed acquisition retains genuine zero without requesting a positive pre-c
   }
   let proof = keyed_input_proof_at(program, 0).unwrap()
   assert_true(keyed_input_runtime_admission(proof) is None)
-  assert_eq(@wire.value(@wire.program_proof_witness(
-    proof_claim(keyed_input_proof_bound(proof).unwrap()),
-  )), 0L)
+  assert_eq(
+    @wire.value(
+      @wire.program_proof_witness(
+        proof_claim(keyed_input_proof_bound(proof).unwrap()),
+      ),
+    ),
+    0L,
+  )
 }
