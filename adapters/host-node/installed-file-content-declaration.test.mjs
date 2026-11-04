@@ -282,7 +282,8 @@ function listingContentProgram({maximum = 3, emptySelector = false,
     issue: preparation === undefined ? undefined : moon.clientProgramPreparationIssueCode(preparation),
     preparation,
     preparedProgram: preparation === undefined ? undefined : moon.clientProgramPreparationReady(preparation),
-    declaration, declared, program, environmentWire: env.wire};
+    declaration, declared, program, environmentWire: env.wire,
+    viewsWire: JSON.stringify({views: [listing, content]})};
 }
 
 function assertOriginalSerializationInput({control, plan, program, acquisition,
@@ -396,7 +397,7 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
   authorizeRead = async () => ({action: 'dispatch'}), sourceAuthorization,
   sourceFormat = 'json', captureContent, runCaptureContent = false, contentValidator, serialize = false,
   readOperation = 'read', issueReadGrant = () => ({}), modelTask, hostCapacityPolicy, classification,
-  publicUnknownSource = false} = {}) {
+  publicUnknownSource = false, sourceAccountConfiguration} = {}) {
   // The user Program itself contains the capture filter/projection and JOIN.
   // It is prepared once; no alternate Direct Program or fake completion exists.
   const value = listingContentProgram({capturePrefix: true, emptySelector: empty,
@@ -429,7 +430,7 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
       ? wire === canonical(admittedContent) : contentValidator(wire)),
     () => true);
     let requests = 0;
-    const adapter = await createInstalledRowSource({moon,
+    const adapterOptions = {moon,
       declaration: value.declaration, declared: value.declared,
       environmentWire: value.environmentWire, connectorId: 'content-fixture',
       connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
@@ -463,14 +464,33 @@ async function capturedListingForOriginalKeyedProgram({empty = false,
         const body = Buffer.from(JSON.stringify({request_token: null, next_token: null,
           items}));
         await listing.consumePage(body, {charge: chargePage(body)});
-      }});
+      }};
     // The public Host receives only declaration/driver originals. It alone
     // checks and compiles this Program and supplies every later preparation.
     if (publicUnknownSource) {
       assert.equal(deferCapture, true);
       assert.equal(value.preparation, undefined);
-      return {...value, adapter, listingRequests: () => requests};
+      const {moon: _moon, declaration: _declaration, declared: _declared,
+        environmentWire: _environmentWire, connectorId: _connectorId,
+        connectorRegistration: _registration, connectorRevision: _revision,
+        site: _site, authorization: _authorization, ...readerOptions} = adapterOptions;
+      return {...value, listingRequests: () => requests,
+        async load({construction}) {
+          assert.ok(construction);
+          construction.prepareDeclaration(value.viewsWire, value.declared.catalog_cid);
+          await construction.openSpecializedSite({accountConfiguration: sourceAccountConfiguration,
+            authorizationConstructor: options => installRowSourceAuthorization({
+              ...options, connectorRegistration: 'fixture'}),
+            siteConstructor: (_argument, {authorization}) => Object.freeze({
+              connection: 'fixture:files', issueReadGrant,
+              close() {
+                if (authorization.close() !== true) throw new Error('FixtureSourceAuthorizationCleanupPending');
+              },
+            })});
+          return construction.createRowSource(readerOptions);
+        }};
     }
+    const adapter = await createInstalledRowSource(adapterOptions);
     const joinContracts = {registry, values: JSON.stringify(aoa.execution_contracts['REL.values']),
       fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
@@ -1869,9 +1889,9 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
       account_id: 'keyed-public', entries: [{entry_id: 'read-write', outcome: 'allow',
         principal: {all: true}, connection: {all: true}, resource: {all: true},
         operation: serializing ? {all: true} : {any_of: ['read', 'write']}, exclusions: []}]});
-    const sourceAuthorization = await installRowSourceAuthorization({accountConfiguration: account,
+    const sourceAuthorization = publicUnknownSource ? undefined : await installRowSourceAuthorization({accountConfiguration: account,
       principalId: userInfo().username, root: join(scratch.path, 'host'), connectorRegistration: 'fixture'});
-    t.after(() => sourceAuthorization.close());
+    t.after(() => sourceAuthorization?.close());
     const contentControl = runtimeCore(moon).contentCaptureControl;
     const contentLimits = {maxBytes: 4096, maxNodes: 100, maxDepth: 8, maxTextUnits: 4096};
     const contentStore = !byteBacked ? undefined : await openLocalPublicationStore({
@@ -1963,7 +1983,8 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
     });
     let gets = 0, captureError;
     const value = await capturedListingForOriginalKeyedProgram({deferCapture: true,
-      reverseSourceInputs, sourceAuthorization, serialize: serializing, publicUnknownSource,
+      reverseSourceInputs, sourceAuthorization, sourceAccountConfiguration: account,
+      serialize: serializing, publicUnknownSource,
       ...(empty ? {allFiles: true, listingItems: []} : {}),
       ...(format === 'json' ? {} : {allFiles: true,
         listingItems: [item('d', 'invoice.pdf', 'v1'), item('f', 'skip.pdf', 'v2')]}),
@@ -1994,9 +2015,9 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
     const profileVersion = 'actql-installed-content-fixture-source/0.1';
     const connectorTable = createInstalledConnectorTable([{name: 'fixture', registration: 'fixture',
       revision: 'fixture/0.1', source: {profileVersion, load: async () => ({
-        check: profile => profile,
+        check: profile => publicUnknownSource ? {...profile, connectorId: 'content-fixture'} : profile,
         identityParts: profile => [profile],
-        load: async () => ({...value.adapter, async openCapture(options) {
+        load: async (_profile, options) => publicUnknownSource ? value.load(options) : ({...value.adapter, async openCapture(options) {
           try { return await value.adapter.openCapture(options); }
           catch (error) { captureError = error; throw error; }
         }}),
@@ -2190,7 +2211,7 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
       await contentStore.close();
       contentStoreClosed = true;
     }
-    await sourceAuthorization.close();
+    await sourceAuthorization?.close();
     scratch.passed();
   }
 });
