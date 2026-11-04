@@ -36,12 +36,14 @@ cannot replace that association by calling an independent public constructor.
 The independently linked providers exchange only byte arrays, strings and
 integers. Provider exports never accept a common runtime opaque handle. The
 injected `moon` owns declarations, Mappings, acquisition, capture, credentials,
-Effect claims and recovery. `providerMoon` owns only the following pure ABI:
+Effect claims and recovery.
 
 The consumer's explicit HTTPS port uses Node Readable and Writable lifecycle
 events, including observed binary reads and request close after response close.
 It exercises the original Credential receiver without opening a socket or
 supplying a physical socket cleanup acknowledgement.
+
+`providerMoon` owns only the following pure ABI:
 
 - Read: `externalReadRequestJson(page)` constructs one of two fixed paths.
   `externalReadPageJson(bytes, page)` projects `items` to declared rows and
