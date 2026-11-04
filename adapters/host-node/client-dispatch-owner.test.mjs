@@ -25,11 +25,28 @@ import './embedded-local-operation-observation.test.mjs';
 
 const stopControl = {runDefinitionRunId: () => 'fixture-run',
   runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed};
-const stopFacts = (cancellationRequested = false) => ({
-  lookupRunDefinition: () => ({cancellationRequested, revision: 1,
-    runDefinition: {wire: 'definition'}, physicalCloseConfirmed: false}),
-  lookupReconciliationState: () => undefined,
-});
+const stopFacts = (cancellationRequested = false, stopped,
+  runDefinition = {wire: 'definition'}) => {
+  const requested = () => typeof cancellationRequested === 'function'
+    ? cancellationRequested() : cancellationRequested;
+  let frame = Object.freeze({cancellationRequested: requested(), revision: 1,
+    runDefinition, physicalCloseConfirmed: false});
+  const lookupRunDefinition = () => {
+    if (frame.cancellationRequested !== requested()) {
+      frame = Object.freeze({...frame, cancellationRequested: requested(),
+        revision: frame.revision + 1});
+    }
+    return frame;
+  };
+  return {lookupRunDefinition, lookupReconciliationState: () => undefined,
+    markPhysicalClose(ref, outcome, original) {
+      assert.equal(original, lookupRunDefinition(), 'Stop consumes the same current Journal frame');
+      assert.equal(frame.physicalCloseConfirmed, false);
+      frame = Object.freeze({...frame, revision: frame.revision + 1,
+        physicalCloseConfirmed: true});
+      stopped?.push([ref, outcome]);
+    }};
+};
 
 function inferDispatchFixture(runInfer, kind = 'infer') {
   const ref = {runDefinitionCid: 'infer-dispatch-owner'};
@@ -43,10 +60,7 @@ function inferDispatchFixture(runInfer, kind = 'infer') {
     }}, control: {runDefinitionRunId: () => 'infer-run',
       runCancellationConfirmed: runtimeCore(cancellationMoon).publicationControl.runCancellationConfirmed},
     journal: {reservePhysicalStart() { claims++; return true; },
-      lookupRunDefinition: () => ({cancellationRequested, revision: 1,
-        runDefinition: plan.runDefinition}),
-      lookupReconciliationState: () => undefined,
-      markPhysicalClose: (...args) => stopped.push(args),
+      ...stopFacts(() => cancellationRequested, stopped, plan.runDefinition),
       markPreDispatchFailure: () => stopped.push([ref, 'not_started'])},
     store: {confirmCommittedIndex: async () => committed ? {} : undefined},
     startRun: async () => ({kind: 'reserved', ref}),
@@ -100,8 +114,14 @@ test('Content dispatch keeps a failed cleanup owner and never redispatches its p
     }, 'serialization');
     assert.equal(await fixture.start(), 'started');
     await fixture.owner.operation(fixture.ref);
-    await assert.rejects(fixture.owner.drain(), error =>
-      error.code === 'ClientDispatchCleanupPending' && error.failures[0].primary === failure);
+    await assert.rejects(fixture.owner.drain(), error => {
+      assert.equal(error.code, 'ClientDispatchCleanupPending');
+      assert.deepEqual(error.failures[0].primary,
+        {name: 'Error', code: undefined, message: 'ContentStoreFailed'});
+      assert.notEqual(error.failures[0].primary, failure);
+      assert(Object.isFrozen(error.failures[0].primary));
+      return true;
+    });
     assert.deepEqual(fixture.stopped, []);
     assert.equal(await fixture.start(), 'not_started');
     released = true;
@@ -157,7 +177,10 @@ test('model capture alone is not public success and cleanup never redispatches',
     await fixture.owner.operation(fixture.ref);
     await assert.rejects(fixture.owner.drain(), error => {
       assert.equal(error.code, 'ClientDispatchCleanupPending');
-      assert.equal(error.failures[0].primary, failure);
+      assert.deepEqual(error.failures[0].primary,
+        {name: 'Error', code: undefined, message: 'CaptureStoreFailed'});
+      assert.notEqual(error.failures[0].primary, failure);
+      assert(Object.isFrozen(error.failures[0].primary));
       return true;
     });
     assert.equal(await fixture.start(), 'not_started');
@@ -288,8 +311,7 @@ test('diagnostic failure cannot stop Compute or bypass required ownership',
           clientProgramRequiresAcquisitionResultPublication: () => false},
         control: stopControl,
         journal: {reservePhysicalStart: () => true,
-          ...stopFacts(),
-          markPhysicalClose: (...args) => stopped.push(args)},
+          ...stopFacts(false, stopped)},
         store: {confirmCommittedIndex: async () => ({})},
         startRun: async () => ({kind: 'reserved', ref}),
         hostConnection: () => true,
@@ -346,8 +368,7 @@ test('publication ownership survives a wrapped error and cleanup retry',
         clientProgramRequiresAcquisitionResultPublication: () => false},
       control: stopControl,
       journal: {reservePhysicalStart: () => true,
-        ...stopFacts(),
-        markPhysicalClose: (...args) => stopped.push(args)},
+        ...stopFacts(false, stopped)},
       store: {confirmCommittedIndex: async () => {
         if (!publicationReadable) throw new Error('StoreObservationFailure');
         return undefined;
@@ -407,9 +428,8 @@ test('dispatch owner retains failed cleanup and retries without Compute',
         clientProgramRequiresAcquisitionResultPublication: () => false},
       control: stopControl,
       journal: {
-        ...stopFacts(),
+        ...stopFacts(false, stopped),
         reservePhysicalStart: () => true,
-        markPhysicalClose: (...args) => stopped.push(args),
       },
       store: {confirmCommittedIndex: async () => ({})},
       startRun: async () => ({kind: 'reserved', ref}),
@@ -439,8 +459,11 @@ test('dispatch owner retains failed cleanup and retries without Compute',
     for (let retry = 0; retry < 2; retry++) {
       await assert.rejects(owner.drain(), error => {
         assert.equal(error.code, 'ClientDispatchCleanupPending');
-        assert.equal(error.failures[0].close, closeFailure,
+        assert.deepEqual(error.failures[0].close,
+          {name: 'Error', code: undefined, message: 'PhysicalCloseFailed'},
           inspect(error.failures, {depth: 4, maxArrayLength: 5, maxStringLength: 200}));
+        assert.notEqual(error.failures[0].close, closeFailure);
+        assert(Object.isFrozen(error.failures[0].close));
         return true;
       });
       assert.notEqual(owner.operation(ref), undefined);
@@ -624,8 +647,7 @@ function acquiringOwner(open) {
       clientProgramMultiCapturedLedgerUsage: () => Array(ledgerUsageFields.length).fill(0n)},
     control: stopControl,
     journal: {reservePhysicalStart: () => true,
-      ...stopFacts(),
-      markPhysicalClose: (...args) => stopped.push(args)},
+      ...stopFacts(false, stopped)},
     store: {confirmCommittedIndex: async () => undefined},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
