@@ -879,23 +879,36 @@ async function preflightDispatchFixture(t, {
     markPreDispatchFailure() { assert.fail('physical start was already reserved'); },
   };
   directory = await mkdtemp(join(tmpdir(), 'actql-preflight-custody-'));
+  // One Result retains six known originals, six Result objects and nine
+  // global obligations, including the distinct foreign winner terminal.
+  // Keep one spare slot: a second independently retained object must refuse.
+  const publicationObjectCount = 6 + 6 + 9;
   physicalStore = await openLocalPublicationStore({directory,
-    storeAuthorityCid: `sha256:${'7'.repeat(64)}`, maxObjects: 20,
+    storeAuthorityCid: `sha256:${'7'.repeat(64)}`, maxObjects: publicationObjectCount + 1,
     capacityBytes: 512 * 1024 * 1024, maxObjectBytes: 10000000,
     maxContractNodes: 10000, maxContractDepth: 64}, control);
-  const requirement = {objectCount: 19, requiredBytes: 190000000, maxObjectBytes: 10000000};
+  const objectDemand = {objectCount: publicationObjectCount,
+    requiredBytes: 0, maxObjectBytes: 0};
   await physicalStore.putBytes(Buffer.from('independent retained object A'));
-  assert.equal(physicalStore.publicationCapacitySupports(requirement), true);
+  assert.equal(physicalStore.publicationCapacitySupports(objectDemand), true);
   if (!partialSiteInstallation) {
     await physicalStore.putBytes(Buffer.from('independent retained object B'));
   }
   assert.equal(physicalStore.status().objectCount, partialSiteInstallation ? 1 : 2);
   assert.equal(physicalStore.status().reservedObjects, 0);
-  assert.equal(physicalStore.publicationCapacitySupports(requirement), partialSiteInstallation);
+  assert.equal(physicalStore.publicationCapacitySupports(objectDemand), partialSiteInstallation);
   const store = {...physicalStore,
     publicationCapacitySupports(actual) {
       capacityChecks++;
-      assert.deepEqual(actual, requirement);
+      assert.deepEqual(Object.keys(actual).sort(),
+        ['maxObjectBytes', 'objectCount', 'requiredBytes']);
+      assert.equal(actual.objectCount, publicationObjectCount);
+      assert.ok(Number.isSafeInteger(actual.requiredBytes) && actual.requiredBytes > 0);
+      assert.ok(Number.isSafeInteger(actual.maxObjectBytes) && actual.maxObjectBytes > 0);
+      // Common supplies current byte bounds; this fixture targets live object
+      // custody, while the contract-control fixture checks their exact sum.
+      assert.ok(actual.maxObjectBytes <= 10000000);
+      assert.ok(actual.requiredBytes <= actual.objectCount * 10000000);
       return physicalStore.publicationCapacitySupports(actual);
     }};
   let existingSite, installationOptions = {};
