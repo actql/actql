@@ -494,6 +494,8 @@ pub fn installed_native_source_reader_capacity(Array[Int], Int, Int, @execution_
 
 pub fn installed_pending_duckdb_capture_capacity(ClientDuckDBCaptureCapacity) -> ClientInstalledCaptureCapacity
 
+pub fn installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, control_wire_bytes? : Int?) -> Result[Array[@execution_relation.ExecutionCapacity], ClientInstalledManagedRunIssue]
+
 pub fn installed_preparation_payload_severed(ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool
 
 pub fn installed_preserving_json_source_reader_capacity_with_request(Array[Int], Int, Int, @execution_relation.ExecutionCapacity?) -> @execution_relation.ExecutionCapacity?

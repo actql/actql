@@ -5,6 +5,7 @@ import {composeInstalledSourceEnvironment, releaseRetiredInstalledEnvironmentCom
 import {openInstalledRowSite, installedRowCredentialOperationSite, rowSourceCheckEnvironment,
   rowSourceMapping, createInstalledRowSource, installRowSourceAuthorization} from './installed-row-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {authoredCommandProjection} from './installed-authored-command.mjs';
 import {sourceEnvironmentConstructionGeometry, sourceEnvironmentRetainedGeometry, sourceAuthoredViewConstructionGeometry, sourceJsonWireGeometry, sourceEnvironmentCompositionGeometry}
   from './installed-source-construction-geometry.mjs';
 import {createInstalledRowEffect, resolveInstalledRowEffectConstruction} from './installed-row-effect.mjs';
@@ -1131,6 +1132,11 @@ function createInstalledSourceContext(original, material, installation, connecto
       return projection === undefined ? context.prepareDeclaration(finalWire, expectedCatalogCid)
         : context.prepareDeclaredCommands(finalWire, projection, expectedCatalogCid);
     },
+    prepareAuthoredCommands(viewsWire, specification, expectedCatalogCid) {
+      if (this !== context) fail('ForeignInstalledSourceInitialization');
+      return context.prepareDeclaredCommands(viewsWire,
+        authoredCommandProjection(original.moon, specification), expectedCatalogCid);
+    },
     prepareDeclaredCommands(viewsWire, projection, expectedCatalogCid) {
       if (this !== context || !scope.active || scope.prepared !== undefined || scope.commandAttempted || material.phase !== 'working') {
         fail('ForeignInstalledSourceInitialization');
@@ -1382,6 +1388,7 @@ export function bindInstalledSourceConstruction(services, context, checkedProfil
     prepareBorrowedDeclaration: prepare('prepareBorrowedDeclaration'),
     prepareMappings: prepare('prepareMappings'),
     prepareDeclaredCommands: prepare('prepareDeclaredCommands'),
+    prepareAuthoredCommands: prepare('prepareAuthoredCommands'),
     prepareDerivedDeclaredCommands: prepare('prepareDerivedDeclaredCommands'),
     prepareReadTarget: prepare('prepareReadTarget'),
     prepareReadTargetWithMappings: prepare('prepareReadTargetWithMappings'),

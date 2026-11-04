@@ -1782,6 +1782,8 @@ pub fn client_program_installed_native_source_reader_capacity(Array[Int], Int, I
 
 pub fn client_program_installed_pending_duckdb_capture_capacity(@client_local_host.ClientDuckDBCaptureCapacity) -> @client_local_host.ClientInstalledCaptureCapacity
 
+pub fn client_program_installed_physical_write_recipe_capacities(Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, @execution_relation.ExecutionCapacity, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_preparation_payload_severed(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity) -> Bool
 
 pub fn client_program_installed_preparation_usage_isolated(@client_local_host.ClientInstalledManagedRun, @run_publication_host.ClientRequestIdentity, @physical_strategy_host.CapturedDAG) -> Bool

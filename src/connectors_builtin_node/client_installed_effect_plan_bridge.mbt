@@ -879,3 +879,46 @@ pub fn client_program_installed_effect_control_wire_bound(
     outcome_bytes, maximum_bytes,
   )
 }
+
+///|
+#export_name("clientProgramInstalledPhysicalWriteRecipeCapacities")
+pub fn client_program_installed_physical_write_recipe_capacities(
+  body_bytes : Int,
+  body_nodes : Int,
+  body_depth : Int,
+  preview_bytes : Int,
+  preview_nodes : Int,
+  preview_depth : Int,
+  request_bytes : Int,
+  recovery_bytes : Int,
+  response_bytes : Int,
+  stored_bytes : Int,
+  stored_nodes : Int,
+  stored_depth : Int,
+  physical : @execution.ExecutionCapacity,
+  control_wire_bytes : Int,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_physical_write_recipe_capacities(
+    body_bytes,
+    body_nodes,
+    body_depth,
+    preview_bytes,
+    preview_nodes,
+    preview_depth,
+    request_bytes,
+    recovery_bytes,
+    response_bytes,
+    stored_bytes,
+    stored_nodes,
+    stored_depth,
+    physical,
+    control_wire_bytes=if control_wire_bytes == 0 {
+      None
+    } else {
+      Some(control_wire_bytes)
+    },
+  )
+}
