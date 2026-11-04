@@ -2,6 +2,7 @@
 // Core extents/Plan are DATA until the SAME Request completes and adopts them.
 import {types as nodeTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
+import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {httpsCredentialResponseWindowBytes, httpsCredentialResponseHeaderByteLimit, httpsCredentialResponseReadQuantum, httpsCredentialAuthorizationPrefix}
   from '../site-node/https-credential-resource.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
@@ -791,6 +792,7 @@ export function prepareInstalledEffectControlConstruction(run) {
     if (working || run.selecting) fail('InstalledEffectControlConstructionPending');
     if (typeof method !== 'function' || !Array.isArray(args)) fail('InvalidInstalledEffectControlConstruction');
     working = true;
+    let invoking = false;
     // The existing parent retirement already refuses this latch. Retain it
     // through native-task settlement if an invalid asynchronous result escapes.
     run.selecting = true;
@@ -799,7 +801,9 @@ export function prepareInstalledEffectControlConstruction(run) {
       checked(Reflect.apply(inputWire === undefined ? begin : beginInput, runtime,
         [parent, prepared, request, plan, ...(inputWire === undefined ? [] : [inputWire])]));
       originalRecord();
+      invoking = true;
       const value = Reflect.apply(method, receiver, args);
+      invoking = false;
       if (failed) throw primary;
       retainInvalid(value);
       originalRecord();
@@ -807,6 +811,23 @@ export function prepareInstalledEffectControlConstruction(run) {
       originalRecord();
       return value;
     } catch (cause) {
+      if (invoking && !failed && pending === undefined && !codecWorking &&
+          isEffectPreparationRefusal(cause)) {
+        // This observed semantic refusal is the synchronous projector's
+        // original DATA result. Its retained output stays on the SAME token;
+        // only a successful original completion returns constructor scratch.
+        // Keep the error for the existing Ledger/CAS/no-send decision outside
+        // this frame. It grants neither a terminal Run nor physical cleanup.
+        try {
+          originalRecord();
+          checked(Reflect.apply(complete, runtime, [parent, prepared, request, plan]));
+          originalRecord();
+        } catch (completionFailure) {
+          failed = true; primary = completionFailure;
+          throw completionFailure;
+        }
+        throw cause;
+      }
       failed = true; primary = cause;
       // Failed-prefix workspace remains on the SAME Core control reservation.
       throw cause;
