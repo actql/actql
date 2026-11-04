@@ -11,6 +11,65 @@ import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 
+function remoteAgentLaunchSource() {
+  const source=readFileSync(new URL('./test-native-remote-runtime.mjs',import.meta.url),'utf8');
+  const marker="  if (!valuesHttpsOnly) execFileSync(moon, [\n    'test', 'src/platform_native/remote_agent/native_test',";
+  const start=source.indexOf(marker),end=source.indexOf('\n  verificationSucceeded = true;',start);
+  assert(start>=0 && end>start);
+  assert.equal(source.indexOf(marker,start+1),-1);
+  return source.slice(start,end);
+}
+
+function assertRemoteAgentOriginalRoot(t,foreignParent) {
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-agent-root-handoff-')));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const agentRoot=join(root,'agent'),foreignRoot=join(root,'foreign');
+  mkdirSync(agentRoot);mkdirSync(foreignRoot);
+  const parent={...process.env};
+  if(foreignParent)parent.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT=foreignRoot;
+  else delete parent.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT;
+  let observation;
+  runInNewContext(remoteAgentLaunchSource(),{
+    valuesHttpsOnly:false,moon:'original-selected-moon',repositoryRoot:root,
+    process:{env:parent},agentRoot,sqliteLibrary:'original-sqlite',cryptoLibrary:'original-crypto',
+    targetTriple:'original-target',keys:{publicKey:{export:()=> 'original-public-key'}},
+    envelope:{body:'original-body',runtimeBundleCid:'original-cid',signature:'original-signature'},
+    execFileSync:(command,args,options)=>{
+      assert.equal(command,'original-selected-moon');
+      assert.deepEqual(Array.from(args),['test','src/platform_native/remote_agent/native_test','--target','native','--strip']);
+      assert.equal(options.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY,'original-sqlite');
+      assert.equal(options.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY,'original-crypto');
+      // Execute the exact caller environment in a real child. This is a
+      // directory/FD handoff probe, not a successful Native Store or CLI.
+      const output=executeChild(process.execPath,['-e',String.raw`
+        const fs=require('node:fs');
+        const root=process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT;
+        if(typeof root!=='string')throw Error('Original Bundle fixture root unavailable');
+        const fd=fs.openSync(root,'r');
+        const stat=fs.fstatSync(fd);
+        fs.closeSync(fd);
+        console.log(JSON.stringify({root,directory:stat.isDirectory(),device:String(stat.dev),inode:String(stat.ino),
+          agentRoot:process.env.ACTQL_TEST_NATIVE_REMOTE_AGENT_ROOT}));
+      `],{...options,stdio:'pipe',encoding:'utf8',timeout:5000});
+      observation=JSON.parse(output);
+    },
+  });
+  assert.equal(observation.root,agentRoot);
+  assert.equal(observation.agentRoot,agentRoot);
+  assert.equal(observation.directory,true);
+  assert.equal(observation.device,String(lstatSync(agentRoot).dev));
+  assert.equal(observation.inode,String(lstatSync(agentRoot).ino));
+  assert.equal(parent.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT,foreignParent?foreignRoot:undefined);
+}
+
+test('Remote Agent Bundle custody receives its original root when the parent omits it',t=>{
+  assertRemoteAgentOriginalRoot(t,false);
+});
+
+test('Remote Agent Bundle custody replaces a foreign inherited fixture root',t=>{
+  assertRemoteAgentOriginalRoot(t,true);
+});
+
 function residentLaunchSource() {
   const source=readFileSync(new URL('./test-native-resident-site.mjs',import.meta.url),'utf8');
   const declaration=/^const siteProcessEnvironment = .*;$/mu.exec(source)?.[0]??'';
