@@ -605,6 +605,12 @@ function prefixFixture({failBorrowAt, exportFailure}={}) {
       if(exportFailure)throw primary;
       return {payloads:[]};
     }};
+  let retainedInputs;
+  Object.assign(managedEffect.controlConstruction, {retainInputs(value) {
+    assert.equal(retainedInputs, undefined, 'retain the original capture input once');
+    assert.ok(value && typeof value === 'object');
+    retainedInputs = value;
+  }});
   const end=capture.body.body.find(node=>node.type==='ExpressionStatement'&&node.expression.type==='CallExpression'&&node.expression.callee.name==='own'&&node.expression.arguments[0]?.name==='sourceSet').end;
   const code=source.slice(capture.body.start+1,end);
   const run=()=>Function(...Object.keys(ports),`return (async()=>{${code};return {proposals,requestChildren};})();`)(...Object.values(ports));

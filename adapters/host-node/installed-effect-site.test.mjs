@@ -6,7 +6,7 @@ import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {salesforceEffectSiteHooks} from '../connectors/salesforce/host/installed-salesforce-effect-hooks.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
-import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {openAcquiredEffectComputation} from './fixtures/acquired-effect-computation.fixture.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
 import {checkedEffectPreparation as checked} from
   '../host-common/effect-preparation-result.mjs';
@@ -80,7 +80,7 @@ for (const outcome of ['not_started', 'stopped', 'unknown']) {
         observeStopped: value => observations.push(value),
         run: context => site.execute({...context,
           openComputation: ({retainComputationOwner}) =>
-            openAcquiredEffectComputation({acquired: {prepared: {}},
+            openAcquiredEffectComputation({sourceRefs: ['source'], acquired: {prepared: {}},
               moon: {clientProgramEffectAcquisitionCount: () => 1,
                 clientProgramEffectPrepareLocalQueryRequirement: () => ({$tag: 1, _0: 'source'}),
                 clientProgramQueryRequirementSourceRef: ref => ref},
