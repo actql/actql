@@ -110506,7 +110506,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-journal.mjs",
-      "sha256": "a26502de4f95cf50ae128155e34b1eff43cebff585a4805ee3d86e4324a6c700",
+      "sha256": "85a1d09b97e413b7b7cc432ddc37b77fe821012df4a04064b1416ab976608109",
       "exports": [
         "ordinaryHostJournalInstallation",
         "prepareOrdinaryHostJournal"
@@ -110690,6 +110690,10 @@
               {
                 "path": "adapters/host-node/ordinary-host-journal.mjs",
                 "anchor": "openingFailure = cause;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "error.primaryFailure = cause;"
               }
             ],
             "cancellation": [
@@ -110714,6 +110718,10 @@
               {
                 "path": "adapters/host-node/ordinary-host-journal.test.mjs",
                 "anchor": "test('ordinary"
+              },
+              {
+                "path": "adapters/host-node/installed-host-cleanup.test.mjs",
+                "anchor": "test(`installed Host recovers request journal ${phase} failure through its wrapper`"
               }
             ]
           }
