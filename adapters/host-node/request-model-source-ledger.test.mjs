@@ -5,6 +5,101 @@ import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {installNodeInferRun} from './installed-infer-run.mjs';
+
+function mockLedgerFixture({retireDuringBorrow = false} = {}) {
+  const mockSource = readFileSync(new URL('../local-node/installed-project-mock.mjs', import.meta.url), 'utf8');
+  const functions = new Map();
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'FunctionDeclaration') functions.set(node.id.name, node);
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  })(parse(mockSource, {ecmaVersion: 'latest', sourceType: 'module'}));
+  const prepared = {}, request = {}, native = {}, original = {}, scope = {}, ledger = {}, calls = [];
+  const control = {checkClientCompiledRunOwner(c, p) {
+    assert.strictEqual(c, plan.compiled); assert.strictEqual(p, prepared);
+  }};
+  const plan = {compiled: {}, runDefinition: {}, inferGraph: {}};
+  const selected = {localMock: true, graph: plan.inferGraph, occurrence: {}};
+  const records = new Map();
+  const fail = code => {throw Object.assign(new Error(code), {code});};
+  const sameRun = p => {assert.strictEqual(p, prepared); return records.get(p);};
+  const checked = result => {assert.equal(result.$tag, 1); return result._0;};
+  const capacities = [{managedRun: native, capacity: {}, transferBytes: 31n, executionBytes: 41n},
+    {managedRun: native, capacity: {}, transferBytes: 51n, executionBytes: 61n}];
+  const registry = {}, values = {}, fragment = {}, ordered = {};
+  const moon = {clientProgramAcquisitionCount: () => 2,
+    clientProgramInstalledManagedRunPrepareLedger(...args) {
+      calls.push('original Ledger');
+      assert.deepEqual(args, [native, prepared, request, capacities.map(v => v.capacity),
+        [31n, 51n], [41n, 61n], registry, values, fragment, ordered]);
+      if (retireDuringBorrow) records.get(prepared).model.closed = true;
+      return {$tag: 1, _0: ledger};
+    }};
+  const ports = {current() {}, records, sameRun, fail, checked, moon,
+    prepareRequestModel(p, r, model) {
+      assert.strictEqual(p, prepared); assert.strictEqual(r, request); calls.push('adopt Model');
+      model.scope = scope; model.budget = {};
+      return {original, value: native};
+    }};
+  const extract = name => {
+    const node = functions.get(name); assert(node);
+    return Function(...Object.keys(ports), `return (${mockSource.slice(node.start, node.end)});`)(...Object.values(ports));
+  };
+  const adopt = extract('prepareManagedMockModelRun'), preparation = extract('modelPreparation');
+  const run = installNodeInferRun({moon, core: {publicationControl: control}, registry, values, fragment, ordered,
+    selections: new Map([[prepared, selected]]), prepareOriginalMockRun(p, actual) {
+      assert.strictEqual(p, prepared); assert.strictEqual(actual, plan); return preparation(p, actual);
+    }});
+  return {prepared, request, native, plan, selected, control, capacities, ledger, calls, records,
+    adopt: () => adopt(prepared, request, control, plan, selected, () => {}),
+    borrow: (sourceCapacities = capacities) => run.prepareAcquiredLedger({preparedProgram: prepared, plan, sourceCapacities})};
+}
+
+test('Mock Model dispatch uses the same adopted parent and one original two-Source Ledger', () => {
+  const f = mockLedgerFixture();
+  assert.strictEqual(f.adopt(), f.native); assert.strictEqual(f.adopt(), f.native);
+  assert.strictEqual(f.borrow(), f.ledger);
+  assert.strictEqual(f.records.get(f.prepared).model.sourceLedger, f.ledger);
+  assert.throws(() => f.borrow(), /InstalledModelSourceLedgerAlreadyBorrowed/);
+  assert.deepEqual(f.calls, ['adopt Model', 'original Ledger']);
+});
+
+test('Mock Model Ledger refuses a foreign Source and retains post-callback retirement without reborrowing', () => {
+  const foreign = mockLedgerFixture(); foreign.adopt();
+  assert.throws(() => foreign.borrow([{...foreign.capacities[0], managedRun: {}}, foreign.capacities[1]]),
+    /InvalidInstalledMockModelPreparation/);
+  assert.deepEqual(foreign.calls, ['adopt Model']);
+  const f = mockLedgerFixture({retireDuringBorrow: true}); f.adopt();
+  assert.throws(() => f.borrow(), /ForeignInstalledModelPreparation/);
+  assert.strictEqual(f.records.get(f.prepared).model.sourceLedger, undefined);
+  assert.equal(f.calls.filter(v => v === 'original Ledger').length, 1);
+  assert.throws(() => f.borrow(), /InvalidInstalledMockModelPreparation/);
+  assert.equal(f.calls.filter(v => v === 'original Ledger').length, 1);
+});
+
+test('Mock submit retains the actual returned parent for its existing dispatch comparison', () => {
+  const f = mockLedgerFixture();
+  const text = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const branches = [];
+  (function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && text.slice(node.test.start, node.test.end) === 'selectedModel?.localMock') branches.push(node);
+    for (const value of Object.values(node)) if (Array.isArray(value)) value.forEach(visit);
+    else if (value && typeof value === 'object') visit(value);
+  })(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(branches.length, 1);
+  const body = text.slice(branches[0].consequent.start, branches[0].consequent.end);
+  const ports = {selectedModel: f.selected, submission: {preparedProgram: f.prepared}, requested: f.request,
+    earlyMockInferPlans: new Map([[f.prepared, {plan: f.plan}]]), control: f.control,
+    sourceProfile: {prepareManagedMockModelRun(p, r, c, plan, selected) {
+      assert.strictEqual(p, f.prepared); assert.strictEqual(r, f.request); assert.strictEqual(c, f.control);
+      assert.strictEqual(plan, f.plan); assert.strictEqual(selected, f.selected); return f.adopt();
+    }}, preparation: {modelPublicationCapacity() {assert.fail('not borrowed before dispatch');}},
+    clientOperationError() {assert.fail('the original plan is present');}};
+  const actual = Function(...Object.keys(ports), `let managedSourceRun;${body};return managedSourceRun;`)(...Object.values(ports));
+  assert.strictEqual(actual, f.native); assert.deepEqual(f.calls, ['adopt Model']);
+});
 const source = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 let branch, selection;

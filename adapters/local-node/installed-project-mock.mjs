@@ -223,7 +223,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           record.model?.runDefinition !== plan.runDefinition || record.model?.graph !== selection.graph ||
           record.model?.control !== control || record.model.closed) fail('ForeignInstalledModelPreparation');
       sameRun(prepared);
-      return;
+      return record.value;
     }
     if (typeof prepareRequestModel !== 'function') fail('InstalledMockModelOperationalAdmissionUnavailable');
     if (records.size === 4096) fail('InstalledMockRunLimit');
@@ -249,6 +249,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       const run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
       record.original = run.original; record.value = run.value; record.preparationFunded = true;
       sameRun(prepared);
+      return record.value;
     } catch (cause) {record.failure = cause; throw cause;}
   }
   function modelPreparation(prepared, plan) {
@@ -264,6 +265,29 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       runDefinition: model.runDefinition, scope: model.scope, publicationCapacity,
       readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
       modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
+      prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {
+        sameRun(prepared);
+        if (!run.requestOwned || model.closed || model.scopeFinished || model.taken || model.readAttempted ||
+            !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(prepared) ||
+            capacities.length < 1 || capacities.length > 2 ||
+            capacities.some(value => value?.managedRun !== run.value)) fail('InvalidInstalledMockModelPreparation');
+        if (model.sourceLedgerAttempted) {
+          if (Object.hasOwn(model, 'sourceLedgerFailure')) throw model.sourceLedgerFailure;
+          fail('InstalledModelSourceLedgerAlreadyBorrowed');
+        }
+        const original = run.value, request = run.request;
+        model.sourceLedgerAttempted = true;
+        try {
+          const ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(original,
+            prepared, request, capacities.map(value => value.capacity),
+            capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes),
+            registry, values, fragment, ordered));
+          if (sameRun(prepared) !== run || run.model !== model || run.value !== original ||
+              run.request !== request || model.closed || model.scopeFinished) fail('ForeignInstalledModelPreparation');
+          model.sourceLedger = ledger;
+          return ledger;
+        } catch (cause) {model.sourceLedgerFailure = cause; throw cause;}
+      },
       retain() {
         if (model.closed || model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.taken = true;

@@ -4405,7 +4405,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (selectedModel?.localMock) {
       const early = earlyMockInferPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
-      sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
+      managedSourceRun = sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
         control, early.plan, selectedModel,
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
     } else if (selectedModel !== undefined) {
