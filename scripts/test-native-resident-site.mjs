@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {prepareNativeResidentHttpLibrary, prepareNativeResidentSite, prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import test from 'node:test';
-import {execFileSync, spawn} from 'node:child_process';
+import {execFileSync, fork, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
 import {request as httpsRequest} from 'node:https';
@@ -44,6 +44,108 @@ import {openSqliteTransferJournal} from
   '../adapters/site-node/sqlite-transfer-journal.mjs';
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
+// This harness's post-install watchdog owns only its fresh test process group.
+// Phase DATA is not a child stop, Store release, Site capacity or Host ACK.
+const residentPhaseKinds = new Set([
+  'bundle-activated', 'engine-contracts-enter', 'engine-contracts-return',
+  'run-environment-enter', 'run-environment-return', 'run-prepare-return',
+  'run-compile-return', 'run-allowed-return', 'run-definition-return',
+  'run-materials-enter', 'run-materials-return', 'oversized-materials-check',
+  'oversized-materials-return', 'result-definition-enter', 'result-definition-return',
+  'site-start', 'first-dispatch-enter', 'first-dispatch-return',
+  'wait-for-enter', 'wait-for-return', 'within-enter', 'within-return',
+  'finally-enter', 'owned-children-closed', 'proxy-close-enter',
+  'gateway-close-enter', 'receiver-close-enter', 'store-cleanup-enter',
+  'cleanup-calls-returned',
+]);
+
+async function runResidentPhaseWatchdog(script, {
+  forkChild = fork, phaseTimeoutMilliseconds = 120000, killGraceMilliseconds = 5000,
+  report = value => console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify(value)),
+} = {}) {
+  const child = forkChild(script, process.argv.slice(2), {
+    env: {...process.env, ACTQL_TEST_RESIDENT_PHASE_CHILD: '1'},
+    detached: true, stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+  });
+  let timer, forceTimer, armed = false, timedOut = false, supervisorSignal, lastPhase;
+  const signalOriginalGroup = signal => {
+    try { process.kill(-child.pid, signal); }
+    catch (error) { if (error.code !== 'ESRCH') throw error; }
+  };
+  const groupExists = () => {
+    try { process.kill(-child.pid, 0); return true; }
+    catch (error) { if (error.code === 'ESRCH') return false; throw error; }
+  };
+  return await new Promise((resolve, reject) => {
+    let closed, finished = false;
+    const finish = () => {
+      if (finished || closed === undefined) return;
+      finished = true;
+      clearTimeout(timer); clearTimeout(forceTimer);
+      resolve({...closed, code: timedOut ? 124 : supervisorSignal === 'SIGINT' ? 130
+        : supervisorSignal === 'SIGTERM' ? 143 : closed.code, timedOut, lastPhase});
+    };
+    const stopOriginalGroup = (event, signal) => {
+      if (timedOut || supervisorSignal !== undefined) return;
+      if (event === 'timeout') timedOut = true;
+      else supervisorSignal = signal;
+      report({event, ...lastPhase, cleanup: 'unconfirmed'});
+      signalOriginalGroup('SIGTERM');
+      forceTimer = setTimeout(() => {
+        signalOriginalGroup('SIGKILL');
+        finish();
+      }, killGraceMilliseconds);
+    };
+    const onTerm = () => stopOriginalGroup('supervisor-signal', 'SIGTERM');
+    const onInterrupt = () => stopOriginalGroup('supervisor-signal', 'SIGINT');
+    process.once('SIGTERM', onTerm);
+    process.once('SIGINT', onInterrupt);
+    const returnSignalHandlers = () => {
+      process.removeListener('SIGTERM', onTerm);
+      process.removeListener('SIGINT', onInterrupt);
+    };
+    child.once('close', returnSignalHandlers);
+    child.once('error', returnSignalHandlers);
+    child.on('message', value => {
+      if (timedOut || supervisorSignal !== undefined || value?.kind !== 'native-resident-phase' ||
+          !residentPhaseKinds.has(value.phase) ||
+          !Number.isSafeInteger(value.line) || value.line < 0 || value.line > 10000) return;
+      lastPhase = {phase: value.phase, line: value.line};
+      report({event: 'phase', ...lastPhase});
+      if (value.phase === 'bundle-activated') armed = true;
+      if (!armed) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => stopOriginalGroup('timeout'), phaseTimeoutMilliseconds);
+    });
+    child.once('error', error => {
+      clearTimeout(timer); clearTimeout(forceTimer); reject(error);
+    });
+    child.once('close', (code, signal) => {
+      closed = {code, signal};
+      if ((!timedOut && supervisorSignal === undefined) || !groupExists()) finish();
+      // A descendant that ignored TERM still belongs to this original test
+      // group. Keep the existing grace before its bounded forced shutdown.
+    });
+  });
+}
+
+function residentPhase(phase) {
+  if (!residentPhaseKinds.has(phase)) throw new Error('InvalidResidentDiagnosticPhase');
+  const line = Number(new Error().stack?.split('\n').slice(2)
+    .map(frame => /test-native-resident-site\.mjs:(\d+):/u.exec(frame)?.[1])
+    .find(value => value !== undefined) ?? 0);
+  const value = {kind: 'native-resident-phase', phase, line};
+  if (typeof process.send === 'function') process.send(value);
+  else console.error('ACTQL_NATIVE_RESIDENT_PHASE ' + JSON.stringify(value));
+}
+
+if (process.env.ACTQL_TEST_RESIDENT_PHASE_CHILD !== '1' && !process.env.NODE_TEST_CONTEXT) {
+  const outcome = await runResidentPhaseWatchdog(fileURLToPath(import.meta.url));
+  if (outcome.signal !== null && !outcome.timedOut) {
+    console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify({event: 'child-signal', signal: outcome.signal}));
+  }
+  process.exitCode = outcome.code ?? 1;
+} else {
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const retainedChainMode = process.argv.includes('--retained-chain-only') ||
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CHAIN_ONLY === '1';
@@ -141,6 +243,7 @@ const running = new Set();
 // Select the same original Site environment as the bundle/application callers;
 // build tools retain their separate producer environment.
 const siteProcessEnvironment = Object.freeze({PATH: '/usr/bin:/bin', LANG: 'C'});
+let acceptanceFailed = false;
 async function runAcceptance() {
 try {
   // Build the resident Site and the portable owners the test drives.
@@ -369,7 +472,10 @@ try {
     'component.bin'], {env: siteProcessEnvironment, stdio: 'inherit'});
   execFileSync(bundleTool, [...bundleCommon, 'activate', '--bundle-cid',
     envelope.runtimeBundleCid], {env: siteProcessEnvironment, stdio: 'inherit'});
+  residentPhase('bundle-activated');
+  residentPhase('engine-contracts-enter');
   const [registry, values, fragment] = await pinnedEngineContracts(repository);
+  residentPhase('engine-contracts-return');
   await writeFile(join(engineRoot, 'registry.json'), registry);
   await writeFile(join(engineRoot, 'values.json'), values);
   await writeFile(join(engineRoot, 'fragment.json'), fragment);
@@ -395,20 +501,26 @@ try {
     // One independent public compiler owner on the issuing side. Keep its
     // actual checked Program/compilation/admission/Definition throughout;
     // no installed Node preparation or same-process wire re-admission.
+    residentPhase('run-environment-enter');
     const retainedEnvironment = runHost.admitEnvironment(environmentWire,
       environmentCid, {rela: true});
+    residentPhase('run-environment-return');
     const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
+    residentPhase('run-prepare-return');
     const retainedCompilation = sourceMode ? runHost.compileTasks(retainedPrepared)
       : runHost.compileValues(retainedPrepared);
+    residentPhase('run-compile-return');
     const allowed = (sourceMode ? runHost.issueAllowedTaskRun : runHost.issueAllowedRun)(
       retainedPrepared, retainedCompilation, {
         executionContextCid: physicalCid('resident-execution-context'),
         hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
       });
+    residentPhase('run-allowed-return');
     const retainedAdmission = allowed.admission;
     const retainedDefinition = (sourceMode ? runHost.issueTaskRunDefinition
       : runHost.issueSourceFreeRunDefinition)(retainedPrepared, retainedCompilation,
       retainedAdmission, 'resident-scope', 'resident-run-1', createdAt, validUntil);
+    residentPhase('run-definition-return');
     const originalDefinition = runHost.privateRunDefinition(retainedDefinition);
     const definition = {wire: originalDefinition.wire, identity: originalDefinition.cid};
     const compiled = {
@@ -418,11 +530,13 @@ try {
         : runHost.privateCompilationWires)(retainedCompilation).compiledPlan},
     };
     const materialsIssuer = sourceMode ? runHost.issueTaskRunMaterials : runHost.issueSourceFreeRunMaterials;
+    residentPhase('run-materials-enter');
     const materials = materialsIssuer(retainedPrepared,
       retainedCompilation, retainedAdmission, retainedDefinition, {
         environment: retainedEnvironment, environmentWire,
         document: programText, format: 'json',
       });
+    residentPhase('run-materials-return');
     assert.equal(runHost.privateRunDefinition(retainedDefinition).cid, definition.identity);
     const projected = JSON.parse(materials);
     assert.equal(projected.prepared_invocation, compiled.preparedEvidence.wire);
@@ -433,12 +547,14 @@ try {
     assert.equal(projected.valid_until, validUntil);
     // Individual inputs remain valid, but quoting both makes the aggregate
     // materials exceed the cap. Exercise this through the installed issuer too.
+    residentPhase('oversized-materials-check');
     assert.throws(() => materialsIssuer(retainedPrepared,
       retainedCompilation, retainedAdmission, retainedDefinition, {
         environment: retainedEnvironment, environmentWire, format: 'json',
         document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
         parametersWire: '\t'.repeat(65534) + '{}',
       }), {code: 'RunHostRunMaterialsRejected'});
+    residentPhase('oversized-materials-return');
     return {compiled, definition, retainedEnvironment, retainedPrepared, retainedCompilation,
       retainedAdmission, retainedDefinition, materials};
   })();
@@ -513,11 +629,13 @@ try {
     });
   };
   // The Result the Coordinator publishes, from the ordinary Client owners.
+  residentPhase('result-definition-enter');
   const hostPrepared = effectComputationMode ? undefined : runHost.prepare(programText, 'json',
     runHost.admitEnvironment(environmentWire, JSON.parse(environmentWire).evidence_bundle_cid, {rela: true}));
   const resultDefinitionCid = effectComputationMode ? undefined : sourceMode ? runHost.taskResultDefinitions(hostPrepared,
     runHost.compileTasks(hostPrepared))[0].cid : runHost.resultDefinitions(hostPrepared,
       runHost.compileValues(hostPrepared))[0].cid;
+  residentPhase('result-definition-return');
   // The Coordinator queries until the execution settled and its output
   // subject is observed; an executor entry is recorded before execution.
   const settledQuery = async (dispatch, tag) => {
@@ -609,6 +727,7 @@ try {
       configured[configured.indexOf(flag) + 1] =
         `${(operation === 'observations' ? observationOrigin : controlOrigin)}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
     }
+    residentPhase('site-start');
     const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
       ...extra], {
@@ -633,21 +752,23 @@ try {
     return {child, lines, exited, stderr: () => stderr};
   };
   const waitFor = async (predicate, what, milliseconds = 30_000) => {
+    residentPhase('wait-for-enter');
     const deadline = Date.now() + milliseconds;
     while (Date.now() < deadline) {
-      if (await predicate()) return;
+      if (await predicate()) { residentPhase('wait-for-return'); return; }
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     throw new Error(`timed out waiting for ${what}`);
   };
   const within = async (promise, what, milliseconds = 60_000) => {
+    residentPhase('within-enter');
     let timer;
     try {
       return await Promise.race([promise, new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`timed out waiting for ${what}`)),
           milliseconds);
       })]);
-    } finally { clearTimeout(timer); }
+    } finally { clearTimeout(timer); residentPhase('within-return'); }
   };
   const entries = async () => existsSync(entryLog)
     ? (await readFile(entryLog, 'utf8')).split('\n').filter(Boolean) : [];
@@ -2325,9 +2446,11 @@ try {
   const site = startSite();
   currentSite = site;
   const first = dispatchFor('resident-dispatch-1', 1);
+  residentPhase('first-dispatch-enter');
   const observed = await within(gateway.dispatch({dispatch: first,
     inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(first)}),
   'first dispatch');
+  residentPhase('first-dispatch-return');
   // An authenticated status can still be Accepted while the holder starts.
   // Bind this observation to the original admitted Run; query progress below.
   assert.equal(observed.dispatchRequestCid, siteControl.identity(first));
@@ -3389,6 +3512,7 @@ try {
   assert.equal(new Set(keys).size, keys.length);
   console.log('native resident Site acceptance passed');
 } catch (error) {
+  acceptanceFailed = true;
   console.error('resident Site test failed:', error);
   if (observationFailures.length) {
     console.error('Coordinator observation failures:', observationFailures);
@@ -3405,6 +3529,7 @@ try {
   }
   throw error;
 } finally {
+  residentPhase('finally-enter');
   // Keep ownership until each tracked control process has actually stopped;
   // resource close/removal must not race an unconfirmed child exit.
   await Promise.all([...running].map(async child => {
@@ -3413,14 +3538,20 @@ try {
     child.kill('SIGKILL');
     await closed;
   }));
+  residentPhase('owned-children-closed');
+  residentPhase('proxy-close-enter');
   if (ackLossProxy !== undefined) await ackLossProxy.close().catch(() => {});
+  residentPhase('gateway-close-enter');
   if (gateway !== undefined) await gateway.close().catch(() => {});
+  residentPhase('receiver-close-enter');
   if (receiver !== undefined) await receiver.close().catch(() => {});
   receiverJournal?.close();
   observationStore?.close();
   receiverStore?.close();
+  residentPhase('store-cleanup-enter');
   await receiverStore?.cleanup();
-  if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+  residentPhase('cleanup-calls-returned');
+  if (!acceptanceFailed && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
     await rm(root, {recursive: true, force: true});
   } else {
     console.error(`native resident Site scratch kept: ${root}`);
@@ -3428,9 +3559,15 @@ try {
 }
 }
 
-if (process.env.NODE_TEST_CONTEXT) {
-  await test(effectComputationMode ? 'Native resident private Effect computation' : cancelMode ? 'Native resident cancellation and reconstruction' :
-    'Native resident Site acceptance', runAcceptance);
-} else {
-  await runAcceptance();
+try {
+  if (process.env.NODE_TEST_CONTEXT) {
+    await test(effectComputationMode ? 'Native resident private Effect computation' : cancelMode ? 'Native resident cancellation and reconstruction' :
+      'Native resident Site acceptance', runAcceptance);
+  } else {
+    await runAcceptance();
+  }
+} finally {
+  if (process.connected) process.disconnect();
+}
+
 }

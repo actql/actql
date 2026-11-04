@@ -93,6 +93,7 @@ test('Resident original process launch does not inherit the Python producer load
     LD_LIBRARY_PATH:'/hosted/python/lib',ACTQL_PRODUCER_ONLY:'original-producer'};
   const running=new Set(),source=residentLaunchSource(),calls=[];
   const start=runInNewContext(source.declaration+'\n'+source.startSite+'\nstartSite;',{
+    residentPhase: phase => assert.equal(phase,'site-start'),
     root:f.root,common:['--publication-root','original-publication','--journal','original-journal',
       '--poll-url','original-poll','--observation-url','original-observation'],
     executable:'original-Resident',receiver:{origin:'https://receiver.invalid'},
@@ -125,6 +126,7 @@ test('Resident bundle install and activation use the same explicit original chil
   const source=residentLaunchSource(),observed=[];
   const parent={PATH:'/producer-tools',LANG:'producer-language',LD_LIBRARY_PATH:'/hosted/python/lib'};
   runInNewContext(source.declaration+'\n'+source.install,{
+    residentPhase: phase => assert(['bundle-activated','engine-contracts-enter'].includes(phase)),
     bundleTool:'original-installer',bundleCommon:['--store-root','original-root'],
     envelope:{runtimeBundleCid:'original-bundle'},bundleInput:'original-input',
     execFileSync:(command,args,options)=>{
