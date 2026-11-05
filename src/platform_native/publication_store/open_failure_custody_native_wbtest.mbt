@@ -2,7 +2,7 @@
 /// Required isolated fixture, not an environment-missing success. Tests below
 /// distinguish real constructor calls from an injected post-open refusal.
 fn store_open_custody_fixture(name : String) -> (@sqlite.Library, String) {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_root(path, diagnostic_ceiling=Some(256)).unwrap()
   parent.create_directory(name).unwrap() |> ignore
   parent.close().unwrap()

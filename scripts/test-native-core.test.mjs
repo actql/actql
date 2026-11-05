@@ -859,6 +859,10 @@ if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
 }
 assert.ok(process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY);
 assert.ok(process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY);
+assert.equal(process.env.ACTQL_TEST_DUCKDB_LIBRARY, join(process.cwd(),
+  'adapters', 'connectors', 'duckdb', 'node', 'node_modules', '@duckdb',
+  'node-bindings-' + process.platform + '-' + process.arch,
+  process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'));
 assert.equal(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY,
   join(root, 'missing-crypto-library'));
 assert.equal(existsSync(process.env.ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY), false);
@@ -870,6 +874,7 @@ for (const [variable, child] of [
   ['ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT', 'bundles'],
   ['ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT', 'executor-slot'],
   ['ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT', 'retained-task-file'],
+  ['ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT', 'retained-task'],
 ]) {
   assert.equal(process.env[variable], join(root, child));
   const info = statSync(process.env[variable]);
@@ -925,6 +930,7 @@ process.exit(result.status ?? 1);
     ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: parent,
     ACTQL_TEST_NATIVE_CLI_PARENT_ROOT: parent};
   delete env.ACTQL_TEST_NATIVE_STORE_ROOT;
+  delete env.ACTQL_TEST_DUCKDB_LIBRARY;
   delete env.NODE_TEST_CONTEXT;
   function verifyExternal() {
     for (const name of originals) {

@@ -249,7 +249,7 @@ test "native filesystem creates an allocation area exclusively and removes only 
 
 ///|
 test "native Reader bounded stream retains offset EOF and finish ownership" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = open_root(path).unwrap()
   let token = @env.now().to_string()
   let name = "reader-stream-object-" + token
@@ -295,7 +295,7 @@ extern "C" fn stream_test_mutate(
 
 ///|
 test "native Reader stream refuses overwrite after partial read without closing original" {
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = open_root(path).unwrap()
   let token = @env.now().to_string()
   let name = "reader-mutation-object-" + token

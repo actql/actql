@@ -14,7 +14,7 @@ test "Native Result Policy selection refuses foreign Store and facts without gra
   let original = journal
     .bind_run(request, prepared, compiled, definition, true)
     .unwrap()
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let name = "local-result-policy-store"
   let parent = @filesystem.open_private_root(root).unwrap()
   parent.create_directory(name).unwrap() |> ignore

@@ -29,7 +29,7 @@ console.log(`Native core SQLite namespace: ${namespace}`);
 // These unconditional fixtures share the existing restoration owner, not the
 // optional publication Store root. Enabling that global root would let unrelated
 // packages contend on one Store lock and contaminate its format admission.
-for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'cli-parent']) {
+for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file', 'retained-task', 'cli-parent']) {
   mkdirSync(join(namespace, name), {mode: 0o700});
 }
 const bundle = nativeCompletedRestorationBundle();
@@ -93,6 +93,7 @@ const fixtureEnvironment = {
   ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(namespace, 'bundles'),
   ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: join(namespace, 'executor-slot'),
   ACTQL_TEST_NATIVE_RETAINED_TASK_FILE_ROOT: join(namespace, 'retained-task-file'),
+  ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: join(namespace, 'retained-task'),
   ACTQL_TEST_NATIVE_CLI_PARENT_ROOT: join(namespace, 'cli-parent'),
   ACTQL_REQUIRE_NATIVE_RETAINED_TEST: '1',
   ACTQL_TEST_NATIVE_CRYPTO_MISSING_LIBRARY: join(namespace, 'missing-crypto-library'),
@@ -103,6 +104,10 @@ const fixtureEnvironment = {
   ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
     process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
     (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib' : 'libsqlite3.so.0'),
+  ACTQL_TEST_DUCKDB_LIBRARY: process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(root,
+    'adapters', 'connectors', 'duckdb', 'node', 'node_modules', '@duckdb',
+    `node-bindings-${process.platform}-${process.arch}`,
+    process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so'),
   ACTQL_TEST_NATIVE_SQLITE_ROOT: namespace,
 };
 const checkChild = result => {
