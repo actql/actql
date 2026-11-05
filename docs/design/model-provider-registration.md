@@ -572,6 +572,17 @@ It shares the acquired-input kernel, without regenerating a prefix, executing
 its Source scan, copying rows or introducing another cleanup owner. The full
 prefix with an empty input set remains invalid, as do foreign or retired
 captures. The original Source stays live until its own reader retires.
+
+A composed input does not itself select a scheduler. The original installed
+single-Unit caller also supplies the same checked Program. The existing opaque
+compiled-owner check and immutable one-task/one-acquisition shape bind this
+choice once before the read claim, without another current callback or compile.
+That operation uses its existing driver, CallSet approval, settlement and
+original runtime-current fences. Local component construction supplies no
+Program and keeps the component-only drive refusal. The same direct operation
+may claim the existing nominal asynchronous wake endpoint; notification still
+grants no send, outcome or cleanup acknowledgement.
+
 The existing Model invocation binding owns
 the derived Result publication. Separate-stage composed Programs retain the
 DAG driver and its unchanged managed publication identity requirements. The

@@ -17541,7 +17541,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8688e3b76d21903567c3ee159414027516f1d25b6e8aa8e347c0e17625f909d6"
+      "sha256": "cc009e9b60ae671313811eaf5333d26ccc01d1cd1fbf7b19dcc1b8d4f1d036dd"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
@@ -18687,7 +18687,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "ccee3918e269b8991efb6a29ffe6125c19bd3b31f1fb1f25b844e2d8a556a2af",
+      "sha256": "a5297444d0dd13bb7e7b08ef6cc8800837fa9f722abc7263f4e5f8f88e7068ea",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"

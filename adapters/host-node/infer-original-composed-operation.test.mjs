@@ -5,11 +5,12 @@ import test from 'node:test';
 import {openNodeComposedInferProvider, openNodeInferOperation} from './infer-operation.mjs';
 import * as inferOperation from './infer-operation.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {createInferIoNotification} from './infer-io-notification.mjs';
 
 const originalReadCleaned = read => inferOperation.inferOriginalReadCleanupComplete?.(read) === true;
 
 function fixture({claimIssue, startIssue} = {}) {
-  const active = {}, consumer = {}, read = {}, rawCompiled = {}, rawDefinition = {}, scope = {};
+  const active = {}, consumer = {}, read = {}, rawCompiled = {}, rawDefinition = {}, scope = {}, prepared = {};
   const occurrence = {}, graph = {}, prefix = {}, sources = {}, provider = {};
   const inputs = [{producer: 'left'}, {producer: 'right'}], calls = [];
   let claimed = false, stopped = false;
@@ -51,7 +52,7 @@ function fixture({claimIssue, startIssue} = {}) {
   };
   const control = runtimeCore(moon).publicationControl;
   const runDefinition = control.admit('run_definition', '{}', {maxWireBytes: 2, maxNodes: 1, maxDepth: 1});
-  const compiled = control.prepareCheckedClientCompiledRun({}, 'infer', {
+  const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', {
     resultDataPolicy: {kind: 'data_policy', cid: 'fixture-policy', wire: '{}'},
   }, graph);
   const originalPreparation = {compiled, runDefinition, scope, read, control,
@@ -59,7 +60,7 @@ function fixture({claimIssue, startIssue} = {}) {
     modelRetainedBytes: 100n, modelExecutionBytes: 0n};
   const options = {moon, graph, provider, originalPreparation,
     composedInput: {occurrence, prefix, inputs, sources}};
-  return {moon, active, consumer, rawCompiled, rawDefinition, originalPreparation, occurrence, graph, prefix,
+  return {moon, active, consumer, rawCompiled, rawDefinition, prepared, originalPreparation, occurrence, graph, prefix,
     sources, inputs, provider, calls, options};
 }
 
@@ -483,4 +484,83 @@ test('a direct original operation still refuses simultaneous suffix issuers befo
   {message: 'InvalidInferOriginalSuffixBinding'});
   assert.equal(f.calls.length, 0);
   assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+});
+
+// The same composed input representation can belong to one direct checked
+// Unit. This explicit-port test enters the real adapter/opaque compiled Owner;
+// it does not issue physical capacity, Model send authority or ordinary IO.
+test('original single Unit composed input runs its same retained kernel instead of the Local component fence', async () => {
+  const f = fixture(), preparedCallSet = {}, poll = {}, events = [];
+  f.options.preparedProgram = f.prepared;
+  f.inputs.length = 0;
+  f.moon.clientProgramCompiledRunMatches = (compiled, prepared) => {
+    assert.equal(compiled, f.rawCompiled); events.push('same compiled owner');
+    return prepared === f.prepared;
+  };
+  f.moon.clientProgramTaskCount = value => {assert.equal(value, f.prepared); return 1;};
+  f.moon.clientProgramAcquisitionCount = value => {assert.equal(value, f.prepared); return 1;};
+  f.moon.clientProgramAdvanceInferExecution = (active, quantum) => {
+    assert.equal(active, f.active); assert.equal(quantum, 256);
+    events.push('original advance'); return {$tag: 1, _0: poll};
+  };
+  f.moon.clientProgramInferExecutionPollKind = value => {assert.equal(value, poll); return 'waiting';};
+  f.moon.clientProgramInferPreparedCallSet = active => {assert.equal(active, f.active); return preparedCallSet;};
+  const operation = openNodeInferOperation(f.options);
+  expectOriginalStart(f);
+  assert.deepEqual(await operation.run(), {status: 'waiting', preparedCallSet});
+  assert.deepEqual(events, ['same compiled owner', 'original advance']);
+  await operation.close();
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+});
+
+test('original single Unit driver refuses foreign Prepared and non-single captured shape before claiming a read', () => {
+  for (const mode of ['foreign', 'multiple', 'source-free', 'missing-source']) {
+    const f = fixture();
+    f.options.preparedProgram = mode === 'foreign' ? {} : f.prepared;
+    f.inputs.length = 0;
+    if (mode === 'missing-source') f.options.composedInput.sources = undefined;
+    f.moon.clientProgramCompiledRunMatches = (compiled, prepared) => {
+      assert.equal(compiled, f.rawCompiled); return prepared === f.prepared;
+    };
+    f.moon.clientProgramTaskCount = () => mode === 'multiple' ? 2 : 1;
+    f.moon.clientProgramAcquisitionCount = () => mode === 'source-free' ? 0 : 1;
+    assert.throws(() => openNodeInferOperation(f.options), mode === 'foreign'
+      ? /Foreign Client compiled Run/ : /InvalidInferOriginalComposedRun/);
+    assert.equal(f.calls.length, 0, mode+' must not spend its original claim');
+  }
+});
+
+test('original single Unit asynchronous drive retains the same nominal IO wake and original current boundaries', async () => {
+  const f = fixture(), waiting = {}, ioPoll = {}, preparedCallSet = {}, events = [];
+  f.options.preparedProgram = f.prepared;
+  f.inputs.length = 0;
+  const notification = createInferIoNotification();
+  f.options.ioNotification = notification;
+  f.options.assertRuntimeCurrent = () => events.push('original current');
+  f.moon.clientProgramBindInferPhysicalPreflightCurrent = () => {assert.fail('No physical callback is installed by this fixture');};
+  f.moon.clientProgramCompiledRunMatches = (compiled, prepared) => {
+    assert.equal(compiled, f.rawCompiled); return prepared === f.prepared;
+  };
+  f.moon.clientProgramTaskCount = () => 1;
+  f.moon.clientProgramAcquisitionCount = () => 1;
+  let advances = 0;
+  f.moon.clientProgramAdvanceInferExecution = active => {
+    assert.equal(active, f.active); events.push('original advance');
+    if (advances++ === 0) {notification.notify(); return {$tag: 1, _0: ioPoll};}
+    return {$tag: 1, _0: waiting};
+  };
+  f.moon.clientProgramInferExecutionPollKind = poll => poll === ioPoll ? 'await_io' : 'waiting';
+  f.moon.clientProgramInferPreparedCallSet = active => {assert.equal(active, f.active); return preparedCallSet;};
+  // The existing runtime observation binding remains its own original gate.
+  f.moon.clientProgramBindInferModelObservation = (active, prepared, callback) => {
+    assert.equal(active, f.active); assert.equal(prepared, preparedCallSet);
+    assert.equal(typeof callback, 'function'); return true;
+  };
+  const operation = openNodeInferOperation(f.options);
+  assert.deepEqual(await operation.run(), {status: 'waiting', preparedCallSet});
+  assert.equal(advances, 2);
+  assert.ok(events.filter(value => value === 'original current').length >= 2);
+  await operation.close();
+  assert.equal(notification.notify(), false);
+  assert.equal(originalReadCleaned(f.originalPreparation.read), true);
 });

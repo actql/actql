@@ -167,6 +167,26 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     }
     originalPreparation = restoredPreparation;
   }
+  // A composed input is not necessarily a Local-scheduled component: the
+  // existing installed one-Unit caller supplies its original checked Program.
+  // Bind that choice once to the same opaque compiled Owner before entry;
+  // subsequent driving still uses this operation's original current/Run gates.
+  const originalComposedRun = composedInput !== undefined &&
+    preparedProgram !== undefined && originalPreparation !== undefined;
+  if (originalComposedRun) {
+    const control = originalPreparation.control;
+    if (typeof control?.checkClientCompiledRunOwner !== 'function' ||
+        serializedInput !== undefined ||
+        !restoringOriginal && (!Array.isArray(composedInput.inputs) ||
+          composedInput.inputs.length !== 0 || composedInput.sources === undefined)) {
+      throw new TypeError('InvalidInferOriginalComposedRun');
+    }
+    control.checkClientCompiledRunOwner(originalPreparation.compiled, preparedProgram);
+    if (moon.clientProgramTaskCount(preparedProgram) !== 1 ||
+        moon.clientProgramAcquisitionCount(preparedProgram) !== 1) {
+      throw new TypeError('InvalidInferOriginalComposedRun');
+    }
+  }
   if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
     throw new TypeError('InvalidInferRawCaptureBinder');
   }
@@ -331,7 +351,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         : 'startCheckedClientRestoredGeneratedInferExecution'] !== 'function')) {
     throw new TypeError('InvalidSerializedInferInput');
   }
-  if (ioNotification !== undefined && (provider === undefined || composedInput !== undefined)) {
+  if (ioNotification !== undefined && (provider === undefined ||
+      composedInput !== undefined && !originalComposedRun)) {
     throw new TypeError('InvalidInferIoNotificationProfile');
   }
   let io = ioNotification === undefined ? undefined : claimInferIoNotification(ioNotification);
@@ -567,7 +588,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   function run() {
-    if (composedInput !== undefined || serializedInput?.inputs !== undefined) {
+    if (composedInput !== undefined && !originalComposedRun || serializedInput?.inputs !== undefined) {
       return Promise.reject(new Error('InferComponentDrivenByLocal'));
     }
     if (closing || reclaimed) {
