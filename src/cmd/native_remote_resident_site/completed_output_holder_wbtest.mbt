@@ -17,6 +17,78 @@ fn completed_output_test_delegation(
 }
 
 ///|
+/// Formal handoff through the real Journal, not a physical cleanup ACK. The
+/// Source process acceptance separately observes its original failure cleanup.
+test "ended failed Source release retains the same formal cleanup and request duty" {
+  let (_, journal, request, _, site) = cleanup_test_open(
+    "ended-failed-source-release",
+  )
+  let delegation = completed_output_test_delegation(request)
+  let (_, record) = journal.accept(request).unwrap()
+  let scope = @remote.dispatch_request_execution_scope(request)
+  let capability = @remote.register_remote_execution_capability(
+    site,
+    scope[2],
+    scope[3],
+    scope[4],
+    scope[5],
+    scope[6],
+  ).unwrap()
+  journal
+  .commit_transition(
+    @remote.prepare_begin_provisioning(record, capability).unwrap(),
+  )
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_begin_remote_execution(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_confirm_execution_failed(record).unwrap())
+  .unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(record), [4, 0, 0, 0, 0])
+  let failed_revision = @remote.dispatch_record_revision(record)
+  assert_false(begin_ended_holder_release(journal, delegation, 4, request))
+  assert_eq(
+    @remote.dispatch_record_revision(journal.require(request).unwrap()),
+    failed_revision,
+  )
+  journal
+  .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
+  .unwrap()
+  journal
+  .commit_transition(@remote.prepare_confirm_remote_release(record).unwrap())
+  .unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(record), [4, 0, 2, 0, 0])
+  let released_revision = @remote.dispatch_record_revision(record)
+  assert_true(
+    @resident_host.begin_resident_output_release(
+      journal, delegation, 4, request,
+    )
+    is Err(OutputUnavailable),
+  )
+  for _ in 0..<2 {
+    assert_true(begin_ended_holder_release(journal, delegation, 4, request))
+    assert_eq(
+      @remote.dispatch_record_revision(journal.require(request).unwrap()),
+      released_revision,
+    )
+  }
+  assert_false(
+    begin_ended_holder_release(
+      journal,
+      { ..delegation, grant_cid: cleanup_test_cid("0".repeat(64)), },
+      4,
+      request,
+    ),
+  )
+  assert_eq(
+    @remote.dispatch_record_state_codes(journal.require(request).unwrap()),
+    [4, 0, 2, 0, 0],
+  )
+  assert_true(journal.close())
+}
+
+///|
 /// These exercise the actual controller selection gate with its durable
 /// journal. They do not claim restoration or public Result acceptance.
 test "output reconstruction does not start missing accepted or running attempts" {

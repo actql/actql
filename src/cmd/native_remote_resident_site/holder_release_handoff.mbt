@@ -18,6 +18,33 @@ fn remember_holder_release(
 }
 
 ///|
+fn begin_ended_holder_release(
+  journal : @journal.Journal,
+  delegation : @resident.ResidentSiteDelegation,
+  generation : Int,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  match
+    @resident_host.begin_resident_output_release(
+      journal, delegation, generation, request,
+    ) {
+    Ok(_) => true
+    Err(@resident_host.OutputUnavailable) =>
+      match journal.require(request) {
+        Ok(record) =>
+          // The original failure Owner may already have confirmed cleanup
+          // before its Release reached the ended holder. It has no successful
+          // Output to begin releasing; the existing status ACK still owns
+          // retirement of this same retained request duty.
+          @remote.dispatch_record_state(record).0 is @remote.ExecutionFailed &&
+          @remote.remote_runtime_record_released(record)
+        Err(_) => false
+      }
+    Err(_) => false
+  }
+}
+
+///|
 /// Child exit alone cannot select release. Reuse the received typed requests,
 /// actual scoped stop and current exclusive Slot before the existing Journal
 /// Owner begins cleanup. Keep every request through its later status ACK.
@@ -45,13 +72,12 @@ fn begin_ended_holder_releases(
   }
   let mut begun = true
   for request in original.original.releases.values() {
-    if @resident_host.begin_resident_output_release(
+    if !begin_ended_holder_release(
         journal,
         delegation,
         environment.site_generation,
         request,
-      )
-      is Err(_) {
+      ) {
       begun = false
     }
   }
