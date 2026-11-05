@@ -27,6 +27,10 @@ findModuleMethods(parse(runtimeSource, {ecmaVersion: 'latest', sourceType: 'modu
 const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
+const budgetNode = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'retainRequestModelBoundsAndBudget');
+assert(budgetNode);
+const budgetSource = source.slice(budgetNode.start, budgetNode.end);
 function fixture({count = 0, timed = false, refuseCapture, expire = false, missingModule = false,
   serialized = false, expirePrefix = false, missingPrefix = false, physical = false, missingPhysical = false, missingProvider = false, expireProvider = false, expireComponent = false, missingComponent = false, facadeBindings = false, missingSelectorPort, absentSourceRef = false, throwSelector = false, selectorCause, native = false, nativeChange, missingNativeModule = false} = {}) {
   const parent = {}, input = {}, prepared = {}, request = {}, compilation = {}, module = {}, plan = {};
@@ -225,7 +229,7 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
     assert.equal(c, initialControl); assert.equal(o, originals);
     return path.endsWith('actql-query-acquisition.json') ? 'query' : 'evidence';
   }};
-  const construct = Function(...Object.keys(ports), `return (${source.slice(node.start, node.end)});`)(...Object.values(ports));
+  const construct = Function(...Object.keys(ports), `${budgetSource}\nreturn (${source.slice(node.start, node.end)});`)(...Object.values(ports));
   return {run, model, compilation, module, plan, bounds, calls, primary, prefix, control, parent, input, request, rawCompiled, rawDefinition,
     construct: () => construct(originals, run, model, compilation, parent, input)};
 }
@@ -676,7 +680,7 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
       calls.push('provider'+index); if (expireMember === index) live = false;
       return Object.freeze({provider: providers[index], bindOriginal() {}});
     }};
-  const construct = Function(...Object.keys(ports), 'return ' + source.slice(node.start, node.end))(...Object.values(ports));
+  const construct = Function(...Object.keys(ports), budgetSource + '\nreturn ' + source.slice(node.start, node.end))(...Object.values(ports));
   return {calls, model, run, plan, module, primary, invoke: () => construct(originals, run, model, compilation, parent, input)};
 }
 
@@ -780,8 +784,9 @@ test('multiple Model request selection reuses its original ordered components af
     calls++; return Object.freeze({occurrence, quantityCapacity, graph: {}});
   };
   const select = Function('occurrences', 'preparedProgram', 'inferSelections',
-    'prepareInferSelection', 'modelCoordinates', source.slice(branch.start, branch.end));
-  const run = () => select(occurrences, preparedProgram, inferSelections, prepareInferSelection, sourceCoordinates);
+    'prepareInferSelection', 'modelCoordinates', 'prepareSubmit', source.slice(branch.start, branch.end));
+  const run = () => select(occurrences, preparedProgram, inferSelections, prepareInferSelection, sourceCoordinates,
+    {originalInferRun: () => undefined});
   run(); const original = inferSelections.get(preparedProgram); adopted = true; run();
   assert.equal(inferSelections.get(preparedProgram), original); assert.equal(calls, 2);
   assert.equal(original.sourceCoordinates, sourceCoordinates);

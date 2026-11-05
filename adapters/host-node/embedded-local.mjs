@@ -631,6 +631,37 @@ function prepareManagedComputeCapturePlan(originals, run, invocationOriginal) {
   return plan;
 }
 
+// Reuse the same checked per-graph projection for fresh and restored inputs.
+// These quantities do not issue a reservation, current authority or a Run.
+function retainRequestModelBoundsAndBudget(moon, count, model) {
+  // Retain the actual selected opaque Limits before the module/Plan frame.
+  // The nine fixed DATA fields are the existing consumer suffix, not the
+  // Model Ledger totals and not a repeat of the old fifteen-number quote.
+  model.selectedBounds = model.selection?.selectedBounds ??
+    checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
+  const limits = moon.clientProgramComposedInferRetainedLimits(model.selectedBounds);
+  if (!Array.isArray(limits) || limits.length !== 9 ||
+      limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
+      limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
+  const physical = model.originalReadInstallation;
+  if (physical !== undefined && (count === 2 ||
+      typeof model.control[count === 1 ? 'prepareCheckedClientRequestNodeModelCapturePlan'
+        : 'prepareCheckedClientRequestNodeModelSourceFreePlan'] !== 'function')) {
+    throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+  }
+  // The installed Node read's declared complete envelope stays beside its
+  // actual Graph/Request originals. Native Plan validation preserves the
+  // checked non-byte dimensions and refuses insufficient physical extents.
+  model.budget = Object.freeze({bootstrapRetainedBytes: limits[0], bootstrapExecutionBytes: limits[1],
+    readRetainedBytes: physical === undefined ? limits[2] : physical.nodeInstallation.layout.retained_bytes,
+    readExecutionBytes: physical === undefined ? limits[3] : physical.nodeInstallation.layout.execution_bytes,
+    modelRetainedBytes: physical === undefined ? limits[4] : physical.modelRetainedBytes,
+    modelExecutionBytes: physical === undefined ? limits[5] : physical.modelExecutionBytes,
+    maxReservations: physical === undefined ? Number(limits[6]) : Math.max(Number(limits[6]), physical.bootstrap.maxReservations),
+    maxHoldings: physical === undefined ? Number(limits[7]) : Math.max(Number(limits[7]), physical.bootstrap.maxHoldings),
+    maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
+}
+
 // The same Request invokes this while its Model construction input is live.
 // Complete physical backing belongs before this call; the retained Bounds,
 // capacities and module below are originals, not an allocation permission.
@@ -655,34 +686,6 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
   }
   const count = moon.clientProgramAcquisitionCount(run.prepared);
   if (count !== 0 && count !== 1 && count !== 2) throw clientOperationError('InstalledMockModelOperationalAdmissionUnavailable');
-  function retainBoundsAndBudget(model) {
-    // Retain the actual selected opaque Limits before the module/Plan frame.
-    // The nine fixed DATA fields are the existing consumer suffix, not the
-    // Model Ledger totals and not a repeat of the old fifteen-number quote.
-    model.selectedBounds = model.selection?.selectedBounds ??
-      checked(moon.clientProgramPreparedComposedInferBounds(model.occurrence, model.graph));
-    const limits = moon.clientProgramComposedInferRetainedLimits(model.selectedBounds);
-    if (!Array.isArray(limits) || limits.length !== 9 ||
-        limits.some(value => typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) ||
-        limits.slice(6).some(value => value > 2147483647n)) throw clientOperationError('InvalidHostRuntimeResult');
-    const physical = model.originalReadInstallation;
-    if (physical !== undefined && (count === 2 ||
-        typeof model.control[count === 1 ? 'prepareCheckedClientRequestNodeModelCapturePlan'
-          : 'prepareCheckedClientRequestNodeModelSourceFreePlan'] !== 'function')) {
-      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
-    }
-    // The installed Node read's declared complete envelope stays beside its
-    // actual Graph/Request originals. Native Plan validation preserves the
-    // checked non-byte dimensions and refuses insufficient physical extents.
-    model.budget = Object.freeze({bootstrapRetainedBytes: limits[0], bootstrapExecutionBytes: limits[1],
-      readRetainedBytes: physical === undefined ? limits[2] : physical.nodeInstallation.layout.retained_bytes,
-      readExecutionBytes: physical === undefined ? limits[3] : physical.nodeInstallation.layout.execution_bytes,
-      modelRetainedBytes: physical === undefined ? limits[4] : physical.modelRetainedBytes,
-      modelExecutionBytes: physical === undefined ? limits[5] : physical.modelExecutionBytes,
-      maxReservations: physical === undefined ? Number(limits[6]) : Math.max(Number(limits[6]), physical.bootstrap.maxReservations),
-      maxHoldings: physical === undefined ? Number(limits[7]) : Math.max(Number(limits[7]), physical.bootstrap.maxHoldings),
-      maxDelegations: physical === undefined ? Number(limits[8]) : Math.max(Number(limits[8]), physical.bootstrap.maxDelegations)});
-  }
   if (model.components !== undefined) {
     const members = model.components, selected = model.selection?.components;
     let moduleName = count === 0 ? 'prepareCheckedClientRequestModelsSourceFreeComponentModule'
@@ -699,7 +702,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
         typeof model.control[planName] !== 'function') {
       throw clientOperationError('InstalledModelGroupPreparationUnavailable');
     }
-    for (const member of members) retainBoundsAndBudget(member);
+    for (const member of members) retainRequestModelBoundsAndBudget(moon, count, member);
     current();
     let sourceArguments = [];
     if (count > 0) {
@@ -777,7 +780,7 @@ function prepareRequestMockModelPlan(originals, run, model, compilation, parent,
     current();
     return run.modelPlan;
   }
-  retainBoundsAndBudget(model);
+  retainRequestModelBoundsAndBudget(moon, count, model);
   const physical = model.originalReadInstallation;
   current();
   if (count === 1) {
@@ -3746,6 +3749,84 @@ async function openInstalledHost(originalInstallation, preparation) {
       return sourceProfile.managedContentLedger(prepared, request, recipe, direct, keyed, capacity);
     },
     faultInjection: authorization?.faultInjection});
+  function prepareInstalledModelRecovery(prepared, plan, selection) {
+    const restored = prepareSubmit.originalInferRun(prepared);
+    const requested = sourceFreeRequestIdentities.get(prepared)?.requested;
+    if (restored === undefined || selection.restoredRun !== restored ||
+        selection.graph !== restored.graph || plan.inferGraph !== restored.graph ||
+        plan.compiled !== restored.compiled || plan.runDefinition !== restored.runDefinition ||
+        inferSelections.get(prepared) !== selection || requested === undefined ||
+        typeof preparation.prepareManagedModelRecoveryPlan !== 'function') {
+      throw clientOperationError('ForeignInstalledModelRecovery');
+    }
+    control.checkRestoredClientInferRunOwner(restored, prepared);
+    let early = earlyMockInferPlans.get(prepared);
+    if (early !== undefined) {
+      if (Object.hasOwn(early, 'failure')) throw early.failure;
+      if (!early.recovery || early.selecting || early.plan !== plan || early.restored !== restored ||
+          early.requested !== requested || early.model?.selection !== selection || early.model.closed ||
+          early.view === undefined) throw clientOperationError('ForeignInstalledModelRecovery');
+      early.view.assertRuntimeCurrent();
+      return early.view;
+    }
+    early = {recovery: true, prepared, requested, restored, plan,
+      model: undefined, view: undefined, selecting: true, aliasesReleased: false};
+    const model = {prepared, control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+      graph: selection.graph, occurrence: selection.occurrence, selection,
+      scope: undefined, read: undefined,
+      publicationCapacity: () => preparation.modelPublicationCapacity(prepared),
+      releaseAliases() {
+        if (this !== model) throw clientOperationError('ForeignInstalledModelRecovery');
+        if (early.aliasesReleased) return;
+        if (earlyMockInferPlans.get(prepared) !== early || early.model !== model ||
+            model.read !== undefined || model.scope !== undefined && model.scopeFinished !== true ||
+            model.components?.some(member => member.read !== undefined ||
+              member.scope !== undefined && member.scopeFinished !== true)) {
+          throw clientOperationError('InstalledModelCleanupPending');
+        }
+        if (model.components !== undefined) for (const member of model.components) {
+          for (const key of Object.keys(member)) member[key] = undefined;
+          member.closed = true;
+        }
+        for (const key of Object.keys(model)) model[key] = undefined;
+        model.closed = true;
+        early.prepared = early.requested = early.restored = early.plan = early.view = undefined;
+        early.aliasesReleased = true;
+      }};
+    if (selection.components !== undefined) {
+      model.scopes = undefined;
+      model.components = Object.freeze(selection.components.map(member => ({prepared, control,
+        compiled: plan.compiled, runDefinition: plan.runDefinition, graph: member.graph,
+        occurrence: member.occurrence, selection: member, group: model, scope: undefined, read: undefined,
+        originalReadInstallation: member.originalReadInstallation,
+        publicationCapacity: model.publicationCapacity})));
+    } else model.originalReadInstallation = selection.originalReadInstallation;
+    early.model = model;
+    earlyMockInferPlans.set(prepared, early); // Retain partial inputs before a projection or Scope can fail.
+    try {
+      const count = moon.clientProgramAcquisitionCount(prepared);
+      if (model.components === undefined) retainRequestModelBoundsAndBudget(moon, count, model);
+      else {
+        const census = {maxReservations: 0, maxHoldings: 0, maxDelegations: 0};
+        for (const member of model.components) {
+          retainRequestModelBoundsAndBudget(moon, count, member);
+          // Same whole-group census fold as the existing native Model Plan.
+          // These are coexisting original members, not future row estimates.
+          for (const name of Object.keys(census)) {
+            const next = census[name] + member.budget[name];
+            if (!Number.isSafeInteger(next) || next > 2147483647) {
+              throw clientOperationError('InstalledModelRecoveryCapacityUnavailable');
+            }
+            census[name] = next;
+          }
+        }
+        model.budget = Object.freeze(census);
+      }
+      early.view = preparation.prepareManagedModelRecoveryPlan(moon, prepared, requested, plan, selection, model);
+      return early.view;
+    } catch (cause) {early.failure = cause; throw cause;}
+    finally {early.selecting = false;}
+  }
   function prepareInstalledRequestModelRun(submission, requested, selection) {
     const prepared = submission.preparedProgram;
     const acquisitionCount = moon.clientProgramAcquisitionCount(prepared);
@@ -3836,6 +3917,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
     checkpoints, prepareAcquisition, runContent,
+    prepareModelRecoveryPlan: prepareInstalledModelRecovery,
     prepareOriginalModelRun(prepared, plan, selection) {
       const early = earlyMockInferPlans.get(prepared);
       if (early === undefined || early.plan !== plan || early.model === undefined) {
@@ -6817,6 +6899,18 @@ async function openPreparedInstalledHost(options, initialEntry) {
         : assertSourceManagedInstallationCurrent)(manager, originals);
       return manager.restoreModelOriginal(originalSourceManagedHostRequest(originals, request),
         original, definition, identity, construct);
+    },
+    prepareManagedModelRecoveryPlan(runtime, prepared, request, plan, selected, model) {
+      const manager = sourceManaged ?? computeManaged;
+      if (runtime !== moon || manager === undefined || typeof manager.prepareModelRecoveryPlan !== 'function' ||
+          model.control !== runtimeCore(runtime).publicationControl ||
+          !runtime.clientProgramMatchesRequestIdentity(prepared, request)) {
+        throw clientOperationError('InstalledModelRecoveryPreparationUnavailable');
+      }
+      (sourceManaged === undefined ? assertManagedComputeInstallationCurrent
+        : assertSourceManagedInstallationCurrent)(manager, originals);
+      return manager.prepareModelRecoveryPlan(prepared,
+        originalSourceManagedHostRequest(originals, prepared), plan, selected, model);
     },
     retainEffectRequestInput(runtime, request, intent, captured, materialWire) {
       const manager = sourceManaged ?? computeManaged;

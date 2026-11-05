@@ -1719,7 +1719,7 @@ async function originalCheckFixture(project) {
 }
 
 const originalReportMetadata = Object.freeze(['visible', 'context', 'program', 'revision', 17,
-  undefined, 0, undefined, 0, 'correlation', undefined, undefined]);
+  undefined, 0, undefined, 0, 'correlation', undefined, undefined, 'null']);
 
 test('original Request Check projection retains exact result receiver and receipt without another preparation', async () => {
   let f, calls = 0;

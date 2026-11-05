@@ -1165,6 +1165,9 @@ test('Request serialized Model preserves native Graph across actual facade Host 
 const modelModuleConstructor = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareRequestMockModelPlan');
 assert(modelModuleConstructor);
+const modelBudgetConstructor = parse(hostSource, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retainRequestModelBoundsAndBudget');
+assert(modelBudgetConstructor);
 
 test('Source-free Model module retains the output required by its existing configured Host', () => {
   for (const {physical, serialized, retainedOutput, mock = false, expected} of [
@@ -1231,7 +1234,8 @@ test('Source-free Model module retains the output required by its existing confi
       retainedRelationOutput: retainedOutput, computeRuns: new WeakMap([[prepared, run]])}};
     const construct = Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
       'prepareInstalledSequenceContractOriginal', 'runtimeCore', 'checked', 'clientOperationError', 'openNodeComposedInferProvider',
-      'return ' + hostSource.slice(modelModuleConstructor.start, modelModuleConstructor.end))(
+      hostSource.slice(modelBudgetConstructor.start, modelBudgetConstructor.end) + '\nreturn ' +
+        hostSource.slice(modelModuleConstructor.start, modelModuleConstructor.end))(
       value => assert.strictEqual(value, originals),
       (value, actual) => {assert.strictEqual(value, originals); assert.strictEqual(actual, prepared); return request;},
       value => {assert.strictEqual(value, originals); return {moon, control: initialControl, contracts: {}, admission};},

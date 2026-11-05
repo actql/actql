@@ -69,7 +69,7 @@ function fixture({sourceFree = false, missing = false} = {}) {
   const restore = saved => control.admitStoredClientInferRunOriginal(saved, definition, request, evidence,
     [false, false, true, false, false, false, false], limits);
   return {control, moon, policy, original, capture, restore, definition, request, prepared, compiled,
-    restoredPrepared, restoredGraph, restoredGraphs, restoredExecutions, restoredRaw, evidence,
+    raw, definitionToken, restoredPrepared, restoredGraph, restoredGraphs, restoredExecutions, restoredRaw, evidence,
     counts: () => ({issues, restores, strictReads, binds})};
 }
 
@@ -163,4 +163,70 @@ test('saved Infer rejects missing, empty and oversized graph inventories before 
     f.moon.clientProgramInferRunMaterialsGraphs = () => graphs;
     assert.throws(() => f.restore(saved), /Foreign Client original Infer materials/u);
   }
+});
+
+test('recovered Model Scope forwards the same Request and opaque compiler originals with and without quantity limits', () => {
+  const f = fixture(), parent = {}, input = {}, graphs = [{}, {}], bounds = [{}, {}], scopes = [{}, {}];
+  const modelR = [10n, 20n], modelE = [3n, 4n], readR = [5n, 6n], readE = [7n, 8n];
+  let entered = 0;
+  const args = [parent, input, f.request, f.definition, f.prepared, f.compiled,
+    graphs, bounds, modelR, modelE, readR, readE, 21, 22, 23];
+  const expected = [parent, input, f.request, f.definitionToken, f.prepared, f.raw,
+    graphs, bounds, modelR, modelE, readR, readE, 21, 22, 23];
+  const assertCall = (actual, quantities = []) => {
+    entered++; assert.equal(actual.length, expected.length + quantities.length);
+    [...expected, ...quantities].forEach((value, index) => assert.strictEqual(actual[index], value));
+    return {$tag: 1, _0: scopes};
+  };
+  f.moon.clientProgramPrepareRequestModelRecoveryReadScopes = (...actual) => assertCall(actual);
+  f.moon.clientProgramPrepareRequestModelRecoveryReadScopesWithQuantities = (...actual) => assertCall(actual, [30n, 40n, 50n]);
+  assert.strictEqual(f.control.prepareCheckedClientRequestModelRecoveryReadScopes(...args), scopes);
+  assert.strictEqual(f.control.prepareCheckedClientRequestModelRecoveryReadScopes(...args,
+    {tokens: 30n, costUnits: 40n, durationMs: 50n}), scopes);
+  for (const [index, replacement] of [[5, {...f.compiled}], [4, {}], [3, {...f.definition}]]) {
+    const foreign = [...args]; foreign[index] = replacement;
+    assert.throws(() => f.control.prepareCheckedClientRequestModelRecoveryReadScopes(...foreign), /Foreign/u);
+  }
+  assert.equal(entered, 2, 'foreign wrappers never reach a native Scope issuer');
+});
+
+test('recovery Host and usage bindings unwrap only the retained Definition and preserve refusal or pending results', () => {
+  const f = fixture(), parent = {}, input = {}, sources = [{}, {}], contracts = {}, providers = [{}, {}], dag = {};
+  const ledger = {}, coordinates = Object.freeze([[0, 0, 0], [1, 0, 1]]);
+  const nativeIssue = Object.freeze({issue: 'OriginalRequestRefused'});
+  let open = 0, current = true;
+  f.moon.clientProgramOpenRequestModelRecoveryHost = (...actual) => {
+    open++;
+    [parent, input, f.request, f.definitionToken, f.prepared, sources, contracts, 'values', 'fragment', 'ordered', providers]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return open === 1 ? {$tag: 1, _0: undefined} : {$tag: 0, _0: nativeIssue};
+  };
+  f.moon.clientProgramRequestModelRecoveryUsageIsolated = (...actual) => {
+    [parent, input, f.request, f.definitionToken, dag]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return current;
+  };
+  f.moon.clientProgramRequestModelRecoveryLedger = (...actual) => {
+    [parent, input, f.request, f.definitionToken]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return {$tag: 1, _0: ledger};
+  };
+  f.moon.clientProgramRequestModelRecoverySourceCoordinates = (...actual) => {
+    [parent, input, f.request, f.definitionToken, f.prepared]
+      .forEach((value, index) => assert.strictEqual(actual[index], value));
+    return {$tag: 1, _0: coordinates};
+  };
+  const args = [parent, input, f.request, f.definition, f.prepared, sources, contracts, 'values', 'fragment', 'ordered', providers];
+  assert.strictEqual(f.control.openCheckedClientRequestModelRecoveryHost(...args), undefined);
+  assert.throws(() => f.control.openCheckedClientRequestModelRecoveryHost(...args), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === nativeIssue);
+  assert.equal(f.control.checkedClientRequestModelRecoveryUsageIsolated(parent, input, f.request, f.definition, dag), true);
+  current = false;
+  assert.equal(f.control.checkedClientRequestModelRecoveryUsageIsolated(parent, input, f.request, f.definition, dag), false);
+  assert.strictEqual(f.control.checkedClientRequestModelRecoveryLedger(parent, input, f.request, f.definition), ledger);
+  assert.strictEqual(f.control.checkedClientRequestModelRecoverySourceCoordinates(
+    parent, input, f.request, f.definition, f.prepared), coordinates);
+  assert.throws(() => f.control.openCheckedClientRequestModelRecoveryHost(...args.map((value, index) =>
+    index === 3 ? {...f.definition} : value)), /Foreign/u);
+  assert.equal(open, 2);
 });

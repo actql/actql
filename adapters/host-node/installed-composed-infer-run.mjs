@@ -30,7 +30,10 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       !records.some(record => record.inventory.scopeCid === existingModel.inventory.scopeCid)) {
     throw new Error('InstalledComposedInferOriginalInventoryMissing');
   }
-  const multiple = acquiredInfer?.sources?.length === 2;
+  const restoredSourceCount = selected.restoredRun === undefined ? undefined
+    : moon.clientProgramAcquisitionCount(preparedProgram);
+  const multiple = restoredSourceCount === undefined ? acquiredInfer?.sources?.length === 2
+    : restoredSourceCount === 2;
   const originalComponents = originalPreparation?.components;
   const completeOriginal = Array.isArray(originalComponents) && originalComponents.length === selected.components.length &&
     originalComponents.every((original, index) => original.selection === selected.components[index]);
@@ -47,7 +50,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   const installedCaptured = originalPreparation !== undefined &&
     typeof originalPreparation.openCapturedHost === 'function';
   const installedSourceFree = sourceFree && (completeOriginal || selected.components[0].localMock !== true);
-  const installedComponent = installedCaptured || installedSourceFree;
+  // A restored Scope has no fresh installed component module. Its original
+  // cold read enters the same Local provider through restoreRead below.
+  const installedComponent = (installedCaptured || installedSourceFree) && selected.restoredRun === undefined;
   if (installedComponent && (completeOriginal
       ? originalComponents.some(original => typeof original.component?.bindOriginal !== 'function')
       : children.length !== 1 || originalPreparation.selection !== children[0].selection ||
@@ -180,7 +185,17 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       }
       if (await execution.cleanup() === false || execution.cleanupPending()) return false;
     }
-    if (restoredSource !== undefined) {await restoredSource.close(); restoredSource = undefined;}
+    if (restoredSource !== undefined) {
+      if (Array.isArray(restoredSource)) {
+        // Each successful restoration is retained before the next Source can
+        // fail. A pending/failed close keeps that same original for retry.
+        while (restoredSource.length !== 0) {
+          if (await restoredSource[0].close() === false) return false;
+          restoredSource.shift();
+        }
+      } else if (await restoredSource.close() === false) return false;
+      restoredSource = undefined;
+    }
     if (sourceContinuation !== undefined) {await sourceContinuation.close(); sourceContinuation = undefined;}
     if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;
     if (pendingSetup !== undefined) {
@@ -188,7 +203,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
           !(originalPreparation?.preparationHolder !== undefined &&
             typeof moon.clientProgramPreparationBorrowUsageIsolated === 'function' &&
             moon.clientProgramPreparationBorrowUsageIsolated(originalPreparation.preparationHolder,
-              moon.strategyHostRun(pendingSetup)) === true)) return false;
+              moon.strategyHostRun(pendingSetup)) === true) &&
+          !(selected.restoredRun !== undefined && typeof originalPreparation?.setupUsageIsolated === 'function' &&
+            originalPreparation.setupUsageIsolated(moon.strategyHostRun(pendingSetup)) === true)) return false;
       pendingSetup = undefined;
     }
     released = true;
@@ -215,7 +232,64 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   if (matched.size !== records.length) throw new Error('ModelResumeForeignInventory');
   let input = acquiredInfer;
   const historical = children.find(child => child.token !== undefined);
-  if (multiple && checkpoints !== undefined) {
+  if (restoredSourceCount !== undefined && !sourceFree) {
+    const coordinates = originalPreparation?.sourceCoordinates;
+    if ((restoredSourceCount !== 1 && restoredSourceCount !== 2) || acquiredInfer !== undefined ||
+        !Array.isArray(coordinates) || coordinates.length !== restoredSourceCount ||
+        coordinates.some(value => !Array.isArray(value) || value.length !== 3 ||
+          value.some(part => !Number.isSafeInteger(part) || part < 0)) ||
+        new Set(coordinates.map(value => value[2])).size !== restoredSourceCount ||
+        historical === undefined || checkpoints === undefined ||
+        typeof prepareAcquisition !== 'function' || typeof sourceAccessFor !== 'function' ||
+        typeof sourceAdapterFor !== 'function' || typeof originalPreparation.sourceLedger !== 'function') {
+      throw new Error('ModelSourceClosureCustodyUnavailable');
+    }
+    const occurrences = coordinates.map(([stage, input, task]) => Object.freeze({stage, input, task}));
+    const saved = historical.token.snapshot.sourceContinuation;
+    if (saved === undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+    for (const child of children) {
+      if (child.token !== undefined && canonicalJson(child.token.snapshot.sourceContinuation) !== canonicalJson(saved)) {
+        throw new Error('ModelSourceClosureMismatch');
+      }
+    }
+    sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
+      acquired: {kind: 'infer', prepared: preparedProgram, runDefinition: plan.runDefinition, control},
+      submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
+      currentRun: () => {try {assertCurrent(); return !signal.aborted;} catch {return false;}},
+      restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
+        runDefinitionCid: plan.runDefinition.identity}, continuation: saved}});
+    const originals = [];
+    for (const occurrence of occurrences) {
+      // This is the original installed authorization/selector entrance. It
+      // does not reacquire the retained Source or recompile its Query.
+      const preparedSource = await prepareAcquisition(preparedProgram, undefined, occurrence);
+      assertCurrent();
+      const adapter = sourceAdapterFor(preparedSource);
+      if (adapter === undefined) throw new Error('InstalledComposedInferSourceOwnerUnavailable');
+      sourceContinuation.accessFor(sourceAccessFor(preparedSource), occurrence);
+      originals.push({occurrence, preparedSource, adapter});
+    }
+    await sourceContinuation.prepared(originals);
+    assertCurrent();
+    // All captures borrow this SAME recovery parent, not one Ledger per
+    // Source. The continuation checks every retained scope/binding first.
+    const ledger = originalPreparation.sourceLedger();
+    assertCurrent();
+    const sources = [];
+    restoredSource = [];
+    for (const source of originals) {
+      const retained = await sourceContinuation.beforeRead(source);
+      assertCurrent();
+      if (retained.retained === undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+      const restored = sourceContinuation.restore(source, retained.retained, ledger);
+      restoredSource.push(restored.captured);
+      const sourceEvidence = control.admitRunEvidence('source_evidence', restored.sourceEvidenceWire,
+        {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100});
+      sources.push({...source, ...restored, sourceEvidence});
+    }
+    input = multiple ? {sources, ledger, sourceEvidence: sources.map(source => source.sourceEvidence),
+      ...sourceContinuation.times()} : {...sources[0], ledger, ...sourceContinuation.times()};
+  } else if (multiple && checkpoints !== undefined) {
     // Retain both original approved request/response prefixes. A last ticket,
     // matching array or a single Source's closure cannot stand in for them.
     if (historical !== undefined) throw new Error('ModelMultiSourceClosureCustodyUnavailable');
@@ -269,13 +343,14 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       const retained = await sourceContinuation.beforeRead(source);
       assertCurrent();
       if (retained.retained === undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
-      const restored = sourceContinuation.restore(source, retained.retained, undefined);
+      const restored = sourceContinuation.restore(source, retained.retained,
+        originalPreparation === undefined ? undefined : originalPreparation.sourceLedger());
       restoredSource = restored.captured;
       input = {...restored, ...sourceContinuation.times(),
         sourceEvidence: control.admitRunEvidence('source_evidence', restored.sourceEvidenceWire,
           {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
     }
-  } else if (historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
+  } else if (!sourceFree && historical !== undefined) throw new Error('ModelSourceClosureCustodyUnavailable');
   const {captured, captureStartedAt, captureCompletedAt} = input ?? {};
   const captures = sourceFree ? [] : multiple ? input.sources.map(source => source.captured) : [captured];
   const sourceEvidence = sourceFree ? [] : multiple ? input.sourceEvidence : [input.sourceEvidence];
@@ -298,7 +373,8 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       child.component.bindOriginal(context);
     } else child.component = openNodeComposedInferProvider(context);
   }
-  const setup = installedCaptured ? originalPreparation.openCapturedHost(captures)
+  const setup = installedCaptured ? originalPreparation.openCapturedHost(captures,
+    selected.restoredRun === undefined ? undefined : children.map(child => child.component.provider))
     : sourceFree ? originalPreparation.openSourceFreeHost(registry, values, fragment, ordered,
     children.map(child => child.component.provider)) : multiple ? moon.clientProgramOpenMultiCapturedComposedInferHost(preparedProgram,
     captures.map(value => value.capture.source()), input.ledger, registry, values, fragment, ordered,
@@ -309,7 +385,9 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
   pendingSetup = setup;
   if (multiple || installedCaptured) {
     const dag = moon.strategyHostRun(setup);
-    for (const [task, original] of captures.entries()) original.capture.retainTask(dag, task);
+    for (const [task, original] of captures.entries()) {
+      original.capture.retainTask(dag, restoredSourceCount === undefined ? task : original.occurrence.task);
+    }
   }
   // The existing single-Source dispatch owner retains this capture until
   // all Compute custody has settled. It is not a multi-capture ledger lease.

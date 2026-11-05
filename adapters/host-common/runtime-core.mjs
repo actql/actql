@@ -3690,6 +3690,43 @@ function publicationControl(moon) {
       return checked(Reflect.apply(prepare, moon, [parent, input, request, value, token(definition), compilation, sourceRef, schema, table, query, evidence, receipts,
         transport, scratch, contracts, retainedOutput, queryTime, bindOriginal]));
     },
+    checkedClientRequestModelRecoverySourceCoordinates(parent, input, request, definition, prepared) {
+      const select = moon.clientProgramRequestModelRecoverySourceCoordinates;
+      if (typeof select !== 'function') throw new TypeError('Installed Model recovery Source unavailable');
+      return checked(Reflect.apply(select, moon, [parent, input, request, token(definition), prepared]));
+    },
+    checkedClientRequestModelRecoveryLedger(parent, input, request, definition) {
+      const borrow = moon.clientProgramRequestModelRecoveryLedger;
+      if (typeof borrow !== 'function') throw new TypeError('Installed Model recovery Ledger unavailable');
+      return checked(Reflect.apply(borrow, moon, [parent, input, request, token(definition)]));
+    },
+    checkedClientRequestModelRecoveryUsageIsolated(parent, input, request, definition, dag) {
+      const inspect = moon.clientProgramRequestModelRecoveryUsageIsolated;
+      if (typeof inspect !== 'function') throw new TypeError('Installed Model recovery usage unavailable');
+      return Reflect.apply(inspect, moon, [parent, input, request, token(definition), dag]);
+    },
+    openCheckedClientRequestModelRecoveryHost(parent, input, request, definition, prepared,
+      sources, contracts, values, fragment, ordered, providers) {
+      const open = moon.clientProgramOpenRequestModelRecoveryHost;
+      if (typeof open !== 'function') throw new TypeError('Installed Model recovery Host unavailable');
+      return checked(Reflect.apply(open, moon, [parent, input, request, token(definition), prepared,
+        sources, contracts, values, fragment, ordered, providers]));
+    },
+    prepareCheckedClientRequestModelRecoveryReadScopes(parent, input, request, definition, prepared, compiled,
+      graphs, bounds, modelRetained, modelExecution, readRetained, readExecution,
+      maxReservations, maxHoldings, maxDelegations, quantityLimits) {
+      control.checkClientCompiledRunOwner(compiled, prepared);
+      control.checkClientCompiledRunDefinition(compiled, definition);
+      if (compiled.kind !== 'infer') throw new TypeError('Foreign Client compiled Infer preparation');
+      const value = compiledRunTokens.get(compiled);
+      const prepare = moon[quantityLimits === undefined ? 'clientProgramPrepareRequestModelRecoveryReadScopes'
+        : 'clientProgramPrepareRequestModelRecoveryReadScopesWithQuantities'];
+      if (typeof prepare !== 'function') throw new TypeError('Installed Model recovery Scope unavailable');
+      return checked(Reflect.apply(prepare, moon, [parent, input, request, token(definition), prepared, value,
+        graphs, bounds, modelRetained, modelExecution, readRetained, readExecution,
+        maxReservations, maxHoldings, maxDelegations,
+        ...(quantityLimits === undefined ? [] : [quantityLimits.tokens, quantityLimits.costUnits, quantityLimits.durationMs])]));
+    },
     prepareCheckedClientRequestModelsSourceFreePlan(parent, input, original, request, compiled, definition,
       occurrences, graphs, selected) {
       const value = compiledRunTokens.get(compiled);

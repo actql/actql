@@ -564,3 +564,26 @@ test('original single Unit asynchronous drive retains the same nominal IO wake a
   assert.equal(notification.notify(), false);
   assert.equal(originalReadCleaned(f.originalPreparation.read), true);
 });
+
+test('original restored single Unit drives its saved kernel for zero or one Source without reopening input', async () => {
+  for (const sourceCount of [0, 1]) {
+    const f = originalRestoredFixture(), waiting = {}, preparedCallSet = {};
+    const options = {...f.options, preparedProgram: f.prepared, originalPreparation: undefined,
+      restoredPreparation: f.originalPreparation, restoredInput: f.restoredInput};
+    f.moon.clientProgramCompiledRunMatches = (compiled, prepared) =>
+      compiled === f.rawCompiled && prepared === f.prepared;
+    f.moon.clientProgramTaskCount = () => 1;
+    f.moon.clientProgramAcquisitionCount = () => sourceCount;
+    f.moon.clientProgramAdvanceInferExecution = active => {
+      assert.strictEqual(active, f.active); return {$tag: 1, _0: waiting};
+    };
+    f.moon.clientProgramInferExecutionPollKind = () => 'waiting';
+    f.moon.clientProgramInferPreparedCallSet = () => preparedCallSet;
+    const operation = openNodeInferOperation(options);
+    assert.deepEqual(await operation.run(), {status: 'waiting', preparedCallSet});
+    assert.equal(f.calls.filter(value => value[0] === 'restore').length, 1);
+    assert.equal(f.calls.filter(value => value[0] === 'start').length, 0);
+    await operation.close();
+    assert.equal(originalReadCleaned(f.originalPreparation.read), true);
+  }
+});

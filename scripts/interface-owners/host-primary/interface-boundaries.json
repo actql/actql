@@ -17596,6 +17596,11 @@
         },
         {
           "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/model/init:releaseAliases/init:releaseAliases",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/model/init:releaseAliases/init:releaseAliases/init:releaseAliases",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/model/model",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/prepareInstalledModelRecovery",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/init:releaseAliases/init:releaseAliases",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/model/init:releaseAliases/init:releaseAliases/init:releaseAliases",
@@ -17603,6 +17608,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun/prepareInstalledRequestModelRun#2",
             "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile",
             "openPreparedInstalledHost/preparation/init:installMockSources/init:installMockSources/profile/profile#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedModelRecoveryPlan/init:prepareManagedModelRecoveryPlan",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
@@ -17611,6 +17617,11 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#11",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#13",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#14",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#15",
+            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#16",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#3",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#4",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#5",
@@ -17618,14 +17629,9 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#7",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#8",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
-            "prepareRequestMockModelPlan/retainBoundsAndBudget",
-            "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget",
-            "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget#2",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#12",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#13",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#14",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#15",
-            "prepareRequestMockModelPlan/prepareRequestMockModelPlan#16"
+            "retainRequestModelBoundsAndBudget",
+            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
+            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
           ],
           "exports": [],
           "attributes": {
@@ -19490,6 +19496,39 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery",
+          "parameters": [
+            "prepared",
+            "plan",
+            "selection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/model/init:releaseAliases/init:releaseAliases",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/model/init:releaseAliases/init:releaseAliases/init:releaseAliases",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/model/model",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledModelRecovery/prepareInstalledModelRecovery",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInstalledRequestModelRun",
           "parameters": [
             "submission",
@@ -21303,6 +21342,18 @@
           "async": false
         },
         {
+          "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelRecoveryPlan/init:prepareManagedModelRecoveryPlan",
+          "parameters": [
+            "runtime",
+            "prepared",
+            "request",
+            "plan",
+            "selected",
+            "model"
+          ],
+          "async": false
+        },
+        {
           "name": "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
           "parameters": [
             "runtime",
@@ -21850,27 +21901,6 @@
           "async": false
         },
         {
-          "name": "prepareRequestMockModelPlan/retainBoundsAndBudget",
-          "parameters": [
-            "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareRequestMockModelPlan/retainBoundsAndBudget/retainBoundsAndBudget#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publicKeyCid/publicKeyCid",
           "parameters": [
             "value"
@@ -22158,6 +22188,29 @@
           "async": false
         },
         {
+          "name": "retainRequestModelBoundsAndBudget",
+          "parameters": [
+            "moon",
+            "count",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "retireEffectCaptureResourceFrame",
           "parameters": [
             "record",
@@ -22331,7 +22384,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "00b9b5ab4e2eda6721e6316dc2c27983b4d83b2d4b72df442ea67dd60640f5ca"
+      "sha256": "6f9f786917a26ed7055e0b46bdfc657ee49175366fed7ad2496c7f21dbb49051"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

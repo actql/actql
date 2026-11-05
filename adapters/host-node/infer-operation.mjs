@@ -182,8 +182,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
     control.checkClientCompiledRunOwner(originalPreparation.compiled, preparedProgram);
+    const sourceCount = moon.clientProgramAcquisitionCount(preparedProgram);
     if (moon.clientProgramTaskCount(preparedProgram) !== 1 ||
-        moon.clientProgramAcquisitionCount(preparedProgram) !== 1) {
+        (restoringOriginal ? sourceCount !== 0 && sourceCount !== 1 : sourceCount !== 1)) {
       throw new TypeError('InvalidInferOriginalComposedRun');
     }
   }

@@ -3387,8 +3387,13 @@
         {
           "operations": [
             "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+            "publicationControl/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
+            "publicationControl/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
+            "publicationControl/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
             "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+            "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
             "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+            "publicationControl/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
             "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
             "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution"
           ],
@@ -9423,6 +9428,38 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "dag"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientRunCapturedContentCandidate/init:checkedClientRunCapturedContentCandidate",
           "parameters": [
             "compiled",
@@ -10831,6 +10868,23 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "prepared",
+            "sources",
+            "contracts",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:ordinaryPublicationFrontierByteBounds/init:ordinaryPublicationFrontierByteBounds",
           "parameters": [
             "request",
@@ -11156,6 +11210,28 @@
             "retainedOutput",
             "queryTime",
             "bindOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "definition",
+            "prepared",
+            "compiled",
+            "graphs",
+            "bounds",
+            "modelRetained",
+            "modelExecution",
+            "readRetained",
+            "readExecution",
+            "maxReservations",
+            "maxHoldings",
+            "maxDelegations",
+            "quantityLimits"
           ],
           "async": false
         },
@@ -14775,7 +14851,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "480138df54557fe1b9547fb6ee56979e156134ef569204e9ec33dc09c74a20fa"
+      "sha256": "4f61c068f6a355e612cb7a24e8ea63894ea23d57a5715cef2171feb2baaf0458"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -17575,11 +17651,11 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cc009e9b60ae671313811eaf5333d26ccc01d1cd1fbf7b19dcc1b8d4f1d036dd"
+      "sha256": "22d75c0537afe088c1421dfc3ba59d760ea5bc16ae8fc2c7f24f48449d9240ce"
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "aa120b68b9ea3de16a3c75809ad0fa35fe25a45d77fa7a157dbd5e882680f188",
+      "sha256": "8f2266c54050425afb94520f16366b0e80e66c9a893780f809b0939f503546fc",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -17744,6 +17820,15 @@
           "async": false
         },
         {
+          "name": "runInstalledComposedInfers/occurrences/occurrences",
+          "parameters": [
+            "stage",
+            "input",
+            "task"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/originals/originals",
           "parameters": [
             "source"
@@ -17777,6 +17862,37 @@
           "async": false
         },
         {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers/runInstalledComposedInfers",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#12",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#13",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#2",
           "parameters": [
             "record"
@@ -17804,25 +17920,27 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#6",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#7",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#8",
-          "parameters": [
-            "child"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#9",
           "parameters": [
-            "child"
+            "source"
           ],
           "async": false
         },
@@ -17836,19 +17954,26 @@
         {
           "name": "runInstalledComposedInfers/setup/setup#2",
           "parameters": [
-            "value"
+            "child"
           ],
           "async": false
         },
         {
           "name": "runInstalledComposedInfers/setup/setup#3",
           "parameters": [
-            "child"
+            "value"
           ],
           "async": false
         },
         {
           "name": "runInstalledComposedInfers/setup/setup#4",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/setup/setup#5",
           "parameters": [
             "child"
           ],
@@ -17877,7 +18002,12 @@
             "runInstalledComposedInfers/local/local",
             "runInstalledComposedInfers/local/local/child/child",
             "runInstalledComposedInfers/local/local/init:retainEvidenceCopy/init:retainEvidenceCopy",
+            "runInstalledComposedInfers/occurrences/occurrences",
             "runInstalledComposedInfers/runInstalledComposedInfers",
+            "runInstalledComposedInfers/runInstalledComposedInfers#10",
+            "runInstalledComposedInfers/runInstalledComposedInfers#11",
+            "runInstalledComposedInfers/runInstalledComposedInfers#12",
+            "runInstalledComposedInfers/runInstalledComposedInfers#13",
             "runInstalledComposedInfers/runInstalledComposedInfers#2",
             "runInstalledComposedInfers/runInstalledComposedInfers#3",
             "runInstalledComposedInfers/runInstalledComposedInfers#4",
@@ -17886,7 +18016,9 @@
             "runInstalledComposedInfers/runInstalledComposedInfers#7",
             "runInstalledComposedInfers/runInstalledComposedInfers#8",
             "runInstalledComposedInfers/runInstalledComposedInfers#9",
-            "runInstalledComposedInfers/setup/setup"
+            "runInstalledComposedInfers/runInstalledComposedInfers/runInstalledComposedInfers",
+            "runInstalledComposedInfers/setup/setup",
+            "runInstalledComposedInfers/setup/setup#5"
           ],
           "exports": [
             "runInstalledComposedInfers"
@@ -18721,7 +18853,7 @@
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "a5297444d0dd13bb7e7b08ef6cc8800837fa9f722abc7263f4e5f8f88e7068ea",
+      "sha256": "44048e8f41c7178b4432696801f0e11d11fe9515983ee57bc426e3786027c024",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -18752,6 +18884,7 @@
             "prepareKeyedRecovery",
             "prepareOriginalMockRun",
             "prepareOriginalModelRun",
+            "prepareModelRecoveryPlan",
             "computeConfigurations"
           ],
           "async": false
@@ -18876,7 +19009,20 @@
           "async": false
         },
         {
+          "name": "installNodeInferRun/run/run/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeInferRun/run/run/declaredResults/declaredResults",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/declaredResults/declaredResults#2",
           "parameters": [
             "_",
             "index"
@@ -18969,12 +19115,16 @@
         },
         {
           "name": "installNodeInferRun/run/run/run#10",
-          "parameters": [],
+          "parameters": [
+            "source"
+          ],
           "async": false
         },
         {
           "name": "installNodeInferRun/run/run/run#11",
-          "parameters": [],
+          "parameters": [
+            "part"
+          ],
           "async": false
         },
         {
@@ -18994,6 +19144,21 @@
         },
         {
           "name": "installNodeInferRun/run/run/run#15",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run#16",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run#17",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeInferRun/run/run/run#18",
           "parameters": [
             "issuance",
             "modelEvidence"
@@ -19038,21 +19203,21 @@
         {
           "name": "installNodeInferRun/run/run/run#7",
           "parameters": [
-            "record"
+            "name"
           ],
           "async": false
         },
         {
           "name": "installNodeInferRun/run/run/run#8",
           "parameters": [
-            "slot"
+            "record"
           ],
           "async": false
         },
         {
           "name": "installNodeInferRun/run/run/run#9",
           "parameters": [
-            "source"
+            "slot"
           ],
           "async": false
         },
@@ -19226,7 +19391,9 @@
             "installNodeInferRun/run/run/cleanup/cleanup/cleanup#2",
             "installNodeInferRun/run/run/cleanupOwned/cleanupOwned",
             "installNodeInferRun/run/run/cleanupPending/cleanupPending",
+            "installNodeInferRun/run/run/current/current",
             "installNodeInferRun/run/run/declaredResults/declaredResults",
+            "installNodeInferRun/run/run/declaredResults/declaredResults#2",
             "installNodeInferRun/run/run/frame/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/generated/init:retainExecution/init:retainExecution",
             "installNodeInferRun/run/run/init:retainCopy/init:retainCopy",
@@ -19247,6 +19414,9 @@
             "installNodeInferRun/run/run/run#13",
             "installNodeInferRun/run/run/run#14",
             "installNodeInferRun/run/run/run#15",
+            "installNodeInferRun/run/run/run#16",
+            "installNodeInferRun/run/run/run#17",
+            "installNodeInferRun/run/run/run#18",
             "installNodeInferRun/run/run/run#2",
             "installNodeInferRun/run/run/run#3",
             "installNodeInferRun/run/run/run#4",
@@ -19730,6 +19900,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/runtime-result.mjs",
+        "./acquired-effect-continuation.mjs",
         "./infer-capture-custody.mjs",
         "./infer-evaluation-evidence.mjs",
         "./infer-io-notification.mjs",
