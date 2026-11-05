@@ -836,8 +836,14 @@ pub fn captured_task_allocation_matches(
   task : Int,
   holding : @resources.Holding,
 ) -> Bool {
-  run.resources.get(task).bind(value => value).bind(resource => resource.holding)
-  .map(original => physical_equal(original, holding) && @resources.holding_available(run.ledger, holding))
+  run.resources
+  .get(task)
+  .bind(value => value)
+  .bind(resource => resource.holding)
+  .map(original => {
+    physical_equal(original, holding) &&
+    @resources.holding_available(run.ledger, holding)
+  })
   .unwrap_or(false)
 }
 

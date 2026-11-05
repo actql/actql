@@ -2223,7 +2223,9 @@ export async function createInstalledRowSource({moon, declaration, commands,
         // returning this Core original. Preserve it before current/getter use.
         originalKeyedRead = prepareKeyedSourceRead(Object.freeze({
           checkedOwner: preparedEffect ?? preparedProgram, keyedAcquisition, request, declaration,
-          ...(managedRun === undefined ? {} : {managedRun})}));
+          ...(managedRun === undefined ? {} : {managedRun}),
+          rowLimits: Object.freeze({maxPageBytes: limits.maxPageBytes,
+            maxTextBytes: limits.maxPageBytes, maxWork: 1000000})}));
         checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));
       }
       const acquisition = checked(originalKeyedRead === undefined

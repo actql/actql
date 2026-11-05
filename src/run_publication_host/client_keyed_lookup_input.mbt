@@ -133,7 +133,11 @@ fn start_client_keyed_lookup_input_owned(
     return Err(Assembly("capacity_overflow"))
   }
   let owner = left.acquisition.owner
-  let index = @acquisition.keyed_join_input(left.acquisition.binding.join)
+  let index = match
+    @query.keyed_response_input_index(owner, left.acquisition.binding.join) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("foreign_response_port"))
+  }
   // Admit the existing layout/workspace envelope before materializing the
   // input buffer. The original per-key holdings are independent live owners.
   let reserve = match
@@ -445,13 +449,21 @@ pub fn begin_client_keyed_lookup_response(
     Err(issue) => return Err(issue)
   }
   let acquisition = state.left.acquisition
+  let response_input = match
+    @query.keyed_response_input_index(
+      acquisition.owner,
+      acquisition.binding.join,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("foreign_response_port"))
+  }
   if state.growing ||
     !request.io_complete ||
     request.attempts == 0L ||
     !@execution.supplied_relation_read_matches_input(
       read,
       acquisition.owner,
-      @acquisition.keyed_join_input(acquisition.binding.join),
+      response_input,
     ) ||
     @execution.supplied_relation_read_row_count(read) != 1 {
     return Err(Assembly("unverified_response"))
@@ -621,10 +633,18 @@ pub fn finish_client_keyed_lookup_input(
     }
     return Err(Assembly("closed_response"))
   }
+  let response_input = match
+    @query.keyed_response_input_index(
+      state.left.acquisition.owner,
+      state.left.acquisition.binding.join,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Assembly("foreign_response_port"))
+  }
   let read = match
     @execution.prepare_supplied_relation_read(
       state.left.acquisition.owner,
-      @acquisition.keyed_join_input(state.left.acquisition.binding.join),
+      response_input,
       state.completed.unwrap(),
       () => {
         !state.closed &&

@@ -467,7 +467,7 @@ test('three Effect acquisitions remain unsupported with three installed Sources'
 // Execute the actual retained custody declaration with explicit original Core
 // ports. No callbacks, Program, Ledger or physical stop are manufactured here;
 // the fixed fixtures represent an already closed/settled child at this seam.
-function acquiredCleanupFixture({dagRetired = true, physicalReady = true} = {}) {
+function acquiredCleanupFixture({dagRetired = true, physicalReady = true, keyedReady} = {}) {
   const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   const declaration = ast.body.map(node => node.declaration ?? node)
@@ -481,14 +481,16 @@ function acquiredCleanupFixture({dagRetired = true, physicalReady = true} = {}) 
   }};
   const physical = {async cleanup() {events.push('physical'); return physicalReady;},
     cleanupPending() {events.push('physical-pending'); return !physicalReady;}};
-  const value = new Function('moon', 'checkedHost', 'execution', `
+  const keyed = keyedReady === undefined ? undefined : {
+    async cleanup() {events.push('keyed'); return keyedReady;}, cleanupPending:() => !keyedReady};
+  const value = new Function('moon', 'checkedHost', 'execution', 'keyedCleanup', `
     let pending=true,closed=true,settled=true,unresolved=false;
     let recovery,contentFamily,contentFamilyCleanup,contentRecovery,sourceContinuation,modelToken;
     const captures=[]; let originalPreparationRetained=false;
     const cleanupInfer=async()=>true; const observeUsage=()=>{};
     ${source.slice(custody.start, custody.end)}
     return custody;
-  `)(moon, checkedHost, physical);
+  `)(moon, checkedHost, physical, keyed);
   return {value, events};
 }
 
@@ -499,6 +501,60 @@ test('acquired Effect cleanup uses original DAG retirement after physical cleanu
   assert.deepEqual(fixture.events, ['physical', 'physical-pending', 'dag-retirement']);
   assert.equal(await fixture.value.cleanup(), true);
   assert.equal(fixture.events.length, 3, 'Settled custody repeats no cleanup or aggregate accounting');
+});
+
+test('acquired Effect cleanup waits for the same keyed owner before DAG retirement', async () => {
+  const pending = acquiredCleanupFixture({keyedReady:false});
+  assert.equal(await pending.value.cleanup(), false);
+  assert.deepEqual(pending.events, ['physical', 'physical-pending', 'keyed']);
+  const complete = acquiredCleanupFixture({keyedReady:true});
+  assert.equal(await complete.value.cleanup(), true);
+  assert.deepEqual(complete.events, ['physical', 'physical-pending', 'keyed', 'dag-retirement']);
+});
+
+test('original composed Model binds only after the same completed keyed Source closure is admitted', () => {
+  const source = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
+  const tree = parse(source, {ecmaVersion:'latest', sourceType:'module'});
+  const declaration = tree.body.map(node => node.declaration ?? node).find(node =>
+    node.type === 'FunctionDeclaration' && node.id.name === 'openAcquiredEffectComputation');
+  const original = declaration.body.body.find(node => node.type === 'TryStatement').block.body;
+  const prepare = original.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'prepareInferComponent'));
+  assert(prepare);
+  const occurrence = {}, captures = [{}, {}], sourceEvidence = [{}, {}], observation = {}, closure = {};
+  const compiled = {}, runDefinition = {}, scope = {}, selected = {}, capturedInput = {}, result = {};
+  const evidence = sourceEvidence.map(value => ({sourceEvidence:value}));
+  const infer = {occurrence}, keyedFamily = {observation, capturedInput};
+  const modelPlan = {compiled, runDefinition}, originalPreparation = {scope};
+  let binds = 0, admissions = 0, refuse = false;
+  const primary = new Error('OriginalSourceClosureRefused');
+  const acquired = {authorityScopeCid:'authority', control:{admitComposedInferSources(...args) {
+    admissions++;
+    assert.deepEqual(args, [occurrence, captures, sourceEvidence, 'authority', 'start', 'complete', observation]);
+    if (refuse) throw primary;
+    return closure;
+  }}};
+  const originalModelComponent = {bindOriginal(context) {
+    binds++; assert.equal(context.sources, closure); assert.equal(context.selected, selected);
+    assert.equal(context.originalPreparation, originalPreparation); assert.equal(context.plan, modelPlan);
+    assert.equal(context.capturedInput, capturedInput); return result;
+  }};
+  const run = new Function('p', `const {infer,captures,evidence,keyedFamily,
+    originalPreparation,originalModelComponent,acquired,originalModelSelection}=p;
+    let modelPlan=p.modelPlan;
+    const current=()=>{},sourceFree=false,multiple=true,contentFamily=undefined;
+    const restoredModelInput=undefined,modelToken=undefined,modelController=undefined;
+    const principalId='fixture',signal=undefined,now=()=>{},moon={};
+    const captureStartedAt='start',captureCompletedAt='complete';
+    let inferOperation,inferCapture;
+    ${source.slice(prepare.start, prepare.end)}
+    return prepareInferComponent();`);
+  const inputs = {infer,captures,evidence,keyedFamily,modelPlan,originalPreparation,
+    originalModelComponent,acquired,originalModelSelection:selected};
+  assert.equal(run(inputs), result); assert.deepEqual({admissions,binds}, {admissions:1,binds:1});
+  refuse = true;
+  assert.throws(() => run(inputs), error => error === primary);
+  assert.deepEqual({admissions,binds}, {admissions:2,binds:1});
 });
 
 for (const [name, options] of [

@@ -175,33 +175,48 @@ fn graph_keyed_model_plan_input(
   // This is the existing single-keyed producer/factory's construction scope.
   // More requests need their own original producer connection, never a count
   // inferred from aliases, sample rows or a caller-authored URI.
-  guard deferred is Some(slot) && ordered_data_inputs_complete(
-    graph.input_counts,
-    graph.data,
-    supplied_slots=graph.supplied_slots,
-    deferred_slot=deferred,
-    captured_prefix=graph.captured_prefix,
-  ) else { return None }
+  guard deferred is Some(slot) &&
+    ordered_data_inputs_complete(
+      graph.input_counts,
+      graph.data,
+      supplied_slots=graph.supplied_slots,
+      deferred_slot=deferred,
+      captured_prefix=graph.captured_prefix,
+    ) else {
+    return None
+  }
   Some(slot)
 }
 
 ///|
 pub fn graph_keyed_model_plan_inputs_complete(
-  graph : CheckedDAG, consumer : Int, model_step : Int,
-) -> Bool { graph_keyed_model_plan_input(graph, consumer, model_step) is Some(_) }
+  graph : CheckedDAG,
+  consumer : Int,
+  model_step : Int,
+) -> Bool {
+  graph_keyed_model_plan_input(graph, consumer, model_step) is Some(_)
+}
 
 ///|
 // Runtime binding only: an actual currently readable checked keyed input is
 // required. The original graph and its plan-only supplied inventory stay
 // unchanged; this private physical view borrows the same original Owners.
 pub fn graph_with_completed_keyed_model_input(
-  graph : CheckedDAG, consumer : Int, model_step : Int,
+  graph : CheckedDAG,
+  consumer : Int,
+  model_step : Int,
   read : @execution.SuppliedRelationRead,
 ) -> CheckedDAG? {
   guard graph_keyed_model_plan_input(graph, consumer, model_step) is Some(slot) &&
-    @execution.supplied_relation_read_matches_input(read, graph.owners[consumer], slot.source_input) &&
-    @execution.supplied_relation_read_available(read) else { return None }
+    @execution.supplied_relation_read_matches_input(
+      read,
+      graph.owners[consumer],
+      slot.source_input,
+    ) &&
+    @execution.supplied_relation_read_available(read) else {
+    return None
+  }
   let supplied_slots = graph.supplied_slots.copy()
   supplied_slots.push(slot)
-  Some({..graph, supplied_slots,})
+  Some({ ..graph, supplied_slots, })
 }

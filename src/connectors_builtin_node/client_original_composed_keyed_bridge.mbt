@@ -3,8 +3,13 @@
 pub fn client_program_effect_composed_model_keyed_acquisition(
   prepared : @publication_host.PreparedClientEffectComputation,
   plan : @publication_host.ClientInferPlanGraph,
-) -> Result[@publication_host.ClientKeyedAcquisition?, @publication_host.ClientKeyedAcquisitionIssue] {
-  @publication_host.select_client_effect_composed_model_keyed_acquisition(prepared, plan)
+) -> Result[
+  @publication_host.ClientKeyedAcquisition?,
+  @publication_host.ClientKeyedAcquisitionIssue,
+] {
+  @publication_host.select_client_effect_composed_model_keyed_acquisition(
+    prepared, plan,
+  )
 }
 
 ///|
@@ -17,11 +22,21 @@ pub fn client_program_start_original_composed_keyed_prefix(
   keyed : @publication_host.ClientKeyedAcquisition,
   rows : Array[@client_row_source_host.RowSourceCapture],
   input_prefix : @execution.GeneratedSequence,
-) -> Result[@client_local_host.ClientOriginalComposedKeyedPrefix, @client_local_host.ClientSerializationPrefixIssue] {
+) -> Result[
+  @client_local_host.ClientOriginalComposedKeyedPrefix,
+  @client_local_host.ClientSerializationPrefixIssue,
+] {
   let limits = @infer_host.standard_limits()
   @client_local_host.start_client_original_composed_keyed_prefix(
-    scope, compiled, definition, plan, keyed, rows, input_prefix,
-    limits.input, limits.measurement,
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    input_prefix,
+    limits.input,
+    limits.measurement,
   )
 }
 
@@ -37,8 +52,13 @@ pub fn client_program_original_composed_keyed_prefix_execution(
 #export_name("clientProgramCompleteOriginalComposedKeyedPrefix")
 pub fn client_program_complete_original_composed_keyed_prefix(
   value : @client_local_host.ClientOriginalComposedKeyedPrefix,
-) -> Result[@publication_host.ClientKeyedLeftRead, @publication_host.ClientKeyedRequestIssue] {
-  @client_local_host.complete_client_original_composed_keyed_prefix(value, 100000, 1000000)
+) -> Result[
+  @publication_host.ClientKeyedLeftRead,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @client_local_host.complete_client_original_composed_keyed_prefix(
+    value, 100000, 1000000,
+  )
 }
 
 ///|
@@ -46,14 +66,20 @@ pub fn client_program_complete_original_composed_keyed_prefix(
 pub fn client_program_original_composed_keyed_prefix_advance(
   value : @client_local_host.ClientOriginalComposedKeyedPrefix,
   quantum : Int,
-) -> Result[(Bool, Bool, @connector.FixedComputeIssue?), @connector.FixedComputeIssue] {
-  @client_local_host.advance_client_original_composed_keyed_prefix(value, quantum).map(poll => {
+) -> Result[
+  (Bool, Bool, @connector.FixedComputeIssue?),
+  @connector.FixedComputeIssue,
+] {
+  @client_local_host.advance_client_original_composed_keyed_prefix(
+    value, quantum,
+  ).map(poll => {
     match poll {
       Complete(_, ..) => (true, true, None)
       Continue(..) | Waiting(..) | Settling(_, ..) => (false, false, None)
       Failed(issue, ..) => (false, true, Some(issue))
       Stopped(..) => (false, true, None)
-      CarrierComplete(_, ..) => (false, true, Some(@connector.Execution(@execution.InputSet)))
+      CarrierComplete(_, ..) =>
+        (false, true, Some(@connector.Execution(@execution.InputSet)))
     }
   })
 }
@@ -65,11 +91,16 @@ pub fn client_program_installed_effect_managed_keyed_host_open(
   bound : @publication_host.PreparedClientEffectRun,
   sources : Array[@query.CapturedInputSource],
   lookup : @publication_host.ClientKeyedLookupInput,
-) -> Result[ClientLocalEffectHost?, @client_local_host.ClientInstalledManagedRunIssue] {
-  @client_local_host.open_installed_effect_managed_keyed_host(owner, bound, sources, lookup).map(value => {
+) -> Result[
+  ClientLocalEffectHost?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_effect_managed_keyed_host(
+    owner, bound, sources, lookup,
+  ).map(value => {
     value.map(tuple => {
       let (host, run, sequences) = tuple
-      {host, run, prepared: bound, sequences,}
+      { host, run, prepared: bound, sequences, }
     })
   })
 }
@@ -81,6 +112,11 @@ pub fn client_program_composed_keyed_file_locator_start(
   request : @publication_host.ClientKeyedRequest,
   sources : Array[@query.CapturedInputSource],
   reads : Array[@execution.SuppliedRelationRead?],
-) -> Result[@publication_host.ClientKeyedFileLocator, @publication_host.ClientKeyedRequestIssue] {
-  @publication_host.start_client_composed_keyed_file_locator(lookup, request, sources, reads)
+) -> Result[
+  @publication_host.ClientKeyedFileLocator,
+  @publication_host.ClientKeyedRequestIssue,
+] {
+  @publication_host.start_client_composed_keyed_file_locator(
+    lookup, request, sources, reads,
+  )
 }

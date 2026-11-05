@@ -66,6 +66,10 @@ pub fn begin_declared_keyed_row_read(
     Ok(schema) => schema
     Err(issue) => return Err(KeyedOwner(issue))
   }
+  let input_index = match @query.keyed_response_input_index(owner, join) {
+    Ok(value) => value
+    Err(issue) => return Err(KeyedOwner(issue))
+  }
   let input = @sourcequery.keyed_request_input(
     @sourcequery.parameterized_keyed_request(
       @sourcequery.keyed_join_request(join),
@@ -146,7 +150,7 @@ pub fn begin_declared_keyed_row_read(
   }
   new_row_source_read(
     owner,
-    @sourcequery.keyed_join_input(join),
+    input_index,
     schema,
     columns,
     view.fields,

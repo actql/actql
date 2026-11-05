@@ -1895,7 +1895,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         checked(methods.clientProgramCompleteRequestEffectPreparation(state.parent, producer.receipt, operationPlan));
         const value = checked(methods.clientProgramAdoptRequestEffectModelPreparation(
           state.parent, identity, retainedRun.modelScope));
-        const run = {prepared, request, producer, purpose: 'source-compute', model: undefined,
+        const run = {prepared, request, producer, purpose: 'source-compute', model: retainedRun,
           effectful: true, content: undefined, operationPlan, original: state.original,
           children: [], fileIdentity: undefined, value};
         producer.liveRuns++;
@@ -2075,24 +2075,38 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     },
     prepareKeyedRead(prepared, declaration, originalRun, request) {
       const run = runFor(prepared);
-      if (!project || run.purpose !== 'local-content' || run.original !== originalRun ||
+      const model = run.model;
+      const planned = run.effectful === true && run.purpose === 'source-compute' && model !== undefined;
+      if ((!project && !planned) || (planned ? run.value !== originalRun || model.value !== originalRun ||
+          model.closed || model.prepared !== prepared || model.requestInput !== run.request ||
+          model.original !== run.original || model.manager !== view || model.modelScope === undefined ||
+          model.operationPlan !== run.operationPlan || model.modelScopeFinished === true
+        : run.purpose !== 'local-content' || run.original !== originalRun) ||
           !bundle.sources.some(source => source.declaration === declaration) ||
           request === null || typeof request !== 'object' ||
-          run.children.length >= run.required.attempts ||
+          !planned && run.children.length >= run.required.attempts ||
           run.children.some(child => child.request === request)) fail('InstalledSourcePreparationMismatch');
+      if (planned) {
+        const plan = checked(Reflect.apply(model.readPlan, model.runtime,
+          [originalRun, prepared, model.request]));
+        if (plan !== run.operationPlan || runFor(prepared) !== run || model !== run.model ||
+            model.value !== originalRun || model.closed || model.modelScopeFinished === true) {
+          fail('InstalledSourcePreparationMismatch');
+        }
+      }
       const child = {request, attempted: false, closed: false, bytes: undefined, flight: undefined,
         closing: false, cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
         reader: undefined, readerClose: undefined, readerStatus: undefined,
         readerCloseSeen: false, readerStatusSeen: false, readerCloseAcknowledged: false};
       run.children.push(child);
-      return Object.freeze({originalSource: Object.freeze({}), retainChild(actual) {
+      return Object.freeze({originalSource: Object.freeze({}), ...(project ? {retainChild(actual) {
         if (child.closed || child.closing || actual === null ||
             typeof actual !== 'object' && typeof actual !== 'function' ||
             child.reader !== undefined && child.reader !== actual) fail('InstalledSourcePreparationMismatch');
         child.reader = actual;
         captureReader(child);
         runFor(prepared);
-      }, close: () => closeChild(child),
+      }} : {readOriginalBytes: () => readBytes(run, child)}), close: () => closeChild(child),
       status: () => Object.freeze({pending: !child.closed || child.flight !== undefined})});
     },
     async close() {

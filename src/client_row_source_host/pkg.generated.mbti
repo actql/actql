@@ -295,6 +295,8 @@ pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.Pr
 
 pub fn row_captured_inputs_count(RowCapturedInputs) -> Int
 
+pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool
+
 pub fn row_captures_original_keyed_child_available(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, prefix? : @physical_resources.Reservation?) -> Bool
 
 pub fn row_captures_original_keyed_lookup_dependents_retired(RowCapturedInputs, @physical_resources.Ledger, @physical_resources.Reservation, prefix? : @physical_resources.Reservation?) -> Bool

@@ -364,9 +364,15 @@ pub fn start_client_composed_infer_input(
       return Err(UnsupportedProgram)
     }
     let prior_work = if composed is Some(_) {
-      @publication_host.client_composed_keyed_lookup_prefix_work(lookup, occurrence).unwrap()
-    } else { 0L }
-    if prior_work < 0L || prior_work > execution.max_work.to_int64() { return Err(InvalidLimits) }
+      @publication_host.client_composed_keyed_lookup_prefix_work(
+        lookup, occurrence,
+      ).unwrap()
+    } else {
+      0L
+    }
+    if prior_work < 0L || prior_work > execution.max_work.to_int64() {
+      return Err(InvalidLimits)
+    }
     return start_client_infer_input_sequence(
       selected,
       step,
@@ -374,10 +380,13 @@ pub fn start_client_composed_infer_input(
         @local.managed_provider_relation_input(left),
         @local.managed_provider_supplied_relation_input(right),
       ],
-      {..execution, max_work: execution.max_work - prior_work.to_int(),},
+      { ..execution, max_work: execution.max_work - prior_work.to_int(), },
       measurement,
       mapping,
-    ).map(active => { active.work = prior_work; active })
+    ).map(active => {
+      active.work = prior_work
+      active
+    })
   }
   start_client_infer_input_sequence(
     sequence, step, inputs, execution, measurement, mapping,

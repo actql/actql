@@ -63540,8 +63540,8 @@
         {
           "operations": [
             "createInstalledDuckDBSource/adapter/init:managedCaptureCapacity/init:managedCaptureCapacity",
-            "createInstalledDuckDBSource/capacityContracts/capacityContracts",
-            "createInstalledDuckDBSource/adapter/init:managedEffectPlanSelection/init:managedEffectPlanSelection"
+            "createInstalledDuckDBSource/adapter/init:managedEffectPlanSelection/init:managedEffectPlanSelection",
+            "createInstalledDuckDBSource/capacityContracts/capacityContracts"
           ],
           "exports": [],
           "attributes": {
@@ -63620,10 +63620,10 @@
             "createInstalledDuckDBSource/adapter/adapter#4",
             "createInstalledDuckDBSource/adapter/init:close/init:close",
             "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
-            "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
-            "createInstalledDuckDBSource/catalogIds/catalogIds",
             "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture",
             "createInstalledDuckDBSource/adapter/init:prepareRetained/init:prepareRetained",
+            "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
+            "createInstalledDuckDBSource/catalogIds/catalogIds",
             "createInstalledDuckDBSource/retainPrepared/retainPrepared",
             "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches",
             "createInstalledDuckDBSource/retainPrepared/retainPrepared/matches/matches/matches"
@@ -71872,7 +71872,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "476cdd3a3db4475a37afc93fac616bdc5bfb902f2b55f1052ffd7a3e6e583d41",
+      "sha256": "bc847e2a582c338136c0de754281b66580bc5ea1e8313523e046b88e84e783a6",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -71996,7 +71996,8 @@
             "request",
             "selected",
             "managedRun",
-            "originalRead"
+            "originalRead",
+            "rowLimits"
           ],
           "async": false
         },
@@ -72484,8 +72485,11 @@
       "contracts": [
         {
           "operations": [
+            "capturedPreparationOptions",
             "fail/fail",
+            "inspectProjectMockDeclarations",
             "installedMockRequestRealization",
+            "prepareInstalledProjectMock",
             "prepareProjectMockDeclarations",
             "prepareProjectMockDeclarations/call/call",
             "prepareProjectMockDeclarations/current",
@@ -72493,10 +72497,7 @@
             "prepareProjectMockDeclarations/init:retire/init:retire",
             "prepareProjectMockDeclarations/prepareProjectMockDeclarations",
             "prepareProjectMockDeclarations/same",
-            "prepareProjectMockDeclarations/select/select",
-            "inspectProjectMockDeclarations",
-            "prepareInstalledProjectMock",
-            "capturedPreparationOptions"
+            "prepareProjectMockDeclarations/select/select"
           ],
           "exports": [
             "installedMockRequestRealization",
@@ -72623,13 +72624,13 @@
             "installPreparedProjectMockSources/installPreparedProjectMockSources",
             "installPreparedProjectMockSources/installPreparedProjectMockSources#2",
             "installPreparedProjectMockSources/installPreparedProjectMockSources#3",
+            "installPreparedProjectMockSources/installPreparedProjectMockSources#4",
             "installPreparedProjectMockSources/installPreparedProjectMockSources/installPreparedProjectMockSources",
             "installPreparedProjectMockSources/prepareManagedRun",
             "installPreparedProjectMockSources/queryAliases/queryAliases",
             "installPreparedProjectMockSources/queryAliases/queryAliases/view/view",
             "installPreparedProjectMockSources/releaseEffectSourceAliases",
-            "installPreparedProjectMockSources/sameRun/sameRun",
-            "installPreparedProjectMockSources/installPreparedProjectMockSources#4"
+            "installPreparedProjectMockSources/sameRun/sameRun"
           ],
           "exports": [
             "installPreparedProjectMockSources"
@@ -72900,18 +72901,18 @@
         {
           "operations": [
             "installPreparedProjectMockSources/modelPreparation",
-            "installPreparedProjectMockSources/modelPreparation/init:prepareRead/init:prepareRead",
-            "installPreparedProjectMockSources/modelPreparation/init:retain/init:retain",
-            "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
-            "installPreparedProjectMockSources/prepareManagedMockModelRun",
-            "installPreparedProjectMockSources/retireModelRead",
+            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/init:prepareAcquiredLedger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#2",
             "installPreparedProjectMockSources/modelPreparation/init:prepareAcquiredLedger/init:prepareAcquiredLedger/ledger/ledger#3",
-            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost",
-            "installPreparedProjectMockSources/modelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost"
+            "installPreparedProjectMockSources/modelPreparation/init:prepareRead/init:prepareRead",
+            "installPreparedProjectMockSources/modelPreparation/init:retain/init:retain",
+            "installPreparedProjectMockSources/modelPreparation/init:retire/init:retire",
+            "installPreparedProjectMockSources/prepareManagedMockModelRun",
+            "installPreparedProjectMockSources/retireModelRead"
           ],
           "exports": [],
           "attributes": {
@@ -73701,8 +73702,8 @@
             "installPreparedProjectMockSources/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
             "installPreparedProjectMockSources/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
             "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead",
-            "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead",
             "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead#2",
+            "installPreparedProjectMockSources/adapter/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead/init:prepareSourceRead",
             "installPreparedProjectMockSources/adapter/init:readPages/init:readPages/fileBinding/fileBinding",
             "installPreparedProjectMockSources/adapter/init:readPages/init:readPages/physical/physical",
             "installPreparedProjectMockSources/fileSuppliers/fileSuppliers",
@@ -112023,16 +112024,9 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/reserveModelRecovery",
+            "prepareOrdinaryManagedInstallation/view/init:modelRecoveryLedger/init:modelRecoveryLedger",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
-            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
-            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
-            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
-            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
-            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
-            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
-            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2",
-            "prepareOrdinaryManagedInstallation/view/init:modelRecoveryLedger/init:modelRecoveryLedger",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginal/assertOriginal",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews",
@@ -112044,11 +112038,19 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews/publicationCapacity/publicationCapacity",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:openCapturedHost/init:openCapturedHost",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:openSourceFreeHost/init:openSourceFreeHost",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource/currentSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource/init:prepareSource",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:setupUsageIsolated/init:setupUsageIsolated",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:sourceLedger/init:sourceLedger",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#4",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:retain/init:retain",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:retire/init:retire",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/openHost/openHost",
@@ -112057,14 +112059,13 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#3",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan#4",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource/currentSource",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#2",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#3",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource/init:prepareSource"
+            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
+            "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt#2"
           ],
           "exports": [],
           "attributes": {
@@ -113261,7 +113262,11 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#3",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
@@ -113272,10 +113277,6 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#3",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#2",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3"
           ],
@@ -113988,6 +113989,7 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#5",
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild"
           ],
           "exports": [],
@@ -116504,6 +116506,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#5",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
           "parameters": [
             "actual"
@@ -117088,7 +117095,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c8d1f7d663583d6ba4463ac169f38d7092150a4698acf2c1cd316f19b4ea2774"
+      "sha256": "8b4a970af87438e37735c9dd81cf85259f60acdb6e4e86168f0013402bf14c22"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

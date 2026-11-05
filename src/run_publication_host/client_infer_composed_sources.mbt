@@ -198,7 +198,9 @@ pub fn admit_client_infer_composed_sources(
       let subject = @checked.source_execution_subject(acquisition.check)
       let source_input = if composed {
         client_composed_keyed_lookup_input_slot(value.lookup, occurrence).unwrap()
-      } else { subject.input }
+      } else {
+        subject.input
+      }
       guard @pipeline.input_at(pipeline, source_input) is Some((name, _)) &&
         !names.contains(name) else {
         return Err(ForeignInput)

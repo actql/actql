@@ -69,13 +69,16 @@ pub fn start_client_composed_keyed_file_locator(
 ) -> Result[ClientKeyedFileLocator, ClientKeyedRequestIssue] {
   guard lookup.left.composed is Some(original) &&
     client_keyed_file_locator_available(lookup, request) &&
-    sources.length() == original.sources.length() && reads.length() == sources.length() &&
+    sources.length() == original.sources.length() &&
+    reads.length() == sources.length() &&
     client_composed_keyed_original_current(original) else {
     return Err(Assembly("invalid_file_locator_request"))
   }
   let mut selected = None
   for index, source in sources {
-    if !physical_equal(source, original.sources[index]) { return Err(ForeignLeft) }
+    if !physical_equal(source, original.sources[index]) {
+      return Err(ForeignLeft)
+    }
     guard reads[index] is Some(read) else { continue }
     match start_client_keyed_file_locator(lookup, request, source, read) {
       Ok(locator) => {

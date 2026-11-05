@@ -363,28 +363,43 @@ pub fn open_multi_captured_effect_run_keyed_dag(
   read : @execution.SuppliedRelationRead,
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
   let original = checked.computation.graph_value()
-  guard @graph.graph_with_completed_keyed_model_input(original, task, model_step, read)
-    is Some(graph) else { return Err(ForeignCapture) }
+  guard @graph.graph_with_completed_keyed_model_input(
+      original, task, model_step, read,
+    )
+    is Some(graph) else {
+    return Err(ForeignCapture)
+  }
   let mut slot = None
   for value in graph.supplied_slots_iter() {
-    if value.consumer == task && @execution.supplied_relation_read_matches_input(
-      read, graph.owners_at(task).unwrap(), value.source_input,
-    ) {
-      if slot is Some(_) { return Err(ForeignCapture) }
+    if value.consumer == task &&
+      @execution.supplied_relation_read_matches_input(
+        read,
+        graph.owners_at(task).unwrap(),
+        value.source_input,
+      ) {
+      if slot is Some(_) {
+        return Err(ForeignCapture)
+      }
       slot = Some(value.input)
     }
   }
   guard slot is Some(input) else { return Err(ForeignCapture) }
-  let dependencies = match effect_dependency_ports(checked.computation, 4096, 65536, 64) {
+  let dependencies = match
+    effect_dependency_ports(checked.computation, 4096, 65536, 64) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let captured = match open_checked_dag(graph, sources, ledger, [], supplied_reads=[(task, input, read)]) {
+  let captured = match
+    open_checked_dag(graph, sources, ledger, [], supplied_reads=[
+      (task, input, read),
+    ]) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  for dependency in dependencies { captured.effect_dependency_outputs[dependency.task] = true }
-  Ok({checked, captured,})
+  for dependency in dependencies {
+    captured.effect_dependency_outputs[dependency.task] = true
+  }
+  Ok({ checked, captured, })
 }
 
 ///|

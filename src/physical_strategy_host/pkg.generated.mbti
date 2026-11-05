@@ -355,6 +355,8 @@ pub fn captured_task_aggregate_output_count(CapturedDAG, Int) -> Int?
 
 pub fn captured_task_aggregate_output_limit(CapturedDAG, Int, Int, String, @connector_sdk.AggregateOutputUnit) -> Int64?
 
+pub fn captured_task_allocation_matches(CapturedDAG, Int, @physical_resources.Holding) -> Bool
+
 pub fn captured_task_analytic_envelope_at(CapturedDAG, Int, Int) -> @connector_sdk.AnalyticEnvelope?
 
 pub fn captured_task_analytic_envelope_count(CapturedDAG, Int) -> Int?
@@ -581,6 +583,8 @@ pub fn graph_task_target(@physical_strategy.CheckedDAG, Int) -> @pipeline_typing
 
 pub fn graph_task_unit_index(@physical_strategy.CheckedDAG, Int) -> Int?
 
+pub fn graph_with_completed_keyed_model_input(@physical_strategy.CheckedDAG, Int, Int, @execution_relation.SuppliedRelationRead) -> @physical_strategy.CheckedDAG?
+
 pub fn grow_task_execution_workspace(CapturedDAG, TaskExecution, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn host_cleanup_pending(Bool, Bool, Bool) -> Bool
@@ -610,6 +614,8 @@ pub fn open_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, @exe
 pub fn open_multi_captured_dag(@physical_strategy.CheckedDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_multi_captured_effect_run_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_multi_captured_effect_run_keyed_dag(@physical_strategy.CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, Int, Int, @execution_relation.SuppliedRelationRead) -> Result[CapturedEffectRunDAG, RunIssue]
 
 pub fn open_retained_effect_task_dag(@physical_strategy.CheckedEffectRunDAG, @physical_strategy.RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedEffectRunDAG, RunIssue]
 
