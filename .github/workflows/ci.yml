@@ -990,6 +990,8 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/actql-client-packages
+      - name: Install pinned AI SDK provider test dependencies
+        run: npm ci --prefix packages/provider-ai-sdk --ignore-scripts
       - name: Test distribution Client wire, Host and packed Node assembly
         env:
           TMPDIR: ${{ github.workspace }}/_build
