@@ -1,6 +1,18 @@
 import { DuckDBTransportError, validateLimits } from './configuration.mjs';
 import {boundedTransport, maxNativeVectorRows} from './transport-bounds.mjs';
 
+// Reuse the selected receiver's real per-frame window in BOTH the quote and
+// Session. Cumulative rows/cells/bytes and tighter explicit batches stay intact.
+export function sourceTransportLimits(limits, maxChunkRows, maxChunkBytes) {
+  limits = validateLimits(limits);
+  if (![maxChunkRows, maxChunkBytes].every(value => Number.isSafeInteger(value) && value > 0)) {
+    throw new DuckDBTransportError('InvalidLimits');
+  }
+  return Object.freeze({...limits,
+    maxChunkRows: Math.min(limits.maxChunkRows ?? maxChunkRows, maxChunkRows),
+    maxChunkBytes: Math.min(limits.maxChunkBytes ?? maxChunkBytes, maxChunkBytes)});
+}
+
 // Host capacity policy for the bounded parameter/chunk representation. These
 // allowances are not measured V8 heap bytes or an OS memory-limit guarantee.
 // Transfer limits count serialized UTF-8 framing; allow simultaneous UTF-16 and

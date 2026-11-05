@@ -2621,11 +2621,12 @@
     {
       "module": "adapters/connectors/duckdb/node/physical-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "34299dc65aac2230071f7abd63b72f658c52af329982548106243421b1fcfcd0",
+      "sha256": "b3f0c5234a87adeab07ba4274cac6ae38efefc99c635ec2b959f2826e8101e9e",
       "role": "connector-semantics",
       "owner": "Selected Host physical capacity estimate, not RSS measurement or a reservation grant",
       "exports": [
-        "computePhysicalCapacity"
+        "computePhysicalCapacity",
+        "sourceTransportLimits"
       ],
       "operations": [
         {
@@ -2634,16 +2635,35 @@
             "limits"
           ],
           "async": false
+        },
+        {
+          "name": "sourceTransportLimits",
+          "parameters": [
+            "limits",
+            "maxChunkRows",
+            "maxChunkBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceTransportLimits/sourceTransportLimits",
+          "parameters": [
+            "value"
+          ],
+          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
             "<module>",
-            "computePhysicalCapacity"
+            "computePhysicalCapacity",
+            "sourceTransportLimits",
+            "sourceTransportLimits/sourceTransportLimits"
           ],
           "exports": [
-            "computePhysicalCapacity"
+            "computePhysicalCapacity",
+            "sourceTransportLimits"
           ],
           "attributes": {
             "responsibility": [

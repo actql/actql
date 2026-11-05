@@ -8,7 +8,7 @@ import { runBroadQuery } from './broad-query.mjs';
 import {sourceAcquisitionFailure} from './source-acquisition.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError, provisionComputeDatabase, validateLimits, withCurrentSourceEvidenceRead } from './session.mjs';
-import { computePhysicalCapacity } from './physical-capacity.mjs';
+import { computePhysicalCapacity, sourceTransportLimits } from './physical-capacity.mjs';
 import {boundedTransport} from './transport-bounds.mjs';
 import {createImportBatch} from './import-batch.mjs';
 import { checked } from './runtime-result.mjs';
@@ -1170,7 +1170,8 @@ export async function runRetainedStrategyNativeHostQuery(grant, setup, ledger, l
 
 async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained, outputKey) {
   const moon = await loadRuntime();
-  limits = Object.freeze({ ...limits });
+  const window = moon.nativeHostTransportWindow(setup);
+  limits = sourceTransportLimits(limits, runtimeField(window, 0), runtimeField(window, 1));
   const semantic = {
     nativeSemanticRows: 0,
     nativeSemanticCells: 0,
@@ -1492,7 +1493,8 @@ export async function runBroadHostQuery(grant, setup, limits, signal,
     throw new DuckDBTransportError('MissingBoundedResidualRuntime');
   }
   const moon = await loadRuntime();
-  limits = validateLimits(limits);
+  const window = moon.broadHostTransportWindow(setup);
+  limits = sourceTransportLimits(limits, runtimeField(window, 0), runtimeField(window, 1));
   const capacity = ledger === undefined ? undefined : Object.freeze({
     ...computePhysicalCapacity(limits),
     retentionBytes: checked(moon.broadHostCapacity(setup, true)),
