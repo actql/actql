@@ -97,7 +97,7 @@ async function installedReadFixture(directory, outcome = 'allow') {
   // as well as native two-receipt acquisition. Do not infer that capability
   // from a native-only saved declaration.
   environment.connector_capabilities[0].capability_contract_cids.push(
-    'sha256:cdaab753fd3c01709fbd9ae32022a8462bc8200edf1e9c93d533a293989f8a3b');
+    'sha256:2e9959187141ac09be2f4684ac2d0dc7a2819059c6764b1a527b48e0cee6a08d');
   environment.connector_capabilities[0].capability_contract_cids.sort();
   environment.evidence_bundle_cid = withoutCid(environment,
     'evidence_bundle_cid');
@@ -155,8 +155,16 @@ test('public HTTP source text uses the installed alias and existing Run owner', 
     sourceViewContractCid: view.contract_cid,
     schemaContractCid: view.output.schema.cid}];
   await writeFile(profilePath, JSON.stringify(profile));
-  const host = await remoteHost(t, undefined,
-    {directory, sourceProfilePath: profilePath}).catch(error => {
+  const authorization = protectedHost('allow');
+  const account = JSON.parse(authorization.accountConfiguration);
+  account.entries.find(entry => entry.entry_id === 'run-acceptance')
+    .resource.any_of = ['duckdb-acquired'];
+  account.entries.find(entry => entry.entry_id === 'owner-read')
+    .resource.any_of = ['result/main', 'run'];
+  authorization.accountConfiguration = canonicalJson(account);
+  const host = await remoteHost(t, authorization,
+    {directory, sourceProfilePath: profilePath,
+      hostCapacityPolicy: environment.host_policy_profile.capacity}).catch(error => {
       t.diagnostic(String(error.cause?.stack ?? error));
       throw error;
     });
@@ -175,7 +183,7 @@ test('public HTTP source text uses the installed alias and existing Run owner', 
     const observe = () => ({sourceIo, acceptedRuns:
       journal.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count});
     await exercisePublicQueryInput(connect, host.options('owner-token'),
-      {requestPrefix: 'source', observe});
+      {requestPrefix: 'source', observe, primaryResultName: 'main'});
     assert.equal(observe().acceptedRuns, 5);
     assert.ok(sourceIo >= 5, 'successful queries must exercise the I/O probe');
   } finally {
@@ -625,7 +633,8 @@ const tokens = new Map([['owner-token', owner],
 const historicalFixtureWriters = new WeakMap();
 
 async function remoteHost(t, authorization, {directory,
-  effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret, beforeDispatch} = {}) {
+  effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret, beforeDispatch,
+  hostCapacityPolicy} = {}) {
   const root = directory ?? await mkdtemp(join(scratch, 'host-'));
   let dispatches = 0;
   const openHost = () => openInstalledRemoteHttpHost({
@@ -636,6 +645,7 @@ async function remoteHost(t, authorization, {directory,
       await beforeDispatch?.(ref);
     },
     authorization, effectInstallation, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
+    hostCapacityPolicy,
   });
   let host = await openHost();
   const seedHistorical = async originals => {

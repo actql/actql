@@ -764,7 +764,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // I/O, not a replacement provider or a Client-side alias map. This function
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
-  {requestPrefix, observe, successes = querySuccesses,
+  {requestPrefix, observe, successes = querySuccesses, primaryResultName = 'answer',
     refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
@@ -797,7 +797,7 @@ export async function exercisePublicQueryInput(connect, options,
           sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
-      const expectedResults = results ?? {answer: {rows: expected, columns}};
+      const expectedResults = results ?? {[primaryResultName]: {rows: expected, columns}};
       const compare = (actual, expected, unordered) => {
         // An unordered SQL Relation is compared as a multiset. Sorting this
         // test copy preserves duplicates and never changes the product output.
@@ -840,7 +840,7 @@ export async function exercisePublicQueryInput(connect, options,
         beforeSubmit, beforeRead, afterReplay, observedResults});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
-        await assert.rejects(execution.result('answer').all({maxRows: 1}),
+        await assert.rejects(execution.result(primaryResultName).all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
         const attemptId = requestId + '-changed-intent';
         const expectedAttemptRef = {operation: 'submit', attemptId};
