@@ -177,7 +177,9 @@ try {
         return installed.tasks.some(task => task.contract_cid === taskCid) && selector === 'packed-risk-model' &&
           JSON.parse(wire).format === 'packed-risk/0.1';
       },
-      quantityCapacity: {limits: {tokens: 66n, costUnits: 0n, durationMs: 1000n},
+      // Two admitted two-call contracts each retain 1000ms. The shared Run
+      // covers all four unknown-duration envelopes without refunding either.
+      quantityCapacity: {limits: {tokens: 66n, costUnits: 0n, durationMs: 2000n},
         perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
       observeEgress: () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false}),
       physicalPreflight: request => {
