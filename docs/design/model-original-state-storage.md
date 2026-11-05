@@ -169,3 +169,11 @@ These lifetime connections do not derive a numerical allowance from a saved
 scope, output use, matching CID or spare Ledger capacity. The selected parent
 must still fund the simultaneous constructor, original output and failed-child
 backing before physical construction.
+
+For an actual checked source-free Program, the saved Model closure has no
+Source capture to reopen. The continuation first validates the same saved
+Definition, unit, submission, empty Source inventory and completed capture
+position, then confirms zero acquisitions from the original checked Program.
+It does not open an unissued Source-capture ledger in that case. Model input,
+Model evidence, Effect review and their physical custody remain separate;
+nonzero or mismatched Source inventories retain their existing storage refusals.

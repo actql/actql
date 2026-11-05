@@ -1000,7 +1000,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-continuation.mjs",
-      "sha256": "c83e14ed0d772646421a3c519457b407ccf70c3d6e648cf87734915e19afc59f",
+      "sha256": "25a743c9e5d9b29001707d8af6c2587ddc752ee2c8b6318dadc2bf5ebfe7309d",
       "exports": [
         "acquiredEffectContinuation"
       ],
