@@ -257,24 +257,27 @@ test('active main finishes while pending work coalesces; branches and performanc
     }
   }
 });
-for (const [name, entries, producerCount, remainingMinutes] of [
-  ['native', 'all', 4, 45],
-  ['native-macos', 'all', 4, 45],
-  ['native-separated-network', 'bundle', 2, 25],
+for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of [
+  ['native', 'all', 4, 900, 45],
+  ['native-macos', 'all', 4, 1200, 45],
+  ['native-separated-network', 'bundle', 2, 900, 25],
 ]) {
   test(`Native preparation outer budgets retain every producer and consumer window (${name})`, () => {
     const job = jobs[name];
     const preparation = job.steps.find(step =>
       step.name === 'Prepare exact-source scoped Native commands and components once');
     assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
-      '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900');
+      '--destination "${{ runner.temp }}/native-scoped-preparation" --entries ' + entries + ' --seconds 900' +
+      (residentSeconds === 900 ? '' : ' --resident-seconds ' + residentSeconds));
     assert.equal(preparation.if, undefined);
     assert.equal(preparation['continue-on-error'], undefined);
-    // Each selected producer has its own 900-second bound and 30-second
+    // Only the macOS Resident cold build selects 1200 seconds; all other
+    // producers retain 900 seconds. Each has its own 30-second
     // enclosing-call allowance. Keep three minutes for metadata and cleanup,
     // rounded up to a finite five-minute workflow window. This is not a
-    // runtime capacity, a child timeout extension, or a cleanup acknowledgment.
-    const preparationMinutes = Math.ceil((producerCount * (900 + 30) + 180) / 300) * 5;
+    // runtime capacity, a runtime test timeout, or a cleanup acknowledgment.
+    const producerSeconds = producerCount * 900 + (entries === 'all' ? residentSeconds - 900 : 0);
+    const preparationMinutes = Math.ceil((producerSeconds + producerCount * 30 + 180) / 300) * 5;
     assert.equal(preparation['timeout-minutes'], preparationMinutes);
     assert.equal(job['timeout-minutes'], preparationMinutes + remainingMinutes,
       'the existing non-preparation window survives the outer scheduling correction');
@@ -291,8 +294,8 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   }
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
-  assert.equal(jobs['native-macos']['timeout-minutes'], 110);
-  assert.equal(jobs['native-macos']['timeout-minutes'], jobs.native['timeout-minutes']);
+  assert.equal(jobs['native-macos']['timeout-minutes'], 115);
+  assert.equal(jobs.native['timeout-minutes'], 110);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
   for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants', 'pipeline-validation']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);

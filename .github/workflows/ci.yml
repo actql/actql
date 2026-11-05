@@ -1337,7 +1337,7 @@ jobs:
         needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
     # Preserve the complete campaign plus selected source/component preparation.
-    timeout-minutes: 110
+    timeout-minutes: 115
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1373,11 +1373,12 @@ jobs:
           fi
           command -v gpg
           command -v gpgv
-      # 4 sequential producers retain 900s each plus 30s caller allowance.
-      # The enclosing window also retains metadata and cleanup time.
+      # The cold Resident production -O2 compile reached the 15-minute bound.
+      # Only it receives 1200s; the other 3 producers retain 900s each.
+      # Keep each 30s caller allowance plus metadata and cleanup time.
       - name: Prepare exact-source scoped Native commands and components once
-        timeout-minutes: 65
-        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900
+        timeout-minutes: 70
+        run: node scripts/prepare-native-runtime-bundle-fixture.mjs --destination "${{ runner.temp }}/native-scoped-preparation" --entries all --seconds 900 --resident-seconds 1200
       - name: Retain scoped Native preparation source and compiler receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

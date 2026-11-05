@@ -11,13 +11,15 @@ import {originalDescriptor} from './native-preparation-originals.mjs';
 
 const args=process.argv.slice(2),options={};
 for(let i=0;i<args.length;i+=2) {
-  assert(['--destination','--entries','--seconds'].includes(args[i]) && args[i+1]!==undefined);
+  assert(['--destination','--entries','--seconds','--resident-seconds'].includes(args[i]) && args[i+1]!==undefined);
   assert.equal(options[args[i]],undefined);options[args[i]]=args[i+1];
 }
 assert(options['--destination']);
 const selection=options['--entries']??'bundle';assert(['bundle','resident','all'].includes(selection));
 const seconds=Number(options['--seconds']??900);
 assert(Number.isSafeInteger(seconds) && seconds>0 && seconds<=1800);
+const residentSeconds=Number(options['--resident-seconds']??seconds);
+assert(Number.isSafeInteger(residentSeconds) && residentSeconds>0 && residentSeconds<=1800);
 const target=process.platform==='darwin' && process.arch==='arm64'?'darwin-arm64'
   :process.platform==='linux' && process.arch==='x64'?'linux-x64':undefined;
 assert(target,'No selected native preparation target');
@@ -39,7 +41,8 @@ for(const [name,prepare,selected] of [
 ]) {
   if(!selected)continue;
   const directory=join(destination,name);
-  prepare(repository,directory,{moonHome,seconds,preparation:null});
+  prepare(repository,directory,{moonHome,
+    seconds:name==='native_remote_resident_site'?residentSeconds:seconds,preparation:null});
   entries[name]=originalDescriptor(join(directory,'build.json'));
 }
 const components=join(destination,'components');

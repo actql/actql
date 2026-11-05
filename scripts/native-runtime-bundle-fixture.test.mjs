@@ -5,7 +5,7 @@ import {execFileSync as executeChild,spawn as spawnChild} from 'node:child_proce
 import {once} from 'node:events';
 import {runInNewContext} from 'node:vm';
 import {createHash} from 'node:crypto';
-import {lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
+import {existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
@@ -179,6 +179,66 @@ function fixture(t, platform, entry = 'native_runtime_bundle', preparation = fal
   return {root,tool,destination,executable,calls,execute,fail(error){originalFailure=error;},
     receiptEntry(value){receiptEntry=value;}};
 }
+
+test('the explicit Resident cold-build budget leaves the other preparation windows unchanged',()=>{
+  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
+  const optionsStart=source.indexOf('const args=process.argv.slice(2)'),
+    optionsEnd=source.indexOf('const target=',optionsStart);
+  const prepareStart=source.indexOf('const entries={};'),
+    prepareEnd=source.indexOf("assert.equal(run('git'",prepareStart);
+  assert(optionsStart>=0 && optionsEnd>optionsStart && prepareStart>=0 && prepareEnd>prepareStart);
+  const options=args=>runInNewContext(source.slice(optionsStart,optionsEnd)+
+    '\n({selection,seconds,residentSeconds});',{
+      assert,process:{argv:['node','prepare','--destination','/owned/preparation',...args]},
+    });
+  const original=options(['--entries','all']);
+  assert.equal(original.seconds,900);assert.equal(original.residentSeconds,900);
+  const selected=options(['--entries','all','--seconds','900','--resident-seconds','1200']);
+  assert.equal(selected.seconds,900);assert.equal(selected.residentSeconds,1200);
+  for(const value of ['0','-1','1801','1.5','NaN'])
+    assert.throws(()=>options(['--resident-seconds',value]));
+  for(const selectedOptions of [original,selected]){
+    const calls=[],repository='/owned/source',destination='/owned/preparation',moonHome='/selected/moon';
+    const prepare=name=>(root,path,configuration)=>{
+      assert.equal(root,repository);assert.equal(configuration.preparation,name==='http'?undefined:null);
+      if(name!=='http')assert.equal(configuration.moonHome,moonHome);
+      calls.push({name,path,seconds:configuration.seconds});
+    };
+    runInNewContext(source.slice(prepareStart,prepareEnd),{
+      ...selectedOptions,repository,destination,moonHome,join,originalDescriptor:path=>path,
+      prepareNativeRuntimeBundle:prepare('bundle'),prepareNativeResidentSite:prepare('resident'),
+      prepareNativeRuntimeBundleLibraries:prepare('components'),
+      prepareNativeResidentHttpComponent:prepare('http'),
+    });
+    assert.deepEqual(calls,[
+      {name:'bundle',path:join(destination,'native_runtime_bundle'),seconds:900},
+      {name:'resident',path:join(destination,'native_remote_resident_site'),seconds:selectedOptions.residentSeconds},
+      {name:'components',path:join(destination,'components'),seconds:900},
+      {name:'http',path:join(destination,'http'),seconds:900},
+    ]);
+  }
+});
+
+test('the Resident build allowance retains its caller deadline and original timeout refusal',t=>{
+  for(const timedOut of [false,true]){
+    const f=fixture(t,'darwin','native_remote_resident_site');
+    const original=Object.assign(new Error('original producer timeout'),{code:'ETIMEDOUT',signal:'SIGTERM'});
+    if(timedOut)f.fail(original);
+    const execute=(command,args,options)=>{
+      assert.equal(options.timeout,1230000);
+      if(command==='python3')assert.equal(args[args.indexOf('--seconds')+1],'1200');
+      return f.execute(command,args);
+    };
+    const prepare=()=>selectedEntries.prepareNativeResidentSite(f.root,f.destination,
+      {execute,platform:'darwin',arch:'arm64',moonHome:f.tool,seconds:1200});
+    if(timedOut){
+      assert.throws(prepare,error=>error===original);
+      assert.equal(existsSync(join(f.destination,'build.json')),false);
+    }else assert.equal(prepare(),f.executable);
+    assert.equal(f.calls.filter(([command])=>command==='python3').length,1);
+    assert(!f.calls.some(([command])=>command==='moon'));
+  }
+});
 
 test('Resident consumers select their original producer entry and receipt on both actual platforms',t=>{
   for(const [platform,arch] of [['darwin','arm64'],['linux','x64']]){
