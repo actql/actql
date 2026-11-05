@@ -253,7 +253,12 @@ fn resize_installed_effect_capture_recovery_material(
       return Err(InsufficientCapacity)
     }
     return @resources.complete_prepared_run_operation_construction_output(
-      admission, plan, ledger, original, backing, retained - completed_material,
+      admission,
+      plan,
+      ledger,
+      original,
+      backing,
+      retained - completed_material,
     ).map_err(installed_effect_operation_reservation_issue)
   }
   if @resources.capacity_reservation_covers(
