@@ -42,7 +42,7 @@ test('Native Core compiler PATH routing retains package C++/stub drivers and the
   for (const name of ['plain', 'custom']) writeFileSync(join(root, name, 'main.mbt'),
     'test "original selection" { assert_eq(1, 1) }\n');
   const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
-  delete env.MOON_CC;delete env.MOONBIT_ALLOCATOR;
+  delete env.MOON_CC;delete env.MOONBIT_ALLOCATOR;delete env.CXX;
   const plan = profile => {
     const result = spawnSync(join(env.MOON_HOME, 'bin/moon'),
       ['test', '--target', 'native', '--release', '--strip', '--dry-run'],
@@ -61,7 +61,14 @@ test('Native Core compiler PATH routing retains package C++/stub drivers and the
   assert.equal(actual.command.slice(actual.command.indexOf(' ')),
     original.command.slice(original.command.indexOf(' ')));
   assert(actual.overrides.length > 0);
-  assert.deepEqual(actual.overrides, original.overrides);
+  const stub = lines => lines.find(line => line.includes('/custom/helper.o '));
+  const originalStub = stub(original.overrides), actualStub = stub(actual.overrides);
+  assert(originalStub && actualStub);
+  assert.match(actualStub.slice(0, actualStub.indexOf(' ')), /test-c-compiler\/c\+\+$/u);
+  assert.equal(actualStub.slice(actualStub.indexOf(' ')), originalStub.slice(originalStub.indexOf(' ')),
+    'the C++ launcher retains every original stub flag and runtime input');
+  assert.deepEqual(actual.overrides.filter(line => line !== actualStub),
+    original.overrides.filter(line => line !== originalStub), 'the package link driver and all its arguments remain selected');
 });
 
 test('Native Core C launcher preserves compiler arguments, original environment and failure status', t => {
@@ -93,6 +100,38 @@ test('Native Core C launcher preserves compiler arguments, original environment 
   }
   assert.equal(readFileSync(compiler, 'utf8').includes('process.exit(7)'), true);
   assert.deepEqual(nativeCoreCCompiler(root, scratch, {...env, MOON_CC: compiler}), {});
+});
+
+test('actual package C++ driver deoptimizes only generated release test C and retains optimized C++ stubs and product C', t => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-core-cxx-')));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const scratch = join(root, 'scratch'), testDirectory = join(root, '_build/native/release/test/pkg'),
+    productDirectory = join(root, '_build/native/release/build/pkg');
+  for (const path of [scratch, testDirectory, productDirectory]) mkdirSync(path, {recursive: true});
+  const env = {...process.env}; delete env.MOON_CC; delete env.CXX;
+  const profile = nativeCoreCCompiler(root, scratch, env);
+  assert.equal(existsSync(join(profile.PATH.split(delimiter)[0], 'c++')), true);
+  const driver = fileURLToPath(new URL('native-cxx-link-driver.sh', import.meta.url));
+  const stub = join(root, 'original.cpp'), object = join(root, 'original.o');
+  writeFileSync(stub, '#ifndef __OPTIMIZE__\n#error original C++ stub must stay optimized\n#endif\n' +
+    '#include <sstream>\nextern "C" int original_stub(void) { std::ostringstream out; out << 7; return out.str().size() == 1 ? 7 : 0; }\n');
+  const compile = spawnSync('c++', ['-O2', '-c', stub, '-o', object],
+    {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000});
+  assert.ifError(compile.error); assert.equal(compile.signal, null); assert.equal(compile.status, 0, compile.stderr);
+  for (const [directory, optimized] of [[testDirectory, false], [productDirectory, true]]) {
+    const input = join(directory, optimized ? 'pkg.c' : 'pkg.whitebox_test.c'), executable = join(directory, 'original.exe');
+    writeFileSync(input, (optimized ? '#ifndef' : '#ifdef') + ' __OPTIMIZE__\n#error wrong C optimization boundary\n#endif\n' +
+      'extern int original_stub(void);\nint main(void) { return original_stub() == 7 ? 0 : 1; }\n');
+    const linked = spawnSync(driver, ['-O2', input, object, '-o', executable],
+      {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000});
+    assert.ifError(linked.error); assert.equal(linked.signal, null); assert.equal(linked.status, 0, linked.stderr);
+    const result = spawnSync(executable, [], {encoding: 'utf8', timeout: 5000});
+    assert.ifError(result.error); assert.equal(result.signal, null); assert.equal(result.status, 0, result.stderr);
+  }
+  const explicitScratch = join(root, 'explicit'); mkdirSync(explicitScratch);
+  const explicit = nativeCoreCCompiler(root, explicitScratch, {...env, CXX: '/selected/original-c++'});
+  assert.equal(existsSync(join(explicit.PATH.split(delimiter)[0], 'c++')), false,
+    'an explicitly selected C++ driver is never replaced');
 });
 
 

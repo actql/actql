@@ -34,11 +34,24 @@ export function nativeCoreCCompiler(repository, scratch, env = process.env) {
   mkdirSync(directory, {mode: 0o700});
   // Launch Node directly, without another system shell stripping the original
   // Reader injection environment before it reaches the selected compiler.
-  writeFileSync(join(directory, 'cc'), '#!' + process.execPath + '\nimport(' +
-    JSON.stringify(import.meta.url) +
+  const launcher = (name, original) => writeFileSync(join(directory, name),
+    '#!' + process.execPath + '\nimport(' + JSON.stringify(import.meta.url) +
     ').then(m => m.runNativeCoreCCompiler(' + JSON.stringify(repository) + ',' +
-    JSON.stringify(compiler) + ',process.argv.slice(2)));\n',
-  {mode: 0o700, flag: 'wx'});
+    JSON.stringify(original) + ',process.argv.slice(2)));\n',
+    {mode: 0o700, flag: 'wx'});
+  launcher('cc', compiler);
+  // The package C++ link driver compiles its generated test C through c++,
+  // so shadowing cc alone leaves those large inputs at O2. Keep that actual
+  // linker/runtime and change only the same recognized generated test input.
+  // An explicit CXX selection remains authoritative; stubs and product C
+  // are outside nativeCoreCArguments' test-only boundary.
+  if (!env.CXX) {
+    const selectedCxx = execFileSync('/bin/sh', ['-c', 'command -v c++'],
+      {env, encoding: 'utf8', timeout: 5000}).trim();
+    // clang++ can share a realpath with clang. Keep its selected invocation
+    // name so the original C++ runtime/link behaviour is retained as well.
+    launcher('c++', selectedCxx);
+  }
   symlinkSync(archiver, join(directory, 'ar'));
   // PATH probing preserves Moon's normal allocator/runtime object selection.
   // MOON_CC would also override package C++/archive drivers and FFI compilers.
