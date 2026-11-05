@@ -213,7 +213,8 @@ fn ended_holder_can_leave_window(
   original : EndedHolderResponsibility,
   slot : @slot.NativeExecutorSlot,
 ) -> Bool {
-  guard original.channel is ChannelDescriptorsRetired &&
+  guard original.original.releases.is_empty() &&
+    original.channel is ChannelDescriptorsRetired &&
     original.report_evidence is OriginalStatusAcknowledged &&
     original.startability is Some(_) &&
     original.journal.val is None else {
@@ -366,6 +367,43 @@ fn retry_control_ended_holder_lifetime(
       }
       Err(_) => return false
     }
+  }
+  let current_delegation = delegation(
+    original.matches,
+    budget(original.matches),
+  ) catch {
+    CommandStop(_) => return false
+  }
+  for ended in original.ended {
+    guard begin_ended_holder_releases(
+      ended,
+      original.environment,
+      original.slot,
+      current_delegation,
+    ) else {
+      return false
+    }
+  }
+  if original.ended.any(ended => !ended.original.releases.is_empty()) {
+    // The existing stopped recovery acquires its own Slot. Return this exact
+    // control Slot first; its checked close is not a Run/resource ACK.
+    retain_control_reclaim_slot_close(original.slot, original.slot_progress)
+    for ended in original.ended {
+      let released = finish_ended_holder_releases(
+        ended,
+        original.matches,
+        original.environment,
+        current_delegation,
+        original.recovery,
+        original.recovery_close_failures,
+        original.client,
+        original.observation_url,
+      ) catch {
+        CommandStop(_) => false
+      }
+      guard released else { return false }
+    }
+    return false // Reopen the control Slot through the existing next pass.
   }
   let remaining = original.ended.filter(ended => {
     observe_ended_holder(

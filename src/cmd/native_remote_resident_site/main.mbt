@@ -883,6 +883,7 @@ priv struct RunningHolder {
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
   mut reported_revision : Int?
+  releases : Map[String, @remote.DispatchRequest]
 }
 
 ///|
@@ -1964,6 +1965,20 @@ fn run_control(
       }
       slot_progress = Ref(ControlSlotPending)
     }
+    // An already delivered Release survives its live relay. Only the original
+    // stopped process and current exclusive Slot allow its durable begin.
+    if holder is None && reclaim_due {
+      let mut release_pending = false
+      for ended in unsettled {
+        if !begin_ended_holder_releases(ended, environment, slot, site_delegation) {
+          release_pending = true
+        }
+      }
+      if release_pending {
+        @slot.native_wait_milliseconds(idle_wait_ms)
+        continue
+      }
+    }
     if !orphan_reconciliation &&
       holder is None &&
       (
@@ -1998,6 +2013,14 @@ fn run_control(
       orphan_store is None &&
       !reclaim_due &&
       !orphan_reconciliation {
+      for ended in unsettled {
+        ignore(
+          finish_ended_holder_releases(
+            ended, matches, environment, site_delegation, recovery,
+            recovery_close_failures, client, observation_url,
+          ),
+        )
+      }
       reconcile_saved_cancellation(
         matches, environment, replay_journal, client, observation_url, cancel_cursor,
         next_cancel_report, max_backoff_ms, site_delegation, recovery, recovery_close_failures,
@@ -2071,6 +2094,7 @@ fn run_control(
                         request,
                         next_report_ms: 0,
                         reported_revision: None,
+                        releases: Map([]),
                       })
                       pending_spawn.val = None
                       report(
@@ -2376,6 +2400,15 @@ fn run_control(
         let identity = @remote.dispatch_request_identity(request)
         if holder is Some(current) &&
           holder_can_receive(current.request, request) {
+          guard journal.require(request) is Ok(_) &&
+            remember_holder_release(
+              current.request, current.releases, request,
+              admission.limits.preparation.max_tasks,
+            ) else {
+            report("release-failed", [("reason", "original-release-custody")])
+            close_control_replay_journal(replay_journal)
+            continue
+          }
           if current.channel.send("release " + identity) {
             report("release-relayed", [("request_cid", identity)])
           } else {
@@ -2409,56 +2442,13 @@ fn run_control(
             continue
           }
         }
-        if orphan_store is None &&
-          !reclaim_due &&
-          !orphan_reconciliation &&
-          (match journal.require(request) {
-            Ok(record) => {
-              let codes = @remote.dispatch_record_state_codes(record)
-              codes[0] == 3 &&
-              (
-                recovery.val is Some(_) ||
-                codes[2] == 0 ||
-                codes[2] == 1 ||
-                codes[2] == 3
-              )
-            }
-            _ => false
-          }) {
-          guard retry_control_replay_journal_cleanup(replay_journal) else {
-            report("release-failed", [("reason", "original-journal-close")])
-            continue
-          }
-          if recover_stopped_release(
-              matches, environment, request, recovery, recovery_close_failures,
-            ) {
-            report("release-recovered", [("request_cid", identity)])
-          }
-        }
-        // Recovery commits through a separate journal Owner. The pre-recovery
-        // view has already restored this dispatch and cannot admit its newer
-        // cleanup revision. Report only from a new exact durable view, as the
-        // cancellation recovery path does; do not relax reconstruction.
-        guard retry_control_replay_journal_cleanup(replay_journal) else {
-          report("release-failed", [("reason", "original-journal-close")])
-          continue
-        }
-        guard open_control_replay_journal(environment, replay_journal)
-          is Some(current) else {
-          report("release-failed", [("reason", "journal")])
-          close_control_replay_journal(replay_journal)
-          continue
-        }
-        match
-          @client.acknowledge_status(current, client, observation_url, request) {
-          Ok(_) =>
-            report("release-observed", [
-              ("request_cid", @remote.dispatch_request_identity(request)),
-            ])
-          Err(issue) =>
-            report("release-failed", [("reason", client_code(issue))])
-        }
-        close_control_replay_journal(replay_journal)
+        ignore(
+          finish_stopped_control_release(
+            matches, environment, request, site_delegation, recovery,
+            recovery_close_failures, replay_journal, client, observation_url,
+            recover_now=orphan_store is None && !reclaim_due && !orphan_reconciliation,
+          ),
+        )
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
         backoff_ms = 0

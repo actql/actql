@@ -50,6 +50,7 @@ fn ended_holder_physical_fixture(
     attempt: @remote.dispatch_request_attempt_identity(request).unwrap(),
     next_report_ms: 0UL,
     reported_revision: None,
+    releases: Map([]),
   }
   (holder, @slot.open_native_executor_slot(path).unwrap(), name + ".done")
 }
