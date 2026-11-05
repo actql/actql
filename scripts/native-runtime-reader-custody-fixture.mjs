@@ -1,7 +1,7 @@
 // Prepare only the failed-constructor custody cases in the existing Native
 // filesystem Owner. Injection is confined to its child and two owned files.
 import {spawnSync} from 'node:child_process';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 
 export function nativeRuntimeReaderCustodyFixture(root, scratch) {
@@ -13,6 +13,10 @@ export function nativeRuntimeReaderCustodyFixture(root, scratch) {
   }
   for (const name of ['runtime-constructor-pending', 'runtime-constructor-acked']) {
     mkdirSync(join(scratch, name), {mode: 0o700});
+    // Seed the authored invalid manifest before injecting the child. The real
+    // Writer also inspects committed files, so preparing it inside that child
+    // would fail before the Reader constructor under test is reached.
+    writeFileSync(join(scratch, name, 'local-runtime.json'), '{}', {flag: 'wx', mode: 0o600});
   }
   const library = join(scratch, process.platform === 'darwin'
     ? 'runtime-reader-custody.dylib' : 'runtime-reader-custody.so');

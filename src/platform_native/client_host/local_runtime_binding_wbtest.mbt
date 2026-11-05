@@ -106,17 +106,12 @@ test "Native runtime context rejects noncanonical paths before filesystem open" 
 }
 
 ///|
-// The diagnostic adapter supplies private roots and syscall injection. These
-// are real Owner calls with injected errors, not observed kernel EIO faults.
+// The diagnostic adapter supplies private roots and the authored invalid
+// manifests before syscall injection. These are real Reader Owner calls with
+// injected errors, not observed kernel EIO faults.
 fn runtime_binding_constructor_fixture(name : String) -> String {
   let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT").unwrap()
-  let path = parent + "/" + name
-  let root = @filesystem.open_root(path).unwrap()
-  let writer = root.create_writer("manifest.stage", 2L).unwrap()
-  writer.append(b"{}").unwrap()
-  writer.seal("local-runtime.json").unwrap() |> ignore
-  root.close().unwrap()
-  path
+  parent + "/" + name
 }
 
 ///|

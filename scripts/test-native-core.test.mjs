@@ -840,6 +840,9 @@ if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, root);
   for (const name of ['runtime-constructor-pending', 'runtime-constructor-acked']) {
     assert.equal(statSync(join(root, name)).mode & 0o777, 0o700);
+    const manifest = join(root, name, 'local-runtime.json');
+    assert.equal(require('node:fs').readFileSync(manifest, 'utf8'), '{}');
+    assert.equal(statSync(manifest).mode & 0o777, 0o600);
   }
   const injected = process.platform === 'darwin'
     ? process.env.DYLD_INSERT_LIBRARIES : process.env.LD_PRELOAD;
