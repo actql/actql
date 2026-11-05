@@ -103,6 +103,12 @@ test('Native Resident reconciliation observer crash retains unknown evidence wit
     process.on('SIGTERM',()=>{});setInterval(()=>{},1000);process.send({ready:true});`);
   const child = fork(f.script, [], {stdio: ['ignore', 'ignore', 'inherit', 'ipc']});
   const exited = once(child, 'exit');
+  t.after(async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill('SIGKILL');
+      await exited;
+    }
+  });
   const [ready] = await once(child, 'message');
   assert.equal(ready.ready, true);
   const original = await readFile(join(f.directory, 'unknown.txt'));
