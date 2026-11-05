@@ -264,6 +264,7 @@ for (const [name, entries, producerCount, residentSeconds, remainingMinutes] of 
 ]) {
   test(`Native preparation outer budgets retain every producer and consumer window (${name})`, () => {
     const job = jobs[name];
+    assert.equal(job['runs-on'], name === 'native-macos' ? 'macos-15' : 'ubuntu-24.04');
     const preparation = job.steps.find(step =>
       step.name === 'Prepare exact-source scoped Native commands and components once');
     assert.equal(preparation.run, 'node scripts/prepare-native-runtime-bundle-fixture.mjs ' +
@@ -843,7 +844,7 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
 
 test('normal Python wheels are mandatory for full profiles independently of optional native macOS', () => {
   const job = jobs['python-wheels'];
-  assert.equal(job['runs-on'], 'macos-14');
+  assert.equal(job['runs-on'], 'macos-15');
   assert.deepEqual(job.needs, ['select-targets', 'preflight']);
   assert.equal(scheduled('python-wheels', {'select-targets': {outputs: {profile: 'full', python_wheels: 'true', macos: 'false'}}}), true);
   assert(job.steps.some(step => step.run?.includes('test "$(uname -m)" = arm64')));

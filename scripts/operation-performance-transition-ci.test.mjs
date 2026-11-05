@@ -83,6 +83,7 @@ test('Python priority lane reuses the formal wheel producer without changing rel
   const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['ordinary-python-priority'];
   assert.ok(job);
+  assert.equal(job['runs-on'], 'macos-15');
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package artifact and producer job');
   const download = job.steps.findIndex(s => s.name === 'Reuse the exact formal package artifact');
@@ -155,6 +156,7 @@ test('ordinary priority assessment reuses both platform reports without replacin
   assert.deepEqual(workflow.jobs['ordinary-platform-assessment'].needs,
     ['ordinary-operations', 'ordinary-native', 'ordinary-python']);
   for (const name of ['ordinary-operations', 'ordinary-native', 'ordinary-python']) {
+    assert.equal(workflow.jobs[name]['runs-on'], name === 'ordinary-operations' ? 'ubuntu-24.04' : 'macos-15');
     const assessments = workflow.jobs[name].steps.filter(step =>
       step.run?.includes('scripts/operation-performance.mjs --input'));
     assert.equal(assessments.length, 1, `${name} must retain its full-release assessment`);

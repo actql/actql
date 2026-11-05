@@ -587,8 +587,8 @@ test('Compiler stop diagnostic timeout stays unobserved without raw debugger pay
 test('Native Core selects the admitted Darwin arm64 runner without dropping target coverage', t => {
   const core = workflow.jobs.core;
   const expression = core['runs-on'];
-  assert.equal(expression, "${{ matrix.target == 'native' && 'macos-14' || 'ubuntu-24.04' }}");
-  for (const [target, runner] of [['native', 'macos-14'], ['js', 'ubuntu-24.04'],
+  assert.equal(expression, "${{ matrix.target == 'native' && 'macos-15' || 'ubuntu-24.04' }}");
+  for (const [target, runner] of [['native', 'macos-15'], ['js', 'ubuntu-24.04'],
     ['wasm', 'ubuntu-24.04']]) {
     assert.equal(runInNewContext(expression.slice(3, -2), {matrix: {target}},
       {timeout: 100}), runner);

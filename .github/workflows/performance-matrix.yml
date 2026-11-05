@@ -183,7 +183,7 @@ jobs:
   ordinary-native:
     name: Ordinary native ${{ matrix.operation }}
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
@@ -261,7 +261,7 @@ jobs:
   ordinary-python:
     name: Ordinary python ${{ matrix.operation }}
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
@@ -353,7 +353,7 @@ jobs:
   ordinary-python-priority:
     name: Ordinary Python priority collector
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     permissions:
       contents: read
