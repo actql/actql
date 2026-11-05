@@ -967,6 +967,8 @@ pub fn client_program_installed_managed_run_compilation_original(@client_local_h
 
 pub fn client_program_installed_managed_run_invocation_original(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> (@run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract)?
 
+pub fn client_program_installed_managed_run_model_input_prefix(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram) -> Result[@execution_relation.GeneratedSequence, @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_managed_run_source_read_at(@client_local_host.ClientInstalledManagedRun, Int, Int, Int) -> Result[@client_local_host.ClientInstalledSourceRead, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_installed_managed_source_input_kind(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[String, @client_local_host.ClientInstalledManagedRunIssue]

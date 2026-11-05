@@ -546,7 +546,11 @@ metadata, a numerical profile, a physical issuer or a cleanup acknowledgement.
 A same-stage captured Source followed by its terminal Model does not publish
 the captured task as a managed Compute Result. Its same Request Model Scope
 and read consumer enter the existing Model kernel, with original captured
-Source evidence admitted by Core. The existing Model invocation binding owns
+Source evidence admitted by Core. Its input sequence is the actual prefix
+retained by that adopted native Plan, read through the same original Run,
+Prepared, Request association and payload-retirement fence. Reading it performs
+no compiler work, current callback or debit and recreates no JS Plan root.
+The existing Model invocation binding owns
 the derived Result publication. Separate-stage composed Programs retain the
 DAG driver and its unchanged managed publication identity requirements. The
 existing Model cleanup closes physical children before retiring this same read

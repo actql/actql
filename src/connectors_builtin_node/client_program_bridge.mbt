@@ -815,6 +815,19 @@ pub fn client_program_installed_managed_run_compilation_original(
 }
 
 ///|
+/// Read only the actual adopted Model Plan's already retained input prefix.
+#export_name("clientProgramInstalledManagedRunModelInputPrefix")
+pub fn client_program_installed_managed_run_model_input_prefix(
+  run : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @execution.GeneratedSequence,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.installed_managed_run_model_input_prefix(run, prepared)
+}
+
+///|
 #export_name("clientProgramInstalledManagedRunInvocationOriginal")
 pub fn client_program_installed_managed_run_invocation_original(
   run : @client_local_host.ClientInstalledManagedRun,

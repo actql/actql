@@ -107,6 +107,24 @@ pub fn installed_managed_run_compilation_original(
 }
 
 ///|
+/// The adopted SAME Run retains this exact captured Model prefix. Borrow it
+/// through the original compilation/payload-retirement fence and original
+/// Request association; never reconstruct a Plan or prepare another sequence.
+/// Immutable DATA only: no current callback, debit, compiler or new authority.
+pub fn installed_managed_run_model_input_prefix(
+  run : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[@execution.GeneratedSequence, ClientInstalledManagedRunIssue] {
+  guard installed_managed_run_compilation_original(run, prepared) is Some(_) &&
+    run.captured_preparation is Some(plan) &&
+    physical_equal(plan.prepared, prepared) &&
+    physical_equal(plan.request, run.request) else {
+    return Err(ForeignOriginal)
+  }
+  prepared_request_model_input_prefix(plan)
+}
+
+///|
 /// Same payload-retirement fence as the original compilation getter. A timed
 /// module keeps the original issued Run/Definition through its invocation;
 /// later publication must consume those originals rather than issue again.
