@@ -46,10 +46,19 @@ pub fn admit_client_infer_composed_sources(
     count == 1 &&
     occurrence.task == 0 &&
     @strategy.graph_task_count(graph) == 1
+  // The existing acquired-prefix owner also admits Source and INFER in one
+  // Unit. It has no inter-task edge; its original Query tuple and evidence
+  // below still bind the same checked input before any Model operation.
+  let direct_unit = count == 1 &&
+    occurrence.task == 0 &&
+    @strategy.graph_task_count(graph) == 1 &&
+    client_infer_prefix_owner_for_input(owner, 0, occurrence.step, true)
+    is Some(_)
+  let same_unit = keyed_unit || direct_unit
   if !client_infer_occurrence_matches(occurrence, owner) ||
     count < 1 ||
     count > 2 ||
-    (!keyed_unit && occurrence.task < count) ||
+    (!same_unit && occurrence.task < count) ||
     captures.length() != count ||
     identities.length() != count ||
     requirements.length() != count ||
@@ -68,7 +77,7 @@ pub fn admit_client_infer_composed_sources(
       )
     }
   }
-  if incoming.length() != (if keyed_unit { 0 } else { count }) {
+  if incoming.length() != (if same_unit { 0 } else { count }) {
     return Err(ForeignInput)
   }
   let pipeline = @lower.pipeline(
@@ -78,7 +87,7 @@ pub fn admit_client_infer_composed_sources(
   let names : Array[String] = []
   for task in 0..<count {
     let ports = incoming.filter(edge => edge.0 == task)
-    let name = if keyed_unit {
+    let name = if same_unit {
       @planning.query_requirement_site(requirements[task]).1
     } else {
       guard ports.length() == 1 &&
