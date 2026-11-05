@@ -23,6 +23,7 @@ import {residentSourceEnvironment, sourceProgram, sourceRows,
   retainedSourceSchemaCid, retainedChainProgram, retainedChainRows,
   retainedChainSchemaCid} from './fixtures/resident-source.mjs';
 import {prepareResidentEffectComputation, runResidentEffectComputation,
+  residentEffectSourceEnvironment,
   residentEffectSourceContractCid} from
   './fixtures/resident-effect-computation.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
@@ -485,8 +486,8 @@ try {
   const programText = effectComputationMode ? await readFile(join(repository,
     'packages/run-host-core/fixtures/source-compute-effect.program.json'), 'utf8') : retainedChainMode ? retainedChainProgram : retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
     'packages/sdk/fixtures/values.json'), 'utf8');
-  const environmentWire = effectComputationMode ? (await readFile(join(repository,
-    'packages/run-host-core/fixtures/source-compute-effect.environment.json'), 'utf8')).trimEnd() : sourceMode ? (await residentSourceEnvironment(repository)).wire
+  const environmentWire = effectComputationMode ? await residentEffectSourceEnvironment(repository)
+    : sourceMode ? (await residentSourceEnvironment(repository)).wire
     : (await readFile(join(repository,
       'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd();
   const now = Date.now();
