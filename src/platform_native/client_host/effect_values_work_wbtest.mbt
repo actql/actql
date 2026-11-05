@@ -38,18 +38,18 @@ fn effect_values_work_test_opened(
 }
 
 ///|
-// Public pinned contract bodies supplied by the bounded matching-target guard.
+// Admit the same bundled contract originals as the adjacent Values fixture.
 // These are test inputs, not an installation, authority or funding supplier.
 fn effect_values_work_test_bodies() -> (
   @local.ClientInstalledSequenceContracts,
   String,
   String?,
 ) {
-  let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
-  let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
-  let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
+  let assets = @host.client_local_product_assets()
+  let values = assets.values
+  let fragment = Some(assets.fragment)
   let installed = @local.prepare_installed_sequence_contracts(
-    registry,
+    assets.registry,
     values,
     fragment,
     None,
