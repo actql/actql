@@ -108,3 +108,37 @@ test('adopted ordinary Mock keyed input borrows the existing same-child byte rea
   assert.throws(() => f.prepare(f.prepared, f.declaration, f.originalRun, {}), {code:'InstalledSourcePreparationMismatch'});
   assert.equal(f.run.children.length, 1);
 });
+
+
+function pluralFixture() {
+  const f = fixture(false), components = [{}, {}], selections = [{}, {}];
+  f.model.modelScope = undefined;
+  f.model.model = Object.freeze({components: Object.freeze(components)});
+  f.model.modelSelection = Object.freeze({components: Object.freeze(selections)});
+  f.model.modelScopes = Object.freeze([{}, {}]);
+  f.model.modelMembers = Object.freeze(components.map((model, index) => ({model,
+    modelSelection: selections[index], modelScope: f.model.modelScopes[index]})));
+  return f;
+}
+
+test('plural Effect keyed child borrows the complete same Scope inventory without a first-member proxy', async () => {
+  const f = pluralFixture(), request = {};
+  const child = f.prepare(f.prepared, f.declaration, f.originalRun, request);
+  assert.equal(f.model.modelScope, undefined); assert.equal(f.reads(), 1);
+  assert.strictEqual(child.readOriginalBytes(), f.run.children[0]);
+  assert.throws(() => f.prepare(f.prepared, f.declaration, f.originalRun, request), {code:'InstalledSourcePreparationMismatch'});
+  assert.equal((await child.close()).pending, false);
+});
+
+test('plural Effect keyed child refuses missing foreign finished or changed-after-current Scopes before child allocation', () => {
+  for (const mutate of [f => {f.model.modelScopes = Object.freeze([f.model.modelScopes[0]]);},
+    f => {f.model.modelMembers[1].modelScope = {};},
+    f => {f.model.modelMembers[1].modelScopeFinished = true;},
+    f => {const original = f.model.readPlan; f.model.readPlan = function(...args) {
+      const result = Reflect.apply(original, this, args); f.model.modelMembers[1].modelScope = {}; return result;
+    };}]) {
+    const f = pluralFixture(); mutate(f);
+    assert.throws(() => f.prepare(f.prepared, f.declaration, f.originalRun, {}), {code:'InstalledSourcePreparationMismatch'});
+    assert.equal(f.run.children.length, 0);
+  }
+});

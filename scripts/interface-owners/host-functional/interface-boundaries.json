@@ -114004,7 +114004,9 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
             "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#5",
-            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild"
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/scopesCurrent/scopesCurrent",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/scopesCurrent/scopesCurrent/scopesCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -116547,6 +116549,19 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/scopesCurrent/scopesCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/scopesCurrent/scopesCurrent/scopesCurrent",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
           "parameters": [
             "prepared",
@@ -117139,7 +117154,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "ec3b90296a3eb7f419304eb8f8de3218ca02d5fecb851661ec3983723831d95d"
+      "sha256": "f4d77c311a684dbe5e102b61b2dc799ee3a8a02fb79dae8a89e81bd39a81f3a4"
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",

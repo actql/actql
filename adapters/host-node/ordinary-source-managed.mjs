@@ -2115,9 +2115,20 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       const run = runFor(prepared);
       const model = run.model;
       const planned = run.effectful === true && run.purpose === 'source-compute' && model !== undefined;
+      const originalScope = model?.modelScope, members = model?.modelMembers, scopes = model?.modelScopes;
+      const scopesCurrent = () => members === undefined
+        ? model.modelMembers === undefined && model.modelScope === originalScope && originalScope !== undefined
+        : model.modelMembers === members && model.modelScopes === scopes &&
+          Array.isArray(members) && Object.isFrozen(members) && members.length >= 2 &&
+          Array.isArray(scopes) && Object.isFrozen(scopes) && scopes.length === members.length &&
+          Array.isArray(model.model?.components) && model.model.components.length === members.length &&
+          Array.isArray(model.modelSelection?.components) && model.modelSelection.components.length === members.length &&
+          members.every((member, index) => member.modelScope === scopes[index] && scopes[index] !== undefined &&
+            member.model === model.model.components[index] && member.modelSelection === model.modelSelection.components[index] &&
+            member.modelScopeFinished !== true);
       if ((!project && !planned) || (planned ? run.value !== originalRun || model.value !== originalRun ||
           model.closed || model.prepared !== prepared || model.requestInput !== run.request ||
-          model.original !== run.original || model.manager !== view || model.modelScope === undefined ||
+          model.original !== run.original || model.manager !== view || !scopesCurrent() ||
           model.operationPlan !== run.operationPlan || model.modelScopeFinished === true
         : run.purpose !== 'local-content' || run.original !== originalRun) ||
           !bundle.sources.some(source => source.declaration === declaration) ||
@@ -2128,7 +2139,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         const plan = checked(Reflect.apply(model.readPlan, model.runtime,
           [originalRun, prepared, model.request]));
         if (plan !== run.operationPlan || runFor(prepared) !== run || model !== run.model ||
-            model.value !== originalRun || model.closed || model.modelScopeFinished === true) {
+            model.value !== originalRun || model.closed || model.modelScopeFinished === true || !scopesCurrent()) {
           fail('InstalledSourcePreparationMismatch');
         }
       }
