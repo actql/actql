@@ -63,6 +63,37 @@ const residentPhaseKinds = new Set([
   'cleanup-calls-returned',
 ]);
 
+// Retain an earlier consumer refusal even when repeated relay offers fill the
+// tail. Closed labels only: no request identities, frame bodies or messages.
+function residentConsumerFailureSummary(lines) {
+  const kinds = new Set(['holder-started', 'holder-exited', 'holder-input-invalid',
+    'holder-input-frame', 'effect-computation-custody-retained', 'consumer-relayed',
+    'consumer-refused', 'consumer-unavailable', 'consumer-accept-pending',
+    'consumer-executed', 'consumer-failed', 'consumer-already-started']);
+  const reasons = new Set(['materials', 'retained-input', 'holder-custody', 'envelope',
+    'bundle-holding', 'owned-execution', 'journal', 'protocol', 'envelope-missing',
+    'values', 'start-claim-lost', 'start-cancelled', 'executor-entry-unrecorded',
+    ...['foreign-coordinator', 'foreign-site', 'stale-generation', 'foreign-runtime',
+      'foreign-connector', 'foreign-grant', 'foreign-issuer', 'unsupported-budget',
+      'materials-missing', 'materials-rejected', 'task-materials-rejected',
+      'foreign-source', 'unsupported-task', 'not-current', 'queue-full']
+      .flatMap(reason => [reason, 'refused-' + reason])]);
+  const selected = new Map();
+  for (const line of lines) {
+    if (!kinds.has(line?.kind)) continue;
+    if (line.kind === 'holder-input-frame' && line.operation !== 'consumer') continue;
+    const value = {kind: line.kind};
+    if (line.kind === 'holder-input-frame') value.operation = 'consumer';
+    if (line.kind === 'consumer-relayed') value.sent = line.sent === 'true' ? true
+      : line.sent === 'false' ? false : 'unselected';
+    if (line.reason !== undefined) value.reason = reasons.has(line.reason) ? line.reason : 'unselected';
+    const key = JSON.stringify(value), previous = selected.get(key);
+    if (previous) previous.count++;
+    else selected.set(key, {...value, count: 1});
+  }
+  return [...selected.values()];
+}
+
 async function runResidentPhaseWatchdog(script, {
   forkChild = fork, phaseTimeoutMilliseconds = 120000, killGraceMilliseconds = 5000,
   report = value => console.error('ACTQL_NATIVE_RESIDENT_WATCHDOG ' + JSON.stringify(value)),
@@ -3629,6 +3660,8 @@ try {
     if (retainedConsumerMode) {
       await writeFile(join(root, 'resident-failure-lines.json'), JSON.stringify(currentSite.lines),
         {mode: 0o600});
+      console.error('ACTQL_NATIVE_RESIDENT_CONSUMER_FAILURE ' +
+        JSON.stringify(residentConsumerFailureSummary(currentSite.lines)));
     }
     console.error('resident Site output:', JSON.stringify(retainedConsumerMode
       ? currentSite.lines.filter(line => line.kind !== 'accepted').slice(-30)

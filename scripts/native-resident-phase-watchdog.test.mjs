@@ -21,6 +21,30 @@ const original = syntax.body.find(node => node.type === 'FunctionDeclaration' &&
 assert(original);
 const supervise = Function('fork', 'residentPhaseKinds', `return (${source.slice(original.start, original.end)});`)(fork, kinds);
 
+test('Resident consumer diagnostics preserve the original refusal under relay noise without private fields',()=>{
+  const declaration=syntax.body.find(node=>node.type==='FunctionDeclaration' &&
+    node.id.name==='residentConsumerFailureSummary');
+  assert(declaration);
+  const summarize=Function(`return (${source.slice(declaration.start,declaration.end)});`)();
+  const refused={kind:'consumer-refused',reason:'retained-input',request_cid:'private-request',
+    body:'private-frame',message:'private-message'};
+  const lines=[{kind:'holder-input-frame',operation:'retained-plan'},
+    {kind:'holder-input-frame',operation:'consumer',holder_request_cid:'private-holder'},refused,
+    ...Array.from({length:1000},()=>({kind:'consumer-relayed',sent:'false',request_cid:'private-request'})),
+    {kind:'consumer-accept-pending',reason:'private-provider-message'},
+    {kind:'private-event',reason:'private-provider-message'}];
+  const original=JSON.stringify(lines);
+  assert.deepEqual(summarize(lines),[
+    {kind:'holder-input-frame',operation:'consumer',count:1},
+    {kind:'consumer-refused',reason:'retained-input',count:1},
+    {kind:'consumer-relayed',sent:false,count:1000},
+    {kind:'consumer-accept-pending',reason:'unselected',count:1},
+  ]);
+  assert.equal(JSON.stringify(lines),original);
+  assert.equal(JSON.stringify(summarize(lines)).includes('private-'),false);
+  assert.deepEqual(summarize([]),[]);
+});
+
 async function childFixture(t, body) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-resident-watchdog-'));
   const script = join(directory, 'child.mjs');
