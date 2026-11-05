@@ -584,11 +584,14 @@ Before storing a fresh single-Unit Model checkpoint, the same caller retains
 that captured Source through the existing Source continuation. It passes the
 original checked Source coordinates and the nominal read approval, without
 another read or authorization. The approval must match the original principal,
-read tuple, Source, physical and installation bindings; an optional occurrence
+read tuple, Source and physical binding, plus its installation fact when present;
+an optional occurrence
 matches its stage/input/task coordinates. Cancellation and every earlier
 approval remain current requirements. The private retained record preserves
 that approval chain for restoration; a process-local Host permit without a
-checkpoint CID supplies no durable approval. Saved input consumes this retained
+checkpoint CID supplies no durable approval. A singular approval can omit its
+installation fact; the Source closure still retains its actual installed binding
+and restoration checks that original binding independently. Saved input consumes this retained
 closure rather than issuing a replacement, and cleanup retires it before the
 original Model Scope.
 

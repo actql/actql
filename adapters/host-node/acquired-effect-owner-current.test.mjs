@@ -592,3 +592,49 @@ test('fresh Source closure refuses copied or foreign original approval facts bef
     assert.equal(f.calls.includes('retain'),false);await f.continuation.close();
   }
 });
+
+test('fresh Source keeps its installed binding when singular approval has no installation fact', async () => {
+  const f = fixture(), scope = f.record.scope;
+  const binding = Object.freeze({connectorId: 'fixture', connectorRegistration: 'fixture',
+    connectorRevision: 'original', bindingCid: `sha256:${'a'.repeat(64)}`});
+  f.source.adapter.ordinaryRecoveryBinding = prepared => {
+    assert.equal(prepared, f.source.preparedSource);
+    return binding;
+  };
+  const approval = recordCheckpointApproval(Object.freeze({action: 'dispatch', boundary: 'acquisition'}), {
+    checkpointCid: 'original-source-checkpoint', principalId: 'principal', readTuple: scope.readTuple,
+    checkedSource: scope.checkedSource, physicalBinding: scope.physicalBinding});
+  let stored;
+  f.checkpoints.retainComputationSource = async (run, definition, wire) => {
+    stored = JSON.parse(wire); return 'retained';
+  };
+  await f.prepare();
+  await f.continuation.captured(f.source, f.captured, 'evidence', 1, 2, approval);
+  const closure = await f.continuation.retainAll();
+  assert.deepEqual(stored.scope.installationBinding, binding);
+  assert.deepEqual(closure.sources[0].scope.installationBinding, binding);
+  assert.equal(stored.checkpoint_cid, 'original-source-checkpoint');
+  assert.equal(checkpointApprovalFacts(approval).installationBinding, undefined,
+    'Retention must not add a binding to the original singular approval');
+  assert.equal(f.calls.includes('base-authorize'), false);
+  await f.continuation.close();
+});
+
+test('fresh Source checks a present installation approval fact against its actual installed binding', async () => {
+  for (const foreign of [false, true]) {
+    const f = fixture(), scope = f.record.scope;
+    const binding = {connectorId: 'fixture', connectorRegistration: 'fixture',
+      connectorRevision: 'original', bindingCid: `sha256:${'a'.repeat(64)}`};
+    f.source.adapter.ordinaryRecoveryBinding = () => binding;
+    const approval = recordCheckpointApproval(Object.freeze({action: 'dispatch', boundary: 'acquisition'}), {
+      checkpointCid: 'original-source-checkpoint', principalId: 'principal', readTuple: scope.readTuple,
+      checkedSource: scope.checkedSource, physicalBinding: scope.physicalBinding,
+      installationBinding: {...binding, connectorRevision: foreign ? 'foreign' : 'original'}});
+    await f.prepare();
+    const result = f.continuation.captured(f.source, f.captured, 'evidence', 1, 2, approval);
+    if (foreign) await assert.rejects(result, {code: 'HeldAcquisitionChanged'});
+    else await result;
+    assert.equal(f.calls.includes('retain'), false);
+    await f.continuation.close();
+  }
+});

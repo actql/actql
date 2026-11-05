@@ -354,12 +354,14 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
         const facts = checkpointApprovalFacts(originalApproval);
         const matches = (left, right) => left === undefined || right === undefined
           ? left === right : same(left, right);
+        // Singular read approvals may omit an installation fact. Keep the
+        // actual Source scope binding; a supplied approval fact must match it.
         if (originalApproval.action !== 'dispatch' || originalApproval.boundary !== 'acquisition' ||
             facts === undefined || typeof facts.checkpointCid !== 'string' ||
             facts.principalId !== principalId || !matches(facts.readTuple, state.scope.readTuple) ||
             !matches(facts.checkedSource, state.scope.checkedSource) ||
             !matches(facts.physicalBinding, state.scope.physicalBinding) ||
-            !matches(facts.installationBinding, state.scope.installationBinding) ||
+            facts.installationBinding !== undefined && !matches(facts.installationBinding, state.scope.installationBinding) ||
             facts.occurrence !== undefined && ['stage','input','task'].some(name=>facts.occurrence[name]!==source.occurrence[name]) ||
             facts.earlierCheckpointCids !== undefined && (!Array.isArray(facts.earlierCheckpointCids) ||
               facts.earlierCheckpointCids.some(cid=>typeof cid!=='string'))) fail('HeldAcquisitionChanged');
