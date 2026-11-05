@@ -27,7 +27,22 @@ try {
   assert.deepEqual(await attached.result('main').all(), rows);
 } finally { await local.close(); }
 
+// The HTTP operator explicitly selects pure-request admission and observation.
+const httpAuthorization = {accountConfiguration: JSON.stringify({
+  version: 'actql-execution-account-config/0.1', account_id: 'readme-http',
+  entries: [{entry_id: 'read-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['result/main', 'run']},
+    operation: {any_of: ['read']}, exclusions: []},
+  {entry_id: 'request-original', outcome: 'allow',
+    principal: {any_of: [userInfo().username]},
+    connection: {any_of: ['actql-remote-host']},
+    resource: {any_of: ['source-free-values']},
+    operation: {any_of: ['write']}, exclusions: []}],
+})};
 const host = await openInstalledRemoteHttpHost({directory: resolve('readme-http-state'),
+  authorization: httpAuthorization,
   authenticate: header => header === 'Bearer readme-fixture' ? userInfo().username : undefined});
 const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
