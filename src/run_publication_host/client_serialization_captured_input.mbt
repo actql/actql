@@ -160,7 +160,7 @@ fn admit_client_serialization_captured_input_owned(
       let acquisition = keyed.lookup.left.acquisition
       guard acquisition.program is KeyedPure(original) &&
         physical_equal(original, owner) &&
-        physical_equal(keyed.lookup.left.source, source) &&
+        client_keyed_left_single_source_matches(keyed.lookup.left, source) &&
         client_keyed_acquisition_reaches_serialization(
           owner, acquisition, task, step,
         ) &&

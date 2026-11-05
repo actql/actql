@@ -9,6 +9,7 @@ pub using @graph {
   retained_task_projection_reference,
   graph_ordered_inputs_complete,
   graph_keyed_model_plan_inputs_complete,
+  graph_with_completed_keyed_model_input,
   type LocalInputSlot,
   type CheckedResultOccurrence,
   type CheckedEffectTableInputPort,
