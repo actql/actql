@@ -196,7 +196,7 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs
+        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test focused owning-family selection and zero-test guards
@@ -1182,6 +1182,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
       - name: Test Node-free native storage publication and control
+        id: native-runtime-test
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-tests
         run: |
@@ -1189,6 +1190,23 @@ jobs:
           # All original cases and product resource budgets remain unchanged.
           ulimit -S -s 65536
           npm run check:native-http-client
+      - name: Diagnose only failed Linux Effect consumer functions
+        if: ${{ failure() && steps.native-runtime-test.outcome == 'failure' }}
+        continue-on-error: true
+        timeout-minutes: 6
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/native-effect-function-state
+        run: |
+          ulimit -S -s 65536
+          node scripts/diagnose-native-resident-functions.mjs --output "${{ runner.temp }}/native-effect-functions/sanitized.json"
+      - name: Retain only sanitized Linux Effect function availability
+        if: ${{ failure() && steps.native-runtime-test.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-effect-functions-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/native-effect-functions/sanitized.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Test public packed Run materials against native resident Site
         id: packed-materials
         env:
