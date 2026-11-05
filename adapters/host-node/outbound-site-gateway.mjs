@@ -583,7 +583,7 @@ export async function startHttpsOutboundSiteGateway({
         replyJson(response, 200, {accepted: true});
         return;
       }
-      if (matched.operation === 'cancel' &&
+      if ((matched.operation === 'cancel' || matched.operation === 'release') &&
           !(receiveObservation === undefined
             ? control.responseCanRetireCancellationDelivery(admitted)
             : typeof observationReceipt?.canRetireCancellationDelivery === 'function' &&
@@ -592,10 +592,13 @@ export async function startHttpsOutboundSiteGateway({
         // retire delivery; a known old released reply is not current evidence.
         // The receiver-free gateway retains its transport-only contract.
         // Ordinary status (even after an offer) cannot prove that the Site
-        // saved Cancel. Admit the observation, but keep offering the exact
-        // cancellation until the common owner admits terminal execution and
-        // released cleanup with no retained material or quarantine obligation.
-        // Unknown execution is not terminal cancellation evidence.
+        // saved Cancel or completed Release. Admit the observation, but keep
+        // offering the exact operation until the common owner admits terminal
+        // execution and released cleanup with no retained material or quarantine
+        // obligation.
+        // The existing predicate includes successful Native settlement; its
+        // use for Release does not issue cancellation or execution authority.
+        // Unknown execution is not terminal cleanup evidence.
         replyJson(response, 200, {accepted: true});
         return;
       }
