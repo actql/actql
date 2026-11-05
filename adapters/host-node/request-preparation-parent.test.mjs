@@ -4,6 +4,7 @@ import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-manage
 import resources from './ordinary-node-resource-runtime.cjs';
 import {openRequestPreparation, cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 
 // Actual normal manager/adapter/Resource originals; Core phase/shape results
 // are explicit ports. This does not certify a matching Common or body tariff.
@@ -1839,14 +1840,23 @@ test('physical Effect Model configures its SAME selected quantity limits before 
 // ports. This admits no Source read, Model dispatch or normal backing claim.
 async function restoredModelRecoveryFixture(options) {
   const f = await fixture(options), moon = f.context.runtime;
-  const request = {}, identity = {}, definition = {wire: '{}'}, prepared = {},
+  const request = {}, identity = {}, nativeDefinition = {name: 'run_definition', wire: '{}'}, prepared = {},
     compiled = {}, graph = {}, selected = {}, events = [];
+  moon.strategyPublicationAdmit = () => ok(nativeDefinition);
+  moon.strategyPublicationContractName = original => {assert.equal(original,nativeDefinition);return original.name;};
+  moon.strategyPublicationContractIdentityField = original => {assert.equal(original,nativeDefinition);return 'run_definition_cid';};
+  moon.strategyPublicationContractIdentity = original => {assert.equal(original,nativeDefinition);return 'fixture-definition';};
+  moon.strategyPublicationContractJson = original => {assert.equal(original,nativeDefinition);return original.wire;};
+  moon.strategyRemoteManagedOutputEvidenceKind = () => 'unused explicit fixture metadata';
+  const control = runtimeCore(moon).publicationControl;
+  const definition = control.admit('run_definition', '{}', {maxWireBytes:2,maxNodes:1,maxDepth:1});
+  assert.notEqual(definition,nativeDefinition);
   const original = Object.freeze({materialsWire: '{"original":"saved-model"}',
     resultPolicyOriginal: Object.freeze({kind: 'data_policy', cid: 'fixture', wire: '{}'})});
   const restored = Object.freeze({prepared, compiled, graph, runDefinition: definition});
   moon.clientProgramReserveRequestModelRecoveryMaterials = function(parent, receipt, actualRequest, actualDefinition, count, wireAt, containers) {
     assert.equal(this, moon); assert.equal(parent, f.parent); assert.equal(receipt, recovery.receipt);
-    assert.equal(actualRequest, identity); assert.equal(actualDefinition, definition);
+    assert.equal(actualRequest, identity); assert.equal(actualDefinition, nativeDefinition);
     events.push(['before constructor', count, Array.from({length: count}, (_, index) => wireAt(index)), containers]);
     return ok(undefined);
   };
@@ -1857,8 +1867,9 @@ async function restoredModelRecoveryFixture(options) {
   };
   const recovery = f.view.retainModelRecovery(request, identity, definition,
     () => events.push('original recovery current'), () => false);
-  assert.equal(f.view.restoreModelOriginal(request, original, definition, identity, () => restored), restored);
-  return {...f, moon, recovery, request, identity, definition, prepared, compiled, graph, selected, original, restored, events};
+  try {assert.equal(f.view.restoreModelOriginal(request, original, definition, identity, () => restored), restored);}
+  catch (cause) {f.view.finishSourceProducer(recovery.receipt,'failed');await f.view.close();throw cause;}
+  return {...f, moon, recovery, request, identity, definition, nativeDefinition, control, prepared, compiled, graph, selected, original, restored, events};
 }
 
 test('cold Model Source selection consumes the same restored Request without an ordinary preparation holder', async () => {
@@ -1878,6 +1889,7 @@ async function recoveryReadFixture({readFailure, failRead = false, afterScopes, 
     readRetainedBytes: 7n, readExecutionBytes: 5n, maxReservations: 20, maxHoldings: 20, maxDelegations: 20});
   const selection = Object.freeze({graph: f.graph, restoredRun: f.restored});
   const control = {
+    reserveCheckedClientRequestModelRecoveryMaterials: f.control.reserveCheckedClientRequestModelRecoveryMaterials,
     prepareCheckedClientRequestModelRecoveryReadScopes(...args) {
       assert.deepEqual(args, [f.parent, f.recovery.receipt, f.identity, f.definition, f.prepared, f.compiled,
         [f.graph], [bounds], [11n], [13n], [7n], [5n], 20, 20, 20, undefined]);
@@ -2020,4 +2032,24 @@ test('cold Model recovery coordinates and ledger precede Model Plan construction
   assert.equal(originalLedger(prepared,request),ledger);
   assert.equal(projections,1);assert.equal(reservations,1);assert.equal(cacheReads,2);
   assert.equal(recovery.model,undefined,'Metadata/Ledger projection does not construct a Model Plan');
+});
+
+
+test('cold Model recovery reserves and projects the same original native Definition behind its facade', async () => {
+  const f = await restoredModelRecoveryFixture(), ledger = {};
+  f.moon.clientProgramRequestModelRecoverySourceCoordinates = function(parent,input,identity,definition,prepared) {
+    assert.equal(this,f.moon); assert.equal(parent,f.parent);assert.equal(input,f.recovery.receipt);
+    assert.equal(identity,f.identity);assert.equal(definition,f.nativeDefinition);assert.equal(prepared,f.prepared);
+    return ok([[3,1,0]]);
+  };
+  f.moon.clientProgramRequestModelRecoveryLedger = function(parent,input,identity,definition) {
+    assert.equal(this,f.moon);assert.equal(parent,f.parent);assert.equal(input,f.recovery.receipt);
+    assert.equal(identity,f.identity);assert.equal(definition,f.nativeDefinition);return ok(ledger);
+  };
+  assert.notEqual(f.definition,f.nativeDefinition,'Presentation facade is not a native publication issuer');
+  try {
+    assert.deepEqual(f.view.modelSourceCoordinates(f.prepared,f.request),[[3,1,0]]);
+    assert.equal(f.view.modelRecoveryLedger(f.prepared,f.request),ledger);
+    assert.equal(f.events.filter(Array.isArray).length,2,'Reserve material and coordinates with the same native Definition');
+  } finally {f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();}
 });
