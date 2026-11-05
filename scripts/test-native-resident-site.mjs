@@ -205,6 +205,15 @@ const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only
 const releaseObservationMode = process.argv.includes('--release-observation-only');
 const releaseStoppedRecoveryMode = process.argv.includes('--release-stopped-recovery-only');
 const releaseColdRecoveryMode = process.argv.includes('--release-cold-recovery-only');
+const holderReclaimMode = process.argv.includes('--holder-reclaim-only');
+const holderKillPoints = Object.freeze(['before-intent', 'after-intent', 'allocated', 'owned',
+  'payload-written', 'sealed', 'reclaimed']);
+const holderReclaimPoint = process.argv.find(value => value.startsWith('--holder-reclaim-point='))
+  ?.slice('--holder-reclaim-point='.length);
+if (holderReclaimPoint !== undefined && (!holderReclaimMode || !holderKillPoints.includes(holderReclaimPoint))) {
+  throw new Error('Invalid focused holder reclamation point');
+}
+
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -836,6 +845,125 @@ try {
     };
   };
   let expectedEntries = 0;
+
+  const provesCapacityFree = async (tag, attempt) => {
+    const proof = startSite(['--publication-capacity-bytes', '40']);
+    currentSite = proof;
+    const dispatch = dispatchFor(`resident-${tag}`, attempt);
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `${tag} entry`);
+    await deliverAndRelease(dispatch, await settledQuery(dispatch, tag), tag);
+    await waitFor(() => proof.lines.some(line =>
+      line.kind === 'holder-released' && line.payloads === '1'),
+    `${tag} released`);
+    assert.ok(!proof.lines.some(line => line.kind === 'output-failed'));
+    proof.child.kill('SIGTERM');
+    await proof.exited;
+    assert.equal(reservedPayloadBytes(), 0);
+  };
+  // Output intents in the Site journal whose cleanup is not recorded
+  // complete, and the payload records of the Store, read from their
+  // databases.
+  const payloadRecords = () => {
+    const database = new DatabaseSync(join(publicationRoot,
+      '.actql-publication.sqlite3'), {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
+    try {
+      return new Map(database.prepare('SELECT record_key, revision FROM ' +
+        'actql_records WHERE namespace = ?').all('publication_payload')
+        .map(row => [row.record_key, Number(row.revision)]));
+    } finally {
+      database.close();
+    }
+  };
+  const verifyKilledHolderReclamation = async points => {
+    // 16. The holder is killed with SIGKILL at each step of keeping its
+    //     output: before and after the durable intent, while the payload is
+    //     written, right after the seal, and after the reclaim but before the
+    //     intent is completed. The Site reclaims what the dead holder left
+    //     (holding the slot), completes the intent, changes no other payload
+    //     record and never executes again; a Store sized for one payload then
+    //     takes the next Run.
+    // A staging file nobody's record owns stays untouched by every reclaim.
+    const foreignStaging = join(publicationRoot,
+      `stage-${'f'.repeat(64)}`);
+    await writeFile(foreignStaging, 'foreign', {mode: 0o600});
+    // Identity and content, not access times: the file is neither removed
+    // nor replaced nor written.
+    const foreignStagingState = async () => {
+      const {ino, size, mtimeMs} = await stat(foreignStaging);
+      return JSON.stringify({ino, size, mtimeMs,
+        content: await readFile(foreignStaging, 'utf8')});
+    };
+    const foreignStagingBefore = await foreignStagingState();
+    for (const point of points) {
+      const index = holderKillPoints.indexOf(point);
+      const tag = `killed-${point}`;
+      const killed = startSite(['--publication-capacity-bytes', '40',
+        '--holder-kill-at', point]);
+      currentSite = killed;
+      const dispatch = dispatchFor(`resident-${tag}`, 50 + index * 2);
+      await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+      expectedEntries += 1;
+      await waitFor(async () => (await entries()).length === expectedEntries,
+        `${tag} entry`);
+      const others = payloadRecords();
+      const output = requestOutput(dispatch, await planOutput(dispatch,
+        await settledQuery(dispatch, tag), tag)).catch(error => error);
+      let release;
+      if (point === 'reclaimed') {
+        await within(output, `${tag} output`);
+        release = gateway.release({dispatch}).catch(error => error);
+      }
+      await waitFor(() => killed.lines.some(line =>
+        line.kind === 'holder-killed' && line.point === point), `${tag} kill`);
+      gateway.withdraw({dispatch});
+      await output;
+      const withdrawnRelease = await release;
+      if (withdrawnRelease !== undefined && withdrawnRelease.state?.[2] !== 2) {
+        assert.equal(withdrawnRelease.code, 'RemoteDispatchWithdrawn');
+      }
+      if (point === 'after-intent') {
+        // Death proves no release permission. The exact unfinished Output
+        // remains owned until the Coordinator sends its original Release.
+        await waitFor(() => killed.lines.some(line =>
+          line.kind === 'orphan-reclaim-pending' && line.reason === 'store'),
+        `${tag} retained before Release`);
+        assert.equal(pendingIntents().length, 1);
+        assert.equal(reservedPayloadBytes(), 0);
+      }
+      const released = withdrawnRelease?.state?.[2] === 2 ? withdrawnRelease
+        : await within(gateway.release({dispatch}), `${tag} original Release`);
+      assert.equal(released.state[2], 2, `${tag} cleanup is formally Released`);
+      // The Site reports the reclaim after its database writes; the line is
+      // awaited first so the checks below are not ahead of it.
+      if (point !== 'before-intent') {
+        await waitFor(() => killed.lines.some(line =>
+          line.kind === 'orphans-reclaimed'), `${tag} reclaimed by the Site`);
+      }
+      await waitFor(() => pendingIntents().length === 0 &&
+        reservedPayloadBytes() === 0, `${tag} reclaimed after the holder died`);
+      const after = payloadRecords();
+      for (const [key, revision] of others) {
+        assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
+      }
+      assert.equal(await foreignStagingState(), foreignStagingBefore,
+        `${tag} foreign staging untouched`);
+      // No private allocation file is left behind.
+      assert.deepEqual((await readdir(publicationRoot))
+        .filter(name => name.startsWith('alloc-')), [], `${tag} allocation gone`);
+      assert.equal((await entries()).length, expectedEntries);
+      killed.child.kill('SIGTERM');
+      await killed.exited;
+      await provesCapacityFree(`after-${tag}`, 51 + index * 2);
+    }
+
+  };
+
 
   if (cancelMode) {
     const bundleHoldings = () => {
@@ -1756,6 +1884,9 @@ try {
     failing.child.kill('SIGTERM');
     await failing.exited;
     }
+  } else if (holderReclaimMode) {
+    await verifyKilledHolderReclamation(holderReclaimPoint === undefined
+      ? holderKillPoints : [holderReclaimPoint]);
   } else if (process.argv.includes('--release-recovery-only') || releaseMaintenanceMode || releaseObservationMode || releaseStoppedRecoveryMode || releaseColdRecoveryMode) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
@@ -2756,24 +2887,6 @@ try {
   assert.equal(reservedPayloadBytes(), 0);
   // One more Run through a Store sized for one payload: it succeeds only if
   // no earlier payload is still reserved.
-  const provesCapacityFree = async (tag, attempt) => {
-    const proof = startSite(['--publication-capacity-bytes', '40']);
-    currentSite = proof;
-    const dispatch = dispatchFor(`resident-${tag}`, attempt);
-    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
-      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
-    expectedEntries += 1;
-    await waitFor(async () => (await entries()).length === expectedEntries,
-      `${tag} entry`);
-    await deliverAndRelease(dispatch, await settledQuery(dispatch, tag), tag);
-    await waitFor(() => proof.lines.some(line =>
-      line.kind === 'holder-released' && line.payloads === '1'),
-    `${tag} released`);
-    assert.ok(!proof.lines.some(line => line.kind === 'output-failed'));
-    proof.child.kill('SIGTERM');
-    await proof.exited;
-    assert.equal(reservedPayloadBytes(), 0);
-  };
   // An https origin nothing listens on.
   const deadOrigin = await new Promise(resolve => {
     const socket = createServer();
@@ -2924,91 +3037,10 @@ try {
     assert.equal(reservedPayloadBytes(), 0);
   }
 
-  // Output intents in the Site journal whose cleanup is not recorded
-  // complete, and the payload records of the Store, read from their
-  // databases.
-  const payloadRecords = () => {
-    const database = new DatabaseSync(join(publicationRoot,
-      '.actql-publication.sqlite3'), {readOnly: true});
-    database.exec('PRAGMA busy_timeout = 5000');
-    try {
-      return new Map(database.prepare('SELECT record_key, revision FROM ' +
-        'actql_records WHERE namespace = ?').all('publication_payload')
-        .map(row => [row.record_key, Number(row.revision)]));
-    } finally {
-      database.close();
-    }
-  };
   const sleep = milliseconds =>
     new Promise(resolve => setTimeout(resolve, milliseconds));
 
-  // 16. The holder is killed with SIGKILL at each step of keeping its
-  //     output: before and after the durable intent, while the payload is
-  //     written, right after the seal, and after the reclaim but before the
-  //     intent is completed. The Site reclaims what the dead holder left
-  //     (holding the slot), completes the intent, changes no other payload
-  //     record and never executes again; a Store sized for one payload then
-  //     takes the next Run.
-  // A staging file nobody's record owns stays untouched by every reclaim.
-  const foreignStaging = join(publicationRoot,
-    `stage-${'f'.repeat(64)}`);
-  await writeFile(foreignStaging, 'foreign', {mode: 0o600});
-  // Identity and content, not access times: the file is neither removed
-  // nor replaced nor written.
-  const foreignStagingState = async () => {
-    const {ino, size, mtimeMs} = await stat(foreignStaging);
-    return JSON.stringify({ino, size, mtimeMs,
-      content: await readFile(foreignStaging, 'utf8')});
-  };
-  const foreignStagingBefore = await foreignStagingState();
-  const killPoints = ['before-intent', 'after-intent', 'allocated', 'owned',
-    'payload-written', 'sealed', 'reclaimed'];
-  for (const [index, point] of killPoints.entries()) {
-    const tag = `killed-${point}`;
-    const killed = startSite(['--publication-capacity-bytes', '40',
-      '--holder-kill-at', point]);
-    currentSite = killed;
-    const dispatch = dispatchFor(`resident-${tag}`, 50 + index * 2);
-    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
-      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
-    expectedEntries += 1;
-    await waitFor(async () => (await entries()).length === expectedEntries,
-      `${tag} entry`);
-    const others = payloadRecords();
-    const output = requestOutput(dispatch, await planOutput(dispatch,
-      await settledQuery(dispatch, tag), tag)).catch(error => error);
-    let release;
-    if (point === 'reclaimed') {
-      await within(output, `${tag} output`);
-      release = gateway.release({dispatch}).catch(error => error);
-    }
-    await waitFor(() => killed.lines.some(line =>
-      line.kind === 'holder-killed' && line.point === point), `${tag} kill`);
-    gateway.withdraw({dispatch});
-    await output;
-    await release;
-    // The Site reports the reclaim after its database writes; the line is
-    // awaited first so the checks below are not ahead of it.
-    if (point !== 'before-intent') {
-      await waitFor(() => killed.lines.some(line =>
-        line.kind === 'orphans-reclaimed'), `${tag} reclaimed by the Site`);
-    }
-    await waitFor(() => pendingIntents().length === 0 &&
-      reservedPayloadBytes() === 0, `${tag} reclaimed after the holder died`);
-    const after = payloadRecords();
-    for (const [key, revision] of others) {
-      assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
-    }
-    assert.equal(await foreignStagingState(), foreignStagingBefore,
-      `${tag} foreign staging untouched`);
-    // No private allocation file is left behind.
-    assert.deepEqual((await readdir(publicationRoot))
-      .filter(name => name.startsWith('alloc-')), [], `${tag} allocation gone`);
-    assert.equal((await entries()).length, expectedEntries);
-    killed.child.kill('SIGTERM');
-    await killed.exited;
-    await provesCapacityFree(`after-${tag}`, 51 + index * 2);
-  }
+  await verifyKilledHolderReclamation(holderKillPoints);
 
   // 17. While the holder that owns an intent is alive, another control
   //     process of the Site does not reclaim it: it cannot take the slot.
