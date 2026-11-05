@@ -178,8 +178,8 @@ try {
           JSON.parse(wire).format === 'packed-risk/0.1';
       },
       // Two admitted two-call contracts each retain 1000ms. The shared Run
-      // covers all four unknown-duration envelopes without refunding either.
-      quantityCapacity: {limits: {tokens: 66n, costUnits: 0n, durationMs: 2000n},
+      // covers both complete 66-token/1000ms envelopes without refunding either.
+      quantityCapacity: {limits: {tokens: 132n, costUnits: 0n, durationMs: 2000n},
         perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
       observeEgress: () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false}),
       physicalPreflight: request => {

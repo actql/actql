@@ -337,3 +337,70 @@ test "shared physical provider startup retains the same provider limits and larg
   assert_true(@resources.capacity_reservation_open(sibling))
   @resources.settle_capacity(startup.ledger, sibling).unwrap()
 }
+
+///|
+test "shared Model startup retains the actual aggregate quantity configuration and its component ceiling" {
+  let rows = prepared_capacity_test_rows()
+  let limits = prepared_capacity_test_limits(100L)
+  let aggregate : @resources.QuantityAmounts = {
+    tokens: 132L,
+    cost_units: 0L,
+    duration_ms: 2000L,
+  }
+  let quantities : ModelQuantityCapacity = {
+    limits: { tokens: 66L, cost_units: 0L, duration_ms: 1000L, },
+    per_attempt: { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+  }
+  let original = original_startup_test_grant(rows, limits, Some(aggregate))
+  let provider = install_model_provider("models/fixture", _ => {
+    abort("masked shared startup must not send")
+  }).unwrap()
+  let startup = {
+    ..original,
+    shared_mock: Some({
+      provider,
+      limits,
+      publication_retained: 0L,
+      publication_execution: 0L,
+      publication_planning: 0,
+    }),
+  }
+  // Dedicated startup remains an exact configuration binding. Equal rows or
+  // a larger number cannot select the existing shared-provider purpose.
+  assert_false(
+    original_model_startup_matches(
+      original,
+      rows,
+      None,
+      limits,
+      Some(quantities),
+      Some(provider),
+    ),
+  )
+  let physical = @resources.ledger_usage(startup.ledger)
+  let usage = @resources.quantity_usage(startup.ledger)
+  let active = start_model_owned(
+    rows,
+    Provider(provider),
+    "sha256:" + "a".repeat(64),
+    limits,
+    None,
+    durable_calls=true,
+    send_mask=Some(
+      Array::make(@relation.prepared_infer_rows_count(rows), false),
+    ),
+    quantity_capacity=Some(quantities),
+    original_startup=Some(startup),
+  ).unwrap()
+  assert_true(physical_equal(active.state.ledger, startup.ledger))
+  assert_true(
+    @resources.quantity_configuration_matches(startup.ledger, Some(aggregate)),
+  )
+  assert_eq(active.state.quantity_capacity.unwrap().limits, quantities.limits)
+  assert_eq(@resources.ledger_usage(startup.ledger), physical)
+  assert_eq(@resources.quantity_usage(startup.ledger), usage)
+  assert_true(request_model_cancel(active))
+  advance_model_execution(active, 1).unwrap() |> ignore
+  assert_true(cleanup_model_execution(active).unwrap())
+  assert_eq(@resources.quantity_usage(startup.ledger), usage)
+}

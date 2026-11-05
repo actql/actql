@@ -94,6 +94,26 @@ pub fn quantity_configuration_matches(
 }
 
 ///|
+// A sealed shared owner can carry several component ceilings on this SAME
+// configured Ledger. This compares immutable configuration only; every real
+// reservation still checks aggregate consumed/uncertain/reserved quantities.
+// It creates no allowance, issuer, reset or remaining-capacity observation.
+pub fn quantity_configuration_covers(
+  ledger : Ledger,
+  limits : QuantityAmounts?,
+) -> Bool {
+  match (ledger.quantity_limits, limits) {
+    (None, None) => true
+    (Some(parent), Some(component)) =>
+      valid_quantities(component) &&
+      parent.tokens >= component.tokens &&
+      parent.cost_units >= component.cost_units &&
+      parent.duration_ms >= component.duration_ms
+    _ => false
+  }
+}
+
+///|
 /// DATA for an already selected operation that consumes no Model quantities.
 /// Source/input/serialization owners still reserve their actual attempts,
 /// transfer and bytes on this SAME Ledger. This is not a reservation, proof
@@ -291,4 +311,28 @@ pub fn observe_quantities(
     return Err(DurationLimit)
   }
   Ok(())
+}
+
+///|
+/// Read existing original-token quantity state, including settled uncertain
+/// usage. Observed amounts stay in the consuming owner's original trace.
+/// This does not call current, observe usage, mutate or grant capacity. The
+/// caller funds its bounded inventory scan and borrowed result frame.
+pub fn reservation_quantity_state(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[
+  (QuantityAmounts?, QuantityAmounts?, (Bool, Bool, Bool)),
+  LedgerIssue,
+] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
+  }
+  Ok(
+    (
+      reservation.quantities,
+      reservation.uncertain_quantities,
+      reservation.observed_quantities,
+    ),
+  )
 }
