@@ -13,6 +13,7 @@ import {
 // Ordinary Native linking needs the same real registration implementations as
 // the private provider. Its runtime_initialization_shim remains producer-only:
 // that adapter calls the producer's explicitly renamed original main.
+
 options(
   "native-stub": [
     "control_shim.c",
