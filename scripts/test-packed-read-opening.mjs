@@ -118,6 +118,7 @@ for (const path of support) {
       if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
       const target = relative(repository, resolve(repository, path, '..', specifier));
       if (support.includes(target)) return original;
+      if (target === 'packages/client-wire/index.mjs') return `from ${quote}@actql/client-wire${quote}`;
       if (target === 'packages/sdk/index.mjs') return `from ${quote}@actql/sdk${quote}`;
       if (target === 'packages/sdk/host-port.mjs') return `from ${quote}@actql/sdk/host-port${quote}`;
       if (target === '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js') {
