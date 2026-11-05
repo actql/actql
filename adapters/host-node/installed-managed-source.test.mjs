@@ -602,23 +602,28 @@ test('managed Source capture-only entry retains its original method and receiver
 });
 
 
-test('retained Source metadata forwards the original readonly method without a fresh Run lookup', () => {
+test('retained Source metadata forwards distinct original readonly and capture methods without a fresh Run lookup', () => {
   const facts = {}, metadata = {};
   const original = {managedCaptureCapacity() {}, prepare() {}, ledgerCapacity() {},
-    prepareRetained(actual) {assert.equal(this, original); assert.equal(actual, facts); return metadata;}};
+    prepareRetained(actual) {assert.equal(this, original); assert.equal(actual, facts); return metadata;},
+    prepareRetainedCapture(actual) {assert.equal(this, original); assert.equal(actual, facts); return capture;}};
+  const capture = {};
   const wrapped = bindInstalledManagedSources(original, () => assert.fail('No fresh ManagedRun for saved input'));
   original.prepareRetained = () => assert.fail('Use the captured original readonly method');
   assert.equal(wrapped.prepareRetained(facts), metadata);
+  original.prepareRetainedCapture = () => assert.fail('Use the captured original restoration method');
+  assert.equal(wrapped.prepareRetainedCapture(facts), capture);
   assert.throws(() => wrapped.ledgerCapacity(metadata), /ForeignInstalledManagedSource/u);
 });
 
-test('DuckDB retained Source metadata keeps original profile and binding without any acquisition or grant', async () => {
-  const {prepareRetainedCapturedDuckDBSource} = await import('./captured-duckdb-source.mjs');
+test('DuckDB readonly metadata and explicit retained capture keep original bindings without acquisition', async () => {
+  const {prepareRetainedCapturedDuckDBSource, capturedDuckDBRequirement, openCapturedDuckDBSource} = await import('./captured-duckdb-source.mjs');
   const text = readFileSync(new URL('./installed-duckdb-source.mjs', import.meta.url), 'utf8');
   const node = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body.find(node =>
     node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === 'createInstalledDuckDBSource').declaration;
   const program = {}, request = {}, requirement = {}, occurrence = Object.freeze({stage: 3, input: 1, task: 0});
-  let requirements = 0;
+  let requirements = 0, capacities = 0;
+  const pendingCapture = {}, captureCapacity = {};
   const profile = {database: '/UNOPENED/readonly.duckdb', schema: 'main', table: 'records', sourceRef: 'source:records',
     environmentWire: JSON.stringify({connector_catalogs: [{connector_id: 'fixture', source_views: [{contract_cid: 'view'}]}]}),
     transportLimits: {maxRows: 4, maxCells: 4, maxTransportBytes: 1024, maxSqlBytes: 4096,
@@ -627,6 +632,15 @@ test('DuckDB retained Source metadata keeps original profile and binding without
       authorization: Object.freeze({close() {return true;}, authorize() {assert.fail('No new authorization');}})}};
   const moon = {
     clientProgramMatchesRequestIdentity: (p, r) => p === program && r === request,
+    clientProgramQueryRequirementSourceRef(value) {assert.equal(value, requirement); return profile.sourceRef;},
+    clientProgramPrepareDuckDBCaptureCapacity(value, schema, table, ...contracts) {
+      assert.equal(value, requirement); assert.deepEqual([schema, table], [profile.schema, profile.table]);
+      assert.equal(contracts.length, 3); assert(contracts.every(value => typeof value === 'string'));
+      capacities++; return {$tag: 1, _0: pendingCapture};
+    },
+    clientProgramInstalledPendingDuckDBCaptureCapacity(value) {
+      assert.equal(value, pendingCapture); return captureCapacity;
+    },
     clientProgramPrepareLocalQueryRequirement(p, stage, input, ...contracts) {
       assert.equal(p, program); assert.deepEqual([stage, input], [3, 1]);
       assert.deepEqual(contracts, ['registry', 'values', 'fragment', 'ordered']); requirements++; return {$tag: 1, _0: requirement};
@@ -636,7 +650,8 @@ test('DuckDB retained Source metadata keeps original profile and binding without
     clientProgramQueryRequirementOutputContractCid: () => 'output',
   };
   const ports = {loadDuckDBNativeRuntime() {}, readFile, contentCid, duckDBPhysicalTarget,
-    validInstallationBinding, prepareRetainedCapturedDuckDBSource};
+    validInstallationBinding, prepareRetainedCapturedDuckDBSource, capturedDuckDBRequirement,
+    computePhysicalCapacity, checked: value => {assert.equal(value.$tag, 1); return value._0;}};
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const create = await new AsyncFunction(...Object.keys(ports), 'importMetaUrl',
     text.slice(node.start, node.end).replaceAll('import.meta.url', 'importMetaUrl') + ';return createInstalledDuckDBSource;')
@@ -654,9 +669,23 @@ test('DuckDB retained Source metadata keeps original profile and binding without
   assert.equal(binding.connectorRevision, 'original');
   assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}), /InstalledSourcePreparationMismatch/u);
   assert.throws(() => adapter.retainedCapture(prepared), /InstalledSourcePreparationMismatch/u);
+  assert.equal(capacities, 0, 'Readonly metadata does not construct a capture capacity');
+  assert.throws(() => adapter.prepareRetainedCapture({...facts, requestIdentity: {}}), /InstalledSourcePreparationMismatch/u);
+  assert.equal(capacities, 0);
+  const restored = adapter.prepareRetainedCapture(facts);
+  assert.notEqual(restored, prepared); assert.equal(requirements, 2); assert.equal(capacities, 1);
+  assert.deepEqual(adapter.retainedCapture(restored), {requirement, capacity: captureCapacity});
+  await assert.rejects(openCapturedDuckDBSource({moon, preparedProgram: program, preparedSource: restored,
+    requestIdentity: request, occurrence, registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
+    database: profile.database, schema: profile.schema, table: profile.table, sourceAccess: profile.sourceAccess,
+    transportLimits: profile.transportLimits}), error => error.cause?.message === 'InstalledSourcePreparationMismatch');
+  assert.deepEqual(adapter.ordinaryRecoveryBinding(restored), adapter.ordinaryRecoveryBinding(prepared));
+  assert.throws(() => adapter.retainedCapture(prepared), /InstalledSourcePreparationMismatch/u);
   adapter.close();
   assert.throws(() => adapter.ordinaryRecoveryBinding(prepared), /InstalledSourceReaderNotCurrent/u);
   assert.throws(() => adapter.prepareRetained(facts), /InstalledSourceReaderNotCurrent/u);
+  assert.throws(() => adapter.prepareRetainedCapture(facts), /InstalledSourceReaderNotCurrent/u);
+  assert.equal(capacities, 1);
 });
 
 test('common row Source publication retains its readonly metadata and retirement entries', async () => {

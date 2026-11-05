@@ -1598,7 +1598,6 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "249b957c701fe05c5c3a4ec19f07bf7075c358771c9548cb66976383f2b79948",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -16313,6 +16312,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedCaptureAcquisition/prepareRetainedCaptureAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
@@ -19808,6 +19808,15 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedCaptureAcquisition/prepareRetainedCaptureAcquisition",
+          "parameters": [
+            "preparedProgram",
+            "occurrence",
+            "selectedSource"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
@@ -22621,8 +22630,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "6fb27154bb52cd2bb25efb569daf9651c250e74b4523f0b88de1f3546ad7a343"
+      ]
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",

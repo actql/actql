@@ -3557,6 +3557,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     return Reflect.apply(construct, adapter, [{preparedProgram, requestIdentity, occurrence,
       registry, values, fragment, ordered, sourceAccess: adapter.sourceAccess}]);
   };
+  const prepareRetainedCaptureAcquisition = (preparedProgram, occurrence, selectedSource) => {
+    const requestIdentity = sourceFreeRequestIdentities.get(preparedProgram)?.requested;
+    if (requestIdentity === undefined || moon.clientProgramSelectedSourceInputKind(selectedSource) !== 'query') {
+      throw clientOperationError('InstalledSourcePreparationMismatch');
+    }
+    const adapter = installedSourceFor(sourceProfile, moon.clientProgramSelectedSourceInputRef(selectedSource));
+    const construct = adapter.prepareRetainedCapture;
+    if (typeof construct !== 'function') throw clientOperationError('InstalledSourceRecoveryPreparationUnavailable');
+    return Reflect.apply(construct, adapter, [{preparedProgram, requestIdentity, occurrence,
+      registry, values, fragment, ordered, sourceAccess: adapter.sourceAccess}]);
+  };
   const acquisitionDescriptor = prepared => ({checkedSource: prepared.checkedSource,
     readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding});
   const sourceDescriptors = ordinarySourceDescriptors;
@@ -3949,7 +3960,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, modelController, inferEvidence: evidenceConfiguration,
-    checkpoints, prepareAcquisition, prepareRetainedAcquisition, runContent,
+    checkpoints, prepareAcquisition, prepareRetainedAcquisition, prepareRetainedCaptureAcquisition, runContent,
     prepareModelRecoveryPlan: prepareInstalledModelRecovery,
     prepareOriginalModelRun(prepared, plan, selection) {
       const early = earlyMockInferPlans.get(prepared);

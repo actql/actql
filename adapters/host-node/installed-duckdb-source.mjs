@@ -222,6 +222,15 @@ export async function createInstalledDuckDBSource(profile, moon, {root, principa
       current();
       return retainPrepared(prepared, undefined, true);
     },
+    prepareRetainedCapture(facts) {
+      // This checked metadata constructor opens no database or Source reader.
+      // The original recovery Request funds it before restoring its exact
+      // saved capture against the same Ledger and current Source binding.
+      const prepared = adapter.prepareRetained(facts);
+      const original = adapter.managedCaptureCapacity(capturedDuckDBRequirement(prepared));
+      current();
+      return retainPrepared(prepared, original.capacity);
+    },
     prepare: async ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, occurrence, requireImmediateReadAuthorization,
       queryTimePreparation, requestIdentity, managedRun}) => {

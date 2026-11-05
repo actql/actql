@@ -62839,7 +62839,6 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b16b8de29153e6333eda8a829acc0cdd2cc321a897f9f0c6405453faefad2ed",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -62991,6 +62990,13 @@
             "fragment",
             "ordered",
             "sourceAccess"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledDuckDBSource/adapter/init:prepareRetainedCapture/init:prepareRetainedCapture",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -63622,6 +63628,7 @@
             "createInstalledDuckDBSource/adapter/init:ledgerCapacity/init:ledgerCapacity",
             "createInstalledDuckDBSource/adapter/init:openCapture/init:openCapture",
             "createInstalledDuckDBSource/adapter/init:prepareRetained/init:prepareRetained",
+            "createInstalledDuckDBSource/adapter/init:prepareRetainedCapture/init:prepareRetainedCapture",
             "createInstalledDuckDBSource/adapter/init:retainedCapture/init:retainedCapture",
             "createInstalledDuckDBSource/catalogIds/catalogIds",
             "createInstalledDuckDBSource/retainPrepared/retainPrepared",
@@ -124118,7 +124125,6 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3b2a378175054806d49676a145bfcff3e16b59273c6b1867b1d9149eee4ae9c6",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [

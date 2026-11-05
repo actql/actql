@@ -18,7 +18,7 @@ import {ledgerUsageHasPendingResources} from '../host-common/runtime-core.mjs';
 export async function runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,
   store, principalId, signal, retainExecution, acquiredInfer, replay, beginPhysicalWork,
   submission, existingModel, modelClaim, assertCurrent = () => {},
-  modelController, inferEvidence, checkpoints, prepareAcquisition, prepareRetainedAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid,
+  modelController, inferEvidence, checkpoints, prepareAcquisition, prepareRetainedCaptureAcquisition, sourceAccessFor, sourceAdapterFor, namespaceId, authorityScopeCid,
   storeAuthorityCid, now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
   originalPreparation}) {
   if (modelController === undefined) {
@@ -240,7 +240,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
           value.some(part => !Number.isSafeInteger(part) || part < 0)) ||
         new Set(coordinates.map(value => value[2])).size !== restoredSourceCount ||
         historical === undefined || checkpoints === undefined ||
-        typeof prepareRetainedAcquisition !== 'function' || typeof originalPreparation.prepareSource !== 'function' ||
+        typeof prepareRetainedCaptureAcquisition !== 'function' || typeof originalPreparation.prepareSource !== 'function' ||
         typeof sourceAccessFor !== 'function' || typeof sourceAdapterFor !== 'function' ||
         typeof originalPreparation.sourceLedger !== 'function') {
       throw new Error('ModelSourceClosureCustodyUnavailable');
@@ -265,7 +265,7 @@ export async function runInstalledComposedInfers({moon, control, preparedProgram
       // The ordinary preparation entry requires a fresh ManagedRun; it cannot
       // stand in for this recovery parent or authorize another acquisition.
       const preparedSource = originalPreparation.prepareSource(occurrence, selectedSource =>
-        prepareRetainedAcquisition(preparedProgram, occurrence, selectedSource));
+        prepareRetainedCaptureAcquisition(preparedProgram, occurrence, selectedSource));
       assertCurrent();
       const adapter = sourceAdapterFor(preparedSource);
       if (adapter === undefined) throw new Error('InstalledComposedInferSourceOwnerUnavailable');

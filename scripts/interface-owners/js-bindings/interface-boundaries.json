@@ -34098,7 +34098,6 @@
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "249b957c701fe05c5c3a4ec19f07bf7075c358771c9548cb66976383f2b79948",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -56866,6 +56865,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedAcquisition/prepareRetainedAcquisition",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedCaptureAcquisition/prepareRetainedCaptureAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture",
@@ -60202,6 +60202,15 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareRetainedCaptureAcquisition/prepareRetainedCaptureAcquisition",
+          "parameters": [
+            "preparedProgram",
+            "occurrence",
+            "selectedSource"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit",
           "parameters": [
             "request",
@@ -63015,8 +63024,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "6fb27154bb52cd2bb25efb569daf9651c250e74b4523f0b88de1f3546ad7a343"
+      ]
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -69767,7 +69775,6 @@
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0b632dfe6870b18f3f984cbb4e9932dbca1b97a31305179d261285026d74306d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -69797,7 +69804,7 @@
             "inferEvidence",
             "checkpoints",
             "prepareAcquisition",
-            "prepareRetainedAcquisition",
+            "prepareRetainedCaptureAcquisition",
             "sourceAccessFor",
             "sourceAdapterFor",
             "namespaceId",
@@ -70966,7 +70973,6 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e23d13b9f1033e32538fb60c1375d44f802951352ca3f387a87efe227b1bd302",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -70993,6 +70999,7 @@
             "checkpoints",
             "prepareAcquisition",
             "prepareRetainedAcquisition",
+            "prepareRetainedCaptureAcquisition",
             "sourceAccessFor",
             "sourceAdapterFor",
             "runContent",

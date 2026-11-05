@@ -544,7 +544,7 @@ function restoredComposedSourceFixture({missing, retireAfterFirst = false} = {})
     runId: 'fixture', plan: {runDefinition: {identity: 'fixture'}}, preparedProgram: prepared, moon: {}, control: {},
     assertCurrent() {if (!current) throw boundary;}, canonicalJson: JSON.stringify,
     prepareAcquisition() {assert.fail('No fresh ManagedRun, Source or capture preparation');},
-    prepareRetainedAcquisition(p, occurrence, source) {
+    prepareRetainedCaptureAcquisition(p, occurrence, source) {
       assert.equal(p, prepared); assert.equal(source, selected[occurrence.task]);
       calls.push('retained metadata'); if (retireAfterFirst) current = false;
       return metadata[occurrence.task];
@@ -557,7 +557,7 @@ function restoredComposedSourceFixture({missing, retireAfterFirst = false} = {})
     },
   };
   if (missing === 'prepareSource') delete original.prepareSource;
-  if (missing === 'prepareRetainedAcquisition') ports.prepareRetainedAcquisition = undefined;
+  if (missing === 'prepareRetainedCaptureAcquisition') ports.prepareRetainedCaptureAcquisition = undefined;
   const AsyncFunction = Object.getPrototypeOf(async function() {}).constructor;
   const run = new AsyncFunction(...Object.keys(ports),
     `let sourceContinuation;try {${source.slice(branch.consequent.start, branch.consequent.end)}}
@@ -573,7 +573,7 @@ test('restored composed Model uses its existing funded retained Source metadata 
 });
 
 test('restored composed Source missing ports or current loss never falls back to fresh preparation', async () => {
-  for (const missing of ['prepareSource', 'prepareRetainedAcquisition']) {
+  for (const missing of ['prepareSource', 'prepareRetainedCaptureAcquisition']) {
     const f = restoredComposedSourceFixture({missing}), result = await f.run();
     assert.equal(result.error.message, 'ModelSourceClosureCustodyUnavailable');
     assert.equal(result.sourceContinuation, undefined); assert.deepEqual(f.calls, []);
