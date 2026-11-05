@@ -4,11 +4,19 @@
     {
       "module": "src/physical_resources/original_captured_prefix.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2fa83c17576beabdcd5db5792a280c6e3b42408cb1de062e5bcbd942a5c17b1f",
+      "sha256": "591858e8fd5752b78906bbd3a2bbe8d63d5f12e00216e5884f9b20eec008abb5",
       "role": "common-semantics",
       "owner": "Existing physical Resource ledger census, Source capture, prefix and keyed child owners",
       "exports": [],
       "operations": [
+        {
+          "name": "original_borrowed_captured_inputs_available",
+          "declaration": "original_borrowed_captured_inputs_available ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , ) - > Bool"
+        },
+        {
+          "name": "original_borrowed_reservation_available",
+          "declaration": "original_borrowed_reservation_available ( identity : OriginalLedgerIdentity , ledger : Ledger , reservation : Reservation , ) - > Bool"
+        },
         {
           "name": "original_captured_inputs_cleanup_match",
           "declaration": "original_captured_inputs_cleanup_match ( ledger : Ledger , originals : Array [ ( Reservation , Holding ) ] , ) - > Int ?"
@@ -50,6 +58,8 @@
         {
           "operations": [
             "<module>",
+            "original_borrowed_captured_inputs_available",
+            "original_borrowed_reservation_available",
             "original_captured_inputs_cleanup_match",
             "original_captured_inputs_live",
             "original_captured_inputs_match",
@@ -66,60 +76,104 @@
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Responsibility:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Inputs and outputs:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "identity": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Identity:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "ownership": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Ownership:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "synchronization": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Synchronization:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "failure": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Failure:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "cancellation": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Cancellation:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "resources": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Resources:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "extension": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Extension:"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "verification": [
               {
                 "path": "src/physical_resources/original-captured-inputs-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
               }
             ]
           }

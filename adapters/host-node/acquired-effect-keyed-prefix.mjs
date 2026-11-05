@@ -48,8 +48,8 @@ export async function prepareAcquiredEffectKeyedPrefix({moon, acquired, managedR
   const adapter = installedSourceFor(sourceProfile, facts[0]);
   const access = adapter.sourceAccess;
   const capacity = adapter.keyedLedgerCapacity(acquisition);
-  prefix = acquired.control.startOriginalComposedKeyedPrefix(plan.compiled,
-    plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures, selected.computePrefix);
+  prefix = acquired.control.startInstalledOriginalComposedKeyedPrefix(managedRun,
+    plan.compiled, plan.runDefinition, infer.graph, originalPreparation.scope, acquisition, captures);
   execution = moon.clientProgramOriginalComposedKeyedPrefixExecution(prefix);
   current();
   for (;;) {

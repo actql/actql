@@ -83,6 +83,8 @@ pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issu
 
 pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]
 
+pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?
+
 pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]
 
 pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]
@@ -290,6 +292,8 @@ pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedI
 pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?
 
 pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?
+
+pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool
 
 pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?
 

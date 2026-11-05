@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "b4bd20422afc65656ae29c1bf6ab13673a79e2cd0f15351a8fb441264a02fdac",
+      "sha256": "495cc03d194cbdce7fa170f5278da43db980d6cb2b40244368f4f3a489577309",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -392,6 +392,7 @@
         "pub fn begin_row_run_listing_request(RowRun, String?, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_row_run_with_page_limits(RowRun, RowPageLimits, Int, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, RowHostIssue]",
         "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]",
+        "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
         "pub fn borrow_row_input_run_responses(RowRun, RowInputAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
         "pub fn borrow_row_run_responses(RowRun, RowAcquisition) -> Result[RowRunResponseBorrow, RowHostIssue]",
         "pub fn cancel_keyed_row_read(RowSourceRead) -> Bool",
@@ -496,6 +497,7 @@
         "pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]",
         "pub fn row_captured_input_at(RowCapturedInputs, Int) -> RowSourceCapture?",
         "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?",
+        "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
         "pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?",
         "pub fn row_captured_inputs_count(RowCapturedInputs) -> Int",
         "pub fn row_captured_inputs_live(RowCapturedInputs, @physical_resources.Ledger) -> Bool",
@@ -678,6 +680,10 @@
         {
           "name": "bind_row_run_response_borrow_cleanup",
           "declaration": "pub fn bind_row_run_response_borrow_cleanup(RowRunResponseBorrow, () -> Bool) -> Result[Unit, RowHostIssue]"
+        },
+        {
+          "name": "borrow_row_captured_inputs",
+          "declaration": "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?"
         },
         {
           "name": "borrow_row_input_run_responses",
@@ -1096,6 +1102,10 @@
           "declaration": "pub fn row_captured_input_requirement_at(RowCapturedInputs, Int) -> @query_planning.QueryRequirement?"
         },
         {
+          "name": "row_captured_inputs_borrowed_available",
+          "declaration": "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool"
+        },
+        {
           "name": "row_captured_inputs_construction_inventory",
           "declaration": "pub fn row_captured_inputs_construction_inventory(Int) -> @execution_relation.PreparationRepresentationUnits?"
         },
@@ -1314,6 +1324,7 @@
             "begin_row_run_listing_page",
             "begin_row_run_listing_request",
             "bind_row_run_response_borrow_cleanup",
+            "borrow_row_captured_inputs",
             "borrow_row_run_responses",
             "cancel_keyed_row_read",
             "capture_row_run",
@@ -1371,6 +1382,7 @@
             "row_capture_original_prefix_requirement",
             "row_capture_original_read",
             "row_capture_source",
+            "row_captured_inputs_borrowed_available",
             "row_declaration_catalog_cid",
             "row_declaration_evidence_members",
             "row_declaration_view",
@@ -1493,7 +1505,9 @@
             "pub enum RowKeyedPagePoll {",
             "pub enum RowListingPagePoll {",
             "pub struct RowMapping {",
-            "pub struct RowRunResponseBorrow {"
+            "pub struct RowRunResponseBorrow {",
+            "pub fn borrow_row_captured_inputs(Array[RowSourceCapture], @physical_resources.Ledger, Int) -> RowCapturedInputs?",
+            "pub fn row_captured_inputs_borrowed_available(RowCapturedInputs, @physical_resources.Ledger) -> Bool"
           ],
           "attributes": {
             "responsibility": [
@@ -1508,6 +1522,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Responsibility: existing RowDeclaration/Mapping and vendor Catalog Owners"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "inputsOutputs": [
@@ -1522,6 +1540,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Inputs and outputs: original declaration, selected resource/primary field,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "identity": [
@@ -1536,6 +1558,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Identity: original View output reference, carrier-schema CID and manifest"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "ownership": [
@@ -1554,6 +1580,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Ownership: `RecordDeleteMapping` retains its original declaration/Form and"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "synchronization": [
@@ -1572,6 +1602,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Synchronization: this synchronous projection and nominal matching confer no"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "failure": [
@@ -1590,6 +1624,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Failure: foreign/mutated original members, absent/nullable primary fields,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "cancellation": [
@@ -1608,6 +1646,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Cancellation: metadata completion is not transport stop or cleanup ACK;"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "resources": [
@@ -1626,6 +1668,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Resources: original declaration strings, selected View, retained Form/page,"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "extension": [
@@ -1640,6 +1686,10 @@
               {
                 "path": "docs/design/kintone-record-mutations.md",
                 "anchor": "- Extension: the existing typed Node/RelA bridge forwards the same opaque"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "verification": [
@@ -1674,6 +1724,14 @@
               {
                 "path": "adapters/connectors/kintone/test/kintone-delete-mapping.test.mjs",
                 "anchor": "actual original matching rejects equal foreign declaration, Catalog and incomplete page"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
               }
             ]
           }

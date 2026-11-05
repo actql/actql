@@ -28,10 +28,95 @@ pub fn start_client_original_composed_keyed_prefix(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
-  let (ledger, captures, sources) = match
-    @publication_host.retain_client_original_composed_keyed_captures(
-      scope, compiled, definition, plan, keyed, rows,
-    ) {
+  start_client_original_composed_keyed_prefix_owned(
+    scope,
+    compiled,
+    definition,
+    plan,
+    keyed,
+    rows,
+    input_prefix,
+    execution,
+    measurement,
+    None,
+  )
+}
+
+///|
+// The shared ordinary Effect Run already owns its finite sequence and its
+// one prefix slot. A failed constructor stays attached to that SAME owner.
+pub fn start_installed_original_composed_keyed_prefix(
+  owner : ClientInstalledManagedRun,
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowSourceCapture],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
+  if owner.source_free_opening || owner.serialization_prefix is Some(_) {
+    return Err(Unavailable)
+  }
+  owner.source_free_opening = true
+  preparation_module_call(
+    () => {
+      guard require_installed_managed_run(owner) is Ok(_) &&
+        owner.preparation is Some(PlannedEffectManaged(_, selected)) &&
+        selected.model is Some(model) &&
+        physical_equal(model.compiled, compiled) &&
+        physical_equal(model.definition, definition) &&
+        physical_equal(model.graph, plan) else {
+        return Err(Unavailable)
+      }
+      let (task, _, _) = @publication_host.client_infer_occurrence_coordinates(
+        model._occurrence,
+      )
+      guard selected.sequences.get(task) is Some(input_prefix) else {
+        return Err(Unavailable)
+      }
+      start_client_original_composed_keyed_prefix_owned(
+        scope,
+        compiled,
+        definition,
+        plan,
+        keyed,
+        rows,
+        input_prefix,
+        execution,
+        measurement,
+        Some(owner),
+      )
+    },
+    () => owner.source_free_opening = false,
+  )
+}
+
+///|
+fn start_client_original_composed_keyed_prefix_owned(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  rows : Array[@row_source_host.RowSourceCapture],
+  input_prefix : @execution.GeneratedSequence,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  installed : ClientInstalledManagedRun?,
+) -> Result[ClientOriginalComposedKeyedPrefix, ClientSerializationPrefixIssue] {
+  let selected = match installed {
+    None =>
+      @publication_host.retain_client_original_composed_keyed_captures(
+        scope, compiled, definition, plan, keyed, rows,
+      )
+    Some(_) =>
+      @publication_host.borrow_client_original_composed_keyed_captures(
+        scope, compiled, definition, plan, keyed, rows,
+      )
+  }
+  let (ledger, captures, sources) = match selected {
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
   }
@@ -70,16 +155,45 @@ pub fn start_client_original_composed_keyed_prefix(
   })
   // The existing constructor retains its reservation before calling the
   // provider. Both actual inputs stay borrowed until its real cleanup ACK.
-  start_serialization_prefix_provider(
-    sequence,
-    provider,
-    capacity,
-    actual,
-    execution,
-    measurement,
-    ledger,
-    None,
-  ).map(prefix => {
+  let started = match installed {
+    None =>
+      start_serialization_prefix_provider(
+        sequence,
+        provider,
+        capacity,
+        actual,
+        execution,
+        measurement,
+        ledger,
+        None,
+      )
+    Some(original) => {
+      guard require_installed_managed_run(original) is Ok(parent) &&
+        physical_equal(parent, ledger) &&
+        original.serialization_prefix is None else {
+        return Err(Unavailable)
+      }
+      let reservation = match
+        @resources.reserve_attempt(
+          ledger,
+          0L,
+          @execution.execution_capacity_retained_bytes(capacity),
+          @execution.execution_capacity_execution_bytes(capacity),
+          quantities=@resources.quantity_neutral_amounts(ledger),
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Physical(issue))
+      }
+      let prefix = serialization_prefix_reservation(ledger, reservation)
+      // The existing opening latch excludes retirement during reservation.
+      // No callback follows retention before the fallible provider start.
+      original.serialization_prefix = Some(prefix)
+      start_retained_serialization_prefix_provider(
+        prefix, sequence, provider, actual, execution, measurement,
+      )
+    }
+  }
+  started.map(prefix => {
     prefix,
     scope,
     compiled,

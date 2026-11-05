@@ -324,6 +324,10 @@ pub fn[P] node_prepared_run_admission(NodeManagedRunAdmission[P]) -> PreparedRun
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
+pub fn original_borrowed_captured_inputs_available(Ledger, Array[(Reservation, Holding)]) -> Bool
+
+pub fn original_borrowed_reservation_available(OriginalLedgerIdentity, Ledger, Reservation) -> Bool
+
 pub fn original_captured_inputs_prefix_available(Ledger, Array[(Reservation, Holding)]) -> Bool
 
 pub fn original_captured_inputs_prefix_reservation_available(Ledger, Array[(Reservation, Holding)], Reservation) -> Bool

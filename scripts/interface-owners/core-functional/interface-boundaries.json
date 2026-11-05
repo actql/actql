@@ -2061,6 +2061,8 @@
             "publicationControl/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
             "publicationControl/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
             "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
+            "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
@@ -2426,6 +2428,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "inputsOutputs": [
@@ -2484,6 +2490,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "identity": [
@@ -2542,6 +2552,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "ownership": [
@@ -2604,6 +2618,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "synchronization": [
@@ -2666,6 +2684,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "failure": [
@@ -2724,6 +2746,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "cancellation": [
@@ -2774,6 +2800,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "resources": [
@@ -2844,6 +2874,10 @@
               {
                 "path": "docs/design/sourceview-resolution.md",
                 "anchor": "## Runtime keyed storage"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "extension": [
@@ -2902,6 +2936,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Request serialized Model keeps the original Content graph"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original composed keyed Model prefix"
               }
             ],
             "verification": [
@@ -2996,6 +3034,14 @@
               {
                 "path": "src/client_local_host/installed_effect_model_plan_wbtest.mbt",
                 "anchor": "Effect Model keeps physical read and bootstrap overlap on the same checked demand"
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
               }
             ]
           }
@@ -12465,6 +12511,26 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
+          "parameters": [
+            "managedRun",
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "keyed",
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
           "parameters": [
             "compiled",
@@ -14897,7 +14963,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "93509ca63567c1ea55aa44068adb254dd1f8f42aed309533ace513b9360dc261"
+      "sha256": "12163e5d2e21f305416d493b8438bd44e1ce1fb7d585a0940cef72b2125751bd"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -80823,7 +80889,7 @@
     },
     {
       "module": "src/client_local_host/original_composed_keyed_prefix.mbt",
-      "sha256": "08fc6e52ba18e269346180568e47ae42d01b019be0ebabc925538fb5daf04ae4",
+      "sha256": "089ab0cf4424b190e4225bfafc9bc0a8c5d7066597f04adcfcb801e7d1a712a8",
       "exports": [],
       "operations": [
         {
@@ -80841,6 +80907,14 @@
         {
           "name": "start_client_original_composed_keyed_prefix",
           "declaration": "start_client_original_composed_keyed_prefix ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowSourceCapture ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
+        },
+        {
+          "name": "start_client_original_composed_keyed_prefix_owned",
+          "declaration": "start_client_original_composed_keyed_prefix_owned ( scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowSourceCapture ] , input_prefix : @ execution . GeneratedSequence , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , installed : ClientInstalledManagedRun ? , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
+        },
+        {
+          "name": "start_installed_original_composed_keyed_prefix",
+          "declaration": "start_installed_original_composed_keyed_prefix ( owner : ClientInstalledManagedRun , scope : @ publication_host . ClientModelReadScope , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , plan : @ publication_host . ClientInferPlanGraph , keyed : @ publication_host . ClientKeyedAcquisition , rows : Array [ @ row_source_host . RowSourceCapture ] , execution : @ execution . SequenceExecutionLimits , measurement : @ execution . FixedInputGuardMeasureLimits , ) - > Result [ ClientOriginalComposedKeyedPrefix , ClientSerializationPrefixIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -80854,7 +80928,9 @@
             "advance_client_original_composed_keyed_prefix",
             "client_original_composed_keyed_prefix_execution",
             "complete_client_original_composed_keyed_prefix",
-            "start_client_original_composed_keyed_prefix"
+            "start_client_original_composed_keyed_prefix",
+            "start_client_original_composed_keyed_prefix_owned",
+            "start_installed_original_composed_keyed_prefix"
           ],
           "exports": [],
           "attributes": {
@@ -80952,6 +81028,14 @@
               {
                 "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
                 "anchor": "test \"two original Direct captures execute one keyed prefix and feed the same Model input without replay\""
+              },
+              {
+                "path": "src/physical_resources/borrowed_captured_inputs_wbtest.mbt",
+                "anchor": "test \"shared captured inputs borrow exact originals after retained preparation without resetting history\""
+              },
+              {
+                "path": "src/client_local_host/original_composed_keyed_prefix_wbtest.mbt",
+                "anchor": "test \"adopted Effect Model borrows shared Source tokens and its original prefix exactly once\""
               }
             ]
           }
