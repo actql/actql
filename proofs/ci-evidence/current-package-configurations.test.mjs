@@ -97,15 +97,27 @@ test('the current keyed README fixture is exact JSON data and cannot admit chang
 
 // One current map records each input's exact review, while archived preimages
 // above remain evidence for their own source only, never runtime acceptance.
-test('current Local Host review binds the original carrier and Source builder union with existing JS selectors', () => {
+test('current Local Host review binds the original carrier, Source builder and Model completion imports with existing JS selectors', () => {
   const path = 'src/client_local_host/moon.pkg';
   const entry = currentPackageConfigurations[path];
-  assert.equal(entry.revision, '583969bb5b1a668528eed5db954c2b47e6c0dad6');
-  assert.equal(entry.digest, 'ad14b60b64580f0ef6daff2aa7abee2de24af7a71bd254365ef32a18580264a0');
+  assert.equal(entry.revision, '65dd1da4c260610e9a88e430665fdc8f6106bc94');
+  assert.equal(entry.digest, '8596c0cb5e158a33b98214e9d09a6185dbce3925b3d947def6036ec75bb7dfda');
   const selectedTree = gitTree(root, entry.revision);
-  const body = selectedTree.read(path).toString();
-  assert.equal(hash(body), entry.digest);
+  const currentBody = selectedTree.read(path).toString();
+  assert.equal(hash(currentBody), entry.digest);
   execFileSync('git', ['merge-base', '--is-ancestor', entry.revision, 'HEAD'], {cwd: root});
+  // Keep every historical preimage check on its original bytes. The current
+  // successor adds only this literal dependency, not selectors or options.
+  const body = gitTree(root, '583969bb5b1a668528eed5db954c2b47e6c0dad6').read(path).toString();
+  assert.equal(hash(body), 'ad14b60b64580f0ef6daff2aa7abee2de24af7a71bd254365ef32a18580264a0');
+  const modelDependency = '  "actql/actql/model_execution" @model,\n';
+  assert.equal(currentBody.split(modelDependency).length, 2);
+  assert.equal(currentBody.replace(modelDependency, ''), body);
+  assert.equal(packageImports(currentBody).unknown, null);
+  assert.deepEqual(packageImports(currentBody).imports,
+    [...packageImports(body).imports, 'actql/actql/model_execution'].sort());
+  assert.equal(currentPackageConfigurationReviewFor(request(path, hash(body))), null,
+    'the previous preimage cannot qualify this current manifest');
   const jsOnly = ['installed_direct_occurrences_js_wbtest.mbt',
     'installed_effect_content_model_js_wbtest.mbt',
     'installed_keyed_capture_parent_js_wbtest.mbt']
@@ -143,13 +155,23 @@ test('current Local Host review binds the original carrier and Source builder un
   assert.equal(entry.rule, 'literal-target-selectors-with-bound-source-membership');
   assert(packageImports(body).imports.includes('actql/actql/relation_typing'));
   assert(body.includes('"installed_kintone_whole_source_js_wbtest.mbt": [ "js" ],'));
-  assert.equal(currentTree.read(path).toString(), body);
+  assert.equal(currentTree.read(path).toString(), currentBody);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert.deepEqual(selected.unresolved, []);
   assert(selected.paths.includes('src/relation_typing/moon.pkg'));
   assert(selected.paths.includes('src/effect_application/moon.pkg'));
   assert(selected.paths.includes('src/carrier_contract/moon.pkg'));
   assert(selected.paths.includes('src/program_source_builder/moon.pkg'));
+  const modelMembers = [...currentTree.entries.keys()].filter(member =>
+    member.startsWith('src/model_execution/') &&
+    !member.slice('src/model_execution/'.length).includes('/')).sort();
+  assert.deepEqual(selected.directories.find(entry => entry.path === 'src/model_execution/*')?.members, modelMembers);
+  assert(modelMembers.includes('src/model_execution/original_completed_parent.mbt'));
+  for (const member of modelMembers) {
+    assert(selected.paths.includes(member));
+    assert.equal(currentTree.entries.get(member)?.kind, 'blob');
+    assert.equal(currentTree.entries.get(member)?.mode, '100644');
+  }
   assert(selected.paths.includes('src/client_local_host/installed_kintone_whole_source_js_wbtest.mbt'));
   assert(selected.paths.includes('src/client_local_host/preparation_request_model_recovery_js_wbtest.mbt'));
   for (const name of ['installed_direct_occurrences_js_wbtest.mbt', 'installed_effect_content_model_js_wbtest.mbt',
