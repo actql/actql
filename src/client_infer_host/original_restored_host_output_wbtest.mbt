@@ -217,3 +217,27 @@ test "saved Source originals borrow checks the same Run scope and current once" 
     active, ledger, read, installation, profile,
   )
 }
+
+///|
+test "completed Local scratch handoff retains actual original Model and output backing" {
+  let (active, _, _, _, ledger, read, installation, profile) = restored_host_output_fixture(() => {
+      true
+    },
+  )
+  let before = @resources.ledger_usage(ledger)
+  assert_false(completed_original_component_scratch_retained(active))
+  active.local_component_bound = true
+  assert_false(completed_original_component_scratch_retained(active))
+  let held = acquire_output(active).unwrap()
+  assert_true(completed_original_component_scratch_retained(active))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_false(cleanup(active).unwrap())
+  assert_true(output(held) is Some(_))
+  assert_true(active.model is Some(_))
+  assert_true(active.original_preparation is Some(_))
+  assert_true(release_output(held))
+  assert_false(completed_original_component_scratch_retained(active))
+  restored_host_output_fixture_close(
+    active, ledger, read, installation, profile,
+  )
+}

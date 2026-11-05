@@ -102186,7 +102186,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "108ccfd8042ffce6254d9efd8cb5ff5cd5e4240a2a3e794a1b96812307b421fb",
+      "sha256": "00af230cc170c337350d94c73c73b4b8eedbf4719ae5b87d5849bcbd9ade3a4d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -102384,6 +102384,14 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
+          "parameters": [
+            "emit",
+            "readSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#11",
           "parameters": [],
           "async": false
         },
@@ -102425,18 +102433,15 @@
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
-          "parameters": [
-            "emit",
-            "readSignal",
-            "commit"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
           "parameters": [
             "emit",
-            "readSignal"
+            "readSignal",
+            "commit"
           ],
           "async": false
         },
@@ -102648,7 +102653,8 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolvedRowPlan/resolvedRowPlan",
             "localStrategyContribution/init:runPrepared/init:runPrepared/siteInputs/siteInputs",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#10",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5"
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#5",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#11"
           ],
           "exports": [
             "localStrategyContribution"

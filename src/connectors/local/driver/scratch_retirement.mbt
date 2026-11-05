@@ -23,7 +23,8 @@ fn local_managed_scratch_retirement() -> LocalManagedScratchRetirement {
 
 ///|
 /// Collection entries and phase boundaries share one fixed cleanup slice.
-/// Call only after physical provider cleanup and all active callbacks return.
+/// Call only after provider scratch detaches and all active callbacks return.
+/// A separately retained completion keeps its original physical cleanup handle.
 fn[B, I, R, S] advance_local_managed_scratch_retirement(
   cursor : LocalManagedScratchRetirement,
   bridges : Array[Ref[B?]],
@@ -92,4 +93,39 @@ fn local_managed_input_writes_open(
   disposed : Bool,
 ) -> Bool {
   live && !settled && !disposed
+}
+
+///|
+// Keep the SAME provider for eventual full cleanup even when its independent
+// accepted output/backing allows this Local execution's scratch to retire.
+fn release_local_managed_provider_scratch(
+  provider : Ref[@local.ManagedProviderExecution?],
+  retained_completion : Ref[Bool],
+  completed : Bool,
+  final_work : Ref[Result[Int64, @local.ManagedProviderWorkIssue]],
+) -> Bool {
+  guard provider.val is Some(active) else { return true }
+  if !@local.managed_provider_stopped(active) {
+    return false
+  }
+  match @local.cleanup_managed_provider(active) {
+    Ok(true) => {
+      final_work.val = @local.managed_provider_cumulative_work(active)
+      provider.val = None
+      true
+    }
+    Ok(false) =>
+      if completed &&
+        (
+          retained_completion.val ||
+          @local.managed_provider_retained_completion(active)
+        ) {
+        final_work.val = @local.managed_provider_cumulative_work(active)
+        retained_completion.val = true
+        true
+      } else {
+        false
+      }
+    Err(_) => false
+  }
 }
