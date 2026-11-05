@@ -192,6 +192,8 @@ test('ordinary bound approvals retain both original bindings through restart and
       assert.deepEqual(facts.installationBinding, occurrence.installationBinding);
       assert.deepEqual(facts.physicalBinding, occurrence.physicalBinding);
       assert.deepEqual(facts.checkedSource, occurrence.checkedSource);
+      facts.assertCurrent();
+      facts.enter();
     }
   }});
   await second.start(port); assert.equal(port.state.starts, 1);
@@ -747,9 +749,21 @@ test('acquisition access retains only the same actual original approved decision
   const decision=await access.authorization.authorize('acquisition',tuple);
   assert.equal(decision.action,'dispatch');assert.equal(access.originalCheckpointApproval(),decision);
   assert.equal(checkpointApprovalFacts(decision).physicalBinding,binding);
+  const originalFacts=checkpointApprovalFacts(decision);
+  assert.equal(typeof originalFacts.assertCurrent,'function');
+  assert.equal(typeof originalFacts.enter,'function');
+  originalFacts.assertCurrent();originalFacts.enter();
   assert.equal(access.originalCheckpointApproval(),decision);assert.equal(calls,1,'Metadata getter calls no authorizer');
-  earlierCurrent=false;assert.throws(()=>access.originalCheckpointApproval(),{code:'ApprovalExpired'});earlierCurrent=true;
-  cancelled=true;assert.throws(()=>access.originalCheckpointApproval(),{code:'ApprovalExpired'});cancelled=false;
+  earlierCurrent=false;assert.throws(()=>access.originalCheckpointApproval(),{code:'ApprovalExpired'});
+  assert.throws(()=>originalFacts.enter(),{code:'ApprovalExpired'});earlierCurrent=true;
+  cancelled=true;assert.throws(()=>access.originalCheckpointApproval(),{code:'ApprovalExpired'});
+  assert.throws(()=>originalFacts.enter(),{code:'ApprovalExpired'});cancelled=false;
+  reads.delete('original-request');
+  assert.throws(()=>originalFacts.assertCurrent(),{code:'ApprovalExpired'});
+  assert.throws(()=>originalFacts.enter(),{code:'ApprovalExpired'});
+  reads.set('original-request',new Map([['singular',{...admitted}]]));
+  assert.throws(()=>originalFacts.enter(),{code:'ApprovalExpired'},'Equal replacement is not the admitted original');
+  reads.set('original-request',new Map([['singular',admitted]]));
   deny=true;assert.equal((await access.authorization.authorize('acquisition',tuple)).action,'deny');
   assert.equal(access.originalCheckpointApproval(),undefined,'A denied later read cannot lend an old approval');
   deny=false;admitted.checkpointCid=undefined;await access.authorization.authorize('acquisition',tuple);

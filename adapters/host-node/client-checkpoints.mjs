@@ -2516,14 +2516,15 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // cancelled; deny and allow are the source account's own. Every other
     // request uses the installed access unchanged.
     acquisitionAccess(requestId, base, occurrence) {
-      const admitted = admittedReads.get(requestId)?.get(occurrence === undefined
-        ? 'singular' : occurrenceKey(occurrence));
+      const key = occurrence === undefined ? 'singular' : occurrenceKey(occurrence);
+      const admitted = admittedReads.get(requestId)?.get(key);
       if (admitted === undefined || occurrence !== undefined &&
           capturedValueCid(occurrence) !== capturedValueCid(admitted.acquisition)) return base;
       const same = scope => ['connection', 'resource', 'operation'].every(
         key => scope?.[key] === admitted.readTuple[key]);
       let originalApproval;
       const approvalCurrent = () => {
+        if (admittedReads.get(requestId)?.get(key) !== admitted) return false;
         const preparation = admitted.prepareAttemptId === undefined
           ? undefined : journal.getPreparation(admitted.prepareAttemptId);
         const approvedNow = cid => {
@@ -2532,6 +2533,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
         };
         return preparation?.cancelRequested !== true &&
           [admitted.checkpointCid,...admitted.earlier].filter(cid=>cid!==undefined).every(approvedNow);
+      };
+      const assertApprovedReadCurrent = () => {
+        if (!approvalCurrent()) fail('ApprovalExpired');
       };
       const authorization = Object.freeze({
         ...base.authorization,
@@ -2550,7 +2554,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
             checkpointCid: admitted.checkpointCid}), {
             checkpointCid: admitted.checkpointCid,
             earlierCheckpointCids: Object.freeze(admitted.earlier.filter(cid=>cid!==undefined)),
-            assertCurrent() {if(!approvalCurrent()) fail('ApprovalExpired');},
+            // The original resume entered before this admitted read was
+            // published. Both Site fences retain that same live occurrence;
+            // they issue no new grant or physical request.
+            assertCurrent: assertApprovedReadCurrent,
+            enter: assertApprovedReadCurrent,
             readTuple: admitted.readTuple,
             physicalBinding: admitted.acquisition?.physicalBinding,
             checkedSource: admitted.acquisition?.checkedSource,
