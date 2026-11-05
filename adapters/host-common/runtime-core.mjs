@@ -2716,8 +2716,12 @@ function publicationControl(moon) {
       let value = compiledRunResult(moon.clientProgramInferRunMaterialsCompiled(materials),
         'RunHostInferMaterialsRejected');
       const prepared = moon.clientProgramInferRunMaterialsPrepared(materials);
-      const graph = moon.clientProgramInferRunMaterialsGraph(materials);
-      if (graph === undefined || !moon.clientProgramMatchesRequestIdentity(prepared, request) ||
+      const graphs = typeof moon.clientProgramInferRunMaterialsGraphs === 'function'
+        ? moon.clientProgramInferRunMaterialsGraphs(materials)
+        : [moon.clientProgramInferRunMaterialsGraph(materials)];
+      if (!Array.isArray(graphs) || graphs.length < 1 || graphs.length > 128 ||
+          graphs.some(graph => graph === undefined || graph === null) ||
+          !moon.clientProgramMatchesRequestIdentity(prepared, request) ||
           !moon.clientProgramCheckCompiledRunDefinition(value, token(definition)) ||
           inspectEvidence(moon.clientProgramCompiledRunPrepared(value)).wire !== evidence?.prepared ||
           inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)).wire !== evidence?.authorization) {
@@ -2738,6 +2742,9 @@ function publicationControl(moon) {
         authorization: inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)),
         admission: inspectAdmission(moon.clientProgramCompiledRunAdmission(value))});
       compiledRunTokens.set(compiled, value);
+      // The copied outer inventory is metadata for these same opaque members.
+      // It grants no new preparation, current authority, budget or execution.
+      const graph = graphs.length === 1 ? graphs[0] : Object.freeze([...graphs]);
       const restored = Object.freeze({compiled, prepared, graph, runDefinition: definition});
       restoredInferRuns.add(restored);
       return restored;
@@ -2758,6 +2765,22 @@ function publicationControl(moon) {
       const original = moon.clientProgramCompiledInferOriginal(value, checkedProgram);
       if (original === undefined) throw new TypeError('Foreign Client original Infer preparation');
       return Object.freeze({graph: runtimeField(original, 0), execution: runtimeField(original, 1)});
+    },
+    checkedClientCompiledInferOriginals(compiled, checkedProgram, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition)) ||
+          typeof moon.clientProgramCompiledInferOriginals !== 'function') {
+        throw new TypeError('Foreign Client original Infer compilation');
+      }
+      const originals = moon.clientProgramCompiledInferOriginals(value, checkedProgram);
+      if (!Array.isArray(originals) || originals.length < 1 || originals.length > 128 ||
+          originals.some(original => runtimeField(original, 0) === undefined ||
+            runtimeField(original, 1) === undefined)) {
+        throw new TypeError('Foreign Client original Infer preparation');
+      }
+      return Object.freeze(originals.map(original => Object.freeze({
+        graph: runtimeField(original, 0), execution: runtimeField(original, 1)})));
     },
     prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph, compilationOriginal) {
       if (!['values', 'tasks', 'infer', 'serialization'].includes(kind)) {

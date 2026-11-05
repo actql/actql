@@ -3280,6 +3280,7 @@
           "operations": [
             "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
             "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal",
+            "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
             "publicationControl/init:captureOriginalClientInferRun/init:captureOriginalClientInferRun",
             "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence"
           ],
@@ -3845,7 +3846,10 @@
         {
           "operations": [
             "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
-            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal"
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
+            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+            "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2"
           ],
           "exports": [],
           "attributes": {
@@ -8652,6 +8656,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal/init:admitStoredClientInferRunOriginal#2",
+          "parameters": [
+            "graph"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
           "parameters": [
             "preview",
@@ -9319,6 +9330,29 @@
             "compiled",
             "checkedProgram",
             "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+          "parameters": [
+            "compiled",
+            "checkedProgram",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals/init:checkedClientCompiledInferOriginals#2",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -14741,7 +14775,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "275fbabcbba37c8434fc22309e2e0c974a83dc1062fe118e6e8e6ea64aab7e67"
+      "sha256": "480138df54557fe1b9547fb6ee56979e156134ef569204e9ec33dc09c74a20fa"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",

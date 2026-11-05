@@ -16068,6 +16068,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/keyedDescriptors/keyedDescriptors",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupCancellation/lookupCancellation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupHeld/lookupHeld",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelSourceOccurrence/modelSourceOccurrence",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/observeOwners/observeOwners/observeOwners",
@@ -16092,6 +16093,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/selection/selection#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareKeyedSources/prepareKeyedSources",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/projectRunObservation/projectRunObservation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/reconcile/reconcile",
@@ -16101,6 +16103,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/components/components",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/graph/graph",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
@@ -16125,6 +16128,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runIdOf/runIdOf",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runPlan/runPlan",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/settleHeldRun/settleHeldRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sourceInventory/sourceInventory",
@@ -16219,10 +16223,7 @@
             "sameEmbeddedInstallation",
             "sameEmbeddedInstallation/sameEmbeddedInstallation",
             "validateSourceNamespace",
-            "validateValuesMaxRows",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/serializationGraph/serializationGraph#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelSourceOccurrence/modelSourceOccurrence",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer#3"
+            "validateValuesMaxRows"
           ],
           "exports": [
             "connectEmbeddedLocal",
@@ -19648,9 +19649,17 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/graph/graph",
           "parameters": [
             "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf",
+          "parameters": [
+            "component",
+            "index"
           ],
           "async": false
         },
@@ -22322,7 +22331,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "7c79a06bad47adf62b1d89fb1de2200ad68cc57822113309af7d0d4a038c0412"
+      "sha256": "00b9b5ab4e2eda6721e6316dc2c27983b4d83b2d4b72df442ea67dd60640f5ca"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
@@ -23270,7 +23279,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "1ff653b26794e4a2d0cbf7db49c747c267228d88d7fce02df6cfa94418fe8fec",
+      "sha256": "da85ef35ee43bcbc429290e159f97860e17d332ed931a0ba31a38c477ab4efc0",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -23289,6 +23298,7 @@
         "prepareTimedClientInvocation",
         "restoreInferTaskRunAdmission",
         "selectInstalledSerializationGraph",
+        "selectRestoredInferOccurrence",
         "serializationTaskPublicationPlan",
         "serializationTaskRunAdmission",
         "sourceFreeContentEffectPublicationPlan",
@@ -23707,6 +23717,14 @@
           "async": false
         },
         {
+          "name": "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "retainOriginalPlan",
           "parameters": [
             "plan",
@@ -23730,6 +23748,32 @@
           "parameters": [
             "options",
             "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "restored",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence/selected/selected",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
+          "parameters": [
+            "original",
+            "index"
           ],
           "async": false
         },
@@ -24329,10 +24373,15 @@
         },
         {
           "operations": [
-            "restoreInferTaskRunAdmission"
+            "restoreInferTaskRunAdmission",
+            "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
+            "selectRestoredInferOccurrence",
+            "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
+            "selectRestoredInferOccurrence/selected/selected"
           ],
           "exports": [
-            "restoreInferTaskRunAdmission"
+            "restoreInferTaskRunAdmission",
+            "selectRestoredInferOccurrence"
           ],
           "attributes": {
             "responsibility": [

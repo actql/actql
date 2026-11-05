@@ -42,7 +42,8 @@ pub fn issue_client_infer_run_materials(
   limits : ClientValuesRunMaterialsLimits,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
   guard compiled.compilation is Tasks(compilation) &&
-    !compilation.infers.is_empty() else {
+    !compilation.infers.is_empty() &&
+    compilation.serialization is None else {
     return Err(Binding(UnsupportedProgram))
   }
   if compilation.infers.length() > 1 {
@@ -50,9 +51,6 @@ pub fn issue_client_infer_run_materials(
       compiled, definition, environment, environment_wire, program, parameters_wire,
       limits,
     )
-  }
-  guard compilation.serialization is None else {
-    return Err(Binding(UnsupportedProgram))
   }
   let graph = compilation.infers[0]
   match

@@ -201,7 +201,7 @@ import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan, prepareTimedClientInvocation,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
   openSourceFreeEffectComputation,
-  acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, serializationTaskRunAdmission,
+  acquiredTaskRunAdmission, inferTaskRunAdmission, restoreInferTaskRunAdmission, selectRestoredInferOccurrence, serializationTaskRunAdmission,
   selectInstalledSerializationGraph} from
   './local-values-plan.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
@@ -2905,7 +2905,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (retain && occurrence !== undefined && inferSelections.has(preparedProgram)) return;
     const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
     const restoredInfer = restoredRun === undefined ? undefined
-      : control.checkedClientCompiledInferOriginal(restoredRun.compiled, preparedProgram, restoredRun.runDefinition);
+      : selectRestoredInferOccurrence({moon, control, preparedProgram, restored: restoredRun, occurrence});
     const originalCompilation = updateTargetOriginals?.compilationFor(preparedProgram);
     let originalInfer;
     if (originalCompilation !== undefined) {
@@ -3447,8 +3447,15 @@ async function openInstalledHost(originalInstallation, preparation) {
             break;
           }
         }
+        const restoredRun = prepareSubmit.originalInferRun(preparedProgram);
+        const graph = restoredRun?.graph ?? Object.freeze(components.map(component => component.graph));
+        if (!Array.isArray(graph) || graph.length !== components.length ||
+            components.some((component, index) => component.graph !== graph[index] ||
+              component.restoredRun !== restoredRun)) {
+          throw new TypeError('ForeignInstalledInferOriginalGraph');
+        }
         inferSelections.set(preparedProgram, Object.freeze({components, quantityCapacity, sourceCoordinates: modelCoordinates,
-          graph: Object.freeze(components.map(component => component.graph)),
+          ...(restoredRun === undefined ? {} : {restoredRun}), graph,
           egressFailure: components.find(component => component.egressFailure !== undefined)?.egressFailure}));
       }
     // The single occurrence can still belong to a multi-task/multi-Source
@@ -3662,11 +3669,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       issueDefinition: () => {
         held.plan = planFor(submission, undefined, requested);
         if (held.plan.kind === 'infer') {
-          // The existing codec currently represents one ordinary installed
-          // graph. Other live profiles keep their existing admission path;
-          // absence of this original is never cold reconstruction authority.
-          const originalInferRun = Array.isArray(held.plan.inferGraph) ||
-            held.plan.serializationGraph !== undefined ? undefined : (() => {
+          // Retain the complete original compiler inventory at first admission.
+          // Absence never authorizes a cold reconstruction or a new Source read.
+          const originalInferRun = held.plan.serializationGraph !== undefined ? undefined : (() => {
               const inputs = prepareSubmit.originalInputs(submission.preparedProgram);
               return control.captureOriginalClientInferRun(held.plan.compiled,
                 submission.preparedProgram, held.plan.runDefinition, requested,

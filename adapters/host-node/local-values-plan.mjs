@@ -641,20 +641,52 @@ export function inferTaskRunAdmission(options) {
 
 // Reuse the admitted original Run and its compiler-owned graph. This is not
 // fresh authorization, a new expiry, a replacement execution or a new Ledger.
+// Select metadata from this restored compiler's existing opaque inventory.
+// Coordinates identify the checked occurrence, never a new execution owner.
+export function selectRestoredInferOccurrence({moon, control, preparedProgram, restored, occurrence}) {
+  control.checkRestoredClientInferRunOwner(restored, preparedProgram);
+  if (!Array.isArray(restored.graph)) {
+    const original = control.checkedClientCompiledInferOriginal(
+      restored.compiled, preparedProgram, restored.runDefinition);
+    if (original.graph !== restored.graph) throw new TypeError('ForeignInstalledInferOriginalGraph');
+    return original;
+  }
+  const originals = control.checkedClientCompiledInferOriginals(
+    restored.compiled, preparedProgram, restored.runDefinition);
+  if (originals.length !== restored.graph.length || occurrence === undefined ||
+      originals.some((original, index) => original.graph !== restored.graph[index])) {
+    throw new TypeError('ForeignInstalledInferOriginalGraph');
+  }
+  const coordinates = moon.clientProgramInferOccurrenceCoordinates(occurrence);
+  const selected = originals.filter(original => {
+    const boundary = moon.clientProgramInferPlanBoundary(original.graph);
+    return runtimeField(boundary, 0) === runtimeField(coordinates, 0) &&
+      runtimeField(boundary, 1) === runtimeField(coordinates, 1);
+  });
+  if (selected.length !== 1) throw new TypeError('ForeignInstalledInferOriginalOccurrence');
+  return selected[0];
+}
+
 export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {
   control.checkRestoredClientInferRunOwner(restored, preparedProgram);
   if (restored.compiled.kind !== 'infer') {
     throw new TypeError('ForeignInstalledInferOriginalRun');
   }
   const {compiled, runDefinition} = restored;
-  const original = control.checkedClientCompiledInferOriginal(compiled, preparedProgram, runDefinition);
-  if (original.graph !== restored.graph) throw new TypeError('ForeignInstalledInferOriginalGraph');
+  const originals = Array.isArray(restored.graph)
+    ? control.checkedClientCompiledInferOriginals(compiled, preparedProgram, runDefinition)
+    : [control.checkedClientCompiledInferOriginal(compiled, preparedProgram, runDefinition)];
+  const graphs = Array.isArray(restored.graph) ? restored.graph : [restored.graph];
+  if (originals.length !== graphs.length ||
+      originals.some((original, index) => original.graph !== graphs[index])) {
+    throw new TypeError('ForeignInstalledInferOriginalGraph');
+  }
   const queryInvocation=prepareQueryInvocation(control,preparedProgram,requestIdentity,
     JSON.parse(runDefinition.wire));
   const queryTime=bindQueryInvocation(control,queryInvocation,preparedProgram,compiled,runDefinition);
   return Object.freeze({...compiled, compiled, runDefinition,
     ...queryTime,
-    createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: original.graph});
+    createdAt: JSON.parse(runDefinition.wire).created_at, inferGraph: restored.graph});
 }
 
 // Select the original checked Content occurrence, not a second parsed Program

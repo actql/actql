@@ -7,6 +7,7 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 function fixture({sourceFree = false, missing = false} = {}) {
   const prepared = {}, request = {}, environment = {}, graph = {}, raw = {}, definitionToken = {};
   const restoredPrepared = {}, restoredGraph = {}, restoredRaw = {}, materials = {};
+  const restoredGraphs = [restoredGraph, {}], restoredExecutions = [{}, {}];
   const policy = Object.freeze({kind: 'data_policy', cid: sourceFree ? 'legacy-policy' : 'original-source-policy',
     wire: sourceFree ? '{"unknown_provenance":true}' : '{"classification":"internal","original_source":true}'});
   const tuple = value => value === undefined ? undefined : {_0: value.kind, _1: value.cid, _2: value.wire};
@@ -68,7 +69,8 @@ function fixture({sourceFree = false, missing = false} = {}) {
   const restore = saved => control.admitStoredClientInferRunOriginal(saved, definition, request, evidence,
     [false, false, true, false, false, false, false], limits);
   return {control, moon, policy, original, capture, restore, definition, request, prepared, compiled,
-    restoredPrepared, restoredGraph, evidence, counts: () => ({issues, restores, strictReads, binds})};
+    restoredPrepared, restoredGraph, restoredGraphs, restoredExecutions, restoredRaw, evidence,
+    counts: () => ({issues, restores, strictReads, binds})};
 }
 
 test('Source-backed Infer captures and restores the original complete checked policy without source-free admission', () => {
@@ -124,4 +126,41 @@ test('policy projection still refuses copied compilation and foreign original re
   const saved = f.control.originalInferRunAdmissionEvidence(selected, f.definition, f.request, f.evidence);
   assert.throws(() => f.control.admitStoredClientInferRunOriginal(saved, f.definition, {}, f.evidence,
     [false, false, true, false, false, false, false], {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 64}), /Foreign/u);
+});
+
+test('plural saved Infer preserves each opaque graph and execution in a copied ordered inventory', () => {
+  const f = fixture();
+  f.moon.clientProgramInferRunMaterialsGraphs = () => f.restoredGraphs;
+  f.moon.clientProgramCompiledInferOriginals = (raw, prepared) => {
+    assert.strictEqual(raw, f.restoredRaw);
+    return prepared === f.restoredPrepared
+      ? f.restoredGraphs.map((graph, index) => ({_0: graph, _1: f.restoredExecutions[index]})) : undefined;
+  };
+  const restored = f.restore(f.original());
+  assert.ok(Object.isFrozen(restored.graph));
+  assert.notStrictEqual(restored.graph, f.restoredGraphs);
+  assert.deepEqual(restored.graph, f.restoredGraphs);
+  const originals = f.control.checkedClientCompiledInferOriginals(
+    restored.compiled, f.restoredPrepared, f.definition);
+  assert.ok(Object.isFrozen(originals));
+  originals.forEach((original, index) => {
+    assert.ok(Object.isFrozen(original));
+    assert.strictEqual(original.graph, f.restoredGraphs[index]);
+    assert.strictEqual(original.execution, f.restoredExecutions[index]);
+  });
+  f.restoredGraphs.push({});
+  assert.equal(restored.graph.length, 2, 'the Core projection cannot mutate retained outer membership');
+  assert.equal(originals.length, 2);
+  assert.throws(() => f.control.checkedClientCompiledInferOriginals(
+    {...restored.compiled}, f.restoredPrepared, f.definition), /Foreign/u);
+  assert.throws(() => f.control.checkedClientCompiledInferOriginals(
+    restored.compiled, {}, f.definition), /Foreign/u);
+});
+
+test('saved Infer rejects missing, empty and oversized graph inventories before retaining a restored owner', () => {
+  const f = fixture(), saved = f.original();
+  for (const graphs of [undefined, [], [undefined], [null], Array(129).fill({})]) {
+    f.moon.clientProgramInferRunMaterialsGraphs = () => graphs;
+    assert.throws(() => f.restore(saved), /Foreign Client original Infer materials/u);
+  }
 });

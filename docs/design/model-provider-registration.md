@@ -369,12 +369,19 @@ same-Run recovery, a physical Model supplier, permission or whole-phase funding.
 
 ### Original INFER materials in the installed Host
 
-First admission of the ordinary single installed INFER graph captures the
+First admission of the ordinary installed INFER graphs captures the
 Environment and serialized Parameter Values actually used by its preparation.
 The existing preparation membership retains these immutable original inputs;
 current project/provider defaults are not substituted when issuing its saved
 Run materials. The opaque first-admission ticket enters the existing request
 Journal transaction with the same prepared/authorization evidence and Run.
+
+Plural materials retain the compiler's complete ordered graph inventory. The
+Host copies only its outer membership and keeps each opaque graph and execution
+original. Selection checks that inventory against the same restored compiler
+and checked occurrence; it cannot issue a fresh preparation, change the saved
+Definition or authorize an unfunded read. Restored planning retains the same
+outer inventory, rather than constructing an equal-looking replacement.
 
 After the original Model input custody is authenticated, the Host reads the
 request identity, Definition and material evidence from that same Journal.
