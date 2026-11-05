@@ -1883,16 +1883,17 @@ test('cold Model Source selection consumes the same restored Request without an 
   await f.view.close();
 });
 
-async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate} = {}) {
+async function recoveryReadFixture({readFailure, failRead = false, afterScopes, validate, ledgerFloor = [7n,9n], expectedModel = [11n,13n]} = {}) {
   const f = await restoredModelRecoveryFixture({validate}), scope = {}, read = {}, bounds = {}, savedScope = {}, events = [];
   const budget = Object.freeze({modelRetainedBytes: 11n, modelExecutionBytes: 13n,
     readRetainedBytes: 7n, readExecutionBytes: 5n, maxReservations: 20, maxHoldings: 20, maxDelegations: 20});
+  f.moon.clientProgramComposedInferModelLedgerBytes = original => {assert.equal(original,bounds);return ledgerFloor;};
   const selection = Object.freeze({graph: f.graph, restoredRun: f.restored});
   const control = {
     reserveCheckedClientRequestModelRecoveryMaterials: f.control.reserveCheckedClientRequestModelRecoveryMaterials,
     prepareCheckedClientRequestModelRecoveryReadScopes(...args) {
       assert.deepEqual(args, [f.parent, f.recovery.receipt, f.identity, f.definition, f.prepared, f.compiled,
-        [f.graph], [bounds], [11n], [13n], [7n], [5n], 20, 20, 20, undefined]);
+        [f.graph], [bounds], [expectedModel[0]], [expectedModel[1]], [7n], [5n], 20, 20, 20, undefined]);
       events.push('same parent Scope'); return [scope];
     },
     prepareCheckedClientInferOriginalRead(compiled, definition, graph, actualScope, actualBudget) {
@@ -2051,5 +2052,18 @@ test('cold Model recovery reserves and projects the same original native Definit
     assert.deepEqual(f.view.modelSourceCoordinates(f.prepared,f.request),[[3,1,0]]);
     assert.equal(f.view.modelRecoveryLedger(f.prepared,f.request),ledger);
     assert.equal(f.events.filter(Array.isArray).length,2,'Reserve material and coordinates with the same native Definition');
+  } finally {f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();}
+});
+
+
+test('cold Model recovery retains stored Model ledger floor separately from unchanged legacy read allowances', async () => {
+  const f = await recoveryReadFixture({ledgerFloor:[17n,19n],expectedModel:[17n,19n]});
+  try {
+    const original = f.prepare(); original.retain();
+    assert.equal(original.modelRetainedBytes,11n,'Existing read-side Model allowance stays unchanged');
+    assert.equal(original.modelExecutionBytes,13n);
+    assert.equal(f.model.budget.modelRetainedBytes,11n);
+    assert.equal(f.model.budget.modelExecutionBytes,13n);
+    assert.equal(await original.retire(),true);
   } finally {f.view.finishSourceProducer(f.recovery.receipt,'returned');await f.view.close();}
 });

@@ -614,11 +614,24 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
             recovery.model !== model) fail('ForeignInstalledSourceProducer');
       };
       try {
+        // The legacy nine-field suffix describes read-side allowances, not
+        // the selected Model Ledger floor. Preserve both originals: Scope
+        // admission uses the stored floor or larger installed envelope, while
+        // the existing Read view keeps its original budget unchanged.
+        const projectModel = moon.clientProgramComposedInferModelLedgerBytes;
+        if (typeof projectModel !== 'function') fail('NodeManagedRunRuntimeUnavailable');
+        const modelRetained = [], modelExecution = [];
+        for (const member of members) {
+          const floor = Reflect.apply(projectModel, moon, [member.selectedBounds]);
+          if (!Array.isArray(floor) || floor.length !== 2 ||
+              floor.some(value => typeof value !== 'bigint' || value < 0n)) fail('InvalidHostRuntimeResult');
+          modelRetained.push(member.budget.modelRetainedBytes > floor[0] ? member.budget.modelRetainedBytes : floor[0]);
+          modelExecution.push(member.budget.modelExecutionBytes > floor[1] ? member.budget.modelExecutionBytes : floor[1]);
+        }
         const scopes = control.prepareCheckedClientRequestModelRecoveryReadScopes(
           state.parent, producer.receipt, recovery.request, definition, prepared, compiled, graphs,
           members.map(member => member.selectedBounds),
-          members.map(member => member.budget.modelRetainedBytes),
-          members.map(member => member.budget.modelExecutionBytes),
+          modelRetained, modelExecution,
           members.map(member => member.budget.readRetainedBytes),
           members.map(member => member.budget.readExecutionBytes),
           budget.maxReservations, budget.maxHoldings, budget.maxDelegations,
