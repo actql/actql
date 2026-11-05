@@ -263,6 +263,7 @@ fn[I] prepare_request_models_plan_owned(
   }
   let mut r = 0L
   let mut e = 0L
+  let mut bindings = 0L
   for index, graph in graphs {
     if !physical_equal(retained_graphs[index], graph) ||
       !physical_equal(compilation.infers[index], graph) ||
@@ -295,9 +296,39 @@ fn[I] prepare_request_models_plan_owned(
       is Some(next_e) else {
       return Err(InsufficientCapacity)
     }
+    guard @execution.checked_preparation_add_product(
+        bindings,
+        1L,
+        if @publication_host.client_infer_occurrence_terminal(
+            occurrences[index],
+          ) {
+          1L
+        } else {
+          2L
+        },
+      )
+      is Some(next_bindings) else {
+      return Err(InsufficientCapacity)
+    }
+    bindings = next_bindings
     models = next
     r = next_r
     e = next_e
+  }
+  // The original module already owns its complete configured Local driver.
+  // Reuse the single-Model charge calculation across ALL checked bindings;
+  // the raw whole-Run planning ceiling is not construction work per group.
+  let configuration = match (source_free, captured) {
+    (Some(original), None) => original.configuration.unwrap()
+    (None, Some(original)) => original.configuration
+    _ => return Err(ForeignOriginal)
+  }
+  let compute_limits = match
+    installed_mock_models_compute_limits(
+      configuration, compute_limits, bindings,
+    ) {
+    None => return Err(InsufficientCapacity)
+    Some(value) => value
   }
   // One module demand, every original concurrent child, one bootstrap.
   guard installed_model_demand_limits(models, r, e, bootstrap~) is Some(models) &&

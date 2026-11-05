@@ -39,6 +39,12 @@ once. A Source capture retains the original checked Direct Stage/input/task
 coordinates from preparation through acquisition and execution. Occurrence order
 is not a substitute for Stage or input coordinates.
 
+Singles and complete groups project configured Local planning demand through
+the same offer/search/revision calculation. A group supplies all checked
+input/output binding occurrences; the module policy ceiling is not added as
+mandatory work. Original per-Model budgets and actual cumulative charges on
+the same Ledger remain unchanged, including after retirement.
+
 A native Query Source shared by several Model occurrences keeps its original
 Source reference, database/table and admitted protocol bodies on that same
 module. The indexed typed component callback retains each original Model input

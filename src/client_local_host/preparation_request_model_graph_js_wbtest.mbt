@@ -3122,6 +3122,10 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
       direct,
     ),
   )
+  let prior_work = @resources.ledger_usage(parent.ledger).planning_work
+  if native {
+    @resources.charge_planning(parent.ledger, 7).unwrap()
+  }
   let plan = prepare_request_models_capture_plan(
     parent,
     input,
@@ -3143,6 +3147,14 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
   )
   assert_true(plan.source_free is None)
   assert_eq(plan.limits.attempts, selected.limits.attempts + 8)
+  if native {
+    let initial = client_local_preparation_initial_limits(
+      client_local_resource_policy(),
+    ).unwrap()
+    // The same finite Local charge path must serve a complete Model group;
+    // its whole-Run policy ceiling is not a per-binding work requirement.
+    assert_true(plan.limits.planning_work <= initial.planning_work)
+  }
   let scopes = prepare_request_models_read_scopes(parent, input, plan).unwrap()
   complete_request_model_preparation(parent, input, plan).unwrap()
   assert_false(@resources.return_preparation_body_borrow(holder).unwrap())
@@ -3176,6 +3188,12 @@ fn request_captured_models_original_case(native : Bool) -> Unit raise {
   }
   retire_installed_managed_run(run).unwrap()
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
+  if native {
+    assert_eq(
+      @resources.ledger_usage(parent.ledger).planning_work,
+      prior_work + 7,
+    )
+  }
 }
 
 ///|
