@@ -4834,7 +4834,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "fbfa8b987ea12028f6ea2034494a727af9be7970f065b423e563649df666bb30",
+      "sha256": "f9692317cec85319d68903b9d07c6449542cf2c63cb5315919221dde95274dbb",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -21712,7 +21712,20 @@
         {
           "name": "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
           "parameters": [
-            "controlWireBytes"
+            "controlWireBytes",
+            "previewBytes",
+            "previewNodes",
+            "previewDepth",
+            "recoveryBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
+          "parameters": [
+            "previewWire",
+            "recovery",
+            "memberIndex"
           ],
           "async": false
         },
@@ -21792,7 +21805,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "c62216fed3f57da583773117d9c1b089d933b690122eacc2017884140a211840",
+      "sha256": "34579ab00dd39c2d1c0ff42e43dce0b83b7267c03c7f8915c998d61986acd3cc",
       "contracts": [
         {
           "operations": [
@@ -22079,6 +22092,7 @@
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe",
             "prepareInstalledPhysicalWritePlanRecipe/prepareInstalledPhysicalWritePlanRecipe#2",
             "prepareInstalledPhysicalWritePlanRecipe/quote/quote",
+            "prepareInstalledPhysicalWritePlanRecipe/recoveryInputExtent/recoveryInputExtent",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected",
             "prepareInstalledPhysicalWritePlanRecipe/selected/selected/selected"
           ],

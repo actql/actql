@@ -918,11 +918,11 @@ test('managed Salesforce read handoff retains exact issuer originals across memb
   assert.equal(calls.length, 2, 'consumed original never grants another operation');
 });
 
-function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false} = {}) {
+function recoveredConstructorFixture({refuseSecond = false, failure = false, capturedAlready = false, pendingRetire = false, input = false} = {}) {
   const parent = {}, prepared = {}, request = {}, plan = {}, events = [], children = [];
   const members = [{memberIndex: 0}, {memberIndex: 1}], active = new Set(), tokens = [];
   let aliasesRetired = false, constructions = 0, retirePending = pendingRetire;
-  const owners = [{}, {}];
+  const owners = [{}, {}], inputExtents = [{}, {}];
   const original = Object.freeze({entries: Object.freeze([[], []]), currents: Object.freeze([{}, {}])});
   const runtime = {
     clientProgramInstalledEffectManagedOperationPlan: () => ({$tag: 1, _0: plan}),
@@ -938,6 +938,12 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
       assert.equal(tokens.length, 2, 'every original member is retained before any constructor');
       active.add(token.member);events.push(`begin-${token.member}`);return {$tag: 1, _0: undefined};
     },
+    clientProgramInstalledEffectOperationInputBegin(token, selected) {
+      assert.equal(tokens.length, 2, 'all original members precede selecting any input');
+      assert.strictEqual(selected, inputExtents[token.member]);
+      active.add(token.member);events.push(`input-${token.member}`);
+      return {$tag: 1, _0: undefined};
+    },
     clientProgramInstalledEffectOperationConstructionComplete(token) {
       assert(active.has(token.member));active.delete(token.member);events.push(`complete-${token.member}`);
       return {$tag: 1, _0: undefined};
@@ -950,9 +956,13 @@ function recoveredConstructorFixture({refuseSecond = false, failure = false, cap
   const run = {runtime, value: parent, prepared, request, operationPlan: plan,
     controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
     readPlan: runtime.clientProgramInstalledEffectManagedOperationPlan};
-  const recipe = {captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1},
-    memberOperations: [{operation: 'capture'}, {operation: 'capture'}]};
-  const facts = {members, body: {}, durable: {}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
+  const recipe = {captureConstruction: {operationIndex: 0}, recoveryConstruction: {operationIndex: 1,
+    ...(input ? {inputExtent(wire, recovery, memberIndex) {
+      assert.equal(wire, facts.previewWire); assert.strictEqual(recovery, facts.durable.connectorRecovery);
+      assert.strictEqual(members[memberIndex].memberIndex, memberIndex);
+      events.push(`select-${memberIndex}`); return inputExtents[memberIndex];
+    }} : {})}, memberOperations: [{operation: 'capture'}, {operation: 'capture'}]};
+  const facts = {members, body: {}, durable: {connectorRecovery: []}, recorded: {}, previewWire: 'unchanged', runInvocationCid: 'run', dispatches: ['a', 'b']};
   const actual = expression('prepareRecoveredEntries', {moon: runtime, recipeOf: () => recipe, fail,
     ownerOf: member => owners[member.memberIndex], sameValue: same,
     validateRecoveredEntries(input, entries) {assert.strictEqual(input.body, facts.body);assert.strictEqual(entries, original.entries);events.push('recheck');},
@@ -1073,4 +1083,17 @@ test('hot recovery checks the original live parent after closed or replaced Requ
     assert.throws(f.invoke,{code:'ForeignInstalledEffectManagedRun'});
     assert.equal(f.run.recoveredRequestInput.borrowers,0);assert.equal(f.constructions(),1);
   }
+});
+
+
+test('cold reconstruction selects each actual saved member input before that same constructor starts', async () => {
+  const f = recoveredConstructorFixture({input: true});
+  assert.strictEqual(f.invoke(), f.original);
+  assert.equal(f.constructions(), 1);
+  assert.deepEqual(f.events, ['retain-0', 'retain-1', 'select-0', 'input-0',
+    'select-1', 'input-1', 'rebuild', 'complete-1', 'complete-0']);
+  f.retire();
+  for (const child of f.children) await child.prepared.release();
+  assert.equal(f.finalRetire(), true);
+  assert.deepEqual(f.events.slice(-2), ['retire-0', 'retire-1']);
 });

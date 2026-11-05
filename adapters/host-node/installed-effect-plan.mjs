@@ -181,12 +181,14 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
     moon.clientProgramComposeInstalledSourceConstructionCapacity(provider, [physicalConstruction]));
   const controlEntryBytes = checked(moon.clientProgramInstalledEffectControlWireBound(
     limits.maxOutcomeBytes, effectLedgerImplementationBounds.maxEntryBytes));
-  const quote = controlWireBytes => checked(Reflect.apply(requestConstruction === undefined
+  const quote = (controlWireBytes, previewBytes = inputLimits.preview.maxWireBytes,
+    previewNodes = inputLimits.preview.maxNodes, previewDepth = inputLimits.preview.maxDepth,
+    recoveryBytes = limits.maxRecoveryBytes) => checked(Reflect.apply(requestConstruction === undefined
     ? moon.clientProgramInstalledPhysicalWriteRecipeCapacities
     : moon.clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest, moon, [
     inputLimits.body.maxBytes, inputLimits.body.maxNodes, inputLimits.body.maxDepth,
-    inputLimits.preview.maxWireBytes, inputLimits.preview.maxNodes, inputLimits.preview.maxDepth,
-    limits.maxRequestBytes, limits.maxRecoveryBytes, limits.maxResponseBytes,
+    previewBytes, previewNodes, previewDepth,
+    limits.maxRequestBytes, recoveryBytes, limits.maxResponseBytes,
     Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
     effectLedgerImplementationBounds.maxOutcomeNodes, effectLedgerImplementationBounds.maxOutcomeDepth,
     physical, controlWireBytes, ...(requestConstruction === undefined ? [] : [requestConstruction])]));
@@ -196,6 +198,41 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
   }
   const captureOperation = operation + '.capture', requestOperation = operation + '.request';
   const capture = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation, quantities));
+  // Cold reconstruction already owns these authenticated immutable inputs.
+  // Select their actual wire envelope on the SAME staged constructor before
+  // the provider rebuilds requests; retain the original full maximum as a bound.
+  const recoveryInitial = checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(
+    captureOperation, quote(controlEntryBytes, 1, 1, 1, 1)));
+  const recoveryExtent = checked(moon.clientProgramInstalledEffectOperationStagedExtentPrepare(
+    recoveryInitial, capture));
+  const recoveryInputExtent = (previewWire, recovery, memberIndex) => {
+    if (typeof previewWire !== 'string' || !previewWire.isWellFormed() ||
+        !Array.isArray(recovery) || !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+      fail('InstalledPhysicalWriteConstructionUnavailable');
+    }
+    const previewBytes = Buffer.byteLength(previewWire);
+    if (previewBytes < 1 || previewBytes > inputLimits.preview.maxWireBytes) {
+      fail('InstalledPhysicalWriteConstructionUnavailable');
+    }
+    let recoveryBytes = 1;
+    for (const entry of recovery) {
+      if (entry?.memberIndex !== memberIndex) continue;
+      if (typeof entry.wire !== 'string' || !entry.wire.isWellFormed()) {
+        fail('InstalledPhysicalWriteConstructionUnavailable');
+      }
+      const bytes = Buffer.byteLength(entry.wire);
+      if (bytes < 1 || bytes > limits.maxRecoveryBytes) fail('InstalledPhysicalWriteConstructionUnavailable');
+      recoveryBytes = Math.max(recoveryBytes, bytes);
+    }
+    // Every JSON node/nesting level occupies an original UTF-8 byte. The
+    // saved decoder's existing node/depth limits remain additional bounds;
+    // no second parse or serialization is needed to quantify this constructor.
+    const bytes = Math.max(previewBytes, recoveryBytes);
+    return checked(moon.clientProgramInstalledEffectCaptureRecipeExtentPrepare(captureOperation,
+      quote(controlEntryBytes, previewBytes, Math.min(bytes, inputLimits.preview.maxNodes),
+        Math.min(bytes, inputLimits.preview.maxDepth), recoveryBytes)));
+  };
+
   const extent = (name, capacity, transfer, physical) => checked(
     moon.clientProgramInstalledEffectOperationExtentFromCapacityPrepare(name, capacity, transfer, physical));
   const rowOperations = [
@@ -215,12 +252,12 @@ export function prepareInstalledPhysicalWritePlanRecipe({moon, operation, inputL
   }
   return captureInstalledEffectPlanRecipe(Object.freeze({
     memberOperations: Object.freeze([Object.freeze({operation: captureOperation, extent: capture}),
-      Object.freeze({operation: captureOperation, extent: capture})]),
+      Object.freeze({operation: captureOperation, extent: recoveryExtent})]),
     rowOperations: Object.freeze(rowOperations),
     ...(ownedReadOperations === undefined ? {} : {ownedReadOperations}),
     savedControlCodec: Object.freeze({maxEntryBytes: controlEntryBytes, fallbackCapacity: fallback[4]}),
     controlsPerRow: quantities[4], captureConstruction: Object.freeze({operationIndex: 0}),
-    recoveryConstruction: Object.freeze({operationIndex: 1}),
+    recoveryConstruction: Object.freeze({operationIndex: 1, inputExtent: recoveryInputExtent}),
     requestConstruction: Object.freeze({operationIndex: 0}),
     physicalWrite: Object.freeze({operationIndex: 1, transferBytes: BigInt(limits.maxTransferBytes)}),
   }), rowOperations.length + 2);

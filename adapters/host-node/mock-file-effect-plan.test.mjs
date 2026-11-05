@@ -170,6 +170,7 @@ test('non-HTTP target phases have distinct original constructor slots and reject
     clientProgramInstalledEffectControlWireBound: () => ({$tag: 1, _0: 1024}),
     clientProgramInstalledPhysicalWriteRecipeCapacitiesWithRequest: () => ({$tag: 1, _0: capacities}),
     clientProgramInstalledEffectCaptureRecipeExtentPrepare: () => ({$tag: 1, _0: {}}),
+    clientProgramInstalledEffectOperationStagedExtentPrepare: (initial, maximum) => ({$tag: 1, _0: {initial, maximum}}),
     clientProgramInstalledEffectOperationExtentFromCapacityPrepare: () => ({$tag: 1, _0: {}}),
   };
   const zero = Object.freeze({nodes: 0n, text: 0n, wire: 0n});
