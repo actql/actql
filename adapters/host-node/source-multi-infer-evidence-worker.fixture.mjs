@@ -47,7 +47,7 @@ function captureSinkWithCompletion(original, targets) {
       assert.ok(completion, 'Only the two declared Evidence targets are observed');
       let committed;
       try {committed = await original.lookup(subject, target);}
-      catch (cause) {if (cause.code !== 'EvidenceOriginalMissing') throw cause;}
+      catch (cause) {if (cause?.code !== 'EvidenceOriginalMissing') throw cause;}
       if (committed !== undefined && !completion.started) return committed;
       assert.deepEqual(await completion.promise, subject);
       return original.lookup(subject, target);
