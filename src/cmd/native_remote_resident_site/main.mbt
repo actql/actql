@@ -3335,7 +3335,10 @@ fn serve_holder_output(
                 ) {
                 Ok(value) => value
                 Err(_) => {
-                  report("consumer-refused", [("reason", "materials")])
+                  report("consumer-refused", [
+                    ("reason", "materials"),
+                    ("boundary", "execution-family"),
+                  ])
                   continue
                 }
               }
@@ -3361,7 +3364,10 @@ fn serve_holder_output(
                 }) {
                 Ok(value) => value
                 Err(_) => {
-                  report("consumer-refused", [("reason", "retained-input")])
+                  report("consumer-refused", [
+                    ("reason", "retained-input"),
+                    ("boundary", "producer-route"),
+                  ])
                   continue
                 }
               }
@@ -3402,7 +3408,10 @@ fn serve_holder_output(
                 }) {
                 Ok(value) => value
                 Err(_) => {
-                  report("consumer-refused", [("reason", "retained-input")])
+                  report("consumer-refused", [
+                    ("reason", "retained-input"),
+                    ("boundary", "consumer-preparation"),
+                  ])
                   continue
                 }
               }
@@ -3414,7 +3423,10 @@ fn serve_holder_output(
               )
               guard remember_holder_successor(tasks, order, producer, candidate)
                 is Some(task) else {
-                report("consumer-refused", [("reason", "retained-input")])
+                report("consumer-refused", [
+                  ("reason", "retained-input"),
+                  ("boundary", "successor-custody"),
+                ])
                 continue
               }
               match

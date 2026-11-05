@@ -26,19 +26,19 @@ test('Resident consumer diagnostics preserve the original refusal under relay no
     node.id.name==='residentConsumerFailureSummary');
   assert(declaration);
   const summarize=Function(`return (${source.slice(declaration.start,declaration.end)});`)();
-  const refused={kind:'consumer-refused',reason:'retained-input',request_cid:'private-request',
+  const refused={kind:'consumer-refused',reason:'retained-input',boundary:'producer-route',request_cid:'private-request',
     body:'private-frame',message:'private-message'};
   const lines=[{kind:'holder-input-frame',operation:'retained-plan'},
     {kind:'holder-input-frame',operation:'consumer',holder_request_cid:'private-holder'},refused,
     ...Array.from({length:1000},()=>({kind:'consumer-relayed',sent:'false',request_cid:'private-request'})),
-    {kind:'consumer-accept-pending',reason:'private-provider-message'},
+    {kind:'consumer-accept-pending',reason:'private-provider-message',boundary:'private-frame'},
     {kind:'private-event',reason:'private-provider-message'}];
   const original=JSON.stringify(lines);
   assert.deepEqual(summarize(lines),[
     {kind:'holder-input-frame',operation:'consumer',count:1},
-    {kind:'consumer-refused',reason:'retained-input',count:1},
+    {kind:'consumer-refused',reason:'retained-input',boundary:'producer-route',count:1},
     {kind:'consumer-relayed',sent:false,count:1000},
-    {kind:'consumer-accept-pending',reason:'unselected',count:1},
+    {kind:'consumer-accept-pending',reason:'unselected',boundary:'unselected',count:1},
   ]);
   assert.equal(JSON.stringify(lines),original);
   assert.equal(JSON.stringify(summarize(lines)).includes('private-'),false);

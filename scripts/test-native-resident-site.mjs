@@ -79,6 +79,8 @@ function residentConsumerFailureSummary(lines) {
       'foreign-source', 'unsupported-task', 'not-current', 'queue-full']
       .flatMap(reason => [reason, 'refused-' + reason])]);
   const selected = new Map();
+  const boundaries = new Set(['execution-family', 'producer-route',
+    'consumer-preparation', 'successor-custody']);
   for (const line of lines) {
     if (!kinds.has(line?.kind)) continue;
     if (line.kind === 'holder-input-frame' && line.operation !== 'consumer') continue;
@@ -87,6 +89,7 @@ function residentConsumerFailureSummary(lines) {
     if (line.kind === 'consumer-relayed') value.sent = line.sent === 'true' ? true
       : line.sent === 'false' ? false : 'unselected';
     if (line.reason !== undefined) value.reason = reasons.has(line.reason) ? line.reason : 'unselected';
+    if (line.boundary !== undefined) value.boundary = boundaries.has(line.boundary) ? line.boundary : 'unselected';
     const key = JSON.stringify(value), previous = selected.get(key);
     if (previous) previous.count++;
     else selected.set(key, {...value, count: 1});
